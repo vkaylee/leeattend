@@ -1,6 +1,7 @@
 pub mod agent_service;
 pub mod attendance_adjustment_service;
 pub mod attendance_calculator;
+pub mod attendance_utils;
 pub mod attendance_import_service;
 pub mod auth_service;
 pub mod employee_service;

@@ -1113,7 +1113,9 @@
       "total_absent": "总缺勤",
       "last_7_days": "最近7天",
       "last_30_days_range": "最近30天",
-      "custom_range": "自定义"
+      "custom_range": "自定义",
+      "group_by_department": "按部门",
+      "group_by_employee": "按员工"
     },
     "system": {
       "total_agents": "代理总数",

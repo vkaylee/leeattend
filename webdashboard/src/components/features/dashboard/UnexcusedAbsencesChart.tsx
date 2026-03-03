@@ -8,13 +8,13 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Legend,
 } from "recharts";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, Building2, Users } from "lucide-react";
 import { useUnexcusedAbsences } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
 type RangePreset = "7d" | "30d" | "custom";
+type GroupBy = "department" | "employee";
 
 function formatDate(d: Date): string {
     return d.toISOString().slice(0, 10);
@@ -22,7 +22,6 @@ function formatDate(d: Date): string {
 
 const COLORS = {
     unexcused: "#ef4444",
-    excused: "#6366f1",
     consecutive: "#f97316",
 };
 
@@ -41,10 +40,7 @@ function CustomTooltip({ active, payload, label }: any) {
                     <span className="text-red-500 font-semibold">{t("dashboard.hr.unexcused")}</span>
                     <span className="font-bold text-slate-700 dark:text-slate-200">{data?.unexcused_count ?? 0}</span>
                 </div>
-                <div className="flex justify-between text-[11px]">
-                    <span className="text-indigo-500 font-semibold">{t("dashboard.hr.excused_leave")}</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-200">{data?.total_leave_count ?? 0}</span>
-                </div>
+
                 <div className="flex justify-between text-[11px]">
                     <span className="text-orange-500 font-semibold">{t("dashboard.hr.consecutive_days")}</span>
                     <span className="font-bold text-slate-700 dark:text-slate-200">{data?.consecutive_count ?? 0}</span>
@@ -61,6 +57,7 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function UnexcusedAbsencesChart() {
     const { t } = useTranslation();
     const [preset, setPreset] = useState<RangePreset>("7d");
+    const [groupBy, setGroupBy] = useState<GroupBy>("department");
 
     const { startDate, endDate } = useMemo(() => {
         const now = new Date();
@@ -80,23 +77,30 @@ export default function UnexcusedAbsencesChart() {
         return { startDate: formatDate(s), endDate: formatDate(now) };
     }, [preset]);
 
-    const { data, isLoading } = useUnexcusedAbsences(startDate, endDate);
+    const { data, isLoading } = useUnexcusedAbsences(startDate, endDate, groupBy);
 
-    const chartData = (data ?? []).map((d) => ({
-        ...d,
-        name: d.department_name,
-    }));
+    const chartData = (data ?? [])
+        .map((d) => ({
+            ...d,
+            name: groupBy === "employee" ? (d.employee_name ?? d.department_name) : d.department_name,
+            remaining_unexcused: Math.max(0, d.unexcused_count - d.consecutive_count),
+        }))
+        .filter((d) => d.unexcused_count >= 1);
 
-    const hasData =
-        chartData.length > 0 &&
-        chartData.some(
-            (d) => d.unexcused_count > 0 || d.total_leave_count > 0 || d.total_absent_count > 0
-        );
+    const hasData = chartData.length > 0 && chartData.some((d) => d.unexcused_count > 0);
 
     const presets: { key: RangePreset; label: string }[] = [
         { key: "7d", label: t("dashboard.hr.last_7_days") },
         { key: "30d", label: t("dashboard.hr.last_30_days_range") },
     ];
+
+    const groupByOptions: { key: GroupBy; label: string; icon: typeof Building2 }[] = [
+        { key: "department", label: t("dashboard.hr.group_by_department"), icon: Building2 },
+        { key: "employee", label: t("dashboard.hr.group_by_employee"), icon: Users },
+    ];
+
+    // Dynamic chart height based on number of entries for horizontal layout
+    const chartHeight = Math.max(320, chartData.length * 40 + 80);
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
@@ -115,23 +119,49 @@ export default function UnexcusedAbsencesChart() {
                     </div>
                 </div>
 
-                <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
-                    {presets.map((p) => (
-                        <button
-                            key={p.key}
-                            onClick={() => setPreset(p.key)}
-                            className={cn(
-                                "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
-                                preset === p.key
-                                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                            )}
-                        >
-                            {p.label}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-3">
+                    {/* Group-by toggle */}
+                    <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
+                        {groupByOptions.map((g) => {
+                            const Icon = g.icon;
+                            return (
+                                <button
+                                    key={g.key}
+                                    onClick={() => setGroupBy(g.key)}
+                                    className={cn(
+                                        "px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5",
+                                        groupBy === g.key
+                                            ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                    )}
+                                >
+                                    <Icon size={12} />
+                                    {g.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Time-range toggle */}
+                    <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
+                        {presets.map((p) => (
+                            <button
+                                key={p.key}
+                                onClick={() => setPreset(p.key)}
+                                className={cn(
+                                    "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
+                                    preset === p.key
+                                        ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                )}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
+
 
             {isLoading ? (
                 <div className="h-[320px] flex items-center justify-center">
@@ -145,55 +175,61 @@ export default function UnexcusedAbsencesChart() {
                     </p>
                 </div>
             ) : (
-                <ResponsiveContainer width="100%" height={320}>
-                    <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                    <BarChart
+                        data={chartData}
+                        layout="vertical"
+                        margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                    >
                         <CartesianGrid
                             strokeDasharray="3 3"
                             stroke="currentColor"
                             className="text-slate-100 dark:text-slate-800"
+                            horizontal={false}
                         />
                         <XAxis
-                            dataKey="name"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
-                            tickLine={false}
-                            axisLine={false}
-                        />
-                        <YAxis
+                            type="number"
                             tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
                             className="text-slate-400 dark:text-slate-500"
                             tickLine={false}
                             axisLine={false}
                             allowDecimals={false}
                         />
+                        <YAxis
+                            type="category"
+                            dataKey="name"
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                            className="text-slate-400 dark:text-slate-500"
+                            tickLine={false}
+                            axisLine={false}
+                            width={120}
+                        />
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-                        <Legend
-                            wrapperStyle={{
-                                fontSize: "9px",
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.15em",
-                            }}
-                        />
-                        <Bar
-                            dataKey="unexcused_count"
-                            name={t("dashboard.hr.unexcused")}
-                            fill={COLORS.unexcused}
-                            stackId="absences"
-                            radius={[0, 0, 0, 0]}
-                        />
-                        <Bar
-                            dataKey="total_leave_count"
-                            name={t("dashboard.hr.excused_leave")}
-                            fill={COLORS.excused}
-                            stackId="absences"
-                            radius={[4, 4, 0, 0]}
-                        />
                         <Bar
                             dataKey="consecutive_count"
                             name={t("dashboard.hr.consecutive_days")}
                             fill={COLORS.consecutive}
-                            radius={[4, 4, 0, 0]}
+                            stackId="absences"
+                            radius={[0, 0, 0, 0]}
+                            label={false}
+                        />
+                        <Bar
+                            dataKey="remaining_unexcused"
+                            name={t("dashboard.hr.unexcused")}
+                            fill={COLORS.unexcused}
+                            stackId="absences"
+                            radius={[0, 4, 4, 0]}
+                            label={(props: any) => {
+                                const { x, y, width, height, index } = props;
+                                const row = chartData[index];
+                                const total = row?.unexcused_count ?? 0;
+                                if (!total || total === 0) return null;
+                                return (
+                                    <text x={x + width + 4} y={y + height / 2} fill="#64748b" fontSize={9} fontWeight={700} dominantBaseline="middle">
+                                        {total}
+                                    </text>
+                                );
+                            }}
                         />
                     </BarChart>
                 </ResponsiveContainer>

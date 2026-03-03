@@ -425,7 +425,7 @@ impl ExcelWriter {
                 _ => &time_fmt,
             };
             worksheet
-                .write_string_with_format(row, 10, &report.status, status_fmt)
+                .write_string_with_format(row, 10, report.status.as_str(), status_fmt)
                 .map_err(|e| e.to_string())?;
 
             // Holiday column (col 11)
@@ -561,7 +561,7 @@ mod tests {
                 std_work_units: 16,
                 ot_work_units: 2,
                 ot_claim_status: Some("approved".to_string()),
-                status: "present".to_string(),
+                status: crate::services::attendance_utils::AttendanceStatus::Present,
                 is_holiday: false,
                 holiday_name: None,
                 generation_metadata: None,
@@ -583,7 +583,7 @@ mod tests {
                 std_work_units: 8,
                 ot_work_units: 0,
                 ot_claim_status: None,
-                status: "present".to_string(),
+                status: crate::services::attendance_utils::AttendanceStatus::Present,
                 is_holiday: false,
                 holiday_name: None,
                 generation_metadata: None,
@@ -605,7 +605,7 @@ mod tests {
                 std_work_units: 8,
                 ot_work_units: 3,
                 ot_claim_status: Some("pending".to_string()),
-                status: "present".to_string(),
+                status: crate::services::attendance_utils::AttendanceStatus::Present,
                 is_holiday: false,
                 holiday_name: None,
                 generation_metadata: None,
@@ -708,7 +708,7 @@ mod tests {
             std_work_units: 8,
             ot_work_units: 0,
             ot_claim_status: None,
-            status: "present".to_string(),
+            status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
             holiday_name: None,
             generation_metadata: None,
@@ -833,7 +833,7 @@ mod tests {
             std_work_units: 16, // 16 × 30min = 8h
             ot_work_units: 0,
             ot_claim_status: None,
-            status: "late".to_string(),
+            status: crate::services::attendance_utils::AttendanceStatus::Late,
             is_holiday: false,
             holiday_name: None,
             generation_metadata: None,
@@ -880,7 +880,7 @@ mod tests {
             std_work_units: 16,
             ot_work_units: 0,
             ot_claim_status: None,
-            status: "present".to_string(),
+            status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
             holiday_name: None,
             generation_metadata: None,
@@ -917,7 +917,7 @@ mod tests {
             std_work_units: 0,
             ot_work_units: 0,
             ot_claim_status: None,
-            status: "absent".to_string(),
+            status: crate::services::attendance_utils::AttendanceStatus::Absent,
             is_holiday: false,
             holiday_name: None,
             generation_metadata: None,
@@ -948,7 +948,7 @@ mod tests {
             std_work_units: std_u,
             ot_work_units: 0,
             ot_claim_status: None,
-            status: "present".to_string(),
+            status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
             holiday_name: None,
             generation_metadata: None,

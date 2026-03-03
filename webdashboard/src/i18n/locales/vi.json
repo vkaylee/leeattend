@@ -1113,7 +1113,9 @@
       "total_absent": "Tổng vắng mặt",
       "last_7_days": "7 Ngày",
       "last_30_days_range": "30 Ngày",
-      "custom_range": "Tùy chọn"
+      "custom_range": "Tùy chọn",
+      "group_by_department": "Bộ phận",
+      "group_by_employee": "Nhân viên"
     },
     "system": {
       "total_agents": "Tổng số Agent",

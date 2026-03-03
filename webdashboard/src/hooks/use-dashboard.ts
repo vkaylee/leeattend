@@ -96,23 +96,26 @@ export function useDepartmentAttendance(range: "today" | "week" = "today") {
 export interface UnexcusedAbsencesPoint {
   department_id: string;
   department_name: string;
+  employee_id?: string;
+  employee_name?: string;
   unexcused_count: number;
   consecutive_count: number;
   total_absent_count: number;
   total_leave_count: number;
 }
 
-export function useUnexcusedAbsences(startDate?: string, endDate?: string) {
+export function useUnexcusedAbsences(startDate?: string, endDate?: string, groupBy?: "department" | "employee") {
   const { workspace } = useWorkspace();
 
   return useQuery<UnexcusedAbsencesPoint[]>({
-    queryKey: ["unexcused-absences", workspace?.id, startDate, endDate],
+    queryKey: ["unexcused-absences", workspace?.id, startDate, endDate, groupBy],
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
 
       const params = new URLSearchParams();
       if (startDate) params.set("start_date", startDate);
       if (endDate) params.set("end_date", endDate);
+      if (groupBy) params.set("group_by", groupBy);
       const qs = params.toString();
       const response = await apiFetch(`/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`);
 

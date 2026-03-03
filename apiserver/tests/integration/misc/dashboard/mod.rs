@@ -401,3 +401,106 @@ async fn test_unexcused_absences_supports_date_range_query() {
     // Should return successfully even if empty
     assert!(body.is_array());
 }
+
+#[tokio::test]
+async fn test_unexcused_absences_group_by_employee() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let pool = _db.pool();
+
+    let dept_id = factory
+        .department()
+        .with_workspace(ws_id)
+        .create()
+        .await;
+
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .create()
+        .await;
+
+    let today = Utc::now().date_naive();
+
+    // Assign employee to department
+    sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)")
+        .bind(emp_id)
+        .bind(dept_id)
+        .bind(today - Duration::days(30))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let res = client
+        .get(format!("{address}/api/dashboard/unexcused-absences?group_by=employee"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert!(!body.is_empty(), "Expected employee-level data");
+
+    // Check employee-specific fields are present
+    for item in &body {
+        assert!(item["employee_id"].is_string(), "Expected employee_id in group_by=employee response");
+        assert!(item["employee_name"].is_string(), "Expected employee_name in group_by=employee response");
+        assert!(item["department_id"].is_string());
+        assert!(item["department_name"].is_string());
+        assert!(item["unexcused_count"].is_number());
+    }
+}
+
+#[tokio::test]
+async fn test_unexcused_absences_includes_employees_without_department() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    // Create employee WITHOUT assigning to any department
+    factory
+        .employee()
+        .with_workspace(ws_id)
+        .create()
+        .await;
+
+    // group_by=department — should show "Unassigned" group
+    let res = client
+        .get(format!("{address}/api/dashboard/unexcused-absences"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert!(!body.is_empty(), "Expected data for employee without department");
+
+    let has_unassigned = body.iter().any(|item| {
+        item["department_name"].as_str().unwrap() == "Unassigned"
+    });
+    assert!(has_unassigned, "Expected 'Unassigned' department for employee without department, got: {:?}",
+        body.iter().map(|i| i["department_name"].as_str().unwrap()).collect::<Vec<_>>());
+
+    // group_by=employee — should also include this employee
+    let res2 = client
+        .get(format!("{address}/api/dashboard/unexcused-absences?group_by=employee"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res2.status(), reqwest::StatusCode::OK);
+    let body2: Vec<serde_json::Value> = res2.json().await.unwrap();
+    assert!(!body2.is_empty(), "Expected employee-level data for unassigned employee");
+
+    let has_employee_fields = body2.iter().all(|item| {
+        item["employee_id"].is_string() && item["employee_name"].is_string()
+    });
+    assert!(has_employee_fields, "Expected employee fields in group_by=employee response");
+}

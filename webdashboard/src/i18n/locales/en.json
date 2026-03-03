@@ -1113,7 +1113,9 @@
       "total_absent": "Total Absent",
       "last_7_days": "Last 7 Days",
       "last_30_days_range": "Last 30 Days",
-      "custom_range": "Custom"
+      "custom_range": "Custom",
+      "group_by_department": "Department",
+      "group_by_employee": "Employee"
     },
     "system": {
       "total_agents": "Total Agents",

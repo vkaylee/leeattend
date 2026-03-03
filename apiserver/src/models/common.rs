@@ -38,6 +38,10 @@ pub struct DepartmentAttendancePoint {
 pub struct UnexcusedAbsencesPoint {
     pub department_id: uuid::Uuid,
     pub department_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub employee_id: Option<uuid::Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub employee_name: Option<String>,
     pub unexcused_count: i64,
     pub consecutive_count: i64,
     pub total_absent_count: i64,

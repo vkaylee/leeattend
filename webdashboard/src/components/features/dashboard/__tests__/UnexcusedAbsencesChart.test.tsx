@@ -19,11 +19,11 @@ vi.mock("react-i18next", () => ({
 // Mock Recharts to avoid rendering SVG in tests
 vi.mock("recharts", () => ({
     BarChart: ({ children, ...props }: any) => (
-        <div data-testid="bar-chart" {...props}>{children}</div>
+        <div data-testid="bar-chart" data-layout={props.layout} {...props}>{children}</div>
     ),
     Bar: (props: any) => <div data-testid={`bar-${props.dataKey}`} />,
-    XAxis: () => <div data-testid="x-axis" />,
-    YAxis: () => <div data-testid="y-axis" />,
+    XAxis: (props: any) => <div data-testid="x-axis" data-type={props.type} />,
+    YAxis: (props: any) => <div data-testid="y-axis" data-type={props.type} />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: (props: any) => <div data-testid="tooltip" />,
     ResponsiveContainer: ({ children }: any) => (
@@ -92,7 +92,7 @@ describe("UnexcusedAbsencesChart", () => {
         expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
     });
 
-    it("renders all three bar series (unexcused_count, total_leave_count, consecutive_count)", () => {
+    it("renders chart with horizontal (vertical) layout", () => {
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -100,9 +100,21 @@ describe("UnexcusedAbsencesChart", () => {
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 
-        expect(screen.getByTestId("bar-unexcused_count")).toBeInTheDocument();
-        expect(screen.getByTestId("bar-total_leave_count")).toBeInTheDocument();
+        const chart = screen.getByTestId("bar-chart");
+        expect(chart).toHaveAttribute("data-layout", "vertical");
+    });
+
+    it("renders stacked bars: consecutive + remaining_unexcused (no excused leave)", () => {
+        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+            data: mockData,
+            isLoading: false,
+        });
+
+        renderWithProviders(<UnexcusedAbsencesChart />);
+
         expect(screen.getByTestId("bar-consecutive_count")).toBeInTheDocument();
+        expect(screen.getByTestId("bar-remaining_unexcused")).toBeInTheDocument();
+        expect(screen.queryByTestId("bar-total_leave_count")).not.toBeInTheDocument();
     });
 
     it("displays chart title and subtitle", () => {
@@ -127,5 +139,33 @@ describe("UnexcusedAbsencesChart", () => {
 
         expect(screen.getByText("dashboard.hr.last_7_days")).toBeInTheDocument();
         expect(screen.getByText("dashboard.hr.last_30_days_range")).toBeInTheDocument();
+    });
+
+    it("shows group-by toggle buttons (Department and Employee)", () => {
+        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+            data: mockData,
+            isLoading: false,
+        });
+
+        renderWithProviders(<UnexcusedAbsencesChart />);
+
+        expect(screen.getByText("dashboard.hr.group_by_department")).toBeInTheDocument();
+        expect(screen.getByText("dashboard.hr.group_by_employee")).toBeInTheDocument();
+    });
+
+    it("calls useUnexcusedAbsences with groupBy parameter", () => {
+        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+            data: mockData,
+            isLoading: false,
+        });
+
+        renderWithProviders(<UnexcusedAbsencesChart />);
+
+        // Default groupBy should be "department"
+        expect(dashboardHooks.useUnexcusedAbsences).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.any(String),
+            "department"
+        );
     });
 });

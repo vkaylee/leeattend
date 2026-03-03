@@ -90,25 +90,10 @@ impl ReportService {
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 4. Convert NaiveDate to DateTime<Utc> using Workspace Timezone
-        let start_dt = tz
-            .from_local_datetime(
-                &start_date
-                    .and_hms_opt(0, 0, 0)
-                    .ok_or(StatusCode::BAD_REQUEST)?,
-            )
-            .single()
-            .ok_or(StatusCode::BAD_REQUEST)?
-            .with_timezone(&Utc);
-
-        let end_dt = tz
-            .from_local_datetime(
-                &end_date
-                    .and_hms_opt(23, 59, 59)
-                    .ok_or(StatusCode::BAD_REQUEST)?,
-            )
-            .single()
-            .ok_or(StatusCode::BAD_REQUEST)?
-            .with_timezone(&Utc);
+        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
+            tz, start_date, end_date,
+        )
+        .ok_or(StatusCode::BAD_REQUEST)?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = time_entry_repository::get_workspace_time_entries_batch(
@@ -146,38 +131,11 @@ impl ReportService {
             .collect();
 
         // 5c. BATCH fetch approved leave requests for holiday-leave status detection
-        let leave_rows = sqlx::query!(
-            r#"SELECT lr.employee_id, lr.start_date, lr.end_date
-               FROM leave_requests lr
-               JOIN employees e ON lr.employee_id = e.id
-               WHERE e.workspace_id = $1
-                 AND lr.employee_id = ANY($2)
-                 AND lr.status = 'approved'
-                 AND lr.start_date <= $4
-                 AND lr.end_date >= $3"#,
-            workspace_id,
-            &emp_ids,
-            start_date,
-            end_date
+        let leave_date_set = crate::services::attendance_utils::build_leave_date_set(
+            pool, workspace_id, &emp_ids, start_date, end_date,
         )
-        .fetch_all(pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        // Build a set of (employee_id, date) that have approved leave
-        let mut leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> = std::collections::HashSet::new();
-        for lr in &leave_rows {
-            let mut d = lr.start_date;
-            while d <= lr.end_date {
-                if d >= start_date && d <= end_date {
-                    leave_date_set.insert((lr.employee_id, d));
-                }
-                d = match d.succ_opt() {
-                    Some(next) => next,
-                    None => break,
-                };
-            }
-        }
 
         // 6. Calculate reports (same logic as before)
         let mut reports = Vec::new();
@@ -186,17 +144,19 @@ impl ReportService {
             // Get entries from HashMap (O(1) lookup instead of DB query)
             let entries = entries_map
                 .get(&emp_sched.employee_id)
-                .cloned()
-                .unwrap_or_default();
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
+            // Pre-group entries by date for O(1) per-date lookup
+            let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
             for daily in emp_sched.schedules {
                 let date = daily.date;
 
-                // Find entries for this day in Workspace Local Time
-                let day_entries: Vec<_> = entries
-                    .iter()
-                    .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == date)
-                    .collect();
+                // O(1) lookup instead of O(entries) filter per day
+                let day_entries = entries_by_date
+                    .get(&date)
+                    .map(|v| v.as_slice())
+                    .unwrap_or(&[]);
 
                 let actual_punch_in = day_entries
                     .first()
@@ -282,38 +242,22 @@ impl ReportService {
                 }
                 // -----------------------------
 
-                // --- STATUS DETERMINATION (3-way holiday status) ---
+                // --- STATUS DETERMINATION (using shared attendance_utils) ---
                 let holiday_entry = holidays_map.get(&date);
                 let is_hol = holiday_entry.is_some();
+                let is_on_leave = leave_date_set.contains(&(emp_sched.employee_id, date));
 
-                let status = if actual_punch_in.is_some() {
-                    if is_hol {
-                        "holiday_work".to_string()
-                    } else if let (Some(punch_in), Some(sched_start)) =
-                        (actual_punch_in, daily.start_time)
-                    {
-                        if punch_in.time() > sched_start + chrono::Duration::minutes(5) {
-                            "late".to_string()
-                        } else {
-                            "present".to_string()
-                        }
-                    } else {
-                        "present".to_string()
-                    }
-                } else if is_hol {
-                    let holiday_is_paid = holiday_entry.map(|h| h.is_paid).unwrap_or(true);
-                    if holiday_is_paid {
-                        "holiday_paid".to_string()
-                    } else if leave_date_set.contains(&(emp_sched.employee_id, date)) {
-                        "holiday_leave".to_string()
-                    } else {
-                        "holiday_unpaid".to_string()
-                    }
-                } else if daily.shift_id.is_none() {
-                    "off".to_string()
-                } else {
-                    "absent".to_string()
-                };
+                let status = crate::services::attendance_utils::determine_daily_status(
+                    &crate::services::attendance_utils::DailyStatusInput {
+                        has_punch_in: actual_punch_in.is_some(),
+                        punch_in_time: actual_punch_in.map(|p| p.time()),
+                        scheduled_start: daily.start_time,
+                        is_holiday: is_hol,
+                        is_holiday_paid: holiday_entry.map(|h| h.is_paid).unwrap_or(true),
+                        has_shift: daily.shift_id.is_some(),
+                        is_on_leave,
+                    },
+                );
 
                 // Collect metadata from all entries for this day
                 let mut metadata_map = serde_json::Map::new();
@@ -466,25 +410,10 @@ impl ReportService {
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 4. Convert dates to UTC for time entry query
-        let start_dt = tz
-            .from_local_datetime(
-                &start_date
-                    .and_hms_opt(0, 0, 0)
-                    .ok_or(StatusCode::BAD_REQUEST)?,
-            )
-            .single()
-            .ok_or(StatusCode::BAD_REQUEST)?
-            .with_timezone(&Utc);
-
-        let end_dt = tz
-            .from_local_datetime(
-                &end_date
-                    .and_hms_opt(23, 59, 59)
-                    .ok_or(StatusCode::BAD_REQUEST)?,
-            )
-            .single()
-            .ok_or(StatusCode::BAD_REQUEST)?
-            .with_timezone(&Utc);
+        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
+            tz, start_date, end_date,
+        )
+        .ok_or(StatusCode::BAD_REQUEST)?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = time_entry_repository::get_workspace_time_entries_batch(
@@ -532,20 +461,23 @@ impl ReportService {
             // Get entries from HashMap (O(1) lookup instead of DB query)
             let entries = entries_map
                 .get(&emp_sched.employee_id)
-                .cloned()
-                .unwrap_or_default();
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
             let mut employee_total_std = 0i32;
             let mut employee_total_ot = 0i32;
+
+            // Pre-group entries by date for O(1) per-date lookup
+            let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
             // Calculate for each day (same logic as get_daily_attendance_report)
             for daily in &emp_sched.schedules {
                 let date = daily.date;
 
-                // Filter entries for this day in workspace local time
-                let day_entries: Vec<_> = entries
-                    .iter()
-                    .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == date)
-                    .collect();
+                // O(1) lookup instead of O(entries) filter per day
+                let day_entries = entries_by_date
+                    .get(&date)
+                    .map(|v| v.as_slice())
+                    .unwrap_or(&[]);
 
                 let actual_punch_in = day_entries
                     .first()

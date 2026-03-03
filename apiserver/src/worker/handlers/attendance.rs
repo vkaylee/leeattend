@@ -62,21 +62,10 @@ impl AttendanceHandler {
         let tz: Tz = workspace_config.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         // 2. Convert dates to UTC for time entry query
-        let start_dt = tz
-            .from_local_datetime(
-                &start_date
-                    .and_hms_opt(0, 0, 0)
-                    .ok_or("Invalid start date")?,
-            )
-            .single()
-            .ok_or("Ambiguous start datetime")?
-            .with_timezone(&Utc);
-
-        let end_dt = tz
-            .from_local_datetime(&end_date.and_hms_opt(23, 59, 59).ok_or("Invalid end date")?)
-            .single()
-            .ok_or("Ambiguous end datetime")?
-            .with_timezone(&Utc);
+        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
+            tz, start_date, end_date,
+        )
+        .ok_or("Invalid or ambiguous date range")?;
 
         // 3. Fetch schedules AND time entries in parallel (biggest latency win)
         let (schedules_result, entries_result) = tokio::join!(
@@ -259,11 +248,7 @@ impl AttendanceHandler {
                 .unwrap_or(&[]);
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
-            let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
-            for entry in entries {
-                let date = entry.punch_in_time.with_timezone(&tz).date_naive();
-                entries_by_date.entry(date).or_default().push(entry);
-            }
+            let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
@@ -391,11 +376,7 @@ impl AttendanceHandler {
                 .unwrap_or(&[]);
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
-            let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
-            for entry in entries {
-                let date = entry.punch_in_time.with_timezone(&tz).date_naive();
-                entries_by_date.entry(date).or_default().push(entry);
-            }
+            let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
@@ -472,19 +453,17 @@ impl AttendanceHandler {
                     ot_work_units = ot_units;
                 }
 
-                let mut status = "absent".to_string();
-                if actual_punch_in.is_some() {
-                    status = "present".to_string();
-
-                    if let (Some(punch_in), Some(sched_start)) = (actual_punch_in, daily.start_time)
-                    {
-                        if punch_in.time() > sched_start + Duration::minutes(5) {
-                            status = "late".to_string();
-                        }
-                    }
-                } else if daily.shift_id.is_none() {
-                    status = "off".to_string();
-                }
+                let status = crate::services::attendance_utils::determine_daily_status(
+                    &crate::services::attendance_utils::DailyStatusInput {
+                        has_punch_in: actual_punch_in.is_some(),
+                        punch_in_time: actual_punch_in.map(|p| p.time()),
+                        scheduled_start: daily.start_time,
+                        is_holiday: daily.is_holiday,
+                        is_holiday_paid: false,
+                        has_shift: daily.shift_id.is_some(),
+                        is_on_leave: false,
+                    },
+                );
 
                 // Collect metadata
                 let mut metadata_map = serde_json::Map::new();
@@ -544,38 +523,67 @@ impl AttendanceHandler {
 mod tests {
     use super::*;
     use crate::models::DailyAttendanceReport;
+    use crate::services::attendance_utils::{AttendanceStatus, DailyStatusInput, determine_daily_status};
     use chrono::NaiveTime;
 
     #[test]
     fn test_status_determination_present() {
-        let status = determine_status(
-            Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()), // punch_in
-            Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()), // sched_start
-            true,                                            // has_shift
-        );
-        assert_eq!(status, "present");
+        let status = determine_daily_status(&DailyStatusInput {
+            has_punch_in: true,
+            punch_in_time: Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),
+            scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
+            is_holiday: false,
+            is_holiday_paid: false,
+            has_shift: true,
+            is_on_leave: false,
+        });
+        assert_eq!(status, AttendanceStatus::Present);
+        assert_eq!(status.to_string(), "present");
     }
 
     #[test]
     fn test_status_determination_late() {
-        let status = determine_status(
-            Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()), // punch_in (late)
-            Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()), // sched_start
-            true,
-        );
-        assert_eq!(status, "late");
+        let status = determine_daily_status(&DailyStatusInput {
+            has_punch_in: true,
+            punch_in_time: Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
+            scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
+            is_holiday: false,
+            is_holiday_paid: false,
+            has_shift: true,
+            is_on_leave: false,
+        });
+        assert_eq!(status, AttendanceStatus::Late);
+        assert_eq!(status.to_string(), "late");
     }
 
     #[test]
     fn test_status_determination_absent() {
-        let status = determine_status(None, Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()), true);
-        assert_eq!(status, "absent");
+        let status = determine_daily_status(&DailyStatusInput {
+            has_punch_in: false,
+            punch_in_time: None,
+            scheduled_start: Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()),
+            is_holiday: false,
+            is_holiday_paid: false,
+            has_shift: true,
+            is_on_leave: false,
+        });
+        assert_eq!(status, AttendanceStatus::Absent);
+        assert_eq!(status.to_string(), "absent");
     }
 
     #[test]
     fn test_status_determination_off() {
-        let status = determine_status(None, None, false);
-        assert_eq!(status, "off");
+        let status = determine_daily_status(&DailyStatusInput {
+            has_punch_in: false,
+            punch_in_time: None,
+            scheduled_start: None,
+            is_holiday: false,
+            is_holiday_paid: false,
+            has_shift: false,
+            is_on_leave: false,
+        });
+        assert_eq!(status, AttendanceStatus::Off);
+        assert_eq!(status.to_string(), "off");
     }
 
     #[test]
@@ -659,7 +667,7 @@ mod tests {
             std_work_units: 0,
             ot_work_units: 0,
             ot_claim_status: None,
-            status: "absent".to_string(),
+            status: crate::services::attendance_utils::AttendanceStatus::Absent,
             is_holiday: false,
             holiday_name: None,
             generation_metadata: None,
@@ -669,7 +677,7 @@ mod tests {
         let decoded: Vec<DailyAttendanceReport> = serde_json::from_str(&json).unwrap();
 
         assert_eq!(decoded.len(), 1);
-        assert_eq!(decoded[0].status, "absent");
+        assert_eq!(decoded[0].status, crate::services::attendance_utils::AttendanceStatus::Absent);
         assert_eq!(decoded[0].std_work_units, 0);
         assert_eq!(decoded[0].ot_work_units, 0);
     }
@@ -687,25 +695,8 @@ mod tests {
         assert_eq!(tz, chrono_tz::UTC);
     }
 
-    // Helper function for status determination (mirrors handler logic)
-    fn determine_status(
-        punch_in_time: Option<NaiveTime>,
-        sched_start: Option<NaiveTime>,
-        has_shift: bool,
-    ) -> &'static str {
-        if let Some(punch_in) = punch_in_time {
-            if let Some(sched) = sched_start {
-                if punch_in > sched + Duration::minutes(5) {
-                    return "late";
-                }
-            }
-            "present"
-        } else if has_shift {
-            "absent"
-        } else {
-            "off"
-        }
-    }
+    // Status determination now uses attendance_utils::determine_daily_status
+    // (old local determine_status helper removed in the refactoring)
 
     /// Test that entries are correctly pre-grouped by date using timezone-aware conversion.
     /// This validates optimization #3: O(entries) pre-grouping instead of O(entries × days) scanning.
@@ -766,12 +757,8 @@ mod tests {
 
         let entries = vec![entry_jan15_early, entry_jan15_morning, entry_jan16];
 
-        // Pre-group by date (the same pattern used in calculate_summary/calculate_detail)
-        let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
-        for entry in &entries {
-            let date = entry.punch_in_time.with_timezone(&tz).date_naive();
-            entries_by_date.entry(date).or_default().push(entry);
-        }
+        // Pre-group using shared utility (same as calculate_summary/calculate_detail)
+        let entries_by_date = crate::services::attendance_utils::group_entries_by_date(&entries, tz);
 
         let jan15 = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         let jan16 = NaiveDate::from_ymd_opt(2026, 1, 16).unwrap();
@@ -808,12 +795,8 @@ mod tests {
             })
             .collect();
 
-        // Pre-group approach (new)
-        let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
-        for entry in &entries {
-            let date = entry.punch_in_time.with_timezone(&tz).date_naive();
-            entries_by_date.entry(date).or_default().push(entry);
-        }
+        // Pre-group approach using shared utility
+        let entries_by_date = crate::services::attendance_utils::group_entries_by_date(&entries, tz);
 
         // Filter approach (old) — for each target date, scan all entries
         for day in 1..=5 {
@@ -834,11 +817,7 @@ mod tests {
         let tz: Tz = "UTC".parse().unwrap();
         let entries: Vec<TimeEntry> = vec![];
 
-        let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
-        for entry in &entries {
-            let date = entry.punch_in_time.with_timezone(&tz).date_naive();
-            entries_by_date.entry(date).or_default().push(entry);
-        }
+        let entries_by_date = crate::services::attendance_utils::group_entries_by_date(&entries, tz);
 
         assert!(entries_by_date.is_empty());
 

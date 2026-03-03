@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::models::enums::{AdjustmentStatus, ImportJobStatus, LogSource, OtStatus};
+use crate::services::attendance_utils::AttendanceStatus;
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct AttendanceAdjustmentRequest {
@@ -72,7 +73,7 @@ pub struct DailyAttendanceReport {
     pub ot_work_units: i32,
     #[serde(default)]
     pub ot_claim_status: Option<String>,
-    pub status: String,
+    pub status: AttendanceStatus,
     #[serde(default)]
     pub is_holiday: bool,
     pub holiday_name: Option<String>,
