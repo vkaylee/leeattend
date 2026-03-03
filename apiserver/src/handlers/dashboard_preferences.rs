@@ -41,6 +41,7 @@ fn default_visible_widgets() -> serde_json::Value {
         "peak_times": false,
         "leave_types": false,
         "lateness_by_day": false,
+        "turnover_analytics": false,
         "promo_cards": false
     })
 }
@@ -56,6 +57,7 @@ fn default_widget_order() -> serde_json::Value {
         "peak_times",
         "leave_types",
         "lateness_by_day",
+        "turnover_analytics",
         "promo_cards"
     ])
 }

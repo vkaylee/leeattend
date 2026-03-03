@@ -89,3 +89,31 @@ pub async fn get_recruitment_source_breakdown(
             })?;
     Ok(Json(breakdown))
 }
+
+/// Dashboard chart endpoint: turnover analytics with date range filter
+pub async fn get_turnover_analytics(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    axum::extract::Query(params): axum::extract::Query<TurnoverQueryParams>,
+) -> AppResult<Json<crate::models::TurnoverAnalytics>> {
+    let today = chrono::Utc::now().date_naive();
+    let start = params
+        .start
+        .and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok())
+        .unwrap_or_else(|| today - chrono::Duration::days(180));
+    let end = params
+        .end
+        .and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok())
+        .unwrap_or(today);
+
+    let analytics = EmployeeService::get_turnover_analytics(&state.db, workspace_id, start, end)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to get turnover analytics".to_string())))?;
+    Ok(Json(analytics))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct TurnoverQueryParams {
+    pub start: Option<String>,
+    pub end: Option<String>,
+}

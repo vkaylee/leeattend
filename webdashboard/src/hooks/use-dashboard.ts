@@ -229,3 +229,52 @@ export function useRecruitmentSourceBreakdown() {
     enabled: !!workspace,
   });
 }
+
+// ── Turnover Analytics ─────────────────────────────────────────────
+
+export interface TurnoverTenureBucket {
+  bucket: string;
+  count: number;
+}
+
+export interface TurnoverBySource {
+  source_type: string;
+  source_name: string;
+  count: number;
+}
+
+export interface TurnoverByDepartment {
+  department_name: string;
+  count: number;
+}
+
+export interface TurnoverAnalytics {
+  tenure_distribution: TurnoverTenureBucket[];
+  by_source: TurnoverBySource[];
+  by_department: TurnoverByDepartment[];
+  total_terminated: number;
+  period_start: string;
+  period_end: string;
+}
+
+export function useTurnoverAnalytics(startDate: string, endDate: string) {
+  const { workspace } = useWorkspace();
+
+  return useQuery<TurnoverAnalytics>({
+    queryKey: ["turnover-analytics", workspace?.id, startDate, endDate],
+    queryFn: async () => {
+      if (!workspace) throw new Error("No workspace selected");
+
+      const response = await apiFetch(
+        `/dashboard/turnover-analytics?start=${startDate}&end=${endDate}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch turnover analytics");
+      }
+
+      return response.json();
+    },
+    enabled: !!workspace && !!startDate && !!endDate,
+  });
+}

@@ -1094,7 +1094,17 @@
       "late_count": "迟到次数",
       "avg_late_minutes": "平均迟到(分钟)",
       "recruitment_sources": "招聘来源",
-      "recruitment_sources_subtitle": "员工招聘来源分布"
+      "recruitment_sources_subtitle": "员工招聘来源分布",
+      "turnover_title": "离职分析",
+      "turnover_subtitle": "按工龄、招聘来源和部门分析离职员工",
+      "turnover_tenure": "工龄",
+      "turnover_by_source": "来源",
+      "turnover_by_dept": "部门",
+      "turnover_total": "总离职数",
+      "turnover_period_3m": "最近3个月",
+      "turnover_period_6m": "最近6个月",
+      "turnover_period_1y": "最近1年",
+      "turnover_period_2y": "最近2年"
     },
     "system": {
       "total_agents": "代理总数",
@@ -1132,6 +1142,7 @@
       "leave_types": "请假类型",
       "lateness_by_day": "按日迟到",
       "recruitment_sources": "招聘来源",
+      "turnover_analytics": "离职分析",
       "promo_cards": "快速链接"
     },
     "customize": {

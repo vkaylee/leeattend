@@ -502,4 +502,18 @@ impl EmployeeService {
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
+
+    pub async fn get_turnover_analytics(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        start_date: chrono::NaiveDate,
+        end_date: chrono::NaiveDate,
+    ) -> Result<crate::models::TurnoverAnalytics, StatusCode> {
+        employee_repository::get_turnover_analytics(pool, workspace_id, start_date, end_date)
+            .await
+            .map_err(|e| {
+                eprintln!("Error fetching turnover analytics: {e:?}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
 }

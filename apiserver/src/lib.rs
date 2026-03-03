@@ -203,6 +203,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::recruitment_sources::get_recruitment_source_breakdown),
         )
         .route(
+            "/dashboard/turnover-analytics",
+            get(handlers::recruitment_sources::get_turnover_analytics),
+        )
+        .route(
             "/dashboard/preferences",
             get(handlers::dashboard_preferences::get_dashboard_preferences)
                 .put(handlers::dashboard_preferences::update_dashboard_preferences),

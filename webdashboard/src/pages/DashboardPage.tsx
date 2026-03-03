@@ -92,6 +92,7 @@ export default function DashboardPage() {
     "leave_types",
     "lateness_by_day",
     "recruitment_sources",
+    "turnover_analytics",
   ];
 
   // Filter and order visible chart widgets

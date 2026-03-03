@@ -58,6 +58,41 @@ pub struct RecruitmentSourceBreakdown {
     pub count: i64,
 }
 
+// ── Turnover Analytics Models ──────────────────────────────────────
+
+/// Tenure distribution bucket for terminated employees
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TurnoverTenureBucket {
+    pub bucket: String,
+    pub count: i64,
+}
+
+/// Turnover breakdown by recruitment source
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TurnoverBySource {
+    pub source_type: String,
+    pub source_name: String,
+    pub count: i64,
+}
+
+/// Turnover breakdown by department
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TurnoverByDepartment {
+    pub department_name: String,
+    pub count: i64,
+}
+
+/// Combined turnover analytics response
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TurnoverAnalytics {
+    pub tenure_distribution: Vec<TurnoverTenureBucket>,
+    pub by_source: Vec<TurnoverBySource>,
+    pub by_department: Vec<TurnoverByDepartment>,
+    pub total_terminated: i64,
+    pub period_start: String,
+    pub period_end: String,
+}
+
 // ── Employment / Employee Models ───────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

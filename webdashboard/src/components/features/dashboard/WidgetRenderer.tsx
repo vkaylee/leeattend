@@ -24,6 +24,9 @@ const LatenessByDayChart = lazy(
 const RecruitmentSourceChart = lazy(
     () => import("@/components/features/dashboard/RecruitmentSourceChart")
 );
+const TurnoverAnalyticsChart = lazy(
+    () => import("@/components/features/dashboard/TurnoverAnalyticsChart")
+);
 
 // ── Loading skeleton ───────────────────────────────────────────────
 
@@ -57,6 +60,7 @@ export default function WidgetRenderer({ widgetId }: WidgetRendererProps) {
         leave_types: LeaveTypesChart,
         lateness_by_day: LatenessByDayChart,
         recruitment_sources: RecruitmentSourceChart,
+        turnover_analytics: TurnoverAnalyticsChart,
     };
 
     const ChartComponent = chartMap[widgetId];
