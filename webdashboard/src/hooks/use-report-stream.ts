@@ -104,12 +104,14 @@ export function useReportStream({
           setStatus("completed");
           setProgress(100);
           shouldReconnectRef.current = false;
-          // Update chunks state for consumers
-          setChunks([...chunksRef.current]);
+          // Update chunks state for consumers, then clear ref to avoid double-buffering
+          const finalChunks = [...chunksRef.current];
+          chunksRef.current = [];
+          setChunks(finalChunks);
           console.debug(
             `[ReportStream] Complete: ${message.total_records} records`
           );
-          onCompleteRef.current?.(chunksRef.current);
+          onCompleteRef.current?.(finalChunks);
           break;
         }
 

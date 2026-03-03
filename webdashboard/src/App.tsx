@@ -12,6 +12,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 10,   // GC inactive cache after 10 minutes
     },
   },
 });
