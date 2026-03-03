@@ -1104,7 +1104,16 @@
       "turnover_period_3m": "3 Tháng Gần Đây",
       "turnover_period_6m": "6 Tháng Gần Đây",
       "turnover_period_1y": "1 Năm Gần Đây",
-      "turnover_period_2y": "2 Năm Gần Đây"
+      "turnover_period_2y": "2 Năm Gần Đây",
+      "unexcused_absences": "Nghỉ Không Phép",
+      "unexcused_absences_subtitle": "Thống kê vắng mặt theo phòng ban",
+      "unexcused": "Không phép",
+      "excused_leave": "Có phép",
+      "consecutive_days": "Ngày liên tiếp",
+      "total_absent": "Tổng vắng mặt",
+      "last_7_days": "7 Ngày",
+      "last_30_days_range": "30 Ngày",
+      "custom_range": "Tùy chọn"
     },
     "system": {
       "total_agents": "Tổng số Agent",
@@ -1143,6 +1152,7 @@
       "lateness_by_day": "Đi trễ theo ngày",
       "recruitment_sources": "Nguồn Tuyển Dụng",
       "turnover_analytics": "Phân Tích Nghỉ Việc",
+      "unexcused_absences": "Nghỉ Không Phép",
       "promo_cards": "Liên kết nhanh"
     },
     "customize": {

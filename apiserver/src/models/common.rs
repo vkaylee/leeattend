@@ -35,6 +35,16 @@ pub struct DepartmentAttendancePoint {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct UnexcusedAbsencesPoint {
+    pub department_id: uuid::Uuid,
+    pub department_name: String,
+    pub unexcused_count: i64,
+    pub consecutive_count: i64,
+    pub total_absent_count: i64,
+    pub total_leave_count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct OvertimeTrendPoint {
     pub date: NaiveDate,
     pub system_ot_hours: f64,

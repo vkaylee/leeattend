@@ -16,6 +16,7 @@ export type WidgetId =
     | "lateness_by_day"
     | "recruitment_sources"
     | "turnover_analytics"
+    | "unexcused_absences"
     | "promo_cards";
 
 export type DashboardView = "overview" | "attendance" | "trends" | "custom";
@@ -52,6 +53,7 @@ const PRESET_VIEWS: Record<
             lateness_by_day: false,
             recruitment_sources: true,
             turnover_analytics: false,
+            unexcused_absences: false,
             promo_cards: false,
         },
         order: [
@@ -75,6 +77,7 @@ const PRESET_VIEWS: Record<
             lateness_by_day: false,
             recruitment_sources: false,
             turnover_analytics: false,
+            unexcused_absences: false,
             promo_cards: false,
         },
         order: [
@@ -97,6 +100,7 @@ const PRESET_VIEWS: Record<
             lateness_by_day: true,
             recruitment_sources: true,
             turnover_analytics: true,
+            unexcused_absences: true,
             promo_cards: false,
         },
         order: [
@@ -106,6 +110,7 @@ const PRESET_VIEWS: Record<
             "lateness_by_day",
             "recruitment_sources",
             "turnover_analytics",
+            "unexcused_absences",
         ],
     },
 };
@@ -124,6 +129,7 @@ export const ALL_WIDGETS: { id: WidgetId; labelKey: string }[] = [
     { id: "lateness_by_day", labelKey: "dashboard.widgets.lateness_by_day" },
     { id: "recruitment_sources", labelKey: "dashboard.widgets.recruitment_sources" },
     { id: "turnover_analytics", labelKey: "dashboard.widgets.turnover_analytics" },
+    { id: "unexcused_absences", labelKey: "dashboard.widgets.unexcused_absences" },
     { id: "promo_cards", labelKey: "dashboard.widgets.promo_cards" },
 ];
 

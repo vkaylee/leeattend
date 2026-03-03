@@ -27,6 +27,9 @@ const RecruitmentSourceChart = lazy(
 const TurnoverAnalyticsChart = lazy(
     () => import("@/components/features/dashboard/TurnoverAnalyticsChart")
 );
+const UnexcusedAbsencesChart = lazy(
+    () => import("@/components/features/dashboard/UnexcusedAbsencesChart")
+);
 
 // ── Loading skeleton ───────────────────────────────────────────────
 
@@ -61,6 +64,7 @@ export default function WidgetRenderer({ widgetId }: WidgetRendererProps) {
         lateness_by_day: LatenessByDayChart,
         recruitment_sources: RecruitmentSourceChart,
         turnover_analytics: TurnoverAnalyticsChart,
+        unexcused_absences: UnexcusedAbsencesChart,
     };
 
     const ChartComponent = chartMap[widgetId];

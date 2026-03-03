@@ -1104,7 +1104,16 @@
       "turnover_period_3m": "Last 3 Months",
       "turnover_period_6m": "Last 6 Months",
       "turnover_period_1y": "Last 1 Year",
-      "turnover_period_2y": "Last 2 Years"
+      "turnover_period_2y": "Last 2 Years",
+      "unexcused_absences": "Unexcused Absences",
+      "unexcused_absences_subtitle": "Absences by department",
+      "unexcused": "Unexcused",
+      "excused_leave": "Excused Leave",
+      "consecutive_days": "Consecutive Days",
+      "total_absent": "Total Absent",
+      "last_7_days": "Last 7 Days",
+      "last_30_days_range": "Last 30 Days",
+      "custom_range": "Custom"
     },
     "system": {
       "total_agents": "Total Agents",
@@ -1143,6 +1152,7 @@
       "lateness_by_day": "Lateness by Day",
       "recruitment_sources": "Recruitment Sources",
       "turnover_analytics": "Turnover Analysis",
+      "unexcused_absences": "Unexcused Absences",
       "promo_cards": "Quick Links"
     },
     "customize": {

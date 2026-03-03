@@ -314,10 +314,9 @@ run_lint() {
         dc up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
 
-        # Migrations must run before clippy/compile (sqlx verifies queries at compile time)
-        if [[ "$filter" != *"web"* ]] || [[ "$filter" == "" ]]; then
-            ensure_db_migrated
-        fi
+        # Migrations must run before any Rust compilation (sqlx verifies queries at compile time).
+        # Even --web mode needs this because api-sync runs `cargo run -- gen-openapi`.
+        ensure_db_migrated
     fi
 
     leeattend_run_lint "$filter"

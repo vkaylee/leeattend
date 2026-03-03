@@ -93,6 +93,39 @@ export function useDepartmentAttendance(range: "today" | "week" = "today") {
   });
 }
 
+export interface UnexcusedAbsencesPoint {
+  department_id: string;
+  department_name: string;
+  unexcused_count: number;
+  consecutive_count: number;
+  total_absent_count: number;
+  total_leave_count: number;
+}
+
+export function useUnexcusedAbsences(startDate?: string, endDate?: string) {
+  const { workspace } = useWorkspace();
+
+  return useQuery<UnexcusedAbsencesPoint[]>({
+    queryKey: ["unexcused-absences", workspace?.id, startDate, endDate],
+    queryFn: async () => {
+      if (!workspace) throw new Error("No workspace selected");
+
+      const params = new URLSearchParams();
+      if (startDate) params.set("start_date", startDate);
+      if (endDate) params.set("end_date", endDate);
+      const qs = params.toString();
+      const response = await apiFetch(`/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch unexcused absences");
+      }
+
+      return response.json();
+    },
+    enabled: !!workspace,
+  });
+}
+
 export interface OvertimeTrendPoint {
   date: string;
   system_ot_hours: number;

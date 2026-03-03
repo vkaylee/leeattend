@@ -1104,7 +1104,16 @@
       "turnover_period_3m": "最近3个月",
       "turnover_period_6m": "最近6个月",
       "turnover_period_1y": "最近1年",
-      "turnover_period_2y": "最近2年"
+      "turnover_period_2y": "最近2年",
+      "unexcused_absences": "旷工统计",
+      "unexcused_absences_subtitle": "按部门统计缺勤",
+      "unexcused": "旷工",
+      "excused_leave": "请假",
+      "consecutive_days": "连续天数",
+      "total_absent": "总缺勤",
+      "last_7_days": "最近7天",
+      "last_30_days_range": "最近30天",
+      "custom_range": "自定义"
     },
     "system": {
       "total_agents": "代理总数",
@@ -1143,6 +1152,7 @@
       "lateness_by_day": "按日迟到",
       "recruitment_sources": "招聘来源",
       "turnover_analytics": "离职分析",
+      "unexcused_absences": "旷工统计",
       "promo_cards": "快速链接"
     },
     "customize": {

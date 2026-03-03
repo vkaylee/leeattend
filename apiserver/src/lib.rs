@@ -183,6 +183,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_department_attendance),
         )
         .route(
+            "/dashboard/unexcused-absences",
+            get(handlers::workspaces::crud::get_unexcused_absences),
+        )
+        .route(
             "/dashboard/overtime-trend",
             get(handlers::get_overtime_trend),
         )

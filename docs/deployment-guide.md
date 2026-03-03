@@ -339,20 +339,20 @@ proxy: {
 ### 🚀 Nguyên tắc Vàng
 - **Mandatory Passing**: 100% các bài test (Rust, Python, React) **BẮT BUỘC** phải PASS trước khi commit.
 - **Isolation**: Mọi bài test đều chạy trong container. Không được phép chạy test trực tiếp trên host nếu có tương tác Database.
-- **Unified Entry Point**: Luôn sử dụng `./run-tests.sh` để thực thi.
+- **Unified Entry Point**: Luôn sử dụng `./run-tests.sh` (hoặc `./ai-test.sh` cho AI Agents) để thực thi.
 
 ### ⚙️ Quy trình chạy Test (Tự động hoàn toàn)
 Bạn không cần cấu hình file `.env.test` thủ công. Hệ thống tự động quản lý vòng đời của hạ tầng test:
 
 ```bash
 # Chạy toàn bộ (Lint + Unit + Integration + E2E)
-./run-tests.sh --all
+./run-tests.sh --all     # (AI Agent dùng ./ai-test.sh --all)
 
 # Chạy riêng Backend (Rust + Python)
-./run-tests.sh --api [pattern]
+./run-tests.sh --api [pattern]   # (AI Agent dùng ./ai-test.sh --api)
 
 # Chạy riêng Frontend (Playwright)
-./run-tests.sh --web [pattern]
+./run-tests.sh --web [pattern]   # (AI Agent dùng ./ai-test.sh --web)
 ```
 
 ### ⚡ Tối ưu hóa (Key Features)
@@ -388,7 +388,7 @@ This is the most reliable way to deploy LeeAttend in a production environment. I
 3. **Build and Launch**:
    You can use the helper script or run docker compose directly using the base file:
    ```bash
-   # Option A: Using run-tests.sh
+   # Option A: Using run-tests.sh (or ai-test.sh for AI Agents)
    ./run-tests.sh --docker=prod up --build -d
 
    # Option B: Direct docker compose

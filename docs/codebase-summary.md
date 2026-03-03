@@ -88,12 +88,12 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **Official Payslip UI**: High-fidelity, print-ready payslip generation using Radix-UI.
     - **Real-Time Report Export**: WebSocket-based streaming with automatic HTTP fallback (NEW - Feb 2026).
     - **ESS Portal**: Self-service for employees to view attendance, payslips, and request leave.
-    - Start environment: `./run-tests.sh --docker=dev up -d`
-    - Command execution: `./run-tests.sh --docker=dev exec apiserver cargo build`
+    - Start environment: `./run-tests.sh --docker=dev up -d` (AI: use `./ai-test.sh`)
+    - Command execution: `./run-tests.sh --docker=dev exec apiserver cargo build` (AI: use `./ai-test.sh`)
     - **Performance**: Server-side pagination and fuzzy search for large employee datasets (5000+ records).
 
 ### 5. Production Infrastructure (Dockerized)
-- **Docker Management**: `./run-tests.sh --docker=ENV CMD` manages Docker Compose for `dev`, `test`, and `prod` environments. All operations (up, down, exec, logs) go through this single entry point.
+- **Docker Management**: `./run-tests.sh --docker=ENV CMD` (or `./ai-test.sh` for AI agents to prevent PTY hangs) manages Docker Compose for `dev`, `test`, and `prod` environments. All operations (up, down, exec, logs) go through this single entry point.
 - **Layered Configuration**: `docker-compose.yml` (base) combined with environment-specific overrides (`docker-compose.dev.yml`, `docker-compose.test.yml`, `docker-compose.prod.yml`) for flexible setup.
 - **Containerization**: Standardized Dockerfiles for `apiserver` and `webdashboard` using multi-stage builds to minimize image size and maximize security.
 - **Orchestration**: `docker-compose.yml` provides a turn-key production environment including PostgreSQL, Redis, and automated Nginx reverse proxying.
@@ -123,8 +123,8 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 LeeAttend employs a high-performance testing infrastructure optimized for speed, reliability, and SSD longevity, specifically tailored for WSL2 environments.
 
 - **RAM-First Execution (tmpfs):** To bypass WSL's VirtioFS performance bottlenecks, all heavy I/O directories are mounted in RAM (Rust `target/`, `sccache`, `node_modules`, and PostgreSQL data).
-- **Persistent RAM Logs:** Test logs are stored in a Docker volume (`test-logs`). Use `./run-tests.sh --logs` to dump or `./run-tests.sh --tail-logs` to live-tail.
-- **Unified Orchestrator:** `./run-tests.sh` centralizes all tests with automatic RAM cleanup on exit.
+- **Persistent RAM Logs:** Test logs are stored in a Docker volume (`test-logs`). Use `./run-tests.sh --logs` to dump or `./run-tests.sh --tail-logs` to live-tail. (AI Agents use `./ai-test.sh`).
+- **Unified Orchestrator:** `./run-tests.sh` (or `./ai-test.sh`) centralizes all tests with automatic RAM cleanup on exit.
 - **Smart Worker Pool:** High-efficiency orchestrator that strictly respects `NUM_WORKERS` limits (auto-capped at 2 for WSL/stability).
 - **Comprehensive Summary Report**: Generates a detailed, colorized report at the end of every run, providing a snapshot of every task's status and execution duration.
 - **Real-time Monitoring**: Provides live progress updates for parallel tasks (`[WAIT] Running: ...`), improving visibility during long-running suites.
@@ -160,7 +160,8 @@ LeeAttend employs a high-performance testing infrastructure optimized for speed,
 │   ├── Dockerfile.test      # E2E test container
 │   └── tests/               # Playwright E2E Tests
 ├── .test_logs/              # Test logs (RAM-backed)
-├── run-tests.sh             # Main orchestrator (RAM setup/cleanup)
+├── run-tests.sh             # Main orchestrator (Humans)
+├── ai-test.sh               # PTY-safe orchestrator wrapper (AI Agents)
 └── setup-test-env.sh        # Infrastructure provisioner (Containerized)
 ```
 

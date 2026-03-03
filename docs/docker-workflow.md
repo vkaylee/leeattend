@@ -54,8 +54,8 @@ Use `./run-tests.sh --docker=ENV CMD` for all environments.
 ```
 
 > [!NOTE]
-> For running tests, prefer `./run-tests.sh --api` or `./run-tests.sh --all` which manage the test
-> environment automatically.
+> For running tests, Human users should prefer `./run-tests.sh --api` or `./run-tests.sh --all` which manage the test
+> environment automatically. **AI Agents MUST use `./ai-test.sh`** to prevent PTY hangs.
 
 ### Production
 
@@ -93,7 +93,7 @@ Use `./run-tests.sh --docker=ENV CMD` for all environments.
 
 ## 🧪 Integration with Test Runner
 
-`./run-tests.sh` automatically composes the correct Docker files and uses `test` stage containers:
+`./run-tests.sh` (or `./ai-test.sh` for AI Agents) automatically composes the correct Docker files and uses `test` stage containers:
 
 ```bash
 ./run-tests.sh --all            # Full test pipeline (manages Docker automatically)

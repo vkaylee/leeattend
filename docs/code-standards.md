@@ -416,9 +416,10 @@ To ensure high-quality delivery and fast feedback loops, the project uses a unif
 > **This project runs on WSL with severe Disk I/O issues (1GB/s read causing system freeze).**
 
 **Mandatory Rules:**
-1. **NEVER** run `cargo test`, `cargo nextest`, `pytest`, or any test command directly.
-2. **ALWAYS** use `./run-tests.sh` for ALL testing requests (unit, integration, e2e).
-3. All tests run inside Docker containers to avoid WSL2 Disk I/O bottlenecks.
+1. **NEVER** run `cargo test`, `cargo nextest`, `pytest`, or any test command directly on the host.
+2. **Humans MUST** use `./run-tests.sh` for ALL testing requests (unit, integration, e2e). 
+3. **AI Agents MUST** use `./ai-test.sh` (a PTY-safe wrapper) to prevent terminal hangs.
+4. All tests run inside Docker containers to avoid WSL2 Disk I/O bottlenecks.
 
 #### 1. Test Execution & Tools
 - **Nextest**: The project uses `cargo nextest` for all Rust tests. It provides better parallelism, faster execution, and isolated process management.
@@ -442,10 +443,15 @@ To ensure high-quality delivery and fast feedback loops, the project uses a unif
     - Any warnings from the linter or type errors are treated as errors and will stop the pipeline immediately.
 - **Unit Tests (Phase 1)**: 
     - **Vitest**: Timeouts 10s, `isolate: false` to speed up execution.
-- **Recommended Execution**: Use the unified script to run the entire suite as quickly as possible (supports parallel execution and automated environment setup):
-  ```bash
-  ./run-tests.sh
-  ```
+- **Recommended Execution**: 
+  - For Humans:
+    ```bash
+    ./run-tests.sh
+    ```
+  - For AI Agents:
+    ```bash
+    ./ai-test.sh
+    ```
 
 ### Integration Tests (Rust)
 

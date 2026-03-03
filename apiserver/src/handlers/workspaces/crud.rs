@@ -11,7 +11,7 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AttendanceTrendPoint, CreateWorkspaceRequest, DepartmentAttendancePoint, LatenessByDay,
-    LeaveTypeBreakdown, OvertimeTrendPoint, PeakTimeSlot, UpdateWorkspaceRequest, Workspace,
+    LeaveTypeBreakdown, OvertimeTrendPoint, PeakTimeSlot, UnexcusedAbsencesPoint, UpdateWorkspaceRequest, Workspace,
     WorkspaceStats,
 };
 use crate::services::WorkspaceService;
@@ -338,6 +338,118 @@ pub async fn get_department_attendance(
 
     Ok(Json(result))
 }
+
+#[derive(Debug, Deserialize)]
+pub struct UnexcusedAbsencesQuery {
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+}
+
+pub async fn get_unexcused_absences(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Query(params): Query<UnexcusedAbsencesQuery>,
+) -> AppResult<Json<Vec<UnexcusedAbsencesPoint>>> {
+    let today = Utc::now().date_naive();
+    
+    let end_date = params
+        .end_date
+        .and_then(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok())
+        .unwrap_or(today);
+        
+    let start_date = params
+        .start_date
+        .and_then(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok())
+        .unwrap_or_else(|| end_date - chrono::Duration::days(29));
+
+    #[derive(Debug, sqlx::FromRow)]
+    struct RowResult {
+        department_id: Uuid,
+        department_name: String,
+        unexcused_count: i64,
+        total_absent_count: i64,
+        total_leave_count: i64,
+        consecutive_count: i64,
+    }
+
+    let rows = sqlx::query_as::<_, RowResult>(
+        r#"
+        WITH latest_dept AS (
+            SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id, d.name AS department_name
+            FROM employee_department_history edh
+            JOIN employees e ON e.id = edh.employee_id AND e.is_active = TRUE AND e.workspace_id = $1
+            JOIN departments d ON d.id = edh.department_id
+            WHERE edh.effective_date <= $3
+            ORDER BY edh.employee_id, edh.effective_date DESC
+        ),
+        days AS (
+            SELECT d::date AS date
+            FROM generate_series($2::date, $3::date, '1 day'::interval) AS d
+            WHERE d::date <= CURRENT_DATE
+        ),
+        last_punches AS (
+            SELECT employee_id, MAX(punch_in_time)::date AS last_punch_date
+            FROM time_entries
+            WHERE punch_in_time < ($3::date + INTERVAL '1 day')
+            GROUP BY employee_id
+        ),
+        daily_stats AS (
+            SELECT 
+                ld.employee_id,
+                ld.department_id,
+                ld.department_name,
+                d.date,
+                CASE WHEN te.id IS NOT NULL THEN 1 ELSE 0 END AS is_present,
+                CASE WHEN lr.id IS NOT NULL THEN 1 ELSE 0 END AS is_on_leave,
+                lp.last_punch_date
+            FROM latest_dept ld
+            CROSS JOIN days d
+            LEFT JOIN last_punches lp ON lp.employee_id = ld.employee_id
+            LEFT JOIN time_entries te ON te.employee_id = ld.employee_id AND te.punch_in_time::date = d.date
+            LEFT JOIN leave_requests lr ON lr.employee_id = ld.employee_id AND lr.status = 'approved' AND lr.start_date <= d.date AND lr.end_date >= d.date
+        ),
+        employee_agg AS (
+            SELECT 
+                employee_id,
+                department_id,
+                department_name,
+                SUM(CASE WHEN is_present = 0 AND is_on_leave = 0 THEN 1 ELSE 0 END) AS unexcused_days,
+                SUM(CASE WHEN is_present = 0 THEN 1 ELSE 0 END) AS total_absent_days,
+                SUM(CASE WHEN is_on_leave = 1 THEN 1 ELSE 0 END) AS total_leave_days,
+                SUM(CASE WHEN date > COALESCE(last_punch_date, '1900-01-01'::date) AND is_on_leave = 0 THEN 1 ELSE 0 END) AS consecutive_days
+            FROM daily_stats
+            GROUP BY employee_id, department_id, department_name
+        )
+        SELECT 
+            department_id,
+            department_name,
+            SUM(unexcused_days)::bigint AS unexcused_count,
+            SUM(total_absent_days)::bigint AS total_absent_count,
+            SUM(total_leave_days)::bigint AS total_leave_count,
+            SUM(consecutive_days)::bigint AS consecutive_count
+        FROM employee_agg
+        GROUP BY department_id, department_name
+        ORDER BY unexcused_count DESC
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(start_date)
+    .bind(end_date)
+    .fetch_all(&state.db)
+    .await?;
+
+    let result = rows.into_iter().map(|r| UnexcusedAbsencesPoint {
+        department_id: r.department_id,
+        department_name: r.department_name,
+        unexcused_count: r.unexcused_count,
+        consecutive_count: r.consecutive_count,
+        total_absent_count: r.total_absent_count,
+        total_leave_count: r.total_leave_count,
+    }).collect();
+
+    Ok(Json(result))
+}
+
 
 pub async fn get_overtime_trend(
     State(state): State<Arc<AppState>>,

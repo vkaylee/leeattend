@@ -2,6 +2,7 @@
 //! - GET /api/dashboard/peak-times
 //! - GET /api/dashboard/leave-types
 //! - GET /api/dashboard/lateness-by-day
+//! - GET /api/dashboard/unexcused-absences
 
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
@@ -291,4 +292,112 @@ async fn test_lateness_by_day_returns_data_with_late_entries() {
     let first = &body[0];
     let avg = first["avg_late_minutes"].as_f64().unwrap();
     assert!(avg > 20.0 && avg < 40.0, "Expected avg_late_minutes near 30, got {avg}");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  4. Unexcused Absences
+// ═══════════════════════════════════════════════════════════════════
+
+#[tokio::test]
+async fn test_unexcused_absences_returns_empty_when_no_employees() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let res = client
+        .get(format!("{address}/api/dashboard/unexcused-absences"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert!(body.is_empty(), "Expected empty array when no employees with departments");
+}
+
+#[tokio::test]
+async fn test_unexcused_absences_returns_data_with_absent_employees() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let pool = _db.pool();
+
+    let dept_id = factory
+        .department()
+        .with_workspace(ws_id)
+        .create()
+        .await;
+
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .create()
+        .await;
+
+    let today = Utc::now().date_naive();
+
+    // Assign employee to department
+    sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)")
+        .bind(emp_id)
+        .bind(dept_id)
+        .bind(today - Duration::days(30))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // No time entries and no leave for this employee → should be unexcused
+
+    let res = client
+        .get(format!("{address}/api/dashboard/unexcused-absences"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert!(!body.is_empty(), "Expected non-empty unexcused absences data");
+
+    // Check response structure
+    for item in &body {
+        assert!(item["department_id"].is_string());
+        assert!(item["department_name"].is_string());
+        assert!(item["unexcused_count"].is_number());
+        assert!(item["consecutive_count"].is_number());
+        assert!(item["total_absent_count"].is_number());
+        assert!(item["total_leave_count"].is_number());
+    }
+
+    // The employee should show up as unexcused
+    let total_unexcused: i64 = body.iter()
+        .map(|item| item["unexcused_count"].as_i64().unwrap())
+        .sum();
+    assert!(total_unexcused > 0, "Expected at least 1 unexcused absence, got {total_unexcused}");
+}
+
+#[tokio::test]
+async fn test_unexcused_absences_supports_date_range_query() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let today = Utc::now().date_naive();
+    let start = (today - Duration::days(7)).format("%Y-%m-%d").to_string();
+    let end = today.format("%Y-%m-%d").to_string();
+
+    let res = client
+        .get(format!("{address}/api/dashboard/unexcused-absences?start_date={start}&end_date={end}"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    // Should return successfully even if empty
+    assert!(body.is_array());
 }
