@@ -14,6 +14,13 @@ echo "========================================"
 # Change to project root
 cd "$(git rev-parse --show-toplevel)"
 
+# ── Cleanup Handler ──────────────────────────────────────────────────────────
+# Ensure test containers started in Phase 2 are properly destroyed on exit/error
+cleanup() {
+    docker compose -p leeattend-test -f docker-compose.test.yml down --remove-orphans --timeout 5 </dev/null >/dev/null 2>&1 || true
+}
+trap cleanup EXIT INT TERM
+
 # ── Phase 1: Smoke tests (lint + unit) ────────────────────────────
 echo ""
 echo "🔹 Phase 1: Smoke tests (lint + unit)..."
