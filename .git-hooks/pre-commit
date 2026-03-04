@@ -1,35 +1,71 @@
 #!/bin/bash
 
 # ==============================================================================
-# Pre-commit hook: Run tests before commit
+# Pre-commit hook: Run tests + compile-check before commit
 # ==============================================================================
-# Install: cp pre-commit.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Uses ai-test.sh (PTY-safe wrapper) to avoid terminal hangs.
 # Skip:   git commit --no-verify -m "message"
 # ==============================================================================
 
 echo "========================================"
-echo "🔒 Running pre-commit tests..."
+echo "🔒 Running pre-commit checks..."
 echo "========================================"
 
 # Change to project root
 cd "$(git rev-parse --show-toplevel)"
 
-# Run quick smoke test (lint + unit, no integration)
-# Use --smoke for fast feedback, use --all for full tests
-./run-tests.sh --all --smoke
+# ── Phase 1: Smoke tests (lint + unit) ────────────────────────────
+echo ""
+echo "🔹 Phase 1: Smoke tests (lint + unit)..."
+./ai-test.sh --all --smoke
 
-# Check exit code
 if [ $? -ne 0 ]; then
     echo "========================================"
-    echo "❌ TESTS FAILED - Commit aborted"
+    echo "❌ SMOKE TESTS FAILED - Commit aborted"
     echo "========================================"
     echo "💡 Fix failing tests or use --no-verify to skip:"
     echo "   git commit --no-verify -m 'message'"
     exit 1
 fi
 
+# ── Phase 2: Compile-check integration tests ─────────────────────
+# Smoke mode skips integration test compilation. This step ensures
+# struct changes, missing fields, and type errors are caught.
+# Uses --no-run: compiles all test targets WITHOUT executing them.
+echo ""
+echo "🔹 Phase 2: Compile-checking integration test targets..."
+
+COMPILE_FAILED=0
+
+# Ensure Docker test containers exist
+docker compose -p leeattend-test -f docker-compose.test.yml up -d agent_test apiserver_test </dev/null >/dev/null 2>&1
+
+# Compile-check agent-main tests (no-run = compile only)
+echo "  → agent-main..."
+setsid docker exec leeattend-test-agent_test-1 \
+    cargo test --no-run --manifest-path /workspace/agent-main/Cargo.toml \
+    </dev/null 2>&1 | tail -3
+if [ ${PIPESTATUS[0]} -ne 0 ]; then COMPILE_FAILED=1; fi
+
+# Compile-check apiserver tests (no-run = compile only)
+echo "  → apiserver..."
+setsid docker exec leeattend-test-apiserver_test-1 \
+    cargo test --no-run --manifest-path /workspace/apiserver/Cargo.toml \
+    </dev/null 2>&1 | tail -3
+if [ ${PIPESTATUS[0]} -ne 0 ]; then COMPILE_FAILED=1; fi
+
+if [ $COMPILE_FAILED -ne 0 ]; then
+    echo "========================================"
+    echo "❌ INTEGRATION TEST COMPILATION FAILED - Commit aborted"
+    echo "========================================"
+    echo "💡 Fix compilation errors in test files before committing."
+    exit 1
+fi
+
+echo "✅ All test targets compile successfully."
+
 echo "========================================"
-echo "✅ All tests passed! Proceeding with commit."
+echo "✅ All pre-commit checks passed!"
 echo "========================================"
 
 # Re-stage any tracked files modified by tests (e.g. Cargo.lock updated by Docker/cargo)
