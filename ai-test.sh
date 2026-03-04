@@ -29,6 +29,18 @@ if [[ -z "${_PTY_CHECK_DONE:-}" && -f "$SCRIPT_DIR/scripts/test-pty-safety.sh" ]
     echo ""
 fi
 
+# ── Log Output Self-Test Gate ────────────────────────────────────────
+# Verify that ai-test.sh correctly prints logs on test failure.
+# Uses _LOG_CHECK_DONE guard to prevent recursion (same pattern as PTY gate).
+if [[ -z "${_LOG_CHECK_DONE:-}" && -f "$SCRIPT_DIR/scripts/test-log-output.sh" ]]; then
+    echo "🧪 Running log output self-test..."
+    if ! "$SCRIPT_DIR/scripts/test-log-output.sh"; then
+        echo "❌ Log output self-test failed — fix issues above before running tests."
+        exit 1
+    fi
+    echo ""
+fi
+
 # FIX: Use a single timestamp+PID to avoid race between two $(date) calls
 _TS="$(date +%s)-$$"
 LOG_FILE="/tmp/ai-test-${_TS}.log"
@@ -76,11 +88,16 @@ echo "================================================================"
 if [ "$EXIT_CODE" -eq 0 ]; then
     echo "✅ ALL TESTS PASSED"
     echo "================================================================"
-    cat "$LOG_FILE"
+    cat "$LOG_FILE" || true
 else
     echo "❌ TESTS FAILED (exit code: $EXIT_CODE)"
     echo "================================================================"
-    cat "$LOG_FILE" >&2
+    # FIX: Output to stdout (not stderr) so AI agent tools capture it.
+    # Previous >&2 was invisible to most agent terminal readers.
+    cat "$LOG_FILE" || true
+    echo ""
+    echo "──── Last 30 lines ────"
+    tail -30 "$LOG_FILE" 2>/dev/null || true
 fi
 
 # Clean up temp files
