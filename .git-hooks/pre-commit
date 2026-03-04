@@ -4,7 +4,6 @@
 # Pre-commit hook: Run tests + compile-check before commit
 # ==============================================================================
 # Uses ai-test.sh (PTY-safe wrapper) to avoid terminal hangs.
-# Skip:   git commit --no-verify -m "message"
 # ==============================================================================
 
 echo "========================================"
@@ -30,8 +29,7 @@ if [ $? -ne 0 ]; then
     echo "========================================"
     echo "❌ SMOKE TESTS FAILED - Commit aborted"
     echo "========================================"
-    echo "💡 Fix failing tests or use --no-verify to skip:"
-    echo "   git commit --no-verify -m 'message'"
+    echo "💡 Fix the failing tests before committing."
     exit 1
 fi
 
@@ -44,23 +42,48 @@ echo "🔹 Phase 2: Compile-checking integration test targets..."
 
 COMPILE_FAILED=0
 
-# Ensure Docker test containers exist
+# Ensure Docker test containers exist (fully detached from PTY)
 docker compose -p leeattend-test -f docker-compose.test.yml up -d agent_test apiserver_test </dev/null >/dev/null 2>&1
+
+# Helper: run a docker exec command PTY-safe via file-based exit code
+pty_safe_docker_exec() {
+    local LABEL="$1"; shift
+    local LOG="/tmp/pre-commit-${LABEL}-$$.log"
+    local RC="/tmp/pre-commit-${LABEL}-$$.rc"
+    local CMD="/tmp/pre-commit-${LABEL}-$$.sh"
+    rm -f "$LOG" "$RC" "$CMD"
+
+    # Write command to temp script to preserve argument quoting
+    echo '#!/bin/bash' > "$CMD"
+    printf '%q ' "$@" >> "$CMD"
+    echo '' >> "$CMD"
+    chmod +x "$CMD"
+
+    setsid bash -c "'$CMD' > '$LOG' 2>&1; echo \$? > '$RC'; rm -f '$CMD'" </dev/null >/dev/null 2>&1 &
+
+    while [ ! -f "$RC" ]; do sleep 2; done
+
+    local EXIT_CODE
+    EXIT_CODE=$(cat "$RC" 2>/dev/null || echo "1")
+    tail -5 "$LOG"
+    rm -f "$LOG" "$RC"
+    return "$EXIT_CODE"
+}
 
 # Compile-check agent-main tests (no-run = compile only)
 echo "  → agent-main..."
-setsid docker exec leeattend-test-agent_test-1 \
-    cargo test --no-run --manifest-path /workspace/agent-main/Cargo.toml \
-    </dev/null 2>&1 | tail -3
-if [ ${PIPESTATUS[0]} -ne 0 ]; then COMPILE_FAILED=1; fi
+if ! pty_safe_docker_exec "agent" docker exec leeattend-test-agent_test-1 \
+    cargo test --no-run --manifest-path /workspace/agent-main/Cargo.toml; then
+    COMPILE_FAILED=1
+fi
 
 # Compile-check apiserver tests (no-run = compile only)
 # sqlx macros require a live DB with schema — run migrations first
 echo "  → apiserver (migrate + compile)..."
-setsid docker exec leeattend-test-apiserver_test-1 bash -c \
-    'cd /workspace/apiserver && sqlx database create 2>/dev/null; sqlx migrate run && cargo test --no-run' \
-    </dev/null 2>&1 | tail -5
-if [ ${PIPESTATUS[0]} -ne 0 ]; then COMPILE_FAILED=1; fi
+if ! pty_safe_docker_exec "apiserver" docker exec leeattend-test-apiserver_test-1 bash -c \
+    'cd /workspace/apiserver && sqlx database create 2>/dev/null; sqlx migrate run && cargo test --no-run'; then
+    COMPILE_FAILED=1
+fi
 
 if [ $COMPILE_FAILED -ne 0 ]; then
     echo "========================================"

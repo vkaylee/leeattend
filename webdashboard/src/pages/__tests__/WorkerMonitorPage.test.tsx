@@ -9,6 +9,27 @@ vi.mock("react-i18next", () => ({
     }),
 }));
 
+// Mock chart components to avoid recharts SVG rendering in jsdom
+vi.mock("@/components/features/monitor/WorkerUtilizationGauge", () => ({
+    default: (props: any) => <div data-testid="utilization-gauge" />,
+}));
+vi.mock("@/components/features/monitor/QueuePressureChart", () => ({
+    default: (props: any) => <div data-testid="queue-pressure-chart" />,
+}));
+vi.mock("@/components/features/monitor/JobStatusDistributionChart", () => ({
+    default: (props: any) => <div data-testid="job-distribution-chart" />,
+}));
+
+// Mock data transformation hooks
+vi.mock("@/hooks/use-monitor-charts", () => ({
+    useWorkerUtilization: () => ({ active: 2, idle: 1, total: 3, percent: 67 }),
+    useQueuePressure: () => ({ high: 3, low: 2, total: 5 }),
+    useJobStatusDistribution: () => [
+        { status: "completed", count: 1, color: "#10b981" },
+        { status: "failed", count: 1, color: "#ef4444" },
+    ],
+}));
+
 const mockMonitorData = {
     pending_tasks: 5,
     pending_high: 3,
@@ -78,6 +99,7 @@ const mockMonitorData = {
 };
 
 vi.mock("@/hooks/use-worker-monitor", () => ({
+    MONITOR_REFETCH_INTERVAL_S: 2,
     useWorkerMonitor: vi.fn(() => ({
         stats: mockMonitorData,
         workers: mockMonitorData.workers,
@@ -111,7 +133,7 @@ describe("WorkerMonitorPage", () => {
     it("renders stat cards with correct values", () => {
         renderPage();
         expect(screen.getByText("42")).toBeInTheDocument(); // completed_today (unique)
-        expect(screen.getByText("3")).toBeInTheDocument(); // pending_high
+        expect(screen.getAllByText("3").length).toBeGreaterThanOrEqual(1); // pending_high
         // Stat labels are rendered
         expect(screen.getByText("monitor.pending_high")).toBeInTheDocument();
         expect(screen.getByText("monitor.pending_low")).toBeInTheDocument();

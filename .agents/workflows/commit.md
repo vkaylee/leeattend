@@ -20,12 +20,12 @@ git add <files>
 // turbo
 2. Commit with GPG agent workaround — close inherited file descriptors:
 ```bash
-git commit --no-verify -m "<message>" </dev/null
+git commit --no-gpg-sign -m "<message>" </dev/null
 ```
 
 > **Note**: `</dev/null` detaches stdin from the PTY, preventing GPG agent from
-> inheriting and holding the file descriptor. `--no-verify` skips pre-commit
-> hooks that may also hold the PTY (e.g., running test suites).
+> inheriting and holding the file descriptor. `--no-gpg-sign` avoids spawning
+> `gpg-agent` which would hold the PTY open indefinitely.
 
 // turbo
 3. Verify the commit was created:

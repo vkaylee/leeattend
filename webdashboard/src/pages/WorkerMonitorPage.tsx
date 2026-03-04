@@ -15,13 +15,20 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
-import { useWorkerMonitor } from "@/hooks/use-worker-monitor";
+import { useWorkerMonitor, MONITOR_REFETCH_INTERVAL_S } from "@/hooks/use-worker-monitor";
+import { useWorkerUtilization, useQueuePressure, useJobStatusDistribution } from "@/hooks/use-monitor-charts";
+import WorkerUtilizationGauge from "@/components/features/monitor/WorkerUtilizationGauge";
+import QueuePressureChart from "@/components/features/monitor/QueuePressureChart";
+import JobStatusDistributionChart from "@/components/features/monitor/JobStatusDistributionChart";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
 export default function WorkerMonitorPage() {
   const { t } = useTranslation();
   const { stats, workers, recentJobs, isLoading, isFetching, error, refetch } = useWorkerMonitor();
+  const utilization = useWorkerUtilization(stats);
+  const queuePressure = useQueuePressure(stats);
+  const jobDistribution = useJobStatusDistribution(recentJobs);
 
   const statCards = [
     {
@@ -142,6 +149,13 @@ export default function WorkerMonitorPage() {
         ))}
       </div>
 
+      {/* Scaling Decision Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <WorkerUtilizationGauge data={utilization} isLoading={isLoading} />
+        <QueuePressureChart data={queuePressure} isLoading={isLoading} />
+        <JobStatusDistributionChart data={jobDistribution} isLoading={isLoading} />
+      </div>
+
       {/* Live Indicator */}
       <div className="flex items-center gap-3 px-2">
         <div className="relative flex h-3 w-3">
@@ -149,7 +163,7 @@ export default function WorkerMonitorPage() {
           <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-50 dark:bg-emerald-950"></span>
         </div>
         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-          {t("monitor.live_updates")}
+          {t("monitor.live_updates", { seconds: MONITOR_REFETCH_INTERVAL_S })}
         </span>
         {isFetching && (
           <Loader2 size={14} className="text-slate-400 dark:text-slate-500 animate-spin" />

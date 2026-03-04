@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchMonitorOverview } from "@/lib/api/attendance";
 
+export const MONITOR_REFETCH_INTERVAL_MS = 2000;
+export const MONITOR_REFETCH_INTERVAL_S = MONITOR_REFETCH_INTERVAL_MS / 1000;
+
 export const monitorKeys = {
   all: ["worker-monitor"] as const,
   overview: () => [...monitorKeys.all, "overview"] as const,
@@ -10,7 +13,7 @@ export function useWorkerMonitor() {
   const query = useQuery({
     queryKey: monitorKeys.overview(),
     queryFn: fetchMonitorOverview,
-    refetchInterval: 5000, // Refresh every 5 seconds for real-time monitoring
+    refetchInterval: MONITOR_REFETCH_INTERVAL_MS,
   });
 
   return {

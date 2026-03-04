@@ -1727,7 +1727,7 @@
     "completed_today": "Hoàn thành hôm nay",
     "failed_today": "Thất bại hôm nay",
     "total_workers": "Tổng Worker",
-    "live_updates": "Cập nhật mỗi 5 giây",
+    "live_updates": "Cập nhật mỗi {{seconds}} giây",
     "worker_list": "Danh sách Worker",
     "worker_list_subtitle": "Các container worker đang hoạt động",
     "no_workers": "Không có worker nào",
@@ -1743,7 +1743,20 @@
     "error": "Lỗi",
     "created_at": "Ngày tạo",
     "batches": "Lô",
-    "no_jobs": "Không có tác vụ gần đây"
+    "no_jobs": "Không có tác vụ gần đây",
+    "charts": {
+      "utilization": "Tỷ lệ sử dụng Worker",
+      "utilization_desc": "Worker hoạt động vs nhàn rỗi",
+      "queue_pressure": "Áp lực hàng đợi",
+      "queue_pressure_desc": "Công việc chờ theo mức ưu tiên",
+      "queue_empty": "Hàng đợi trống",
+      "job_distribution": "Phân bổ công việc",
+      "job_distribution_desc": "Trạng thái các job gần đây",
+      "total_jobs": "jobs",
+      "active_label": "hoạt động",
+      "scale_up_warning": "Tải cao — cân nhắc tăng worker",
+      "scale_down_hint": "Tải thấp — cân nhắc giảm worker"
+    }
   },
   "agents": {
     "title": "Quản lý Agent",

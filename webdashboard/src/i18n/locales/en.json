@@ -1727,7 +1727,7 @@
     "completed_today": "Completed Today",
     "failed_today": "Failed Today",
     "total_workers": "Total Workers",
-    "live_updates": "Live updates every 5s",
+    "live_updates": "Live updates every {{seconds}}s",
     "worker_list": "Workers",
     "worker_list_subtitle": "Active worker containers",
     "no_workers": "No active workers",
@@ -1743,7 +1743,20 @@
     "error": "Error",
     "created_at": "Created",
     "batches": "Batches",
-    "no_jobs": "No recent jobs"
+    "no_jobs": "No recent jobs",
+    "charts": {
+      "utilization": "Worker Utilization",
+      "utilization_desc": "Active vs idle workers",
+      "queue_pressure": "Queue Pressure",
+      "queue_pressure_desc": "Pending jobs by priority",
+      "queue_empty": "Queue empty",
+      "job_distribution": "Job Distribution",
+      "job_distribution_desc": "Status of recent jobs",
+      "total_jobs": "jobs",
+      "active_label": "active",
+      "scale_up_warning": "High utilization — consider scaling up",
+      "scale_down_hint": "Low utilization — consider scaling down"
+    }
   },
   "agents": {
     "title": "Agent Management",

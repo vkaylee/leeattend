@@ -15,22 +15,22 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="/tmp/ai-test-$(date +%s).txt"
+EXIT_CODE_FILE="/tmp/ai-test-exit-$(date +%s).txt"
 
 echo "🤖 AI Test Runner — PTY-safe wrapper for run-tests.sh"
 echo "📝 Logging to: $LOG_FILE"
 echo "🚀 Running: ./run-tests.sh $*"
 echo "================================================================"
 
-# Launch run-tests.sh in a new session to prevent PTY FD inheritance
-setsid bash -c "cd '$SCRIPT_DIR' && ./run-tests.sh $* > '$LOG_FILE' 2>&1" \
+# Launch run-tests.sh in a new session, writing exit code to a file
+# This fully detaches from the PTY — no fd inheritance possible
+setsid bash -c "cd '$SCRIPT_DIR' && ./run-tests.sh $* > '$LOG_FILE' 2>&1; echo \$? > '$EXIT_CODE_FILE'" \
     </dev/null >/dev/null 2>&1 &
 
-BG_PID=$!
-
-# Poll until the setsid process finishes
+# Poll until the exit code file appears (= subprocess finished)
 POLL_INTERVAL=5
 ELAPSED=0
-while kill -0 "$BG_PID" 2>/dev/null; do
+while [ ! -f "$EXIT_CODE_FILE" ]; do
     sleep $POLL_INTERVAL
     ELAPSED=$((ELAPSED + POLL_INTERVAL))
 
@@ -41,17 +41,22 @@ while kill -0 "$BG_PID" 2>/dev/null; do
     fi
 done
 
-# Wait for full exit and capture exit code
-wait "$BG_PID" 2>/dev/null
-EXIT_CODE=$?
+# Read exit code from file
+EXIT_CODE=$(cat "$EXIT_CODE_FILE" 2>/dev/null || echo "1")
 
 echo ""
 echo "================================================================"
-echo "📋 FULL OUTPUT:"
-echo "================================================================"
-cat "$LOG_FILE"
+if [ "$EXIT_CODE" -eq 0 ]; then
+    echo "✅ ALL TESTS PASSED"
+    echo "================================================================"
+    cat "$LOG_FILE"
+else
+    echo "❌ TESTS FAILED (exit code: $EXIT_CODE)"
+    echo "================================================================"
+    cat "$LOG_FILE" >&2
+fi
 
-# Clean up temp file
-rm -f "$LOG_FILE"
+# Clean up temp files
+rm -f "$LOG_FILE" "$EXIT_CODE_FILE"
 
-exit $EXIT_CODE
+exit "$EXIT_CODE"

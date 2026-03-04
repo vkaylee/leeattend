@@ -1727,7 +1727,7 @@
     "completed_today": "今日完成",
     "failed_today": "今日失败",
     "total_workers": "总 Worker 数",
-    "live_updates": "每5秒更新",
+    "live_updates": "每{{seconds}}秒更新",
     "worker_list": "Worker 列表",
     "worker_list_subtitle": "活跃的工作容器",
     "no_workers": "没有活跃的 Worker",
@@ -1743,7 +1743,20 @@
     "error": "错误",
     "created_at": "创建于",
     "batches": "批次",
-    "no_jobs": "没有近期工作"
+    "no_jobs": "没有近期工作",
+    "charts": {
+      "utilization": "Worker 利用率",
+      "utilization_desc": "活跃与空闲工作进程",
+      "queue_pressure": "队列压力",
+      "queue_pressure_desc": "按优先级排列的待处理任务",
+      "queue_empty": "队列为空",
+      "job_distribution": "任务分布",
+      "job_distribution_desc": "近期任务状态",
+      "total_jobs": "任务",
+      "active_label": "活跃",
+      "scale_up_warning": "高负载 — 建议扩容",
+      "scale_down_hint": "低负载 — 可考虑缩容"
+    }
   },
   "agents": {
     "title": "代理管理",
