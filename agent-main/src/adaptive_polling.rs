@@ -6,11 +6,21 @@ pub const BASE_POLL_INTERVAL_SECS: u64 = 5;
 pub const MAX_POLL_INTERVAL_SECS: u64 = 60;
 const ESCALATION_THRESHOLD: u32 = 3;
 
+/// Default number of poll cycles to skip after a successful fetch with new data.
+/// This acts as a TTL cooldown — after fetching new logs, the agent skips
+/// this many subsequent polls before fetching again.
+/// Configurable via `SUCCESS_SKIP_POLLS` env var.
+pub const DEFAULT_SUCCESS_SKIP_POLLS: u32 = 60;
+
 /// State for adaptive polling
 #[derive(Debug, Clone)]
 pub struct AdaptivePollingState {
     pub current_interval_secs: u64,
     pub consecutive_no_new_data: u32,
+    /// TTL skip countdown: when > 0, the poll cycle should be skipped
+    pub skip_remaining: u32,
+    /// Configured number of polls to skip (from env or default)
+    skip_polls_config: u32,
 }
 
 impl Default for AdaptivePollingState {
@@ -18,6 +28,8 @@ impl Default for AdaptivePollingState {
         Self {
             current_interval_secs: BASE_POLL_INTERVAL_SECS,
             consecutive_no_new_data: 0,
+            skip_remaining: 0,
+            skip_polls_config: DEFAULT_SUCCESS_SKIP_POLLS,
         }
     }
 }
@@ -27,15 +39,24 @@ impl AdaptivePollingState {
         Self::default()
     }
 
+    /// Create with a custom skip_polls value (from config/env)
+    pub fn with_skip_polls(skip_polls: u32) -> Self {
+        Self {
+            skip_polls_config: skip_polls,
+            ..Self::default()
+        }
+    }
+
     /// Update state based on whether new data was found
     /// Returns the new interval and whether it changed
     pub fn update(&mut self, found_new_data: bool) -> (u64, bool) {
         let old_interval = self.current_interval_secs;
 
         if found_new_data {
-            // New data found - reset to base interval
+            // New data found - reset to base interval and set skip cooldown
             self.current_interval_secs = BASE_POLL_INTERVAL_SECS;
             self.consecutive_no_new_data = 0;
+            self.skip_remaining = self.skip_polls_config;
         } else {
             // No new data - potentially escalate interval
             self.consecutive_no_new_data += 1;
@@ -54,6 +75,17 @@ impl AdaptivePollingState {
     /// Get current interval
     pub fn interval(&self) -> u64 {
         self.current_interval_secs
+    }
+
+    /// Check if this poll cycle should be skipped (TTL cooldown active).
+    /// Returns `true` if skip is active, and decrements the counter.
+    pub fn should_skip(&mut self) -> bool {
+        if self.skip_remaining > 0 {
+            self.skip_remaining -= 1;
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -176,5 +208,93 @@ mod tests {
 
         // Should always be at base interval
         assert_eq!(state.interval(), BASE_POLL_INTERVAL_SECS);
+    }
+
+    // === TTL Skip Tests ===
+
+    #[test]
+    fn test_skip_after_new_data() {
+        let mut state = AdaptivePollingState::with_skip_polls(3);
+
+        // No skip initially
+        assert!(!state.should_skip());
+
+        // New data sets skip_remaining
+        state.update(true);
+        assert_eq!(state.skip_remaining, 3);
+
+        // should_skip returns true and decrements
+        assert!(state.should_skip());
+        assert_eq!(state.skip_remaining, 2);
+    }
+
+    #[test]
+    fn test_skip_countdown_to_zero() {
+        let mut state = AdaptivePollingState::with_skip_polls(3);
+        state.update(true);
+
+        // Drain all skip counts
+        for _ in 0..3 {
+            assert!(state.should_skip());
+        }
+
+        // Now should_skip returns false
+        assert!(!state.should_skip());
+        assert_eq!(state.skip_remaining, 0);
+    }
+
+    #[test]
+    fn test_no_skip_when_no_new_data() {
+        let mut state = AdaptivePollingState::new();
+
+        // update(false) should NOT set skip
+        state.update(false);
+        assert_eq!(state.skip_remaining, 0);
+        assert!(!state.should_skip());
+    }
+
+    #[test]
+    fn test_skip_resets_on_new_data() {
+        let mut state = AdaptivePollingState::with_skip_polls(3);
+        state.update(true);
+
+        // Consume one skip
+        assert!(state.should_skip());
+
+        // Another update(true) resets the counter
+        state.update(true);
+        assert_eq!(state.skip_remaining, 3);
+    }
+
+    #[test]
+    fn test_skip_does_not_interfere_with_escalation() {
+        let mut state = AdaptivePollingState::with_skip_polls(2);
+
+        // Get new data (sets skip)
+        state.update(true);
+        assert_eq!(state.skip_remaining, 2);
+
+        // Drain skips
+        while state.should_skip() {}
+
+        // Now escalate with no-data
+        for _ in 0..ESCALATION_THRESHOLD {
+            state.update(false);
+        }
+        assert!(state.interval() > BASE_POLL_INTERVAL_SECS);
+        assert_eq!(state.skip_remaining, 0); // no skip set by no-data
+    }
+
+    #[test]
+    fn test_default_skip_polls_value() {
+        let state = AdaptivePollingState::new();
+        assert_eq!(state.skip_polls_config, DEFAULT_SUCCESS_SKIP_POLLS);
+        assert_eq!(state.skip_polls_config, 60);
+    }
+
+    #[test]
+    fn test_custom_skip_polls_value() {
+        let state = AdaptivePollingState::with_skip_polls(5);
+        assert_eq!(state.skip_polls_config, 5);
     }
 }

@@ -292,6 +292,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let hybrid_db = hybrid_db.clone();
             let token = worker_cancel_token.clone();
             let sem = semaphore.clone();
+            let success_skip_polls = config.success_skip_polls;
 
             tokio::spawn(async move {
                 info!("[{}] Device Polling Loop started ({})", worker.name, worker.ip);
@@ -342,7 +343,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
                     const SEEN_LOGS_CAP: usize = 50_000;
 
-                    let mut polling_state = AdaptivePollingState::new();
+                    let mut polling_state = AdaptivePollingState::with_skip_polls(success_skip_polls);
                     let mut poll_count = 0;
 
                     while !token.is_cancelled() {
@@ -377,6 +378,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
                                     info["users_count"] = json!(meta.users_count.unwrap_or(0));
                                 }
+                        }
+
+                        // TTL skip: if cooldown is active after a successful fetch, skip this poll cycle
+                        if polling_state.should_skip() {
+                            info!("[{}] Skipping poll (cooldown: {} remaining) [interval: {}s]",
+                                  worker.name, polling_state.skip_remaining, polling_state.interval());
+                            drop(_permit);
+                            sleep(Duration::from_secs(polling_state.interval())).await;
+                            continue;
                         }
 
                         match worker_impl.get_attendance_logs().await {
