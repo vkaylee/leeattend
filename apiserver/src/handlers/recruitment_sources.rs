@@ -19,7 +19,7 @@ pub async fn get_recruitment_sources(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSource>>> {
-    let sources = EmployeeService::get_recruitment_sources(&state.db, workspace_id)
+    let sources = EmployeeService::get_recruitment_sources(state.db.api(), workspace_id)
         .await
         .map_err(|s| AppError::from((s, "Failed to get recruitment sources".to_string())))?;
     Ok(Json(sources))
@@ -36,7 +36,7 @@ pub async fn create_recruitment_source(
             "Only admins can manage recruitment sources".to_string(),
         ));
     }
-    let source = EmployeeService::create_recruitment_source(&state.db, ctx.workspace_id, req)
+    let source = EmployeeService::create_recruitment_source(state.db.api(), ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to create recruitment source".to_string())))?;
     Ok((StatusCode::CREATED, Json(source)))
@@ -54,7 +54,7 @@ pub async fn update_recruitment_source(
         ));
     }
     let source =
-        EmployeeService::update_recruitment_source(&state.db, id, ctx.workspace_id, req)
+        EmployeeService::update_recruitment_source(state.db.api(), id, ctx.workspace_id, req)
             .await
             .map_err(|s| {
                 AppError::from((s, "Failed to update recruitment source".to_string()))
@@ -70,7 +70,7 @@ pub async fn delete_recruitment_source(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    EmployeeService::delete_recruitment_source(&state.db, id, ctx.workspace_id)
+    EmployeeService::delete_recruitment_source(state.db.api(), id, ctx.workspace_id)
         .await
         .map_err(|s| AppError::from((s, "Failed to delete recruitment source".to_string())))?;
     Ok(StatusCode::NO_CONTENT)
@@ -82,7 +82,7 @@ pub async fn get_recruitment_source_breakdown(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSourceBreakdown>>> {
     let breakdown =
-        EmployeeService::get_recruitment_source_breakdown(&state.db, workspace_id)
+        EmployeeService::get_recruitment_source_breakdown(state.db.api(), workspace_id)
             .await
             .map_err(|s| {
                 AppError::from((s, "Failed to get recruitment source breakdown".to_string()))
@@ -106,7 +106,7 @@ pub async fn get_turnover_analytics(
         .and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok())
         .unwrap_or(today);
 
-    let analytics = EmployeeService::get_turnover_analytics(&state.db, workspace_id, start, end)
+    let analytics = EmployeeService::get_turnover_analytics(state.db.api(), workspace_id, start, end)
         .await
         .map_err(|s| AppError::from((s, "Failed to get turnover analytics".to_string())))?;
     Ok(Json(analytics))

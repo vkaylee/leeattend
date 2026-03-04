@@ -1,14 +1,15 @@
 #[cfg(test)]
 mod tests {
     use crate::queue::job_queue::{
-        COUNTER_PREFIX, DLQ_KEY, JOB_TTL_SECS, MERGE_FLAG_PREFIX, META_PREFIX, QUEUE_KEY,
-        RESULTS_PREFIX,
+        COUNTER_PREFIX, DLQ_KEY, JOB_TTL_SECS, MERGE_FLAG_PREFIX, META_PREFIX, QUEUE_HIGH,
+        QUEUE_LOW, RESULTS_PREFIX,
     };
     use crate::queue::{
         DateRange, Job, JobMetadata, JobPayload, JobQueue, JobStatus, RedisPool, ReportConfig, ReportPayload, ReportType,
         TaskType,
     };
     use chrono::NaiveDate;
+    use redis::AsyncCommands;
     use uuid::Uuid;
 
     // Helper to create test Redis pool with 5s timeout (avoids 60s+ hang when Redis unavailable)
@@ -48,7 +49,8 @@ mod tests {
 
     #[test]
     fn test_queue_key_constants() {
-        assert_eq!(QUEUE_KEY, "worker:jobs");
+        assert_eq!(QUEUE_HIGH, "worker:jobs:high");
+        assert_eq!(QUEUE_LOW, "worker:jobs:low");
         assert_eq!(META_PREFIX, "report:meta:");
         assert_eq!(RESULTS_PREFIX, "report:results:");
         assert_eq!(COUNTER_PREFIX, "report:counter:");
@@ -734,5 +736,252 @@ mod tests {
             .await
             .ok()
             .unwrap_or(());
+    }
+
+    // ====== PRIORITY QUEUE ROUTING TESTS ======
+
+    #[tokio::test]
+    async fn test_enqueue_routes_high_priority_to_high_queue() {
+        let pool = setup_redis_or_skip!();
+        let queue = JobQueue::new(pool.clone());
+        let mut conn = pool.conn();
+
+        // Clean up before test
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
+
+        let job = Job::with_priority(
+            Uuid::new_v4(), 0,
+            TaskType::AttendanceReport,
+            Uuid::new_v4(),
+            JobPayload::AttendanceReport(ReportPayload {
+                employee_ids: vec![],
+                date_range: DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                },
+                config: ReportConfig {
+                    report_type: ReportType::Summary,
+                    timezone: "UTC".to_string(),
+                    rounding_policy: "floor".to_string(),
+                    work_unit_minutes: 30,
+                },
+            }),
+            crate::queue::JobPriority::High,
+        );
+
+        queue.enqueue_jobs(vec![job]).await.expect("enqueue should succeed");
+
+        let high_len: usize = conn.llen(QUEUE_HIGH).await.unwrap_or(0);
+        let low_len: usize = conn.llen(QUEUE_LOW).await.unwrap_or(0);
+
+        assert!(high_len >= 1, "High-priority job should be in high queue");
+        assert_eq!(low_len, 0, "Low queue should be empty");
+
+        // Cleanup
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_enqueue_routes_low_priority_to_low_queue() {
+        let pool = setup_redis_or_skip!();
+        let queue = JobQueue::new(pool.clone());
+        let mut conn = pool.conn();
+
+        // Clean up before test
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
+
+        let job = Job::with_priority(
+            Uuid::new_v4(), 0,
+            TaskType::LogIngestion,
+            Uuid::new_v4(),
+            JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+                workspace_id: Uuid::new_v4(),
+                employee_id_number: "EMP001".to_string(),
+                punch_time_raw: "2026-01-26 09:00:00".to_string(),
+                device_id: None,
+                raw_data: None,
+                timezone: "UTC".to_string(),
+                date_fmt: "YYYY-MM-DD".to_string(),
+                time_fmt: "24h".to_string(),
+            }),
+            crate::queue::JobPriority::Low,
+        );
+
+        queue.enqueue_single(job).await.expect("enqueue should succeed");
+
+        let high_len: usize = conn.llen(QUEUE_HIGH).await.unwrap_or(0);
+        let low_len: usize = conn.llen(QUEUE_LOW).await.unwrap_or(0);
+
+        assert_eq!(high_len, 0, "High queue should be empty");
+        assert!(low_len >= 1, "Low-priority job should be in low queue");
+
+        // Cleanup
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_dequeue_serves_high_priority_first() {
+        let pool = setup_redis_or_skip!();
+        let queue = JobQueue::new(pool.clone());
+        let mut conn = pool.conn();
+
+        // Clean up before test
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
+
+        // Enqueue LOW job first
+        let low_job = Job::with_priority(
+            Uuid::new_v4(), 0,
+            TaskType::LogIngestion,
+            Uuid::new_v4(),
+            JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+                workspace_id: Uuid::new_v4(),
+                employee_id_number: "LOW_EMP".to_string(),
+                punch_time_raw: "2026-01-26 09:00:00".to_string(),
+                device_id: None, raw_data: None,
+                timezone: "UTC".to_string(),
+                date_fmt: "YYYY-MM-DD".to_string(),
+                time_fmt: "24h".to_string(),
+            }),
+            crate::queue::JobPriority::Low,
+        );
+        queue.enqueue_single(low_job).await.unwrap();
+
+        // Then enqueue HIGH job
+        let high_job = Job::with_priority(
+            Uuid::new_v4(), 0,
+            TaskType::AttendanceReport,
+            Uuid::new_v4(),
+            JobPayload::AttendanceReport(ReportPayload {
+                employee_ids: vec![],
+                date_range: DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                },
+                config: ReportConfig {
+                    report_type: ReportType::Summary,
+                    timezone: "UTC".to_string(),
+                    rounding_policy: "floor".to_string(),
+                    work_unit_minutes: 30,
+                },
+            }),
+            crate::queue::JobPriority::High,
+        );
+        queue.enqueue_single(high_job.clone()).await.unwrap();
+
+        // Dequeue should return HIGH first, even though LOW was enqueued first
+        let first = queue.dequeue_job(1.0).await.unwrap().expect("should dequeue");
+        assert_eq!(
+            first.task_type, TaskType::AttendanceReport,
+            "First dequeued job should be HIGH priority (AttendanceReport)"
+        );
+        assert_eq!(first.job_id, high_job.job_id);
+
+        let second = queue.dequeue_job(1.0).await.unwrap().expect("should dequeue");
+        assert_eq!(
+            second.task_type, TaskType::LogIngestion,
+            "Second dequeued job should be LOW priority (LogIngestion)"
+        );
+
+        // Cleanup
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_queue_length_sums_both_queues() {
+        let pool = setup_redis_or_skip!();
+        let queue = JobQueue::new(pool.clone());
+        let mut conn = pool.conn();
+
+        // Clean up before test
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
+
+        // Enqueue 1 high, 2 low
+        let make_high = || Job::with_priority(
+            Uuid::new_v4(), 0,
+            TaskType::AttendanceReport, Uuid::new_v4(),
+            JobPayload::AttendanceReport(ReportPayload {
+                employee_ids: vec![],
+                date_range: DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                },
+                config: ReportConfig {
+                    report_type: ReportType::Summary,
+                    timezone: "UTC".to_string(),
+                    rounding_policy: "floor".to_string(),
+                    work_unit_minutes: 30,
+                },
+            }),
+            crate::queue::JobPriority::High,
+        );
+
+        let make_low = || Job::with_priority(
+            Uuid::new_v4(), 0,
+            TaskType::LogIngestion, Uuid::new_v4(),
+            JobPayload::LogIngestion(crate::queue::LogIngestionPayload {
+                workspace_id: Uuid::new_v4(),
+                employee_id_number: "E".to_string(),
+                punch_time_raw: "2026-01-01 00:00:00".to_string(),
+                device_id: None, raw_data: None,
+                timezone: "UTC".to_string(),
+                date_fmt: "YYYY-MM-DD".to_string(),
+                time_fmt: "24h".to_string(),
+            }),
+            crate::queue::JobPriority::Low,
+        );
+
+        queue.enqueue_single(make_high()).await.unwrap();
+        queue.enqueue_single(make_low()).await.unwrap();
+        queue.enqueue_single(make_low()).await.unwrap();
+
+        let total = queue.queue_length().await.unwrap();
+        assert_eq!(total, 3, "Total queue length should sum both queues");
+
+        // Cleanup
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_normal_priority_goes_to_high_queue() {
+        let pool = setup_redis_or_skip!();
+        let queue = JobQueue::new(pool.clone());
+        let mut conn = pool.conn();
+
+        // Clean up before test
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
+
+        // Normal priority Job (via Job::new which defaults to Normal)
+        let job = Job::new(
+            Uuid::new_v4(), 0,
+            TaskType::LeaveAccrual, Uuid::new_v4(),
+            JobPayload::LeaveAccrual(crate::queue::AccrualPayload {
+                date: NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(),
+                force: false,
+            }),
+        );
+
+        // priority should be Normal
+        assert_eq!(job.priority, crate::queue::JobPriority::Normal);
+
+        queue.enqueue_single(job).await.unwrap();
+
+        let high_len: usize = conn.llen(QUEUE_HIGH).await.unwrap_or(0);
+        let low_len: usize = conn.llen(QUEUE_LOW).await.unwrap_or(0);
+
+        assert!(high_len >= 1, "Normal priority should route to high queue");
+        assert_eq!(low_len, 0, "Low queue should remain empty");
+
+        // Cleanup
+        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+            .query_async(&mut conn).await.ok().unwrap_or(());
     }
 }

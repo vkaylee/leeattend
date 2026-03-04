@@ -39,7 +39,7 @@ pub async fn get_my_profile(
         "#,
     )
     .bind(employee.employee_id)
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await?;
 
     // Get profile (may not exist yet)
@@ -47,7 +47,7 @@ pub async fn get_my_profile(
         "SELECT * FROM employee_profiles WHERE employee_id = $1",
     )
     .bind(employee.employee_id)
-    .fetch_optional(&state.db)
+    .fetch_optional(state.db.api())
     .await?;
 
     // Get emergency contacts
@@ -55,7 +55,7 @@ pub async fn get_my_profile(
         "SELECT * FROM employee_emergency_contacts WHERE employee_id = $1 ORDER BY is_primary DESC, created_at",
     )
     .bind(employee.employee_id)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(MyProfileResponse {
@@ -98,7 +98,7 @@ pub async fn update_my_profile(
     .bind(&req.bank_name)
     .bind(&req.bank_account_number)
     .bind(&req.bank_branch)
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await?;
 
     Ok(Json(profile))
@@ -115,7 +115,7 @@ pub async fn get_my_emergency_contacts(
         "SELECT * FROM employee_emergency_contacts WHERE employee_id = $1 ORDER BY is_primary DESC, created_at",
     )
     .bind(employee.employee_id)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(contacts))
@@ -135,7 +135,7 @@ pub async fn add_emergency_contact(
             "UPDATE employee_emergency_contacts SET is_primary = false WHERE employee_id = $1",
         )
         .bind(employee.employee_id)
-        .execute(&state.db)
+        .execute(state.db.api())
         .await?;
     }
 
@@ -151,7 +151,7 @@ pub async fn add_emergency_contact(
     .bind(&req.relationship)
     .bind(&req.phone)
     .bind(is_primary)
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await?;
 
     Ok((StatusCode::CREATED, Json(contact)))
@@ -168,7 +168,7 @@ pub async fn delete_emergency_contact(
         sqlx::query("DELETE FROM employee_emergency_contacts WHERE id = $1 AND employee_id = $2")
             .bind(contact_id)
             .bind(employee.employee_id)
-            .execute(&state.db)
+            .execute(state.db.api())
             .await?;
 
     if result.rows_affected() == 0 {
@@ -189,7 +189,7 @@ pub async fn get_my_documents(
         "SELECT * FROM employee_documents WHERE employee_id = $1 AND is_active = true ORDER BY created_at DESC",
     )
     .bind(employee.employee_id)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(docs))
@@ -206,7 +206,7 @@ pub async fn get_my_payslips(
         "SELECT * FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC",
     )
     .bind(employee.employee_id)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(payslips))
@@ -245,7 +245,7 @@ pub async fn get_my_attendance(
     .bind(employee.employee_id)
     .bind(start)
     .bind(end)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(entries))
@@ -301,7 +301,7 @@ pub async fn get_my_leave_balances(
     )
     .bind(employee.employee_id)
     .bind(year)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(balances))
@@ -316,7 +316,7 @@ pub async fn ess_get_my_leave_requests(
         "SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY created_at DESC",
     )
     .bind(employee.employee_id)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(requests))
@@ -335,7 +335,7 @@ pub async fn ess_get_my_shift_swaps(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<ShiftSwapRequestWithNames>>> {
-    let swaps = ShiftSwapService::get_employee_swaps(&state.db, employee.employee_id, employee.workspace_id)
+    let swaps = ShiftSwapService::get_employee_swaps(state.db.api(), employee.employee_id, employee.workspace_id)
         .await
         .map_err(|s| AppError::from((s, "Failed to list shift swaps".to_string())))?;
 
@@ -349,7 +349,7 @@ pub async fn ess_create_shift_swap(
     Json(req): Json<EssCreateShiftSwapRequest>,
 ) -> AppResult<(StatusCode, Json<ShiftSwapRequest>)> {
     let swap = ShiftSwapService::create_ess_swap(
-        &state.db,
+        state.db.api(),
         employee.workspace_id,
         employee.employee_id,
         employee.user_id,
@@ -368,7 +368,7 @@ pub async fn ess_respond_to_swap(
     Path(id): Path<Uuid>,
     Json(req): Json<RespondShiftSwapRequest>,
 ) -> AppResult<StatusCode> {
-    ShiftSwapService::respond_to_swap(&state.db, employee.workspace_id, employee.employee_id, id, req.accept)
+    ShiftSwapService::respond_to_swap(state.db.api(), employee.workspace_id, employee.employee_id, id, req.accept)
         .await
         .map_err(|s| AppError::from((s, "Failed to respond to shift swap".to_string())))?;
 
@@ -381,7 +381,7 @@ pub async fn ess_cancel_swap(
     employee: EmployeeContext,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    ShiftSwapService::cancel_swap(&state.db, employee.workspace_id, employee.employee_id, id)
+    ShiftSwapService::cancel_swap(state.db.api(), employee.workspace_id, employee.employee_id, id)
         .await
         .map_err(|s| AppError::from((s, "Failed to cancel shift swap".to_string())))?;
 

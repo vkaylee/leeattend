@@ -1,6 +1,6 @@
 //! Report system logic tests (type safety checks)
 
-use apiserver::queue::{DateRange, Job, JobPayload, ReportConfig, ReportPayload, ReportType, TaskType};
+use apiserver::queue::{DateRange, Job, JobPayload, JobPriority, ReportConfig, ReportPayload, ReportType, TaskType};
 use chrono::NaiveDate;
 use uuid::Uuid;
 
@@ -31,6 +31,7 @@ async fn test_job_creation_pipeline_type_safety() {
         created_at: chrono::Utc::now(),
         retry_count: 0,
         max_retries: 3,
+        priority: JobPriority::Normal,
     };
 
     // Verify struct instantiated correctly (type safety check)

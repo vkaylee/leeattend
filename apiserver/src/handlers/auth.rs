@@ -92,7 +92,7 @@ pub async fn register(
     validate_password(&req.password)?;
 
     // 2. Check if email exists
-    let existing_user = user_repository::get_user_by_email(&state.db, &req.email).await?;
+    let existing_user = user_repository::get_user_by_email(state.db.api(), &req.email).await?;
 
     if existing_user.is_some() {
         return Err(AppError::Conflict("Email already exists".to_string()));
@@ -102,7 +102,7 @@ pub async fn register(
     let password_hash = AuthService::hash_password(&req.password).map_err(AppError::from)?;
 
     // 3. Begin transaction for atomicity
-    let mut tx = state.db.begin().await?;
+    let mut tx = state.db.api().begin().await?;
 
     // 4. Create User within transaction
     let user_id = Uuid::new_v4();
@@ -161,7 +161,7 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
 ) -> AppResult<Json<AuthResponse>> {
-    let user = user_repository::get_user_by_email(&state.db, &req.email)
+    let user = user_repository::get_user_by_email(state.db.api(), &req.email)
         .await?
         .ok_or_else(|| AppError::Auth("Invalid email or password".to_string()))?;
 
@@ -183,7 +183,7 @@ pub async fn login(
     let access_token =
         AuthService::generate_token(user.id, &state.jwt_secret, 60).map_err(AppError::from)?;
 
-    let refresh_token = AuthService::create_session(&state.db, user.id)
+    let refresh_token = AuthService::create_session(state.db.api(), user.id)
         .await
         .map_err(AppError::from)?;
 
@@ -198,7 +198,7 @@ pub async fn refresh_token(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RefreshRequest>,
 ) -> AppResult<Json<AuthResponse>> {
-    AuthService::refresh_session(&state.db, &req.refresh_token, &state.jwt_secret)
+    AuthService::refresh_session(state.db.api(), &req.refresh_token, &state.jwt_secret)
         .await
         .map(Json)
         .map_err(AppError::Auth)
@@ -210,7 +210,7 @@ pub async fn change_password(
     Json(req): Json<ChangePasswordRequest>,
 ) -> AppResult<impl IntoResponse> {
     // 1. Get current user to verify old password
-    let user = user_repository::get_user_by_id(&state.db, user_id)
+    let user = user_repository::get_user_by_id(state.db.api(), user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
@@ -229,11 +229,11 @@ pub async fn change_password(
     sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
         .bind(new_hash)
         .bind(user_id)
-        .execute(&state.db)
+        .execute(state.db.api())
         .await?;
 
     // 6. Revoke all sessions (Force re-login)
-    if let Err(e) = AuthService::revoke_all_sessions_for_user(&state.db, user_id).await {
+    if let Err(e) = AuthService::revoke_all_sessions_for_user(state.db.api(), user_id).await {
         tracing::error!(user_id = %user_id, error = %e, "Failed to revoke sessions after password change");
     }
 
@@ -247,7 +247,7 @@ pub async fn logout(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RefreshRequest>,
 ) -> AppResult<StatusCode> {
-    AuthService::revoke_session(&state.db, &req.refresh_token)
+    AuthService::revoke_session(state.db.api(), &req.refresh_token)
         .await
         .map(|_| StatusCode::OK)
         .map_err(AppError::from)
@@ -258,7 +258,7 @@ pub async fn get_me(
     UserId(user_id): UserId,
 ) -> AppResult<Json<UserResponse>> {
     tracing::debug!("Fetching profile for user: {}", user_id);
-    let user = user_repository::get_user_by_id(&state.db, user_id)
+    let user = user_repository::get_user_by_id(state.db.api(), user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
@@ -285,7 +285,7 @@ pub async fn update_me(
     .bind(req.avatar_url)
     .bind(req.bio)
     .bind(user_id)
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await?;
 
     Ok(Json(UserResponse {
@@ -311,7 +311,7 @@ pub async fn get_users(
          ORDER BY u.created_at DESC",
     )
     .bind(ctx.workspace_id)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     let user_responses: Vec<UserResponse> = users
@@ -342,14 +342,14 @@ pub async fn get_dev_super_user(
     let user_id: Uuid = match sqlx::query_scalar::<_, Uuid>(
         "SELECT id FROM users WHERE email = 'admin@leeattend.com' LIMIT 1",
     )
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await
     {
         Ok(id) => id,
         Err(_) => {
             // Nếu không thấy admin@, lấy đại bất kỳ user nào
             sqlx::query_scalar::<_, Uuid>("SELECT id FROM users LIMIT 1")
-                .fetch_one(&state.db)
+                .fetch_one(state.db.api())
                 .await
                 .map_err(|e| AppError::NotFound(format!("No users found in database: {e}")))?
         }
@@ -360,14 +360,14 @@ pub async fn get_dev_super_user(
         "SELECT workspace_id FROM workspace_members WHERE user_id = $1 LIMIT 1",
     )
     .bind(user_id)
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await
     {
         Ok(id) => id,
         Err(_) => {
             // Nếu user đầu tiên không có workspace, thử tìm bất kỳ workspace nào
             sqlx::query_scalar::<_, Uuid>("SELECT workspace_id FROM workspace_members LIMIT 1")
-                .fetch_one(&state.db)
+                .fetch_one(state.db.api())
                 .await
                 .map_err(|e| AppError::NotFound(format!("No workspace memberships found: {e}")))?
         }

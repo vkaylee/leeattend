@@ -17,7 +17,7 @@ pub async fn get_departments(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<Department>>> {
     let departments =
-        crate::repositories::department_repository::get_departments(&state.db, workspace_id)
+        crate::repositories::department_repository::get_departments(state.db.api(), workspace_id)
             .await?;
     Ok(Json(departments))
 }
@@ -34,7 +34,7 @@ pub async fn create_department(
         ));
     }
     let dept = crate::repositories::department_repository::create_department(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         req.name,
         req.description,
@@ -58,7 +58,7 @@ pub async fn update_department(
         ));
     }
     let dept = crate::repositories::department_repository::update_department(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         id,
         req.name,
@@ -81,7 +81,7 @@ pub async fn delete_department(
             "Only admins can manage departments".to_string(),
         ));
     }
-    crate::repositories::department_repository::delete_department(&state.db, ctx.workspace_id, id)
+    crate::repositories::department_repository::delete_department(state.db.api(), ctx.workspace_id, id)
         .await?;
 
     Ok(StatusCode::NO_CONTENT)

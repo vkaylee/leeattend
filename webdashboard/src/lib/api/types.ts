@@ -515,6 +515,8 @@ export interface CreateReportExportResponse {
 
 export interface WorkerMonitorStats {
   pending_tasks: number;
+  pending_high: number;
+  pending_low: number;
   total_workers: number;
   active_workers: number;
   idle_workers: number;

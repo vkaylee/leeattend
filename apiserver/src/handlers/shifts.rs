@@ -24,7 +24,7 @@ pub async fn get_shifts(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<Shift>>> {
     let shifts =
-        crate::services::shift_service::ShiftService::get_workspace_shifts(&state.db, workspace_id)
+        crate::services::shift_service::ShiftService::get_workspace_shifts(state.db.api(), workspace_id)
             .await
             .map_err(|s| AppError::from((s, "Failed to get workspace shifts".to_string())))?;
 
@@ -43,7 +43,7 @@ pub async fn create_shift(
 
     let workspace_id = ctx.workspace_id;
     let shift = crate::services::shift_service::ShiftService::create_shift(
-        &state.db,
+        state.db.api(),
         workspace_id,
         req.name,
         req.report_symbol,
@@ -77,7 +77,7 @@ pub async fn update_shift(
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
     let shift =
-        crate::services::shift_service::ShiftService::update_shift(&state.db, ctx.workspace_id, shift_id, req)
+        crate::services::shift_service::ShiftService::update_shift(state.db.api(), ctx.workspace_id, shift_id, req)
             .await
             .map_err(|s| AppError::from((s, "Failed to update shift".to_string())))?;
 
@@ -95,7 +95,7 @@ pub async fn assign_shift(
     Json(req): Json<AssignShiftRequest>,
 ) -> AppResult<StatusCode> {
     crate::services::shift_service::ShiftService::assign_shift(
-        &state.db,
+        state.db.api(),
         req.employee_id,
         req.shift_id,
         req.start_date,
@@ -129,7 +129,7 @@ pub async fn get_workspace_schedules(
         .ok_or_else(|| AppError::Validation("Missing or invalid end_date".to_string()))?;
 
     let schedules = crate::repositories::roster_repository::get_workspace_schedules(
-        &state.db,
+        state.db.api(),
         state.roster_cache.as_deref(),
         workspace_id,
         start_date,
@@ -146,7 +146,7 @@ pub async fn get_assignment_history(
     Path(workspace_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<AssignmentHistory>>> {
     let history = crate::repositories::roster_repository::get_assignment_history(
-        &state.db,
+        state.db.api(),
         workspace_id,
         50, // Limit to last 50 entries
     )
@@ -171,7 +171,7 @@ pub async fn get_employee_rosters(
         .unwrap_or_else(|| start_date + chrono::Duration::days(30));
 
     let rosters = crate::repositories::roster_repository::get_employee_rosters(
-        &state.db,
+        state.db.api(),
         employee_id,
         start_date,
         end_date,
@@ -201,7 +201,7 @@ pub async fn upsert_roster(
         updated_at: chrono::Utc::now(),
     };
 
-    let saved = crate::repositories::roster_repository::upsert_roster(&state.db, &roster).await?;
+    let saved = crate::repositories::roster_repository::upsert_roster(state.db.api(), &roster).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -219,7 +219,7 @@ pub async fn bulk_upsert_roster(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    crate::repositories::roster_repository::bulk_upsert_roster(&state.db, employee_id, req.items)
+    crate::repositories::roster_repository::bulk_upsert_roster(state.db.api(), employee_id, req.items)
         .await?;
 
     if let Some(cache) = &state.roster_cache {
@@ -237,7 +237,7 @@ pub async fn delete_roster(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    crate::repositories::roster_repository::delete_roster(&state.db, employee_id, date).await?;
+    crate::repositories::roster_repository::delete_roster(state.db.api(), employee_id, date).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;

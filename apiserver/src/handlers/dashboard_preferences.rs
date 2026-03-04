@@ -88,7 +88,7 @@ pub async fn get_dashboard_preferences(
     )
     .bind(user_id)
     .bind(workspace_id)
-    .fetch_optional(&state.db)
+    .fetch_optional(state.db.api())
     .await?;
 
     match prefs {
@@ -142,7 +142,7 @@ pub async fn update_dashboard_preferences(
         body.collapsed_sections
             .unwrap_or_else(default_collapsed_sections),
     )
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await?;
 
     Ok(Json(result))

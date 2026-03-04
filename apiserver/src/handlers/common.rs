@@ -149,7 +149,7 @@ where
         )
         .bind(user_id)
         .bind(workspace_id)
-        .fetch_optional(&app_state.db)
+        .fetch_optional(app_state.db.api())
         .await
         .map_err(AppError::Sqlx)?
         .ok_or_else(|| {

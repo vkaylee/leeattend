@@ -30,7 +30,7 @@ pub async fn submit_leave_request(
     Json(req): Json<SubmitLeaveRequest>,
 ) -> AppResult<(StatusCode, Json<LeaveRequest>)> {
     let request = crate::services::leave_service::LeaveService::submit_leave_request(
-        &state.db,
+        state.db.api(),
         workspace_id,
         user_id,
         req,
@@ -54,7 +54,7 @@ pub async fn approve_leave_request(
         ));
     }
     crate::services::leave_service::LeaveService::approve_leave_request(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         user_id,
         id,
@@ -73,7 +73,7 @@ pub async fn get_my_leave_requests(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     let requests =
-        crate::repositories::leave_request_repository::get_employee_leave_requests(&state.db, ctx.workspace_id, id)
+        crate::repositories::leave_request_repository::get_employee_leave_requests(state.db.api(), ctx.workspace_id, id)
             .await?;
     Ok(Json(requests))
 }
@@ -89,7 +89,7 @@ pub async fn get_workspace_leave_balances(
     }
     let year = params.year.unwrap_or_else(|| Utc::now().year());
     let balances = crate::services::leave_service::LeaveService::get_workspace_balances(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         year,
         params,
@@ -106,7 +106,7 @@ pub async fn get_employee_leave_balances(
 ) -> AppResult<Json<Vec<EmployeeLeaveBalance>>> {
     let year = Utc::now().year();
     let balances = crate::services::leave_service::LeaveService::get_employee_balances(
-        &state.db, ws_id, emp_id, year,
+        state.db.api(), ws_id, emp_id, year,
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to get employee balances".to_string())))?;
@@ -129,7 +129,7 @@ pub async fn get_workspace_leave_requests(
         return Err(AppError::Forbidden("Access denied".to_string()));
     }
     let requests = crate::services::leave_service::LeaveService::get_workspace_leave_requests(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         query.status,
     )
@@ -156,7 +156,7 @@ pub async fn get_employee_leave_history(
     }
     let year = Utc::now().year();
     let history = crate::services::leave_service::LeaveService::get_employee_leave_history(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         emp_id,
         year,
@@ -177,7 +177,7 @@ pub async fn adjust_leave_balance(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    crate::services::leave_service::LeaveService::adjust_balance(&state.db, ws_id, emp_id, req)
+    crate::services::leave_service::LeaveService::adjust_balance(state.db.api(), ws_id, emp_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to adjust balance".to_string())))?;
 
@@ -197,7 +197,7 @@ pub async fn create_leave_policy(
     }
 
     let policy = leave_policy_repository::create_policy_definition(
-        &state.db,
+        state.db.api(),
         workspace_id,
         &req.name,
         req.description.as_deref(),
@@ -222,7 +222,7 @@ pub async fn update_leave_policy(
     }
 
     let policy = leave_policy_repository::update_policy_definition(
-        &state.db,
+        state.db.api(),
         policy_id,
         workspace_id,
         req.name.as_deref(),
@@ -247,7 +247,7 @@ pub async fn delete_leave_policy(
     }
 
     let rows =
-        leave_policy_repository::delete_policy_definition(&state.db, policy_id, workspace_id)
+        leave_policy_repository::delete_policy_definition(state.db.api(), policy_id, workspace_id)
             .await?;
 
     if rows > 0 {
@@ -262,7 +262,7 @@ pub async fn get_leave_policies(
     State(state): State<Arc<AppState>>,
     _ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeavePolicyDefinition>>> {
-    let policies = leave_policy_repository::get_policy_definitions(&state.db, workspace_id).await?;
+    let policies = leave_policy_repository::get_policy_definitions(state.db.api(), workspace_id).await?;
     Ok(Json(policies))
 }
 
@@ -289,7 +289,7 @@ pub async fn assign_leave_policy(
         created_at: chrono::Utc::now(),
     };
 
-    let saved = leave_policy_repository::create_policy_assignment(&state.db, &assignment).await?;
+    let saved = leave_policy_repository::create_policy_assignment(state.db.api(), &assignment).await?;
     Ok((StatusCode::CREATED, Json(saved)))
 }
 
@@ -363,7 +363,7 @@ pub async fn trigger_accrual_run(
     } else {
         // Fallback: synchronous processing (no Redis)
         let logs =
-            LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date, true)
+            LeaveAccrualService::process_workspace_accruals(state.db.api(), workspace_id, date, true)
                 .await?;
 
         Ok((
@@ -426,7 +426,7 @@ pub async fn get_leave_policy_assignments(
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
     let assignments = crate::repositories::leave_policy_repository::get_policy_assignments(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
     )
     .await?;

@@ -31,7 +31,7 @@ pub async fn create_shift_swap(
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
-    let swap = ShiftSwapService::create_swap(&state.db, ctx.workspace_id, user_id, req)
+    let swap = ShiftSwapService::create_swap(state.db.api(), ctx.workspace_id, user_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to create shift swap".to_string())))?;
 
@@ -58,7 +58,7 @@ pub async fn list_shift_swaps(
     }
 
     let swaps =
-        ShiftSwapService::get_workspace_swaps(&state.db, ctx.workspace_id, query.status)
+        ShiftSwapService::get_workspace_swaps(state.db.api(), ctx.workspace_id, query.status)
             .await
             .map_err(|s| {
                 AppError::from((s, "Failed to list shift swaps".to_string()))
@@ -82,7 +82,7 @@ pub async fn approve_shift_swap(
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
-    ShiftSwapService::approve_swap(&state.db, ctx.workspace_id, user_id, id, req.status)
+    ShiftSwapService::approve_swap(state.db.api(), ctx.workspace_id, user_id, id, req.status)
         .await
         .map_err(|s| AppError::from((s, "Failed to approve shift swap".to_string())))?;
 
@@ -104,7 +104,7 @@ pub async fn get_shift_swap_stats(
 
     let stats =
         crate::repositories::shift_swap_repository::get_workspace_swap_stats(
-            &state.db,
+            state.db.api(),
             ctx.workspace_id,
         )
         .await

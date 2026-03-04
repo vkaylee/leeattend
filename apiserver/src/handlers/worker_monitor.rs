@@ -16,7 +16,8 @@ use crate::AppState;
 const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
 const STATS_COMPLETED_PREFIX: &str = "stats:completed:";
 const STATS_FAILED_PREFIX: &str = "stats:failed:";
-const QUEUE_KEY: &str = "worker:jobs";
+const QUEUE_HIGH: &str = "worker:jobs:high";
+const QUEUE_LOW: &str = "worker:jobs:low";
 
 /// Workers not seen within this duration are considered stale and excluded.
 const STALE_THRESHOLD_SECS: i64 = 60;
@@ -43,6 +44,8 @@ pub struct WorkerHeartbeat {
 #[derive(Debug, Serialize)]
 pub struct MonitorOverviewResponse {
     pub pending_tasks: u64,
+    pub pending_high: u64,
+    pub pending_low: u64,
     pub total_workers: u64,
     pub active_workers: u64,
     pub idle_workers: u64,
@@ -65,8 +68,10 @@ pub async fn get_monitor_overview(
 
     let mut conn = redis.conn();
 
-    // 1. Get pending tasks count (LLEN on queue)
-    let pending_tasks: u64 = conn.llen(QUEUE_KEY).await.unwrap_or(0);
+    // 1. Get pending tasks count (sum of both priority queues)
+    let pending_high: u64 = conn.llen(QUEUE_HIGH).await.unwrap_or(0);
+    let pending_low: u64 = conn.llen(QUEUE_LOW).await.unwrap_or(0);
+    let pending_tasks = pending_high + pending_low;
 
     // 2. Get today's stats counters
     let today = Utc::now().format("%Y-%m-%d").to_string();
@@ -99,6 +104,8 @@ pub async fn get_monitor_overview(
 
     Ok(Json(MonitorOverviewResponse {
         pending_tasks,
+        pending_high,
+        pending_low,
         total_workers,
         active_workers,
         idle_workers,
@@ -209,6 +216,8 @@ mod tests {
     fn test_monitor_overview_response_serialization() {
         let overview = MonitorOverviewResponse {
             pending_tasks: 150,
+            pending_high: 100,
+            pending_low: 50,
             total_workers: 50,
             active_workers: 45,
             idle_workers: 5,

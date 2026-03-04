@@ -47,7 +47,7 @@ pub async fn get_attendance_report(
 
     if report_type == "daily" {
         let report = crate::services::ReportService::get_daily_attendance_report(
-            &state.db,
+            state.db.api(),
             workspace_id,
             start_date,
             end_date,
@@ -64,7 +64,7 @@ pub async fn get_attendance_report(
         ))
     } else {
         let summary = crate::services::ReportService::get_workspace_attendance_summary(
-            &state.db,
+            state.db.api(),
             workspace_id,
             start_date,
             end_date,

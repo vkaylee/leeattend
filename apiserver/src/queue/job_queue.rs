@@ -15,9 +15,12 @@ use redis::AsyncCommands;
 use tracing::{debug, error};
 use uuid::Uuid;
 
-use crate::queue::{Job, JobMetadata, RedisPool};
+use crate::queue::{Job, JobMetadata, JobPriority, RedisPool};
 
-pub(crate) const QUEUE_KEY: &str = "worker:jobs";
+/// High-priority queue key (reports, merge, accrual).
+pub(crate) const QUEUE_HIGH: &str = "worker:jobs:high";
+/// Low-priority queue key (log ingestion, background tasks).
+pub(crate) const QUEUE_LOW: &str = "worker:jobs:low";
 pub(crate) const META_PREFIX: &str = "report:meta:";
 pub(crate) const RESULTS_PREFIX: &str = "report:results:";
 pub(crate) const COUNTER_PREFIX: &str = "report:counter:";
@@ -43,7 +46,7 @@ impl JobQueue {
     }
 
     /// Enqueue multiple jobs atomically using RPUSH.
-    /// Jobs are appended to the queue in order for FIFO processing.
+    /// Jobs are routed to the appropriate priority queue.
     ///
     /// # Arguments
     /// * `jobs` - Vector of jobs to enqueue
@@ -56,13 +59,39 @@ impl JobQueue {
         }
 
         let mut conn = self.pool.conn();
-        let serialized: Vec<String> = jobs
-            .iter()
-            .map(|j| serde_json::to_string(j).expect("Job serialization should not fail"))
-            .collect();
 
-        // RPUSH for FIFO ordering (workers use BLPOP from left)
-        let _: () = conn.rpush(QUEUE_KEY, &serialized).await?;
+        // Split jobs by priority
+        let mut high: Vec<String> = Vec::new();
+        let mut low: Vec<String> = Vec::new();
+
+        for job in &jobs {
+            let json = serde_json::to_string(job).expect("Job serialization should not fail");
+            match job.priority {
+                JobPriority::Low => low.push(json),
+                _ => high.push(json), // High and Normal go to high-priority queue
+            }
+        }
+
+        // RPUSH to respective queues
+        if !high.is_empty() {
+            let _: () = conn.rpush(QUEUE_HIGH, &high).await?;
+        }
+        if !low.is_empty() {
+            let _: () = conn.rpush(QUEUE_LOW, &low).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Enqueue a single job. Convenience method for log ingestion.
+    pub async fn enqueue_single(&self, job: Job) -> Result<(), redis::RedisError> {
+        let mut conn = self.pool.conn();
+        let json = serde_json::to_string(&job).expect("Job serialization should not fail");
+        let key = match job.priority {
+            JobPriority::Low => QUEUE_LOW,
+            _ => QUEUE_HIGH,
+        };
+        let _: () = conn.rpush(key, json).await?;
         Ok(())
     }
 
@@ -99,8 +128,10 @@ impl JobQueue {
         let mut conn = self.pool.blocking_conn();
 
         // Use redis::cmd instead of blpop method to ensure correct type serialization
+        // BLPOP checks keys left-to-right: high-priority queue is checked first
         let result: Option<(String, String)> = redis::cmd("BLPOP")
-            .arg(QUEUE_KEY)
+            .arg(QUEUE_HIGH)
+            .arg(QUEUE_LOW)
             .arg(timeout_int)
             .query_async(&mut conn)
             .await?;
@@ -358,11 +389,12 @@ impl JobQueue {
         Ok(())
     }
 
-    /// Get queue length (pending jobs count).
+    /// Get queue length (pending jobs count across both priority queues).
     pub async fn queue_length(&self) -> Result<usize, redis::RedisError> {
         let mut conn = self.pool.conn();
-        let len: usize = conn.llen(QUEUE_KEY).await?;
-        Ok(len)
+        let high: usize = conn.llen(QUEUE_HIGH).await?;
+        let low: usize = conn.llen(QUEUE_LOW).await?;
+        Ok(high + low)
     }
 
     /// Clean up all data for a job (metadata, counter, results).

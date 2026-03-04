@@ -72,6 +72,9 @@ services:
       - RUST_BACKTRACE=1
       - RUST_LOG=apiserver=debug,tower_http=debug,sqlx=info
       - DATABASE_URL=${API_DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-dev_password}@db:5432/${DB_NAME:-leeattend}}
+      # - DATABASE_READER_URL=${DATABASE_READER_URL}
+      - DB_API_MAX_CONN=${DB_API_MAX_CONN:-20}
+      - DB_WORKER_MAX_CONN=${DB_WORKER_MAX_CONN:-5}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_password}@redis:6379
       # --- Server ---
       - API_HOST=0.0.0.0

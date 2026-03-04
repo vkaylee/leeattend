@@ -69,11 +69,11 @@ pub async fn get_staging_logs(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
 
-    let logs = staging_log_repository::get_pending_staging_logs(&state.db, ctx.workspace_id, limit)
+    let logs = staging_log_repository::get_pending_staging_logs(state.db.api(), ctx.workspace_id, limit)
         .await?;
 
     let total =
-        staging_log_repository::count_pending_staging_logs(&state.db, ctx.workspace_id).await?;
+        staging_log_repository::count_pending_staging_logs(state.db.api(), ctx.workspace_id).await?;
 
     let response = StagingLogsResponse {
         data: logs.into_iter().map(StagingLogResponse::from).collect(),
@@ -108,7 +108,7 @@ pub async fn resolve_staging_log(
     use crate::services::pairing_service::PairingService;
 
     // Use transaction to ensure atomicity of read-check-insert-update
-    let mut tx = state.db.begin().await?;
+    let mut tx = state.db.api().begin().await?;
 
     // 1. Lock and fetch staging log (FOR UPDATE NOWAIT prevents concurrent resolve)
     let staged = sqlx::query_as::<_, StagingLog>(
@@ -161,7 +161,7 @@ pub async fn resolve_staging_log(
     };
 
     // 3. Insert raw log within transaction
-    raw_attendance_log_repository::create_raw_log(&state.db, &raw_log).await?;
+    raw_attendance_log_repository::create_raw_log(state.db.api(), &raw_log).await?;
 
     // 4. Mark staging log as processed within transaction
     staging_log_repository::update_staging_status_tx(
@@ -176,7 +176,7 @@ pub async fn resolve_staging_log(
     tx.commit().await?;
 
     // 6. Trigger pairing (post-commit side effect, log errors but don't fail the response)
-    if let Err(e) = PairingService::process_new_raw_log(&state.db, &raw_log).await {
+    if let Err(e) = PairingService::process_new_raw_log(state.db.api(), &raw_log).await {
         tracing::error!(log_id = %log_id, error = %e, "Failed to trigger pairing after staging resolve");
     }
 
@@ -195,7 +195,7 @@ pub async fn dismiss_staging_log(
     }
 
     let updated = staging_log_repository::update_staging_status(
-        &state.db,
+        state.db.api(),
         log_id,
         ctx.workspace_id,
         "dismissed",

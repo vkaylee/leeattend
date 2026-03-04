@@ -31,7 +31,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
 
     let state = Arc::new(AppState {
         agent_manager,
-        db: pool.clone(),
+        db: apiserver::db_pool::DbPools::for_test(pool.clone()),
         agent_repo,
         workspace_repo,
         agent_service,
@@ -85,7 +85,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
 
     let state = Arc::new(AppState {
         agent_manager,
-        db: db_pool.clone(),
+        db: apiserver::db_pool::DbPools::for_test(db_pool.clone()),
         agent_repo,
         workspace_repo,
         agent_service,
@@ -152,7 +152,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
 
     let app_state = Arc::new(AppState {
         agent_manager,
-        db: pool.clone(),
+        db: apiserver::db_pool::DbPools::for_test(pool.clone()),
         agent_repo: agent_repo.clone(),
         workspace_repo: workspace_repo.clone(),
         agent_service: agent_service.clone(),

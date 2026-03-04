@@ -37,7 +37,7 @@ pub async fn list_policies(
     _ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimePolicy>>> {
     let policies =
-        OvertimePolicyRepository::get_policy_definitions(&state.db, workspace_id).await?;
+        OvertimePolicyRepository::get_policy_definitions(state.db.api(), workspace_id).await?;
     Ok(Json(policies))
 }
 
@@ -46,7 +46,7 @@ pub async fn get_policy(
     Path((workspace_id, policy_id)): Path<(Uuid, Uuid)>,
     _ctx: MemberContext,
 ) -> AppResult<Json<(OvertimePolicy, Vec<OvertimeRule>)>> {
-    let result = OvertimePolicyRepository::get_policy_with_rules(&state.db, workspace_id, policy_id)
+    let result = OvertimePolicyRepository::get_policy_with_rules(state.db.api(), workspace_id, policy_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Policy not found".to_string()))?;
     Ok(Json(result))
@@ -62,7 +62,7 @@ pub async fn create_policy(
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
     let policy = OvertimePolicyRepository::create_policy_definition(
-        &state.db,
+        state.db.api(),
         workspace_id,
         &req.name,
         req.description.as_deref(),
@@ -93,7 +93,7 @@ pub async fn add_rule(
         updated_at: None,
     };
 
-    let created = OvertimePolicyRepository::add_rule(&state.db, &rule).await?;
+    let created = OvertimePolicyRepository::add_rule(state.db.api(), &rule).await?;
     Ok(Json(created))
 }
 
@@ -115,7 +115,7 @@ pub async fn assign_policy(
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
     OvertimePolicyRepository::create_policy_assignment(
-        &state.db,
+        state.db.api(),
         workspace_id,
         &req.assignee_type,
         req.assignee_id,

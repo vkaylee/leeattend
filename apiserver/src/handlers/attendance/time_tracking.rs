@@ -26,7 +26,7 @@ pub async fn punch_in(
     Json(req): Json<PunchInRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
     let entry = crate::services::time_tracking_service::TimeTrackingService::punch_in(
-        &state.db,
+        state.db.api(),
         workspace_id,
         req,
     )
@@ -43,7 +43,7 @@ pub async fn punch_out(
     Json(req): Json<PunchOutRequest>,
 ) -> AppResult<Json<TimeEntry>> {
     let entry = crate::services::time_tracking_service::TimeTrackingService::punch_out(
-        &state.db,
+        state.db.api(),
         workspace_id,
         employee_id,
         req,
@@ -62,7 +62,7 @@ pub async fn get_time_history(
 ) -> AppResult<Json<Vec<TimeEntry>>> {
     let entries =
         crate::services::time_tracking_service::TimeTrackingService::get_employee_history(
-            &state.db,
+            state.db.api(),
             workspace_id,
             employee_id,
             query.start,
@@ -81,7 +81,7 @@ pub async fn update_time_entry(
     Json(req): Json<UpdateTimeEntryRequest>,
 ) -> AppResult<Json<TimeEntry>> {
     let entry = crate::services::time_tracking_service::TimeTrackingService::update_time_entry(
-        &state.db,
+        state.db.api(),
         workspace_id,
         id,
         req,
@@ -98,7 +98,7 @@ pub async fn delete_time_entry(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<StatusCode> {
     crate::services::time_tracking_service::TimeTrackingService::delete_time_entry(
-        &state.db,
+        state.db.api(),
         workspace_id,
         id,
     )

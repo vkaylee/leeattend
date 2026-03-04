@@ -58,7 +58,7 @@ async fn test_agent_scaling_config() {
         "SELECT max_concurrent_workers FROM authorized_agents WHERE id = $1",
         agent_id
     )
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await
     .unwrap();
     assert_eq!(agent.max_concurrent_workers, 2);
@@ -85,7 +85,7 @@ async fn test_agent_scaling_config() {
         "SELECT max_concurrent_workers FROM authorized_agents WHERE id = $1",
         agent_id
     )
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await
     .unwrap();
     assert_eq!(agent.max_concurrent_workers, 5);
@@ -112,7 +112,7 @@ async fn test_agent_scaling_config() {
         "SELECT max_concurrent_workers FROM authorized_agents WHERE id = $1",
         agent_id
     )
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await
     .unwrap();
     assert_eq!(agent.max_concurrent_workers, 1);

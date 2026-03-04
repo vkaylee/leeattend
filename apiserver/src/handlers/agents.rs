@@ -66,22 +66,48 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                     if let (Some(user_id_number), Some(punch_time_str)) =
                                         (data["user_id"].as_str(), data["timestamp"].as_str())
                                     {
-                                        // Send to buffered channel for async processing
-                                        // Send to buffered channel for async processing
-                                        let entry = AgentLogEntry::new(
-                                            workspace_id,
-                                            user_id_number.to_string(),
-                                            punch_time_str.to_string(),
-                                            Some(device_id.to_string()),
-                                            Some(data.clone()),
-                                            ws_tz.clone(),
-                                            ws_date_fmt.clone(),
-                                            ws_time_fmt.clone(),
-                                        );
-                                        let result = state_clone
-                                            .attendance_service
-                                            .ingest_agent_log(entry)
-                                            .await;
+                                        // Try async enqueue via Redis; fall back to sync processing
+                                        let result = if let Some(ref redis) = state_clone.redis {
+                                            // Async path: enqueue to Redis for worker processing
+                                            use crate::queue::{Job, JobPayload, JobPriority, JobQueue, LogIngestionPayload, TaskType};
+                                            let payload = LogIngestionPayload {
+                                                workspace_id,
+                                                employee_id_number: user_id_number.to_string(),
+                                                punch_time_raw: punch_time_str.to_string(),
+                                                device_id: Some(device_id.to_string()),
+                                                raw_data: Some(data.clone()),
+                                                timezone: ws_tz.clone(),
+                                                date_fmt: ws_date_fmt.clone(),
+                                                time_fmt: ws_time_fmt.clone(),
+                                            };
+                                            let job = Job::with_priority(
+                                                uuid::Uuid::new_v4(),
+                                                0,
+                                                TaskType::LogIngestion,
+                                                workspace_id,
+                                                JobPayload::LogIngestion(payload),
+                                                JobPriority::Low,
+                                            );
+                                            let queue = JobQueue::new(redis.clone());
+                                            queue.enqueue_single(job).await
+                                                .map_err(|e| format!("Redis enqueue failed: {e}"))
+                                        } else {
+                                            // Fallback: synchronous processing (no Redis)
+                                            let entry = AgentLogEntry::new(
+                                                workspace_id,
+                                                user_id_number.to_string(),
+                                                punch_time_str.to_string(),
+                                                Some(device_id.to_string()),
+                                                Some(data.clone()),
+                                                ws_tz.clone(),
+                                                ws_date_fmt.clone(),
+                                                ws_time_fmt.clone(),
+                                            );
+                                            state_clone
+                                                .attendance_service
+                                                .ingest_agent_log(entry)
+                                                .await
+                                        };
                                         if let Some(msg_id) = v["msg_id"].as_str() {
                                             let (status, message) = match result {
                                                 Ok(_) => ("success", None),
@@ -223,7 +249,7 @@ pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Ve
     let db_agents = sqlx::query_as::<_, AuthorizedAgent>(
         "SELECT * FROM authorized_agents WHERE is_active = true",
     )
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     // 2. Get status (online/offline) from AgentManager (Redis-backed)
@@ -239,7 +265,7 @@ pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Ve
         "SELECT * FROM devices WHERE agent_id = ANY($1) ORDER BY created_at DESC",
     )
     .bind(&agent_ids)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     // Group devices by agent_id
@@ -288,7 +314,7 @@ pub async fn send_command(
     )
     .bind(&agent_id)
     .bind(ctx.workspace_id)
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await?;
 
     if !agent_exists {
@@ -337,7 +363,7 @@ pub async fn get_devices(
         "SELECT * FROM devices WHERE workspace_id = $1 ORDER BY created_at DESC",
     )
     .bind(workspace_id)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(devices))
@@ -361,7 +387,7 @@ pub async fn create_device(
     .bind(port)
     .bind(workspace_id)
     .bind(req.brand.unwrap_or_else(|| "zkteco".to_string()))
-    .execute(&state.db)
+    .execute(state.db.api())
     .await?;
 
     let _ = state
@@ -382,7 +408,7 @@ pub async fn update_device(
         sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(id)
             .bind(workspace_id)
-            .fetch_one(&state.db)
+            .fetch_one(state.db.api())
             .await
             .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
 
@@ -402,7 +428,7 @@ pub async fn update_device(
     .bind(brand)
     .bind(id)
     .bind(workspace_id)
-    .execute(&state.db)
+    .execute(state.db.api())
     .await?;
 
     let _ = state
@@ -422,13 +448,13 @@ pub async fn delete_device(
         sqlx::query_scalar("SELECT agent_id FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(id)
             .bind(workspace_id)
-            .fetch_optional(&state.db)
+            .fetch_optional(state.db.api())
             .await?;
 
     let res = sqlx::query("DELETE FROM devices WHERE id = $1 AND workspace_id = $2")
         .bind(id)
         .bind(workspace_id)
-        .execute(&state.db)
+        .execute(state.db.api())
         .await?;
 
     if res.rows_affected() > 0 {
@@ -465,7 +491,7 @@ pub async fn get_authorized_agents(
 
     let agents = sqlx::query_as::<_, AuthorizedAgent>(&query)
         .bind(workspace_id)
-        .fetch_all(&state.db)
+        .fetch_all(state.db.api())
         .await?;
 
     Ok(Json(agents))
@@ -484,7 +510,7 @@ pub async fn create_authorized_agent(
     .bind(&req.token)
     .bind(workspace_id)
     .bind(req.max_concurrent_workers.unwrap_or(2))
-    .execute(&state.db)
+    .execute(state.db.api())
     .await?;
 
     Ok((
@@ -505,7 +531,7 @@ pub async fn update_agent_trust(
     .bind(req.is_trusted)
     .bind(&id)
     .bind(workspace_id)
-    .execute(&state.db)
+    .execute(state.db.api())
     .await?;
 
     if res.rows_affected() > 0 {
@@ -528,7 +554,7 @@ pub async fn get_authorized_agent_by_id(
     )
     .bind(id)
     .bind(workspace_id)
-    .fetch_optional(&state.db)
+    .fetch_optional(state.db.api())
     .await?
     .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
 
@@ -595,7 +621,7 @@ pub async fn update_authorized_agent(
 
     let agent = query_builder
         .build_query_as::<AuthorizedAgent>()
-        .fetch_optional(&state.db)
+        .fetch_optional(state.db.api())
         .await?
         .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
 
@@ -618,7 +644,7 @@ pub async fn get_device_info_on_demand(
         sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(id)
             .bind(workspace_id)
-            .fetch_one(&state.db)
+            .fetch_one(state.db.api())
             .await
             .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
 
@@ -641,7 +667,7 @@ pub async fn delete_authorized_agent(
     )
     .bind(&id)
     .bind(workspace_id)
-    .execute(&state.db)
+    .execute(state.db.api())
     .await?;
 
     if res.rows_affected() > 0 {

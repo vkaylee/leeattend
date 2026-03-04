@@ -1720,6 +1720,8 @@
     "subtitle": "Real-time distributed worker status",
     "error_loading": "Failed to load monitor data",
     "pending_tasks": "Pending Tasks",
+    "pending_high": "Queue: High Priority",
+    "pending_low": "Queue: Low Priority",
     "active_workers": "Active Workers",
     "idle_workers": "Idle Workers",
     "completed_today": "Completed Today",

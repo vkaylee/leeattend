@@ -17,13 +17,13 @@ async fn test_auth_session_lifecycle() {
     let user_id: Uuid = factory.user().create().await;
 
     // 1. Create session
-    let refresh_token = AuthService::create_session(&state.db, user_id)
+    let refresh_token = AuthService::create_session(state.db.api(), user_id)
         .await
         .unwrap();
     assert!(!refresh_token.is_empty());
 
     // 2. Refresh session
-    let auth_res = AuthService::refresh_session(&state.db, &refresh_token, &state.jwt_secret)
+    let auth_res = AuthService::refresh_session(state.db.api(), &refresh_token, &state.jwt_secret)
         .await
         .unwrap();
     assert_eq!(auth_res.user.id, user_id);
@@ -38,13 +38,13 @@ async fn test_auth_session_lifecycle() {
     assert_eq!(verified_id, user_id);
 
     // 4. Revoke session
-    AuthService::revoke_session(&state.db, &new_refresh_token)
+    AuthService::revoke_session(state.db.api(), &new_refresh_token)
         .await
         .unwrap();
 
     // 5. Try to refresh again (should fail)
     let result =
-        AuthService::refresh_session(&state.db, &new_refresh_token, &state.jwt_secret).await;
+        AuthService::refresh_session(state.db.api(), &new_refresh_token, &state.jwt_secret).await;
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "Invalid or expired refresh token");
 }
@@ -55,26 +55,26 @@ async fn test_revoke_all_sessions() {
         setup_app_tower().await;
     let user_id: Uuid = factory.user().create().await;
 
-    let token1 = AuthService::create_session(&state.db, user_id)
+    let token1 = AuthService::create_session(state.db.api(), user_id)
         .await
         .unwrap();
-    let token2 = AuthService::create_session(&state.db, user_id)
+    let token2 = AuthService::create_session(state.db.api(), user_id)
         .await
         .unwrap();
 
     // Revoke all
-    AuthService::revoke_all_sessions_for_user(&state.db, user_id)
+    AuthService::revoke_all_sessions_for_user(state.db.api(), user_id)
         .await
         .unwrap();
 
     // Verify both are invalid
     assert!(
-        AuthService::refresh_session(&state.db, &token1, &state.jwt_secret)
+        AuthService::refresh_session(state.db.api(), &token1, &state.jwt_secret)
             .await
             .is_err()
     );
     assert!(
-        AuthService::refresh_session(&state.db, &token2, &state.jwt_secret)
+        AuthService::refresh_session(state.db.api(), &token2, &state.jwt_secret)
             .await
             .is_err()
     );
@@ -86,7 +86,7 @@ async fn test_get_me_and_logout() {
         setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
-    let refresh_token = AuthService::create_session(&state.db, user_id)
+    let refresh_token = AuthService::create_session(state.db.api(), user_id)
         .await
         .unwrap();
 
@@ -124,7 +124,7 @@ async fn test_get_me_and_logout() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // 3. Verify session revoked
-    let result = AuthService::refresh_session(&state.db, &refresh_token, &state.jwt_secret).await;
+    let result = AuthService::refresh_session(state.db.api(), &refresh_token, &state.jwt_secret).await;
     assert!(result.is_err());
 }
 
@@ -158,7 +158,7 @@ async fn test_refresh_token_api() {
         setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
-    let refresh_token = AuthService::create_session(&state.db, user_id)
+    let refresh_token = AuthService::create_session(state.db.api(), user_id)
         .await
         .unwrap();
 
@@ -190,6 +190,6 @@ async fn test_invalid_refresh_token() {
         axum::Router,
     ) = setup_app_tower().await;
     let result =
-        AuthService::refresh_session(&state.db, "non-existent-token", &state.jwt_secret).await;
+        AuthService::refresh_session(state.db.api(), "non-existent-token", &state.jwt_secret).await;
     assert!(result.is_err());
 }

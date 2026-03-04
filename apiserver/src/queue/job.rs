@@ -20,6 +20,21 @@ pub enum TaskType {
     PayrollReport,
     MergeResults,
     LeaveAccrual,
+    LogIngestion,
+}
+
+/// Job priority level. Controls which Redis queue the job is routed to.
+/// Workers dequeue high-priority jobs before low-priority ones.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum JobPriority {
+    /// Reports — user is actively waiting for results
+    High,
+    /// Default priority for most jobs
+    #[default]
+    Normal,
+    /// Background tasks like log ingestion — can wait
+    Low,
 }
 
 /// Report format type.
@@ -68,6 +83,20 @@ pub struct AccrualPayload {
     pub force: bool,
 }
 
+/// Payload for attendance log ingestion jobs.
+/// Contains all fields needed to process a single attendance log entry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogIngestionPayload {
+    pub workspace_id: Uuid,
+    pub employee_id_number: String,
+    pub punch_time_raw: String,
+    pub device_id: Option<String>,
+    pub raw_data: Option<serde_json::Value>,
+    pub timezone: String,
+    pub date_fmt: String,
+    pub time_fmt: String,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -76,6 +105,7 @@ pub enum JobPayload {
     MergeResults(MergePayload),
     PayrollReport(ReportPayload),
     LeaveAccrual(AccrualPayload),
+    LogIngestion(LogIngestionPayload),
 }
 
 /// A single worker job.
@@ -94,6 +124,9 @@ pub struct Job {
     pub workspace_id: Uuid,
     /// Type-specific payload data
     pub payload: JobPayload,
+    /// Job priority for queue routing
+    #[serde(default)]
+    pub priority: JobPriority,
     /// Job creation timestamp
     pub created_at: DateTime<Utc>,
     /// Current retry count
@@ -103,7 +136,7 @@ pub struct Job {
 }
 
 impl Job {
-    /// Create a new job with default retry settings.
+    /// Create a new job with default retry settings and Normal priority.
     pub fn new(
         parent_job_id: Uuid,
         batch_index: u32,
@@ -118,10 +151,25 @@ impl Job {
             task_type,
             workspace_id,
             payload,
+            priority: JobPriority::default(),
             created_at: Utc::now(),
             retry_count: 0,
             max_retries: 3,
         }
+    }
+
+    /// Create a new job with explicit priority.
+    pub fn with_priority(
+        parent_job_id: Uuid,
+        batch_index: u32,
+        task_type: TaskType,
+        workspace_id: Uuid,
+        payload: JobPayload,
+        priority: JobPriority,
+    ) -> Self {
+        let mut job = Self::new(parent_job_id, batch_index, task_type, workspace_id, payload);
+        job.priority = priority;
+        job
     }
 
     /// Increment retry count and return whether retries are exhausted.
@@ -150,6 +198,14 @@ impl Job {
     pub fn accrual_payload(&self) -> Option<&AccrualPayload> {
         match &self.payload {
             JobPayload::LeaveAccrual(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Helper: extract log ingestion payload.
+    pub fn log_ingestion_payload(&self) -> Option<&LogIngestionPayload> {
+        match &self.payload {
+            JobPayload::LogIngestion(p) => Some(p),
             _ => None,
         }
     }
@@ -617,5 +673,230 @@ mod tests {
         assert_eq!(serde_json::to_string(&JobStatus::Processing).unwrap(), "\"processing\"");
         assert_eq!(serde_json::to_string(&JobStatus::Completed).unwrap(), "\"completed\"");
         assert_eq!(serde_json::to_string(&JobStatus::Failed).unwrap(), "\"failed\"");
+    }
+
+    // ====== PRIORITY + LOG INGESTION TESTS ======
+
+    /// JobPriority serde uses snake_case.
+    #[test]
+    fn test_job_priority_serde() {
+        assert_eq!(serde_json::to_string(&JobPriority::High).unwrap(), "\"high\"");
+        assert_eq!(serde_json::to_string(&JobPriority::Normal).unwrap(), "\"normal\"");
+        assert_eq!(serde_json::to_string(&JobPriority::Low).unwrap(), "\"low\"");
+
+        // Roundtrip
+        let decoded: JobPriority = serde_json::from_str("\"low\"").unwrap();
+        assert_eq!(decoded, JobPriority::Low);
+    }
+
+    /// Default priority is Normal.
+    #[test]
+    fn test_job_priority_default() {
+        let priority: JobPriority = Default::default();
+        assert_eq!(priority, JobPriority::Normal);
+    }
+
+    /// Job::new defaults to Normal priority.
+    #[test]
+    fn test_job_new_defaults_to_normal_priority() {
+        let job = Job::new(
+            Uuid::new_v4(),
+            0,
+            TaskType::AttendanceReport,
+            Uuid::new_v4(),
+            JobPayload::AttendanceReport(ReportPayload {
+                employee_ids: vec![],
+                date_range: DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                },
+                config: ReportConfig {
+                    report_type: ReportType::Summary,
+                    timezone: "UTC".to_string(),
+                    rounding_policy: "floor".to_string(),
+                    work_unit_minutes: 30,
+                },
+            }),
+        );
+
+        assert_eq!(job.priority, JobPriority::Normal);
+    }
+
+    /// Job::with_priority sets the correct priority.
+    #[test]
+    fn test_job_with_priority() {
+        let job = Job::with_priority(
+            Uuid::new_v4(),
+            0,
+            TaskType::LogIngestion,
+            Uuid::new_v4(),
+            JobPayload::LogIngestion(LogIngestionPayload {
+                workspace_id: Uuid::new_v4(),
+                employee_id_number: "EMP001".to_string(),
+                punch_time_raw: "2026-01-26 09:00:00".to_string(),
+                device_id: Some("D1".to_string()),
+                raw_data: None,
+                timezone: "Asia/Ho_Chi_Minh".to_string(),
+                date_fmt: "DD/MM/YYYY".to_string(),
+                time_fmt: "24h".to_string(),
+            }),
+            JobPriority::Low,
+        );
+
+        assert_eq!(job.priority, JobPriority::Low);
+        assert_eq!(job.task_type, TaskType::LogIngestion);
+    }
+
+    /// LogIngestionPayload serde roundtrip.
+    #[test]
+    fn test_log_ingestion_payload_serde_roundtrip() {
+        let ws_id = Uuid::new_v4();
+        let payload = LogIngestionPayload {
+            workspace_id: ws_id,
+            employee_id_number: "EMP042".to_string(),
+            punch_time_raw: "26/01/2026 09:15:00".to_string(),
+            device_id: Some("ZK-MAIN".to_string()),
+            raw_data: Some(serde_json::json!({"punch": 0, "status": 1})),
+            timezone: "Asia/Ho_Chi_Minh".to_string(),
+            date_fmt: "DD/MM/YYYY".to_string(),
+            time_fmt: "24h".to_string(),
+        };
+
+        let json = serde_json::to_string(&payload).unwrap();
+        let decoded: LogIngestionPayload = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(decoded.workspace_id, ws_id);
+        assert_eq!(decoded.employee_id_number, "EMP042");
+        assert_eq!(decoded.device_id, Some("ZK-MAIN".to_string()));
+        assert_eq!(decoded.raw_data.unwrap()["punch"], 0);
+    }
+
+    /// LogIngestion tagged enum serde format.
+    #[test]
+    fn test_log_ingestion_payload_tagged_format() {
+        let payload = JobPayload::LogIngestion(LogIngestionPayload {
+            workspace_id: Uuid::new_v4(),
+            employee_id_number: "EMP001".to_string(),
+            punch_time_raw: "2026-01-26 09:00:00".to_string(),
+            device_id: None,
+            raw_data: None,
+            timezone: "UTC".to_string(),
+            date_fmt: "YYYY-MM-DD".to_string(),
+            time_fmt: "24h".to_string(),
+        });
+
+        let json = serde_json::to_value(&payload).unwrap();
+        assert_eq!(json["type"], "LogIngestion");
+        assert!(json["data"].is_object());
+        assert_eq!(json["data"]["employee_id_number"], "EMP001");
+    }
+
+    /// LogIngestion task type serde.
+    #[test]
+    fn test_log_ingestion_task_type_serde() {
+        let json = serde_json::to_string(&TaskType::LogIngestion).unwrap();
+        assert_eq!(json, "\"log_ingestion\"");
+
+        let decoded: TaskType = serde_json::from_str("\"log_ingestion\"").unwrap();
+        assert_eq!(decoded, TaskType::LogIngestion);
+    }
+
+    /// Full Job with LogIngestion + Low priority roundtrip.
+    #[test]
+    fn test_log_ingestion_job_full_roundtrip() {
+        let parent_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+
+        let job = Job::with_priority(
+            parent_id,
+            0,
+            TaskType::LogIngestion,
+            ws_id,
+            JobPayload::LogIngestion(LogIngestionPayload {
+                workspace_id: ws_id,
+                employee_id_number: "EMP999".to_string(),
+                punch_time_raw: "2026-03-04 13:00:00".to_string(),
+                device_id: Some("DEV-1".to_string()),
+                raw_data: Some(serde_json::json!({"punch": 0, "status": 1, "verify": 1})),
+                timezone: "Asia/Ho_Chi_Minh".to_string(),
+                date_fmt: "YYYY-MM-DD".to_string(),
+                time_fmt: "24h".to_string(),
+            }),
+            JobPriority::Low,
+        );
+
+        let json = serde_json::to_string(&job).unwrap();
+        assert!(json.contains("\"log_ingestion\""));
+        assert!(json.contains("\"low\""));
+
+        let decoded: Job = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded.job_id, job.job_id);
+        assert_eq!(decoded.task_type, TaskType::LogIngestion);
+        assert_eq!(decoded.priority, JobPriority::Low);
+
+        let payload = decoded.log_ingestion_payload().expect("should extract");
+        assert_eq!(payload.employee_id_number, "EMP999");
+        assert_eq!(payload.workspace_id, ws_id);
+    }
+
+    /// Backward compatibility: Job JSON without "priority" field should
+    /// deserialize with default Normal priority.
+    #[test]
+    fn test_job_backward_compatible_no_priority_field() {
+        // Simulate a Job serialized BEFORE the priority field was added
+        let json = serde_json::json!({
+            "job_id": Uuid::new_v4(),
+            "parent_job_id": Uuid::new_v4(),
+            "batch_index": 0,
+            "task_type": "attendance_report",
+            "workspace_id": Uuid::new_v4(),
+            "payload": {
+                "type": "AttendanceReport",
+                "data": {
+                    "employee_ids": [],
+                    "date_range": {"start": "2026-01-01", "end": "2026-01-31"},
+                    "config": {
+                        "report_type": "summary",
+                        "timezone": "UTC",
+                        "rounding_policy": "floor",
+                        "work_unit_minutes": 30
+                    }
+                }
+            },
+            "created_at": "2026-01-01T00:00:00Z",
+            "retry_count": 0,
+            "max_retries": 3
+        });
+
+        let job: Job = serde_json::from_value(json).unwrap();
+        // Missing "priority" field should default to Normal
+        assert_eq!(job.priority, JobPriority::Normal);
+    }
+
+    /// log_ingestion_payload() returns None for non-LogIngestion jobs.
+    #[test]
+    fn test_log_ingestion_payload_helper_returns_none_for_other_types() {
+        let job = Job::new(
+            Uuid::new_v4(),
+            0,
+            TaskType::AttendanceReport,
+            Uuid::new_v4(),
+            JobPayload::AttendanceReport(ReportPayload {
+                employee_ids: vec![],
+                date_range: DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                },
+                config: ReportConfig {
+                    report_type: ReportType::Summary,
+                    timezone: "UTC".to_string(),
+                    rounding_policy: "floor".to_string(),
+                    work_unit_minutes: 30,
+                },
+            }),
+        );
+
+        assert!(job.log_ingestion_payload().is_none());
+        assert!(job.report_payload().is_some());
     }
 }

@@ -1720,6 +1720,8 @@
     "subtitle": "实时分布式工作进程状态",
     "error_loading": "加载监控数据失败",
     "pending_tasks": "待处理任务",
+    "pending_high": "队列: 高优先级",
+    "pending_low": "队列: 低优先级",
     "active_workers": "活跃 Worker",
     "idle_workers": "空闲 Worker",
     "completed_today": "今日完成",

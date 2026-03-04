@@ -44,7 +44,7 @@ pub async fn list_leave_types(
         "#,
         workspace_id
     )
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(types))
@@ -79,7 +79,7 @@ pub async fn create_leave_type(
         req.is_paid,
         sqlx::types::Json(config) as _
     )
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await?;
 
     Ok((StatusCode::CREATED, Json(lt)))
@@ -111,7 +111,7 @@ pub async fn update_leave_type_config(
         id,
         workspace_id
     )
-    .fetch_optional(&state.db)
+    .fetch_optional(state.db.api())
     .await?
     .ok_or_else(|| AppError::NotFound("Leave type not found".to_string()))?;
 
@@ -133,7 +133,7 @@ pub async fn delete_leave_type(
         "SELECT 1 as has_data FROM leave_balances WHERE leave_type_id = $1 LIMIT 1",
         id
     )
-    .fetch_optional(&state.db)
+    .fetch_optional(state.db.api())
     .await
     .unwrap_or(None);
 
@@ -148,7 +148,7 @@ pub async fn delete_leave_type(
         id,
         workspace_id
     )
-    .execute(&state.db)
+    .execute(state.db.api())
     .await?;
 
     if res.rows_affected() > 0 {

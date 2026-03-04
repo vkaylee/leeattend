@@ -33,7 +33,7 @@ pub async fn get_attendance_logs(
     let offset = (page - 1) * limit;
 
     let logs = crate::repositories::time_entry_repository::get_paginated_logs(
-        &state.db,
+        state.db.api(),
         workspace_id,
         query.employee_id,
         query.from,
@@ -44,7 +44,7 @@ pub async fn get_attendance_logs(
     .await?;
 
     let total = crate::repositories::time_entry_repository::count_logs(
-        &state.db,
+        state.db.api(),
         workspace_id,
         query.employee_id,
         query.from,
@@ -71,7 +71,7 @@ pub async fn get_raw_attendance_logs(
     let offset = (page - 1) * limit;
 
     let logs = crate::repositories::raw_attendance_log_repository::get_paginated_raw_logs(
-        &state.db,
+        state.db.api(),
         workspace_id,
         query.employee_id,
         query.from,
@@ -82,7 +82,7 @@ pub async fn get_raw_attendance_logs(
     .await?;
 
     let total = crate::repositories::raw_attendance_log_repository::count_raw_logs(
-        &state.db,
+        state.db.api(),
         workspace_id,
         query.employee_id,
         query.from,
@@ -129,7 +129,7 @@ pub async fn force_reprocess_attendance(
     }
 
     let workspace = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.clone(),
+        pool: state.db.api().clone(),
     }
     .get_workspace_by_id(ctx.workspace_id)
     .await
@@ -144,7 +144,7 @@ pub async fn force_reprocess_attendance(
     let mut curr_date = query.start_date;
     while curr_date <= query.end_date {
         crate::services::pairing_service::PairingService::reprocess_daily_attendance(
-            &state.db,
+            state.db.api(),
             ctx.workspace_id,
             employee_id,
             curr_date,

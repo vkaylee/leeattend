@@ -3,6 +3,7 @@
 
 pub mod agent_manager;
 pub mod cache;
+pub mod db_pool;
 pub mod dev_initialization;
 pub mod domain;
 pub mod errors;
@@ -23,17 +24,17 @@ use axum::{
 };
 
 use crate::agent_manager::AgentManager;
+use crate::db_pool::DbPools;
 use crate::queue::RedisPool;
 use crate::repositories::{AgentRepository, WorkspaceRepository};
 use crate::services::{AgentService, AttendanceLogService, ReportCoordinator};
 use axum::http::{HeaderValue, Method};
-use sqlx::PgPool;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
 pub struct AppState {
     pub agent_manager: AgentManager,
-    pub db: PgPool,
+    pub db: DbPools,
     pub agent_repo: Arc<dyn AgentRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub agent_service: Arc<AgentService>,

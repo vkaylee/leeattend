@@ -26,7 +26,7 @@ pub async fn list_holidays(
     ctx: MemberContext,
     Query(query): Query<ListHolidaysQuery>,
 ) -> AppResult<Json<Vec<Holiday>>> {
-    let holidays = HolidayRepository::list(&state.db, ctx.workspace_id, query.year)
+    let holidays = HolidayRepository::list(state.db.api(), ctx.workspace_id, query.year)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -39,7 +39,7 @@ pub async fn get_holiday(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Holiday>> {
-    let holiday = HolidayRepository::get_by_id(&state.db, ctx.workspace_id, id)
+    let holiday = HolidayRepository::get_by_id(state.db.api(), ctx.workspace_id, id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
@@ -60,7 +60,7 @@ pub async fn create_holiday(
     }
 
     let holiday = HolidayRepository::create(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         &req.name,
         req.date,
@@ -98,7 +98,7 @@ pub async fn update_holiday(
     }
 
     let holiday = HolidayRepository::update(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         id,
         req.name.as_deref(),
@@ -130,7 +130,7 @@ pub async fn delete_holiday(
         ));
     }
 
-    let deleted = HolidayRepository::delete(&state.db, ctx.workspace_id, id)
+    let deleted = HolidayRepository::delete(state.db.api(), ctx.workspace_id, id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -154,13 +154,13 @@ pub async fn process_holiday_leave(
         ));
     }
 
-    let holiday = HolidayRepository::get_by_id(&state.db, ctx.workspace_id, id)
+    let holiday = HolidayRepository::get_by_id(state.db.api(), ctx.workspace_id, id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
     let results = HolidayLeaveService::process_holiday_leave(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         &holiday,
     )

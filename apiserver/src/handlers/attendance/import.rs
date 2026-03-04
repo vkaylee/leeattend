@@ -54,7 +54,7 @@ pub async fn upload_attendance_excel(
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
 
     let job_id = crate::services::AttendanceImportService::batch_import_from_file(
-        state.db.clone(),
+        state.db.api().clone(),
         ws_id,
         ctx.user_id,
         path,
@@ -110,7 +110,7 @@ pub async fn upload_attendance_logs(
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
 
     let job_id = crate::services::AttendanceImportService::batch_import_from_file(
-        state.db.clone(),
+        state.db.api().clone(),
         ws_id,
         ctx.user_id,
         path,
@@ -165,7 +165,7 @@ pub async fn upload_employee_excel(
 
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
     let job_id = crate::services::AttendanceImportService::batch_import_from_file(
-        state.db.clone(),
+        state.db.api().clone(),
         ws_id,
         ctx.user_id,
         path,
@@ -189,7 +189,7 @@ pub async fn get_latest_import_job(
     axum::extract::Query(query): axum::extract::Query<ImportJobQuery>,
 ) -> AppResult<Json<Option<AttendanceImportJob>>> {
     let job = crate::repositories::import_job_repository::get_latest_job(
-        &state.db,
+        state.db.api(),
         workspace_id,
         query.target_type,
     )
@@ -202,7 +202,7 @@ pub async fn get_import_job_status(
     MemberContext { .. }: MemberContext,
     Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
-    let job = crate::repositories::import_job_repository::get_job_by_id(&state.db, job_id)
+    let job = crate::repositories::import_job_repository::get_job_by_id(state.db.api(), job_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 

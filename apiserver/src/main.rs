@@ -1,9 +1,9 @@
+use apiserver::db_pool::{DbPoolConfig, DbPools};
 use apiserver::openapi::ApiDoc;
 use apiserver::queue::RedisPool;
 use apiserver::services::{AttendanceImportService, AttendanceLogService, ReportCoordinator};
 use apiserver::worker::{JobWorker, WorkerConfig};
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
-use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::time::timeout;
 use tokio_util::sync::CancellationToken;
@@ -45,18 +45,13 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPoolOptions::new()
-        .max_connections(25)
-        .acquire_timeout(std::time::Duration::from_secs(30))
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres");
+    // Initialize configurable database pools (API + Worker + optional Reader)
+    let db_config = DbPoolConfig::from_env();
+    let db_pools = DbPools::connect(&db_config).await;
+    db_pools.run_migrations().await;
 
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
+    // Use API pool for application-level initialization
+    let pool = db_pools.api().clone();
 
     AttendanceImportService::resume_all_pending_jobs(pool.clone()).await;
 
@@ -172,7 +167,7 @@ async fn main() {
 
         let worker = JobWorker::new(
             redis.clone(),
-            pool.clone(),
+            db_pools.worker().clone(),
             worker_config,
             coordinator.clone(),
             roster_cache.clone(),
@@ -187,7 +182,7 @@ async fn main() {
 
     let state = Arc::new(AppState {
         agent_manager,
-        db: pool,
+        db: db_pools,
         agent_repo,
         workspace_repo,
         agent_service,

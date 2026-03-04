@@ -34,7 +34,7 @@ pub async fn enter_paper_ot(
 ) -> AppResult<Json<AttendanceDailySummary>> {
     // 1. RBAC: Admin/Owner only
     let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.clone(),
+        pool: state.db.api().clone(),
     }
     .find_primary_role(ws_id, user_id)
     .await?
@@ -46,7 +46,7 @@ pub async fn enter_paper_ot(
 
     // 2. Validate employee exists in workspace
     let _employee =
-        crate::repositories::employee_repository::get_employee_by_id(&state.db, employee_id, ws_id)
+        crate::repositories::employee_repository::get_employee_by_id(state.db.api(), employee_id, ws_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -60,7 +60,7 @@ pub async fn enter_paper_ot(
     // 4. Call service
     let result =
         crate::services::attendance_summary_service::AttendanceSummaryService::enter_paper_ot(
-            &state.db,
+            state.db.api(),
             employee_id,
             req.date,
             req.claimed_minutes,
@@ -83,7 +83,7 @@ pub async fn bulk_upload_paper_ot(
 ) -> AppResult<Json<BulkOtUploadResult>> {
     // 1. RBAC: Admin/Owner only
     let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.clone(),
+        pool: state.db.api().clone(),
     }
     .find_primary_role(ws_id, user_id)
     .await?
@@ -237,7 +237,7 @@ pub async fn bulk_upload_paper_ot(
 
         // Find employee by employee_id_number
         let employee = match crate::repositories::employee_repository::get_employee_by_id_number(
-            &state.db,
+            state.db.api(),
             &employee_id_str,
             ws_id,
         )
@@ -269,7 +269,7 @@ pub async fn bulk_upload_paper_ot(
             date,
             ws_id
         )
-        .fetch_optional(&state.db)
+        .fetch_optional(state.db.api())
         .await;
 
         if let Ok(Some(summary)) = existing_summary {
@@ -288,7 +288,7 @@ pub async fn bulk_upload_paper_ot(
 
         // Call enter_paper_ot service
         match crate::services::attendance_summary_service::AttendanceSummaryService::enter_paper_ot(
-            &state.db,
+            state.db.api(),
             employee.id,
             date,
             minutes,

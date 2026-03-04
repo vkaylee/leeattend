@@ -1720,6 +1720,8 @@
     "subtitle": "Trạng thái worker phân tán thời gian thực",
     "error_loading": "Lỗi khi tải dữ liệu giám sát",
     "pending_tasks": "Tác vụ chờ",
+    "pending_high": "Queue: Ưu tiên cao",
+    "pending_low": "Queue: Ưu tiên thấp",
     "active_workers": "Worker đang chạy",
     "idle_workers": "Worker rảnh",
     "completed_today": "Hoàn thành hôm nay",

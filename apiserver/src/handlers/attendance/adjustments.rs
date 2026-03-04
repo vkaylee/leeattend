@@ -24,7 +24,7 @@ pub async fn submit_attendance_adjustment(
     Json(req): Json<CreateAttendanceAdjustmentRequest>,
 ) -> AppResult<(StatusCode, Json<AttendanceAdjustmentRequest>)> {
     let adjustment = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::submit_request(
-        &state.db,
+        state.db.api(),
         workspace_id,
         user_id,
         req,
@@ -46,7 +46,7 @@ pub async fn approve_attendance_adjustment(
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
     crate::services::attendance_adjustment_service::AttendanceAdjustmentService::approve_request(
-        &state.db,
+        state.db.api(),
         ctx.workspace_id,
         user_id,
         id,
@@ -65,7 +65,7 @@ pub async fn get_my_attendance_adjustments(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
     let requests = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_my_requests(
-        &state.db, ctx.workspace_id, id,
+        state.db.api(), ctx.workspace_id, id,
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to get adjustments".to_string())))?;
@@ -85,7 +85,7 @@ pub async fn get_workspace_attendance_adjustments(
     Query(query): Query<AdjustmentStatusQuery>,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
     let requests = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_workspace_requests(
-        &state.db, workspace_id, query.status
+        state.db.api(), workspace_id, query.status
     ).await
     .map_err(|s| AppError::from((s, "Failed to get workspace adjustments".to_string())))?;
 

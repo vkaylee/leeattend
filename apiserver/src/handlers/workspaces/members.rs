@@ -29,7 +29,7 @@ pub async fn get_workspace_members(
          WHERE wm.workspace_id = $1",
     )
     .bind(workspace_id)
-    .fetch_all(&state.db)
+    .fetch_all(state.db.api())
     .await?;
 
     Ok(Json(members))
@@ -49,7 +49,7 @@ pub async fn add_workspace_member(
 
     let user_id: Uuid = sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
         .bind(&req.email)
-        .fetch_optional(&state.db)
+        .fetch_optional(state.db.api())
         .await?
         .ok_or_else(|| AppError::NotFound("User with this email not found".to_string()))?;
 
@@ -60,7 +60,7 @@ pub async fn add_workspace_member(
     .bind(ctx.workspace_id)
     .bind(user_id)
     .bind(req.role)
-    .execute(&state.db)
+    .execute(state.db.api())
     .await?;
 
     Ok(StatusCode::CREATED)

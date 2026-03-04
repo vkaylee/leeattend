@@ -12,6 +12,8 @@ import {
   Coffee,
   AlertTriangle,
   Briefcase,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useWorkerMonitor } from "@/hooks/use-worker-monitor";
 import { cn } from "@/lib/utils";
@@ -23,9 +25,16 @@ export default function WorkerMonitorPage() {
 
   const statCards = [
     {
-      label: t("monitor.pending_tasks"),
-      value: stats?.pending_tasks ?? 0,
-      icon: Clock,
+      label: t("monitor.pending_high"),
+      value: stats?.pending_high ?? 0,
+      icon: ArrowUp,
+      color: "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-100 dark:border-orange-800",
+      bgIcon: "text-orange-100",
+    },
+    {
+      label: t("monitor.pending_low"),
+      value: stats?.pending_low ?? 0,
+      icon: ArrowDown,
       color: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800",
       bgIcon: "text-amber-100",
     },
@@ -103,7 +112,7 @@ export default function WorkerMonitorPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6">
         {statCards.map((stat, i) => (
           <div
             key={i}

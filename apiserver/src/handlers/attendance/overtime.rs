@@ -29,7 +29,7 @@ pub async fn claim_ot(
 ) -> AppResult<StatusCode> {
     // 1. Verify ownership (Employee can only claim for themselves) or Admin
     let employee =
-        crate::repositories::employee_repository::get_employee_by_id(&state.db, employee_id, ws_id)
+        crate::repositories::employee_repository::get_employee_by_id(state.db.api(), employee_id, ws_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -37,7 +37,7 @@ pub async fn claim_ot(
         if uid != user_id {
             // If not the user, check if Admin/Owner/Manager?
             let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-                pool: state.db.clone(),
+                pool: state.db.api().clone(),
             }
             .find_primary_role(ws_id, user_id)
             .await
@@ -49,7 +49,7 @@ pub async fn claim_ot(
         }
     } else {
         let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-            pool: state.db.clone(),
+            pool: state.db.api().clone(),
         }
         .find_primary_role(ws_id, user_id)
         .await
@@ -61,7 +61,7 @@ pub async fn claim_ot(
     }
 
     crate::services::attendance_summary_service::AttendanceSummaryService::claim_ot(
-        &state.db,
+        state.db.api(),
         employee_id,
         req.date,
         req.claimed_minutes,
@@ -89,7 +89,7 @@ pub async fn approve_ot(
 ) -> AppResult<StatusCode> {
     // RBAC: Only Admin/Owner/Manager
     let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.clone(),
+        pool: state.db.api().clone(),
     }
     .find_primary_role(ws_id, user_id)
     .await
@@ -106,7 +106,7 @@ pub async fn approve_ot(
     };
 
     crate::services::attendance_summary_service::AttendanceSummaryService::approve_ot(
-        &state.db,
+        state.db.api(),
         employee_id,
         req.date,
         req.approved_minutes,
@@ -134,7 +134,7 @@ pub async fn get_attendance_summaries(
 ) -> AppResult<Json<Vec<AttendanceDailySummary>>> {
     // RBAC and ID Resolution
     let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.clone(),
+        pool: state.db.api().clone(),
     }
     .find_primary_role(ws_id, user_id)
     .await?
@@ -151,7 +151,7 @@ pub async fn get_attendance_summaries(
             ws_id,
             user_id
         )
-        .fetch_optional(&state.db)
+        .fetch_optional(state.db.api())
         .await?;
 
         let my_id = emp_record
@@ -172,7 +172,7 @@ pub async fn get_attendance_summaries(
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: crate::models::OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE workspace_id = $1 AND employee_id = $2 AND date >= $3 AND date <= $4 ORDER BY date ASC",
             ws_id, emp_id, query.start_date, query.end_date
         )
-        .fetch_all(&state.db)
+        .fetch_all(state.db.api())
         .await?
     } else {
         sqlx::query_as!(
@@ -180,7 +180,7 @@ pub async fn get_attendance_summaries(
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: crate::models::OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE workspace_id = $1 AND date >= $2 AND date <= $3 ORDER BY date ASC, employee_id ASC",
             ws_id, query.start_date, query.end_date
         )
-        .fetch_all(&state.db)
+        .fetch_all(state.db.api())
         .await?
     };
 

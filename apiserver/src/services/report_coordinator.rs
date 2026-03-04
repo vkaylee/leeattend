@@ -10,7 +10,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::queue::{
-    DateRange, Job, JobMetadata, JobPayload, JobQueue, JobStatus, MergePayload, RedisPool,
+    DateRange, Job, JobMetadata, JobPayload, JobPriority, JobQueue, JobStatus, MergePayload, RedisPool,
     ReportConfig, ReportPayload, ReportType, TaskType,
 };
 use crate::repositories::employee_repository;
@@ -156,7 +156,7 @@ impl ReportCoordinator {
             .into_iter()
             .enumerate()
             .map(|(idx, emp_ids)| {
-                Job::new(
+                Job::with_priority(
                     parent_job_id,
                     idx as u32,
                     TaskType::AttendanceReport,
@@ -174,6 +174,7 @@ impl ReportCoordinator {
                             work_unit_minutes: workspace.work_unit_minutes,
                         },
                     }),
+                    JobPriority::High,
                 )
             })
             .collect();
@@ -353,7 +354,7 @@ impl ReportCoordinator {
                     end: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
                 });
 
-                let merge_job = Job::new(
+                let merge_job = Job::with_priority(
                     parent_job_id,
                     0, // batch_index 0 for merge
                     TaskType::MergeResults,
@@ -367,6 +368,7 @@ impl ReportCoordinator {
                             work_unit_minutes: 30,
                         },
                     }),
+                    JobPriority::High,
                 );
 
                 self.queue

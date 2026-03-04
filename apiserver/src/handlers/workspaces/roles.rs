@@ -58,7 +58,7 @@ pub async fn assign_extra_role(
     .bind(user_id)
     .bind(req.role)
     .bind(req.expires_at)
-    .fetch_one(&state.db)
+    .fetch_one(state.db.api())
     .await?;
 
     Ok((StatusCode::CREATED, Json(extra_role)))
@@ -78,7 +78,7 @@ pub async fn revoke_extra_role(
     let res = sqlx::query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2")
         .bind(role_id)
         .bind(ctx.workspace_id)
-        .execute(&state.db)
+        .execute(state.db.api())
         .await?;
 
     if res.rows_affected() > 0 {

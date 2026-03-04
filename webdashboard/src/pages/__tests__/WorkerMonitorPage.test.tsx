@@ -11,6 +11,8 @@ vi.mock("react-i18next", () => ({
 
 const mockMonitorData = {
     pending_tasks: 5,
+    pending_high: 3,
+    pending_low: 2,
     total_workers: 3,
     active_workers: 2,
     idle_workers: 1,
@@ -109,9 +111,10 @@ describe("WorkerMonitorPage", () => {
     it("renders stat cards with correct values", () => {
         renderPage();
         expect(screen.getByText("42")).toBeInTheDocument(); // completed_today (unique)
-        expect(screen.getByText("5")).toBeInTheDocument(); // pending_tasks (unique)
+        expect(screen.getByText("3")).toBeInTheDocument(); // pending_high
         // Stat labels are rendered
-        expect(screen.getByText("monitor.pending_tasks")).toBeInTheDocument();
+        expect(screen.getByText("monitor.pending_high")).toBeInTheDocument();
+        expect(screen.getByText("monitor.pending_low")).toBeInTheDocument();
         expect(screen.getByText("monitor.active_workers")).toBeInTheDocument();
         expect(screen.getByText("monitor.completed_today")).toBeInTheDocument();
         expect(screen.getByText("monitor.failed_today")).toBeInTheDocument();
