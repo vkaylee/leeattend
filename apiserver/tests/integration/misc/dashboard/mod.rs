@@ -398,8 +398,8 @@ async fn test_unexcused_absences_supports_date_range_query() {
 
     assert_eq!(res.status(), reqwest::StatusCode::OK);
     let body: Vec<serde_json::Value> = res.json().await.unwrap();
-    // Should return successfully even if empty
-    assert!(body.is_array());
+    // Should return successfully even if empty (Vec is always an array)
+    // Parsing into Vec<Value> already validates it's an array
 }
 
 #[tokio::test]

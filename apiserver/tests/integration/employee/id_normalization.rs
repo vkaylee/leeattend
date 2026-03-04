@@ -27,6 +27,7 @@ async fn test_create_employee_id_normalization() {
         employee_id_number: "00123".to_string(),
         hire_date: chrono::Utc::now().date_naive(),
         tags: None,
+        recruitment_source_id: None,
     };
 
     let response = app
@@ -92,6 +93,7 @@ async fn test_update_employee_id_normalization() {
         tags: None,
         is_active: None,
         max_concurrent_workers: None,
+        recruitment_source_id: None,
     };
 
     let response = app
@@ -154,6 +156,7 @@ async fn test_employee_id_uniqueness_on_normalized_values() {
         employee_id_number: "00555".to_string(),
         hire_date: chrono::Utc::now().date_naive(),
         tags: None,
+        recruitment_source_id: None,
     };
 
     let response = app
