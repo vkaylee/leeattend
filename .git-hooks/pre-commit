@@ -48,10 +48,11 @@ setsid docker exec leeattend-test-agent_test-1 \
 if [ ${PIPESTATUS[0]} -ne 0 ]; then COMPILE_FAILED=1; fi
 
 # Compile-check apiserver tests (no-run = compile only)
-echo "  → apiserver..."
-setsid docker exec leeattend-test-apiserver_test-1 \
-    cargo test --no-run --manifest-path /workspace/apiserver/Cargo.toml \
-    </dev/null 2>&1 | tail -3
+# sqlx macros require a live DB with schema — run migrations first
+echo "  → apiserver (migrate + compile)..."
+setsid docker exec leeattend-test-apiserver_test-1 bash -c \
+    'cd /workspace/apiserver && sqlx database create 2>/dev/null; sqlx migrate run && cargo test --no-run' \
+    </dev/null 2>&1 | tail -5
 if [ ${PIPESTATUS[0]} -ne 0 ]; then COMPILE_FAILED=1; fi
 
 if [ $COMPILE_FAILED -ne 0 ]; then
