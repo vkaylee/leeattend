@@ -179,7 +179,7 @@ for _arg in "$@"; do
             _docker_args+=("$_a")
         done
         echo "Running: docker compose $_files ${_docker_args[*]}"
-        docker compose $_files "${_docker_args[@]}"
+        docker compose $_files "${_docker_args[@]}" </dev/null
         exit $?
     fi
 done
@@ -500,9 +500,9 @@ if [[ "$SHOW_LOGS" == "true" || "$TAIL_LOGS" == "true" ]]; then
     echo -e "${BLUE}${BOLD}📜 Extracting test logs from persistent volume...${NC}"
     # Use a temporary busybox container to read from the log volume
     if [[ "$TAIL_LOGS" == "true" ]]; then
-        docker run --rm -v leeattend-test_test-logs:/logs alpine tail -f /logs/results.txt /logs/*.log 2>/dev/null || echo "No logs found or container exited."
+        docker run --rm -v leeattend-test_test-logs:/logs alpine tail -f /logs/results.txt /logs/*.log </dev/null 2>/dev/null || echo "No logs found or container exited."
     else
-        docker run --rm -v leeattend-test_test-logs:/logs alpine cat /logs/results.txt /logs/*.log 2>/dev/null | grep -v 'No such file or directory' || echo "No logs found."
+        docker run --rm -v leeattend-test_test-logs:/logs alpine cat /logs/results.txt /logs/*.log </dev/null 2>/dev/null | grep -v 'No such file or directory' || echo "No logs found."
     fi
     exit 0
 fi
@@ -666,13 +666,13 @@ if [[ "$WARM_CACHE" == "true" ]]; then
         dc up -d --build=false apiserver_test agent_test web_test
         
         echo -e "${BLUE}📦 Pre-compiling apiserver...${NC}"
-        dc exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" &
+        dc exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
         
         echo -e "${BLUE}📦 Pre-compiling agent-main...${NC}"
-        dc exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" &
+        dc exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
         
         echo -e "${BLUE}📦 Installing web dependencies...${NC}"
-        dc exec -T web_test npm install --no-audit --no-fund &
+        dc exec -T web_test npm install --no-audit --no-fund </dev/null &
         
         # Wait for all to complete
         wait
@@ -712,7 +712,8 @@ cleanup() {
     # Ignore TERM in this handler so we survive our own cleanup kills.
     trap '' TERM
     pkill -TERM -P $$ 2>/dev/null || true
-    sleep 1
+    # FIX: Reduced from 1s — in git hook context, less delay before force-kill
+    sleep 0.5
     pkill -KILL -P $$ 2>/dev/null || true
 
     # Also kill any cargo/nextest processes left inside Docker containers
