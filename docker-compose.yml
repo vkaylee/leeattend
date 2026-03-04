@@ -87,4 +87,5 @@ services:
       - DATABASE_URL=${AGENT_DATABASE_URL:-sqlite:///app/data/agent.db}
       - AGENT_ID=${AGENT_ID:-prod-agent}
       - AGENT_TOKEN=${AGENT_TOKEN:-CHANGE_ME_IN_PRODUCTION}
+      - MAX_MEMORY_LOGS=${MAX_MEMORY_LOGS:-100000}
       - RUST_LOG=info

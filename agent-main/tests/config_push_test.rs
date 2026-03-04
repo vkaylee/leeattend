@@ -1,9 +1,9 @@
-use agent::{database::Database, models::{CentralMessage, ConfigData, DeviceConfigPush}};
+use agent::hybrid_database::HybridDatabase;
+use agent::models::{CentralMessage, ConfigData, DeviceConfigPush};
 
-#[tokio::test]
-async fn test_handle_config_push_with_brand() {
-    let db = Database::new("sqlite::memory:").await.unwrap();
-    sqlx::migrate!("./migrations").run(db.get_pool()).await.unwrap();
+#[test]
+fn test_handle_config_push_with_brand() {
+    let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
 
     let config_msg = CentralMessage::ConfigPush {
         data: ConfigData {
@@ -26,11 +26,11 @@ async fn test_handle_config_push_with_brand() {
     if let CentralMessage::ConfigPush { data } = config_msg {
         for d in data.devices {
             let tz = d.timezone.as_deref().unwrap_or("UTC");
-            db.upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, tz, None, d.is_enabled).await.unwrap();
+            hybrid.store().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, tz, None, d.is_enabled).unwrap();
         }
     }
 
-    let devices = db.get_active_devices().await.unwrap();
+    let devices = hybrid.store().get_active_devices().unwrap();
     assert_eq!(devices.len(), 1);
     assert_eq!(devices[0].brand, "zkteco");
 }

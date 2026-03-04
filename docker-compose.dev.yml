@@ -114,6 +114,7 @@ services:
       # - POLL_INTERVAL_SECONDS=300
       # - INFLIGHT_TIMEOUT_SECS=300
       # --- Memory Management ---
+      - MAX_MEMORY_LOGS=${MAX_MEMORY_LOGS:-200000}
       # - SIGNATURE_TTL_DAYS=90
       # - SIGNATURE_CLEANUP_HOURS=24
     volumes:

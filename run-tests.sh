@@ -158,13 +158,13 @@ for _arg in "$@"; do
         _PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         case "$_env" in
             dev)
-                _files="-f $_PROJECT_ROOT/docker-compose.yml -f $_PROJECT_ROOT/docker-compose.dev.yml"
+                _files="-p leeattend-dev -f $_PROJECT_ROOT/docker-compose.yml -f $_PROJECT_ROOT/docker-compose.dev.yml"
                 ;;
             test)
-                _files="-f $_PROJECT_ROOT/docker-compose.yml -f $_PROJECT_ROOT/docker-compose.test.yml"
+                _files="-p leeattend-test -f $_PROJECT_ROOT/docker-compose.test.yml"
                 ;;
             prod|base)
-                _files="-f $_PROJECT_ROOT/docker-compose.yml"
+                _files="-p leeattend -f $_PROJECT_ROOT/docker-compose.yml"
                 ;;
             *)
                 echo -e "${RED}Error: Unknown environment '$_env'. Use: dev, test, prod${NC}"

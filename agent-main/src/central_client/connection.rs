@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use futures_util::{ SinkExt, StreamExt };
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, timeout};
@@ -81,7 +81,7 @@ impl CentralClient {
                 }
 
                 // Block syncing until valid device config is received
-                let device_count = match sync_hybrid.disk_db().get_active_devices().await {
+                let device_count = match sync_hybrid.store().get_active_devices() {
                     Ok(devices) => devices.len(),
                     Err(_) => 0,
                 };
@@ -92,26 +92,23 @@ impl CentralClient {
                 }
 
                 // Periodic cleanup: Move expired logs to DLQ
-                let max_retries = match sync_hybrid.disk_db().get_agent_config("max_retry_count").await {
+                let max_retries = match sync_hybrid.store().get_agent_config("max_retry_count") {
                     Ok(Some(val)) => val.parse::<i64>().unwrap_or(10),
                     _ => 10, // Default: 10 retries
                 };
-                let ttl_minutes = match sync_hybrid.disk_db().get_agent_config("retry_ttl_minutes").await {
-                    Ok(Some(val)) => val.parse::<i64>().unwrap_or(60),
-                    _ => 60, // Default: 1 hour
-                };
 
-                if let Ok(moved) = sync_hybrid.disk_db().move_expired_logs_to_dlq(max_retries, ttl_minutes).await {
+                if let Ok(moved) = sync_hybrid.store().move_expired_logs_to_dlq(max_retries) {
                     if moved > 0 {
-                        warn!("⚠️ Moved {moved} expired logs to dead letter queue (max_retries={max_retries}, ttl={ttl_minutes}m)");
+                        warn!("⚠️ Moved {moved} expired logs to dead letter queue (max_retries={max_retries})");
                     }
                 }
 
                 // Periodic stale in-flight reset (every 60 seconds)
                 if last_stale_check.elapsed() >= Duration::from_secs(60) {
-                    let reset_count = sync_hybrid.memory_store().reset_stale_inflight(Duration::from_secs(inflight_timeout_secs));
-                    if reset_count > 0 {
-                        warn!("⚠️ Reset {reset_count} stale in-flight logs (>5min)");
+                    if let Ok(reset_count) = sync_hybrid.store().reset_stale_syncing(inflight_timeout_secs as i64) {
+                        if reset_count > 0 {
+                            warn!("⚠️ Reset {reset_count} stale in-flight logs (>{}s)", inflight_timeout_secs);
+                        }
                     }
                     last_stale_check = Instant::now();
                 }
@@ -142,6 +139,8 @@ impl CentralClient {
                         warn!("⚠️ Sync cycle memory latency: {mem_latency:?} (target: <5ms)");
                     }
                 }
+                // Cache batch timestamp: all logs in this cycle share the same send time
+                let batch_timestamp = chrono::Utc::now().to_rfc3339();
                 for log in logs {
                     // Convert Unix timestamp to formatted string
                     let timestamp_str = chrono::DateTime::from_timestamp(log.timestamp, 0)
@@ -151,14 +150,14 @@ impl CentralClient {
                     let msg = CentralMessage::Attendance {
                         msg_id: log.composite_key(),
                         agent_id: sync_agent_id.clone(),
-                        device_id: log.device_id.to_string(),
+                        device_id: log.device_id.clone(),
                         data: AttendanceData {
                             user_id: crate::utils::normalize_employee_id(&log.user_id),
                             timestamp: timestamp_str,
                             status: log.status,
                             punch: log.punch,
                         },
-                        timestamp: chrono::Utc::now().to_rfc3339(),
+                        timestamp: batch_timestamp.clone(),
                     };
                     if sync_tx.send(msg).await.is_err() {
                         error!("❌ Failed to send log to sync channel");
@@ -169,11 +168,8 @@ impl CentralClient {
                 // Adaptive sleep based on queue size
                 let unsynced_count = sync_hybrid.count_unsynced_logs();
 
-                // Log backoff status for monitoring
-                let backoff_count = sync_hybrid.memory_store().count_in_backoff();
-                if backoff_count > 0 {
-                    debug!("⏳ {} logs in backoff, {} eligible for sync", backoff_count, unsynced_count - backoff_count);
-                }
+                // Backoff is now handled inside RedbStore's get_unsynced()
+                // No separate monitoring needed
 
                 let sleep_duration = if count == 0 {
                     Duration::from_millis(500)  // Idle: check every 500ms

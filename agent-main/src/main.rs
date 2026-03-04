@@ -5,8 +5,6 @@ use std::time::Instant;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use tokio::time::{sleep, Duration};
-use agent::database::Database;
-use agent::central_client::CentralClient;
 use agent::hybrid_database::HybridDatabase;
 use agent::models;
 use agent::retry::{get_sidecar_retry_delay, SIDECAR_MAX_RETRY_COUNT, SIDECAR_STABILITY_THRESHOLD_SECS};
@@ -40,23 +38,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 {
         let config = agent::config::Config::load();
-        let db = Database::new(&config.database_url).await.expect("Failed to initialize database");
+        let hybrid_db = HybridDatabase::new(&config.database_url, 1000, 90)
+            .expect("Failed to initialize database");
 
         match args[1].as_str() {
             "failed-logs" | "failed" => {
-                return cli::handle_failed_logs_command(&db, &args).await;
+                return cli::handle_failed_logs_command(hybrid_db.store(), &args);
             }
             "dlq" | "dead-letter-queue" => {
-                return cli::handle_dlq_command(&db, &args).await;
+                return cli::handle_dlq_command(hybrid_db.store(), &args);
             }
             "dlq-stats" | "stats" => {
-                return cli::handle_dlq_stats_command(&db).await;
+                return cli::handle_dlq_stats_command(hybrid_db.store());
             }
             "config" => {
-                return cli::handle_config_command(&db, &args).await;
+                return cli::handle_config_command(hybrid_db.store(), &args);
             }
             "status" => {
-                return cli::handle_status_command(&db).await;
+                return cli::handle_status_command(hybrid_db.store());
             }
             "--help" | "-h" | "help" => {
                 cli::print_help();
@@ -83,7 +82,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         if tokio::signal::ctrl_c().await.is_ok() {
             info!("Shutdown signal received (Ctrl+C).");
-            info!("Flushing in-memory data to disk...");
             cloned_token.cancel();
         }
     });
@@ -101,18 +99,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Initialize HybridDatabase (memory + disk)
-    let hybrid_db = HybridDatabase::new(&config.database_url, 100_000, config.signature_ttl_days)
-        .await
+    // Initialize HybridDatabase (Redb-backed)
+    let hybrid_db = HybridDatabase::new(&config.database_url, config.max_memory_logs, config.signature_ttl_days)
         .expect("Failed to initialize HybridDatabase");
-
-    // ONE-TIME FIX: Reset any legacy -1 counts in DB to 0
-    let _ = sqlx::query("UPDATE devices SET logs_count = 0 WHERE logs_count = -1").execute(hybrid_db.disk_db().get_pool()).await;
-    let _ = sqlx::query("UPDATE devices SET users_count = 0 WHERE users_count = -1").execute(hybrid_db.disk_db().get_pool()).await;
 
     // Perform crash recovery if needed
     if crash_marker.check_crash() {
-        let recovered = recover_from_crash(hybrid_db.disk_db()).await
+        let recovered = recover_from_crash(hybrid_db.store())
             .expect("Failed to recover from crash");
         info!("✅ Crash recovery complete: {recovered} logs reset");
     }
@@ -124,7 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Clear startup config: Agent should NOT use stale database config.
     // Server will send ConfigPush after Handshake with fresh configuration.
-    if let Err(e) = hybrid_db.disk_db().clear_startup_config().await {
+    if let Err(e) = hybrid_db.store().clear_startup_config() {
         warn!("Failed to clear startup config: {e}");
     } else {
         info!("🔄 Cleared local config on startup - waiting for ConfigPush from Server...");
@@ -135,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("⚙️ Using default Max Workers: {current_max_workers} (until ConfigPush)");
 
     let command_registry = Arc::new(DashMap::new());
-    let (central_client, central_rx, mut reload_rx) = CentralClient::new(
+    let (central_client, central_rx, mut reload_rx) = agent::central_client::CentralClient::new(
         config.central_server_url.clone(),
         config.agent_id.clone(),
         config.agent_token.clone(),
@@ -143,20 +136,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.inflight_timeout_secs,
         command_registry.clone(),
     );
-    
-    // Get tx before moving central_client into start task
-    // sr_central_tx removed as status reporting task is gone
+
     let central_client_task = central_client.start(central_rx);
     tokio::spawn(central_client_task);
 
     // --- DB Writer Worker (Batch Mode) ---
-    // Use Arc<AtomicBool> to ensure only one writer starts
     let writer_started = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let (log_tx, mut log_rx) = mpsc::channel::<(Arc<String>, models::AttendanceData)>(10000);
-    // Removed status_tx and status_rx channels for periodic reporting
     let writer_hybrid = hybrid_db.clone();
-
-    // Removed status_reporting_task
 
     if !writer_started.swap(true, std::sync::atomic::Ordering::SeqCst) {
         tokio::spawn(async move {
@@ -172,10 +159,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 buffer.push(item);
                                 if buffer.len() >= 100 {
                                     let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
-                                    if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save).await {
-                                        error!("Failed to save batch to memory: {e}");
+                                    if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save) {
+                                        error!("Failed to save batch: {e}");
                                     }
-                                    // Yield to let sync loop acquire lock
                                     sleep(Duration::from_millis(10)).await;
                                 }
                             }
@@ -185,8 +171,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     _ = interval.tick() => {
                         if !buffer.is_empty() {
                             let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
-                            if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save).await {
-                                error!("Failed to save timed batch to memory: {e}");
+                            if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save) {
+                                error!("Failed to save timed batch: {e}");
                             }
                         }
                     }
@@ -198,51 +184,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         warn!("⚠️ DB Writer Worker already running, skipping duplicate spawn");
     }
 
-    // --- Checkpoint Worker (Periodic Disk Persistence) ---
-    let checkpoint_hybrid = hybrid_db.clone();
-    let checkpoint_cancel = cancel_token.clone();
-    tokio::spawn(async move {
-        info!("💾 Checkpoint Worker started (5s interval)");
-
-        let mut interval = tokio::time::interval(Duration::from_secs(5));
-
-        loop {
-            tokio::select! {
-                _ = interval.tick() => {
-                    if checkpoint_hybrid.memory_store().is_dirty() {
-                        match checkpoint_hybrid.checkpoint().await {
-                            Ok(count) => {
-                                if count > 0 {
-                                    info!("💾 Checkpoint: {count} logs persisted to disk");
-                                }
-                            }
-                            Err(e) => {
-                                error!("❌ Checkpoint failed: {e}");
-                            }
-                        }
-                    }
-                }
-                _ = checkpoint_cancel.cancelled() => {
-                    info!("💾 Checkpoint Worker: Final flush...");
-                    match checkpoint_hybrid.flush_all().await {
-                        Ok(count) => info!("✅ Final flush: {count} logs written"),
-                        Err(e) => error!("❌ Final flush failed: {e}"),
-                    }
-                    info!("💾 Checkpoint Worker stopped");
-                    break;
-                }
-            }
-        }
-    });
+    // NOTE: Checkpoint Worker REMOVED — Redb auto-persists via copy-on-write
 
     // --- Periodic Disk Cleanup Task (Old Logs >365 Days) ---
-    // Note: Memory cleanup is now handled by mark_synced() immediately on ACK
     let cleanup_hybrid = hybrid_db.clone();
     let cleanup_cancel = cancel_token.clone();
     tokio::spawn(async move {
         info!("🧹 Disk Cleanup Worker started (365-day retention)");
 
-        // Disk cleanup interval: every 24 hours
         let disk_cleanup_interval = Duration::from_secs(86400);
         let mut disk_cleanup_timer = tokio::time::interval(disk_cleanup_interval);
 
@@ -252,7 +201,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         loop {
             tokio::select! {
                 _ = disk_cleanup_timer.tick() => {
-                    match cleanup_hybrid.disk_db().cleanup_old_synced_logs(365).await {
+                    match cleanup_hybrid.store().cleanup_old_synced_logs(365) {
                         Ok(deleted) => {
                             if deleted > 0 {
                                 info!("🧹 Disk cleanup: removed {deleted} old synced logs (>365 days)");
@@ -303,7 +252,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while !cancel_token.is_cancelled() {
         let semaphore = Arc::new(Semaphore::new(current_max_workers));
 
-        let db_devices = match hybrid_db.disk_db().get_active_devices().await {
+        let db_devices = match hybrid_db.store().get_active_devices() {
             Ok(devices) => devices,
             Err(e) => {
                 error!("Failed to load devices from DB: {e}");
@@ -318,9 +267,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("📡 Found {} devices, max {} concurrent workers", db_devices.len(), current_max_workers);
         }
 
-        // Runtime optimization: Load memory for active devices before spawning
+        // Runtime optimization: Load signatures for active devices
         for d in &db_devices {
-            if let Err(e) = hybrid_db.load_device_memory(&d.id).await {
+            if let Err(e) = hybrid_db.load_device_memory(&d.id) {
                 error!("Failed to load memory for device {}: {}", d.id, e);
             }
         }
@@ -352,18 +301,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut stable_since: Option<Instant> = None;
 
                 while !token.is_cancelled() {
-                    // Apply retry delay with exponential backoff
                     if retry_count > 0 {
                         let delay = get_sidecar_retry_delay(retry_count);
                         warn!("[{}] Retry {}/{}, waiting {:?}...", worker.name, retry_count, SIDECAR_MAX_RETRY_COUNT, delay);
                         sleep(delay).await;
                     }
 
-                    // Dynamically select worker based on brand
                     let mut worker_impl: Box<dyn Worker> = if worker.brand == "mock" {
                         Box::new(mock_worker::MockWorker::new())
                     } else {
-                        // Default to ZKTeco
                         Box::new(zk_worker::ZkWorker::new(worker.password))
                     };
 
@@ -376,11 +322,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
 
-                    // Send initial status update immediately
-                    if let Ok(info) = worker_impl.get_info().await {
-                        // NEW: Persist to local SQLite
-                        if let Some(obj) = info.as_object() {
-                            let _ = hybrid_db.disk_db().update_device_metadata(
+                    if let Ok(info) = worker_impl.get_info().await
+                        && let Some(obj) = info.as_object() {
+                            let _ = hybrid_db.store().update_device_metadata(
                                 &worker.id,
                                 obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
                                 obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
@@ -392,24 +336,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
                                 obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
                                 obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
-                            ).await;
+                            );
                         }
 
-                        // Removed periodic status send
-                    }
+                    let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
+                    const SEEN_LOGS_CAP: usize = 50_000;
 
-                    // In-memory duplicate detection: hash-based keys (8 bytes each instead of ~40 for String)
-                    // Hash of (user_id, timestamp) — device_id is implicit per worker
-                    let mut seen_logs: HashSet<u64> = HashSet::with_capacity(32_000);
-                    const SEEN_LOGS_CAP: usize = 100_000;
-
-                    // Adaptive polling: reduce frequency when no new data
                     let mut polling_state = AdaptivePollingState::new();
                     let mut poll_count = 0;
 
                     while !token.is_cancelled() {
-                        // Acquire semaphore permit for this poll cycle (fair round-robin)
-                        // Released at end of loop iteration, allowing other devices to poll
                         let _permit = match sem.acquire().await {
                             Ok(p) => p,
                             Err(_) => {
@@ -420,11 +356,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         poll_count += 1;
 
-                        // Periodically fetch device info (every 5 polls or when just connected)
                         if poll_count % 5 == 1 && let Ok(mut info) = worker_impl.get_info().await {
-                                // NEW: Persist to local SQLite
                                 if let Some(obj) = info.as_object() {
-                                    let _ = hybrid_db.disk_db().update_device_metadata(
+                                    let _ = hybrid_db.store().update_device_metadata(
                                         &worker.id,
                                         obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
                                         obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
@@ -436,21 +370,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
                                         obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
                                         obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
-                                    ).await;
+                                    );
                                 }
 
-                                // ENRICH: If sidecar returns -1 for logs_count, try to get from DB
-                                if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
+                                if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&worker.id) {
                                     info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
                                     info["users_count"] = json!(meta.users_count.unwrap_or(0));
                                 }
-
-                                // Removed periodic status send
                         }
 
                         match worker_impl.get_attendance_logs().await {
                             Ok(logs_vec) => {
-                                // Check stability and reset retry count if stable
                                 if let Some(since) = stable_since
                                     && since.elapsed() >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS) && retry_count > 0 {
                                         info!("[{}] Connection stable for {}s, resetting retry count", worker.name, SIDECAR_STABILITY_THRESHOLD_SECS);
@@ -458,37 +388,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     }
 
                                 let mut new_count = 0;
-                                // Convert Vec<Value> (logs_vec) to needed logic
                                 {
                                     let fetched_count = logs_vec.len();
                                     let mut duplicate_count = 0;
-                                    
-                                    // Update hardware snapshot count in DB (preserve users_count by passing -1)
-                                    let _ = hybrid_db.disk_db().update_device_counts(&worker.id, -1, fetched_count as i64).await;
-                                        
-                                    // NEW: Trigger immediate status reporting with the fresh count
+
+                                    let _ = hybrid_db.store().update_device_counts(&worker.id, -1, fetched_count as i64);
+
                                     #[allow(unused_variables)]
                                     let mut quick_info = json!({
                                         "logs_count": fetched_count,
                                     });
-                                    // Enrich users_count from DB if possible
-                                    if let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
+                                    if let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&worker.id) {
                                         quick_info["users_count"] = json!(meta.users_count.unwrap_or(0));
                                         if let Some(mac) = meta.mac { quick_info["mac"] = json!(mac); }
                                     }
-                                
-                                    // Removed periodic status send
-                                
+
                                     if !logs_vec.is_empty() {
-                                        // Filter duplicates before sending to queue
-                                        // Consume array values to avoid clone; use hash-based dedup key
                                         for attendance in logs_vec {
-                                            // Hash-based dedup key (8 bytes vs ~40 for String)
                                             let mut hasher = rustc_hash::FxHasher::default();
                                             attendance.user_id.hash(&mut hasher);
                                             attendance.timestamp.hash(&mut hasher);
                                             let key = hasher.finish();
-                        
+
                                             if seen_logs.insert(key) {
                                                 let _ = log_tx.send((worker.id.clone(), attendance)).await;
                                                 new_count += 1;
@@ -496,13 +417,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                                 duplicate_count += 1;
                                             }
                                         }
-                    
-                                        // Eviction: clear when exceeding cap (secondary dedup; memory store signatures are primary)
+
                                         if seen_logs.len() > SEEN_LOGS_CAP {
                                             seen_logs.clear();
+                                            seen_logs.shrink_to(16_000);
                                             info!("[{}] Cleared seen_logs cache (>{} entries)", worker.name, SEEN_LOGS_CAP);
                                         }
-                    
+
                                         if duplicate_count > 0 {
                                             info!("[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
                                                     worker.name, fetched_count, new_count, duplicate_count, polling_state.interval());
@@ -511,8 +432,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         }
                                     }
                                 }
-                                
-                                // Adaptive polling: adjust interval based on new data
+
                                 let (new_interval, changed) = polling_state.update(new_count > 0);
                                 if changed && new_count == 0 {
                                     info!("[{}] No new data for {} polls, increasing interval: {}s",
@@ -525,14 +445,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
 
-                        // Release permit before sleeping to allow other devices to poll
                         drop(_permit);
                         sleep(Duration::from_secs(polling_state.interval())).await;
                     }
 
                     if !token.is_cancelled() {
-                        // Removed periodic status send
-
                         warn!("[{}] Sidecar connection lost, restarting...", worker.name);
                         retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                     }
@@ -544,8 +461,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             _ = reload_rx.recv() => {
                 info!("🔄 Configuration change detected! Restarting all workers...");
 
-                // Reload config
-                if let Ok(Some(s)) = hybrid_db.disk_db().get_agent_config("max_concurrent_workers").await
+                if let Ok(Some(s)) = hybrid_db.store().get_agent_config("max_concurrent_workers")
                     && let Ok(new_val) = s.parse::<usize>()
                     && new_val != current_max_workers
                 {
@@ -564,9 +480,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Wait for checkpoint worker to complete final flush
-    info!("⏳ Waiting for final checkpoint...");
-    sleep(Duration::from_secs(2)).await;
+    // No checkpoint needed — Redb auto-persists
+    info!("⏳ Waiting for shutdown...");
+    sleep(Duration::from_secs(1)).await;
 
     // Remove crash marker on clean exit
     if let Err(e) = crash_marker.remove() {

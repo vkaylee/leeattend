@@ -79,7 +79,7 @@ services:
     entrypoint: tail -f /dev/null
     working_dir: /workspace/agent-main
     environment:
-      - "DATABASE_URL=sqlite::memory:"  # Agent uses SQLite, no external DB needed
+      - "DATABASE_URL=:memory:"  # Agent uses Redb, in-memory for tests
       - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
       - CARGO_TARGET_DIR=/workspace/target  # Shared with apiserver_test
       - CARGO_BUILD_JOBS=4

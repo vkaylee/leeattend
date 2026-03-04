@@ -2,7 +2,7 @@
 # Multi-stage build for Rust Agent supporting Dev, Test, and Prod
 
 # Stage 1: Cargo Chef base
-FROM rust:1.88-slim-bookworm AS chef
+FROM rust:1.93-slim-bookworm AS chef
 RUN rustup component add clippy
 RUN cargo install cargo-chef
 RUN apt-get update && apt-get install -y wget && \
@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo chef cook --release --recipe-path recipe.json
 
 # Stage 4: Dev (for hot-reloading)
-FROM rust:1.88-bookworm AS dev
+FROM rust:1.93-bookworm AS dev
 RUN apt-get update && apt-get install -y clang mold git redis-tools postgresql-client sqlite3 netcat-traditional curl dnsutils iputils-ping iproute2 nmap jq htop bash && \
     rm -rf /var/lib/apt/lists/* && \
     rustup component add clippy && \

@@ -10,6 +10,8 @@ pub struct Config {
     pub poll_interval_seconds: u64,
     /// Initial max concurrent workers (server overrides via ConfigPush)
     pub max_concurrent_workers: usize,
+    /// Max in-memory attendance logs before rejecting new inserts
+    pub max_memory_logs: usize,
     pub signature_ttl_days: i64,
     pub signature_cleanup_hours: u64,
     pub inflight_timeout_secs: u64,
@@ -64,6 +66,11 @@ impl Config {
             .parse()
             .unwrap_or(300);
 
+        let max_memory_logs = env::var("MAX_MEMORY_LOGS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(100_000);
+
         if !fallbacks.is_empty() {
             warn!("⚠️  PHÁT HIỆN THIẾU CẤU HÌNH .ENV - SỬ DỤNG GIÁ TRỊ MẶC ĐỊNH:");
             for f in fallbacks {
@@ -79,6 +86,7 @@ impl Config {
             database_url,
             poll_interval_seconds,
             max_concurrent_workers,
+            max_memory_logs,
             signature_ttl_days,
             signature_cleanup_hours,
             inflight_timeout_secs,
@@ -100,6 +108,7 @@ impl Config {
         info!("------------------------------------------------------------");
         info!("🧹 MEMORY MANAGEMENT");
         info!("------------------------------------------------------------");
+        info!("Max Memory Logs    : {}", self.max_memory_logs);
         info!("Signature TTL      : {} days", self.signature_ttl_days);
         info!("Signature Cleanup  : every {}h", self.signature_cleanup_hours);
         info!("Inflight Timeout   : {}s", self.inflight_timeout_secs);
@@ -132,6 +141,7 @@ mod tests {
             database_url: "sqlite:test.db".to_string(),
             poll_interval_seconds: 300,
             max_concurrent_workers: 2,
+            max_memory_logs: 100_000,
             signature_ttl_days: 90,
             signature_cleanup_hours: 24,
             inflight_timeout_secs: 300,
@@ -143,6 +153,7 @@ mod tests {
         assert_eq!(config.database_url, "sqlite:test.db");
         assert_eq!(config.poll_interval_seconds, 300);
         assert_eq!(config.max_concurrent_workers, 2);
+        assert_eq!(config.max_memory_logs, 100_000);
         assert_eq!(config.signature_ttl_days, 90);
         assert_eq!(config.signature_cleanup_hours, 24);
         assert_eq!(config.inflight_timeout_secs, 300);
@@ -160,6 +171,7 @@ mod tests {
             std::env::set_var("DATABASE_URL", "sqlite:prod.db");
             std::env::set_var("POLL_INTERVAL_SECONDS", "120");
             // MAX_CONCURRENT_WORKERS is no longer env-configurable
+            std::env::set_var("MAX_MEMORY_LOGS", "200000");
             std::env::set_var("SIGNATURE_TTL_DAYS", "30");
             std::env::set_var("SIGNATURE_CLEANUP_HOURS", "12");
             std::env::set_var("INFLIGHT_TIMEOUT_SECS", "600");
@@ -173,6 +185,7 @@ mod tests {
         assert_eq!(config.database_url, "sqlite:prod.db");
         assert_eq!(config.poll_interval_seconds, 120);
         assert_eq!(config.max_concurrent_workers, 2); // hardcoded, not from env
+        assert_eq!(config.max_memory_logs, 200_000);
         assert_eq!(config.signature_ttl_days, 30);
         assert_eq!(config.signature_cleanup_hours, 12);
         assert_eq!(config.inflight_timeout_secs, 600);
@@ -185,6 +198,7 @@ mod tests {
             std::env::remove_var("DATABASE_URL");
             std::env::remove_var("POLL_INTERVAL_SECONDS");
             std::env::remove_var("MAX_CONCURRENT_WORKERS");
+            std::env::remove_var("MAX_MEMORY_LOGS");
             std::env::remove_var("SIGNATURE_TTL_DAYS");
             std::env::remove_var("SIGNATURE_CLEANUP_HOURS");
             std::env::remove_var("INFLIGHT_TIMEOUT_SECS");
@@ -246,6 +260,7 @@ mod tests {
             database_url: "sqlite:test.db".to_string(),
             poll_interval_seconds: 300,
             max_concurrent_workers: 2,
+            max_memory_logs: 100_000,
             signature_ttl_days: 90,
             signature_cleanup_hours: 24,
             inflight_timeout_secs: 300,
