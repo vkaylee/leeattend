@@ -132,8 +132,7 @@ services:
       context: ./webdashboard
       target: dev
     environment:
-      - VITE_API_BASE_URL=/api
-      - VITE_API_URL=http://apiserver:3000
+      - VITE_API_URL=http://apiserver:3000/api
     volumes:
       - ./webdashboard:/app
       - webdashboard-node-modules:/app/node_modules

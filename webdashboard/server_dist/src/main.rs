@@ -10,7 +10,7 @@ use std::net::SocketAddr;
 
 // Nhúng toàn bộ thư mục output của Next.js vào file exe
 #[derive(RustEmbed)]
-#[folder = "../out"]
+#[folder = "../dist"]
 struct Assets;
 
 #[derive(Parser, Debug)]
@@ -47,21 +47,43 @@ async fn main() {
 
     // 5. Listen on 0.0.0.0
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    
-    println!("================================================");
-    println!("Dashboard Server is running!");
-    println!("Local:        http://localhost:{}", port);
-    println!("Network:      Access via your machine IP on port {}", port);
-    println!("================================================");
+
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(e) => {
+            tracing::error!("Failed to bind to port {}: {}", port, e);
+            std::process::exit(1);
+        }
+    };
+
+    tracing::info!("================================================");
+    tracing::info!("Dashboard Server is running!");
+    tracing::info!("Local:        http://localhost:{}", port);
+    tracing::info!("Network:      Access via your machine IP on port {}", port);
+    tracing::info!("================================================");
 
     // 6. Open browser automatically (unless --no-open is set)
     if !args.no_open {
         let _ = opener::open(format!("http://localhost:{}", port));
     }
 
-    // 7. Start server
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    // 7. Start server with graceful shutdown
+    let shutdown = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to listen for Ctrl+C");
+        tracing::info!("Shutdown signal received, stopping server...");
+    };
+
+    if let Err(e) = axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown)
+        .await
+    {
+        tracing::error!("Server error: {}", e);
+        std::process::exit(1);
+    }
+
+    tracing::info!("Server stopped gracefully.");
 }
 
 async fn static_handler(uri: Uri) -> impl IntoResponse {
@@ -70,13 +92,12 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
     // Mặc định trả về index.html nếu path rỗng
     let path = if path.is_empty() { "index.html" } else { path };
 
-    // 1. Thử tìm file chính xác
+    // 1. Thử tìm file chính xác (JS, CSS, images, fonts, etc.)
     if let Some(content) = Assets::get(path) {
         return serve_file(path, content);
     }
 
-    // 2. Nếu không thấy, thử tìm dạng folder (VD: /agents -> /agents.html hoặc /agents/index.html)
-    // Next.js static export thường tạo agents.html cho route /agents
+    // 2. Thử tìm dạng folder (VD: /agents -> /agents.html hoặc /agents/index.html)
     let html_path = format!("{}.html", path);
     if let Some(content) = Assets::get(&html_path) {
         return serve_file(&html_path, content);
@@ -87,11 +108,17 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
         return serve_file(&index_path, content);
     }
 
-    // 3. Fallback về 404.html hoặc index.html (tùy logic)
-    if let Some(content) = Assets::get("404.html") {
-        return serve_file("404.html", content);
+    // 3. SPA Fallback: Nếu path không có extension (là route, không phải file tĩnh)
+    //    → trả về index.html để React Router xử lý client-side routing
+    //    VD: /login, /dashboard, /devices/123 → đều serve index.html
+    let is_file_request = path.rsplit('/').next().map_or(false, |last| last.contains('.'));
+    if !is_file_request {
+        if let Some(content) = Assets::get("index.html") {
+            return serve_file("index.html", content);
+        }
     }
-    
+
+    // 4. File tĩnh thực sự không tìm thấy → 404
     (StatusCode::NOT_FOUND, "404 Not Found").into_response()
 }
 

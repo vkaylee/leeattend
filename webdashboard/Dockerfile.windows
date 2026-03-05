@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1
+# Cross-compile webdashboard server to Windows .exe from Linux
+# Usage: docker build -f Dockerfile.windows -t leeattend-dashboard-win .
+#        (or use build_windows.sh)
+
+# ─── Stage 1: Build Frontend ───────────────────────────────────────────
+FROM node:20-slim AS frontend
+
+# Build arg: override API URL for different deployment targets
+ARG VITE_API_URL=http://127.0.0.1:3000/api
+ENV VITE_API_URL=${VITE_API_URL}
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+# Output: /app/dist/
+
+# ─── Stage 2: Cross-compile Rust for Windows ───────────────────────────
+FROM rust:1.83-slim-bookworm AS builder
+
+# Install mingw-w64 cross-compiler
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc-mingw-w64-x86-64 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Windows target
+RUN rustup target add x86_64-pc-windows-gnu
+
+WORKDIR /app
+
+# Configure Cargo to use mingw linker for Windows target
+RUN mkdir -p /app/server_dist/.cargo && \
+    echo '[target.x86_64-pc-windows-gnu]' > /app/server_dist/.cargo/config.toml && \
+    echo 'linker = "x86_64-w64-mingw32-gcc"' >> /app/server_dist/.cargo/config.toml
+
+# Copy server_dist source
+COPY server_dist/Cargo.toml server_dist/Cargo.lock* server_dist/
+
+# Copy frontend build output (rust-embed reads from ../dist at compile time)
+COPY --from=frontend /app/dist /app/dist
+
+# Copy server source and build
+COPY server_dist/src server_dist/src
+WORKDIR /app/server_dist
+RUN cargo build --release --target x86_64-pc-windows-gnu
+
+# ─── Stage 3: Output ──────────────────────────────────────────────────
+FROM scratch AS output
+COPY --from=builder /app/server_dist/target/x86_64-pc-windows-gnu/release/dashboard_server.exe /LeeAttendDashboard.exe

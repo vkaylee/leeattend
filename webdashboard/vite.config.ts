@@ -32,6 +32,18 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
   // Use process.env directly since we are in Docker and don't want to load .env files
   const viteApiUrl = process.env.VITE_API_URL;
 
+  // Extract just origin (host:port) from VITE_API_URL for proxy target
+  // VITE_API_URL now always includes /api (e.g., http://apiserver:3000/api)
+  // but Vite proxy needs just the origin since it preserves the request path
+  let apiOrigin = "";
+  if (viteApiUrl) {
+    try {
+      apiOrigin = new URL(viteApiUrl).origin;
+    } catch {
+      apiOrigin = viteApiUrl;
+    }
+  }
+
   // Tự động tìm port của API từ file Discovery nếu không có biến môi trường
   let apiPort = "";
   try {
@@ -45,8 +57,8 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
     console.warn("📡 Vite: Could not discover API port");
   }
 
-  // Ưu tiên discovery port nếu có, nếu không mới dùng env hoặc mặc định 3000
-  const apiTarget = apiPort ? `http://127.0.0.1:${apiPort}` : (viteApiUrl || `http://localhost:3000`);
+  // Ưu tiên discovery port nếu có, nếu không mới dùng origin từ env hoặc mặc định
+  const apiTarget = apiPort ? `http://127.0.0.1:${apiPort}` : (apiOrigin || `http://localhost:3000`);
   const wsTarget = apiTarget.replace(/^http/, "ws");
 
   console.log(`📡 Vite: Proxying /api to ${apiTarget}`);
