@@ -29,6 +29,7 @@ vi.mock("../../lib/api", () => ({
     transferEmployee: vi.fn(),
     fetchEmploymentHistory: vi.fn(),
     rehireEmployee: vi.fn(),
+    fetchMyPermissions: vi.fn(),
 }));
 
 // Override i18n
@@ -81,6 +82,7 @@ describe("EmployeesPage", () => {
         (api.fetchDepartments as any).mockResolvedValue([]);
         (api.fetchEmployeeDepartmentHistory as any).mockResolvedValue([]);
         (api.fetchEmploymentHistory as any).mockResolvedValue([]);
+        (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["employees:create", "employees:update", "employees:delete"], roles: ["admin"] });
     });
 
     const renderPage = (initialEntries = ["/"]) =>
@@ -204,7 +206,7 @@ describe("EmployeesPage", () => {
         renderPage();
         await screen.findByText("Alice Nguyen");
 
-        const addBtn = screen.getByTestId("add-employee-btn");
+        const addBtn = await screen.findByTestId("add-employee-btn");
         await user.click(addBtn);
 
         // Form inputs should be visible

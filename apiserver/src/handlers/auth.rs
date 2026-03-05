@@ -273,6 +273,25 @@ pub async fn get_me(
     }))
 }
 
+/// GET /me/permissions
+/// Returns the calling user's effective permissions and roles for the current workspace.
+pub async fn get_my_permissions(
+    ctx: crate::handlers::common::MemberContext,
+) -> AppResult<Json<serde_json::Value>> {
+    let permissions: Vec<&str> = ctx
+        .permissions
+        .iter()
+        .map(|p| p.to_str_permission())
+        .collect();
+
+    let roles: Vec<String> = ctx.roles.iter().map(|r| format!("{r:?}")).collect();
+
+    Ok(Json(serde_json::json!({
+        "permissions": permissions,
+        "roles": roles,
+    })))
+}
+
 pub async fn update_me(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,

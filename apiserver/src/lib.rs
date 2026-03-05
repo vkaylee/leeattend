@@ -247,6 +247,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route("/agents", get(handlers::get_agents))
         .route("/agent/:agent_id/command", post(handlers::send_command))
         .route("/me", get(handlers::get_me).patch(handlers::update_me))
+        .route("/me/permissions", get(handlers::get_my_permissions))
         .route("/auth/change-password", post(handlers::change_password))
         .route("/users", get(handlers::get_users))
         .route(

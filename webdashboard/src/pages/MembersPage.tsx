@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Users, UserPlus } from "lucide-react";
 import MemberTable from "@/components/members/MemberTable";
 import InviteMemberDialog from "@/components/members/InviteMemberDialog";
+import PermissionGate from "@/components/common/PermissionGate";
 
 export default function MembersPage() {
   const { t } = useTranslation();
@@ -25,14 +26,16 @@ export default function MembersPage() {
           </div>
         </div>
 
-        <button
-          onClick={() => setIsInviteOpen(true)}
-          data-testid="invite-member-trigger"
-          className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"
-        >
-          <UserPlus size={18} />
-          {t("members.invite.title").toUpperCase()}
-        </button>
+        <PermissionGate permission="members:manage">
+          <button
+            onClick={() => setIsInviteOpen(true)}
+            data-testid="invite-member-trigger"
+            className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"
+          >
+            <UserPlus size={18} />
+            {t("members.invite.title").toUpperCase()}
+          </button>
+        </PermissionGate>
       </div>
 
       <div className="animate-in slide-in-from-bottom-8 duration-700">

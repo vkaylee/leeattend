@@ -26,6 +26,7 @@ vi.mock("../../lib/api", () => ({
   fetchStagingLogs: vi.fn(),
   resolveStagingLog: vi.fn(),
   dismissStagingLog: vi.fn(),
+  fetchMyPermissions: vi.fn(),
 }));
 
 // Override i18n
@@ -73,6 +74,7 @@ describe("AttendanceLogsPage", () => {
     });
     (api.fetchDevices as any).mockResolvedValue([]);
     (api.fetchStagingLogs as any).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
+    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"] });
   });
 
   const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
+import PermissionGate from "@/components/common/PermissionGate";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
@@ -274,7 +275,9 @@ export default function AttendanceLogsPage() {
             <BarChart3 size={14} /> {t("attendance_logs.view_reports")}
           </Link>
           <button onClick={() => window.print()} className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"><Download size={14} /> {t("attendance_logs.export_btn")}</button>
-          <button onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 font-bold text-[10px] uppercase tracking-widest active:scale-95"><Upload size={14} /> {t("attendance_logs.import_btn")}</button>
+          <PermissionGate permission="attendance_staging:manage">
+            <button onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 font-bold text-[10px] uppercase tracking-widest active:scale-95"><Upload size={14} /> {t("attendance_logs.import_btn")}</button>
+          </PermissionGate>
         </div>
       </div>
 

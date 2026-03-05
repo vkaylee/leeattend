@@ -17,9 +17,9 @@ vi.mock("@/hooks/use-debounce", () => ({
 // Mock EmployeeSearch to avoid internal queries
 vi.mock("@/components/common/EmployeeSearch", () => ({
   EmployeeSearch: ({ value, onChange }: any) => (
-    <select 
-      data-testid="employee-select" 
-      value={value} 
+    <select
+      data-testid="employee-select"
+      value={value}
       onChange={(e) => onChange(e.target.value)}
     >
       <option value="">Select...</option>
@@ -46,6 +46,8 @@ vi.mock("../../lib/api", () => ({
   fetchWorkspace: vi.fn(),
   submitAttendanceAdjustment: vi.fn(),
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
+  fetchMyPermissions: vi.fn(),
+  fetchDevices: vi.fn(),
 }));
 
 describe("Date Format Integration", () => {
@@ -57,6 +59,8 @@ describe("Date Format Integration", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
+    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"] });
+    (api.fetchDevices as any).mockResolvedValue([]);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -87,7 +91,7 @@ describe("Date Format Integration", () => {
     }));
 
     renderWithProviders(<AttendanceLogsPage />);
-    
+
     expect(await screen.findByText(/15\/01\/2026/)).toBeInTheDocument();
   });
 
@@ -107,7 +111,7 @@ describe("Date Format Integration", () => {
     }));
 
     renderWithProviders(<AttendanceLogsPage />);
-    
+
     expect(await screen.findByText(/2026-01-15/)).toBeInTheDocument();
   });
 
@@ -123,10 +127,10 @@ describe("Date Format Integration", () => {
     (api.fetchWorkspace as any).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" });
 
     renderWithProviders(<PayrollPage />);
-    
+
     const empBtns = await screen.findAllByText("John Doe");
     fireEvent.click(empBtns[0]);
-    
+
     // Check for the title (VN or EN depending on env, checking for VN based on failure output)
     // Using getAllByText and taking the first one (h1) or being more specific with selector
     const titles = await screen.findAllByText(/Tính lương|Payroll/i, { selector: 'h1' });

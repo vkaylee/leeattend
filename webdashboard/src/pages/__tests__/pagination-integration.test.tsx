@@ -34,6 +34,7 @@ vi.mock("../../lib/api", () => ({
   fetchWorkspaceLeaveRequests: vi.fn(),
   fetchEmployeeLeaveBalances: vi.fn(),
   fetchLeavePolicies: vi.fn(),
+  fetchMyPermissions: vi.fn(),
 }));
 
 // Helper to create mock paginated response
@@ -57,6 +58,7 @@ describe("Pagination Integration Tests", () => {
         queries: { retry: false, gcTime: 0, staleTime: 0 },
       },
     });
+    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: [], roles: [] });
   });
 
   const renderWithProviders = (component: React.ReactElement) => {
@@ -371,7 +373,7 @@ describe("Pagination Integration Tests", () => {
       // CORRECT PATTERN
       const correctData = paginatedResponse?.data ?? [];
       expect(Array.isArray(correctData)).toBe(true);
-      expect(() => correctData.forEach(() => {})).not.toThrow();
+      expect(() => correctData.forEach(() => { })).not.toThrow();
 
       // This pattern ensures:
       // 1. Optional chaining prevents null reference errors
@@ -390,13 +392,13 @@ describe("Pagination Integration Tests", () => {
       // This would throw: TypeError: incorrectUsage.forEach is not a function
       // because paginatedResponse is an object, not an array
       expect(() => {
-        incorrectUsage.forEach(() => {});
+        incorrectUsage.forEach(() => { });
       }).toThrow();
 
       // But the correct pattern works:
       const correctData = paginatedResponse.data;
       expect(() => {
-        correctData.forEach(() => {});
+        correctData.forEach(() => { });
       }).not.toThrow();
     });
   });

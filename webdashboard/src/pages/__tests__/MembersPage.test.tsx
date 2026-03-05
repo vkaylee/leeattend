@@ -20,6 +20,7 @@ vi.mock("../../lib/api", () => ({
   revokeExtraRole: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
   fetchUsers: vi.fn(),
+  fetchMyPermissions: vi.fn(),
 }));
 
 describe("MembersPage", () => {
@@ -38,6 +39,7 @@ describe("MembersPage", () => {
       },
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
+    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["members:manage", "members_roles:manage"], roles: ["admin"] });
     (api.fetchWorkspaceMembers as any).mockResolvedValue([
       { user_id: "user-1", email: "owner@example.com", full_name: "Workspace Owner", role: "owner" },
       { user_id: "user-2", email: "admin@example.com", full_name: "Admin User", role: "admin" }
