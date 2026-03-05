@@ -64,6 +64,22 @@ vi.mock("@/hooks/use-dashboard", () => ({
     useTurnoverAnalytics: () => ({ data: null, isLoading: false, error: null }),
 }));
 
+vi.mock("@/hooks/use-dashboard-layout", () => ({
+    useDashboardLayout: () => ({
+        activeView: "hr",
+        visibleWidgets: {},
+        widgetOrder: [],
+        collapsedSections: {},
+        isSaving: false,
+        setActiveView: vi.fn(),
+        toggleWidget: vi.fn(),
+        setWidgetOrder: vi.fn(),
+        toggleSection: vi.fn(),
+        resetToDefault: vi.fn(),
+        allWidgets: [],
+    }),
+}));
+
 vi.mock("@/lib/api", async (importOriginal) => {
     const actual = await importOriginal<any>();
     return {
@@ -78,6 +94,15 @@ vi.mock("@/lib/api", async (importOriginal) => {
         fetchMyEmployeeProfile: vi.fn(() => Promise.resolve({ id: "emp-1", full_name: "Test User" })),
     };
 });
+
+// Mock IntersectionObserver for jsdom
+class MockIntersectionObserver {
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+}
+window.IntersectionObserver = MockIntersectionObserver as any;
+vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
 vi.mock("recharts", () => ({
     ResponsiveContainer: ({ children }: any) => <div>{children}</div>,

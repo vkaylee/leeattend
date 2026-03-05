@@ -13,6 +13,8 @@ interface SheetProps {
   className?: string;
   contentClassName?: string;
   headerExtra?: React.ReactNode;
+  /** If true, the built-in header (icon + title + X button) is hidden — use when providing a fully custom header in children */
+  hideHeader?: boolean;
 }
 
 export default function Sheet({
@@ -25,6 +27,7 @@ export default function Sheet({
   className,
   contentClassName,
   headerExtra,
+  hideHeader = false,
 }: SheetProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -79,36 +82,38 @@ export default function Sheet({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100/50 dark:border-primary-800/50">
-                <Menu size={24} />
+          {!hideHeader && (
+            <div className="flex items-center justify-between p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100/50 dark:border-primary-800/50">
+                  <Menu size={24} />
+                </div>
+                <div>
+                  {title && (
+                    <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
+                      {title}
+                    </h2>
+                  )}
+                  {subtitle && (
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                {title && (
-                  <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
-                    {title}
-                  </h2>
-                )}
-                {subtitle && (
-                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
-                    {subtitle}
-                  </p>
-                )}
-              </div>
+              {headerExtra && (
+                <div className="flex items-center gap-2">
+                  {headerExtra}
+                </div>
+              )}
+              <button
+                onClick={onClose}
+                className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            {headerExtra && (
-              <div className="flex items-center gap-2">
-                {headerExtra}
-              </div>
-            )}
-            <button
-              onClick={onClose}
-              className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          )}
 
           {/* Content */}
           <div className={cn("flex-1 overflow-y-auto p-10 relative scroll-smooth", contentClassName)}>

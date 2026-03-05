@@ -245,7 +245,6 @@ export function useReportStream({
           retryCountRef.current++;
           setTimeout(() => {
             if (shouldReconnectRef.current) {
-              // eslint-disable-next-line react-hooks/immutability
               connect();
             }
           }, delay);

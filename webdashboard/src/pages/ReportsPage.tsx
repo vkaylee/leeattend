@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Download, CalendarCheck, FileBarChart, Clock, Users2 } from "lucide-react";
+import { Download, CalendarCheck, FileBarChart, Clock, Users2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useSearchParams, Link } from "react-router-dom";
-import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { format, endOfMonth } from "date-fns";
 import {
   fetchAttendanceReport,
@@ -12,13 +11,15 @@ import {
   searchEmployees,
   fetchDepartments,
   AttendanceReportSort,
+  AttendanceSummary,
 } from "../lib/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 import ReportExportDialog from "@/components/features/reports/ReportExportDialog";
 import ReportFilters from "@/components/features/reports/ReportFilters";
-import SummaryReportTable from "@/components/features/reports/SummaryReportTable";
 import EmployeeDailyDrawer from "@/components/features/reports/EmployeeDailyDrawer";
+import NavigableList from "@/components/common/NavigableList";
+import type { NavigableListColumn } from "@/components/common/NavigableList";
 
 const PAGE_SIZE = 50;
 
@@ -70,6 +71,7 @@ export default function ReportsPage() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const keyDownRef = useRef<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>(null);
 
   const focusSearch = () => setTimeout(() => searchInputRef.current?.focus(), 100);
 
@@ -77,12 +79,8 @@ export default function ReportsPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
 
   const [sortBy, setSortBy] = useState<AttendanceReportSort | undefined>(undefined);
-  const [focusedRowIndex, setFocusedRowIndex] = useState(0);
 
-  // Reset focus when data changes
-  useEffect(() => {
-    setFocusedRowIndex(0);
-  }, [searchQuery, filterMode, specificMonth, dateRange]);
+
 
   // Resolve search query → employee IDs (server-side)
   const { data: searchResults } = useQuery({
@@ -187,11 +185,23 @@ export default function ReportsPage() {
     return { stdHours, otHours, totalEmployees };
   }, [allStatsResponse, workUnitMinutes]);
 
-  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  });
+
+
+  const getSortIcon = (field: 'name' | 'work_hours' | 'leave_days') => {
+    if (field === 'name') {
+      if (sortBy === 'name_asc') return <ArrowUp size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
+      if (sortBy === 'name_desc') return <ArrowDown size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
+    }
+    if (field === 'work_hours') {
+      if (sortBy === 'work_hours_asc') return <ArrowUp size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
+      if (sortBy === 'work_hours_desc') return <ArrowDown size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
+    }
+    if (field === 'leave_days') {
+      if (sortBy === 'leave_days_asc') return <ArrowUp size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
+      if (sortBy === 'leave_days_desc') return <ArrowDown size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
+    }
+    return <ArrowUpDown size={12} className="ml-1 opacity-20 group-hover:opacity-100 transition-opacity" />;
+  };
 
   const handleSort = (field: 'name' | 'work_hours' | 'leave_days') => {
     let nextSort: AttendanceReportSort;
@@ -204,6 +214,58 @@ export default function ReportsPage() {
     }
     setSortBy(nextSort);
   };
+
+  // Column definitions for NavigableList
+  const reportColumns: NavigableListColumn<AttendanceSummary>[] = [
+    {
+      key: "name",
+      header: <div className="flex items-center">{t("common.employee")}{getSortIcon('name')}</div>,
+      onHeaderClick: () => handleSort('name'),
+      cell: (row) => <span className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{row.employee_name}</span>,
+      headerClassName: "px-10",
+      cellClassName: "px-10 py-6",
+    },
+    {
+      key: "std_hours",
+      header: <div className="flex items-center justify-end">{t("reports.table.std_hours")}{getSortIcon('work_hours')}</div>,
+      onHeaderClick: () => handleSort('work_hours'),
+      cell: (row) => (
+        <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter cursor-default" title={`${row.total_std_units} units`}>
+          {formatUnitsToHours(row.total_std_units, workUnitMinutes)}h
+        </div>
+      ),
+      headerClassName: "text-right",
+      cellClassName: "py-6 text-right",
+    },
+    {
+      key: "ot_hours",
+      header: t("reports.table.ot_hours"),
+      cell: (row) => row.total_ot_units > 0 ? (
+        <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter cursor-default" title={`${row.total_ot_units} OT units`}>
+          {formatUnitsToHours(row.total_ot_units, workUnitMinutes)}h
+        </div>
+      ) : (
+        <span className="text-slate-200 dark:text-slate-700 font-bold">—</span>
+      ),
+      headerClassName: "text-right text-orange-500 dark:text-orange-400",
+      cellClassName: "py-6 text-right",
+    },
+    {
+      key: "leave_days",
+      header: <div className="flex items-center justify-end">{t("reports.table.leave_days")}{getSortIcon('leave_days')}</div>,
+      onHeaderClick: () => handleSort('leave_days'),
+      cell: (row) => <span className="font-mono font-bold text-orange-600 dark:text-orange-300 text-base tracking-tighter">{row.total_leave_days} {t("common.days_short")}</span>,
+      headerClassName: "px-10 text-right",
+      cellClassName: "px-10 py-6 text-right",
+    },
+    {
+      key: "notes",
+      header: t("common.notes"),
+      cell: () => <span className="text-slate-200 dark:text-slate-700 font-bold tracking-widest">—</span>,
+      headerClassName: "px-10 text-right",
+      cellClassName: "px-10 py-6 text-right",
+    },
+  ];
 
   const handleEmployeeClick = (employeeId: string, employeeName: string) => {
     setSelectedEmployee({ id: employeeId, name: employeeName });
@@ -241,73 +303,59 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <ReportFilters
-        filterMode={filterMode}
-        dateRange={dateRange}
-        specificMonth={specificMonth}
-        searchQuery={searchQuery}
-        searchInputRef={searchInputRef}
-        t={t}
-        onFilterModeChange={handleFilterModeChange}
-        onDateRangeChange={handleDateRangeChange}
-        onSpecificMonthChange={handleSpecificMonthChange}
-        onSearchQueryChange={handleSearchQueryChange}
-        departments={departments}
-        selectedDepartmentId={selectedDepartmentId}
-        onDepartmentChange={handleDepartmentChange}
-        onSearchKeyDown={(e) => {
-          if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setFocusedRowIndex(prev => Math.min(prev + 1, filteredData.length - 1));
-          } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setFocusedRowIndex(prev => Math.max(prev - 1, 0));
-          } else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (filteredData.length > 0 && filteredData[focusedRowIndex]) {
-              e.currentTarget.blur();
-              handleEmployeeClick(filteredData[focusedRowIndex].employee_id, filteredData[focusedRowIndex].employee_name);
+      <NavigableList<AttendanceSummary>
+        columns={reportColumns}
+        items={filteredData}
+        itemKey={(row) => row.employee_id}
+        onSelect={(row) => handleEmployeeClick(row.employee_id, row.employee_name)}
+        isLoading={isLoading}
+        emptyMessage={t("reports.messages.no_data")}
+        showChevron
+        rowIdPrefix="summary-row"
+        resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        fetchNextPage={fetchNextPage}
+        className="animate-in slide-in-from-bottom-8 duration-700"
+        onKeyDownRef={keyDownRef}
+        headerSlot={
+          <ReportFilters
+            filterMode={filterMode}
+            dateRange={dateRange}
+            specificMonth={specificMonth}
+            searchQuery={searchQuery}
+            searchInputRef={searchInputRef}
+            t={t}
+            onFilterModeChange={handleFilterModeChange}
+            onDateRangeChange={handleDateRangeChange}
+            onSpecificMonthChange={handleSpecificMonthChange}
+            onSearchQueryChange={handleSearchQueryChange}
+            departments={departments}
+            selectedDepartmentId={selectedDepartmentId}
+            onDepartmentChange={handleDepartmentChange}
+            onSearchKeyDown={(e) => keyDownRef.current?.(e)}
+            statsSlot={
+              <>
+                <div className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 px-4 py-2.5 rounded-2xl border border-slate-800 dark:border-slate-700 shadow-lg">
+                  <FileBarChart size={14} className="text-primary-400" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("reports.quick_stats.std_hours")}</span>
+                  <span className="font-mono font-bold text-white text-sm tracking-tighter">{quickStats.stdHours}h</span>
+                </div>
+                <div className="flex items-center gap-2 bg-gradient-to-r from-orange-900 to-orange-950 px-4 py-2.5 rounded-2xl border border-orange-800 shadow-lg">
+                  <Clock size={14} className="text-orange-400" />
+                  <span className="text-[10px] font-bold text-orange-400/70 uppercase tracking-widest">{t("reports.quick_stats.ot_hours")}</span>
+                  <span className="font-mono font-bold text-orange-100 text-sm tracking-tighter">{quickStats.otHours}h</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
+                  <Users2 size={14} className="text-primary-600 dark:text-primary-400" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("common.employees")}</span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tighter">{quickStats.totalEmployees}</span>
+                </div>
+              </>
             }
-          }
-        }}
-        statsSlot={
-          <>
-            <div className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 px-4 py-2.5 rounded-2xl border border-slate-800 dark:border-slate-700 shadow-lg">
-              <FileBarChart size={14} className="text-primary-400" />
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("reports.quick_stats.std_hours")}</span>
-              <span className="font-mono font-bold text-white text-sm tracking-tighter">{quickStats.stdHours}h</span>
-            </div>
-            <div className="flex items-center gap-2 bg-gradient-to-r from-orange-900 to-orange-950 px-4 py-2.5 rounded-2xl border border-orange-800 shadow-lg">
-              <Clock size={14} className="text-orange-400" />
-              <span className="text-[10px] font-bold text-orange-400/70 uppercase tracking-widest">{t("reports.quick_stats.ot_hours")}</span>
-              <span className="font-mono font-bold text-orange-100 text-sm tracking-tighter">{quickStats.otHours}h</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
-              <Users2 size={14} className="text-primary-600 dark:text-primary-400" />
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("common.employees")}</span>
-              <span className="font-mono font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tighter">{quickStats.totalEmployees}</span>
-            </div>
-          </>
+          />
         }
       />
-
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
-        <div className="overflow-auto max-h-[60vh]">
-          <SummaryReportTable
-            data={filteredData}
-            isLoading={isLoading}
-            workUnitMinutes={workUnitMinutes}
-            sortBy={sortBy}
-            focusedRowIndex={focusedRowIndex}
-            t={t}
-            onSort={handleSort}
-            onEmployeeClick={handleEmployeeClick}
-            loadMoreRef={loadMoreRef}
-            isFetchingNextPage={isFetchingNextPage}
-            hasNextPage={hasNextPage}
-          />
-        </div>
-      </div>
 
       {/* Employee Daily Drill-down Drawer */}
       <EmployeeDailyDrawer
