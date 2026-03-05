@@ -100,6 +100,7 @@ async fn test_fixed_assignments_grouped_by_employee() {
     let emp_b = factory.employee().with_workspace(ws).create().await;
 
     let start = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+    let start2 = NaiveDate::from_ymd_opt(2026, 2, 1).unwrap();
 
     // emp_a gets 2 shifts, emp_b gets 1
     factory
@@ -110,7 +111,7 @@ async fn test_fixed_assignments_grouped_by_employee() {
     factory
         .shift()
         .with_workspace(ws)
-        .assign_to_employee(emp_a, start)
+        .assign_to_employee(emp_a, start2)
         .await;
     factory
         .shift()

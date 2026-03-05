@@ -7,6 +7,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{AddMemberRequest, WorkspaceMemberDetail};
@@ -41,11 +42,7 @@ pub async fn add_workspace_member(
     ctx: MemberContext,
     Json(req): Json<AddMemberRequest>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can invite members".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::MembersInvite)?;
 
     let user_id: Uuid = sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
         .bind(&req.email)
@@ -72,11 +69,7 @@ pub async fn update_workspace_member_role(
     ctx: MemberContext,
     Json(req): Json<UpdateMemberRoleRequest>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can change roles".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::MembersRolesManage)?;
 
     state
         .workspace_repo
@@ -92,11 +85,7 @@ pub async fn remove_workspace_member(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can remove members".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::MembersRemove)?;
 
     // Don't allow removing yourself (prevent lockout if only one admin, though owner should probably remain)
     if user_id == ctx.user_id {

@@ -8,6 +8,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::repositories::staging_log_repository::{self, StagingLog};
@@ -62,9 +63,7 @@ pub async fn get_staging_logs(
     ctx: MemberContext,
     Query(query): Query<StagingLogsQuery>,
 ) -> AppResult<Json<StagingLogsResponse>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Admin access required".to_string()));
-    }
+    ctx.require_permission(Permission::AttendanceStagingManage)?;
 
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
@@ -99,9 +98,7 @@ pub async fn resolve_staging_log(
     ctx: MemberContext,
     Json(req): Json<ResolveStagingLogRequest>,
 ) -> AppResult<(StatusCode, &'static str)> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Admin access required".to_string()));
-    }
+    ctx.require_permission(Permission::AttendanceStagingManage)?;
 
     use crate::models::{LogSource, RawAttendanceLog};
     use crate::repositories::raw_attendance_log_repository;
@@ -190,9 +187,7 @@ pub async fn dismiss_staging_log(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::AttendanceStagingManage)?;
 
     let updated = staging_log_repository::update_staging_status(
         state.db.api(),

@@ -8,6 +8,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
@@ -48,11 +49,7 @@ pub async fn approve_leave_request(
     ctx: MemberContext,
     Json(req): Json<ApproveLeaveRequest>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can approve leave".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::LeaveRequestsApprove)?;
     crate::services::leave_service::LeaveService::approve_leave_request(
         state.db.api(),
         ctx.workspace_id,
@@ -84,9 +81,7 @@ pub async fn get_workspace_leave_balances(
     ctx: MemberContext,
     Query(params): Query<PaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<WorkspaceLeaveBalance>>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = params.year.unwrap_or_else(|| Utc::now().year());
     let balances = crate::services::leave_service::LeaveService::get_workspace_balances(
         state.db.api(),
@@ -125,9 +120,7 @@ pub async fn get_workspace_leave_requests(
     ctx: MemberContext,
     Query(query): Query<LeaveStatusQuery>,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Access denied".to_string()));
-    }
+    ctx.require_permission(Permission::LeaveRequestsRead)?;
     let requests = crate::services::leave_service::LeaveService::get_workspace_leave_requests(
         state.db.api(),
         ctx.workspace_id,
@@ -151,9 +144,7 @@ pub async fn get_employee_leave_history(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveHistoryItem>>> {
     // Allow admins to see anyone's history; non-admins can only access via employee self-service
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Access denied".to_string()));
-    }
+    ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = Utc::now().year();
     let history = crate::services::leave_service::LeaveService::get_employee_leave_history(
         state.db.api(),
@@ -174,9 +165,7 @@ pub async fn adjust_leave_balance(
     ctx: MemberContext,
     Json(req): Json<AdjustBalanceRequest>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::LeaveBalancesAdjust)?;
     crate::services::leave_service::LeaveService::adjust_balance(state.db.api(), ws_id, emp_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to adjust balance".to_string())))?;
@@ -190,11 +179,7 @@ pub async fn create_leave_policy(
     ctx: MemberContext,
     Json(req): Json<CreateLeavePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<LeavePolicyDefinition>)> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage policies".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let policy = leave_policy_repository::create_policy_definition(
         state.db.api(),
@@ -215,11 +200,7 @@ pub async fn update_leave_policy(
     ctx: MemberContext,
     Json(req): Json<UpdateLeavePolicyRequest>,
 ) -> AppResult<Json<LeavePolicyDefinition>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage policies".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let policy = leave_policy_repository::update_policy_definition(
         state.db.api(),
@@ -240,11 +221,7 @@ pub async fn delete_leave_policy(
     Path((workspace_id, policy_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage policies".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let rows =
         leave_policy_repository::delete_policy_definition(state.db.api(), policy_id, workspace_id)
@@ -272,11 +249,7 @@ pub async fn assign_leave_policy(
     ctx: MemberContext,
     Json(req): Json<AssignLeavePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<LeavePolicyAssignment>)> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can assign policies".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let assignment = LeavePolicyAssignment {
         id: Uuid::new_v4(),
@@ -311,11 +284,7 @@ pub async fn trigger_accrual_run(
     ctx: MemberContext,
     Json(payload): Json<TriggerAccrualRequest>,
 ) -> AppResult<(StatusCode, Json<AccrualJobResponse>)> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can trigger accrual".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::LeaveAccrualRun)?;
 
     let date = NaiveDate::parse_from_str(&payload.date, "%Y-%m-%d")
         .map_err(|_| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
@@ -422,9 +391,7 @@ pub async fn get_leave_policy_assignments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<crate::models::LeavePolicyAssignmentDetail>>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::LeavePoliciesManage)?;
     let assignments = crate::repositories::leave_policy_repository::get_policy_assignments(
         state.db.api(),
         ctx.workspace_id,

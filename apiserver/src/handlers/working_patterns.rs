@@ -7,7 +7,8 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::errors::{AppError, AppResult};
+use crate::domain::permissions::Permission;
+use crate::errors::AppResult;
 use crate::{
     handlers::common::MemberContext,
     models::{
@@ -24,9 +25,7 @@ pub async fn create_pattern(
     ctx: MemberContext,
     Json(req): Json<CreateWorkingPatternRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::PatternsCreate)?;
     let pattern = service::create_working_pattern(state.db.api(), ctx.workspace_id, req).await?;
 
     if let Some(cache) = &state.roster_cache {
@@ -60,9 +59,7 @@ pub async fn assign_pattern(
     ctx: MemberContext,
     Json(req): Json<AssignPatternRequest>,
 ) -> AppResult<Json<EmployeeWorkingPattern>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::PatternsAssign)?;
     let assignment = service::assign_pattern(state.db.api(), ctx.workspace_id, employee_id, req).await?;
 
     if let Some(cache) = &state.roster_cache {
@@ -78,9 +75,7 @@ pub async fn bulk_assign_pattern(
     ctx: MemberContext,
     Json(req): Json<BulkAssignPatternRequest>,
 ) -> AppResult<Json<BulkAssignResponse>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::PatternsAssign)?;
     let result = service::bulk_assign_pattern(state.db.api(), ctx.workspace_id, req).await?;
 
     if let Some(cache) = &state.roster_cache {
@@ -104,9 +99,7 @@ pub async fn delete_pattern(
     Path((_ws_id, pattern_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::PatternsDelete)?;
     service::delete_working_pattern(state.db.api(), ctx.workspace_id, pattern_id).await?;
 
     if let Some(cache) = &state.roster_cache {

@@ -7,10 +7,10 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{AttendanceDailySummary, BulkOtEntryError, BulkOtUploadResult, MemberRole};
-use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::models::{AttendanceDailySummary, BulkOtEntryError, BulkOtUploadResult};
 use crate::AppState;
 
 const MAX_BULK_UPLOAD_ROWS: usize = 10_000;
@@ -29,20 +29,11 @@ pub struct EnterPaperOtRequest {
 pub async fn enter_paper_ot(
     State(state): State<Arc<AppState>>,
     Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
-    MemberContext { user_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<EnterPaperOtRequest>,
 ) -> AppResult<Json<AttendanceDailySummary>> {
-    // 1. RBAC: Admin/Owner only
-    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.api().clone(),
-    }
-    .find_primary_role(ws_id, user_id)
-    .await?
-    .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
-
-    if !matches!(role, MemberRole::Admin | MemberRole::Owner) {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    // 1. RBAC: OvertimePaperUpload permission required
+    ctx.require_permission(Permission::OvertimePaperUpload)?;
 
     // 2. Validate employee exists in workspace
     let _employee =
@@ -65,7 +56,7 @@ pub async fn enter_paper_ot(
             req.date,
             req.claimed_minutes,
             req.reason,
-            user_id,
+            ctx.user_id,
             req.paper_form_photo_url,
             req.allow_exceed_system_detected,
         )
@@ -78,20 +69,11 @@ pub async fn enter_paper_ot(
 pub async fn bulk_upload_paper_ot(
     State(state): State<Arc<AppState>>,
     Path(ws_id): Path<Uuid>,
-    MemberContext { user_id, .. }: MemberContext,
+    ctx: MemberContext,
     mut multipart: Multipart,
 ) -> AppResult<Json<BulkOtUploadResult>> {
-    // 1. RBAC: Admin/Owner only
-    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.api().clone(),
-    }
-    .find_primary_role(ws_id, user_id)
-    .await?
-    .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
-
-    if !matches!(role, MemberRole::Admin | MemberRole::Owner) {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    // 1. RBAC: OvertimePaperUpload permission required
+    ctx.require_permission(Permission::OvertimePaperUpload)?;
 
     // 2. Extract CSV file from multipart
     let mut csv_data: Option<Vec<u8>> = None;
@@ -293,7 +275,7 @@ pub async fn bulk_upload_paper_ot(
             date,
             minutes,
             reason,
-            user_id,
+            ctx.user_id,
             None,  // No photo URL for bulk upload
             false, // Don't allow exceed for bulk upload
         )

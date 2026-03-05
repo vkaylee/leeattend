@@ -1,4 +1,5 @@
 use crate::{
+    domain::permissions::Permission,
     errors::{AppError, AppResult},
     handlers::common::MemberContext,
     models::{OvertimePolicy, OvertimeRule},
@@ -58,9 +59,7 @@ pub async fn create_policy(
     ctx: MemberContext,
     Json(req): Json<CreatePolicyRequest>,
 ) -> AppResult<Json<OvertimePolicy>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::OvertimePoliciesManage)?;
     let policy = OvertimePolicyRepository::create_policy_definition(
         state.db.api(),
         workspace_id,
@@ -77,9 +76,7 @@ pub async fn add_rule(
     ctx: MemberContext,
     Json(req): Json<CreateRuleRequest>,
 ) -> AppResult<Json<OvertimeRule>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::OvertimePoliciesManage)?;
     let rule = OvertimeRule {
         id: Uuid::new_v4(),
         policy_id,
@@ -111,9 +108,7 @@ pub async fn assign_policy(
     ctx: MemberContext,
     Json(req): Json<AssignPolicyRequest>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::OvertimePoliciesManage)?;
     OvertimePolicyRepository::create_policy_assignment(
         state.db.api(),
         workspace_id,

@@ -6,7 +6,8 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::errors::{AppError, AppResult};
+use crate::domain::permissions::Permission;
+use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
 use crate::models::{CreateDepartmentRequest, Department, UpdateDepartmentRequest};
 use crate::AppState;
@@ -28,11 +29,7 @@ pub async fn create_department(
     ctx: MemberContext,
     Json(req): Json<CreateDepartmentRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage departments".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::DepartmentsCreate)?;
     let dept = crate::repositories::department_repository::create_department(
         state.db.api(),
         ctx.workspace_id,
@@ -52,11 +49,7 @@ pub async fn update_department(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     Json(req): Json<UpdateDepartmentRequest>,
 ) -> AppResult<Json<Department>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage departments".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::DepartmentsUpdate)?;
     let dept = crate::repositories::department_repository::update_department(
         state.db.api(),
         ctx.workspace_id,
@@ -76,11 +69,7 @@ pub async fn delete_department(
     ctx: MemberContext,
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage departments".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::DepartmentsDelete)?;
     crate::repositories::department_repository::delete_department(state.db.api(), ctx.workspace_id, id)
         .await?;
 

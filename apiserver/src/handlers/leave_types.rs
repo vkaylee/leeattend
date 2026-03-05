@@ -9,6 +9,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{LeaveType, LeaveTypeConfig};
@@ -56,11 +57,7 @@ pub async fn create_leave_type(
     ctx: MemberContext,
     Json(req): Json<CreateLeaveTypeRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can create leave types".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::LeaveTypesManage)?;
 
     let config = req.policy_config.unwrap_or_default();
 
@@ -91,11 +88,7 @@ pub async fn update_leave_type_config(
     ctx: MemberContext,
     Json(req): Json<UpdateLeaveTypeConfigRequest>,
 ) -> AppResult<Json<LeaveType>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can configure leave types".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::LeaveTypesManage)?;
 
     let lt = sqlx::query_as!(
         LeaveType,
@@ -123,11 +116,7 @@ pub async fn delete_leave_type(
     Path((workspace_id, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can delete leave types".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::LeaveTypesManage)?;
 
     let in_balances = sqlx::query!(
         "SELECT 1 as has_data FROM leave_balances WHERE leave_type_id = $1 LIMIT 1",

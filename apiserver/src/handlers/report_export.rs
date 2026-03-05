@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::queue::ReportType;
@@ -143,11 +144,7 @@ pub async fn create_export_job(
     Json(request): Json<ExportReportRequest>,
 ) -> AppResult<(StatusCode, Json<ExportJobResponse>)> {
     // RBAC: Require Admin or Owner for report generation
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Admin or Owner role required for report export".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::ReportsExport)?;
 
     // Validate report type
     let report_type = match request.report_type.as_str() {
@@ -230,11 +227,7 @@ pub async fn get_job_status(
     ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {
     // RBAC: Require Admin or Owner
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Admin or Owner role required".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::ReportsExport)?;
 
     let coordinator = get_coordinator(&state)?;
 
@@ -277,11 +270,7 @@ pub async fn download_report(
     ctx: MemberContext,
 ) -> AppResult<impl IntoResponse> {
     // RBAC: Require Admin or Owner
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Admin or Owner role required".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::ReportsExport)?;
 
     let coordinator = get_coordinator(&state)?;
 
@@ -360,11 +349,7 @@ pub async fn cancel_job(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     // RBAC: Require Admin or Owner
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Admin or Owner role required".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::ReportsExport)?;
 
     let coordinator = get_coordinator(&state)?;
 

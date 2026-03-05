@@ -117,7 +117,7 @@ export interface components {
         /** @enum {string} */
         LogSource: "device" | "import" | "manual";
         /** @enum {string} */
-        MemberRole: "owner" | "admin" | "member";
+        MemberRole: "owner" | "admin" | "hr_manager" | "shift_manager" | "team_lead" | "member" | "employee";
         UpdateDeviceRequest: {
             brand?: string | null;
             ip?: string | null;

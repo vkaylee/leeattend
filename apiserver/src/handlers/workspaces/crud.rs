@@ -7,6 +7,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
@@ -1067,11 +1068,7 @@ pub async fn update_workspace(
     ctx: MemberContext,
     Json(req): Json<UpdateWorkspaceRequest>,
 ) -> AppResult<Json<Workspace>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Admin or Owner role required to update workspace".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
     crate::services::workspace_service::WorkspaceService::update_workspace(
         state.db.api(),
         ws_id,

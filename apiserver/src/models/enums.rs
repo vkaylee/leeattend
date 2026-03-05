@@ -18,7 +18,11 @@ use utoipa::ToSchema;
 pub enum MemberRole {
     Owner,
     Admin,
+    HrManager,
+    ShiftManager,
+    TeamLead,
     Member,
+    Employee,
 }
 
 #[derive(

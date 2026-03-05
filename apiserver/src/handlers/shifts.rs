@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
@@ -37,9 +38,7 @@ pub async fn create_shift(
     ctx: MemberContext,
     Json(req): Json<CreateShiftRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::ShiftsCreate)?;
 
     let workspace_id = ctx.workspace_id;
     let shift = crate::services::shift_service::ShiftService::create_shift(
@@ -73,9 +72,7 @@ pub async fn update_shift(
     ctx: MemberContext,
     Json(req): Json<UpdateShiftRequest>,
 ) -> AppResult<Json<Shift>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::ShiftsUpdate)?;
     let shift =
         crate::services::shift_service::ShiftService::update_shift(state.db.api(), ctx.workspace_id, shift_id, req)
             .await
@@ -187,9 +184,7 @@ pub async fn upsert_roster(
     ctx: MemberContext,
     Json(req): Json<CreateRosterRequest>,
 ) -> AppResult<Json<ShiftRoster>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::RostersManage)?;
     let roster = ShiftRoster {
         id: Uuid::new_v4(),
         employee_id,
@@ -216,9 +211,7 @@ pub async fn bulk_upsert_roster(
     ctx: MemberContext,
     Json(req): Json<BulkRosterRequest>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::RostersManage)?;
     crate::repositories::roster_repository::bulk_upsert_roster(state.db.api(), employee_id, req.items)
         .await?;
 
@@ -234,9 +227,7 @@ pub async fn delete_roster(
     Path((_ws_id, employee_id, date)): Path<(Uuid, Uuid, NaiveDate)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::RostersManage)?;
     crate::repositories::roster_repository::delete_roster(state.db.api(), employee_id, date).await?;
 
     if let Some(cache) = &state.roster_cache {

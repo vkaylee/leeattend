@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+
+use crate::domain::permissions::{self, Permission};
 use crate::errors::{AppError, AppResult};
 use crate::models::{GenericResponse, MemberRole};
 use crate::{AppState, UserId};
@@ -59,6 +62,7 @@ pub struct MemberContext {
     pub user_id: Uuid,
     pub workspace_id: Uuid,
     pub roles: Vec<MemberRole>,
+    pub permissions: HashSet<Permission>,
 }
 
 impl MemberContext {
@@ -66,6 +70,23 @@ impl MemberContext {
         self.roles.contains(&role)
     }
 
+    /// Check whether this member has a specific permission.
+    pub fn has_permission(&self, perm: Permission) -> bool {
+        self.permissions.contains(&perm)
+    }
+
+    /// Convenience: return `Err(Forbidden)` if the member lacks the permission.
+    pub fn require_permission(&self, perm: Permission) -> AppResult<()> {
+        if self.has_permission(perm) {
+            Ok(())
+        } else {
+            Err(AppError::Forbidden(format!(
+                "Missing permission: {perm:?}"
+            )))
+        }
+    }
+
+    /// Backward-compatible check. Prefer `has_permission()` for new code.
     pub fn is_admin_or_owner(&self) -> bool {
         self.has_role(MemberRole::Admin) || self.has_role(MemberRole::Owner)
     }
@@ -108,10 +129,14 @@ where
 
         roles.push(primary_role);
 
+        // Compute effective permissions from all roles
+        let permissions = permissions::effective_permissions(&roles);
+
         Ok(MemberContext {
             user_id,
             workspace_id,
             roles,
+            permissions,
         })
     }
 }

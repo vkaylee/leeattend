@@ -1,3 +1,4 @@
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
@@ -32,11 +33,7 @@ pub async fn create_working_condition(
     ctx: MemberContext,
     Json(req): Json<CreateWorkingConditionRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage policies".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::EmployeesUpdate)?;
     let cond = EmployeeService::create_working_condition(state.db.api(), id, ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to create working condition".to_string())))?;
@@ -48,9 +45,7 @@ pub async fn delete_working_condition(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::EmployeesUpdate)?;
     EmployeeService::delete_working_condition(state.db.api(), id, ctx.workspace_id, cond_id)
         .await
         .map_err(|s| AppError::from((s, "Failed to delete working condition".to_string())))?;
@@ -97,11 +92,7 @@ pub async fn create_employee(
     ctx: MemberContext,
     Json(req): Json<CreateEmployeeRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can create employees".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::EmployeesCreate)?;
     let employee = EmployeeService::create_employee(state.db.api(), ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to create employee".to_string())))?;
@@ -114,11 +105,7 @@ pub async fn update_employee(
     ctx: MemberContext,
     Json(req): Json<UpdateEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can update employees".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::EmployeesUpdate)?;
     let employee = EmployeeService::update_employee(state.db.api(), id, ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to update employee".to_string())))?;
@@ -130,9 +117,7 @@ pub async fn delete_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::EmployeesDelete)?;
     let workspace_id = ctx.workspace_id;
     EmployeeService::delete_employee(state.db.api(), id, workspace_id)
         .await
@@ -157,11 +142,7 @@ pub async fn rehire_employee(
     ctx: MemberContext,
     Json(req): Json<RehireEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can re-hire employees".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::EmployeesRehire)?;
     let employee = EmployeeService::rehire_employee(state.db.api(), id, ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to rehire employee".to_string())))?;
@@ -185,11 +166,7 @@ pub async fn transfer_employee(
     ctx: MemberContext,
     Json(req): Json<TransferEmployeeRequest>,
 ) -> AppResult<Json<EmployeeDepartmentHistory>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can transfer employees".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::DepartmentsTransfer)?;
     let history = EmployeeService::transfer_employee(state.db.api(), id, ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to transfer employee".to_string())))?;

@@ -7,7 +7,8 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::errors::{AppError, AppResult};
+use crate::domain::permissions::Permission;
+use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
 use crate::models::{AssignmentRule, CreateAssignmentRuleRequest, UpdateAssignmentRuleRequest};
 use crate::repositories::assignment_rule_repository::AssignmentRuleRepository;
@@ -18,11 +19,7 @@ pub async fn get_assignment_rules(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AssignmentRule>>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage rules".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     let rules = AssignmentRuleRepository::get_rules(state.db.api(), ws_id).await?;
     Ok(Json(rules))
@@ -34,11 +31,7 @@ pub async fn create_assignment_rule(
     ctx: MemberContext,
     Json(req): Json<CreateAssignmentRuleRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage rules".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     let rule = AssignmentRuleRepository::create_rule(state.db.api(), ws_id, &req).await?;
 
@@ -55,11 +48,7 @@ pub async fn update_assignment_rule(
     ctx: MemberContext,
     Json(req): Json<UpdateAssignmentRuleRequest>,
 ) -> AppResult<Json<AssignmentRule>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage rules".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     let rule = AssignmentRuleRepository::update_rule(state.db.api(), ws_id, rule_id, &req).await?;
 
@@ -75,11 +64,7 @@ pub async fn delete_assignment_rule(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage rules".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::AssignmentRulesManage)?;
 
     AssignmentRuleRepository::delete_rule(state.db.api(), ws_id, rule_id).await?;
 

@@ -5,6 +5,7 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::AttendanceImportJob;
@@ -17,7 +18,8 @@ pub async fn upload_attendance_excel(
     mut multipart: Multipart,
 ) -> AppResult<Json<serde_json::Value>> {
     // RBAC: Only Admin/Owner
-    if !ctx.is_admin_or_owner() || ctx.workspace_id != ws_id {
+    ctx.require_permission(Permission::AttendanceLogsImport)?;
+    if ctx.workspace_id != ws_id {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
@@ -73,7 +75,8 @@ pub async fn upload_attendance_logs(
     mut multipart: Multipart,
 ) -> AppResult<Json<serde_json::Value>> {
     // RBAC: Only Admin/Owner
-    if !ctx.is_admin_or_owner() || ctx.workspace_id != ws_id {
+    ctx.require_permission(Permission::AttendanceLogsImport)?;
+    if ctx.workspace_id != ws_id {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
@@ -129,7 +132,8 @@ pub async fn upload_employee_excel(
     mut multipart: Multipart,
 ) -> AppResult<Json<serde_json::Value>> {
     // RBAC: Only Admin/Owner
-    if !ctx.is_admin_or_owner() || ctx.workspace_id != ws_id {
+    ctx.require_permission(Permission::EmployeesUpload)?;
+    if ctx.workspace_id != ws_id {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 

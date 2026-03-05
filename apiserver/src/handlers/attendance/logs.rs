@@ -8,6 +8,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::repositories::workspace_repository::WorkspaceRepository;
@@ -110,9 +111,7 @@ pub async fn force_reprocess_attendance(
     ctx: MemberContext,
     Query(query): Query<ReprocessQuery>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::AttendanceReprocess)?;
 
     const MAX_REPROCESS_DAYS: i64 = 90;
 

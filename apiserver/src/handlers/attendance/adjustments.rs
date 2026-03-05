@@ -6,6 +6,7 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
@@ -42,9 +43,7 @@ pub async fn approve_attendance_adjustment(
     ctx: MemberContext,
     Json(req): Json<ApproveAttendanceAdjustmentRequest>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::AttendanceAdjustmentsApprove)?;
     crate::services::attendance_adjustment_service::AttendanceAdjustmentService::approve_request(
         state.db.api(),
         ctx.workspace_id,

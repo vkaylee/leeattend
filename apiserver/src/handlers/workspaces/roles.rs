@@ -6,6 +6,7 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{AssignRoleRequest, MemberExtraRole};
@@ -39,11 +40,7 @@ pub async fn assign_extra_role(
     ctx: MemberContext,
     Json(req): Json<AssignRoleRequest>,
 ) -> AppResult<(StatusCode, Json<MemberExtraRole>)> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can assign roles".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::MembersRolesManage)?;
 
     if req.expires_at <= chrono::Utc::now() {
         return Err(AppError::Validation(
@@ -69,11 +66,7 @@ pub async fn revoke_extra_role(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can revoke roles".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::MembersRolesManage)?;
 
     let res = sqlx::query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2")
         .bind(role_id)

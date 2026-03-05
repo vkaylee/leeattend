@@ -1,3 +1,4 @@
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
@@ -31,11 +32,7 @@ pub async fn create_recruitment_source(
     ctx: MemberContext,
     Json(req): Json<CreateRecruitmentSourceRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage recruitment sources".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::RecruitmentManage)?;
     let source = EmployeeService::create_recruitment_source(state.db.api(), ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to create recruitment source".to_string())))?;
@@ -48,11 +45,7 @@ pub async fn update_recruitment_source(
     ctx: MemberContext,
     Json(req): Json<UpdateRecruitmentSourceRequest>,
 ) -> AppResult<Json<RecruitmentSource>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Only admins can manage recruitment sources".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::RecruitmentManage)?;
     let source =
         EmployeeService::update_recruitment_source(state.db.api(), id, ctx.workspace_id, req)
             .await
@@ -67,9 +60,7 @@ pub async fn delete_recruitment_source(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::RecruitmentManage)?;
     EmployeeService::delete_recruitment_source(state.db.api(), id, ctx.workspace_id)
         .await
         .map_err(|s| AppError::from((s, "Failed to delete recruitment source".to_string())))?;

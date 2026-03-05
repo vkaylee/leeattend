@@ -7,6 +7,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::shift_swap::{
@@ -27,9 +28,7 @@ pub async fn create_shift_swap(
     ctx: MemberContext,
     Json(req): Json<CreateShiftSwapRequest>,
 ) -> AppResult<(StatusCode, Json<crate::models::shift_swap::ShiftSwapRequest>)> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::ShiftSwapsManage)?;
 
     let swap = ShiftSwapService::create_swap(state.db.api(), ctx.workspace_id, user_id, req)
         .await
@@ -53,9 +52,7 @@ pub async fn list_shift_swaps(
     ctx: MemberContext,
     Query(query): Query<ShiftSwapQuery>,
 ) -> AppResult<Json<Vec<ShiftSwapRequestWithNames>>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::ShiftSwapsManage)?;
 
     let swaps =
         ShiftSwapService::get_workspace_swaps(state.db.api(), ctx.workspace_id, query.status)
@@ -78,9 +75,7 @@ pub async fn approve_shift_swap(
     ctx: MemberContext,
     Json(req): Json<ApproveShiftSwapRequest>,
 ) -> AppResult<StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::ShiftSwapsApprove)?;
 
     ShiftSwapService::approve_swap(state.db.api(), ctx.workspace_id, user_id, id, req.status)
         .await
@@ -98,9 +93,7 @@ pub async fn get_shift_swap_stats(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<crate::repositories::shift_swap_repository::SwapStats>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    ctx.require_permission(Permission::ShiftSwapsManage)?;
 
     let stats =
         crate::repositories::shift_swap_repository::get_workspace_swap_stats(

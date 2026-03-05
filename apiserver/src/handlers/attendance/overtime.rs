@@ -8,10 +8,10 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{AttendanceDailySummary, MemberRole};
-use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::models::AttendanceDailySummary;
 use crate::AppState;
 
 #[derive(Deserialize)]
@@ -24,40 +24,22 @@ pub struct ClaimOtRequest {
 pub async fn claim_ot(
     State(state): State<Arc<AppState>>,
     Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
-    MemberContext { user_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<ClaimOtRequest>,
 ) -> AppResult<StatusCode> {
-    // 1. Verify ownership (Employee can only claim for themselves) or Admin
+    // 1. Verify ownership (Employee can only claim for themselves) or has OvertimeClaim permission
     let employee =
         crate::repositories::employee_repository::get_employee_by_id(state.db.api(), employee_id, ws_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
     if let Some(uid) = employee.user_id {
-        if uid != user_id {
-            // If not the user, check if Admin/Owner/Manager?
-            let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-                pool: state.db.api().clone(),
-            }
-            .find_primary_role(ws_id, user_id)
-            .await
-            .unwrap_or(None);
-
-            if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
-                return Err(AppError::Forbidden("Forbidden".to_string()));
-            }
+        if uid != ctx.user_id {
+            // Not self → need OvertimeApprove permission
+            ctx.require_permission(Permission::OvertimeApprove)?;
         }
     } else {
-        let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-            pool: state.db.api().clone(),
-        }
-        .find_primary_role(ws_id, user_id)
-        .await
-        .unwrap_or(None);
-
-        if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
-            return Err(AppError::Forbidden("Forbidden".to_string()));
-        }
+        ctx.require_permission(Permission::OvertimeApprove)?;
     }
 
     crate::services::attendance_summary_service::AttendanceSummaryService::claim_ot(
@@ -83,21 +65,12 @@ pub struct ApproveOtRequest {
 
 pub async fn approve_ot(
     State(state): State<Arc<AppState>>,
-    Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
-    MemberContext { user_id, .. }: MemberContext,
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
     Json(req): Json<ApproveOtRequest>,
 ) -> AppResult<StatusCode> {
-    // RBAC: Only Admin/Owner/Manager
-    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.api().clone(),
-    }
-    .find_primary_role(ws_id, user_id)
-    .await
-    .unwrap_or(None);
-
-    if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
+    // RBAC: Only users with OvertimeApprove permission
+    ctx.require_permission(Permission::OvertimeApprove)?;
 
     let status_enum = match req.status.as_str() {
         "approved" => crate::models::OtStatus::Approved,
@@ -129,27 +102,20 @@ pub struct SummaryQuery {
 pub async fn get_attendance_summaries(
     State(state): State<Arc<AppState>>,
     Path(ws_id): Path<Uuid>,
-    MemberContext { user_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(query): Query<SummaryQuery>,
 ) -> AppResult<Json<Vec<AttendanceDailySummary>>> {
-    // RBAC and ID Resolution
-    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.api().clone(),
-    }
-    .find_primary_role(ws_id, user_id)
-    .await?
-    .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
+    // RBAC: if user has AttendanceSummariesRead, they can query any employee
+    // Otherwise, they can only query their own data
+    let has_read_perm = ctx.has_permission(Permission::AttendanceSummariesRead);
 
-    let is_admin = matches!(role, MemberRole::Admin | MemberRole::Owner);
-
-    let target_employee_id = if is_admin {
+    let target_employee_id = if has_read_perm {
         query.employee_id
     } else {
-        // Find my employee ID
         let emp_record = sqlx::query!(
             "SELECT id FROM employees WHERE workspace_id = $1 AND user_id = $2",
             ws_id,
-            user_id
+            ctx.user_id
         )
         .fetch_optional(state.db.api())
         .await?;

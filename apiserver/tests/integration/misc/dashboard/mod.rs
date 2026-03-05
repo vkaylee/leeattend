@@ -347,6 +347,17 @@ async fn test_unexcused_absences_returns_data_with_absent_employees() {
         .await
         .unwrap();
 
+    // Assign a shift so they are expected to work today
+    factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_times(
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+        )
+        .assign_to_employee(emp_id, today - Duration::days(30))
+        .await;
+
     // No time entries and no leave for this employee → should be unexcused
 
     let res = client
@@ -432,6 +443,17 @@ async fn test_unexcused_absences_group_by_employee() {
         .await
         .unwrap();
 
+    // Assign a shift so they are expected to work today
+    factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_times(
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+        )
+        .assign_to_employee(emp_id, today - Duration::days(30))
+        .await;
+
     let res = client
         .get(format!("{address}/api/dashboard/unexcused-absences?group_by=employee"))
         .header("X-User-Id", user_id.to_string())
@@ -461,10 +483,22 @@ async fn test_unexcused_absences_includes_employees_without_department() {
     let client = reqwest::Client::new();
 
     // Create employee WITHOUT assigning to any department
-    factory
+    let emp_id = factory
         .employee()
         .with_workspace(ws_id)
         .create()
+        .await;
+
+    let today = Utc::now().date_naive();
+    // Assign a shift so they are expected to work today
+    factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_times(
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+        )
+        .assign_to_employee(emp_id, today - Duration::days(30))
         .await;
 
     // group_by=department — should show "Unassigned" group

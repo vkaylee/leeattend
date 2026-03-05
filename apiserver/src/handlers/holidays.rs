@@ -8,6 +8,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{CreateHolidayRequest, Holiday, UpdateHolidayRequest};
@@ -53,11 +54,7 @@ pub async fn create_holiday(
     ctx: MemberContext,
     Json(req): Json<CreateHolidayRequest>,
 ) -> AppResult<(axum::http::StatusCode, Json<Holiday>)> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Admin or Owner role required to manage holidays".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = HolidayRepository::create(
         state.db.api(),
@@ -91,11 +88,7 @@ pub async fn update_holiday(
     ctx: MemberContext,
     Json(req): Json<UpdateHolidayRequest>,
 ) -> AppResult<Json<Holiday>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Admin or Owner role required to manage holidays".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = HolidayRepository::update(
         state.db.api(),
@@ -124,11 +117,7 @@ pub async fn delete_holiday(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<axum::http::StatusCode> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Admin or Owner role required to manage holidays".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::HolidaysManage)?;
 
     let deleted = HolidayRepository::delete(state.db.api(), ctx.workspace_id, id)
         .await
@@ -148,11 +137,7 @@ pub async fn process_holiday_leave(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<HolidayLeaveResult>>> {
-    if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden(
-            "Admin or Owner role required to process holiday leave".to_string(),
-        ));
-    }
+    ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = HolidayRepository::get_by_id(state.db.api(), ctx.workspace_id, id)
         .await
