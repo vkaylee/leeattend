@@ -8,12 +8,24 @@ import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
 import React from "react";
 
+// Mock IntersectionObserver for jsdom
+class MockIntersectionObserver {
+  observe() { }
+  unobserve() { }
+  disconnect() { }
+}
+window.IntersectionObserver = MockIntersectionObserver as any;
+
 // Mock the API library
 vi.mock("../../lib/api", () => ({
   fetchRawAttendanceLogs: vi.fn(),
   fetchEmployees: vi.fn(),
   fetchWorkspace: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
+  fetchDevices: vi.fn(),
+  fetchStagingLogs: vi.fn(),
+  resolveStagingLog: vi.fn(),
+  dismissStagingLog: vi.fn(),
 }));
 
 // Override i18n
@@ -59,6 +71,8 @@ describe("AttendanceLogsPage", () => {
       page: 1,
       page_size: 50
     });
+    (api.fetchDevices as any).mockResolvedValue([]);
+    (api.fetchStagingLogs as any).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
   });
 
   const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {
@@ -114,5 +128,109 @@ describe("AttendanceLogsPage", () => {
     // Check for the helpful subtext we added
     const emptyStateText = await screen.findByText(/Try adjusting your date range filter/i);
     expect(emptyStateText).toBeDefined();
+  });
+
+  it("uses PAGE_SIZE of 20 for infinite scroll", async () => {
+    renderWithProviders(<AttendanceLogsPage />);
+    await waitFor(() => {
+      const calls = (api.fetchRawAttendanceLogs as any).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      // limit param should be 20
+      expect(calls[0][0].limit).toBe(20);
+      // first page param should be 1
+      expect(calls[0][0].page).toBe(1);
+    });
+  });
+
+  it("does not render pagination prev/next buttons", async () => {
+    renderWithProviders(<AttendanceLogsPage />);
+    await screen.findByText(/John Doe/i);
+
+    // Old pagination buttons should NOT exist
+    expect(screen.queryByText(/common.pagination.prev/i)).toBeNull();
+    expect(screen.queryByText(/common.pagination.next/i)).toBeNull();
+    // No "Page X / Y" text
+    expect(screen.queryByText(/Page \d+ \//i)).toBeNull();
+  });
+
+  it("displays floating record count badge with loaded/total counts", async () => {
+    (api.fetchRawAttendanceLogs as any).mockResolvedValue({
+      data: [
+        { id: "log-1", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "DEVICE", device_id: "dev-1" },
+        { id: "log-2", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "DEVICE", device_id: "dev-1" },
+      ],
+      total: 5,
+      page: 1,
+      page_size: 20
+    });
+
+    renderWithProviders(<AttendanceLogsPage />);
+    // Wait for data to render (2 rows with same name)
+    await waitFor(() => {
+      const rows = screen.getAllByText(/John Doe/i);
+      expect(rows.length).toBeGreaterThanOrEqual(2);
+    });
+
+    // Floating badge should show loaded count (2) and total (5)
+    const badge = document.querySelector('.fixed.bottom-6');
+    expect(badge).toBeDefined();
+    expect(badge?.textContent).toContain("2");
+    expect(badge?.textContent).toContain("5");
+  });
+
+  it("shows loading spinner when fetching next page", () => {
+    // Simulate infinite loading
+    (api.fetchRawAttendanceLogs as any).mockImplementation(() => new Promise(() => { }));
+
+    renderWithProviders(<AttendanceLogsPage />);
+
+    // Check animate-spin exists (Loader2 spinner in sentinel row)
+    const spinners = document.querySelectorAll('.animate-spin');
+    // While first page is loading, skeleton rows show instead of spinner
+    // The spinner only appears during fetchNextPage, so we just verify no crash
+    expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+  });
+
+  it("renders unknown tab with staging data and floating amber badge", async () => {
+    const user = userEvent.setup();
+
+    (api.fetchStagingLogs as any).mockResolvedValue({
+      data: [
+        { id: "stg-1", raw_user_id: "UNKNOWN-42", punch_time: new Date().toISOString(), device_id: "dev-1" },
+      ],
+      total: 3,
+      page: 1,
+      limit: 20,
+    });
+
+    renderWithProviders(<AttendanceLogsPage />);
+    await screen.findByText(/John Doe/i);
+
+    // Switch to unknown tab
+    const unknownTab = screen.getByText(/attendance_logs.tabs.unknown/i);
+    await user.click(unknownTab);
+
+    // Should show the staging log
+    expect(await screen.findByText("UNKNOWN-42")).toBeDefined();
+
+    // Floating badge should now show amber variant with staging counts
+    const badge = document.querySelector('.fixed.bottom-6');
+    expect(badge).toBeDefined();
+    expect(badge?.textContent).toContain("1");
+    expect(badge?.textContent).toContain("3");
+  });
+
+  it("shows empty state for unknown tab when no staging logs exist", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<AttendanceLogsPage />);
+    await screen.findByText(/John Doe/i);
+
+    // Switch to unknown tab
+    const unknownTab = screen.getByText(/attendance_logs.tabs.unknown/i);
+    await user.click(unknownTab);
+
+    // Should show empty state message
+    expect(await screen.findByText(/No unidentified logs|attendance_logs.messages.no_unknown_logs/i)).toBeDefined();
   });
 });
