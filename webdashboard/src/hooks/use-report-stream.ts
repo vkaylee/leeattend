@@ -6,7 +6,14 @@ import type {
   StreamStatus,
   ChunkMessage,
 } from "@/types/report-stream";
-import { getAccessToken } from "@/lib/api/helpers";
+import {
+  getAccessToken,
+  getRefreshToken,
+  setAccessToken,
+  setRefreshToken,
+  clearAuthSession,
+} from "@/lib/api/helpers";
+import { API_BASE_URL } from "@/lib/api/config";
 
 interface UseReportStreamOptions {
   jobId: string | null;
@@ -42,6 +49,35 @@ function buildWebSocketUrl(jobId: string): string {
  */
 function getBackoffDelay(retryCount: number): number {
   return Math.pow(2, retryCount) * 1000;
+}
+
+/**
+ * Attempt to refresh JWT token (same logic as apiFetch 401 handler)
+ * Returns true if refresh succeeded, false otherwise
+ */
+async function tryRefreshToken(): Promise<boolean> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setAccessToken(data.access_token);
+      setRefreshToken(data.refresh_token);
+      console.debug("[ReportStream] Token refreshed successfully");
+      return true;
+    }
+  } catch (e) {
+    console.error("[ReportStream] Token refresh failed", e);
+  }
+
+  return false;
 }
 
 /**
@@ -167,6 +203,32 @@ export function useReportStream({
         console.debug(
           `[ReportStream] Connection closed: code=${event.code}, reason=${event.reason}`
         );
+
+        // Handle auth failure: code 1006 on first attempt = HTTP 401 (upgrade rejected)
+        // Browser doesn't expose HTTP status on WS upgrade failure, but 1006 = abnormal close
+        if (
+          event.code === 1006 &&
+          retryCountRef.current === 0 &&
+          statusRef.current === "connecting"
+        ) {
+          console.debug("[ReportStream] Possible auth failure, attempting token refresh");
+          retryCountRef.current++;
+          tryRefreshToken().then((refreshed) => {
+            if (refreshed && shouldReconnectRef.current) {
+              console.debug("[ReportStream] Token refreshed, reconnecting");
+              // eslint-disable-next-line react-hooks/immutability
+              connect();
+            } else {
+              // Refresh failed — session expired, redirect to login
+              console.warn("[ReportStream] Session expired, redirecting to login");
+              clearAuthSession();
+              if (window.location.pathname !== "/login") {
+                window.location.href = "/login";
+              }
+            }
+          });
+          return;
+        }
 
         // Only reconnect if not intentionally closed and not completed/errored
         if (

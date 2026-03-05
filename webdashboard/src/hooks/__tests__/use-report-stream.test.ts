@@ -461,4 +461,213 @@ describe("useReportStream Hook", () => {
       expect(result.current.status).toMatch(/connecting|error/);
     });
   });
+
+  describe("WebSocket Auth Failure & Token Refresh", () => {
+    let capturedUrl: string | undefined;
+    let mockOnOpen: ((ev?: Event) => void) | null;
+    let mockOnClose: ((ev: CloseEvent) => void) | null;
+    let mockOnError: ((ev: Event) => void) | null;
+    let mockOnMessage: ((ev: MessageEvent) => void) | null;
+
+    class MockWebSocket {
+      readyState = 0;
+      constructor(url: string) {
+        capturedUrl = url;
+      }
+      close = vi.fn();
+      addEventListener = vi.fn();
+      removeEventListener = vi.fn();
+      set onopen(fn: ((ev?: Event) => void) | null) { mockOnOpen = fn; }
+      set onmessage(fn: ((ev: MessageEvent) => void) | null) { mockOnMessage = fn; }
+      set onerror(fn: ((ev: Event) => void) | null) { mockOnError = fn; }
+      set onclose(fn: ((ev: CloseEvent) => void) | null) { mockOnClose = fn; }
+    }
+
+    beforeEach(() => {
+      capturedUrl = undefined;
+      mockOnOpen = null;
+      mockOnClose = null;
+      mockOnError = null;
+      mockOnMessage = null;
+      vi.stubGlobal("WebSocket", MockWebSocket);
+      vi.spyOn(console, "debug").mockImplementation(() => { });
+      vi.spyOn(console, "error").mockImplementation(() => { });
+      vi.spyOn(console, "warn").mockImplementation(() => { });
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+      localStorage.clear();
+    });
+
+    it("should attempt token refresh on close code 1006 while connecting", async () => {
+      localStorage.setItem("access_token", "expired-jwt");
+      localStorage.setItem("refresh_token", "valid-refresh-token");
+
+      // Mock successful token refresh
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          access_token: "new-jwt-token",
+          refresh_token: "new-refresh-token",
+        }),
+      });
+      vi.stubGlobal("fetch", mockFetch);
+
+      renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      // Simulate auth failure: WS close with code 1006 while still connecting
+      expect(mockOnClose).not.toBeNull();
+      act(() => {
+        mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
+      });
+
+      // Wait for the async tryRefreshToken to complete and verify refresh API was called
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("/auth/refresh"),
+          expect.objectContaining({
+            method: "POST",
+            body: JSON.stringify({ refresh_token: "valid-refresh-token" }),
+          })
+        );
+      });
+
+      // After successful refresh, connect() should be called again with new token
+      // (verified by the "should reconnect with new token" test)
+    });
+
+    it("should redirect to login when refresh token is missing on 1006", async () => {
+      localStorage.setItem("access_token", "expired-jwt");
+      localStorage.setItem("active_user_id", "user-123");
+      // NO refresh_token set
+
+      renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      act(() => {
+        mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
+      });
+
+      // When refresh fails, clearAuthSession is called (clears localStorage)
+      await waitFor(() => {
+        expect(localStorage.getItem("access_token")).toBeNull();
+        expect(localStorage.getItem("active_user_id")).toBeNull();
+      });
+    });
+
+    it("should redirect to login when refresh API returns non-ok on 1006", async () => {
+      localStorage.setItem("access_token", "expired-jwt");
+      localStorage.setItem("refresh_token", "invalid-refresh-token");
+      localStorage.setItem("active_user_id", "user-123");
+
+      const mockFetch = vi.fn().mockResolvedValue({ ok: false });
+      vi.stubGlobal("fetch", mockFetch);
+
+      renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      act(() => {
+        mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
+      });
+
+      // Refresh failed -> clearAuthSession called -> localStorage cleared
+      await waitFor(() => {
+        expect(localStorage.getItem("access_token")).toBeNull();
+        expect(localStorage.getItem("active_user_id")).toBeNull();
+      });
+    });
+
+    it("should NOT attempt token refresh on normal close codes (1000, 1001)", () => {
+      localStorage.setItem("access_token", "valid-jwt");
+      localStorage.setItem("refresh_token", "valid-refresh-token");
+
+      const mockFetch = vi.fn();
+      vi.stubGlobal("fetch", mockFetch);
+
+      renderHook(() => useReportStream({ jobId: "test-job", maxRetries: 0 }));
+
+      // Simulate normal close (1000 = normal closure)
+      act(() => {
+        mockOnClose!({ code: 1000, reason: "Normal closure" } as CloseEvent);
+      });
+
+      // Should NOT call refresh endpoint
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("should NOT attempt refresh on 1006 if already past connecting state", async () => {
+      localStorage.setItem("access_token", "valid-jwt");
+      localStorage.setItem("refresh_token", "valid-refresh-token");
+
+      const mockFetch = vi.fn();
+      vi.stubGlobal("fetch", mockFetch);
+
+      renderHook(() => useReportStream({ jobId: "test-job", maxRetries: 1 }));
+
+      // First: simulate successful open (transitions from connecting → streaming)
+      act(() => {
+        mockOnOpen!();
+      });
+
+      // Then: connection drops with 1006 (network issue, NOT auth)
+      act(() => {
+        mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
+      });
+
+      // Should NOT call refresh (status was "streaming", not "connecting")
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("should reconnect with new token after successful refresh", async () => {
+      localStorage.setItem("access_token", "expired-jwt");
+      localStorage.setItem("refresh_token", "valid-refresh");
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          access_token: "fresh-jwt",
+          refresh_token: "fresh-refresh",
+        }),
+      });
+      vi.stubGlobal("fetch", mockFetch);
+
+      renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      const firstUrl = capturedUrl;
+      expect(firstUrl).toContain("token=expired-jwt");
+
+      act(() => {
+        mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
+      });
+
+      // After refresh, a new WebSocket should be created with the new token
+      await waitFor(() => {
+        expect(capturedUrl).toContain("token=fresh-jwt");
+      });
+    });
+
+    it("should clear auth session on redirect to login", async () => {
+      localStorage.setItem("access_token", "expired-jwt");
+      localStorage.setItem("active_user_id", "user-123");
+      localStorage.setItem("active_workspace_id", "ws-123");
+      localStorage.setItem("refresh_token", "bad-refresh");
+
+      const mockFetch = vi.fn().mockResolvedValue({ ok: false });
+      vi.stubGlobal("fetch", mockFetch);
+
+      renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      act(() => {
+        mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
+      });
+
+      // clearAuthSession removes all auth-related localStorage keys
+      await waitFor(() => {
+        expect(localStorage.getItem("access_token")).toBeNull();
+        expect(localStorage.getItem("active_user_id")).toBeNull();
+        expect(localStorage.getItem("active_workspace_id")).toBeNull();
+        expect(localStorage.getItem("refresh_token")).toBeNull();
+      });
+    });
+  });
 });

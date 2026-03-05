@@ -136,6 +136,43 @@ async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::que
         }
     };
 
+    // RACE CONDITION FIX: Check if job already completed before we subscribed.
+    // Redis Pub/Sub has no history — if DONE was published before we subscribed,
+    // we'll never receive it. Check metadata to catch this case.
+    //
+    // IMPORTANT: Subscriber is created BEFORE this check, so if the job completes
+    // between subscribe and this check, we catch it via either path.
+    let queue = crate::queue::JobQueue::new(redis.clone());
+    if let Ok(Some(meta)) = queue.get_job_metadata(job_id).await {
+        match meta.status {
+            crate::queue::JobStatus::Completed => {
+                info!(job_id = %job_id, "Job already completed before WS subscribed (race condition handled)");
+                let done_msg = StreamMessage::Done {
+                    total_batches: meta.total_batches,
+                    total_records: 0,
+                };
+                let json = serde_json::to_string(&done_msg).unwrap_or_default();
+                let _ = sender.send(Message::Text(json)).await;
+                let _ = sender.close().await;
+                let _ = subscriber.close().await;
+                return;
+            }
+            crate::queue::JobStatus::Failed => {
+                info!(job_id = %job_id, "Job already failed before WS subscribed (race condition handled)");
+                let err_msg = StreamMessage::Error {
+                    message: meta.error_message.unwrap_or_else(|| "Job failed".into()),
+                    batch_index: None,
+                };
+                let json = serde_json::to_string(&err_msg).unwrap_or_default();
+                let _ = sender.send(Message::Text(json)).await;
+                let _ = sender.close().await;
+                let _ = subscriber.close().await;
+                return;
+            }
+            _ => {} // Job still running, continue with normal Pub/Sub flow
+        }
+    }
+
     info!(job_id = %job_id, "Client connected to report stream");
 
     // Spawn task to forward Redis messages to WebSocket
