@@ -300,6 +300,18 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             delete(handlers::revoke_extra_role),
         )
         .route(
+            "/workspaces/:ws_id/members/:user_id/permissions",
+            get(handlers::get_member_extra_permissions).post(handlers::assign_extra_permission),
+        )
+        .route(
+            "/workspaces/:ws_id/members/:user_id/permissions/:perm_id",
+            delete(handlers::revoke_extra_permission),
+        )
+        .route(
+            "/workspaces/:ws_id/permissions/available",
+            get(handlers::get_available_permissions),
+        )
+        .route(
             "/workspaces/:ws_id/employees/upload",
             post(handlers::upload_employee_excel),
         )

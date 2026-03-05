@@ -114,3 +114,20 @@ pub struct WorkspaceMemberDetail {
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct MemberExtraPermission {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub user_id: Uuid,
+    pub permission: String,
+    pub assigned_at: Option<DateTime<Utc>>,
+    pub expires_at: DateTime<Utc>,
+    pub assigned_by: Option<Uuid>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AssignPermissionRequest {
+    pub permission: String,
+    pub expires_at: DateTime<Utc>,
+}

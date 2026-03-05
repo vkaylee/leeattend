@@ -130,7 +130,23 @@ where
         roles.push(primary_role);
 
         // Compute effective permissions from all roles
-        let permissions = permissions::effective_permissions(&roles);
+        let mut permissions = permissions::effective_permissions(&roles);
+
+        // 3. Fetch Active Extra Permissions (individual overrides)
+        let extra_perm_rows: Vec<(String,)> = sqlx::query_as(
+            "SELECT permission FROM workspace_member_extra_permissions WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW()",
+        )
+        .bind(workspace_id)
+        .bind(user_id)
+        .fetch_all(app_state.db.api())
+        .await
+        .unwrap_or_default();
+
+        for (perm_str,) in &extra_perm_rows {
+            if let Some(perm) = permissions::Permission::from_str_permission(perm_str) {
+                permissions.insert(perm);
+            }
+        }
 
         Ok(MemberContext {
             user_id,
