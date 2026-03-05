@@ -31,6 +31,29 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# ── Process Tracking ─────────────────────────────────────────────────
+# Track all spawned child PIDs so we can kill them on exit.
+# This prevents orphan processes (setsid children, Docker daemons)
+# from holding terminal/PTY file descriptors open indefinitely.
+_CHILD_PIDS=()
+
+cleanup_children() {
+    if [[ ${#_CHILD_PIDS[@]} -gt 0 ]]; then
+        for pid in "${_CHILD_PIDS[@]}"; do
+            # Kill the entire process group rooted at the setsid leader
+            kill -- -"$pid" 2>/dev/null || true
+            kill "$pid" 2>/dev/null || true
+        done
+        # Brief wait then force-kill any survivors
+        sleep 0.5
+        for pid in "${_CHILD_PIDS[@]}"; do
+            kill -9 -- -"$pid" 2>/dev/null || true
+            kill -9 "$pid" 2>/dev/null || true
+        done
+    fi
+}
+trap cleanup_children EXIT INT TERM
+
 # ── PTY Safety Gate ──────────────────────────────────────────────────
 # Run STATIC scan only before anything else. Runtime tests (which use
 # the `script` command) are excluded here because `script` creates PTY
@@ -78,6 +101,7 @@ done
 # This fully detaches from the PTY — no fd inheritance possible
 setsid bash -c "cd '$SCRIPT_DIR' && ./run-tests.sh $QUOTED_ARGS > '$LOG_FILE' 2>&1; echo \$? > '$EXIT_CODE_FILE'" \
     </dev/null >/dev/null 2>&1 &
+_CHILD_PIDS+=($!)
 
 # FIX: Ensure log file exists before polling (setsid may not have written yet)
 touch "$LOG_FILE"
@@ -119,4 +143,5 @@ fi
 # Clean up temp files
 rm -f "$LOG_FILE" "$EXIT_CODE_FILE"
 
+# cleanup_children runs via EXIT trap — kills all tracked processes
 exit "$EXIT_CODE"
