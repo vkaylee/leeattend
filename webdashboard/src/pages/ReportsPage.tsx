@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Download, CalendarCheck, FileBarChart, Clock, Users2 } from "lucide-react";
 import { useSearchParams, Link } from "react-router-dom";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { format, endOfMonth } from "date-fns";
 import {
   fetchAttendanceReport,
@@ -186,22 +187,11 @@ export default function ReportsPage() {
     return { stdHours, otHours, totalEmployees };
   }, [allStatsResponse, workUnitMinutes]);
 
-  // Intersection Observer for infinite scroll trigger
-  const loadMoreRef = useRef<HTMLTableRowElement>(null);
-
-  useEffect(() => {
-    if (!loadMoreRef.current) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
 
   const handleSort = (field: 'name' | 'work_hours' | 'leave_days') => {
     let nextSort: AttendanceReportSort;

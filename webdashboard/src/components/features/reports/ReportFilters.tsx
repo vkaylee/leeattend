@@ -1,7 +1,8 @@
 import React from "react";
-import { Calendar, CalendarRange, Search, X, Building2 } from "lucide-react";
+import { Calendar, CalendarRange, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
+import SearchBox from "@/components/common/SearchBox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,28 +153,14 @@ export default function ReportFilters({
       )}
 
       {/* Search input — standalone row for prominence */}
-      <div className="relative">
-        <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
-        <input
-          ref={searchInputRef}
-          autoFocus
-          type="text"
-          value={searchQuery}
-          onChange={(e) => onSearchQueryChange(e.target.value)}
-          onKeyDown={onSearchKeyDown}
-          onFocus={(e) => e.target.select()}
-          placeholder={t("reports.search_placeholder")}
-          className="w-full pl-14 pr-12 py-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 dark:focus:border-primary-700 transition-all shadow-sm uppercase tracking-tight"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => onSearchQueryChange("")}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-90"
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
+      <SearchBox
+        value={searchQuery}
+        onChange={onSearchQueryChange}
+        inputRef={searchInputRef}
+        onKeyDown={onSearchKeyDown}
+        placeholder={t("reports.search_placeholder")}
+        data-testid="report-search"
+      />
 
       {filterMode === "custom" && (
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-primary-900/5 grid grid-cols-1 md:grid-cols-2 gap-10 animate-in slide-in-from-top-4 duration-500 max-w-2xl">

@@ -1,9 +1,12 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { fetchRawAttendanceLogs, fetchEmployees, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
 import { RawAttendanceLog, Employee } from "@/lib/api/types";
 import { format, endOfMonth } from "date-fns";
+import FloatingRecordBadge from "@/components/common/FloatingRecordBadge";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import {
   Download,
@@ -240,37 +243,17 @@ export default function AttendanceLogsPage() {
     return device ? device.name : "";
   };
 
-  // IntersectionObserver refs for lazy load sentinels
-  const loadMoreRef = useRef<HTMLTableRowElement>(null);
-  const loadMoreStagingRef = useRef<HTMLTableRowElement>(null);
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
 
-  useEffect(() => {
-    if (!loadMoreRef.current) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  useEffect(() => {
-    if (!loadMoreStagingRef.current) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextStagingPage && !isFetchingNextStagingPage) {
-          fetchNextStagingPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(loadMoreStagingRef.current);
-    return () => observer.disconnect();
-  }, [hasNextStagingPage, isFetchingNextStagingPage, fetchNextStagingPage]);
+  const loadMoreStagingRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage: hasNextStagingPage,
+    isFetchingNextPage: isFetchingNextStagingPage,
+    fetchNextPage: fetchNextStagingPage,
+  });
 
   const handleCreateEmployee = (enrollmentId: string) => {
     navigate(`/employees/new?enrollment_id=${encodeURIComponent(enrollmentId)}`);
@@ -453,17 +436,7 @@ export default function AttendanceLogsPage() {
                           </td>
                         </tr>
                       ))}
-                      {/* Lazy load sentinel */}
-                      <tr ref={loadMoreRef}>
-                        <td colSpan={4} className="py-4 text-center">
-                          {isFetchingNextPage && (
-                            <div className="flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500">
-                              <Loader2 size={16} className="animate-spin" />
-                              <span className="text-[10px] font-bold uppercase tracking-widest">{t("common.loading", "Loading...")}</span>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
+                      <InfiniteScrollSentinel sentinelRef={loadMoreRef} isFetchingNextPage={isFetchingNextPage} colSpan={4} />
                     </>
                   )}
                 </tbody>
@@ -606,17 +579,7 @@ export default function AttendanceLogsPage() {
                         </td>
                       </tr>
                     ))}
-                    {/* Lazy load sentinel */}
-                    <tr ref={loadMoreStagingRef}>
-                      <td colSpan={4} className="py-4 text-center">
-                        {isFetchingNextStagingPage && (
-                          <div className="flex items-center justify-center gap-2 text-amber-500 dark:text-amber-400">
-                            <Loader2 size={16} className="animate-spin" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">{t("common.loading", "Loading...")}</span>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
+                    <InfiniteScrollSentinel sentinelRef={loadMoreStagingRef} isFetchingNextPage={isFetchingNextStagingPage} colSpan={4} />
                   </>
                 )}
               </tbody>
@@ -625,26 +588,12 @@ export default function AttendanceLogsPage() {
         </div>
       )}
 
-      {/* Floating record count badge — always visible at bottom of viewport */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {activeTab === "recorded" ? (
-          <div className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border border-slate-200 dark:border-slate-700 rounded-full px-5 py-2.5 shadow-2xl shadow-black/10">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em]">{t("common.pagination.showing")}</span>
-            <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-full text-xs font-bold tabular-nums">{allRecordedLogs.length}</span>
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">/</span>
-            <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full text-xs font-bold tabular-nums">{recordedTotal}</span>
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em]">{t("common.pagination.records")}</span>
-          </div>
-        ) : (
-          <div className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border border-amber-200 dark:border-amber-800 rounded-full px-5 py-2.5 shadow-2xl shadow-black/10">
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-[0.15em]">{t("common.pagination.showing")}</span>
-            <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded-full text-xs font-bold tabular-nums">{allStagingLogs.length}</span>
-            <span className="text-[10px] font-bold text-amber-400 dark:text-amber-600">/</span>
-            <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 rounded-full text-xs font-bold tabular-nums">{stagingTotal}</span>
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-[0.15em]">{t("common.pagination.records")}</span>
-          </div>
-        )}
-      </div>
+      {/* Floating record count badge */}
+      {activeTab === "recorded" ? (
+        <FloatingRecordBadge loaded={allRecordedLogs.length} total={recordedTotal} label={t("common.pagination.records")} />
+      ) : (
+        <FloatingRecordBadge loaded={allStagingLogs.length} total={stagingTotal} label={t("common.pagination.records")} variant="amber" />
+      )}
 
       <AttendanceImportDialog isOpen={isImportDialogOpen} onClose={() => setIsImportDialogOpen(false)} title={t("attendance_logs.modal.import_title")} endpoint="/attendance/logs/upload" targetType="log" />
     </div>

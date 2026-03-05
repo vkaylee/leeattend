@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { RefreshCw, Check, CheckCircle, User, CalendarCheck, SearchX, Loader2, FileBarChart } from "lucide-react";
@@ -141,21 +143,11 @@ export default function EmployeeDailyDrawer({
         return rawLogsResponse.pages.flatMap((p) => p.data || []);
     }, [rawLogsResponse]);
 
-    // Intersection observer for infinite scroll
-    const loadMoreRef = useRef<HTMLTableRowElement>(null);
-    useEffect(() => {
-        if (!loadMoreRef.current || !hasNextPage) return;
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && !isFetchingNextPage) {
-                    fetchNextPage();
-                }
-            },
-            { threshold: 0.1, rootMargin: "100px" }
-        );
-        observer.observe(loadMoreRef.current);
-        return () => observer.disconnect();
-    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
+    });
 
     const adjustmentMap = useMemo(() => {
         const map: Record<string, AttendanceAdjustmentRequest> = {};
@@ -447,13 +439,7 @@ export default function EmployeeDailyDrawer({
                                         ))
                                     )}
                                     {hasNextPage && (
-                                        <tr ref={loadMoreRef}>
-                                            <td colSpan={3} className="px-8 py-6 text-center">
-                                                {isFetchingNextPage && (
-                                                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400 dark:text-slate-500" />
-                                                )}
-                                            </td>
-                                        </tr>
+                                        <InfiniteScrollSentinel sentinelRef={loadMoreRef} isFetchingNextPage={isFetchingNextPage} colSpan={3} />
                                     )}
                                 </tbody>
                             </table>

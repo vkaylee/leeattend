@@ -1,15 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
   Trash2,
   UserCircle,
   Building2,
   Calendar,
-  Clock,
-  Briefcase,
-  Search,
   Plus,
   UserPlus,
   ChevronRight,
@@ -20,15 +17,18 @@ import {
   History as HistoryIcon,
   Check,
   Calendar as CalendarIcon,
-  Upload
+  Upload,
+  Loader2
 } from "lucide-react";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
 
-import { 
-  fetchEmployees, 
+import {
+  fetchEmployees,
   searchEmployees,
-  createEmployee, 
-  updateEmployee, 
-  deleteEmployee, 
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
   getCurrentWorkspaceId,
   Employee,
   fetchDepartments,
@@ -46,7 +46,8 @@ import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
-import PaginationControls from "@/components/common/PaginationControls";
+import SearchBox from "@/components/common/SearchBox";
+import FloatingRecordBadge from "@/components/common/FloatingRecordBadge";
 
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 import WorkingConditionConfig from "@/components/employees/WorkingConditionConfig";
@@ -65,8 +66,7 @@ export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTabType>("profile");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const PAGE_SIZE = 20;
   const [prefillEnrollmentId, setPrefillEnrollmentId] = useState<string>("");
 
   // Handle enrollment_id query param from staging logs
@@ -82,24 +82,45 @@ export default function EmployeesPage() {
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
-  
+
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isRehireModalOpen, setIsRehireModalOpen] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<string>("");
 
   const debouncedSearch = useDebounce(searchTerm, 500);
-  useEffect(() => { 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPage(1); }, [debouncedSearch]);
-  const { data: employeesData, isLoading } = useQuery({
-    queryKey: ["employees", wsId, debouncedSearch, page, pageSize],
-    queryFn: () => searchEmployees(wsId, debouncedSearch, page, pageSize),
+
+  const {
+    data: employeesPages,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["employees", wsId, debouncedSearch],
+    queryFn: ({ pageParam }) => searchEmployees(wsId, debouncedSearch, pageParam as number, PAGE_SIZE),
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      if (totalLoaded >= (lastPage.total || 0)) return undefined;
+      return allPages.length + 1;
+    },
+    initialPageParam: 1,
     enabled: !!wsId
   });
-  const employees = employeesData?.data || [];
-  const totalItems = employeesData?.total || 0;
-  const totalPages = Math.ceil(totalItems / pageSize);
+
+  const employees = useMemo(() => {
+    if (!employeesPages) return [];
+    return employeesPages.pages.flatMap((p) => p.data || []);
+  }, [employeesPages]);
+
+  const totalItems = employeesPages?.pages[0]?.total || 0;
+
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
+
   const { data: departments } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
   const { data: deptHistory } = useQuery({ queryKey: ["deptHistory", selectedEmployee?.id], queryFn: () => fetchEmployeeDepartmentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
   const { data: employmentHistory } = useQuery({ queryKey: ["employmentHistory", selectedEmployee?.id], queryFn: () => fetchEmploymentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
@@ -126,7 +147,7 @@ export default function EmployeesPage() {
 
   const toast = useToast();
 
-  
+
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const formData = new FormData(e.currentTarget);
@@ -164,20 +185,14 @@ export default function EmployeesPage() {
           </div>
         </div>
 
-        <div className="relative shrink-0 group px-1">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" size={20} />
-          <input data-testid="employee-search" type="text" placeholder={t("employees.search_placeholder")} className="w-full pl-14 pr-8 py-4.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[1.75rem] shadow-xl shadow-slate-900/5 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-sm uppercase tracking-tight" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-        </div>
-        <div className="px-2 pt-2">
-          <PaginationControls
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            pageSize={pageSize}
-            totalItems={totalItems}
-            onPageSizeChange={setPageSize}
-          />
-        </div>
+        <SearchBox
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder={t("employees.search_placeholder")}
+          data-testid="employee-search"
+          className="px-1"
+        />
+
 
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] flex-1 overflow-auto shadow-sm p-2">
           <table className="w-full text-left border-collapse">
@@ -212,19 +227,11 @@ export default function EmployeesPage() {
                   {selectedEmployee?.id === emp.id && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-600 rounded-r-full shadow-lg shadow-primary-500/50" />}
                 </tr>
               ))}
+              <InfiniteScrollSentinel sentinelRef={loadMoreRef} isFetchingNextPage={isFetchingNextPage} colSpan={5} />
             </tbody>
           </table>
         </div>
-        <div className="px-2 py-4 shadow-inner bg-slate-50 dark:bg-slate-800/30 rounded-b-[2.5rem] border-t border-slate-100 dark:border-slate-800">
-          <PaginationControls
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            pageSize={pageSize}
-            totalItems={totalItems}
-            onPageSizeChange={setPageSize}
-          />
-        </div>
+
       </div>
       {selectedEmployee && (
         <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] flex flex-col shadow-premium-2xl overflow-hidden animate-in slide-in-from-right duration-700">
@@ -245,11 +252,11 @@ export default function EmployeesPage() {
             </div>
 
             <div className="flex bg-white dark:bg-slate-900/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-              {[ 
-                { id: "profile", label: t("common.profile") }, 
-                { id: "salary", label: t("employees.details.salary_benefits") }, 
+              {[
+                { id: "profile", label: t("common.profile") },
+                { id: "salary", label: t("employees.details.salary_benefits") },
                 { id: "policies", label: t("employees.details.special_policies") },
-                { id: "history", label: t("employees.details.work_history") } 
+                { id: "history", label: t("employees.details.work_history") }
               ].map(tab => (
                 <button key={tab.id} data-testid={`employees-tab-${tab.id}`} onClick={() => setActiveDetailTab(tab.id as DetailTabType)} className={cn("px-8 py-2.5 rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-all", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>{tab.label.toUpperCase()}</button>
               ))}
@@ -405,9 +412,11 @@ export default function EmployeesPage() {
         </div>
       </Modal>
 
-      <AttendanceImportDialog 
-        isOpen={isImportDialogOpen} 
-        onClose={() => setIsImportDialogOpen(false)} 
+      <FloatingRecordBadge loaded={employees.length} total={totalItems} label={t("common.pagination.records")} />
+
+      <AttendanceImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
         title={t("employees.bulk_import_title")}
         endpoint="/employees/upload"
         targetType="employee"
