@@ -11,6 +11,22 @@
 #          ./ai-test.sh --all
 # ==============================================================================
 
+# Handle --help explicitly (exit 0) and no-args fallback (exit 1)
+if [[ $# -eq 0 ]]; then
+    echo "❌ Error: No arguments provided." >&2
+    echo ""
+    echo "Usage: ./ai-test.sh [any run-tests.sh arguments]"
+    echo "Run './ai-test.sh --help' for full usage."
+    exit 1
+fi
+
+for _arg in "$@"; do
+    if [[ "$_arg" == "--help" || "$_arg" == "-h" ]]; then
+        # Delegate to run-tests.sh --help directly (no setsid needed)
+        exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run-tests.sh" --help
+    fi
+done
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

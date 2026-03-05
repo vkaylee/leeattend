@@ -397,8 +397,10 @@ run_integration() {
 GLOBAL_TIMEOUT=${TIMEOUT_GLOBAL:-1800}
 
 if [[ $# -eq 0 ]]; then
+    echo -e "${RED}Error: No arguments provided.${NC}" >&2
+    echo ""
     show_help
-    exit 0
+    exit 1
 fi
 
 FILTER=""

@@ -1,4 +1,4 @@
-mod connection;
+pub mod connection;
 mod message_handler;
 mod retry_manager;
 

@@ -69,7 +69,7 @@ echo -e "\n  ${BLUE}Running ai-test.sh with fake failing test...${NC}"
 export _PTY_CHECK_DONE=1
 export _LOG_CHECK_DONE=1
 
-OUTPUT=$(timeout 30 bash "$PROJECT_ROOT/ai-test.sh" 2>&1) || true
+OUTPUT=$(timeout 30 bash "$PROJECT_ROOT/ai-test.sh" --api 2>&1) || true
 
 echo -e "  ${BLUE}Checking output for marker text...${NC}"
 

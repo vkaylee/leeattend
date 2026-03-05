@@ -12,12 +12,14 @@ use agent::crash_recovery::{CrashMarker, recover_from_crash};
 use agent::adaptive_polling::AdaptivePollingState;
 use serde_json::json;
 use log::{info, error, warn};
+use rand::Rng;
 use tokio_util::sync::CancellationToken;
 use tokio::sync::{mpsc, Semaphore};
 use dashmap::DashMap;
 use agent::worker::Worker;
 use agent::zk_worker;
 use agent::mock_worker;
+use agent::central_client::connection::DeviceLocks;
 
 #[derive(Clone)]
 struct WorkerConfig {
@@ -128,6 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("⚙️ Using default Max Workers: {current_max_workers} (until ConfigPush)");
 
     let command_registry = Arc::new(DashMap::new());
+    let device_locks: DeviceLocks = Arc::new(DashMap::new());
     let (central_client, central_rx, mut reload_rx) = agent::central_client::CentralClient::new(
         config.central_server_url.clone(),
         config.agent_id.clone(),
@@ -135,6 +138,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         hybrid_db.clone(),
         config.inflight_timeout_secs,
         command_registry.clone(),
+        device_locks.clone(),
     );
 
     let central_client_task = central_client.start(central_rx);
@@ -293,9 +297,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let token = worker_cancel_token.clone();
             let sem = semaphore.clone();
             let success_skip_polls = config.success_skip_polls;
+            let device_locks = device_locks.clone();
 
             tokio::spawn(async move {
                 info!("[{}] Device Polling Loop started ({})", worker.name, worker.ip);
+
+                // Stagger startup: random delay 0-2s per worker to prevent thundering herd
+                let stagger = Duration::from_millis(rand::thread_rng().gen_range(0..2000));
+                info!("[{}] Stagger delay: {:?}", worker.name, stagger);
+                sleep(stagger).await;
 
                 let mut retry_count: u32 = 0;
                 #[allow(unused_assignments)]
@@ -308,17 +318,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         sleep(delay).await;
                     }
 
+                    // Acquire semaphore BEFORE connecting to limit concurrent device access.
+                    // This prevents overwhelming weak ZK devices with simultaneous TCP connections.
+                    let _connect_permit = match sem.acquire().await {
+                        Ok(p) => p,
+                        Err(_) => {
+                            error!("[{}] Semaphore closed during connect phase, stopping worker", worker.name);
+                            return;
+                        }
+                    };
+
                     let mut worker_impl: Box<dyn Worker> = if worker.brand == "mock" {
                         Box::new(mock_worker::MockWorker::new())
                     } else {
                         Box::new(zk_worker::ZkWorker::new(worker.password))
                     };
 
-                    info!("[{}] Worker ready.", worker.name);
+                    info!("[{}] Worker ready (permit acquired).", worker.name);
                     stable_since = Some(Instant::now());
 
                     if let Err(e) = worker_impl.connect(&worker.ip, worker.port as u16).await {
                         error!("[{}] Device connection failed: {}", worker.name, e);
+                        drop(_connect_permit); // Release permit on connection failure
                         retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                         continue;
                     }
@@ -344,10 +365,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Err(e) => {
                             warn!("[{}] Initial get_info failed: {}, disconnecting and retrying...", worker.name, e);
                             worker_impl.disconnect().await;
+                            drop(_connect_permit); // Release permit on get_info failure
                             retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                             continue;
                         }
                     }
+
+                    // Connection + initial get_info succeeded — release connect permit.
+                    // The polling semaphore below will control ongoing device access.
+                    drop(_connect_permit);
 
                     let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
                     const SEEN_LOGS_CAP: usize = 50_000;
@@ -363,6 +389,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 return;
                             }
                         };
+
+                        // Acquire per-device lock to serialize all operations on this device.
+                        // This prevents remote commands from central server from conflicting
+                        // with the polling loop.
+                        let device_lock = device_locks.entry((*worker.id).clone())
+                            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+                            .clone();
+                        let _device_guard = device_lock.lock().await;
 
                         poll_count += 1;
 

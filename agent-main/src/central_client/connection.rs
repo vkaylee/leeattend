@@ -31,6 +31,10 @@ pub(super) const STABILITY_THRESHOLD_SECS: u64 = 60;
 pub(super) const MAX_RETRY_DELAY_SECS: u64 = 60;
 pub(super) const MAX_RETRY_COUNT: u32 = 10;
 
+/// Type alias for per-device operation locks.
+/// Ensures only one operation (polling, remote command) runs on a given device at a time.
+pub type DeviceLocks = Arc<DashMap<String, Arc<tokio::sync::Mutex<()>>>>;
+
 pub struct CentralClient {
     url: String,
     agent_id: String,
@@ -42,15 +46,16 @@ pub struct CentralClient {
     is_connected: Arc<AtomicBool>,
     #[allow(dead_code)]
     command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>,
+    device_locks: DeviceLocks,
 }
 
 #[allow(clippy::collapsible_if)]
 impl CentralClient {
-    pub fn new(url: String, agent_id: String, token: String, hybrid_db: HybridDatabase, inflight_timeout_secs: u64, command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
+    pub fn new(url: String, agent_id: String, token: String, hybrid_db: HybridDatabase, inflight_timeout_secs: u64, command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>, device_locks: DeviceLocks) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
         let (tx, rx) = mpsc::channel(100);
         let (reload_tx, reload_rx) = mpsc::channel(1);
         let is_connected = Arc::new(AtomicBool::new(false));
-        (Self { url, agent_id, token, hybrid_db, inflight_timeout_secs, tx, reload_tx, is_connected, command_registry }, rx, reload_rx)
+        (Self { url, agent_id, token, hybrid_db, inflight_timeout_secs, tx, reload_tx, is_connected, command_registry, device_locks }, rx, reload_rx)
     }
 
     pub fn get_tx(&self) -> mpsc::Sender<CentralMessage> {
@@ -249,12 +254,13 @@ impl CentralClient {
                         let read_hybrid = hybrid_db.clone();
                         let read_reload_tx = conn_reload_tx.clone();
                         let read_tx = tx.clone();
+                        let read_device_locks = self.device_locks.clone();
                         let mut read_task = tokio::spawn(async move {
                             let mut read = read;
                             while let Some(msg) = read.next().await {
                                 match msg {
                                     Ok(Message::Text(text)) => {
-                                        handle_incoming_text(&text, &read_hybrid, &read_reload_tx, &read_tx).await;
+                                        handle_incoming_text(&text, &read_hybrid, &read_reload_tx, &read_tx, &read_device_locks).await;
                                     }
                                     Ok(Message::Ping(_)) => {
                                         // Pong is handled automatically by tungstenite
