@@ -192,6 +192,10 @@ pub enum AttendanceReportSort {
     WorkHoursDesc,
     LeaveDaysAsc,
     LeaveDaysDesc,
+    OtHoursAsc,
+    OtHoursDesc,
+    TotalHoursAsc,
+    TotalHoursDesc,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

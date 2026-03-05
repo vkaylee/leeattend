@@ -228,7 +228,11 @@ export type AttendanceReportSort =
   | "work_hours_asc"
   | "work_hours_desc"
   | "leave_days_asc"
-  | "leave_days_desc";
+  | "leave_days_desc"
+  | "ot_hours_asc"
+  | "ot_hours_desc"
+  | "total_hours_asc"
+  | "total_hours_desc";
 
 export interface AttendanceSummary {
   employee_id: string;

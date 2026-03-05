@@ -600,6 +600,18 @@ impl ReportService {
                 AttendanceReportSort::LeaveDaysDesc => {
                     results.sort_by(|a, b| b.total_leave_days.cmp(&a.total_leave_days))
                 }
+                AttendanceReportSort::OtHoursAsc => {
+                    results.sort_by(|a, b| a.total_ot_units.cmp(&b.total_ot_units))
+                }
+                AttendanceReportSort::OtHoursDesc => {
+                    results.sort_by(|a, b| b.total_ot_units.cmp(&a.total_ot_units))
+                }
+                AttendanceReportSort::TotalHoursAsc => {
+                    results.sort_by(|a, b| (a.total_std_units + a.total_ot_units).cmp(&(b.total_std_units + b.total_ot_units)))
+                }
+                AttendanceReportSort::TotalHoursDesc => {
+                    results.sort_by(|a, b| (b.total_std_units + b.total_ot_units).cmp(&(a.total_std_units + a.total_ot_units)))
+                }
             }
         }
 

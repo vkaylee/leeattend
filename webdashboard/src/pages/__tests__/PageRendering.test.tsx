@@ -11,6 +11,17 @@ import { ToastProvider } from "../../components/ui/Toast";
 import React from "react";
 import i18n from "../../i18n/config";
 
+// Mock scrollIntoView and IntersectionObserver for jsdom
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
+class MockIntersectionObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  constructor() { }
+}
+window.IntersectionObserver = MockIntersectionObserver as any;
+
 // Mock hooks
 vi.mock("@/hooks/use-profile", () => ({
   useProfile: () => ({

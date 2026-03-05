@@ -187,32 +187,24 @@ export default function ReportsPage() {
 
 
 
-  const getSortIcon = (field: 'name' | 'work_hours' | 'leave_days') => {
-    if (field === 'name') {
-      if (sortBy === 'name_asc') return <ArrowUp size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
-      if (sortBy === 'name_desc') return <ArrowDown size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
-    }
-    if (field === 'work_hours') {
-      if (sortBy === 'work_hours_asc') return <ArrowUp size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
-      if (sortBy === 'work_hours_desc') return <ArrowDown size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
-    }
-    if (field === 'leave_days') {
-      if (sortBy === 'leave_days_asc') return <ArrowUp size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
-      if (sortBy === 'leave_days_desc') return <ArrowDown size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
-    }
+  type SortField = 'name' | 'work_hours' | 'leave_days' | 'ot_hours' | 'total_hours';
+
+  const getSortIcon = (field: SortField) => {
+    const prefix = field;
+    if (sortBy === `${prefix}_asc`) return <ArrowUp size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
+    if (sortBy === `${prefix}_desc`) return <ArrowDown size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
     return <ArrowUpDown size={12} className="ml-1 opacity-20 group-hover:opacity-100 transition-opacity" />;
   };
 
-  const handleSort = (field: 'name' | 'work_hours' | 'leave_days') => {
-    let nextSort: AttendanceReportSort;
-    if (field === 'name') {
-      nextSort = sortBy === 'name_asc' ? 'name_desc' : 'name_asc';
-    } else if (field === 'work_hours') {
-      nextSort = sortBy === 'work_hours_desc' ? 'work_hours_asc' : 'work_hours_desc';
+  const handleSort = (field: SortField) => {
+    const defaultDesc = field !== 'name'; // numeric fields default to desc first
+    const descKey = `${field}_desc` as AttendanceReportSort;
+    const ascKey = `${field}_asc` as AttendanceReportSort;
+    if (defaultDesc) {
+      setSortBy(sortBy === descKey ? ascKey : descKey);
     } else {
-      nextSort = sortBy === 'leave_days_desc' ? 'leave_days_asc' : 'leave_days_desc';
+      setSortBy(sortBy === ascKey ? descKey : ascKey);
     }
-    setSortBy(nextSort);
   };
 
   // Column definitions for NavigableList
@@ -239,7 +231,8 @@ export default function ReportsPage() {
     },
     {
       key: "ot_hours",
-      header: t("reports.table.ot_hours"),
+      header: <div className="flex items-center justify-end">{t("reports.table.ot_hours")}{getSortIcon('ot_hours')}</div>,
+      onHeaderClick: () => handleSort('ot_hours'),
       cell: (row) => row.total_ot_units > 0 ? (
         <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter cursor-default" title={`${row.total_ot_units} OT units`}>
           {formatUnitsToHours(row.total_ot_units, workUnitMinutes)}h
@@ -248,6 +241,18 @@ export default function ReportsPage() {
         <span className="text-slate-200 dark:text-slate-700 font-bold">—</span>
       ),
       headerClassName: "text-right text-orange-500 dark:text-orange-400",
+      cellClassName: "py-6 text-right",
+    },
+    {
+      key: "total_hours",
+      header: <div className="flex items-center justify-end">{t("reports.table.total_hours")}{getSortIcon('total_hours')}</div>,
+      onHeaderClick: () => handleSort('total_hours'),
+      cell: (row) => (
+        <div className="font-mono font-bold text-slate-700 dark:text-slate-200 text-base tracking-tighter cursor-default" title={`${row.total_std_units + row.total_ot_units} total units`}>
+          {formatUnitsToHours(row.total_std_units + row.total_ot_units, workUnitMinutes)}h
+        </div>
+      ),
+      headerClassName: "text-right",
       cellClassName: "py-6 text-right",
     },
     {

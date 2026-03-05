@@ -525,4 +525,74 @@ describe("ReportsPage", () => {
       expect(latestCall[8]).toBeNull();
     });
   });
+
+  it("sorts by OT hours when clicking OT column header", async () => {
+    const user = userEvent.setup();
+    i18n.changeLanguage("en");
+    renderWithProviders(<ReportsPage />);
+    await screen.findByText(/John Doe/i);
+
+    // Find the OT Hours column header — text is "Overtime" (en) inside a flex div with SVG icon
+    const otHeaderText = screen.getByText((content, element) => {
+      return element?.tagName?.toLowerCase() === "div" && /Overtime|Tăng ca/i.test(content);
+    });
+    const otClickTarget = otHeaderText.closest("th") || otHeaderText;
+
+    // Clear mock calls so we only see calls triggered by the click
+    (api.fetchAttendanceReport as any).mockClear();
+
+    // Click OT header — should sort desc first (default for numeric)
+    await user.click(otClickTarget);
+
+    await waitFor(() => {
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const sortedCall = calls.find((c: any[]) => c[6] === "ot_hours_desc");
+      expect(sortedCall).toBeDefined();
+    });
+
+    // Click again — should toggle to asc
+    await user.click(otClickTarget);
+
+    await waitFor(() => {
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const sortedCall = calls.find((c: any[]) => c[6] === "ot_hours_asc");
+      expect(sortedCall).toBeDefined();
+    });
+  });
+
+  it("renders total hours column and sorts by total hours", async () => {
+    const user = userEvent.setup();
+    i18n.changeLanguage("en");
+    renderWithProviders(<ReportsPage />);
+    await screen.findByText(/John Doe/i);
+
+    // Total hours = 440 std + 40 ot = 480 units = 480h (with work_unit_minutes=60)
+    expect(screen.getByTitle("480 total units")).toBeInTheDocument();
+
+    // Find the Total Hours column header
+    const totalHeader = screen.getByText((content, element) => {
+      return element?.tagName?.toLowerCase() === "div" && /Total Hours|Tổng giờ công/i.test(content);
+    });
+    const totalClickTarget = totalHeader.closest("th") || totalHeader;
+
+    (api.fetchAttendanceReport as any).mockClear();
+
+    // Click header — should sort desc first
+    await user.click(totalClickTarget);
+
+    await waitFor(() => {
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const sortedCall = calls.find((c: any[]) => c[6] === "total_hours_desc");
+      expect(sortedCall).toBeDefined();
+    });
+
+    // Click again — toggle to asc
+    await user.click(totalClickTarget);
+
+    await waitFor(() => {
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const sortedCall = calls.find((c: any[]) => c[6] === "total_hours_asc");
+      expect(sortedCall).toBeDefined();
+    });
+  });
 });
