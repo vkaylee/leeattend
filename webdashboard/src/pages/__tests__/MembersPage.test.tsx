@@ -96,7 +96,7 @@ describe("MembersPage", () => {
     renderWithProviders(<MembersPage />);
 
     await screen.findByText(/Admin User/i, {}, { timeout: 30000 });
-    
+
     // Owner doesn't have a remove button, so the first one found is for the Admin User
     const removeBtns = await screen.findAllByTitle(/Remove Member|Xóa thành viên/i);
     await user.click(removeBtns[0]);
@@ -117,10 +117,16 @@ describe("MembersPage", () => {
     renderWithProviders(<MembersPage />);
 
     await screen.findByText(/Admin User/i, {}, { timeout: 30000 });
-    
-    // There are 2 members, both have manage roles button. user-2 is the Admin User (second row)
-    const manageBtns = await screen.findAllByTitle(/Manage Roles|Quản lý quyền/i);
-    await user.click(manageBtns[1]);
+
+    // Instead of relying on global button indices, find the specific row for the Admin User
+    const adminRow = (await screen.findByText(/Admin User/i)).closest('tr');
+    if (!adminRow) throw new Error("Could not find Admin User row");
+
+    // "Manage Roles" should be the button with the UserCog icon / role management title
+    const manageBtn = adminRow.querySelector('button[title*="Manage Roles"], button[title*="Quản lý quyền"') as HTMLButtonElement;
+    if (!manageBtn) throw new Error("Could not find Manage Roles button in Admin User row");
+
+    await user.click(manageBtn);
 
     expect(await screen.findByText(/Manage Member Roles|Quản lý quyền hạn/i)).toBeDefined();
     expect(api.fetchMemberRoles).toHaveBeenCalledWith("test-ws-id", "user-2");

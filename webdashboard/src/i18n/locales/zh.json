@@ -99,8 +99,21 @@
           "revoke_error": "Error revoking role."
         }
       },
+      "permissions": {
+        "modal_title": "管理权限",
+        "modal_subtitle": "授予或撤销个人权限",
+        "active_label": "分配的权限",
+        "no_extra_permissions": "没有额外权限",
+        "assign_new_title": "授予新权限",
+        "permission_label": "权限",
+        "search_placeholder": "搜索权限...",
+        "expiry_label": "过期日期",
+        "grant_btn": "授予权限",
+        "confirm_revoke": "您确定要撤销此权限吗？"
+      },
       "table": {
         "manage_roles": "管理权限",
+        "manage_permissions": "管理权限 (详情)",
         "remove_member": "移除成员",
         "confirm_remove": "Are you sure you want to remove this member?",
         "messages": {
@@ -1458,9 +1471,22 @@
         "revoke_error": "撤销角色时出错。"
       }
     },
+    "permissions": {
+      "modal_title": "管理权限",
+      "modal_subtitle": "授予或撤销个人权限",
+      "active_label": "分配的权限",
+      "no_extra_permissions": "没有额外权限",
+      "assign_new_title": "授予新权限",
+      "permission_label": "权限",
+      "search_placeholder": "搜索权限...",
+      "expiry_label": "过期日期",
+      "grant_btn": "授予权限",
+      "confirm_revoke": "您确定要撤销此权限吗？"
+    },
     "table": {
       "confirm_remove": "您确定要移除此成员吗？",
       "manage_roles": "管理角色",
+      "manage_permissions": "管理权限 (详情)",
       "remove_member": "移除成员",
       "messages": {
         "remove_error": "移除成员时出错。",

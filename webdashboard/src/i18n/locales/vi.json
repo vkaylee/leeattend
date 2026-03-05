@@ -99,8 +99,21 @@
           "revoke_error": "Error revoking role."
         }
       },
+      "permissions": {
+        "modal_title": "Quản lý Quyền hạn",
+        "modal_subtitle": "Cấp phát hoặc thu hồi quyền cá nhân",
+        "active_label": "Quyền cá nhân đang kích hoạt",
+        "no_extra_permissions": "Không có quyền cá nhân",
+        "assign_new_title": "Cấp Quyền mới",
+        "permission_label": "Quyền",
+        "search_placeholder": "Tìm kiếm quyền...",
+        "expiry_label": "Ngày hết hạn",
+        "grant_btn": "Cấp Quyền",
+        "confirm_revoke": "Bạn có chắc chắn muốn thu hồi quyền này?"
+      },
       "table": {
         "manage_roles": "Quản lý quyền",
+        "manage_permissions": "Quản lý quyền (chi tiết)",
         "remove_member": "Xóa thành viên",
         "confirm_remove": "Are you sure you want to remove this member?",
         "messages": {
@@ -1458,9 +1471,22 @@
         "revoke_error": "Lỗi khi thu hồi quyền."
       }
     },
+    "permissions": {
+      "modal_title": "Quản lý Quyền hạn",
+      "modal_subtitle": "Cấp phát hoặc thu hồi quyền cá nhân",
+      "active_label": "Quyền cá nhân đang kích hoạt",
+      "no_extra_permissions": "Không có quyền cá nhân",
+      "assign_new_title": "Cấp Quyền mới",
+      "permission_label": "Quyền",
+      "search_placeholder": "Tìm kiếm quyền...",
+      "expiry_label": "Ngày hết hạn",
+      "grant_btn": "Cấp Quyền",
+      "confirm_revoke": "Bạn có chắc chắn muốn thu hồi quyền này?"
+    },
     "table": {
       "confirm_remove": "Bạn có chắc chắn muốn xóa thành viên này?",
       "manage_roles": "Quản lý quyền",
+      "manage_permissions": "Quản lý quyền (chi tiết)",
       "remove_member": "Xóa thành viên",
       "messages": {
         "remove_error": "Lỗi khi xóa thành viên.",

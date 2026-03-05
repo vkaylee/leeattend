@@ -101,9 +101,22 @@
           "revoke_error": "Error revoking role."
         }
       },
+      "permissions": {
+        "modal_title": "Manage Permissions",
+        "modal_subtitle": "Grant or revoke individual permissions",
+        "active_label": "Active Extra Permissions",
+        "no_extra_permissions": "No extra permissions",
+        "assign_new_title": "Grant Permission",
+        "permission_label": "Permission",
+        "search_placeholder": "Search permissions...",
+        "expiry_label": "Expiration",
+        "grant_btn": "Grant Permission",
+        "confirm_revoke": "Revoke this permission?"
+      },
       "table": {
         "confirm_remove": "Are you sure you want to remove this member?",
         "manage_roles": "Manage Roles",
+        "manage_permissions": "Manage Permissions",
         "remove_member": "Remove Member",
         "messages": {
           "remove_error": "Error removing member.",
@@ -1458,9 +1471,22 @@
         "revoke_error": "Error revoking role."
       }
     },
+    "permissions": {
+      "modal_title": "Manage Permissions",
+      "modal_subtitle": "Grant or revoke individual permissions",
+      "active_label": "Active Extra Permissions",
+      "no_extra_permissions": "No extra permissions",
+      "assign_new_title": "Grant Permission",
+      "permission_label": "Permission",
+      "search_placeholder": "Search permissions...",
+      "expiry_label": "Expiration",
+      "grant_btn": "Grant Permission",
+      "confirm_revoke": "Revoke this permission?"
+    },
     "table": {
       "confirm_remove": "Are you sure you want to remove this member?",
       "manage_roles": "Manage Roles",
+      "manage_permissions": "Manage Permissions",
       "remove_member": "Remove Member",
       "messages": {
         "remove_error": "Error removing member.",
