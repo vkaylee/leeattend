@@ -81,6 +81,7 @@ export async function fetchDevSuperUser(): Promise<{
 export async function fetchMyPermissions(): Promise<{
   permissions: string[];
   roles: string[];
+  managed_department_ids: string[] | null;
 }> {
   const response = await apiFetch(`${API_BASE_URL}/me/permissions`);
   if (!response.ok) throw new Error("Failed to fetch my permissions");

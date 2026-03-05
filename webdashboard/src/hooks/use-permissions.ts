@@ -42,17 +42,41 @@ export function useMyPermissions() {
     const hasRole = useCallback(
         (role: string): boolean =>
             (query.data?.roles ?? []).some(
-                (r) => r.toLowerCase() === role.toLowerCase(),
+                (r: string) => r.toLowerCase() === role.toLowerCase(),
             ),
         [query.data?.roles],
+    );
+
+    const hasScopedPermission = useCallback(
+        (permission: string, targetDepartmentId?: string): boolean => {
+            if (!permissionSet.has(permission)) return false;
+
+            const allowedDepts = query.data?.managed_department_ids;
+
+            // null or undefined means global scope
+            if (allowedDepts === null || allowedDepts === undefined) {
+                return true;
+            }
+
+            // Must match one of the allowed departments
+            if (targetDepartmentId && Array.isArray(allowedDepts)) {
+                return allowedDepts.includes(targetDepartmentId);
+            }
+
+            return false;
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [query.data?.permissions, query.data?.managed_department_ids],
     );
 
     return {
         permissions: query.data?.permissions ?? [],
         roles: query.data?.roles ?? [],
+        managedDepartmentIds: query.data?.managed_department_ids ?? null,
         isLoading: query.isLoading,
         hasPermission,
         hasAnyPermission,
         hasRole,
+        hasScopedPermission,
     };
 }

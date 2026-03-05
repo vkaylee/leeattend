@@ -33,7 +33,11 @@ pub async fn create_working_condition(
     ctx: MemberContext,
     Json(req): Json<CreateWorkingConditionRequest>,
 ) -> AppResult<impl IntoResponse> {
-    ctx.require_permission(Permission::EmployeesUpdate)?;
+    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
+    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+
+    ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let cond = EmployeeService::create_working_condition(state.db.api(), id, ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to create working condition".to_string())))?;
@@ -45,7 +49,11 @@ pub async fn delete_working_condition(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    ctx.require_permission(Permission::EmployeesUpdate)?;
+    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
+    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+
+    ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     EmployeeService::delete_working_condition(state.db.api(), id, ctx.workspace_id, cond_id)
         .await
         .map_err(|s| AppError::from((s, "Failed to delete working condition".to_string())))?;
@@ -92,7 +100,8 @@ pub async fn create_employee(
     ctx: MemberContext,
     Json(req): Json<CreateEmployeeRequest>,
 ) -> AppResult<impl IntoResponse> {
-    ctx.require_permission(Permission::EmployeesCreate)?;
+    // Since a new employee has no department yet, a scoped-only user cannot create employees.
+    ctx.require_scoped_permission(Permission::EmployeesCreate, None)?;
     let employee = EmployeeService::create_employee(state.db.api(), ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to create employee".to_string())))?;
@@ -105,7 +114,11 @@ pub async fn update_employee(
     ctx: MemberContext,
     Json(req): Json<UpdateEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
-    ctx.require_permission(Permission::EmployeesUpdate)?;
+    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
+    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+
+    ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let employee = EmployeeService::update_employee(state.db.api(), id, ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to update employee".to_string())))?;
@@ -117,7 +130,11 @@ pub async fn delete_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    ctx.require_permission(Permission::EmployeesDelete)?;
+    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
+    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+
+    ctx.require_scoped_permission(Permission::EmployeesDelete, target_dept_id)?;
     let workspace_id = ctx.workspace_id;
     EmployeeService::delete_employee(state.db.api(), id, workspace_id)
         .await
@@ -142,7 +159,11 @@ pub async fn rehire_employee(
     ctx: MemberContext,
     Json(req): Json<RehireEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
-    ctx.require_permission(Permission::EmployeesRehire)?;
+    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
+    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+
+    ctx.require_scoped_permission(Permission::EmployeesRehire, target_dept_id)?;
     let employee = EmployeeService::rehire_employee(state.db.api(), id, ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to rehire employee".to_string())))?;
@@ -166,7 +187,11 @@ pub async fn transfer_employee(
     ctx: MemberContext,
     Json(req): Json<TransferEmployeeRequest>,
 ) -> AppResult<Json<EmployeeDepartmentHistory>> {
-    ctx.require_permission(Permission::DepartmentsTransfer)?;
+    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
+    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+
+    ctx.require_scoped_permission(Permission::DepartmentsTransfer, target_dept_id)?;
     let history = EmployeeService::transfer_employee(state.db.api(), id, ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to transfer employee".to_string())))?;

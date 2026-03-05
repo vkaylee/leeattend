@@ -1,4 +1,5 @@
 pub mod agent_service;
+pub mod audit_service;
 pub mod attendance_adjustment_service;
 pub mod attendance_calculator;
 pub mod attendance_utils;

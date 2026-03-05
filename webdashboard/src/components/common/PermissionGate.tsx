@@ -8,6 +8,8 @@ interface PermissionGateProps {
     anyOf?: string[];
     /** Multiple permissions — user needs ALL */
     allOf?: string[];
+    /** Department context for scoped permissions */
+    departmentId?: string;
     /** What to render when the user lacks permission (default: nothing) */
     fallback?: ReactNode;
     children: ReactNode;
@@ -33,10 +35,11 @@ export default function PermissionGate({
     permission,
     anyOf,
     allOf,
+    departmentId,
     fallback = null,
     children,
 }: PermissionGateProps) {
-    const { hasPermission, hasAnyPermission, isLoading } = useMyPermissions();
+    const { hasPermission, hasAnyPermission, hasScopedPermission, isLoading } = useMyPermissions();
 
     // While loading, show nothing (prevents flash of forbidden content)
     if (isLoading) return null;
@@ -44,7 +47,11 @@ export default function PermissionGate({
     let allowed = false;
 
     if (permission) {
-        allowed = hasPermission(permission);
+        if (departmentId) {
+            allowed = hasScopedPermission(permission, departmentId);
+        } else {
+            allowed = hasPermission(permission);
+        }
     } else if (anyOf && anyOf.length > 0) {
         allowed = hasAnyPermission(...anyOf);
     } else if (allOf && allOf.length > 0) {

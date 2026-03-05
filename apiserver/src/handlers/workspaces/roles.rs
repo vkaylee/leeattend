@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::Json,
 };
 use std::sync::Arc;
@@ -10,6 +10,7 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{AssignRoleRequest, MemberExtraRole};
+use crate::services::audit_service::AuditHelper;
 use crate::services::WorkspaceService;
 use crate::AppState;
 
@@ -37,6 +38,7 @@ pub async fn get_member_roles(
 pub async fn assign_extra_role(
     Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     ctx: MemberContext,
     Json(req): Json<AssignRoleRequest>,
 ) -> AppResult<(StatusCode, Json<MemberExtraRole>)> {
@@ -58,12 +60,25 @@ pub async fn assign_extra_role(
     .fetch_one(state.db.api())
     .await?;
 
+    AuditHelper::log(
+        &state.audit_repo,
+        ctx.workspace_id,
+        Some(ctx.user_id),
+        Some(user_id),
+        Some(extra_role.id),
+        "assign_extra_role",
+        Some(serde_json::json!({ "role": req.role, "expires_at": req.expires_at })),
+        &headers,
+    )
+    .await;
+
     Ok((StatusCode::CREATED, Json(extra_role)))
 }
 
 pub async fn revoke_extra_role(
-    Path((_ws_id, _user_id, role_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path((_ws_id, user_id, role_id)): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::MembersRolesManage)?;
@@ -75,6 +90,17 @@ pub async fn revoke_extra_role(
         .await?;
 
     if res.rows_affected() > 0 {
+        AuditHelper::log(
+            &state.audit_repo,
+            ctx.workspace_id,
+            Some(ctx.user_id),
+            Some(user_id),
+            Some(role_id),
+            "revoke_extra_role",
+            None,
+            &headers,
+        )
+        .await;
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound("Role not found".to_string()))

@@ -63,6 +63,8 @@ pub struct MemberContext {
     pub workspace_id: Uuid,
     pub roles: Vec<MemberRole>,
     pub permissions: HashSet<Permission>,
+    /// None = global scope (Admin/Owner/etc). Some = restricted to specific departments.
+    pub managed_department_ids: Option<HashSet<Uuid>>,
 }
 
 impl MemberContext {
@@ -84,6 +86,32 @@ impl MemberContext {
                 "Missing permission: {perm:?}"
             )))
         }
+    }
+
+    /// Check permission with department scope limitation (e.g., for TeamLead).
+    pub fn require_scoped_permission(
+        &self,
+        perm: Permission,
+        target_department_id: Option<Uuid>,
+    ) -> AppResult<()> {
+        self.require_permission(perm)?;
+
+        // Global scope
+        let allowed_depts = match &self.managed_department_ids {
+            None => return Ok(()),
+            Some(depts) => depts,
+        };
+
+        // Scoped check
+        if let Some(dept_id) = target_department_id {
+            if allowed_depts.contains(&dept_id) {
+                return Ok(());
+            }
+        }
+
+        Err(AppError::Forbidden(
+            "Permission denied: Target is outside your managed departments scope.".to_string(),
+        ))
     }
 
     /// Backward-compatible check. Prefer `has_permission()` for new code.
@@ -148,11 +176,39 @@ where
             }
         }
 
+        // 4. Determine Scope (Managed Departments)
+        let is_global_manager = roles.iter().any(|r| {
+            matches!(r, MemberRole::Owner | MemberRole::Admin | MemberRole::HrManager | MemberRole::ShiftManager)
+        });
+
+        let managed_department_ids = if is_global_manager {
+            None
+        } else {
+            // For TeamLead or normal members with extra permissions,
+            // restrict their scope to the departments they belong to.
+            let depts: Vec<(Uuid,)> = sqlx::query_as(
+                r#"
+                SELECT DISTINCT edh.department_id 
+                FROM employees e
+                JOIN employee_department_history edh ON e.id = edh.employee_id
+                WHERE e.workspace_id = $1 AND e.user_id = $2
+                "#
+            )
+            .bind(workspace_id)
+            .bind(user_id)
+            .fetch_all(app_state.db.api())
+            .await
+            .unwrap_or_default();
+
+            Some(depts.into_iter().map(|(id,)| id).collect())
+        };
+
         Ok(MemberContext {
             user_id,
             workspace_id,
             roles,
             permissions,
+            managed_department_ids,
         })
     }
 }

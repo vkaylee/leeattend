@@ -218,14 +218,14 @@ pub async fn build_roster_data(
         rule_pattern_rows,
         dept_history_rows,
     ): (_, _, _, _, _, _, _, _) = tokio::try_join!(
-        async { q1.await.map_err(|e| format!("shifts: {e}")) },
-        async { q2.await.map_err(|e| format!("fixed_assignments: {e}")) },
-        async { q3.await.map_err(|e| format!("pattern_assignments: {e}")) },
-        async { q4.await.map_err(|e| format!("dept_patterns: {e}")) },
-        async { q5.await.map_err(|e| format!("dept_fixed_shifts: {e}")) },
-        async { q6.await.map_err(|e| format!("active_rules: {e}")) },
-        async { q7.await.map_err(|e| format!("rule_patterns: {e}")) },
-        async { q8.await.map_err(|e| format!("dept_history: {e}")) },
+        async { q1.await.map_err(|e: sqlx::Error| format!("shifts: {e}")) },
+        async { q2.await.map_err(|e: sqlx::Error| format!("fixed_assignments: {e}")) },
+        async { q3.await.map_err(|e: sqlx::Error| format!("pattern_assignments: {e}")) },
+        async { q4.await.map_err(|e: sqlx::Error| format!("dept_patterns: {e}")) },
+        async { q5.await.map_err(|e: sqlx::Error| format!("dept_fixed_shifts: {e}")) },
+        async { q6.await.map_err(|e: sqlx::Error| format!("active_rules: {e}")) },
+        async { q7.await.map_err(|e: sqlx::Error| format!("rule_patterns: {e}")) },
+        async { q8.await.map_err(|e: sqlx::Error| format!("dept_history: {e}")) },
     )?;
 
     // Transform rows into lookup structures

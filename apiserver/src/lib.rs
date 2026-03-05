@@ -27,6 +27,7 @@ use crate::agent_manager::AgentManager;
 use crate::db_pool::DbPools;
 use crate::queue::RedisPool;
 use crate::repositories::{AgentRepository, WorkspaceRepository};
+use crate::repositories::audit_log_repository::AuditLogRepository;
 use crate::services::{AgentService, AttendanceLogService, ReportCoordinator};
 use axum::http::{HeaderValue, Method};
 use std::sync::Arc;
@@ -37,6 +38,7 @@ pub struct AppState {
     pub db: DbPools,
     pub agent_repo: Arc<dyn AgentRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub audit_repo: Arc<dyn AuditLogRepository>,
     pub agent_service: Arc<AgentService>,
     pub jwt_secret: String,
     pub attendance_service: Arc<AttendanceLogService>,
@@ -635,6 +637,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             "/workspaces/:ws_id/employees/:id/departments",
             get(handlers::get_employee_department_history).post(handlers::transfer_employee),
+        )
+        .route(
+            "/workspaces/:ws_id/audit-logs",
+            get(handlers::workspaces::audit::get_audit_logs),
         )
         .route(
             "/workspaces/:ws_id/shifts",

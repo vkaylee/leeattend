@@ -118,6 +118,8 @@ async fn main() {
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
     let workspace_repo =
         Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+    let audit_repo =
+        Arc::new(apiserver::repositories::audit_log_repository::SqlxAuditLogRepository { pool: pool.clone() });
     let agent_service = Arc::new(apiserver::services::AgentService::new(
         agent_repo.clone(),
         agent_manager.clone(),
@@ -185,6 +187,7 @@ async fn main() {
         db: db_pools,
         agent_repo,
         workspace_repo,
+        audit_repo,
         agent_service,
         jwt_secret,
         attendance_service,

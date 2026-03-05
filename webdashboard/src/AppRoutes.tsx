@@ -43,6 +43,7 @@ const PayrollSettings = React.lazy(() => import("./pages/settings/PayrollSetting
 const ConnectivitySettings = React.lazy(() => import("./pages/settings/ConnectivitySettings"));
 const LeaveSettings = React.lazy(() => import("./pages/settings/LeaveSettings"));
 const HolidaysPage = React.lazy(() => import("./pages/settings/HolidaysPage"));
+const AuditLogPage = React.lazy(() => import("./pages/settings/AuditLogPage"));
 
 function PageLoader() {
   return (
@@ -95,6 +96,7 @@ export function AppRoutes() {
                 <Route path="leave" element={<LeaveSettings />} />
                 <Route path="holidays" element={<HolidaysPage />} />
                 <Route path="connectivity" element={<ConnectivitySettings />} />
+                <Route path="audit-logs" element={<AuditLogPage />} />
               </Route>
 
               <Route path="profile" element={<ProfilePage />} />

@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::Json,
 };
 use serde::Deserialize;
@@ -11,6 +11,7 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{AddMemberRequest, WorkspaceMemberDetail};
+use crate::services::audit_service::AuditHelper;
 use crate::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -39,6 +40,7 @@ pub async fn get_workspace_members(
 pub async fn add_workspace_member(
     Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     ctx: MemberContext,
     Json(req): Json<AddMemberRequest>,
 ) -> AppResult<StatusCode> {
@@ -60,12 +62,25 @@ pub async fn add_workspace_member(
     .execute(state.db.api())
     .await?;
 
+    AuditHelper::log(
+        &state.audit_repo,
+        ctx.workspace_id,
+        Some(ctx.user_id),
+        Some(user_id),
+        None,
+        "add_member",
+        Some(serde_json::json!({ "role": req.role })),
+        &headers,
+    )
+    .await;
+
     Ok(StatusCode::CREATED)
 }
 
 pub async fn update_workspace_member_role(
     Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     ctx: MemberContext,
     Json(req): Json<UpdateMemberRoleRequest>,
 ) -> AppResult<StatusCode> {
@@ -77,12 +92,25 @@ pub async fn update_workspace_member_role(
         .await
         .map_err(AppError::from)?;
 
+    AuditHelper::log(
+        &state.audit_repo,
+        ctx.workspace_id,
+        Some(ctx.user_id),
+        Some(user_id),
+        None,
+        "update_member_role",
+        Some(serde_json::json!({ "new_role": req.role })),
+        &headers,
+    )
+    .await;
+
     Ok(StatusCode::OK)
 }
 
 pub async fn remove_workspace_member(
     Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::MembersRemove)?;
@@ -99,6 +127,18 @@ pub async fn remove_workspace_member(
         .remove_member(ctx.workspace_id, user_id)
         .await
         .map_err(AppError::from)?;
+
+    AuditHelper::log(
+        &state.audit_repo,
+        ctx.workspace_id,
+        Some(ctx.user_id),
+        Some(user_id),
+        None,
+        "remove_member",
+        None,
+        &headers,
+    )
+    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }

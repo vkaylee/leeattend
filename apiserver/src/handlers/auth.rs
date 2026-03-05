@@ -289,6 +289,7 @@ pub async fn get_my_permissions(
     Ok(Json(serde_json::json!({
         "permissions": permissions,
         "roles": roles,
+        "managed_department_ids": ctx.managed_department_ids,
     })))
 }
 

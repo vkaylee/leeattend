@@ -242,6 +242,19 @@ export interface AttendanceSummary {
   total_leave_days: number;
 }
 
+export interface AuditLog {
+  id: string;
+  workspace_id: string;
+  actor_id?: string;
+  target_user_id?: string;
+  target_resource_id?: string;
+  action: string;
+  details?: Record<string, any>;
+  ip_address?: string;
+  user_agent?: string;
+  created_at: string;
+}
+
 export interface Holiday {
   id: string;
   workspace_id: string;

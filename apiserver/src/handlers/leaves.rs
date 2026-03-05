@@ -49,7 +49,18 @@ pub async fn approve_leave_request(
     ctx: MemberContext,
     Json(req): Json<ApproveLeaveRequest>,
 ) -> AppResult<StatusCode> {
-    ctx.require_permission(Permission::LeaveRequestsApprove)?;
+    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
+        r#"
+        SELECT edh.department_id 
+        FROM leave_requests lr
+        JOIN employee_department_history edh ON lr.employee_id = edh.employee_id
+        WHERE lr.id = $1 
+        ORDER BY edh.effective_date DESC 
+        LIMIT 1
+        "#
+    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+
+    ctx.require_scoped_permission(Permission::LeaveRequestsApprove, target_dept_id)?;
     crate::services::leave_service::LeaveService::approve_leave_request(
         state.db.api(),
         ctx.workspace_id,

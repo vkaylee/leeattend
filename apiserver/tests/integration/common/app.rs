@@ -40,6 +40,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         redis: None,
         coordinator: None,
         roster_cache: None,
+        audit_repo: Arc::new(apiserver::repositories::SqlxAuditLogRepository { pool: pool.clone() }),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -94,6 +95,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         redis: None,
         coordinator: None,
         roster_cache: None,
+        audit_repo: Arc::new(apiserver::repositories::SqlxAuditLogRepository { pool: db_pool.clone() }),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -161,6 +163,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         redis: None,
         coordinator: None,
         roster_cache: None,
+        audit_repo: Arc::new(apiserver::repositories::SqlxAuditLogRepository { pool: pool.clone() }),
     });
 
     let app = apiserver::create_app(app_state.clone());

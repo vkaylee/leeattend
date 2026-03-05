@@ -23,3 +23,5 @@ pub mod attendance_log_error_repository;
 pub mod leave_policy_repository;
 pub mod overtime_policy_repository;
 pub mod staging_log_repository;
+pub mod audit_log_repository;
+pub use audit_log_repository::{AuditLogRepository, SqlxAuditLogRepository};

@@ -58,6 +58,12 @@ export default function SettingsLayout() {
       label: t("settings.categories.connectivity"),
       icon: <Cpu className="w-4 h-4" />,
       description: t("settings.categories.connectivity_desc")
+    },
+    {
+      path: "/workspace/settings/audit-logs",
+      label: "Audit Logs",
+      icon: <ShieldCheck className="w-4 h-4" />,
+      description: "View application security audit logs"
     }
   ];
 
@@ -82,8 +88,8 @@ export default function SettingsLayout() {
                 key={item.path}
                 to={item.path}
                 className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${isActive(item.path)
-                    ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm shadow-primary-100/50"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
+                  ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm shadow-primary-100/50"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
                   }`}
               >
                 <div className={`p-2 rounded-xl transition-colors ${isActive(item.path) ? "bg-white dark:bg-slate-900 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:hover:bg-slate-900"
