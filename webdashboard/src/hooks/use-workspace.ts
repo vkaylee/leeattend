@@ -10,6 +10,10 @@ import {
   fetchMemberRoles,
   assignExtraRole,
   revokeExtraRole,
+  fetchMemberPermissions,
+  assignExtraPermission,
+  revokeExtraPermission,
+  fetchAvailablePermissions,
   getCurrentWorkspaceId,
 } from "@/lib/api";
 
@@ -18,6 +22,10 @@ export const workspaceKeys = {
   members: (wsId: string) => ["workspaces", wsId, "members"] as const,
   roles: (wsId: string, userId: string) =>
     ["workspaces", wsId, "members", userId, "roles"] as const,
+  permissions: (wsId: string, userId: string) =>
+    ["workspaces", wsId, "members", userId, "permissions"] as const,
+  availablePermissions: (wsId: string) =>
+    ["workspaces", wsId, "permissions", "available"] as const,
 };
 
 export function useWorkspaces() {
@@ -147,5 +155,52 @@ export function useMemberRoles(userId: string, wsId?: string) {
     updatePrimaryRole: updatePrimaryRoleMutation.mutateAsync,
     assignRole: assignRoleMutation.mutateAsync,
     revokeRole: revokeRoleMutation.mutateAsync,
+  };
+}
+
+export function useMemberPermissions(userId: string, wsId?: string) {
+  const queryClient = useQueryClient();
+  const activeWsId = wsId || getCurrentWorkspaceId();
+
+  const permissionsQuery = useQuery({
+    queryKey: workspaceKeys.permissions(activeWsId || "", userId),
+    queryFn: () => fetchMemberPermissions(activeWsId!, userId),
+    enabled: !!activeWsId && !!userId,
+  });
+
+  const availableQuery = useQuery({
+    queryKey: workspaceKeys.availablePermissions(activeWsId || ""),
+    queryFn: () => fetchAvailablePermissions(activeWsId!),
+    enabled: !!activeWsId,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: ({ permission, expiresAt }: { permission: string; expiresAt: string }) =>
+      assignExtraPermission(activeWsId!, userId, permission, expiresAt),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.permissions(activeWsId!, userId),
+      });
+    },
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (permId: string) =>
+      revokeExtraPermission(activeWsId!, userId, permId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.permissions(activeWsId!, userId),
+      });
+    },
+  });
+
+  return {
+    permissions: permissionsQuery.data ?? [],
+    available: availableQuery.data ?? [],
+    isLoading: permissionsQuery.isLoading,
+    assignPermission: assignMutation.mutateAsync,
+    isAssigning: assignMutation.isPending,
+    revokePermission: revokeMutation.mutateAsync,
+    isRevoking: revokeMutation.isPending,
   };
 }

@@ -5,12 +5,14 @@ import {
   Shield,
   Trash2,
   UserCog,
+  KeyRound,
   Mail,
   User as UserIcon,
 } from "lucide-react";
 import { WorkspaceMember } from "@/lib/api";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import RoleManagementModal from "@/components/features/settings/RoleManagementModal";
+import PermissionManagementModal from "@/components/features/settings/PermissionManagementModal";
 import { cn } from "@/lib/utils";
 
 export default function MemberTable() {
@@ -18,8 +20,10 @@ export default function MemberTable() {
   const { members, isLoading, removeMember } = useWorkspaceMembers();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isPermModalOpen, setIsPermModalOpen] = useState(false);
 
   const handleManageRoles = (userId: string) => { setSelectedUserId(userId); setIsRoleModalOpen(true); };
+  const handleManagePermissions = (userId: string) => { setSelectedUserId(userId); setIsPermModalOpen(true); };
   const handleRemoveMember = async (userId: string) => { if (!confirm(t("members.table.confirm_remove"))) return; try { await removeMember(userId); } catch (e: any) { console.error(e); } };
 
   if (isLoading) return <div className="flex justify-center py-32"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent shadow-xl"></div></div>;
@@ -57,10 +61,10 @@ export default function MemberTable() {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <span className={cn("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", 
-                      member.role === "owner" ? "bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 border-purple-100" : 
-                      member.role === "admin" ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800" : 
-                      "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800"
+                    <span className={cn("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
+                      member.role === "owner" ? "bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 border-purple-100" :
+                        member.role === "admin" ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800" :
+                          "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800"
                     )}>
                       {member.role === "owner" && <Shield size={10} />}
                       {member.role.toUpperCase()}
@@ -69,6 +73,7 @@ export default function MemberTable() {
                   <td className="px-10 py-6 text-right">
                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                       <button onClick={() => handleManageRoles(member.user_id)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("members.table.manage_roles")}><UserCog size={20} /></button>
+                      <button onClick={() => handleManagePermissions(member.user_id)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })}><KeyRound size={20} /></button>
                       {member.role !== "owner" && (
                         <button onClick={() => handleRemoveMember(member.user_id)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("members.table.remove_member")}><Trash2 size={20} /></button>
                       )}
@@ -89,7 +94,10 @@ export default function MemberTable() {
       </div>
 
       {selectedUserId && (
-        <RoleManagementModal isOpen={isRoleModalOpen} onClose={() => setIsRoleModalOpen(false)} userId={selectedUserId} />
+        <>
+          <RoleManagementModal isOpen={isRoleModalOpen} onClose={() => setIsRoleModalOpen(false)} userId={selectedUserId} />
+          <PermissionManagementModal isOpen={isPermModalOpen} onClose={() => setIsPermModalOpen(false)} userId={selectedUserId} />
+        </>
       )}
     </>
   );

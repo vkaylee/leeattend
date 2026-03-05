@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole } from "./types";
+import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission } from "./types";
 
 export async function fetchWorkspaces(): Promise<Workspace[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces`);
@@ -143,4 +143,61 @@ export async function clearWorkspaceData(wsId: string, group: string): Promise<v
     const error = await response.text();
     throw new Error(error || "Failed to clear workspace data");
   }
+}
+
+// --- Extra Permissions ---
+
+export async function fetchMemberPermissions(
+  wsId: string,
+  userId: string,
+): Promise<MemberExtraPermission[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/members/${userId}/permissions`,
+  );
+  if (!response.ok) throw new Error("Failed to fetch member permissions");
+  return response.json();
+}
+
+export async function assignExtraPermission(
+  wsId: string,
+  userId: string,
+  permission: string,
+  expiresAt: string,
+): Promise<MemberExtraPermission> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/members/${userId}/permissions`,
+    {
+      method: "POST",
+      body: JSON.stringify({ permission, expires_at: expiresAt }),
+    },
+  );
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to assign permission");
+  }
+  return response.json();
+}
+
+export async function revokeExtraPermission(
+  wsId: string,
+  userId: string,
+  permId: string,
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/members/${userId}/permissions/${permId}`,
+    {
+      method: "DELETE",
+    },
+  );
+  if (!response.ok) throw new Error("Failed to revoke permission");
+}
+
+export async function fetchAvailablePermissions(
+  wsId: string,
+): Promise<string[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/permissions/available`,
+  );
+  if (!response.ok) throw new Error("Failed to fetch available permissions");
+  return response.json();
 }

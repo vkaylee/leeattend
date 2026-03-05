@@ -566,6 +566,16 @@ export interface MemberExtraRole {
   expires_at: string;
 }
 
+export interface MemberExtraPermission {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  permission: string;
+  assigned_at: string | null;
+  expires_at: string;
+  assigned_by: string | null;
+}
+
 export interface EmploymentPeriod {
   id: string;
   employee_id: string;
