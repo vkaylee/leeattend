@@ -52,6 +52,10 @@ impl Worker for MockWorker {
             "last_sync": Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
         }))
     }
+
+    async fn disconnect(&mut self) {
+        // No-op for mock workers — no real connection to release
+    }
 }
 
 #[cfg(test)]

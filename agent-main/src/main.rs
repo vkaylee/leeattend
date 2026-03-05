@@ -323,22 +323,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
 
-                    if let Ok(info) = worker_impl.get_info().await
-                        && let Some(obj) = info.as_object() {
-                            let _ = hybrid_db.store().update_device_metadata(
-                                &worker.id,
-                                obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
-                            );
+                    match worker_impl.get_info().await {
+                        Ok(info) => {
+                            if let Some(obj) = info.as_object() {
+                                let _ = hybrid_db.store().update_device_metadata(
+                                    &worker.id,
+                                    obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                    obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                    obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                    obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                    obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
+                                );
+                            }
                         }
+                        Err(e) => {
+                            warn!("[{}] Initial get_info failed: {}, disconnecting and retrying...", worker.name, e);
+                            worker_impl.disconnect().await;
+                            retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
+                            continue;
+                        }
+                    }
 
                     let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
                     const SEEN_LOGS_CAP: usize = 50_000;
@@ -357,27 +366,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         poll_count += 1;
 
-                        if poll_count % 5 == 1 && let Ok(mut info) = worker_impl.get_info().await {
-                                if let Some(obj) = info.as_object() {
-                                    let _ = hybrid_db.store().update_device_metadata(
-                                        &worker.id,
-                                        obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                        obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                        obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                        obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                        obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                        obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                        obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                        obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                        obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                        obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
-                                    );
-                                }
+                        if poll_count % 5 == 1 {
+                            match worker_impl.get_info().await {
+                                Ok(mut info) => {
+                                    if let Some(obj) = info.as_object() {
+                                        let _ = hybrid_db.store().update_device_metadata(
+                                            &worker.id,
+                                            obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                            obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                            obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                            obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                            obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                            obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                            obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                            obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                            obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                            obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
+                                        );
+                                    }
 
-                                if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&worker.id) {
-                                    info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
-                                    info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                                    if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&worker.id) {
+                                        info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
+                                        info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                                    }
                                 }
+                                Err(e) => {
+                                    error!("[{}] Periodic get_info failed: {}, disconnecting...", worker.name, e);
+                                    worker_impl.disconnect().await;
+                                    break;
+                                }
+                            }
                         }
 
                         // TTL skip: if cooldown is active after a successful fetch, skip this poll cycle
@@ -450,7 +468,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                             }
                             Err(e) => {
-                                error!("[{}] Polling error: {}", worker.name, e);
+                                error!("[{}] Polling error: {}, disconnecting...", worker.name, e);
+                                worker_impl.disconnect().await;
                                 break;
                             }
                         }
