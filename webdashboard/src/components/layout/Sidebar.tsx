@@ -43,7 +43,8 @@ import {
   TimerIcon,
   DollarSign,
   UserCog,
-  Activity
+  Activity,
+  Palmtree
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -96,7 +97,9 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
         { to: "/workspace/settings/time", icon: TimerIcon, label: t("settings.categories.time"), testId: "sidebar-link-settings-time" },
         { to: "/workspace/settings/payroll", icon: Banknote, label: t("settings.categories.payroll"), testId: "sidebar-link-settings-payroll" },
         { to: "/workspace/settings/leave", icon: CalendarDays, label: t("settings.categories.leave"), testId: "sidebar-link-settings-leave" },
-        { to: "/workspace/settings/connectivity", icon: Share2, label: t("settings.categories.connectivity"), testId: "sidebar-link-settings-connectivity" }
+        { to: "/workspace/settings/holidays", icon: Palmtree, label: "Holidays", testId: "sidebar-link-settings-holidays" },
+        { to: "/workspace/settings/connectivity", icon: Share2, label: t("settings.categories.connectivity"), testId: "sidebar-link-settings-connectivity" },
+        { to: "/workspace/settings/audit-logs", icon: ShieldCheck, label: "Audit Logs", testId: "sidebar-link-settings-audit-logs" }
       ]
     },
     {

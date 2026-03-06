@@ -10,7 +10,6 @@ use crate::domain::audit::AuditLog;
 use crate::domain::permissions::Permission;
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
-use crate::models::PaginationParams;
 use crate::AppState;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -21,11 +20,20 @@ pub struct PaginatedAuditLogs {
     pub limit: i64,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct AuditLogQueryParams {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+    pub action: Option<String>,
+    pub start_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub end_date: Option<chrono::DateTime<chrono::Utc>>,
+}
+
 pub async fn get_audit_logs(
     Path(ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Query(params): Query<PaginationParams>,
+    Query(params): Query<AuditLogQueryParams>,
 ) -> AppResult<Json<PaginatedAuditLogs>> {
     // Only admins or those with specific permission should see audit logs.
     // Let's reuse MembersRolesManage or we can just require admin via specific logic.
@@ -37,7 +45,7 @@ pub async fn get_audit_logs(
 
     let (logs, total) = state
         .audit_repo
-        .find_by_workspace(ws_id, limit, offset)
+        .find_by_workspace(ws_id, limit, offset, params.action, params.start_date, params.end_date)
         .await?;
 
     Ok(Json(PaginatedAuditLogs {

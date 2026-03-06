@@ -7,6 +7,19 @@ import React, { Suspense } from "react";
 import i18n from "../../i18n/config";
 
 // Mock all hooks needed by pages
+vi.mock("@/hooks/use-permissions", () => ({
+    useMyPermissions: () => ({
+        roles: ["Admin"],
+        permissions: ["employees:read", "employees:create", "employees:update", "employees:delete"],
+        managedDepartmentIds: null,
+        isLoading: false,
+        hasPermission: () => true,
+        hasAnyPermission: () => true,
+        hasRole: () => true,
+        hasScopedPermission: () => true,
+    }),
+}));
+
 vi.mock("@/hooks/use-profile", () => ({
     useProfile: () => ({
         user: { id: "test-user", email: "test@example.com", full_name: "Test User", preferred_language: "en" },

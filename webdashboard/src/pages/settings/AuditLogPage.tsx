@@ -17,9 +17,19 @@ export default function AuditLogPage() {
     const [page, setPage] = useState(1);
     const limit = 20;
 
+    const [actionFilter, setActionFilter] = useState("");
+    const [startDateFilter, setStartDateFilter] = useState("");
+    const [endDateFilter, setEndDateFilter] = useState("");
+
     const { data, isLoading, isError } = useQuery({
-        queryKey: ["audit_logs", workspaceId, page],
-        queryFn: () => fetchAuditLogs(workspaceId!, { page, limit }),
+        queryKey: ["audit_logs", workspaceId, page, actionFilter, startDateFilter, endDateFilter],
+        queryFn: () => fetchAuditLogs(workspaceId!, {
+            page,
+            limit,
+            action: actionFilter || undefined,
+            startDate: startDateFilter ? new Date(startDateFilter).toISOString() : undefined,
+            endDate: endDateFilter ? new Date(endDateFilter).toISOString() : undefined,
+        }),
         enabled: !!workspaceId,
     });
 
@@ -47,9 +57,53 @@ export default function AuditLogPage() {
             </div>
 
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-slate-400" />
-                    <h3 className="font-medium text-slate-900 dark:text-white">Security Events</h3>
+                <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <Activity className="h-5 w-5 text-slate-400" />
+                        <h3 className="font-medium text-slate-900 dark:text-white">Security Events</h3>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <select
+                            value={actionFilter}
+                            onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
+                            className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                            <option value="">All Actions</option>
+                            <optgroup label="User & Auth">
+                                <option value="user_login">User Login</option>
+                                <option value="user_create">User Create</option>
+                                <option value="user_update">User Update</option>
+                                <option value="user_delete">User Delete</option>
+                            </optgroup>
+                            <optgroup label="Roles & Permissions">
+                                <option value="role_assign">Role Assign</option>
+                                <option value="role_revoke">Role Revoke</option>
+                                <option value="permission_override_set">Permission Set</option>
+                            </optgroup>
+                            <optgroup label="Domain">
+                                <option value="leave_request_create">Leave Request Create</option>
+                                <option value="leave_request_approve">Leave Request Approve</option>
+                                <option value="attendance_log_create">Attendance Log Create</option>
+                                <option value="shift_swap_request">Shift Swap Request</option>
+                            </optgroup>
+                        </select>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="date"
+                                value={startDateFilter}
+                                onChange={(e) => { setStartDateFilter(e.target.value); setPage(1); }}
+                                className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                            <span className="text-slate-400">-</span>
+                            <input
+                                type="date"
+                                value={endDateFilter}
+                                onChange={(e) => { setEndDateFilter(e.target.value); setPage(1); }}
+                                className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">

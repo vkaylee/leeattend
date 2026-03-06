@@ -13,6 +13,9 @@ pub trait AuditLogRepository: Send + Sync {
         workspace_id: Uuid,
         limit: i64,
         offset: i64,
+        action: Option<String>,
+        start_date: Option<chrono::DateTime<chrono::Utc>>,
+        end_date: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<(Vec<AuditLog>, i64), sqlx::Error>;
 }
 
@@ -51,31 +54,51 @@ impl AuditLogRepository for SqlxAuditLogRepository {
         workspace_id: Uuid,
         limit: i64,
         offset: i64,
+        action: Option<String>,
+        start_date: Option<chrono::DateTime<chrono::Utc>>,
+        end_date: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<(Vec<AuditLog>, i64), sqlx::Error> {
-        let count_query = sqlx::query_scalar!(
-            r#"
-            SELECT count(*) FROM audit_logs
-            WHERE workspace_id = $1
-            "#,
-            workspace_id
-        );
-        let count = count_query.fetch_one(&self.pool).await?.unwrap_or(0);
+        let mut count_qb: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new("SELECT count(*) FROM audit_logs WHERE workspace_id = ");
+        count_qb.push_bind(workspace_id);
 
-        let logs = sqlx::query_as!(
-            AuditLog,
-            r#"
-            SELECT id, workspace_id, actor_id, target_user_id, target_resource_id, action, details, ip_address, user_agent, created_at
-            FROM audit_logs
-            WHERE workspace_id = $1
-            ORDER BY created_at DESC
-            LIMIT $2 OFFSET $3
-            "#,
-            workspace_id,
-            limit,
-            offset
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        if let Some(ref a) = action {
+            count_qb.push(" AND action = ");
+            count_qb.push_bind(a);
+        }
+        if let Some(ref sd) = start_date {
+            count_qb.push(" AND created_at >= ");
+            count_qb.push_bind(sd);
+        }
+        if let Some(ref ed) = end_date {
+            count_qb.push(" AND created_at <= ");
+            count_qb.push_bind(ed);
+        }
+
+        let count: Option<i64> = count_qb.build_query_scalar().fetch_one(&self.pool).await?;
+        let count = count.unwrap_or(0);
+
+        let mut qb: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new("SELECT id, workspace_id, actor_id, target_user_id, target_resource_id, action, details, ip_address, user_agent, created_at FROM audit_logs WHERE workspace_id = ");
+        qb.push_bind(workspace_id);
+
+        if let Some(ref a) = action {
+            qb.push(" AND action = ");
+            qb.push_bind(a);
+        }
+        if let Some(ref sd) = start_date {
+            qb.push(" AND created_at >= ");
+            qb.push_bind(sd);
+        }
+        if let Some(ref ed) = end_date {
+            qb.push(" AND created_at <= ");
+            qb.push_bind(ed);
+        }
+
+        qb.push(" ORDER BY created_at DESC LIMIT ");
+        qb.push_bind(limit);
+        qb.push(" OFFSET ");
+        qb.push_bind(offset);
+
+        let logs = qb.build_query_as::<AuditLog>().fetch_all(&self.pool).await?;
 
         Ok((logs, count))
     }
