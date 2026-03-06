@@ -2,16 +2,17 @@ mod cli;
 
 use std::sync::Arc;
 use std::time::Instant;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use tokio::time::{sleep, Duration};
 use agent::hybrid_database::HybridDatabase;
 use agent::models;
+use agent::worker_processor::WorkerConfig;
 use agent::retry::{get_sidecar_retry_delay, SIDECAR_MAX_RETRY_COUNT, SIDECAR_STABILITY_THRESHOLD_SECS};
 use agent::crash_recovery::{CrashMarker, recover_from_crash};
 use agent::adaptive_polling::AdaptivePollingState;
 use serde_json::json;
-use log::{info, error, warn};
+use log::{debug, info, error, warn};
 use rand::Rng;
 use tokio_util::sync::CancellationToken;
 use tokio::sync::{mpsc, Semaphore};
@@ -21,14 +22,237 @@ use agent::zk_worker;
 use agent::mock_worker;
 use agent::central_client::connection::DeviceLocks;
 
-#[derive(Clone)]
-struct WorkerConfig {
-    id: Arc<String>,
-    name: String,
-    brand: String,
-    ip: String,
-    port: u32,
-    password: Option<u32>,
+/// Spawn a single device polling worker with its own cancellation token.
+/// The worker connects, polls attendance logs, and sends them to log_tx.
+/// On cancellation, it gracefully disconnects from the device.
+fn spawn_worker(
+    config: WorkerConfig,
+    log_tx: mpsc::Sender<(Arc<String>, models::AttendanceData)>,
+    hybrid_db: HybridDatabase,
+    sem: Arc<Semaphore>,
+    success_skip_polls: u32,
+    device_locks: DeviceLocks,
+    token: CancellationToken,
+) {
+    let worker_id = Arc::new(config.id.clone());
+
+    tokio::spawn(async move {
+        info!("[{}] Device Polling Loop started ({})", config.name, config.ip);
+
+        // Stagger startup: random delay 0-2s per worker to prevent thundering herd
+        let stagger = Duration::from_millis(rand::thread_rng().gen_range(0..2000));
+        debug!("[{}] Stagger delay: {:?}", config.name, stagger);
+        sleep(stagger).await;
+
+        let mut retry_count: u32 = 0;
+        #[allow(unused_assignments)]
+        let mut stable_since: Option<Instant> = None;
+
+        while !token.is_cancelled() {
+            if retry_count > 0 {
+                let delay = get_sidecar_retry_delay(retry_count);
+                warn!("[{}] Retry {}/{}, waiting {:?}...", config.name, retry_count, SIDECAR_MAX_RETRY_COUNT, delay);
+                sleep(delay).await;
+            }
+
+            // Acquire semaphore BEFORE connecting to limit concurrent device access.
+            let _connect_permit = match sem.acquire().await {
+                Ok(p) => p,
+                Err(_) => {
+                    error!("[{}] Semaphore closed during connect phase, stopping worker", config.name);
+                    return;
+                }
+            };
+
+            let mut worker_impl: Box<dyn Worker> = if config.brand == "mock" {
+                Box::new(mock_worker::MockWorker::new())
+            } else {
+                Box::new(zk_worker::ZkWorker::new(config.password))
+            };
+
+            info!("[{}] Worker ready (permit acquired).", config.name);
+            stable_since = Some(Instant::now());
+
+            if let Err(e) = worker_impl.connect(&config.ip, config.port as u16).await {
+                error!("[{}] Device connection failed: {}", config.name, e);
+                drop(_connect_permit);
+                retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
+                continue;
+            }
+
+            match worker_impl.get_info().await {
+                Ok(info) => {
+                    if let Some(obj) = info.as_object() {
+                        let _ = hybrid_db.store().update_device_metadata(
+                            &config.id,
+                            obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                            obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                            obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                            obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                            obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                            obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                            obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                            obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                            obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                            obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
+                        );
+                    }
+                }
+                Err(e) => {
+                    warn!("[{}] Initial get_info failed: {}, disconnecting and retrying...", config.name, e);
+                    worker_impl.disconnect().await;
+                    drop(_connect_permit);
+                    retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
+                    continue;
+                }
+            }
+
+            // Connection + initial get_info succeeded — release connect permit.
+            drop(_connect_permit);
+
+            let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
+            const SEEN_LOGS_CAP: usize = 50_000;
+
+            let mut polling_state = AdaptivePollingState::with_skip_polls(success_skip_polls);
+            let mut poll_count = 0;
+
+            while !token.is_cancelled() {
+                let _permit = match sem.acquire().await {
+                    Ok(p) => p,
+                    Err(_) => {
+                        error!("[{}] Semaphore closed, stopping worker", config.name);
+                        return;
+                    }
+                };
+
+                let device_lock = device_locks.entry(config.id.clone())
+                    .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+                    .clone();
+                let _device_guard = device_lock.lock().await;
+
+                poll_count += 1;
+
+                if poll_count % 5 == 1 {
+                    match worker_impl.get_info().await {
+                        Ok(mut info) => {
+                            if let Some(obj) = info.as_object() {
+                                let _ = hybrid_db.store().update_device_metadata(
+                                    &config.id,
+                                    obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                    obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                    obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                    obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                    obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                    obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
+                                );
+                            }
+
+                            if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&config.id) {
+                                info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
+                                info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                            }
+                        }
+                        Err(e) => {
+                            error!("[{}] Periodic get_info failed: {}, disconnecting...", config.name, e);
+                            break;
+                        }
+                    }
+                }
+
+                // TTL skip: if cooldown is active after a successful fetch, skip this poll cycle
+                if polling_state.should_skip() {
+                    debug!("[{}] Skipping poll (cooldown: {} remaining) [interval: {}s]",
+                          config.name, polling_state.skip_remaining, polling_state.interval());
+                    drop(_permit);
+                    sleep(Duration::from_secs(polling_state.interval())).await;
+                    continue;
+                }
+
+                match worker_impl.get_attendance_logs().await {
+                    Ok(logs_vec) => {
+                        if let Some(since) = stable_since
+                            && since.elapsed() >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS) && retry_count > 0 {
+                                info!("[{}] Connection stable for {}s, resetting retry count", config.name, SIDECAR_STABILITY_THRESHOLD_SECS);
+                                retry_count = 0;
+                            }
+
+                        let mut new_count = 0;
+                        {
+                            let fetched_count = logs_vec.len();
+                            let mut duplicate_count = 0;
+
+                            let _ = hybrid_db.store().update_device_counts(&config.id, -1, fetched_count as i64);
+
+                            #[allow(unused_variables)]
+                            let mut quick_info = json!({
+                                "logs_count": fetched_count,
+                            });
+                            if let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&config.id) {
+                                quick_info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                                if let Some(mac) = meta.mac { quick_info["mac"] = json!(mac); }
+                            }
+
+                            if !logs_vec.is_empty() {
+                                for attendance in logs_vec {
+                                    let mut hasher = rustc_hash::FxHasher::default();
+                                    attendance.user_id.hash(&mut hasher);
+                                    attendance.timestamp.hash(&mut hasher);
+                                    let key = hasher.finish();
+
+                                    if seen_logs.insert(key) {
+                                        let _ = log_tx.send((worker_id.clone(), attendance)).await;
+                                        new_count += 1;
+                                    } else {
+                                        duplicate_count += 1;
+                                    }
+                                }
+
+                                if seen_logs.len() > SEEN_LOGS_CAP {
+                                    seen_logs.clear();
+                                    seen_logs.shrink_to(16_000);
+                                    info!("[{}] Cleared seen_logs cache (>{} entries)", config.name, SEEN_LOGS_CAP);
+                                }
+
+                                if duplicate_count > 0 {
+                                    info!("[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
+                                            config.name, fetched_count, new_count, duplicate_count, polling_state.interval());
+                                } else {
+                                    info!("[{}] Fetched {} logs [interval: {}s]", config.name, fetched_count, polling_state.interval());
+                                }
+                            }
+                        }
+
+                        let (new_interval, changed) = polling_state.update(new_count > 0);
+                        if changed && new_count == 0 {
+                            debug!("[{}] No new data for {} polls, increasing interval: {}s",
+                                  config.name, polling_state.consecutive_no_new_data, new_interval);
+                        }
+                    }
+                    Err(e) => {
+                        error!("[{}] Polling error: {}, disconnecting...", config.name, e);
+                        break;
+                    }
+                }
+
+                drop(_permit);
+                sleep(Duration::from_secs(polling_state.interval())).await;
+            }
+
+            // Graceful disconnect — always, whether error or cancellation
+            worker_impl.disconnect().await;
+
+            if !token.is_cancelled() {
+                warn!("[{}] Sidecar connection lost, restarting...", config.name);
+                retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
+            }
+        }
+
+        info!("[{}] Worker stopped", config.name);
+    });
 }
 
 #[tokio::main]
@@ -82,10 +306,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cloned_token = cancel_token.clone();
 
     tokio::spawn(async move {
-        if tokio::signal::ctrl_c().await.is_ok() {
-            info!("Shutdown signal received (Ctrl+C).");
-            cloned_token.cancel();
+        let mut sigterm = tokio::signal::unix::signal(
+            tokio::signal::unix::SignalKind::terminate(),
+        ).expect("Failed to register SIGTERM handler");
+
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {
+                info!("Shutdown signal received (SIGINT).");
+            }
+            _ = sigterm.recv() => {
+                info!("Shutdown signal received (SIGTERM).");
+            }
         }
+        cloned_token.cancel();
     });
 
     let config = agent::config::Config::load();
@@ -253,291 +486,131 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    while !cancel_token.is_cancelled() {
-        let semaphore = Arc::new(Semaphore::new(current_max_workers));
+    // --- Worker Registry: per-device CancellationToken for differential reload ---
+    let mut semaphore = Arc::new(Semaphore::new(current_max_workers));
+    let mut worker_registry: HashMap<String, (WorkerConfig, CancellationToken)> = HashMap::new();
 
-        let db_devices = match hybrid_db.store().get_active_devices() {
-            Ok(devices) => devices,
-            Err(e) => {
-                error!("Failed to load devices from DB: {e}");
-                sleep(Duration::from_secs(10)).await;
-                continue;
-            }
-        };
-
-        if db_devices.is_empty() {
-            warn!("No active devices found in database. Waiting for config push...");
-        } else {
-            info!("📡 Found {} devices, max {} concurrent workers", db_devices.len(), current_max_workers);
+    // Helper: build WorkerConfig from StoredDevice
+    fn to_worker_config(d: &agent::redb_store::StoredDevice) -> WorkerConfig {
+        WorkerConfig {
+            id: d.id.clone(),
+            name: d.name.clone(),
+            brand: d.brand.clone(),
+            ip: d.ip.clone(),
+            port: d.port as u32,
+            password: d.password.as_ref().and_then(|p| p.parse::<u32>().ok()),
         }
+    }
 
-        // Runtime optimization: Load signatures for active devices
-        for d in &db_devices {
-            if let Err(e) = hybrid_db.load_device_memory(&d.id) {
-                error!("Failed to load memory for device {}: {}", d.id, e);
+    // Initial device load
+    match hybrid_db.store().get_active_devices() {
+        Ok(devices) => {
+            if devices.is_empty() {
+                warn!("No active devices found in database. Waiting for config push...");
+            } else {
+                info!("📡 Found {} devices, max {} concurrent workers", devices.len(), current_max_workers);
+            }
+            for d in &devices {
+                let wc = to_worker_config(d);
+                let token = CancellationToken::new();
+                spawn_worker(wc.clone(), log_tx.clone(), hybrid_db.clone(), semaphore.clone(), config.success_skip_polls, device_locks.clone(), token.clone());
+                worker_registry.insert(d.id.clone(), (wc, token));
             }
         }
-
-        let workers: Vec<WorkerConfig> = db_devices.into_iter().map(|d| {
-            WorkerConfig {
-                id: Arc::new(d.id.clone()),
-                name: d.name,
-                brand: d.brand,
-                ip: d.ip,
-                port: d.port as u32,
-                password: d.password.and_then(|p| p.parse::<u32>().ok()),
-            }
-        }).collect();
-
-        let worker_cancel_token = CancellationToken::new();
-
-        for worker in workers {
-            let log_tx = log_tx.clone();
-            let hybrid_db = hybrid_db.clone();
-            let token = worker_cancel_token.clone();
-            let sem = semaphore.clone();
-            let success_skip_polls = config.success_skip_polls;
-            let device_locks = device_locks.clone();
-
-            tokio::spawn(async move {
-                info!("[{}] Device Polling Loop started ({})", worker.name, worker.ip);
-
-                // Stagger startup: random delay 0-2s per worker to prevent thundering herd
-                let stagger = Duration::from_millis(rand::thread_rng().gen_range(0..2000));
-                info!("[{}] Stagger delay: {:?}", worker.name, stagger);
-                sleep(stagger).await;
-
-                let mut retry_count: u32 = 0;
-                #[allow(unused_assignments)]
-                let mut stable_since: Option<Instant> = None;
-
-                while !token.is_cancelled() {
-                    if retry_count > 0 {
-                        let delay = get_sidecar_retry_delay(retry_count);
-                        warn!("[{}] Retry {}/{}, waiting {:?}...", worker.name, retry_count, SIDECAR_MAX_RETRY_COUNT, delay);
-                        sleep(delay).await;
-                    }
-
-                    // Acquire semaphore BEFORE connecting to limit concurrent device access.
-                    // This prevents overwhelming weak ZK devices with simultaneous TCP connections.
-                    let _connect_permit = match sem.acquire().await {
-                        Ok(p) => p,
-                        Err(_) => {
-                            error!("[{}] Semaphore closed during connect phase, stopping worker", worker.name);
-                            return;
-                        }
-                    };
-
-                    let mut worker_impl: Box<dyn Worker> = if worker.brand == "mock" {
-                        Box::new(mock_worker::MockWorker::new())
-                    } else {
-                        Box::new(zk_worker::ZkWorker::new(worker.password))
-                    };
-
-                    info!("[{}] Worker ready (permit acquired).", worker.name);
-                    stable_since = Some(Instant::now());
-
-                    if let Err(e) = worker_impl.connect(&worker.ip, worker.port as u16).await {
-                        error!("[{}] Device connection failed: {}", worker.name, e);
-                        drop(_connect_permit); // Release permit on connection failure
-                        retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                        continue;
-                    }
-
-                    match worker_impl.get_info().await {
-                        Ok(info) => {
-                            if let Some(obj) = info.as_object() {
-                                let _ = hybrid_db.store().update_device_metadata(
-                                    &worker.id,
-                                    obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
-                                );
-                            }
-                        }
-                        Err(e) => {
-                            warn!("[{}] Initial get_info failed: {}, disconnecting and retrying...", worker.name, e);
-                            worker_impl.disconnect().await;
-                            drop(_connect_permit); // Release permit on get_info failure
-                            retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                            continue;
-                        }
-                    }
-
-                    // Connection + initial get_info succeeded — release connect permit.
-                    // The polling semaphore below will control ongoing device access.
-                    drop(_connect_permit);
-
-                    let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
-                    const SEEN_LOGS_CAP: usize = 50_000;
-
-                    let mut polling_state = AdaptivePollingState::with_skip_polls(success_skip_polls);
-                    let mut poll_count = 0;
-
-                    while !token.is_cancelled() {
-                        let _permit = match sem.acquire().await {
-                            Ok(p) => p,
-                            Err(_) => {
-                                error!("[{}] Semaphore closed, stopping worker", worker.name);
-                                return;
-                            }
-                        };
-
-                        // Acquire per-device lock to serialize all operations on this device.
-                        // This prevents remote commands from central server from conflicting
-                        // with the polling loop.
-                        let device_lock = device_locks.entry((*worker.id).clone())
-                            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
-                            .clone();
-                        let _device_guard = device_lock.lock().await;
-
-                        poll_count += 1;
-
-                        if poll_count % 5 == 1 {
-                            match worker_impl.get_info().await {
-                                Ok(mut info) => {
-                                    if let Some(obj) = info.as_object() {
-                                        let _ = hybrid_db.store().update_device_metadata(
-                                            &worker.id,
-                                            obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                            obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                            obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                            obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                            obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                            obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                            obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                            obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                            obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                            obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
-                                        );
-                                    }
-
-                                    if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&worker.id) {
-                                        info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
-                                        info["users_count"] = json!(meta.users_count.unwrap_or(0));
-                                    }
-                                }
-                                Err(e) => {
-                                    error!("[{}] Periodic get_info failed: {}, disconnecting...", worker.name, e);
-                                    worker_impl.disconnect().await;
-                                    break;
-                                }
-                            }
-                        }
-
-                        // TTL skip: if cooldown is active after a successful fetch, skip this poll cycle
-                        if polling_state.should_skip() {
-                            info!("[{}] Skipping poll (cooldown: {} remaining) [interval: {}s]",
-                                  worker.name, polling_state.skip_remaining, polling_state.interval());
-                            drop(_permit);
-                            sleep(Duration::from_secs(polling_state.interval())).await;
-                            continue;
-                        }
-
-                        match worker_impl.get_attendance_logs().await {
-                            Ok(logs_vec) => {
-                                if let Some(since) = stable_since
-                                    && since.elapsed() >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS) && retry_count > 0 {
-                                        info!("[{}] Connection stable for {}s, resetting retry count", worker.name, SIDECAR_STABILITY_THRESHOLD_SECS);
-                                        retry_count = 0;
-                                    }
-
-                                let mut new_count = 0;
-                                {
-                                    let fetched_count = logs_vec.len();
-                                    let mut duplicate_count = 0;
-
-                                    let _ = hybrid_db.store().update_device_counts(&worker.id, -1, fetched_count as i64);
-
-                                    #[allow(unused_variables)]
-                                    let mut quick_info = json!({
-                                        "logs_count": fetched_count,
-                                    });
-                                    if let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&worker.id) {
-                                        quick_info["users_count"] = json!(meta.users_count.unwrap_or(0));
-                                        if let Some(mac) = meta.mac { quick_info["mac"] = json!(mac); }
-                                    }
-
-                                    if !logs_vec.is_empty() {
-                                        for attendance in logs_vec {
-                                            let mut hasher = rustc_hash::FxHasher::default();
-                                            attendance.user_id.hash(&mut hasher);
-                                            attendance.timestamp.hash(&mut hasher);
-                                            let key = hasher.finish();
-
-                                            if seen_logs.insert(key) {
-                                                let _ = log_tx.send((worker.id.clone(), attendance)).await;
-                                                new_count += 1;
-                                            } else {
-                                                duplicate_count += 1;
-                                            }
-                                        }
-
-                                        if seen_logs.len() > SEEN_LOGS_CAP {
-                                            seen_logs.clear();
-                                            seen_logs.shrink_to(16_000);
-                                            info!("[{}] Cleared seen_logs cache (>{} entries)", worker.name, SEEN_LOGS_CAP);
-                                        }
-
-                                        if duplicate_count > 0 {
-                                            info!("[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
-                                                    worker.name, fetched_count, new_count, duplicate_count, polling_state.interval());
-                                        } else {
-                                            info!("[{}] Fetched {} logs [interval: {}s]", worker.name, fetched_count, polling_state.interval());
-                                        }
-                                    }
-                                }
-
-                                let (new_interval, changed) = polling_state.update(new_count > 0);
-                                if changed && new_count == 0 {
-                                    info!("[{}] No new data for {} polls, increasing interval: {}s",
-                                          worker.name, polling_state.consecutive_no_new_data, new_interval);
-                                }
-                            }
-                            Err(e) => {
-                                error!("[{}] Polling error: {}, disconnecting...", worker.name, e);
-                                worker_impl.disconnect().await;
-                                break;
-                            }
-                        }
-
-                        drop(_permit);
-                        sleep(Duration::from_secs(polling_state.interval())).await;
-                    }
-
-                    if !token.is_cancelled() {
-                        warn!("[{}] Sidecar connection lost, restarting...", worker.name);
-                        retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                    }
-                }
-            });
+        Err(e) => {
+            error!("Failed to load devices from DB: {e}");
         }
+    }
 
+    // Event loop — wait for ConfigPush or shutdown
+    loop {
         tokio::select! {
             _ = reload_rx.recv() => {
-                info!("🔄 Configuration change detected! Restarting all workers...");
+                info!("🔄 Configuration change detected, applying differential reload...");
 
+                // Check if max_workers changed (requires full restart due to semaphore resize)
                 if let Ok(Some(s)) = hybrid_db.store().get_agent_config("max_concurrent_workers")
                     && let Ok(new_val) = s.parse::<usize>()
                     && new_val != current_max_workers
                 {
-                    info!("⚡ Updating Max Workers: {current_max_workers} -> {new_val}");
+                    info!("⚡ Max Workers changed: {current_max_workers} -> {new_val}. Full restart required.");
                     current_max_workers = new_val;
+                    for (id, (_, token)) in worker_registry.drain() {
+                        info!("⏹️ [{id}] Stopping worker for semaphore resize");
+                        token.cancel();
+                    }
+                    sleep(Duration::from_secs(2)).await;
+                    semaphore = Arc::new(Semaphore::new(current_max_workers));
+                    // Fall through to respawn all devices below
                 }
 
-                worker_cancel_token.cancel();
-                sleep(Duration::from_secs(2)).await;
+                // Load new device list
+                let new_devices = match hybrid_db.store().get_active_devices() {
+                    Ok(d) => d,
+                    Err(e) => {
+                        error!("Failed to load devices: {e}");
+                        continue;
+                    }
+                };
+
+                let new_configs: HashMap<String, WorkerConfig> = new_devices.iter()
+                    .map(|d| (d.id.clone(), to_worker_config(d)))
+                    .collect();
+
+                // 1. Remove workers for devices no longer active
+                let old_ids: Vec<String> = worker_registry.keys().cloned().collect();
+                for id in &old_ids {
+                    if !new_configs.contains_key(id)
+                        && let Some((wc, token)) = worker_registry.remove(id) {
+                            info!("⏹️ [{}] Device removed/disabled, stopping worker", wc.name);
+                            token.cancel();
+                        }
+                }
+
+                // 2. Collect diffs then apply (avoids borrow conflict on worker_registry)
+                let mut to_restart: Vec<String> = Vec::new();
+                let mut to_add: Vec<String> = Vec::new();
+
+                for (id, new_config) in &new_configs {
+                    if let Some((old_config, _)) = worker_registry.get(id) {
+                        if old_config.connection_changed(new_config) {
+                            to_restart.push(id.clone());
+                        }
+                    } else {
+                        to_add.push(id.clone());
+                    }
+                }
+
+                // Apply: restart changed workers
+                for id in &to_restart {
+                    if let Some((_, old_token)) = worker_registry.remove(id) {
+                        old_token.cancel();
+                    }
+                    let new_config = &new_configs[id];
+                    info!("🔄 [{}] Config changed (ip/port/brand/password), restarting worker", new_config.name);
+                    let token = CancellationToken::new();
+                    spawn_worker(new_config.clone(), log_tx.clone(), hybrid_db.clone(), semaphore.clone(), config.success_skip_polls, device_locks.clone(), token.clone());
+                    worker_registry.insert(id.clone(), (new_config.clone(), token));
+                }
+
+                // Apply: spawn new devices
+                for id in &to_add {
+                    let new_config = &new_configs[id];
+                    info!("➕ [{}] New device detected, spawning worker ({})", new_config.name, new_config.ip);
+                    let token = CancellationToken::new();
+                    spawn_worker(new_config.clone(), log_tx.clone(), hybrid_db.clone(), semaphore.clone(), config.success_skip_polls, device_locks.clone(), token.clone());
+                    worker_registry.insert(id.clone(), (new_config.clone(), token));
+                }
+
+                info!("📡 Active workers: {}", worker_registry.len());
             }
             _ = cancel_token.cancelled() => {
                 info!("Stopping orchestrator...");
-                worker_cancel_token.cancel();
+                for (_id, (name_config, token)) in worker_registry.drain() {
+                    info!("⏹️ [{}] Stopping worker for shutdown", name_config.name);
+                    token.cancel();
+                }
+                sleep(Duration::from_secs(2)).await;
                 break;
             }
         }
