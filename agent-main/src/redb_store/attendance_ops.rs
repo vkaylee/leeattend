@@ -164,41 +164,6 @@ impl RedbStore {
         Ok(count)
     }
 
-    /// Load signatures from stored logs for a device (used when enabling device).
-    pub fn load_signatures_for_device(&self, device_id: &str, ttl_days: i64) -> Result<usize, StoreError> {
-        let cutoff = chrono::Utc::now().timestamp() - (ttl_days * 86400);
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-        let log_table = txn.open_table(ATTENDANCE_LOGS).map_err(|e| StoreError::DbError(e.to_string()))?;
-
-        // Collect signatures to add
-        let mut sigs_to_add = Vec::new();
-        let iter = log_table.iter().map_err(|e| StoreError::DbError(e.to_string()))?;
-        for entry in iter {
-            let (_, bytes_guard) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
-            let log = StoredLog::from_bytes(bytes_guard.value())?;
-            if log.device_id == device_id && log.timestamp > cutoff {
-                let sig = Self::compute_signature(&log.device_id, &log.user_id, log.timestamp, log.punch, log.status);
-                sigs_to_add.push((sig, log.timestamp));
-            }
-        }
-        drop(txn);
-
-        if sigs_to_add.is_empty() {
-            return Ok(0);
-        }
-
-        let count = sigs_to_add.len();
-        let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
-        {
-            let mut sig_table = txn.open_table(SIGNATURES).map_err(|e| StoreError::DbError(e.to_string()))?;
-            for (sig, ts) in &sigs_to_add {
-                sig_table.insert(*sig, *ts).map_err(|e| StoreError::DbError(e.to_string()))?;
-            }
-        }
-        txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
-        Ok(count)
-    }
-
     /// Remove signatures for a specific device (used when disabling device).
     pub fn remove_signatures_for_device(&self, device_id: &str) -> Result<usize, StoreError> {
         let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;

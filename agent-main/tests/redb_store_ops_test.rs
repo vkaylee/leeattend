@@ -164,13 +164,9 @@ fn test_device_signature_load_unload() {
     let id2 = db.save_raw_attendance("DEV_SIG", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
     assert!(id2 > 0, "Should insert successfully after signature removal");
 
-    // Load signatures back for the device
-    let loaded = store.load_signatures_for_device("DEV_SIG", 90).unwrap();
-    assert!(loaded > 0, "Should load at least one signature");
-
-    // Now duplicate should be rejected again  
+    // Redb persists signatures on insert — duplicate should be rejected immediately
     let result = db.save_raw_attendance("DEV_SIG", make_attendance("U1", "2026-01-01 10:00:00"));
-    assert!(result.is_err(), "Duplicate should be rejected after reloading signatures");
+    assert!(result.is_err(), "Duplicate should be rejected (signatures persist in redb)");
 }
 
 // =============================================================================

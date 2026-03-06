@@ -106,12 +106,7 @@ impl HybridDatabase {
         self.store.evict_old_signatures().unwrap_or((0, 0, 0))
     }
 
-    /// Load device memory — loads signatures for dedup.
-    pub fn load_device_memory(&self, device_id: &str) -> Result<(), StoreError> {
-        let sig_count = self.store.load_signatures_for_device(device_id, self.store.signature_ttl_days())?;
-        info!("HybridDatabase: Loaded {sig_count} signatures for device '{device_id}'");
-        Ok(())
-    }
+
 
     /// Unload device memory — removes signatures and logs for disabled device.
     pub fn unload_device_memory(&self, device_id: &str) -> Result<(), StoreError> {
