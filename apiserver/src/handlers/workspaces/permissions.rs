@@ -10,6 +10,7 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{AssignPermissionRequest, MemberExtraPermission};
+use crate::services::audit_service::AuditHelper;
 use crate::AppState;
 
 /// GET /workspaces/:ws_id/members/:user_id/permissions
@@ -37,6 +38,7 @@ pub async fn get_member_extra_permissions(
 pub async fn assign_extra_permission(
     Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     ctx: MemberContext,
     Json(req): Json<AssignPermissionRequest>,
 ) -> AppResult<(StatusCode, Json<MemberExtraPermission>)> {
@@ -67,14 +69,27 @@ pub async fn assign_extra_permission(
     .fetch_one(state.db.api())
     .await?;
 
+    AuditHelper::log(
+        &state.audit_repo,
+        ctx.workspace_id,
+        Some(ctx.user_id),
+        Some(user_id),
+        None,
+        "assign_permission",
+        Some(serde_json::json!({ "permission": req.permission, "expires_at": req.expires_at })),
+        &headers,
+    )
+    .await;
+
     Ok((StatusCode::CREATED, Json(perm)))
 }
 
 /// DELETE /workspaces/:ws_id/members/:user_id/permissions/:perm_id
 /// Revoke an extra permission from a member.
 pub async fn revoke_extra_permission(
-    Path((_ws_id, _user_id, perm_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path((_ws_id, user_id, perm_id)): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::MembersRolesManage)?;
@@ -88,6 +103,18 @@ pub async fn revoke_extra_permission(
     .await?;
 
     if res.rows_affected() > 0 {
+        AuditHelper::log(
+            &state.audit_repo,
+            ctx.workspace_id,
+            Some(ctx.user_id),
+            Some(user_id),
+            None,
+            "revoke_permission",
+            Some(serde_json::json!({ "permission_id": perm_id })),
+            &headers,
+        )
+        .await;
+        
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound("Permission not found".to_string()))

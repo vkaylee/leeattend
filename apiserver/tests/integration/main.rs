@@ -12,6 +12,7 @@ pub mod employee;
 pub mod holiday;
 pub mod leave;
 pub mod payroll;
+pub mod rbac;
 pub mod report;
 pub mod roster;
 pub mod shift_swap;
