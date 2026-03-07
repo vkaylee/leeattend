@@ -1,7 +1,50 @@
+use async_trait::async_trait;
 use crate::models::{AttendanceImportJob, ImportJobStatus};
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
+
+// ---------------------------------------------------------------------------
+// Trait: ImportJobRepository — DIP abstraction
+// ---------------------------------------------------------------------------
+#[async_trait]
+pub trait ImportJobRepository: super::PoolBacked + Send + Sync {
+    async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), sqlx::Error>;
+    async fn update_job_progress(&self, id: Uuid, processed_rows: i32, status: ImportJobStatus, error_log: Option<String>) -> Result<(), sqlx::Error>;
+    async fn get_job_by_id(&self, id: Uuid) -> Result<Option<AttendanceImportJob>, sqlx::Error>;
+    async fn get_latest_job(&self, workspace_id: Uuid, target_type: Option<String>) -> Result<Option<AttendanceImportJob>, sqlx::Error>;
+    async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, sqlx::Error>;
+}
+
+// ---------------------------------------------------------------------------
+// SqlxImportJobRepository — production implementation backed by PgPool
+// ---------------------------------------------------------------------------
+pub struct SqlxImportJobRepository {
+    pub pool: PgPool,
+}
+
+impl SqlxImportJobRepository {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl ImportJobRepository for SqlxImportJobRepository {
+    async fn create_job(&self, job: &AttendanceImportJob) -> Result<(), sqlx::Error> {
+        create_job(&self.pool, job).await
+    }
+    async fn update_job_progress(&self, id: Uuid, processed_rows: i32, status: ImportJobStatus, error_log: Option<String>) -> Result<(), sqlx::Error> {
+        update_job_progress(&self.pool, id, processed_rows, status, error_log).await
+    }
+    async fn get_job_by_id(&self, id: Uuid) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
+        get_job_by_id(&self.pool, id).await
+    }
+    async fn get_latest_job(&self, workspace_id: Uuid, target_type: Option<String>) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
+        get_latest_job(&self.pool, workspace_id, target_type).await
+    }
+    async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, sqlx::Error> {
+        get_pending_jobs(&self.pool).await
+    }
+}
 
 pub async fn create_job(pool: &PgPool, job: &AttendanceImportJob) -> Result<(), sqlx::Error> {
     sqlx::query(
@@ -83,4 +126,9 @@ pub async fn get_pending_jobs(pool: &PgPool) -> Result<Vec<AttendanceImportJob>,
     )
     .fetch_all(pool)
     .await
+}
+
+impl super::PoolBacked for SqlxImportJobRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

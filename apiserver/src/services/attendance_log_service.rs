@@ -6,29 +6,39 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::models::{LogSource, RawAttendanceLog};
-use crate::repositories::{
-    attendance_log_error_repository, employee_repository, raw_attendance_log_repository,
-    staging_log_repository,
-};
+use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
+use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
+use crate::repositories::staging_log_repository;
+use crate::repositories::staging_log_repository::StagingLogRepository;
+use crate::repositories::EmployeeRepository;
 use crate::services::pairing_service::PairingService;
 use crate::services::{agent_log_buffer, AgentLogBuffer, AgentLogEntry};
 use crate::utils::datetime::parse_datetime_with_tz;
 
 #[derive(Clone)]
 pub struct AttendanceLogService {
+    employee_repo: Arc<dyn EmployeeRepository>,
+    raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    staging_repo: Arc<dyn StagingLogRepository>,
+    error_repo: Arc<dyn AttendanceLogErrorRepository>,
     pool: PgPool,
     pairing_service: Arc<PairingService>,
-    #[allow(dead_code)] // Buffer kept for potential batch operations
+    #[allow(dead_code)] // Held to keep mpsc Sender alive — dropping closes the worker channel
     log_buffer: Arc<AgentLogBuffer>,
 }
 
 impl AttendanceLogService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         pool: PgPool,
         pairing_service: Arc<PairingService>,
         buffer_capacity: usize,
         batch_size: usize,
         flush_interval_ms: u64,
+        employee_repo: Arc<dyn EmployeeRepository>,
+        raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+        staging_repo: Arc<dyn StagingLogRepository>,
+        error_repo: Arc<dyn AttendanceLogErrorRepository>,
     ) -> (Self, tokio::task::JoinHandle<()>) {
         let (log_buffer, log_receiver) = AgentLogBuffer::new(buffer_capacity);
         let log_buffer = Arc::new(log_buffer);
@@ -46,7 +56,7 @@ impl AttendanceLogService {
             .await;
         });
 
-        let service = Self { pool, pairing_service, log_buffer };
+        let service = Self { employee_repo, raw_log_repo, staging_repo, error_repo, pool, pairing_service, log_buffer };
 
         (service, worker_handle)
     }
@@ -121,12 +131,11 @@ impl AttendanceLogService {
         date_fmt: Option<&str>,
         time_fmt: Option<&str>,
     ) -> Result<bool, String> {
-        let pool = &self.pool;
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         // 1. Resolve employee_id from employee_id_number and workspace_id
         let employee =
-            match employee_repository::find_by_number(pool, workspace_id, employee_id_number).await
+            match self.employee_repo.find_by_number(workspace_id, employee_id_number).await
             {
                 Ok(Some(emp)) => emp,
                 Ok(None) => {
@@ -143,8 +152,7 @@ impl AttendanceLogService {
                         parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
                             .unwrap_or_else(|_| Utc::now());
 
-                    let _ = staging_log_repository::create_staging_log(
-                        pool,
+                    let _ = self.staging_repo.create_staging_log(
                         workspace_id,
                         device_id,
                         employee_id_number,
@@ -186,8 +194,7 @@ impl AttendanceLogService {
                     raw_data.as_ref(),
                 );
 
-                let _ = attendance_log_error_repository::create_error_log_with_fingerprint(
-                    pool,
+                let _ = self.error_repo.create_error_log_with_fingerprint(
                     workspace_id,
                     device_id,
                     raw_data,
@@ -227,7 +234,7 @@ impl AttendanceLogService {
         };
 
         // 4. Save to DB (Handle duplicates with ON CONFLICT DO NOTHING)
-        match raw_attendance_log_repository::create_raw_log(pool, &raw_log).await {
+        match self.raw_log_repo.create_raw_log(&raw_log).await {
             Ok(true) => {
                 info!(
                     "Successfully saved log for {} ({}) at {} (UTC) from {:?}",
@@ -266,7 +273,6 @@ impl AttendanceLogService {
         device_id: Option<String>,
         raw_data: Option<serde_json::Value>,
     ) -> Result<bool, String> {
-        let pool = &self.pool;
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         let punch = raw_data
@@ -293,7 +299,7 @@ impl AttendanceLogService {
             created_at: Utc::now(),
         };
 
-        match raw_attendance_log_repository::create_raw_log(pool, &raw_log).await {
+        match self.raw_log_repo.create_raw_log(&raw_log).await {
             Ok(true) => {
                 let _ = self.pairing_service.process_new_raw_log(&raw_log).await;
                 Ok(true)
@@ -364,14 +370,13 @@ impl AttendanceLogService {
             };
 
             // 3. Insert to raw_attendance_logs
-            match raw_attendance_log_repository::create_raw_log(pool, &raw_log).await {
+            match self.raw_log_repo.create_raw_log(&raw_log).await {
                 Ok(true) => {
                     claimed_count += 1;
                     dates_to_reprocess.insert(staged.punch_time.date_naive());
 
                     // Mark staging log as processed
-                    let _ = staging_log_repository::update_staging_status(
-                        pool,
+                    let _ = self.staging_repo.update_staging_status(
                         staged.id,
                         staged.workspace_id,
                         "processed",
@@ -380,8 +385,7 @@ impl AttendanceLogService {
                 }
                 Ok(false) => {
                     // Duplicate - still mark as processed
-                    let _ = staging_log_repository::update_staging_status(
-                        pool,
+                    let _ = self.staging_repo.update_staging_status(
                         staged.id,
                         staged.workspace_id,
                         "processed",

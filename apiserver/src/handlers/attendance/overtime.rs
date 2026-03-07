@@ -29,7 +29,7 @@ pub async fn claim_ot(
 ) -> AppResult<StatusCode> {
     // 1. Verify ownership (Employee can only claim for themselves) or has OvertimeClaim permission
     let employee =
-        crate::repositories::employee_repository::get_employee_by_id(state.db.api(), employee_id, ws_id)
+        state.employee_repo.get_employee_by_id(employee_id, ws_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 

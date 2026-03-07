@@ -96,9 +96,7 @@ pub async fn get_shift_swap_stats(
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
     let stats =
-        crate::repositories::shift_swap_repository::get_workspace_swap_stats(
-            state.db.api(),
-            ctx.workspace_id,
+        state.shift_swap_repo.get_workspace_swap_stats(ctx.workspace_id,
         )
         .await
         .map_err(|e| {

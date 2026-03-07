@@ -39,7 +39,7 @@ pub async fn get_my_profile(
         "#,
     )
     .bind(employee.employee_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await?;
 
     // Get profile (may not exist yet)
@@ -47,7 +47,7 @@ pub async fn get_my_profile(
         "SELECT * FROM employee_profiles WHERE employee_id = $1",
     )
     .bind(employee.employee_id)
-    .fetch_optional(state.db.api())
+    .fetch_optional(state.db.reader())
     .await?;
 
     // Get emergency contacts
@@ -55,7 +55,7 @@ pub async fn get_my_profile(
         "SELECT * FROM employee_emergency_contacts WHERE employee_id = $1 ORDER BY is_primary DESC, created_at",
     )
     .bind(employee.employee_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await?;
 
     Ok(Json(MyProfileResponse {
@@ -115,7 +115,7 @@ pub async fn get_my_emergency_contacts(
         "SELECT * FROM employee_emergency_contacts WHERE employee_id = $1 ORDER BY is_primary DESC, created_at",
     )
     .bind(employee.employee_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await?;
 
     Ok(Json(contacts))
@@ -189,7 +189,7 @@ pub async fn get_my_documents(
         "SELECT * FROM employee_documents WHERE employee_id = $1 AND is_active = true ORDER BY created_at DESC",
     )
     .bind(employee.employee_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await?;
 
     Ok(Json(docs))
@@ -206,7 +206,7 @@ pub async fn get_my_payslips(
         "SELECT * FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC",
     )
     .bind(employee.employee_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await?;
 
     Ok(Json(payslips))
@@ -245,7 +245,7 @@ pub async fn get_my_attendance(
     .bind(employee.employee_id)
     .bind(start)
     .bind(end)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await?;
 
     Ok(Json(entries))
@@ -301,7 +301,7 @@ pub async fn get_my_leave_balances(
     )
     .bind(employee.employee_id)
     .bind(year)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await?;
 
     Ok(Json(balances))
@@ -316,7 +316,7 @@ pub async fn ess_get_my_leave_requests(
         "SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY created_at DESC",
     )
     .bind(employee.employee_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await?;
 
     Ok(Json(requests))

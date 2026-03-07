@@ -32,20 +32,34 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(employee_repo.clone(), pool.clone()));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), pool.clone()));
-    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(time_entry_repo.clone(), pool.clone()));
-    let report_service = Arc::new(apiserver::services::ReportService::new(time_entry_repo.clone(), pool.clone()));
-    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(time_entry_repo.clone(), pool.clone()));
-    let adjustment_service = Arc::new(apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(time_entry_repo.clone(), pool.clone()));
-    let import_service = Arc::new(apiserver::services::attendance_import_service::AttendanceImportService::new(time_entry_repo.clone(), pool.clone()));
-    let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(pool.clone()));
+    let roster_repo: Arc<dyn apiserver::repositories::roster_repository::RosterRepository> = Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone()));
+    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let report_service = Arc::new(apiserver::services::ReportService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
+    let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> = Arc::new(apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
+    let leave_balance_repo: Arc<dyn apiserver::repositories::leave_balance_repository::LeaveBalanceRepository> = Arc::new(apiserver::repositories::leave_balance_repository::SqlxLeaveBalanceRepository::new(pool.clone()));
+    let leave_request_repo: Arc<dyn apiserver::repositories::leave_request_repository::LeaveRequestRepository> = Arc::new(apiserver::repositories::leave_request_repository::SqlxLeaveRequestRepository::new(pool.clone()));
+    let shift_swap_repo: Arc<dyn apiserver::repositories::shift_swap_repository::ShiftSwapRepository> = Arc::new(apiserver::repositories::shift_swap_repository::SqlxShiftSwapRepository::new(pool.clone()));
+    let adjustment_service = Arc::new(apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(adj_repo.clone(), time_entry_repo.clone(), pool.clone()));
+    let import_service = Arc::new(apiserver::services::attendance_import_service::AttendanceImportService::new(import_repo.clone(), adj_repo.clone(), employee_repo.clone(), time_entry_repo.clone(), pool.clone()));
+    let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+    let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+    let department_repo: Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+    let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(payroll_repo.clone(), department_repo.clone(), time_entry_repo.clone(), workspace_repo.clone(), holiday_repo.clone(), roster_repo.clone(), pool.clone()));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(pool.clone()));
     let shift_service = Arc::new(apiserver::services::shift_service::ShiftService::new(pool.clone()));
     let workspace_service = Arc::new(apiserver::services::workspace_service::WorkspaceService::new(pool.clone()));
-    let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(pool.clone()));
-    let shift_swap_service = Arc::new(apiserver::services::shift_swap_service::ShiftSwapService::new(pool.clone()));
-    let holiday_leave_service = Arc::new(apiserver::services::holiday_leave_service::HolidayLeaveService::new(pool.clone()));
-    let leave_accrual_service = Arc::new(apiserver::services::leave_accrual_service::LeaveAccrualService::new(pool.clone()));
+    let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(leave_balance_repo.clone(), leave_request_repo.clone(), employee_repo.clone(), roster_repo.clone(), pool.clone()));
+    let shift_swap_service = Arc::new(apiserver::services::shift_swap_service::ShiftSwapService::new(shift_swap_repo.clone(), roster_repo.clone(), pool.clone()));
+    let leave_policy_repo: Arc<dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository> = Arc::new(apiserver::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(pool.clone()));
+    let holiday_leave_service = Arc::new(apiserver::services::holiday_leave_service::HolidayLeaveService::new(employee_repo.clone(), leave_balance_repo.clone(), leave_request_repo.clone(), roster_repo.clone(), pool.clone()));
+    let leave_accrual_service = Arc::new(apiserver::services::leave_accrual_service::LeaveAccrualService::new(employee_repo.clone(), department_repo.clone(), leave_policy_repo.clone(), pool.clone()));
+
+    let raw_log_repo: Arc<dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = Arc::new(apiserver::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
+    let staging_repo: Arc<dyn apiserver::repositories::staging_log_repository::StagingLogRepository> = Arc::new(apiserver::repositories::staging_log_repository::SqlxStagingLogRepository::new(pool.clone()));
+    let error_repo: Arc<dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(apiserver::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -54,7 +68,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         workspace_repo,
         agent_service,
         jwt_secret: "test_secret_tower".to_string(),
-        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), pairing_service.clone(), 100, 10, 1000).0),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), pairing_service.clone(), 100, 10, 1000, employee_repo.clone(), raw_log_repo.clone(), staging_repo.clone(), error_repo).0),
         redis: None,
         coordinator: None,
         roster_cache: None,
@@ -75,6 +89,18 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         shift_swap_service,
         holiday_leave_service,
         leave_accrual_service,
+        payroll_repo: payroll_repo.clone(),
+        department_repo: department_repo.clone(),
+        time_entry_repo: time_entry_repo.clone(),
+        staging_repo: staging_repo.clone(),
+        raw_log_repo: raw_log_repo.clone(),
+        user_repo: Arc::new(apiserver::repositories::user_repository::SqlxUserRepository::new(pool.clone())),
+        leave_request_repo: leave_request_repo.clone(),
+        leave_policy_repo: leave_policy_repo.clone(),
+        shift_swap_repo: shift_swap_repo.clone(),
+        import_repo: import_repo.clone(),
+        holiday_repo: holiday_repo.clone(),
+        roster_repo: roster_repo.clone(),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -122,20 +148,34 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(employee_repo.clone(), pool.clone()));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), pool.clone()));
-    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(time_entry_repo.clone(), pool.clone()));
-    let report_service = Arc::new(apiserver::services::ReportService::new(time_entry_repo.clone(), pool.clone()));
-    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(time_entry_repo.clone(), pool.clone()));
-    let adjustment_service = Arc::new(apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(time_entry_repo.clone(), pool.clone()));
-    let import_service = Arc::new(apiserver::services::attendance_import_service::AttendanceImportService::new(time_entry_repo.clone(), pool.clone()));
-    let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(pool.clone()));
+    let roster_repo: Arc<dyn apiserver::repositories::roster_repository::RosterRepository> = Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone()));
+    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let report_service = Arc::new(apiserver::services::ReportService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
+    let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> = Arc::new(apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
+    let leave_balance_repo: Arc<dyn apiserver::repositories::leave_balance_repository::LeaveBalanceRepository> = Arc::new(apiserver::repositories::leave_balance_repository::SqlxLeaveBalanceRepository::new(pool.clone()));
+    let leave_request_repo: Arc<dyn apiserver::repositories::leave_request_repository::LeaveRequestRepository> = Arc::new(apiserver::repositories::leave_request_repository::SqlxLeaveRequestRepository::new(pool.clone()));
+    let shift_swap_repo: Arc<dyn apiserver::repositories::shift_swap_repository::ShiftSwapRepository> = Arc::new(apiserver::repositories::shift_swap_repository::SqlxShiftSwapRepository::new(pool.clone()));
+    let adjustment_service = Arc::new(apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(adj_repo.clone(), time_entry_repo.clone(), pool.clone()));
+    let import_service = Arc::new(apiserver::services::attendance_import_service::AttendanceImportService::new(import_repo.clone(), adj_repo.clone(), employee_repo.clone(), time_entry_repo.clone(), pool.clone()));
+    let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+    let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+    let department_repo: Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+    let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(payroll_repo.clone(), department_repo.clone(), time_entry_repo.clone(), workspace_repo.clone(), holiday_repo.clone(), roster_repo.clone(), pool.clone()));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(pool.clone()));
     let shift_service = Arc::new(apiserver::services::shift_service::ShiftService::new(pool.clone()));
     let workspace_service = Arc::new(apiserver::services::workspace_service::WorkspaceService::new(pool.clone()));
-    let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(pool.clone()));
-    let shift_swap_service = Arc::new(apiserver::services::shift_swap_service::ShiftSwapService::new(pool.clone()));
-    let holiday_leave_service = Arc::new(apiserver::services::holiday_leave_service::HolidayLeaveService::new(pool.clone()));
-    let leave_accrual_service = Arc::new(apiserver::services::leave_accrual_service::LeaveAccrualService::new(pool.clone()));
+    let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(leave_balance_repo.clone(), leave_request_repo.clone(), employee_repo.clone(), roster_repo.clone(), pool.clone()));
+    let shift_swap_service = Arc::new(apiserver::services::shift_swap_service::ShiftSwapService::new(shift_swap_repo.clone(), roster_repo.clone(), pool.clone()));
+    let leave_policy_repo: Arc<dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository> = Arc::new(apiserver::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(pool.clone()));
+    let holiday_leave_service = Arc::new(apiserver::services::holiday_leave_service::HolidayLeaveService::new(employee_repo.clone(), leave_balance_repo.clone(), leave_request_repo.clone(), roster_repo.clone(), pool.clone()));
+    let leave_accrual_service = Arc::new(apiserver::services::leave_accrual_service::LeaveAccrualService::new(employee_repo.clone(), department_repo.clone(), leave_policy_repo.clone(), pool.clone()));
+
+    let raw_log_repo: Arc<dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = Arc::new(apiserver::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(db_pool.clone()));
+    let staging_repo: Arc<dyn apiserver::repositories::staging_log_repository::StagingLogRepository> = Arc::new(apiserver::repositories::staging_log_repository::SqlxStagingLogRepository::new(db_pool.clone()));
+    let error_repo: Arc<dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(apiserver::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(db_pool.clone()));
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -144,7 +184,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         workspace_repo,
         agent_service,
         jwt_secret: "test_secret_tower".to_string(),
-        attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), pairing_service.clone(), 100, 10, 1000).0),
+        attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), pairing_service.clone(), 100, 10, 1000, employee_repo.clone(), raw_log_repo.clone(), staging_repo.clone(), error_repo).0),
         redis: None,
         coordinator: None,
         roster_cache: None,
@@ -165,6 +205,18 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         shift_swap_service,
         holiday_leave_service,
         leave_accrual_service,
+        payroll_repo: payroll_repo.clone(),
+        department_repo: department_repo.clone(),
+        time_entry_repo: time_entry_repo.clone(),
+        staging_repo: staging_repo.clone(),
+        raw_log_repo: raw_log_repo.clone(),
+        user_repo: Arc::new(apiserver::repositories::user_repository::SqlxUserRepository::new(db_pool.clone())),
+        leave_request_repo: leave_request_repo.clone(),
+        leave_policy_repo: leave_policy_repo.clone(),
+        shift_swap_repo: shift_swap_repo.clone(),
+        import_repo: import_repo.clone(),
+        holiday_repo: holiday_repo.clone(),
+        roster_repo: roster_repo.clone(),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -224,20 +276,34 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(employee_repo.clone(), pool.clone()));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), pool.clone()));
-    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(time_entry_repo.clone(), pool.clone()));
-    let report_service = Arc::new(apiserver::services::ReportService::new(time_entry_repo.clone(), pool.clone()));
-    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(time_entry_repo.clone(), pool.clone()));
-    let adjustment_service = Arc::new(apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(time_entry_repo.clone(), pool.clone()));
-    let import_service = Arc::new(apiserver::services::attendance_import_service::AttendanceImportService::new(time_entry_repo.clone(), pool.clone()));
-    let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(pool.clone()));
+    let roster_repo: Arc<dyn apiserver::repositories::roster_repository::RosterRepository> = Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone()));
+    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let report_service = Arc::new(apiserver::services::ReportService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let pairing_service = Arc::new(apiserver::services::pairing_service::PairingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
+    let adj_repo: Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
+    let import_repo: Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> = Arc::new(apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
+    let leave_balance_repo: Arc<dyn apiserver::repositories::leave_balance_repository::LeaveBalanceRepository> = Arc::new(apiserver::repositories::leave_balance_repository::SqlxLeaveBalanceRepository::new(pool.clone()));
+    let leave_request_repo: Arc<dyn apiserver::repositories::leave_request_repository::LeaveRequestRepository> = Arc::new(apiserver::repositories::leave_request_repository::SqlxLeaveRequestRepository::new(pool.clone()));
+    let shift_swap_repo: Arc<dyn apiserver::repositories::shift_swap_repository::ShiftSwapRepository> = Arc::new(apiserver::repositories::shift_swap_repository::SqlxShiftSwapRepository::new(pool.clone()));
+    let adjustment_service = Arc::new(apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(adj_repo.clone(), time_entry_repo.clone(), pool.clone()));
+    let import_service = Arc::new(apiserver::services::attendance_import_service::AttendanceImportService::new(import_repo.clone(), adj_repo.clone(), employee_repo.clone(), time_entry_repo.clone(), pool.clone()));
+    let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+    let holiday_repo: Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+    let department_repo: Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+    let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(payroll_repo.clone(), department_repo.clone(), time_entry_repo.clone(), workspace_repo.clone(), holiday_repo.clone(), roster_repo.clone(), pool.clone()));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(pool.clone()));
     let shift_service = Arc::new(apiserver::services::shift_service::ShiftService::new(pool.clone()));
     let workspace_service = Arc::new(apiserver::services::workspace_service::WorkspaceService::new(pool.clone()));
-    let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(pool.clone()));
-    let shift_swap_service = Arc::new(apiserver::services::shift_swap_service::ShiftSwapService::new(pool.clone()));
-    let holiday_leave_service = Arc::new(apiserver::services::holiday_leave_service::HolidayLeaveService::new(pool.clone()));
-    let leave_accrual_service = Arc::new(apiserver::services::leave_accrual_service::LeaveAccrualService::new(pool.clone()));
+    let leave_service = Arc::new(apiserver::services::leave_service::LeaveService::new(leave_balance_repo.clone(), leave_request_repo.clone(), employee_repo.clone(), roster_repo.clone(), pool.clone()));
+    let shift_swap_service = Arc::new(apiserver::services::shift_swap_service::ShiftSwapService::new(shift_swap_repo.clone(), roster_repo.clone(), pool.clone()));
+    let leave_policy_repo: Arc<dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository> = Arc::new(apiserver::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(pool.clone()));
+    let holiday_leave_service = Arc::new(apiserver::services::holiday_leave_service::HolidayLeaveService::new(employee_repo.clone(), leave_balance_repo.clone(), leave_request_repo.clone(), roster_repo.clone(), pool.clone()));
+    let leave_accrual_service = Arc::new(apiserver::services::leave_accrual_service::LeaveAccrualService::new(employee_repo.clone(), department_repo.clone(), leave_policy_repo.clone(), pool.clone()));
+
+    let raw_log_repo: Arc<dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = Arc::new(apiserver::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
+    let staging_repo: Arc<dyn apiserver::repositories::staging_log_repository::StagingLogRepository> = Arc::new(apiserver::repositories::staging_log_repository::SqlxStagingLogRepository::new(pool.clone()));
+    let error_repo: Arc<dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = Arc::new(apiserver::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
 
     let app_state = Arc::new(AppState {
         agent_manager,
@@ -246,7 +312,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         workspace_repo: workspace_repo.clone(),
         agent_service: agent_service.clone(),
         jwt_secret: "test_secret_tower".to_string(),
-        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), pairing_service.clone(), 100, 10, 1000).0),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), pairing_service.clone(), 100, 10, 1000, employee_repo.clone(), raw_log_repo.clone(), staging_repo.clone(), error_repo).0),
         redis: None,
         coordinator: None,
         roster_cache: None,
@@ -267,6 +333,18 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         shift_swap_service,
         holiday_leave_service,
         leave_accrual_service,
+        payroll_repo: payroll_repo.clone(),
+        department_repo: department_repo.clone(),
+        time_entry_repo: time_entry_repo.clone(),
+        staging_repo: staging_repo.clone(),
+        raw_log_repo: raw_log_repo.clone(),
+        user_repo: Arc::new(apiserver::repositories::user_repository::SqlxUserRepository::new(pool.clone())),
+        leave_request_repo: leave_request_repo.clone(),
+        leave_policy_repo: leave_policy_repo.clone(),
+        shift_swap_repo: shift_swap_repo.clone(),
+        import_repo: import_repo.clone(),
+        holiday_repo: holiday_repo.clone(),
+        roster_repo: roster_repo.clone(),
     });
 
     let app = apiserver::create_app(app_state.clone());

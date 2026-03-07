@@ -7,19 +7,20 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::models::RawAttendanceLog;
-use crate::repositories::roster_repository;
+use crate::repositories::roster_repository::RosterRepository;
 use crate::repositories::TimeEntryRepository;
 use crate::services::pairing_algo::{self, PairingShiftConfig};
 
 pub struct PairingService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
-    /// Kept for operations not yet abstracted (roster, raw SQL queries on time_entries/raw_attendance_logs)
+    roster_repo: Arc<dyn RosterRepository>,
+    /// Kept for operations not yet abstracted
     pool: PgPool,
 }
 
 impl PairingService {
-    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
-        Self { time_entry_repo, pool }
+    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, roster_repo: Arc<dyn RosterRepository>, pool: PgPool) -> Self {
+        Self { time_entry_repo, roster_repo, pool }
     }
 
     pub async fn process_new_raw_log(
@@ -98,7 +99,7 @@ impl PairingService {
 
         // 1. Fetch effective schedule
         let (shift_id_opt, traces) =
-            roster_repository::get_effective_shift(&self.pool, workspace_id, employee_id, date).await?;
+            self.roster_repo.get_effective_shift( workspace_id, employee_id, date).await?;
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
@@ -207,6 +208,7 @@ impl PairingService {
 
             let summary_svc = crate::services::AttendanceSummaryService::new(
                 self.time_entry_repo.clone(),
+                self.roster_repo.clone(),
                 self.pool.clone(),
             );
             let _ = summary_svc.recalculate_daily_summary(workspace_id, employee_id, date).await;
@@ -279,6 +281,7 @@ impl PairingService {
         // Recalculate daily summary for OT workflow
         let summary_svc = crate::services::AttendanceSummaryService::new(
             self.time_entry_repo.clone(),
+            self.roster_repo.clone(),
             self.pool.clone(),
         );
         if let Err(e) = summary_svc.recalculate_daily_summary(workspace_id, employee_id, date).await {

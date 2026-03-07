@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 #[async_trait]
-pub trait AuditLogRepository: Send + Sync {
+pub trait AuditLogRepository: super::PoolBacked + Send + Sync {
     async fn create_log(&self, config: &AuditLog) -> Result<AuditLog, sqlx::Error>;
     
     // Retrieves audit logs for a workspace, ordered by created_at DESC
@@ -102,4 +102,9 @@ impl AuditLogRepository for SqlxAuditLogRepository {
 
         Ok((logs, count))
     }
+}
+
+impl super::PoolBacked for SqlxAuditLogRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

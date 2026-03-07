@@ -33,7 +33,10 @@ impl AccrualHandler {
             "Starting leave accrual processing"
         );
 
-        let accrual_service = LeaveAccrualService::new(db.clone());
+        let employee_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> = std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(db.clone()));
+        let department_repo: std::sync::Arc<dyn crate::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(crate::repositories::department_repository::SqlxDepartmentRepository::new(db.clone()));
+        let leave_policy_repo: std::sync::Arc<dyn crate::repositories::leave_policy_repository::LeavePolicyRepository> = std::sync::Arc::new(crate::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(db.clone()));
+        let accrual_service = LeaveAccrualService::new(employee_repo, department_repo, leave_policy_repo, db.clone());
         match accrual_service.process_workspace_accruals(
             job.workspace_id,
             payload.date,

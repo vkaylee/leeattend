@@ -10,21 +10,22 @@ use crate::domain::policy::defaults::DEFAULT_WORK_MINUTES_PER_DAY;
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::{
-    roster_repository, workspace_repository::WorkspaceRepository,
+    workspace_repository::WorkspaceRepository,
     SqlxWorkspaceRepository, TimeEntryRepository,
 };
+use crate::repositories::roster_repository::RosterRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::services::AttendanceCalculator;
 
 pub struct AttendanceSummaryService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
-    /// Kept for operations not yet abstracted (roster, workspace, holiday repos + raw SQL)
+    roster_repo: Arc<dyn RosterRepository>,
     pool: PgPool,
 }
 
 impl AttendanceSummaryService {
-    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
-        Self { time_entry_repo, pool }
+    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, roster_repo: Arc<dyn RosterRepository>, pool: PgPool) -> Self {
+        Self { time_entry_repo, roster_repo, pool }
     }
 
     /// Recalculates and persists the daily summary for a specific employee and date.
@@ -46,8 +47,7 @@ impl AttendanceSummaryService {
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         // 2. Get Effective Schedule for this specific date
-        let schedules = roster_repository::get_workspace_schedules(
-            &self.pool,
+        let schedules = self.roster_repo.get_workspace_schedules(
             None,
             workspace_id,
             date,

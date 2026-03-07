@@ -9,24 +9,29 @@ use uuid::Uuid;
 use crate::models::{
     AdjustmentStatus, AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, TimeEntry,
 };
-use crate::repositories::{attendance_adjustment_repository, TimeEntryRepository};
+use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
+use crate::repositories::TimeEntryRepository;
 use crate::services::attendance_import_service::AttendanceImportService;
 
 pub struct AttendanceAdjustmentService {
+    adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
     time_entry_repo: Arc<dyn TimeEntryRepository>,
-    /// Kept for operations not yet abstracted (attendance_adjustment_repository, raw SQL)
+    /// Kept for operations not yet abstracted (raw SQL)
     pool: PgPool,
 }
 
 impl AttendanceAdjustmentService {
-    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
-        Self { time_entry_repo, pool }
+    pub fn new(adj_repo: Arc<dyn AttendanceAdjustmentRepository>, time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
+        Self { adj_repo, time_entry_repo, pool }
     }
 
     /// Resume all jobs that were interrupted by a server restart
     pub async fn resume_all_pending_jobs(pool: PgPool) {
+        let import_repo = Arc::new(crate::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
+        let adj_repo = Arc::new(crate::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
+        let employee_repo = Arc::new(crate::repositories::SqlxEmployeeRepository::new(pool.clone()));
         let te_repo = Arc::new(crate::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-        let import_svc = AttendanceImportService::new(te_repo, pool);
+        let import_svc = AttendanceImportService::new(import_repo, adj_repo, employee_repo, te_repo, pool);
         import_svc.resume_all_pending_jobs().await;
     }
 
@@ -51,7 +56,7 @@ impl AttendanceAdjustmentService {
             updated_at: Utc::now(),
         };
 
-        attendance_adjustment_repository::create_request(&self.pool, &adjustment)
+        self.adj_repo.create_request(&adjustment)
             .await
             .map_err(|e| {
                 error!("SUBMIT_ADJUSTMENT_ERROR: {:?}", e);
@@ -68,13 +73,12 @@ impl AttendanceAdjustmentService {
         request_id: Uuid,
         status: AdjustmentStatus,
     ) -> Result<(), StatusCode> {
-        let request = attendance_adjustment_repository::get_request_by_id(&self.pool, workspace_id, request_id)
+        let request = self.adj_repo.get_request_by_id(workspace_id, request_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        attendance_adjustment_repository::update_adjustment_status(
-            &self.pool,
+        self.adj_repo.update_adjustment_status(
             workspace_id,
             request_id,
             status,
@@ -160,8 +164,7 @@ impl AttendanceAdjustmentService {
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
-        attendance_adjustment_repository::get_workspace_adjustment_requests(
-            &self.pool,
+        self.adj_repo.get_workspace_adjustment_requests(
             workspace_id,
             status,
         )
@@ -174,7 +177,7 @@ impl AttendanceAdjustmentService {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
-        attendance_adjustment_repository::get_employee_adjustment_requests(&self.pool, workspace_id, employee_id)
+        self.adj_repo.get_employee_adjustment_requests(workspace_id, employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }

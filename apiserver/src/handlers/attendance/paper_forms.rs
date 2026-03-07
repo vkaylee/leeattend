@@ -37,7 +37,7 @@ pub async fn enter_paper_ot(
 
     // 2. Validate employee exists in workspace
     let _employee =
-        crate::repositories::employee_repository::get_employee_by_id(state.db.api(), employee_id, ws_id)
+        state.employee_repo.get_employee_by_id(employee_id, ws_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -218,9 +218,7 @@ pub async fn bulk_upload_paper_ot(
         seen_keys.insert(key);
 
         // Find employee by employee_id_number
-        let employee = match crate::repositories::employee_repository::get_employee_by_id_number(
-            state.db.api(),
-            &employee_id_str,
+        let employee = match state.employee_repo.get_employee_by_id_number(&employee_id_str,
             ws_id,
         )
         .await

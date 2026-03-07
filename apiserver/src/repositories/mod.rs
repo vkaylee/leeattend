@@ -1,3 +1,25 @@
+use sqlx::PgPool;
+
+/// Enforces that every repository implementation is constructed from a `PgPool`.
+///
+/// All repository traits (e.g. `EmployeeRepository`, `TimeEntryRepository`)
+/// extend `PoolBacked` as a supertrait. This means any new concrete repo
+/// struct **must** implement `from_pool()` or the compiler will reject it.
+///
+/// # Example
+/// ```ignore
+/// impl PoolBacked for SqlxNewRepository {
+///     fn from_pool(pool: PgPool) -> Self { Self { pool } }
+///     fn pool(&self) -> &PgPool { &self.pool }
+/// }
+/// ```
+pub trait PoolBacked: Send + Sync {
+    /// Construct this repository from a database pool.
+    fn from_pool(pool: PgPool) -> Self where Self: Sized;
+    /// Access the underlying connection pool.
+    fn pool(&self) -> &PgPool;
+}
+
 pub mod agent_repository;
 pub mod assignment_rule_repository;
 pub mod attendance_adjustment_repository;

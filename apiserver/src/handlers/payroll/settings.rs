@@ -17,7 +17,7 @@ pub async fn get_payroll_settings(
     MemberContext { .. }: MemberContext,
 ) -> AppResult<Json<PayrollSettings>> {
     let settings =
-        crate::repositories::payroll_repository::get_payroll_settings(state.db.api(), workspace_id)
+        state.payroll_repo.get_payroll_settings(workspace_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Settings not found".to_string()))?;
 
@@ -53,9 +53,7 @@ pub async fn update_payroll_settings(
     let effective_date = req
         .effective_date
         .unwrap_or_else(|| Utc::now().date_naive());
-    let current = crate::repositories::payroll_repository::get_payroll_settings_at(
-        state.db.api(),
-        workspace_id,
+    let current = state.payroll_repo.get_payroll_settings_at(workspace_id,
         effective_date,
     )
     .await
@@ -96,9 +94,7 @@ pub async fn update_payroll_settings(
         None => current.as_ref().and_then(|s| s.max_ot_hours_per_month),
     };
 
-    let settings = crate::repositories::payroll_repository::update_payroll_settings(
-        state.db.api(),
-        workspace_id,
+    let settings = state.payroll_repo.update_payroll_settings(workspace_id,
         mode,
         fixed_days,
         days_per_week,

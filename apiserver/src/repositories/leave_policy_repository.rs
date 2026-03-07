@@ -1,7 +1,59 @@
+use async_trait::async_trait;
 use crate::models::{LeavePolicyAssignment, LeavePolicyConfig, LeavePolicyDefinition};
 use chrono::NaiveDate;
 use sqlx::PgPool;
 use uuid::Uuid;
+
+// ---------------------------------------------------------------------------
+// Trait: LeavePolicyRepository — DIP abstraction
+// ---------------------------------------------------------------------------
+#[async_trait]
+#[allow(clippy::too_many_arguments)]
+pub trait LeavePolicyRepository: super::PoolBacked + Send + Sync {
+    async fn create_policy_definition(&self, workspace_id: Uuid, name: &str, description: Option<&str>, leave_type_id: Uuid, rule_config: LeavePolicyConfig) -> Result<LeavePolicyDefinition, sqlx::Error>;
+    async fn get_policy_definitions(&self, workspace_id: Uuid) -> Result<Vec<LeavePolicyDefinition>, sqlx::Error>;
+    async fn update_policy_definition(&self, id: Uuid, workspace_id: Uuid, name: Option<&str>, description: Option<&str>, leave_type_id: Option<Uuid>, rule_config: Option<LeavePolicyConfig>) -> Result<LeavePolicyDefinition, sqlx::Error>;
+    async fn delete_policy_definition(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, sqlx::Error>;
+    async fn create_policy_assignment(&self, assignment: &LeavePolicyAssignment) -> Result<LeavePolicyAssignment, sqlx::Error>;
+    async fn find_active_assignment_for_employee(&self, workspace_id: Uuid, employee_id: Uuid, department_id: Option<Uuid>, date: NaiveDate) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, sqlx::Error>;
+    async fn get_policy_assignments(&self, workspace_id: Uuid) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, sqlx::Error>;
+}
+
+// ---------------------------------------------------------------------------
+// SqlxLeavePolicyRepository — production implementation backed by PgPool
+// ---------------------------------------------------------------------------
+pub struct SqlxLeavePolicyRepository {
+    pub pool: PgPool,
+}
+
+impl SqlxLeavePolicyRepository {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl LeavePolicyRepository for SqlxLeavePolicyRepository {
+    async fn create_policy_definition(&self, workspace_id: Uuid, name: &str, description: Option<&str>, leave_type_id: Uuid, rule_config: LeavePolicyConfig) -> Result<LeavePolicyDefinition, sqlx::Error> {
+        create_policy_definition(&self.pool, workspace_id, name, description, leave_type_id, rule_config).await
+    }
+    async fn get_policy_definitions(&self, workspace_id: Uuid) -> Result<Vec<LeavePolicyDefinition>, sqlx::Error> {
+        get_policy_definitions(&self.pool, workspace_id).await
+    }
+    async fn update_policy_definition(&self, id: Uuid, workspace_id: Uuid, name: Option<&str>, description: Option<&str>, leave_type_id: Option<Uuid>, rule_config: Option<LeavePolicyConfig>) -> Result<LeavePolicyDefinition, sqlx::Error> {
+        update_policy_definition(&self.pool, id, workspace_id, name, description, leave_type_id, rule_config).await
+    }
+    async fn delete_policy_definition(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, sqlx::Error> {
+        delete_policy_definition(&self.pool, id, workspace_id).await
+    }
+    async fn create_policy_assignment(&self, assignment: &LeavePolicyAssignment) -> Result<LeavePolicyAssignment, sqlx::Error> {
+        create_policy_assignment(&self.pool, assignment).await
+    }
+    async fn find_active_assignment_for_employee(&self, workspace_id: Uuid, employee_id: Uuid, department_id: Option<Uuid>, date: NaiveDate) -> Result<Option<(LeavePolicyDefinition, Uuid, String)>, sqlx::Error> {
+        find_active_assignment_for_employee(&self.pool, workspace_id, employee_id, department_id, date).await
+    }
+    async fn get_policy_assignments(&self, workspace_id: Uuid) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, sqlx::Error> {
+        get_policy_assignments(&self.pool, workspace_id).await
+    }
+}
 
 pub async fn create_policy_definition(
     pool: &PgPool,
@@ -338,4 +390,9 @@ pub async fn get_policy_assignments(
     )
     .fetch_all(pool)
     .await
+}
+
+impl super::PoolBacked for SqlxLeavePolicyRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

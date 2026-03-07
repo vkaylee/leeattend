@@ -10,7 +10,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 #[async_trait]
 #[allow(clippy::too_many_arguments)]
-pub trait TimeEntryRepository: Send + Sync {
+pub trait TimeEntryRepository: super::PoolBacked + Send + Sync {
     async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), sqlx::Error>;
     async fn get_time_entry_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
     async fn get_active_time_entry(&self, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
@@ -295,4 +295,9 @@ pub async fn get_workspace_time_entries_batch(
     }
 
     Ok(result)
+}
+
+impl super::PoolBacked for SqlxTimeEntryRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

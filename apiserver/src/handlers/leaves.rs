@@ -17,7 +17,7 @@ use crate::models::{
     LeaveRequest, LeaveStatus, PaginatedResponse, PaginationParams, SubmitLeaveRequest,
     UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
 };
-use crate::repositories::leave_policy_repository;
+
 
 use crate::{AppState, UserId};
 
@@ -79,7 +79,7 @@ pub async fn get_my_leave_requests(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     let requests =
-        crate::repositories::leave_request_repository::get_employee_leave_requests(state.db.api(), ctx.workspace_id, id)
+        state.leave_request_repo.get_employee_leave_requests(ctx.workspace_id, id)
             .await?;
     Ok(Json(requests))
 }
@@ -187,9 +187,7 @@ pub async fn create_leave_policy(
 ) -> AppResult<(StatusCode, Json<LeavePolicyDefinition>)> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let policy = leave_policy_repository::create_policy_definition(
-        state.db.api(),
-        workspace_id,
+    let policy = state.leave_policy_repo.create_policy_definition(workspace_id,
         &req.name,
         req.description.as_deref(),
         req.leave_type_id,
@@ -208,9 +206,7 @@ pub async fn update_leave_policy(
 ) -> AppResult<Json<LeavePolicyDefinition>> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let policy = leave_policy_repository::update_policy_definition(
-        state.db.api(),
-        policy_id,
+    let policy = state.leave_policy_repo.update_policy_definition(policy_id,
         workspace_id,
         req.name.as_deref(),
         req.description.as_deref(),
@@ -230,7 +226,7 @@ pub async fn delete_leave_policy(
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let rows =
-        leave_policy_repository::delete_policy_definition(state.db.api(), policy_id, workspace_id)
+        state.leave_policy_repo.delete_policy_definition(policy_id, workspace_id)
             .await?;
 
     if rows > 0 {
@@ -245,7 +241,7 @@ pub async fn get_leave_policies(
     State(state): State<Arc<AppState>>,
     _ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeavePolicyDefinition>>> {
-    let policies = leave_policy_repository::get_policy_definitions(state.db.api(), workspace_id).await?;
+    let policies = state.leave_policy_repo.get_policy_definitions(workspace_id).await?;
     Ok(Json(policies))
 }
 
@@ -268,7 +264,7 @@ pub async fn assign_leave_policy(
         created_at: chrono::Utc::now(),
     };
 
-    let saved = leave_policy_repository::create_policy_assignment(state.db.api(), &assignment).await?;
+    let saved = state.leave_policy_repo.create_policy_assignment(&assignment).await?;
     Ok((StatusCode::CREATED, Json(saved)))
 }
 
@@ -397,9 +393,7 @@ pub async fn get_leave_policy_assignments(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<crate::models::LeavePolicyAssignmentDetail>>> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
-    let assignments = crate::repositories::leave_policy_repository::get_policy_assignments(
-        state.db.api(),
-        ctx.workspace_id,
+    let assignments = state.leave_policy_repo.get_policy_assignments(ctx.workspace_id,
     )
     .await?;
     Ok(Json(assignments))

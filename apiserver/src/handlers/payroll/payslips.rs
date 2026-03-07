@@ -69,9 +69,7 @@ pub async fn get_workspace_payslips(
         .and_then(|d| d.pred_opt())
         .ok_or_else(|| AppError::Validation("Invalid date range".to_string()))?;
 
-    let payslips = crate::repositories::payroll_repository::get_payslips_by_workspace_period(
-        state.db.api(),
-        workspace_id,
+    let payslips = state.payroll_repo.get_payslips_by_workspace_period(workspace_id,
         start_date,
         end_date,
     )
@@ -97,19 +95,17 @@ pub async fn calculate_payroll(
 
     // Fetch segments and incentives
     let segments =
-        crate::repositories::payroll_repository::get_payslip_segments(state.db.api(), payslip.id)
+        state.payroll_repo.get_payslip_segments(payslip.id)
             .await
             .unwrap_or_default();
     let incentives =
-        crate::repositories::payroll_repository::get_payslip_incentives(state.db.api(), payslip.id)
+        state.payroll_repo.get_payslip_incentives(payslip.id)
             .await
             .unwrap_or_default();
 
     // Fetch salary components at the period start date
     let salary_components =
-        crate::repositories::payroll_repository::get_employee_salary_components(
-            state.db.api(),
-            employee_id,
+        state.payroll_repo.get_employee_salary_components(employee_id,
             payslip.period_start,
         )
         .await
@@ -150,25 +146,23 @@ pub async fn get_employee_payslips(
     MemberContext { .. }: MemberContext,
 ) -> AppResult<Json<Vec<FullPayslipResponse>>> {
     let payslips =
-        crate::repositories::payroll_repository::get_payslips_by_employee(state.db.api(), employee_id)
+        state.payroll_repo.get_payslips_by_employee(employee_id)
             .await?;
 
     let mut responses = Vec::new();
     for p in payslips {
         let segments =
-            crate::repositories::payroll_repository::get_payslip_segments(state.db.api(), p.id)
+            state.payroll_repo.get_payslip_segments(p.id)
                 .await
                 .unwrap_or_default();
         let incentives =
-            crate::repositories::payroll_repository::get_payslip_incentives(state.db.api(), p.id)
+            state.payroll_repo.get_payslip_incentives(p.id)
                 .await
                 .unwrap_or_default();
 
         // Fetch salary components at the period start date
         let salary_components =
-            crate::repositories::payroll_repository::get_employee_salary_components(
-                state.db.api(),
-                employee_id,
+            state.payroll_repo.get_employee_salary_components(employee_id,
                 p.period_start,
             )
             .await

@@ -14,7 +14,7 @@ pub async fn get_workspace_by_id(
 }
 
 #[async_trait]
-pub trait WorkspaceRepository: Send + Sync {
+pub trait WorkspaceRepository: super::PoolBacked + Send + Sync {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String>;
     async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, String>;
     async fn add_member(
@@ -156,4 +156,9 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
 
         Ok(roles)
     }
+}
+
+impl super::PoolBacked for SqlxWorkspaceRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

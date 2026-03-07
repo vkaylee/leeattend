@@ -28,6 +28,18 @@ use crate::db_pool::DbPools;
 use crate::queue::RedisPool;
 use crate::repositories::{AgentRepository, EmployeeRepository, WorkspaceRepository};
 use crate::repositories::audit_log_repository::AuditLogRepository;
+use crate::repositories::department_repository::DepartmentRepository;
+use crate::repositories::holiday_repository::HolidayRepositoryTrait;
+use crate::repositories::import_job_repository::ImportJobRepository;
+use crate::repositories::leave_policy_repository::LeavePolicyRepository;
+use crate::repositories::leave_request_repository::LeaveRequestRepository;
+use crate::repositories::payroll_repository::PayrollRepository;
+use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
+use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::shift_swap_repository::ShiftSwapRepository;
+use crate::repositories::staging_log_repository::StagingLogRepository;
+use crate::repositories::time_entry_repository::TimeEntryRepository;
+use crate::repositories::user_repository::UserRepository;
 use crate::services::{AgentService, AttendanceLogService, AttendanceSummaryService, EmployeeService, ReportCoordinator, ReportService, TimeTrackingService};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::attendance_import_service::AttendanceImportService;
@@ -69,6 +81,19 @@ pub struct AppState {
     pub leave_accrual_service: Arc<LeaveAccrualService>,
     pub jwt_secret: String,
     pub attendance_service: Arc<AttendanceLogService>,
+    // Repository traits for handler-level DI
+    pub payroll_repo: Arc<dyn PayrollRepository>,
+    pub department_repo: Arc<dyn DepartmentRepository>,
+    pub time_entry_repo: Arc<dyn TimeEntryRepository>,
+    pub staging_repo: Arc<dyn StagingLogRepository>,
+    pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    pub user_repo: Arc<dyn UserRepository>,
+    pub leave_request_repo: Arc<dyn LeaveRequestRepository>,
+    pub leave_policy_repo: Arc<dyn LeavePolicyRepository>,
+    pub shift_swap_repo: Arc<dyn ShiftSwapRepository>,
+    pub import_repo: Arc<dyn ImportJobRepository>,
+    pub holiday_repo: Arc<dyn HolidayRepositoryTrait>,
+    pub roster_repo: Arc<dyn RosterRepository>,
 
     /// Optional Redis pool for distributed job processing.
     /// When None, report generation falls back to synchronous processing.

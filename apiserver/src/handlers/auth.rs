@@ -92,7 +92,7 @@ pub async fn register(
     validate_password(&req.password)?;
 
     // 2. Check if email exists
-    let existing_user = user_repository::get_user_by_email(state.db.api(), &req.email).await?;
+    let existing_user = state.user_repo.get_user_by_email(&req.email).await?;
 
     if existing_user.is_some() {
         return Err(AppError::Conflict("Email already exists".to_string()));
@@ -161,7 +161,7 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
 ) -> AppResult<Json<AuthResponse>> {
-    let user = user_repository::get_user_by_email(state.db.api(), &req.email)
+    let user = state.user_repo.get_user_by_email(&req.email)
         .await?
         .ok_or_else(|| AppError::Auth("Invalid email or password".to_string()))?;
 
@@ -210,7 +210,7 @@ pub async fn change_password(
     Json(req): Json<ChangePasswordRequest>,
 ) -> AppResult<impl IntoResponse> {
     // 1. Get current user to verify old password
-    let user = user_repository::get_user_by_id(state.db.api(), user_id)
+    let user = state.user_repo.get_user_by_id(user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
@@ -258,7 +258,7 @@ pub async fn get_me(
     UserId(user_id): UserId,
 ) -> AppResult<Json<UserResponse>> {
     tracing::debug!("Fetching profile for user: {}", user_id);
-    let user = user_repository::get_user_by_id(state.db.api(), user_id)
+    let user = state.user_repo.get_user_by_id(user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 

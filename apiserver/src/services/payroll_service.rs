@@ -10,18 +10,25 @@ use uuid::Uuid;
 
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::Payslip;
+use crate::repositories::department_repository::DepartmentRepository;
+use crate::repositories::holiday_repository::HolidayRepositoryTrait;
+use crate::repositories::payroll_repository::PayrollRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
-    department_repository, payroll_repository, roster_repository,
-    time_entry_repository, SqlxWorkspaceRepository,
+    roster_repository::RosterRepository, time_entry_repository,
 };
-use crate::repositories::holiday_repository::HolidayRepository;
 
 use super::attendance_matcher::AttendanceMatcher;
 use super::financial_calculator::FinancialCalculator;
 
 pub struct PayrollService {
-    pool: PgPool,
+    payroll_repo: Arc<dyn PayrollRepository>,
+    department_repo: Arc<dyn DepartmentRepository>,
+    time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub holiday_repo: Arc<dyn HolidayRepositoryTrait>,
+    pub roster_repo: Arc<dyn RosterRepository>,
+    pub pool: PgPool,
 }
 
 // ---------------------------------------------------------------------------
@@ -45,18 +52,6 @@ pub struct PayrollContext {
     pub(crate) payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>>,
 }
 
-/// Running totals accumulated during segment calculation.
-#[allow(dead_code)]
-struct SegmentCalcResult {
-    total_base_pay: Decimal,
-    total_std_units: i32,
-    total_ot_units: i32,
-    total_overtime_pay: Decimal,
-    total_holiday_work_premium: Decimal,
-    total_late_early_count: i32,
-    segment_snapshots: Vec<SegmentSnapshot>,
-}
-
 /// Named record for a payroll segment snapshot.
 ///
 /// Replaces the 10-element tuple that was previously used for
@@ -76,8 +71,17 @@ pub struct SegmentSnapshot {
 }
 
 impl PayrollService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        payroll_repo: Arc<dyn PayrollRepository>,
+        department_repo: Arc<dyn DepartmentRepository>,
+        time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
+        workspace_repo: Arc<dyn WorkspaceRepository>,
+        holiday_repo: Arc<dyn HolidayRepositoryTrait>,
+        roster_repo: Arc<dyn RosterRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self { payroll_repo, department_repo, time_entry_repo, workspace_repo, holiday_repo, roster_repo, pool }
     }
 
     /// Phase 1: Fetch all data needed for payroll calculation.
@@ -90,8 +94,7 @@ impl PayrollService {
         month: u32,
     ) -> Result<PayrollContext, StatusCode> {
         let pool = &self.pool;
-        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
-        let workspace = workspace_repo
+        let workspace = self.workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
             .map_err(|e| {
@@ -113,14 +116,14 @@ impl PayrollService {
             .pred_opt()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        let salary_history = payroll_repository::get_salary_components_history(
-            pool, employee_id, start_date, end_date,
+        let salary_history = self.payroll_repo.get_salary_components_history(
+            employee_id, start_date, end_date,
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let all_dept_history =
-            department_repository::get_employee_department_history(pool, employee_id)
+            self.department_repo.get_employee_department_history(employee_id)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -130,12 +133,12 @@ impl PayrollService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let time_entries =
-            time_entry_repository::get_employee_time_entries(pool, employee_id, start_dt, end_dt)
+            self.time_entry_repo.get_employee_time_entries(employee_id, start_dt, end_dt)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        let holidays_map = HolidayRepository::get_holidays_in_range(
-            pool, workspace_id, start_date, end_date,
+        let holidays_map = self.holiday_repo.get_holidays_in_range(
+            workspace_id, start_date, end_date,
         )
         .await
         .unwrap_or_default();
@@ -165,7 +168,7 @@ impl PayrollService {
             emp_row.get("tags")
         };
 
-        let rosters = roster_repository::get_employee_rosters(pool, employee_id, start_date, end_date)
+        let rosters = self.roster_repo.get_employee_rosters( employee_id, start_date, end_date)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
@@ -317,8 +320,8 @@ impl PayrollService {
         }
 
         // Phase 4: Enforce monthly OT cap
-        let payroll_settings = payroll_repository::get_payroll_settings_at(
-            pool, workspace_id, ctx.end_date,
+        let payroll_settings = self.payroll_repo.get_payroll_settings_at(
+            workspace_id, ctx.end_date,
         ).await.unwrap_or(None);
         if let Some(ref ps) = payroll_settings {
             if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
@@ -371,14 +374,12 @@ impl PayrollService {
         segment_snapshots: Vec<SegmentSnapshot>,
         incentive_results: Vec<crate::models::IncentiveEvaluationResult>,
     ) -> Result<Payslip, StatusCode> {
-        let pool = &self.pool;
-        let created_payslip = payroll_repository::create_payslip(pool, &payslip)
+        let created_payslip = self.payroll_repo.create_payslip(&payslip)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         for snap in segment_snapshots {
-            payroll_repository::create_payslip_segment(
-                pool,
+            self.payroll_repo.create_payslip_segment(
                 created_payslip.id,
                 snap.seg_start,
                 snap.seg_end,
@@ -396,7 +397,7 @@ impl PayrollService {
         }
 
         for res in incentive_results {
-            let _ = payroll_repository::create_payslip_incentive(pool, created_payslip.id, &res).await;
+            let _ = self.payroll_repo.create_payslip_incentive(created_payslip.id, &res).await;
         }
 
         Ok(created_payslip)
@@ -413,9 +414,16 @@ impl PayrollService {
 
         let results: Vec<_> = stream::iter(employee_ids)
             .map(|emp_id| {
-                let pool_clone = self.pool.clone();
+                let svc = Self {
+                    payroll_repo: self.payroll_repo.clone(),
+                    department_repo: self.department_repo.clone(),
+                    time_entry_repo: self.time_entry_repo.clone(),
+                    workspace_repo: self.workspace_repo.clone(),
+                    holiday_repo: self.holiday_repo.clone(),
+                    roster_repo: self.roster_repo.clone(),
+                    pool: self.pool.clone(),
+                };
                 async move {
-                    let svc = Self { pool: pool_clone };
                     match svc.calculate_monthly_payslip(
                         emp_id,
                         workspace_id,

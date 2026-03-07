@@ -1,6 +1,7 @@
 use crate::cache::RosterData;
 use crate::models::{EffectiveSchedule, EmployeeSchedule, ScheduleTrace, ShiftRoster};
 use crate::repositories::holiday_repository::HolidayRepository;
+use async_trait::async_trait;
 use chrono::NaiveDate;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -150,8 +151,69 @@ pub fn resolve_effective_shift_from_data(
     (vec![None], "none".to_string(), traces)
 }
 
-pub async fn get_workspace_schedules(
-    pool: &PgPool,
+#[async_trait]
+pub trait RosterRepository: super::PoolBacked + Send + Sync {
+    async fn get_workspace_schedules(
+        &self,
+        roster_cache: Option<&crate::cache::RosterCache>,
+        workspace_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        employee_ids: Option<&Vec<Uuid>>,
+    ) -> Result<Vec<EmployeeSchedule>, sqlx::Error>;
+
+    async fn get_assignment_history(
+        &self,
+        workspace_id: Uuid,
+        limit: i64,
+    ) -> Result<Vec<crate::models::AssignmentHistory>, sqlx::Error>;
+
+    async fn get_employee_rosters(
+        &self,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<ShiftRoster>, sqlx::Error>;
+
+    async fn upsert_roster(
+        &self,
+        roster: &ShiftRoster,
+    ) -> Result<ShiftRoster, sqlx::Error>;
+
+    async fn bulk_upsert_roster(
+        &self,
+        employee_id: Uuid,
+        items: Vec<crate::models::RosterItem>,
+    ) -> Result<(), sqlx::Error>;
+
+    async fn get_effective_shift(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), sqlx::Error>;
+
+    async fn delete_roster(
+        &self,
+        employee_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<(), sqlx::Error>;
+}
+
+pub struct SqlxRosterRepository {
+    pub pool: PgPool,
+}
+
+impl SqlxRosterRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl RosterRepository for SqlxRosterRepository {
+    async fn get_workspace_schedules(
+        &self,
     roster_cache: Option<&crate::cache::RosterCache>,
     workspace_id: Uuid,
     start_date: NaiveDate,
@@ -164,7 +226,7 @@ pub async fn get_workspace_schedules(
     )
     .bind(workspace_id)
     .bind(employee_ids)
-    .fetch_all(pool)
+    .fetch_all(&self.pool)
     .await?;
 
     let employees: Vec<_> = employees
@@ -182,17 +244,17 @@ pub async fn get_workspace_schedules(
     // Load roster config from cache (or directly from DB if cache unavailable)
     let roster_data = match roster_cache {
         Some(cache) => cache
-            .get_roster_data(workspace_id, pool)
+            .get_roster_data(workspace_id, &self.pool)
             .await
             .map_err(|e| sqlx::Error::Io(std::io::Error::other(e)))?,
-        None => crate::cache::build_roster_data(pool, workspace_id)
+        None => crate::cache::build_roster_data(&self.pool, workspace_id)
             .await
             .map_err(|e| sqlx::Error::Io(std::io::Error::other(e)))?,
     };
 
     // 2b. Fetch holidays in range for overlay
     let holidays_map = HolidayRepository::get_holidays_in_range(
-        pool, workspace_id, start_date, end_date,
+        &self.pool, workspace_id, start_date, end_date,
     )
     .await
     .unwrap_or_default();
@@ -211,7 +273,7 @@ pub async fn get_workspace_schedules(
     .bind(workspace_id)
     .bind(start_date)
     .bind(end_date)
-    .fetch_all(pool)
+    .fetch_all(&self.pool)
     .await?;
 
     // Group rosters by (employee_id, date)
@@ -297,10 +359,10 @@ pub async fn get_workspace_schedules(
     Ok(result)
 }
 
-pub async fn get_assignment_history(
-    pool: &PgPool,
-    workspace_id: Uuid,
-    limit: i64,
+    async fn get_assignment_history(
+        &self,
+        workspace_id: Uuid,
+        limit: i64,
 ) -> Result<Vec<crate::models::AssignmentHistory>, sqlx::Error> {
     sqlx::query_as::<_, crate::models::AssignmentHistory>(
         r#"
@@ -396,15 +458,15 @@ pub async fn get_assignment_history(
     )
     .bind(workspace_id)
     .bind(limit)
-    .fetch_all(pool)
+    .fetch_all(&self.pool)
     .await
 }
 
-pub async fn get_employee_rosters(
-    pool: &PgPool,
-    employee_id: Uuid,
-    start_date: NaiveDate,
-    end_date: NaiveDate,
+    async fn get_employee_rosters(
+        &self,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
 ) -> Result<Vec<ShiftRoster>, sqlx::Error> {
     sqlx::query_as::<_, ShiftRoster>(
         "SELECT * FROM shift_rosters WHERE employee_id = $1 AND date >= $2 AND date <= $3 ORDER BY date ASC"
@@ -412,13 +474,13 @@ pub async fn get_employee_rosters(
     .bind(employee_id)
     .bind(start_date)
     .bind(end_date)
-    .fetch_all(pool)
+    .fetch_all(&self.pool)
     .await
 }
 
-pub async fn upsert_roster(
-    pool: &PgPool,
-    roster: &ShiftRoster,
+    async fn upsert_roster(
+        &self,
+        roster: &ShiftRoster,
 ) -> Result<ShiftRoster, sqlx::Error> {
     sqlx::query_as::<_, ShiftRoster>(
         "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status, notes)
@@ -433,16 +495,16 @@ pub async fn upsert_roster(
     .bind(roster.date)
     .bind(roster.status.clone())
     .bind(roster.notes.clone())
-    .fetch_one(pool)
+    .fetch_one(&self.pool)
     .await
 }
 
-pub async fn bulk_upsert_roster(
-    pool: &sqlx::PgPool,
-    employee_id: Uuid,
-    items: Vec<crate::models::RosterItem>,
-) -> Result<(), sqlx::Error> {
-    let mut tx = pool.begin().await?;
+    async fn bulk_upsert_roster(
+        &self,
+        employee_id: Uuid,
+        items: Vec<crate::models::RosterItem>,
+    ) -> Result<(), sqlx::Error> {
+        let mut tx = self.pool.begin().await?;
 
     for item in items {
         sqlx::query(
@@ -465,11 +527,11 @@ pub async fn bulk_upsert_roster(
     Ok(())
 }
 
-pub async fn get_effective_shift(
-    pool: &PgPool,
-    workspace_id: Uuid,
-    employee_id: Uuid,
-    date: NaiveDate,
+    async fn get_effective_shift(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        date: NaiveDate,
 ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), sqlx::Error> {
     let mut traces = Vec::new();
 
@@ -480,7 +542,7 @@ pub async fn get_effective_shift(
     .bind(employee_id)
     .bind(date)
     .bind(workspace_id)
-    .fetch_optional(pool)
+    .fetch_optional(&self.pool)
     .await?;
 
     if let Some(shift) = roster_shift {
@@ -515,7 +577,7 @@ pub async fn get_effective_shift(
         day_of_week,
         workspace_id
     )
-    .fetch_optional(pool)
+    .fetch_optional(&self.pool)
     .await?;
 
     if let Some(p) = pattern_info {
@@ -542,11 +604,11 @@ pub async fn get_effective_shift(
         employee_id,
         date
     )
-    .fetch_optional(pool)
+    .fetch_optional(&self.pool)
     .await?;
 
     if let Some(info) = employee_full {
-        let rules = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(pool, info.workspace_id).await.unwrap_or_default();
+        let rules = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(&self.pool, info.workspace_id).await.unwrap_or_default();
 
         if !rules.is_empty() {
             // Pre-fetch pattern details for all active rules in one batch query
@@ -554,7 +616,7 @@ pub async fn get_effective_shift(
                 "SELECT pattern_id, day_of_week, shift_id FROM working_pattern_details WHERE pattern_id IN (SELECT pattern_id FROM assignment_rules WHERE workspace_id = $1 AND is_active = true)",
                 info.workspace_id
             )
-            .fetch_all(pool)
+            .fetch_all(&self.pool)
             .await?;
 
             let mut rule_patterns_map: HashMap<(Uuid, i32), Vec<Option<Uuid>>> = HashMap::new();
@@ -605,7 +667,7 @@ pub async fn get_effective_shift(
         day_of_week,
         workspace_id
     )
-    .fetch_optional(pool)
+    .fetch_optional(&self.pool)
     .await?;
 
     if let Some(dp) = dept_pattern_info {
@@ -636,7 +698,7 @@ pub async fn get_effective_shift(
     .bind(employee_id)
     .bind(date)
     .bind(workspace_id)
-    .fetch_optional(pool)
+    .fetch_optional(&self.pool)
     .await?;
 
     if let Some(shift) = employee_shift {
@@ -665,7 +727,7 @@ pub async fn get_effective_shift(
     .bind(employee_id)
     .bind(date)
     .bind(workspace_id)
-    .fetch_optional(pool)
+    .fetch_optional(&self.pool)
     .await?;
 
     if let Some(shift) = dept_shift {
@@ -682,18 +744,19 @@ pub async fn get_effective_shift(
     Ok((None, traces))
 }
 
-pub async fn delete_roster(
-    pool: &PgPool,
-    employee_id: Uuid,
-    date: NaiveDate,
+    async fn delete_roster(
+        &self,
+        employee_id: Uuid,
+        date: NaiveDate,
 ) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM shift_rosters WHERE employee_id = $1 AND date = $2")
         .bind(employee_id)
         .bind(date)
-        .execute(pool)
+        .execute(&self.pool)
         .await?;
 
-    Ok(())
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -1185,4 +1248,9 @@ mod tests {
         assert_eq!(shift, vec![None], "future effective_date should be ignored");
         assert_eq!(source, "none");
     }
+}
+
+impl super::PoolBacked for SqlxRosterRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

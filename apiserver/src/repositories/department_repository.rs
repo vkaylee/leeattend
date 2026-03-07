@@ -1,8 +1,75 @@
+use async_trait::async_trait;
 use chrono::NaiveDate;
+use rust_decimal::Decimal;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{Department, EmployeeDepartmentHistory};
+use crate::models::{Department, DepartmentPayrollConfig, EmployeeDepartmentHistory};
+
+// ---------------------------------------------------------------------------
+// Trait: DepartmentRepository — DIP abstraction
+// ---------------------------------------------------------------------------
+#[async_trait]
+#[allow(clippy::too_many_arguments)]
+pub trait DepartmentRepository: super::PoolBacked + Send + Sync {
+    async fn create_department(&self, workspace_id: Uuid, name: String, description: Option<String>, manager_id: Option<Uuid>, default_working_pattern_id: Option<Uuid>) -> Result<Department, sqlx::Error>;
+    async fn get_department_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Department>, sqlx::Error>;
+    async fn update_department(&self, workspace_id: Uuid, id: Uuid, name: Option<String>, description: Option<String>, manager_id: Option<Uuid>, default_working_pattern_id: Option<Option<Uuid>>) -> Result<Department, sqlx::Error>;
+    async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>;
+    async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, sqlx::Error>;
+    async fn transfer_employee(&self, employee_id: Uuid, department_id: Uuid, effective_date: NaiveDate, notes: Option<String>) -> Result<EmployeeDepartmentHistory, sqlx::Error>;
+    async fn get_employee_department_history(&self, employee_id: Uuid) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error>;
+    async fn get_current_department(&self, employee_id: Uuid) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error>;
+    async fn upsert_department_payroll_config(&self, department_id: Uuid, std_working_days: Decimal, hours_per_day: Decimal, effective_date: NaiveDate) -> Result<DepartmentPayrollConfig, sqlx::Error>;
+    async fn get_department_payroll_config_at(&self, department_id: Uuid, date: NaiveDate) -> Result<Option<DepartmentPayrollConfig>, sqlx::Error>;
+}
+
+// ---------------------------------------------------------------------------
+// SqlxDepartmentRepository — production implementation backed by PgPool
+// ---------------------------------------------------------------------------
+pub struct SqlxDepartmentRepository {
+    pub pool: PgPool,
+}
+
+impl SqlxDepartmentRepository {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl DepartmentRepository for SqlxDepartmentRepository {
+    async fn create_department(&self, workspace_id: Uuid, name: String, description: Option<String>, manager_id: Option<Uuid>, default_working_pattern_id: Option<Uuid>) -> Result<Department, sqlx::Error> {
+        create_department(&self.pool, workspace_id, name, description, manager_id, default_working_pattern_id).await
+    }
+    async fn get_department_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Department>, sqlx::Error> {
+        get_department_by_id(&self.pool, workspace_id, id).await
+    }
+    #[allow(clippy::too_many_arguments)]
+    async fn update_department(&self, workspace_id: Uuid, id: Uuid, name: Option<String>, description: Option<String>, manager_id: Option<Uuid>, default_working_pattern_id: Option<Option<Uuid>>) -> Result<Department, sqlx::Error> {
+        update_department(&self.pool, workspace_id, id, name, description, manager_id, default_working_pattern_id).await
+    }
+    async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+        delete_department(&self.pool, workspace_id, id).await
+    }
+    async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, sqlx::Error> {
+        get_departments(&self.pool, workspace_id).await
+    }
+    async fn transfer_employee(&self, employee_id: Uuid, department_id: Uuid, effective_date: NaiveDate, notes: Option<String>) -> Result<EmployeeDepartmentHistory, sqlx::Error> {
+        transfer_employee(&self.pool, employee_id, department_id, effective_date, notes).await
+    }
+    async fn get_employee_department_history(&self, employee_id: Uuid) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error> {
+        get_employee_department_history(&self.pool, employee_id).await
+    }
+    async fn get_current_department(&self, employee_id: Uuid) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error> {
+        get_current_department(&self.pool, employee_id).await
+    }
+    async fn upsert_department_payroll_config(&self, department_id: Uuid, std_working_days: Decimal, hours_per_day: Decimal, effective_date: NaiveDate) -> Result<DepartmentPayrollConfig, sqlx::Error> {
+        upsert_department_payroll_config(&self.pool, department_id, std_working_days, hours_per_day, effective_date).await
+    }
+    async fn get_department_payroll_config_at(&self, department_id: Uuid, date: NaiveDate) -> Result<Option<DepartmentPayrollConfig>, sqlx::Error> {
+        get_department_payroll_config_at(&self.pool, department_id, date).await
+    }
+}
+
 
 pub async fn create_department(
     pool: &PgPool,
@@ -183,8 +250,7 @@ pub async fn get_current_department(
     .await
 }
 
-use crate::models::DepartmentPayrollConfig;
-use rust_decimal::Decimal;
+
 
 pub async fn upsert_department_payroll_config(
     pool: &PgPool,
@@ -226,4 +292,9 @@ pub async fn get_department_payroll_config_at(
     )
     .fetch_optional(pool)
     .await
+}
+
+impl super::PoolBacked for SqlxDepartmentRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

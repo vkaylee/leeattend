@@ -33,12 +33,19 @@ impl LogIngestionHandler {
         );
         let pairing_svc = std::sync::Arc::new(
             crate::services::pairing_service::PairingService::new(
-                time_entry_repo, db.clone(),
+                time_entry_repo, std::sync::Arc::new(crate::repositories::roster_repository::SqlxRosterRepository::new(db.clone())), db.clone(),
             ),
         );
-        let (log_svc, _handle) = AttendanceLogService::new(
-            db.clone(), pairing_svc, 1, 1, 1000,
-        );
+        let (log_svc, _handle) = {
+            let employee_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> = std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(db.clone()));
+            let raw_log_repo: std::sync::Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(db.clone()));
+            let staging_repo: std::sync::Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(db.clone()));
+            let error_repo: std::sync::Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(crate::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(db.clone()));
+            AttendanceLogService::new(
+                db.clone(), pairing_svc, 1, 1, 1000,
+                employee_repo, raw_log_repo, staging_repo, error_repo,
+            )
+        };
         log_svc.process_log(
             payload.workspace_id,
             &payload.employee_id_number,

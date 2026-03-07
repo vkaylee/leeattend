@@ -1,6 +1,42 @@
+use async_trait::async_trait;
 use crate::models::User;
 use sqlx::{query, query_as, Executor, PgPool, Postgres};
 use uuid::Uuid;
+
+// ---------------------------------------------------------------------------
+// Trait: UserRepository — DIP abstraction
+// (create_user_tx excluded — takes generic Executor)
+// ---------------------------------------------------------------------------
+#[async_trait]
+pub trait UserRepository: super::PoolBacked + Send + Sync {
+    async fn create_user(&self, user: &User) -> Result<(), sqlx::Error>;
+    async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error>;
+    async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, sqlx::Error>;
+}
+
+// ---------------------------------------------------------------------------
+// SqlxUserRepository — production implementation backed by PgPool
+// ---------------------------------------------------------------------------
+pub struct SqlxUserRepository {
+    pub pool: PgPool,
+}
+
+impl SqlxUserRepository {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl UserRepository for SqlxUserRepository {
+    async fn create_user(&self, user: &User) -> Result<(), sqlx::Error> {
+        create_user(&self.pool, user).await
+    }
+    async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error> {
+        get_user_by_email(&self.pool, email).await
+    }
+    async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, sqlx::Error> {
+        get_user_by_id(&self.pool, id).await
+    }
+}
 
 pub async fn create_user(pool: &PgPool, user: &User) -> Result<(), sqlx::Error> {
     query!(
@@ -57,4 +93,9 @@ pub async fn get_user_by_id(pool: &PgPool, id: Uuid) -> Result<Option<User>, sql
     )
     .fetch_optional(pool)
     .await
+}
+
+impl super::PoolBacked for SqlxUserRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

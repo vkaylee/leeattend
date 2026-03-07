@@ -1,7 +1,54 @@
+use async_trait::async_trait;
 use crate::models::{RawAttendanceLog, RawAttendanceLogWithEmployee};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, PgPool, QueryBuilder};
 use uuid::Uuid;
+
+// ---------------------------------------------------------------------------
+// Trait: RawAttendanceLogRepository — DIP abstraction
+// ---------------------------------------------------------------------------
+#[async_trait]
+pub trait RawAttendanceLogRepository: super::PoolBacked + Send + Sync {
+    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, sqlx::Error>;
+    async fn get_raw_log_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<RawAttendanceLog>, sqlx::Error>;
+    async fn get_latest_log(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Option<RawAttendanceLog>, sqlx::Error>;
+    async fn get_paginated_raw_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>, p_limit: i64, p_offset: i64) -> Result<Vec<RawAttendanceLogWithEmployee>, sqlx::Error>;
+    async fn count_raw_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>) -> Result<i64, sqlx::Error>;
+    async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog]) -> Result<usize, sqlx::Error>;
+}
+
+// ---------------------------------------------------------------------------
+// SqlxRawAttendanceLogRepository — production implementation backed by PgPool
+// ---------------------------------------------------------------------------
+pub struct SqlxRawAttendanceLogRepository {
+    pub pool: PgPool,
+}
+
+impl SqlxRawAttendanceLogRepository {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl RawAttendanceLogRepository for SqlxRawAttendanceLogRepository {
+    async fn create_raw_log(&self, log: &RawAttendanceLog) -> Result<bool, sqlx::Error> {
+        create_raw_log(&self.pool, log).await
+    }
+    async fn get_raw_log_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
+        get_raw_log_by_id(&self.pool, workspace_id, id).await
+    }
+    async fn get_latest_log(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
+        get_latest_log(&self.pool, workspace_id, employee_id).await
+    }
+    async fn get_paginated_raw_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>, p_limit: i64, p_offset: i64) -> Result<Vec<RawAttendanceLogWithEmployee>, sqlx::Error> {
+        get_paginated_raw_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to, p_limit, p_offset).await
+    }
+    async fn count_raw_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>) -> Result<i64, sqlx::Error> {
+        count_raw_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to).await
+    }
+    async fn create_raw_logs_batch(&self, logs: &[&RawAttendanceLog]) -> Result<usize, sqlx::Error> {
+        create_raw_logs_batch(&self.pool, logs).await
+    }
+}
 
 pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<bool, sqlx::Error> {
     let result = query(
@@ -168,4 +215,9 @@ pub async fn create_raw_logs_batch(
     let result = query_builder.build().execute(pool).await?;
 
     Ok(result.rows_affected() as usize)
+}
+
+impl super::PoolBacked for SqlxRawAttendanceLogRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

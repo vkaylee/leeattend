@@ -71,7 +71,7 @@ pub async fn get_attendance_trend(
     )
     .bind(today)
     .bind(workspace_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await?;
 
     // Late detection: separate query (roster_entries may not exist yet)
@@ -107,7 +107,7 @@ pub async fn get_attendance_trend(
     )
     .bind(today)
     .bind(workspace_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await
     .unwrap_or_default()
     .into_iter()
@@ -119,7 +119,7 @@ pub async fn get_attendance_trend(
         "SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
     )
     .bind(workspace_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await
     .unwrap_or(0);
 
@@ -186,7 +186,7 @@ pub async fn get_department_attendance(
     )
     .bind(workspace_id)
     .bind(today)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await?;
 
     if departments.is_empty() {
@@ -225,7 +225,7 @@ pub async fn get_department_attendance(
     .bind(workspace_id)
     .bind(start_dt)
     .bind(today)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await
     .unwrap_or_default();
 
@@ -270,7 +270,7 @@ pub async fn get_department_attendance(
         .bind(workspace_id)
         .bind(start_dt)
         .bind(today)
-        .fetch_all(state.db.api())
+        .fetch_all(state.db.reader())
         .await
         .unwrap_or_default()
         .into_iter()
@@ -308,7 +308,7 @@ pub async fn get_department_attendance(
     .bind(workspace_id)
     .bind(start_date)
     .bind(today)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await
     .unwrap_or_default();
 
@@ -352,8 +352,7 @@ pub async fn get_unexcused_absences(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(params): Query<UnexcusedAbsencesQuery>,
 ) -> AppResult<Json<Vec<UnexcusedAbsencesPoint>>> {
-    use crate::repositories::{roster_repository, time_entry_repository};
-    use crate::repositories::workspace_repository::WorkspaceRepository;
+        use crate::repositories::workspace_repository::WorkspaceRepository;
     use crate::repositories::SqlxWorkspaceRepository;
     use crate::services::attendance_utils::{
         self, AttendanceStatus, DailyStatusInput, determine_daily_status,
@@ -377,7 +376,7 @@ pub async fn get_unexcused_absences(
     let group_by = params.group_by.unwrap_or_else(|| "department".to_string());
 
     // 1. Get workspace timezone
-    let workspace_repo = SqlxWorkspaceRepository { pool: state.db.api().clone() };
+    let workspace_repo = SqlxWorkspaceRepository { pool: state.db.reader().clone() };
     let workspace = workspace_repo
         .get_workspace_by_id(workspace_id)
         .await
@@ -387,8 +386,7 @@ pub async fn get_unexcused_absences(
     let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
     // 2. Get schedules for ALL active employees (reuses 6-priority chain logic)
-    let schedules = roster_repository::get_workspace_schedules(
-        state.db.api(),
+    let schedules = state.roster_repo.get_workspace_schedules(
         state.roster_cache.as_deref(),
         workspace_id,
         start_date,
@@ -402,8 +400,7 @@ pub async fn get_unexcused_absences(
     let emp_ids: Vec<Uuid> = schedules.iter().map(|s| s.employee_id).collect();
     let (start_dt, end_dt) = attendance_utils::date_range_to_utc(tz, start_date, end_date);
 
-    let entries_map = time_entry_repository::get_workspace_time_entries_batch(
-        state.db.api(), &emp_ids, start_dt, end_dt,
+    let entries_map = state.time_entry_repo.get_workspace_time_entries_batch(&emp_ids, start_dt, end_dt,
     )
     .await
     .map_err(|e| AppError::Internal(format!("Error fetching time entries: {e}")))?;
@@ -412,7 +409,7 @@ pub async fn get_unexcused_absences(
 
     // 5. Batch-fetch approved leave requests (using shared build_leave_date_set)
     let leave_date_set = attendance_utils::build_leave_date_set(
-        state.db.api(), workspace_id, &emp_ids, start_date, end_date,
+        state.db.reader(), workspace_id, &emp_ids, start_date, end_date,
     )
     .await
     .map_err(|e| AppError::Internal(format!("Error fetching leave requests: {e}")))?;
@@ -435,7 +432,7 @@ pub async fn get_unexcused_absences(
         workspace_id,
         end_date
     )
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await
     .map_err(|e| AppError::Internal(format!("Error fetching departments: {e}")))?;
 
@@ -608,7 +605,7 @@ pub async fn get_overtime_trend(
     )
     .bind(workspace_id)
     .bind(today)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await
     .unwrap_or_default();
 
@@ -633,7 +630,7 @@ pub async fn get_workspace_stats(
         "SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
     )
     .bind(workspace_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await
     .unwrap_or(0);
 
@@ -651,7 +648,7 @@ pub async fn get_workspace_stats(
     )
     .bind(start_of_day)
     .bind(workspace_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await
     .unwrap_or(0);
 
@@ -662,7 +659,7 @@ pub async fn get_workspace_stats(
          AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
     )
     .bind(workspace_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await
     .unwrap_or(0);
 
@@ -691,7 +688,7 @@ pub async fn get_workspace_stats(
         "#,
     )
     .bind(workspace_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await
     .unwrap_or(rust_decimal::Decimal::ZERO);
 
@@ -704,7 +701,7 @@ pub async fn get_workspace_stats(
     )
     .bind(today)
     .bind(workspace_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await
     .unwrap_or(0);
 
@@ -736,7 +733,7 @@ pub async fn get_workspace_stats(
     .bind(start_of_day)
     .bind(workspace_id)
     .bind(today)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await
     .unwrap_or(0);
 
@@ -766,7 +763,7 @@ pub async fn get_workspace_stats(
     .bind(start_of_day)
     .bind(workspace_id)
     .bind(today)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await
     .unwrap_or(0);
 
@@ -780,7 +777,7 @@ pub async fn get_workspace_stats(
     )
     .bind(start_of_day)
     .bind(workspace_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.db.reader())
     .await
     .unwrap_or(None);
 
@@ -863,7 +860,7 @@ pub async fn get_peak_times(
     )
     .bind(start_of_day)
     .bind(workspace_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await
     .unwrap_or_default();
 
@@ -914,7 +911,7 @@ pub async fn get_leave_types_breakdown(
     .bind(month_start)
     .bind(today)
     .bind(workspace_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await
     .unwrap_or_default();
 
@@ -999,7 +996,7 @@ pub async fn get_lateness_by_day(
     )
     .bind(today)
     .bind(workspace_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.db.reader())
     .await
     .unwrap_or_default();
 

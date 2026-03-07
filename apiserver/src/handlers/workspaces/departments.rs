@@ -18,7 +18,7 @@ pub async fn get_departments(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<Department>>> {
     let departments =
-        crate::repositories::department_repository::get_departments(state.db.api(), workspace_id)
+        state.department_repo.get_departments(workspace_id)
             .await?;
     Ok(Json(departments))
 }
@@ -30,9 +30,7 @@ pub async fn create_department(
     Json(req): Json<CreateDepartmentRequest>,
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::DepartmentsCreate)?;
-    let dept = crate::repositories::department_repository::create_department(
-        state.db.api(),
-        ctx.workspace_id,
+    let dept = state.department_repo.create_department(ctx.workspace_id,
         req.name,
         req.description,
         req.manager_id,
@@ -50,9 +48,7 @@ pub async fn update_department(
     Json(req): Json<UpdateDepartmentRequest>,
 ) -> AppResult<Json<Department>> {
     ctx.require_permission(Permission::DepartmentsUpdate)?;
-    let dept = crate::repositories::department_repository::update_department(
-        state.db.api(),
-        ctx.workspace_id,
+    let dept = state.department_repo.update_department(ctx.workspace_id,
         id,
         req.name,
         req.description,
@@ -70,7 +66,7 @@ pub async fn delete_department(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::DepartmentsDelete)?;
-    crate::repositories::department_repository::delete_department(state.db.api(), ctx.workspace_id, id)
+    state.department_repo.delete_department(ctx.workspace_id, id)
         .await?;
 
     Ok(StatusCode::NO_CONTENT)

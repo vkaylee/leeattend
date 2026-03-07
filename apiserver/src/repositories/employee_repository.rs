@@ -23,7 +23,7 @@ pub struct EmployeeBasicInfo {
 // ---------------------------------------------------------------------------
 #[async_trait]
 #[allow(clippy::too_many_arguments)]
-pub trait EmployeeRepository: Send + Sync {
+pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
     async fn find_by_number(
         &self,
         workspace_id: Uuid,
@@ -1390,4 +1390,9 @@ mod tests {
         assert!(exact_name_pos < prefix_name_pos, "Exact name should come before prefix name");
         assert!(prefix_name_pos < alpha_pos, "Prefix name should come before alphabetical");
     }
+}
+
+impl super::PoolBacked for SqlxEmployeeRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

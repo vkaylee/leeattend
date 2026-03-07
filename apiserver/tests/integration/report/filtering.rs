@@ -33,6 +33,7 @@ async fn test_daily_report_employee_filtering() {
 
     let report_service = ReportService::new(
         std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())),
+        std::sync::Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())),
         pool.clone()
     );
 

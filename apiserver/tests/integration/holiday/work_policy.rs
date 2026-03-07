@@ -4,6 +4,7 @@
 //! - Leave breakdown: paid holidays excluded from leave day count
 //! - CRUD: new work_threshold_percent and is_credit_on_work fields
 
+use std::sync::Arc;
 use crate::common::app::spawn_app;
 use apiserver::models::LeaveStatus;
 use chrono::{Datelike, NaiveDate, NaiveTime, TimeZone, Utc};
@@ -103,7 +104,14 @@ async fn test_payroll_holiday_work_with_multiplier() {
     .unwrap();
 
     // Calculate payroll
-    let result = apiserver::services::payroll_service::PayrollService::new(pool.clone()).calculate_monthly_payslip(
+    let result = {
+            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+            apiserver::services::payroll_service::PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone())
+        }.calculate_monthly_payslip(
         emp,
         workspace_id,
         first_of_month.year(),
@@ -205,7 +213,14 @@ async fn test_payroll_holiday_work_no_credit() {
     .await
     .unwrap();
 
-    let payslip = apiserver::services::payroll_service::PayrollService::new(pool.clone()).calculate_monthly_payslip( emp, workspace_id, first_of_month.year(), first_of_month.month(),
+    let payslip = {
+            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+            apiserver::services::payroll_service::PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone())
+        }.calculate_monthly_payslip( emp, workspace_id, first_of_month.year(), first_of_month.month(),
     )
     .await
     .unwrap();
@@ -294,7 +309,14 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
     .await
     .unwrap();
 
-    let payslip = apiserver::services::payroll_service::PayrollService::new(pool.clone()).calculate_monthly_payslip( emp, workspace_id, first_of_month.year(), first_of_month.month(),
+    let payslip = {
+            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+            apiserver::services::payroll_service::PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone())
+        }.calculate_monthly_payslip( emp, workspace_id, first_of_month.year(), first_of_month.month(),
     )
     .await
     .unwrap();
@@ -464,7 +486,7 @@ async fn test_leave_kept_partial_work() {
         .create()
         .await;
 
-    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary( workspace_id, emp, today,
+    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), std::sync::Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary( workspace_id, emp, today,
     )
     .await
     .expect("Recalculate failed");
@@ -649,7 +671,7 @@ async fn test_leave_reversal_only_system() {
         .create()
         .await;
 
-    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary( workspace_id, emp, today,
+    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), std::sync::Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary( workspace_id, emp, today,
     )
     .await
     .expect("Recalculate failed");

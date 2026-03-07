@@ -28,8 +28,12 @@ async fn test_process_log_success_with_timezone() {
     // 2. Process a naive timestamp (8 AM VN should be 1 AM UTC)
     let punch_time_raw = "2026-01-23 08:00:00";
     let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(repo, pool.clone()));
-    let (service, _) = AttendanceLogService::new(pool.clone(), pairing, 100, 10, 1000);
+    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(repo, std::sync::Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone()));
+    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> = std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
+    let rl_repo: std::sync::Arc<dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(apiserver::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
+    let st_repo: std::sync::Arc<dyn apiserver::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(apiserver::repositories::staging_log_repository::SqlxStagingLogRepository::new(pool.clone()));
+    let er_repo: std::sync::Arc<dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(apiserver::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
+    let (service, _) = AttendanceLogService::new(pool.clone(), pairing, 100, 10, 1000, emp_repo, rl_repo, st_repo, er_repo);
     let result = service.process_log(
         workspace_id,
         "EMP_VN_001",
@@ -83,8 +87,12 @@ async fn test_same_second_punch_with_different_status_allowed() {
     let punch_time_raw = "2026-01-23 08:00:00";
 
     let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(repo, pool.clone()));
-    let (service, _) = AttendanceLogService::new(pool.clone(), pairing, 100, 10, 1000);
+    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(repo, std::sync::Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone()));
+    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> = std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
+    let rl_repo: std::sync::Arc<dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(apiserver::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
+    let st_repo: std::sync::Arc<dyn apiserver::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(apiserver::repositories::staging_log_repository::SqlxStagingLogRepository::new(pool.clone()));
+    let er_repo: std::sync::Arc<dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(apiserver::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
+    let (service, _) = AttendanceLogService::new(pool.clone(), pairing, 100, 10, 1000, emp_repo, rl_repo, st_repo, er_repo);
 
     // 1. First punch (check-in)
     let res1 = service.process_log(

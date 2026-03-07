@@ -5,23 +5,37 @@
 //! - Creates an auto-approved leave request (if balance >= 1 day), or
 //! - Marks the employee as unpaid for that day (if balance < 1 day).
 
+use std::sync::Arc;
+
 use chrono::{Datelike, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{Holiday, LeaveRequest, LeaveStatus, ShiftRoster};
-use crate::repositories::{
-    employee_repository, leave_balance_repository, leave_request_repository, roster_repository,
-};
+use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
+use crate::repositories::leave_request_repository::LeaveRequestRepository;
+use crate::repositories::roster_repository::RosterRepository;
+
+use crate::repositories::EmployeeRepository;
 use crate::repositories::holiday_repository::HolidayLeaveResult;
 
 pub struct HolidayLeaveService {
+    employee_repo: Arc<dyn EmployeeRepository>,
+    leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
+    leave_request_repo: Arc<dyn LeaveRequestRepository>,
+    roster_repo: Arc<dyn RosterRepository>,
     pool: PgPool,
 }
 
 impl HolidayLeaveService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(
+        employee_repo: Arc<dyn EmployeeRepository>,
+        leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
+        leave_request_repo: Arc<dyn LeaveRequestRepository>,
+        roster_repo: Arc<dyn RosterRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self { employee_repo, leave_balance_repo, leave_request_repo, roster_repo, pool }
     }
 
     /// Process leave deductions for all active employees on an unpaid holiday.
@@ -66,7 +80,7 @@ impl HolidayLeaveService {
         .unwrap_or_else(|| "Leave".to_string());
 
         // Get all active employees in workspace
-        let employees = employee_repository::get_active_employees(pool, workspace_id)
+        let employees = self.employee_repo.get_active_employees(workspace_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -82,7 +96,7 @@ impl HolidayLeaveService {
             }
 
             // Check leave balance
-            let balances = leave_balance_repository::get_employee_balances(pool, emp.id, year)
+            let balances = self.leave_balance_repo.get_employee_balances(emp.id, year)
                 .await
                 .map_err(|e| e.to_string())?;
 
@@ -105,7 +119,7 @@ impl HolidayLeaveService {
                     updated_at: Utc::now(),
                 };
 
-                leave_request_repository::create_leave_request(pool, &leave_request)
+                self.leave_request_repo.create_leave_request(&leave_request)
                     .await
                     .map_err(|e| e.to_string())?;
 
@@ -120,11 +134,10 @@ impl HolidayLeaveService {
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 };
-                let _ = roster_repository::upsert_roster(pool, &roster).await;
+                let _ = self.roster_repo.upsert_roster( &roster).await;
 
                 // Audit log via leave_accrual_logs
-                let _ = leave_balance_repository::adjust_balance(
-                    pool,
+                let _ = self.leave_balance_repo.adjust_balance(
                     workspace_id,
                     emp.id,
                     leave_type_id,

@@ -33,9 +33,7 @@ pub async fn get_attendance_logs(
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
-    let logs = crate::repositories::time_entry_repository::get_paginated_logs(
-        state.db.api(),
-        workspace_id,
+    let logs = state.time_entry_repo.get_paginated_logs(workspace_id,
         query.employee_id,
         query.from,
         query.to,
@@ -44,9 +42,7 @@ pub async fn get_attendance_logs(
     )
     .await?;
 
-    let total = crate::repositories::time_entry_repository::count_logs(
-        state.db.api(),
-        workspace_id,
+    let total = state.time_entry_repo.count_logs(workspace_id,
         query.employee_id,
         query.from,
         query.to,
@@ -71,9 +67,7 @@ pub async fn get_raw_attendance_logs(
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
-    let logs = crate::repositories::raw_attendance_log_repository::get_paginated_raw_logs(
-        state.db.api(),
-        workspace_id,
+    let logs = state.raw_log_repo.get_paginated_raw_logs(workspace_id,
         query.employee_id,
         query.from,
         query.to,
@@ -82,9 +76,7 @@ pub async fn get_raw_attendance_logs(
     )
     .await?;
 
-    let total = crate::repositories::raw_attendance_log_repository::count_raw_logs(
-        state.db.api(),
-        workspace_id,
+    let total = state.raw_log_repo.count_raw_logs(workspace_id,
         query.employee_id,
         query.from,
         query.to,

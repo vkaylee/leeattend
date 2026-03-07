@@ -15,7 +15,7 @@ use crate::models::{
 // ---------------------------------------------------------------------------
 #[async_trait]
 #[allow(clippy::too_many_arguments)]
-pub trait PayrollRepository: Send + Sync {
+pub trait PayrollRepository: super::PoolBacked + Send + Sync {
     async fn get_active_incentive_policies(
         &self,
         workspace_id: Uuid,
@@ -659,4 +659,9 @@ pub async fn get_payslip_segments(
     .bind(payslip_id)
     .fetch_all(pool)
     .await
+}
+
+impl super::PoolBacked for SqlxPayrollRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::http::StatusCode;
 use chrono::{Datelike, Utc};
 use sqlx::PgPool;
@@ -8,19 +10,30 @@ use crate::models::{
     LeaveRequest, LeaveStatus, LeaveTransactionType, ShiftRoster, SubmitLeaveRequest,
     WorkspaceLeaveBalance,
 };
-use crate::repositories::employee_repository;
-use crate::repositories::leave_balance_repository;
-use crate::repositories::leave_request_repository;
-use crate::repositories::roster_repository;
+use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
+use crate::repositories::leave_request_repository::LeaveRequestRepository;
+use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::EmployeeRepository;
 use rust_decimal::prelude::ToPrimitive;
 
 pub struct LeaveService {
+    leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
+    leave_request_repo: Arc<dyn LeaveRequestRepository>,
+    employee_repo: Arc<dyn EmployeeRepository>,
+    roster_repo: Arc<dyn RosterRepository>,
+    /// Kept for raw SQL queries
     pool: PgPool,
 }
 
 impl LeaveService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(
+        leave_balance_repo: Arc<dyn LeaveBalanceRepository>,
+        leave_request_repo: Arc<dyn LeaveRequestRepository>,
+        employee_repo: Arc<dyn EmployeeRepository>,
+        roster_repo: Arc<dyn RosterRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self { leave_balance_repo, leave_request_repo, employee_repo, roster_repo, pool }
     }
 
     pub async fn get_workspace_balances(
@@ -29,13 +42,11 @@ impl LeaveService {
         year: i32,
         params: crate::models::PaginationParams,
     ) -> Result<crate::models::PaginatedResponse<WorkspaceLeaveBalance>, StatusCode> {
-        let pool = &self.pool;
         let limit = params.limit.unwrap_or(20).max(1);
         let page = params.page.unwrap_or(1).max(1);
         let offset = (page - 1) * limit;
 
-        let (data, total) = leave_balance_repository::get_workspace_balances(
-            pool,
+        let (data, total) = self.leave_balance_repo.get_workspace_balances(
             workspace_id,
             year,
             limit,
@@ -166,12 +177,10 @@ impl LeaveService {
         employee_id: Uuid,
         req: AdjustBalanceRequest,
     ) -> Result<(), StatusCode> {
-        let pool = &self.pool;
         let amount_dec =
             rust_decimal::Decimal::from_f64_retain(req.amount).ok_or(StatusCode::BAD_REQUEST)?;
 
-        leave_balance_repository::adjust_balance(
-            pool,
+        self.leave_balance_repo.adjust_balance(
             workspace_id,
             employee_id,
             req.leave_type_id,
@@ -189,14 +198,13 @@ impl LeaveService {
         employee_id: Uuid,
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, StatusCode> {
-        let pool = &self.pool;
         // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let _ = self.employee_repo.get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        leave_balance_repository::get_employee_balances(pool, employee_id, year)
+        self.leave_balance_repo.get_employee_balances(employee_id, year)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
@@ -209,7 +217,7 @@ impl LeaveService {
     ) -> Result<LeaveRequest, StatusCode> {
         let pool = &self.pool;
         // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(pool, req.employee_id, workspace_id)
+        let _ = self.employee_repo.get_employee_by_id(req.employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -239,7 +247,7 @@ impl LeaveService {
             updated_at: Utc::now(),
         };
 
-        leave_request_repository::create_leave_request(pool, &request)
+        self.leave_request_repo.create_leave_request(&request)
             .await
             .map_err(|e| {
                 eprintln!("SQLx Error in get_workspace_balances: {e:?}");
@@ -257,19 +265,18 @@ impl LeaveService {
         req: ApproveLeaveRequest,
     ) -> Result<(), StatusCode> {
         let pool = &self.pool;
-        let request = leave_request_repository::get_leave_request_by_id(pool, workspace_id, request_id)
+        let request = self.leave_request_repo.get_leave_request_by_id(workspace_id, request_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         // Verify employee of this request belongs to the workspace
-        let _ = employee_repository::get_employee_by_id(pool, request.employee_id, workspace_id)
+        let _ = self.employee_repo.get_employee_by_id(request.employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::FORBIDDEN)?;
 
-        leave_request_repository::update_leave_request_status(
-            pool,
+        self.leave_request_repo.update_leave_request_status(
             workspace_id,
             request_id,
             req.status,
@@ -306,8 +313,7 @@ impl LeaveService {
                     updated_at: Utc::now(),
                 };
 
-                let _ = roster_repository::upsert_roster(pool, &roster)
-                    .await
+                let _ = self.roster_repo.upsert_roster(&roster).await
                     .map_err(|e| {
                         eprintln!("SQLx Error in get_workspace_balances: {e:?}");
                         StatusCode::INTERNAL_SERVER_ERROR
@@ -329,14 +335,13 @@ impl LeaveService {
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<LeaveRequest>, StatusCode> {
-        let pool = &self.pool;
         // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let _ = self.employee_repo.get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        leave_request_repository::get_employee_leave_requests(pool, workspace_id, employee_id)
+        self.leave_request_repo.get_employee_leave_requests(workspace_id, employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
@@ -346,8 +351,7 @@ impl LeaveService {
         workspace_id: Uuid,
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, StatusCode> {
-        let pool = &self.pool;
-        leave_request_repository::get_workspace_leave_requests(pool, workspace_id, status)
+        self.leave_request_repo.get_workspace_leave_requests(workspace_id, status)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }

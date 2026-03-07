@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::http::StatusCode;
 use chrono::Utc;
 use sqlx::PgPool;
@@ -8,15 +10,24 @@ use crate::models::shift_swap::{
     CreateShiftSwapRequest, ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus,
 };
 use crate::models::ShiftRoster;
-use crate::repositories::{roster_repository, shift_swap_repository};
+
+use crate::repositories::shift_swap_repository::ShiftSwapRepository;
+use crate::repositories::roster_repository::RosterRepository;
 
 pub struct ShiftSwapService {
+    swap_repo: Arc<dyn ShiftSwapRepository>,
+    roster_repo: Arc<dyn RosterRepository>,
+    /// Kept for raw SQL calls not yet abstracted
     pool: PgPool,
 }
 
 impl ShiftSwapService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(
+        swap_repo: Arc<dyn ShiftSwapRepository>,
+        roster_repo: Arc<dyn RosterRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self { swap_repo, roster_repo, pool }
     }
 
     /// Phase 3: Validate swap eligibility (duplicate, conflict, same-shift, OT max).
@@ -31,7 +42,7 @@ impl ShiftSwapService {
     ) -> Result<(), StatusCode> {
         let pool = &self.pool;
         // 1. Duplicate check
-        let dup = shift_swap_repository::has_active_swap(pool, workspace_id, requester_id, target_id, swap_date)
+        let dup = self.swap_repo.has_active_swap(workspace_id, requester_id, target_id, swap_date)
             .await
             .map_err(|e| {
                 error!("SWAP_DUP_CHECK: {:?}", e);
@@ -44,7 +55,7 @@ impl ShiftSwapService {
         // 2. Conflict check — either employee already has an approved swap on this date
         for emp_id in [requester_id, target_id] {
             let conflict =
-                shift_swap_repository::has_approved_swap_on_date(pool, workspace_id, emp_id, swap_date)
+                self.swap_repo.has_approved_swap_on_date(workspace_id, emp_id, swap_date)
                     .await
                     .map_err(|e| {
                         error!("SWAP_CONFLICT_CHECK: {:?}", e);
@@ -157,7 +168,7 @@ impl ShiftSwapService {
 
         // Look up current effective shifts for both employees
         let (requester_shift_id, _) =
-            roster_repository::get_effective_shift(pool, workspace_id, req.requester_id, req.swap_date)
+            self.roster_repo.get_effective_shift( workspace_id, req.requester_id, req.swap_date)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_LOOKUP_REQUESTER: {:?}", e);
@@ -165,7 +176,7 @@ impl ShiftSwapService {
                 })?;
 
         let (target_shift_id, _) =
-            roster_repository::get_effective_shift(pool, workspace_id, req.target_id, req.swap_date)
+            self.roster_repo.get_effective_shift( workspace_id, req.target_id, req.swap_date)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_LOOKUP_TARGET: {:?}", e);
@@ -199,7 +210,7 @@ impl ShiftSwapService {
             updated_at: Utc::now(),
         };
 
-        shift_swap_repository::create_swap_request(pool, &swap)
+        self.swap_repo.create_swap_request(&swap)
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_CREATE_ERROR: {:?}", e);
@@ -216,8 +227,7 @@ impl ShiftSwapService {
         request_id: Uuid,
         new_status: ShiftSwapStatus,
     ) -> Result<(), StatusCode> {
-        let pool = &self.pool;
-        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id, _workspace_id)
+        let request = self.swap_repo.get_swap_request_by_id(request_id, _workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -228,8 +238,7 @@ impl ShiftSwapService {
         }
 
         // Update the status first
-        shift_swap_repository::update_swap_status(
-            pool,
+        self.swap_repo.update_swap_status(
             request_id,
             _workspace_id,
             new_status,
@@ -269,14 +278,14 @@ impl ShiftSwapService {
                 updated_at: now,
             };
 
-            roster_repository::upsert_roster(pool, &requester_roster)
+            self.roster_repo.upsert_roster( &requester_roster)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_REQUESTER_ERROR: {:?}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
 
-            roster_repository::upsert_roster(pool, &target_roster)
+            self.roster_repo.upsert_roster( &target_roster)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_TARGET_ERROR: {:?}", e);
@@ -293,8 +302,7 @@ impl ShiftSwapService {
         workspace_id: Uuid,
         status: Option<ShiftSwapStatus>,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, StatusCode> {
-        let pool = &self.pool;
-        shift_swap_repository::get_workspace_swaps(pool, workspace_id, status)
+        self.swap_repo.get_workspace_swaps(workspace_id, status)
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_LIST_ERROR: {:?}", e);
@@ -338,7 +346,7 @@ impl ShiftSwapService {
 
         // Look up effective shifts
         let (requester_shift_id, _) =
-            roster_repository::get_effective_shift(pool, workspace_id, requester_employee_id, req.swap_date)
+            self.roster_repo.get_effective_shift( workspace_id, requester_employee_id, req.swap_date)
                 .await
                 .map_err(|e| {
                     error!("ESS_SWAP_LOOKUP_REQUESTER: {:?}", e);
@@ -346,7 +354,7 @@ impl ShiftSwapService {
                 })?;
 
         let (target_shift_id, _) =
-            roster_repository::get_effective_shift(pool, workspace_id, req.target_id, req.swap_date)
+            self.roster_repo.get_effective_shift( workspace_id, req.target_id, req.swap_date)
                 .await
                 .map_err(|e| {
                     error!("ESS_SWAP_LOOKUP_TARGET: {:?}", e);
@@ -381,7 +389,7 @@ impl ShiftSwapService {
             updated_at: now,
         };
 
-        shift_swap_repository::create_swap_request(pool, &swap)
+        self.swap_repo.create_swap_request(&swap)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_CREATE_ERROR: {:?}", e);
@@ -399,8 +407,7 @@ impl ShiftSwapService {
         request_id: Uuid,
         accept: bool,
     ) -> Result<(), StatusCode> {
-        let pool = &self.pool;
-        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id, workspace_id)
+        let request = self.swap_repo.get_swap_request_by_id(request_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -421,7 +428,7 @@ impl ShiftSwapService {
             ShiftSwapStatus::Rejected
         };
 
-        shift_swap_repository::update_swap_status(pool, request_id, workspace_id, new_status, None)
+        self.swap_repo.update_swap_status(request_id, workspace_id, new_status, None)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_RESPOND_ERROR: {:?}", e);
@@ -436,8 +443,7 @@ impl ShiftSwapService {
         requester_employee_id: Uuid,
         request_id: Uuid,
     ) -> Result<(), StatusCode> {
-        let pool = &self.pool;
-        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id, workspace_id)
+        let request = self.swap_repo.get_swap_request_by_id(request_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -454,8 +460,7 @@ impl ShiftSwapService {
             return Err(StatusCode::CONFLICT);
         }
 
-        shift_swap_repository::update_swap_status(
-            pool,
+        self.swap_repo.update_swap_status(
             request_id,
             workspace_id,
             ShiftSwapStatus::Cancelled,
@@ -474,8 +479,7 @@ impl ShiftSwapService {
         employee_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, StatusCode> {
-        let pool = &self.pool;
-        shift_swap_repository::get_employee_swaps(pool, employee_id, workspace_id)
+        self.swap_repo.get_employee_swaps(employee_id, workspace_id)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_LIST_ERROR: {:?}", e);

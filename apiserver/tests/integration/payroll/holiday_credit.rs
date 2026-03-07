@@ -1,5 +1,6 @@
 //! Tests for payroll auto-credit of paid holidays
 
+use std::sync::Arc;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::services::payroll_service::PayrollService;
@@ -85,7 +86,14 @@ async fn test_payroll_credits_paid_holiday() {
 
     // 5. Calculate Payroll for May 2026
     let payslip =
-        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2026, 5)
+        {
+            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+            PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone())
+        }.calculate_monthly_payslip( employee_id, workspace_id, 2026, 5)
             .await
             .unwrap();
 

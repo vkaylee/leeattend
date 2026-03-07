@@ -20,9 +20,7 @@ pub async fn set_department_payroll_config(
     MemberContext { .. }: MemberContext,
     Json(req): Json<SetDepartmentPayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<DepartmentPayrollConfig>)> {
-    let config = crate::repositories::department_repository::upsert_department_payroll_config(
-        state.db.api(),
-        department_id,
+    let config = state.department_repo.upsert_department_payroll_config(department_id,
         req.std_working_days,
         req.hours_per_day,
         req.effective_date,
@@ -38,9 +36,7 @@ pub async fn set_employee_payroll_config(
     MemberContext { .. }: MemberContext,
     Json(req): Json<SetEmployeePayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeePayrollConfig>)> {
-    let config = crate::repositories::employee_repository::upsert_employee_payroll_config(
-        state.db.api(),
-        employee_id,
+    let config = state.employee_repo.upsert_employee_payroll_config(employee_id,
         req.std_working_days,
         req.hours_per_day,
         req.effective_date,

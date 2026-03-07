@@ -123,8 +123,7 @@ pub async fn get_workspace_schedules(
         .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .ok_or_else(|| AppError::Validation("Missing or invalid end_date".to_string()))?;
 
-    let schedules = crate::repositories::roster_repository::get_workspace_schedules(
-        state.db.api(),
+    let schedules = state.roster_repo.get_workspace_schedules(
         state.roster_cache.as_deref(),
         workspace_id,
         start_date,
@@ -140,8 +139,7 @@ pub async fn get_assignment_history(
     State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<AssignmentHistory>>> {
-    let history = crate::repositories::roster_repository::get_assignment_history(
-        state.db.api(),
+    let history = state.roster_repo.get_assignment_history(
         workspace_id,
         50, // Limit to last 50 entries
     )
@@ -165,8 +163,7 @@ pub async fn get_employee_rosters(
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
         .unwrap_or_else(|| start_date + chrono::Duration::days(30));
 
-    let rosters = crate::repositories::roster_repository::get_employee_rosters(
-        state.db.api(),
+    let rosters = state.roster_repo.get_employee_rosters(
         employee_id,
         start_date,
         end_date,
@@ -194,7 +191,7 @@ pub async fn upsert_roster(
         updated_at: chrono::Utc::now(),
     };
 
-    let saved = crate::repositories::roster_repository::upsert_roster(state.db.api(), &roster).await?;
+    let saved = state.roster_repo.upsert_roster(&roster).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -210,7 +207,7 @@ pub async fn bulk_upsert_roster(
     Json(req): Json<BulkRosterRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::RostersManage)?;
-    crate::repositories::roster_repository::bulk_upsert_roster(state.db.api(), employee_id, req.items)
+    state.roster_repo.bulk_upsert_roster( employee_id, req.items)
         .await?;
 
     if let Some(cache) = &state.roster_cache {
@@ -226,7 +223,7 @@ pub async fn delete_roster(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::RostersManage)?;
-    crate::repositories::roster_repository::delete_roster(state.db.api(), employee_id, date).await?;
+    state.roster_repo.delete_roster( employee_id, date).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;

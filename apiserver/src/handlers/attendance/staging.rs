@@ -68,11 +68,11 @@ pub async fn get_staging_logs(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
 
-    let logs = staging_log_repository::get_pending_staging_logs(state.db.api(), ctx.workspace_id, limit)
+    let logs = state.staging_repo.get_pending_staging_logs(ctx.workspace_id, limit)
         .await?;
 
     let total =
-        staging_log_repository::count_pending_staging_logs(state.db.api(), ctx.workspace_id).await?;
+        state.staging_repo.count_pending_staging_logs(ctx.workspace_id).await?;
 
     let response = StagingLogsResponse {
         data: logs.into_iter().map(StagingLogResponse::from).collect(),
@@ -101,7 +101,7 @@ pub async fn resolve_staging_log(
     ctx.require_permission(Permission::AttendanceStagingManage)?;
 
     use crate::models::{LogSource, RawAttendanceLog};
-    use crate::repositories::raw_attendance_log_repository;
+    
 
     // Use transaction to ensure atomicity of read-check-insert-update
     let mut tx = state.db.api().begin().await?;
@@ -157,7 +157,7 @@ pub async fn resolve_staging_log(
     };
 
     // 3. Insert raw log within transaction
-    raw_attendance_log_repository::create_raw_log(state.db.api(), &raw_log).await?;
+    state.raw_log_repo.create_raw_log(&raw_log).await?;
 
     // 4. Mark staging log as processed within transaction
     staging_log_repository::update_staging_status_tx(
@@ -188,9 +188,7 @@ pub async fn dismiss_staging_log(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::AttendanceStagingManage)?;
 
-    let updated = staging_log_repository::update_staging_status(
-        state.db.api(),
-        log_id,
+    let updated = state.staging_repo.update_staging_status(log_id,
         ctx.workspace_id,
         "dismissed",
     )

@@ -13,20 +13,21 @@ use crate::models::{
 };
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
-    employee_repository, roster_repository, SqlxWorkspaceRepository, TimeEntryRepository,
+    employee_repository, SqlxWorkspaceRepository, TimeEntryRepository,
 };
+use crate::repositories::roster_repository::RosterRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::services::AttendanceCalculator;
 
 pub struct ReportService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
-    /// Kept for operations not yet abstracted (employee, roster, workspace repos + raw SQL)
+    roster_repo: Arc<dyn RosterRepository>,
     pool: PgPool,
 }
 
 impl ReportService {
-    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
-        Self { time_entry_repo, pool }
+    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, roster_repo: Arc<dyn RosterRepository>, pool: PgPool) -> Self {
+        Self { time_entry_repo, roster_repo, pool }
     }
 
     /// Shared calculation for a single day's standard/OT units.
@@ -168,8 +169,7 @@ impl ReportService {
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
         // 3. Get schedules ONLY for paginated employees
-        let schedules = roster_repository::get_workspace_schedules(
-            &self.pool,
+        let schedules = self.roster_repo.get_workspace_schedules(
             None,
             workspace_id,
             start_date,
@@ -424,8 +424,7 @@ impl ReportService {
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
         // 3. Get schedules ONLY for paginated employees
-        let schedules = roster_repository::get_workspace_schedules(
-            &self.pool,
+        let schedules = self.roster_repo.get_workspace_schedules(
             None,
             workspace_id,
             start_date,

@@ -1,6 +1,49 @@
+use async_trait::async_trait;
 use crate::models::{AdjustmentStatus, AttendanceAdjustmentRequest};
 use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
+
+// ---------------------------------------------------------------------------
+// Trait: AttendanceAdjustmentRepository — DIP abstraction
+// ---------------------------------------------------------------------------
+#[async_trait]
+pub trait AttendanceAdjustmentRepository: super::PoolBacked + Send + Sync {
+    async fn create_request(&self, request: &AttendanceAdjustmentRequest) -> Result<(), sqlx::Error>;
+    async fn get_request_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<AttendanceAdjustmentRequest>, sqlx::Error>;
+    async fn update_adjustment_status(&self, workspace_id: Uuid, id: Uuid, status: AdjustmentStatus, approved_by: Option<Uuid>) -> Result<(), sqlx::Error>;
+    async fn get_workspace_adjustment_requests(&self, workspace_id: Uuid, status: Option<AdjustmentStatus>) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error>;
+    async fn get_employee_adjustment_requests(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error>;
+}
+
+// ---------------------------------------------------------------------------
+// SqlxAttendanceAdjustmentRepository — production implementation backed by PgPool
+// ---------------------------------------------------------------------------
+pub struct SqlxAttendanceAdjustmentRepository {
+    pub pool: PgPool,
+}
+
+impl SqlxAttendanceAdjustmentRepository {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
+#[async_trait]
+impl AttendanceAdjustmentRepository for SqlxAttendanceAdjustmentRepository {
+    async fn create_request(&self, request: &AttendanceAdjustmentRequest) -> Result<(), sqlx::Error> {
+        create_request(&self.pool, request).await
+    }
+    async fn get_request_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<AttendanceAdjustmentRequest>, sqlx::Error> {
+        get_request_by_id(&self.pool, workspace_id, id).await
+    }
+    async fn update_adjustment_status(&self, workspace_id: Uuid, id: Uuid, status: AdjustmentStatus, approved_by: Option<Uuid>) -> Result<(), sqlx::Error> {
+        update_adjustment_status(&self.pool, workspace_id, id, status, approved_by).await
+    }
+    async fn get_workspace_adjustment_requests(&self, workspace_id: Uuid, status: Option<AdjustmentStatus>) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error> {
+        get_workspace_adjustment_requests(&self.pool, workspace_id, status).await
+    }
+    async fn get_employee_adjustment_requests(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error> {
+        get_employee_adjustment_requests(&self.pool, workspace_id, employee_id).await
+    }
+}
 
 pub async fn create_request(
     pool: &PgPool,
@@ -98,4 +141,9 @@ pub async fn get_employee_adjustment_requests(
     )
     .fetch_all(pool)
     .await
+}
+
+impl super::PoolBacked for SqlxAttendanceAdjustmentRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

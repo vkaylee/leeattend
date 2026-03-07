@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 
 #[async_trait]
-pub trait AgentRepository: Send + Sync {
+pub trait AgentRepository: super::PoolBacked + Send + Sync {
     async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, String>;
     async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String>;
     async fn update_last_seen(&self, id: &str) -> Result<(), String>;
@@ -67,4 +67,9 @@ impl AgentRepository for SqlxAgentRepository {
 
         Ok(devices)
     }
+}
+
+impl super::PoolBacked for SqlxAgentRepository {
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

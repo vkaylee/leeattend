@@ -19,15 +19,13 @@ pub async fn get_incentive_policies(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> AppResult<Json<Vec<PayrollIncentivePolicyResponse>>> {
-    let policies = crate::repositories::payroll_repository::get_active_incentive_policies(
-        state.db.api(),
-        workspace_id,
+    let policies = state.payroll_repo.get_active_incentive_policies(workspace_id,
     )
     .await?;
 
     let mut response = Vec::new();
     for policy in policies {
-        let tiers = crate::repositories::payroll_repository::get_policy_tiers(state.db.api(), policy.id)
+        let tiers = state.payroll_repo.get_policy_tiers(policy.id)
             .await
             .unwrap_or_default();
         response.push(PayrollIncentivePolicyResponse { policy, tiers });

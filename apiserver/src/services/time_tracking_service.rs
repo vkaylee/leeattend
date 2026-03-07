@@ -8,20 +8,22 @@ use uuid::Uuid;
 
 use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
 use crate::repositories::employee_repository;
-use crate::repositories::roster_repository;
+
 use crate::repositories::shift_repository;
 use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 use crate::repositories::TimeEntryRepository;
+use crate::repositories::roster_repository::RosterRepository;
 
 pub struct TimeTrackingService {
     repo: Arc<dyn TimeEntryRepository>,
-    /// Kept for operations not yet abstracted (employee, roster, shift, workspace repos)
+    roster_repo: Arc<dyn RosterRepository>,
+    /// Kept for operations not yet abstracted
     pool: PgPool,
 }
 
 impl TimeTrackingService {
-    pub fn new(repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
-        Self { repo, pool }
+    pub fn new(repo: Arc<dyn TimeEntryRepository>, roster_repo: Arc<dyn RosterRepository>, pool: PgPool) -> Self {
+        Self { repo, roster_repo, pool }
     }
 
     pub async fn punch_in(
@@ -65,7 +67,7 @@ impl TimeTrackingService {
         let today = local_now.date_naive();
 
         // 1. Identify effective shift
-        let (shift_id, _) = roster_repository::get_effective_shift(&self.pool, workspace_id, req.employee_id, today)
+        let (shift_id, _) = self.roster_repo.get_effective_shift(workspace_id, req.employee_id, today)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -170,7 +172,7 @@ impl TimeTrackingService {
             let tz: Tz = ws.timezone.parse().unwrap_or(chrono_tz::UTC);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
-                self.repo.clone(), self.pool.clone(),
+                self.repo.clone(), self.roster_repo.clone(), self.pool.clone(),
             );
             let _ = summary_svc.recalculate_daily_summary(workspace_id, employee_id, local_date).await;
         }
@@ -245,7 +247,7 @@ impl TimeTrackingService {
             let tz: Tz = ws.timezone.parse().unwrap_or(chrono_tz::UTC);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
-                self.repo.clone(), self.pool.clone(),
+                self.repo.clone(), self.roster_repo.clone(), self.pool.clone(),
             );
             let _ = summary_svc.recalculate_daily_summary(workspace_id, entry.employee_id, local_date).await;
         }

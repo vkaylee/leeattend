@@ -1,5 +1,9 @@
+use std::sync::Arc;
+
 use crate::models::{AccrualFrequency, LeaveAccrualLog, LeavePolicyConfig};
-use crate::repositories::{department_repository, employee_repository, leave_policy_repository};
+use crate::repositories::department_repository::DepartmentRepository;
+use crate::repositories::leave_policy_repository::LeavePolicyRepository;
+use crate::repositories::EmployeeRepository;
 use chrono::{Datelike, NaiveDate};
 use chrono_tz::Tz;
 use sqlx::PgPool;
@@ -7,12 +11,20 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 pub struct LeaveAccrualService {
+    employee_repo: Arc<dyn EmployeeRepository>,
+    department_repo: Arc<dyn DepartmentRepository>,
+    leave_policy_repo: Arc<dyn LeavePolicyRepository>,
     pool: PgPool,
 }
 
 impl LeaveAccrualService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(
+        employee_repo: Arc<dyn EmployeeRepository>,
+        department_repo: Arc<dyn DepartmentRepository>,
+        leave_policy_repo: Arc<dyn LeavePolicyRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self { employee_repo, department_repo, leave_policy_repo, pool }
     }
 
     /// Pure function to calculate how much leave should be accrued for a given policy and employee state.
@@ -368,19 +380,18 @@ impl LeaveAccrualService {
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         // Get all active employees
-        let employees = employee_repository::get_active_employees(pool, workspace_id).await?;
+        let employees = self.employee_repo.get_active_employees(workspace_id).await?;
         let mut all_logs = Vec::new();
 
         for emp in employees {
             // Resolve policy for employee
-            let dept_hist = department_repository::get_current_department(pool, emp.id)
+            let dept_hist = self.department_repo.get_current_department(emp.id)
                 .await
                 .ok()
                 .flatten();
 
             if let Some((policy, assignment_id, _leave_type_code)) =
-                leave_policy_repository::find_active_assignment_for_employee(
-                    pool,
+                self.leave_policy_repo.find_active_assignment_for_employee(
                     workspace_id,
                     emp.id,
                     dept_hist.map(|d| d.department_id),
@@ -450,7 +461,7 @@ impl LeaveAccrualService {
 
                 // Pre-fetch employment history once per employee
                 let periods =
-                    employee_repository::get_employment_history(pool, emp.id).await?;
+                    self.employee_repo.get_employment_history(emp.id).await?;
 
                 for accrual_date in accrual_dates {
                     let months_service =

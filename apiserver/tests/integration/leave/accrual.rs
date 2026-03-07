@@ -1,5 +1,6 @@
 //! Leave accrual integration tests
 
+use std::sync::Arc;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::services::leave_accrual_service::LeaveAccrualService;
@@ -57,7 +58,10 @@ async fn test_accrual_scenarios() {
         .await;
 
     // Run Accrual for Jan 1, 2026
-    let accrual_service = LeaveAccrualService::new(pool.clone());
+    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
+    let department_repo: Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+    let leave_policy_repo: Arc<dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository> = Arc::new(apiserver::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(pool.clone()));
+    let accrual_service = LeaveAccrualService::new(employee_repo, department_repo, leave_policy_repo, pool.clone());
     let logs = accrual_service.process_workspace_accruals(
         ws_id,
         NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
@@ -116,7 +120,10 @@ async fn test_performance_based_accrual() {
     }
 
     // Run accrual for Feb 1 (checking Jan)
-    let accrual_service = LeaveAccrualService::new(pool.clone());
+    let employee_repo: Arc<dyn apiserver::repositories::EmployeeRepository> = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
+    let department_repo: Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+    let leave_policy_repo: Arc<dyn apiserver::repositories::leave_policy_repository::LeavePolicyRepository> = Arc::new(apiserver::repositories::leave_policy_repository::SqlxLeavePolicyRepository::new(pool.clone()));
+    let accrual_service = LeaveAccrualService::new(employee_repo, department_repo, leave_policy_repo, pool.clone());
     let logs = accrual_service.process_workspace_accruals(
         ws_id,
         NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),

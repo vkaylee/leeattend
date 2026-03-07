@@ -1,5 +1,6 @@
 //! Payroll traceability tests
 
+use std::sync::Arc;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::repositories::{department_repository, employee_repository, payroll_repository};
@@ -61,7 +62,14 @@ async fn test_payroll_std_days_source_traceability() {
 
     // 3. Scenario A: System Default (No overrides)
     let payslip_a =
-        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2024, 1)
+        {
+            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+            PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone())
+        }.calculate_monthly_payslip( employee_id, workspace_id, 2024, 1)
             .await
             .unwrap();
     let segments_a = payroll_repository::get_payslip_segments(&pool, payslip_a.id)
@@ -87,7 +95,14 @@ async fn test_payroll_std_days_source_traceability() {
     .unwrap();
 
     let payslip_b =
-        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2024, 2)
+        {
+            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+            PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone())
+        }.calculate_monthly_payslip( employee_id, workspace_id, 2024, 2)
             .await
             .unwrap();
     let segments_b = payroll_repository::get_payslip_segments(&pool, payslip_b.id)
@@ -109,7 +124,14 @@ async fn test_payroll_std_days_source_traceability() {
     .unwrap();
 
     let payslip_c =
-        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2024, 3)
+        {
+            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+            PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone())
+        }.calculate_monthly_payslip( employee_id, workspace_id, 2024, 3)
             .await
             .unwrap();
     let segments_c = payroll_repository::get_payslip_segments(&pool, payslip_c.id)
@@ -131,7 +153,14 @@ async fn test_payroll_std_days_source_traceability() {
     .unwrap();
 
     let payslip_d =
-        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2024, 4)
+        {
+            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
+            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
+            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
+            PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone())
+        }.calculate_monthly_payslip( employee_id, workspace_id, 2024, 4)
             .await
             .unwrap();
     let segments_d = payroll_repository::get_payslip_segments(&pool, payslip_d.id)
