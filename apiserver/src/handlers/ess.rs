@@ -299,11 +299,12 @@ pub async fn get_my_leave_balances(
             ) as remaining
         FROM leave_balances lb
         JOIN leave_types lt ON lb.leave_type_id = lt.id
-        WHERE lb.employee_id = $1 AND lb.year = $2
+        WHERE lb.employee_id = $1 AND lb.year = $2 AND lt.workspace_id = $3
         "#,
     )
     .bind(employee.employee_id)
     .bind(year)
+    .bind(employee.workspace_id)
     .fetch_all(state.db.reader())
     .await?;
 
@@ -316,9 +317,10 @@ pub async fn ess_get_my_leave_requests(
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<crate::models::LeaveRequest>>> {
     let requests = sqlx::query_as::<_, crate::models::LeaveRequest>(
-        "SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY created_at DESC",
+        "SELECT lr.* FROM leave_requests lr JOIN employees e ON e.id = lr.employee_id WHERE lr.employee_id = $1 AND e.workspace_id = $2 ORDER BY lr.created_at DESC",
     )
     .bind(employee.employee_id)
+    .bind(employee.workspace_id)
     .fetch_all(state.db.reader())
     .await?;
 
