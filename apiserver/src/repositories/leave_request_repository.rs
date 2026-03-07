@@ -1,4 +1,5 @@
 use crate::models::{LeaveRequest, LeaveStatus};
+#[allow(unused_imports)] // Utc used in query! macro (L67), not visible under SQLX_OFFLINE
 use chrono::{NaiveDate, Utc};
 use sqlx::{query, query_as, PgPool, Row};
 use uuid::Uuid;
