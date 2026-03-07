@@ -328,6 +328,7 @@ impl AttendanceHandler {
             summaries.push(AttendanceSummary {
                 employee_id: emp_sched.employee_id,
                 employee_name: emp_sched.full_name.clone(),
+                employee_id_number: emp_sched.employee_id_number.clone(),
                 total_std_units,
                 total_ot_units,
                 total_leave_days: leave_data.get(&emp_sched.employee_id).copied().unwrap_or(0),
@@ -626,6 +627,7 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "Alice".to_string(),
+                employee_id_number: String::new(),
                 total_std_units: 140,
                 total_ot_units: 20,
                 total_leave_days: 2,
@@ -633,6 +635,7 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "Bob".to_string(),
+                employee_id_number: String::new(),
                 total_std_units: 152,
                 total_ot_units: 0,
                 total_leave_days: 4,

@@ -319,6 +319,7 @@ mod tests {
         let summaries1 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
             employee_name: "Charlie Brown".to_string(),
+            employee_id_number: String::new(),
             total_std_units: 160,
             total_ot_units: 0,
             total_leave_days: 2,
@@ -326,6 +327,7 @@ mod tests {
         let summaries2 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
             employee_name: "Alice Smith".to_string(),
+            employee_id_number: String::new(),
             total_std_units: 152,
             total_ot_units: 0,
             total_leave_days: 4,
@@ -455,6 +457,7 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "A".to_string(),
+                employee_id_number: String::new(),
                 total_std_units: 160,
                 total_ot_units: 0,
                 total_leave_days: 0,
@@ -462,6 +465,7 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "B".to_string(),
+                employee_id_number: String::new(),
                 total_std_units: 120,
                 total_ot_units: 0,
                 total_leave_days: 3,
@@ -470,6 +474,7 @@ mod tests {
         let s2 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
             employee_name: "C".to_string(),
+            employee_id_number: String::new(),
             total_std_units: 80,
             total_ot_units: 0,
             total_leave_days: 1,

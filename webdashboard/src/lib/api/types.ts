@@ -237,6 +237,7 @@ export type AttendanceReportSort =
 export interface AttendanceSummary {
   employee_id: string;
   employee_name: string;
+  employee_id_number?: string;
   total_std_units: number;
   total_ot_units: number;
   total_leave_days: number;

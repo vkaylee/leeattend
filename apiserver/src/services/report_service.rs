@@ -573,6 +573,7 @@ impl ReportService {
                 AttendanceSummary {
                     employee_id: emp.id,
                     employee_name: emp.full_name.clone(),
+                    employee_id_number: emp.employee_id_number.clone(),
                     total_std_units: std,
                     total_ot_units: ot,
                     total_leave_days: leave_data.get(&emp.id).copied().unwrap_or(0),

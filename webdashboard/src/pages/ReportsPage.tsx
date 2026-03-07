@@ -213,7 +213,12 @@ export default function ReportsPage() {
       key: "name",
       header: <div className="flex items-center">{t("common.employee")}{getSortIcon('name')}</div>,
       onHeaderClick: () => handleSort('name'),
-      cell: (row) => <span className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{row.employee_name}</span>,
+      cell: (row) => (
+        <div>
+          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{row.employee_name}</div>
+          <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">{row.employee_id_number || "—"}</div>
+        </div>
+      ),
       headerClassName: "px-10",
       cellClassName: "px-10 py-6",
     },

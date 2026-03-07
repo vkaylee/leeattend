@@ -40,6 +40,8 @@ pub struct ApproveAttendanceAdjustmentRequest {
 pub struct AttendanceSummary {
     pub employee_id: Uuid,
     pub employee_name: String,
+    #[serde(default)]
+    pub employee_id_number: String,
     pub total_std_units: i32,
     pub total_ot_units: i32,
     pub total_leave_days: i64,

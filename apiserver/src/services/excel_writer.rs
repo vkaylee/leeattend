@@ -495,6 +495,7 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "Alice Smith".to_string(),
+                employee_id_number: String::new(),
                 total_std_units: 140,
                 total_ot_units: 20,
                 total_leave_days: 2,
@@ -502,6 +503,7 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "Bob Jones".to_string(),
+                employee_id_number: String::new(),
                 total_std_units: 152,
                 total_ot_units: 0,
                 total_leave_days: 4,

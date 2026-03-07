@@ -10,6 +10,7 @@ use crate::utils::normalize_employee_id;
 pub struct EmployeeBasicInfo {
     pub id: Uuid,
     pub full_name: String,
+    pub employee_id_number: String,
 }
 
 pub async fn find_by_number(
@@ -520,7 +521,7 @@ pub async fn get_paginated_employee_ids(
     let offset = (page - 1) * limit;
     let order_dir = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
-        r#"SELECT id, full_name FROM employees
+        r#"SELECT id, full_name, employee_id_number FROM employees
            WHERE workspace_id = $1 AND is_active = true
            AND ($2::uuid[] IS NULL OR id = ANY($2))
            AND ($5::uuid IS NULL OR EXISTS (
