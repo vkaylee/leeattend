@@ -105,7 +105,7 @@ pub async fn calculate_payroll(
 
     // Fetch salary components at the period start date
     let salary_components =
-        state.payroll_repo.get_employee_salary_components(employee_id,
+        state.payroll_repo.get_employee_salary_components(workspace_id, employee_id,
             payslip.period_start,
         )
         .await
@@ -143,10 +143,10 @@ pub async fn calculate_payroll(
 pub async fn get_employee_payslips(
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<FullPayslipResponse>>> {
     let payslips =
-        state.payroll_repo.get_payslips_by_employee(employee_id)
+        state.payroll_repo.get_payslips_by_employee(workspace_id, employee_id)
             .await?;
 
     let mut responses = Vec::new();
@@ -162,7 +162,7 @@ pub async fn get_employee_payslips(
 
         // Fetch salary components at the period start date
         let salary_components =
-            state.payroll_repo.get_employee_salary_components(employee_id,
+            state.payroll_repo.get_employee_salary_components(workspace_id, employee_id,
                 p.period_start,
             )
             .await

@@ -461,7 +461,7 @@ impl LeaveAccrualService {
 
                 // Pre-fetch employment history once per employee
                 let periods =
-                    self.employee_repo.get_employment_history(emp.id).await?;
+                    self.employee_repo.get_employment_history(emp.workspace_id, emp.id).await?;
 
                 for accrual_date in accrual_dates {
                     let months_service =

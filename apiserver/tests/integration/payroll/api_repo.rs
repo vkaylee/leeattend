@@ -48,7 +48,7 @@ async fn test_payroll_payslips() {
     assert_eq!(created.net_pay_amount, Decimal::from_i32(4600).unwrap());
 
     // 2. Get by employee
-    let list = payroll_repository::get_payslips_by_employee(&pool, employee_id)
+    let list = payroll_repository::get_payslips_by_employee(&pool, ws_id, employee_id)
         .await
         .unwrap();
     assert_eq!(list.len(), 1);

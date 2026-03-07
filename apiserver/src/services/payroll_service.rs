@@ -117,7 +117,7 @@ impl PayrollService {
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let salary_history = self.payroll_repo.get_salary_components_history(
-            employee_id, start_date, end_date,
+            workspace_id, employee_id, start_date, end_date,
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

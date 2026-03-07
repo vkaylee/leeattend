@@ -92,6 +92,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
 
     async fn get_working_conditions(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, sqlx::Error>;
 
@@ -108,6 +109,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
 
     async fn get_employment_history(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<EmploymentPeriod>, sqlx::Error>;
 
@@ -315,9 +317,10 @@ impl EmployeeRepository for SqlxEmployeeRepository {
 
     async fn get_working_conditions(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, sqlx::Error> {
-        get_working_conditions(&self.pool, employee_id).await
+        get_working_conditions(&self.pool, workspace_id, employee_id).await
     }
 
     async fn create_working_condition(
@@ -337,9 +340,10 @@ impl EmployeeRepository for SqlxEmployeeRepository {
 
     async fn get_employment_history(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<EmploymentPeriod>, sqlx::Error> {
-        get_employment_history(&self.pool, employee_id).await
+        get_employment_history(&self.pool, workspace_id, employee_id).await
     }
 
     async fn create_employment_period(
@@ -486,13 +490,18 @@ pub async fn find_by_number(
 
 pub async fn get_working_conditions(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Vec<WorkingCondition>, sqlx::Error> {
     sqlx::query_as!(
         WorkingCondition,
-        r#"SELECT id, employee_id, type as "type_", minute_allowance, is_paid, start_date, end_date
-           FROM working_conditions WHERE employee_id = $1 ORDER BY start_date DESC"#,
-        employee_id
+        r#"SELECT wc.id, wc.employee_id, wc.type as "type_", wc.minute_allowance, wc.is_paid, wc.start_date, wc.end_date
+           FROM working_conditions wc
+           JOIN employees e ON e.id = wc.employee_id
+           WHERE wc.employee_id = $1 AND e.workspace_id = $2
+           ORDER BY wc.start_date DESC"#,
+        employee_id,
+        workspace_id
     )
     .fetch_all(pool)
     .await
@@ -839,13 +848,18 @@ pub async fn get_existing_employee_ids_by_numbers(
 
 pub async fn get_employment_history(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Vec<EmploymentPeriod>, sqlx::Error> {
     query_as!(
         EmploymentPeriod,
-        "SELECT id, employee_id, hire_date, termination_date, is_rehire, created_at as \"created_at!\", updated_at as \"updated_at!\" 
-         FROM employment_periods WHERE employee_id = $1 ORDER BY hire_date DESC",
-        employee_id
+        "SELECT ep.id, ep.employee_id, ep.hire_date, ep.termination_date, ep.is_rehire, ep.created_at as \"created_at!\", ep.updated_at as \"updated_at!\" 
+         FROM employment_periods ep
+         JOIN employees e ON e.id = ep.employee_id
+         WHERE ep.employee_id = $1 AND e.workspace_id = $2
+         ORDER BY ep.hire_date DESC",
+        employee_id,
+        workspace_id
     )
     .fetch_all(pool)
     .await

@@ -35,10 +35,11 @@ pub async fn get_my_profile(
                 WHERE employee_id = e.id
                 ORDER BY hire_date DESC LIMIT 1
             )
-        WHERE e.id = $1
+        WHERE e.id = $1 AND e.workspace_id = $2
         "#,
     )
     .bind(employee.employee_id)
+    .bind(employee.workspace_id)
     .fetch_one(state.db.reader())
     .await?;
 
@@ -203,9 +204,10 @@ pub async fn get_my_payslips(
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<crate::models::Payslip>>> {
     let payslips = sqlx::query_as::<_, crate::models::Payslip>(
-        "SELECT * FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC",
+        "SELECT p.* FROM payslips p JOIN employees e ON e.id = p.employee_id WHERE p.employee_id = $1 AND e.workspace_id = $2 ORDER BY p.period_start DESC",
     )
     .bind(employee.employee_id)
+    .bind(employee.workspace_id)
     .fetch_all(state.db.reader())
     .await?;
 
@@ -236,13 +238,14 @@ pub async fn get_my_attendance(
     let entries = sqlx::query_as::<_, TimeEntry>(
         r#"
         SELECT * FROM time_entries
-        WHERE employee_id = $1
-          AND punch_in_time >= $2::date
-          AND punch_in_time < ($3::date + INTERVAL '1 day')
+        WHERE employee_id = $1 AND workspace_id = $2
+          AND punch_in_time >= $3::date
+          AND punch_in_time < ($4::date + INTERVAL '1 day')
         ORDER BY punch_in_time DESC
         "#,
     )
     .bind(employee.employee_id)
+    .bind(employee.workspace_id)
     .bind(start)
     .bind(end)
     .fetch_all(state.db.reader())

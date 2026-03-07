@@ -46,11 +46,11 @@ pub async fn create_salary_component(
 pub async fn get_employee_salary_components(
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<serde_json::Value>>> {
     // Note: This returns latest components for effective_date = now
     let now = chrono::Utc::now().date_naive();
-    let components = state.payroll_repo.get_employee_salary_components(employee_id,
+    let components = state.payroll_repo.get_employee_salary_components(workspace_id, employee_id,
         now,
     )
     .await?;

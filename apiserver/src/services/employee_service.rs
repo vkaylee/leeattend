@@ -36,7 +36,7 @@ impl EmployeeService {
             .ok_or(StatusCode::NOT_FOUND)?;
 
         self.repo
-            .get_working_conditions(emp.id)
+            .get_working_conditions(workspace_id, emp.id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
@@ -258,7 +258,7 @@ impl EmployeeService {
             .ok_or(StatusCode::NOT_FOUND)?;
 
         self.repo
-            .get_employment_history(employee_id)
+            .get_employment_history(workspace_id, employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }

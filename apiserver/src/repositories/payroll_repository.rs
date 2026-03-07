@@ -84,6 +84,7 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
 
     async fn get_employee_salary_components(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         reference_date: NaiveDate,
     ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error>;
@@ -92,6 +93,7 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
 
     async fn get_payslips_by_employee(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<Payslip>, sqlx::Error>;
 
@@ -104,6 +106,7 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
 
     async fn get_salary_components_history(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -180,20 +183,20 @@ impl PayrollRepository for SqlxPayrollRepository {
     async fn assign_employee_salary_component(&self, employee_id: Uuid, component_definition_id: Uuid, amount: Decimal, effective_date: NaiveDate) -> Result<EmployeeSalaryComponent, sqlx::Error> {
         assign_employee_salary_component(&self.pool, employee_id, component_definition_id, amount, effective_date).await
     }
-    async fn get_employee_salary_components(&self, employee_id: Uuid, reference_date: NaiveDate) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
-        get_employee_salary_components(&self.pool, employee_id, reference_date).await
+    async fn get_employee_salary_components(&self, workspace_id: Uuid, employee_id: Uuid, reference_date: NaiveDate) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+        get_employee_salary_components(&self.pool, workspace_id, employee_id, reference_date).await
     }
     async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, sqlx::Error> {
         create_payslip(&self.pool, payslip).await
     }
-    async fn get_payslips_by_employee(&self, employee_id: Uuid) -> Result<Vec<Payslip>, sqlx::Error> {
-        get_payslips_by_employee(&self.pool, employee_id).await
+    async fn get_payslips_by_employee(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Vec<Payslip>, sqlx::Error> {
+        get_payslips_by_employee(&self.pool, workspace_id, employee_id).await
     }
     async fn get_payslips_by_workspace_period(&self, workspace_id: Uuid, period_start: NaiveDate, period_end: NaiveDate) -> Result<Vec<Payslip>, sqlx::Error> {
         get_payslips_by_workspace_period(&self.pool, workspace_id, period_start, period_end).await
     }
-    async fn get_salary_components_history(&self, employee_id: Uuid, start_date: NaiveDate, end_date: NaiveDate) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
-        get_salary_components_history(&self.pool, employee_id, start_date, end_date).await
+    async fn get_salary_components_history(&self, workspace_id: Uuid, employee_id: Uuid, start_date: NaiveDate, end_date: NaiveDate) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+        get_salary_components_history(&self.pool, workspace_id, employee_id, start_date, end_date).await
     }
     #[allow(clippy::too_many_arguments)]
     async fn create_payslip_segment(
@@ -437,6 +440,7 @@ pub async fn assign_employee_salary_component(
 
 pub async fn get_employee_salary_components(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
     reference_date: NaiveDate,
 ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
@@ -446,7 +450,7 @@ pub async fn get_employee_salary_components(
             scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.is_base_for_ot, scd.is_taxable, scd.created_at as "scd_created_at!", scd.updated_at as "scd_updated_at!"
            FROM employee_salary_components esc
            JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id
-           WHERE esc.employee_id = $1 AND esc.effective_date <= $2
+           WHERE esc.employee_id = $1 AND esc.effective_date <= $2 AND scd.workspace_id = $3
            AND NOT EXISTS (
                SELECT 1 FROM employee_salary_components esc2 
                WHERE esc2.employee_id = esc.employee_id 
@@ -455,7 +459,8 @@ pub async fn get_employee_salary_components(
                AND (esc2.effective_date > esc.effective_date OR (esc2.effective_date = esc.effective_date AND esc2.created_at > esc.created_at))
            )"#,
         employee_id,
-        reference_date
+        reference_date,
+        workspace_id
     )
     .fetch_all(pool)
     .await?;
@@ -513,12 +518,18 @@ pub async fn create_payslip(pool: &PgPool, payslip: &Payslip) -> Result<Payslip,
 
 pub async fn get_payslips_by_employee(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Vec<Payslip>, sqlx::Error> {
     query_as!(
         Payslip,
-        r#"SELECT id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status, holiday_work_premium_amount, created_at as "created_at!", updated_at as "updated_at!" FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC"#,
-        employee_id
+        r#"SELECT p.id, p.employee_id, p.period_start, p.period_end, p.base_pay_amount, p.overtime_pay_amount, p.deductions_amount, p.net_pay_amount, p.standard_units, p.overtime_units, p.status, p.holiday_work_premium_amount, p.created_at as "created_at!", p.updated_at as "updated_at!"
+           FROM payslips p
+           JOIN employees e ON e.id = p.employee_id
+           WHERE p.employee_id = $1 AND e.workspace_id = $2
+           ORDER BY p.period_start DESC"#,
+        employee_id,
+        workspace_id
     )
     .fetch_all(pool)
     .await
@@ -547,6 +558,7 @@ pub async fn get_payslips_by_workspace_period(
 
 pub async fn get_salary_components_history(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
     start_date: NaiveDate,
     end_date: NaiveDate,
@@ -557,7 +569,7 @@ pub async fn get_salary_components_history(
             scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.is_base_for_ot, scd.is_taxable, scd.created_at as "scd_created_at!", scd.updated_at as "scd_updated_at!"
            FROM employee_salary_components esc
            JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id
-           WHERE esc.employee_id = $1
+           WHERE esc.employee_id = $1 AND scd.workspace_id = $4
            AND (
                esc.effective_date BETWEEN $2 AND $3
                OR esc.effective_date = (
@@ -571,7 +583,8 @@ pub async fn get_salary_components_history(
            ORDER BY esc.effective_date ASC"#,
         employee_id,
         start_date,
-        end_date
+        end_date,
+        workspace_id
     )
     .fetch_all(pool)
     .await?;
