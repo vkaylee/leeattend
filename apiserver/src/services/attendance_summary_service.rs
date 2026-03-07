@@ -149,6 +149,7 @@ impl AttendanceSummaryService {
                         daily_schedule.break_duration_minutes.unwrap_or(0),
                         actual_break_minutes,
                         &rules,
+                        None,
                     );
 
                     // System Detected OT = Early OT + Late OT

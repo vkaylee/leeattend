@@ -235,6 +235,7 @@ impl ReportService {
                         workspace.work_unit_minutes,
                         &workspace.rounding_policy,
                         &rules,
+                        None,
                     );
 
                     std_work_units = std_units;
@@ -555,6 +556,7 @@ impl ReportService {
                         workspace.work_unit_minutes,
                         &workspace.rounding_policy,
                         &rules,
+                        None,
                     );
 
                     employee_total_std += std_units;

@@ -96,8 +96,8 @@ pub struct RosterData {
     pub dept_fixed_shifts: HashMap<Uuid, Vec<RosterDeptFixedShift>>,
     /// Active assignment rules
     pub active_rules: Vec<crate::models::AssignmentRule>,
-    /// (pattern_id, day_of_week) -> Option<shift_id>
-    pub rule_patterns: HashMap<(Uuid, i32), Option<Uuid>>,
+    /// (pattern_id, day_of_week) -> list of shift_ids (supports split shifts)
+    pub rule_patterns: HashMap<(Uuid, i32), Vec<Option<Uuid>>>,
     /// employee_id -> dept history entries (ORDER BY effective_date DESC)
     pub dept_history: HashMap<Uuid, Vec<RosterDeptHistory>>,
 }
@@ -300,10 +300,10 @@ pub async fn build_roster_data(
             });
     }
 
-    let rule_patterns: HashMap<(Uuid, i32), Option<Uuid>> = rule_pattern_rows
-        .into_iter()
-        .map(|r| ((r.pattern_id, r.day_of_week), r.shift_id))
-        .collect();
+    let mut rule_patterns: HashMap<(Uuid, i32), Vec<Option<Uuid>>> = HashMap::new();
+    for r in rule_pattern_rows {
+        rule_patterns.entry((r.pattern_id, r.day_of_week)).or_default().push(r.shift_id);
+    }
 
     let mut dept_history: HashMap<Uuid, Vec<RosterDeptHistory>> = HashMap::new();
     for r in dept_history_rows {
@@ -641,14 +641,14 @@ mod tests {
     #[test]
     fn test_rule_pattern_key_correctness() {
         let pattern_id = Uuid::new_v4();
-        let mut rule_patterns: HashMap<(Uuid, i32), Option<Uuid>> = HashMap::new();
+        let mut rule_patterns: HashMap<(Uuid, i32), Vec<Option<Uuid>>> = HashMap::new();
 
         let shift_id = Some(Uuid::new_v4());
-        rule_patterns.insert((pattern_id, 1), shift_id);
-        rule_patterns.insert((pattern_id, 2), None);
+        rule_patterns.entry((pattern_id, 1)).or_default().push(shift_id);
+        rule_patterns.entry((pattern_id, 2)).or_default().push(None);
 
-        assert_eq!(rule_patterns[&(pattern_id, 1)], shift_id);
-        assert!(rule_patterns[&(pattern_id, 2)].is_none());
+        assert_eq!(rule_patterns[&(pattern_id, 1)], vec![shift_id]);
+        assert_eq!(rule_patterns[&(pattern_id, 2)], vec![None]);
         // Different pattern_id should miss
         assert!(!rule_patterns.contains_key(&(Uuid::new_v4(), 1)));
     }

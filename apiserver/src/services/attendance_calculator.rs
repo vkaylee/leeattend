@@ -12,6 +12,8 @@ pub struct AttendanceCalculator;
 
 impl AttendanceCalculator {
     /// Calculate standard and OT buckets based on shift boundaries and policy.
+    /// `ot_ceiling` caps late OT at the next shift's start (for split shifts).
+    #[allow(clippy::too_many_arguments)]
     pub fn calculate_buckets<T: TimeZone>(
         punch_in: DateTime<T>,
         punch_out: DateTime<T>,
@@ -20,6 +22,7 @@ impl AttendanceCalculator {
         scheduled_break_minutes: i32,
         actual_break_minutes: i32,
         rules: &PolicyRules,
+        ot_ceiling: Option<DateTime<T>>,
     ) -> WorkBuckets {
         let mut buckets = WorkBuckets::default();
 
@@ -100,12 +103,16 @@ impl AttendanceCalculator {
                     }
                 }
 
-                // 3. Late OT: Time after ShiftEnd
+                // 3. Late OT: Time after ShiftEnd, capped at ot_ceiling
                 if punch_out > end {
+                    let effective_punch_out = match ot_ceiling {
+                        Some(ceil) => DateTime::min(punch_out.clone(), ceil),
+                        None => punch_out.clone(),
+                    };
                     let late_in = DateTime::max(punch_in.clone(), end.clone());
-                    if punch_out > late_in {
+                    if effective_punch_out > late_in {
                         buckets.late_ot_minutes =
-                            punch_out.signed_duration_since(late_in).num_minutes() as i32;
+                            effective_punch_out.signed_duration_since(late_in).num_minutes() as i32;
                     }
                 }
             }
@@ -153,6 +160,7 @@ impl AttendanceCalculator {
     }
 
     /// High-level method to calculate daily standard and OT units in one go.
+    /// `ot_ceiling` caps late OT at the next shift's start (for split shifts).
     #[allow(clippy::too_many_arguments)]
     pub fn calculate_daily_units<T: TimeZone>(
         punch_in: DateTime<T>,
@@ -164,6 +172,7 @@ impl AttendanceCalculator {
         work_unit: i32,
         rounding_policy: &str,
         rules: &PolicyRules,
+        ot_ceiling: Option<DateTime<T>>,
     ) -> (i32, i32) {
         let buckets = Self::calculate_buckets(
             punch_in,
@@ -173,6 +182,7 @@ impl AttendanceCalculator {
             scheduled_break_minutes,
             actual_break_minutes,
             rules,
+            ot_ceiling,
         );
 
         let std_units = Self::calculate_units(buckets.standard_minutes, work_unit, rounding_policy);
@@ -226,6 +236,7 @@ mod tests {
             60,
             0,
             &mock_rules(),
+            None,
         );
         assert_eq!(b1.standard_minutes, 570); // 9.5 hours (no break deducted)
 
@@ -239,6 +250,7 @@ mod tests {
             60,
             0,
             &rules,
+            None,
         );
         assert_eq!(b2.standard_minutes, 510); // 8.5 hours
     }
@@ -253,18 +265,18 @@ mod tests {
 
         // Case 1: Within grace -> No OT
         let b1 =
-            AttendanceCalculator::calculate_buckets(dt(7, 15), dt(17, 0), start, end, 0, 0, &rules);
+            AttendanceCalculator::calculate_buckets(dt(7, 15), dt(17, 0), start, end, 0, 0, &rules, None);
         assert_eq!(b1.early_ot_minutes, 0);
 
         // Case 2: Before grace -> Full OT
         let b2 =
-            AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules);
+            AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules, None);
         assert_eq!(b2.early_ot_minutes, 45);
 
         // Case 3: Clamp
         rules.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
         let b3 =
-            AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules);
+            AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules, None);
         assert_eq!(b3.early_ot_minutes, 30);
     }
 
@@ -278,12 +290,12 @@ mod tests {
 
         // Exit 30m early -> Paid as full day
         let b1 =
-            AttendanceCalculator::calculate_buckets(dt(8, 0), dt(16, 30), start, end, 0, 0, &rules);
+            AttendanceCalculator::calculate_buckets(dt(8, 0), dt(16, 30), start, end, 0, 0, &rules, None);
         assert_eq!(b1.standard_minutes, 540);
 
         // Exit 90m early -> Not paid
         let b2 =
-            AttendanceCalculator::calculate_buckets(dt(8, 0), dt(15, 30), start, end, 0, 0, &rules);
+            AttendanceCalculator::calculate_buckets(dt(8, 0), dt(15, 30), start, end, 0, 0, &rules, None);
         assert_eq!(b2.standard_minutes, 450);
     }
 
@@ -303,6 +315,7 @@ mod tests {
             30,
             "floor",
             &rules,
+            None,
         );
         // (17:00 - 08:00) = 540m.
         // Actual work = 08:00 - 16:55 = 535m.
@@ -322,8 +335,52 @@ mod tests {
             30,
             "floor",
             &r2,
+            None,
         );
         // Net = 535 - 60 = 475. Floor(475, 30) = 15 units.
         assert_eq!(std2, 15);
+    }
+
+    #[test]
+    fn test_split_shift_ot_capped_at_next_shift() {
+        // Shift 1: 08:00-12:00, OT ceiling = 13:00 (next shift starts)
+        // Employee works until 13:30 → OT should be 60min (12:00-13:00), NOT 90min
+        let start = Some(dt(8, 0));
+        let end = Some(dt(12, 0));
+        let ceiling = Some(dt(13, 0));
+
+        let b = AttendanceCalculator::calculate_buckets(
+            dt(8, 0), dt(13, 30), start, end, 0, 0, &mock_rules(), ceiling,
+        );
+        assert_eq!(b.standard_minutes, 240); // 08:00-12:00 = 4h
+        assert_eq!(b.late_ot_minutes, 60);   // 12:00-13:00 (capped, not 90)
+    }
+
+    #[test]
+    fn test_split_shift_no_ceiling_ot_unlimited() {
+        // Same scenario but no ceiling → OT = 90min
+        let start = Some(dt(8, 0));
+        let end = Some(dt(12, 0));
+
+        let b = AttendanceCalculator::calculate_buckets(
+            dt(8, 0), dt(13, 30), start, end, 0, 0, &mock_rules(), None,
+        );
+        assert_eq!(b.standard_minutes, 240);
+        assert_eq!(b.late_ot_minutes, 90); // 12:00-13:30 = 90min (no cap)
+    }
+
+    #[test]
+    fn test_split_shift_gap_fully_utilized_as_ot() {
+        // Shift 1: 08:00-12:00, next shift at 13:00
+        // Employee works until exactly 13:00 → full gap = OT
+        let start = Some(dt(8, 0));
+        let end = Some(dt(12, 0));
+        let ceiling = Some(dt(13, 0));
+
+        let b = AttendanceCalculator::calculate_buckets(
+            dt(8, 0), dt(13, 0), start, end, 0, 0, &mock_rules(), ceiling,
+        );
+        assert_eq!(b.standard_minutes, 240);
+        assert_eq!(b.late_ot_minutes, 60); // 12:00-13:00 = full gap
     }
 }

@@ -318,6 +318,7 @@ impl AttendanceHandler {
                         workspace_config.work_unit_minutes,
                         &workspace_config.rounding_policy,
                         &rules,
+                        None,
                     );
 
                     total_std_units += std_units;
@@ -448,6 +449,7 @@ impl AttendanceHandler {
                         workspace_config.work_unit_minutes,
                         &workspace_config.rounding_policy,
                         &rules,
+                        None,
                     );
 
                     std_work_units = std_units;
