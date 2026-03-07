@@ -108,8 +108,7 @@ const createMockWorkspace = (overrides: Partial<Workspace> = {}): Workspace => (
   timezone: "Asia/Bangkok",
   theme_primary_color: "#3b82f6",
   default_language: "vi",
-  pairing_algorithm: "default",
-  early_arrival_strategy: "allow",
+  early_arrival_strategy: "allow" as const,
   created_at: "2024-01-01T00:00:00Z",
   ...overrides,
 });

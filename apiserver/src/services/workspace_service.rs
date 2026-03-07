@@ -100,7 +100,6 @@ impl WorkspaceService {
         timezone: Option<String>,
         theme_primary_color: Option<String>,
         default_language: Option<String>,
-        pairing_algorithm: Option<String>,
         early_arrival_strategy: Option<crate::models::EarlyArrivalStrategy>,
         holiday_overnight_strategy: Option<String>,
         default_holiday_ot_multiplier: Option<rust_decimal::Decimal>,
@@ -170,14 +169,6 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
-        if pairing_algorithm.is_some() {
-            if has_fields {
-                query.push_str(", ");
-            }
-            query.push_str(&format!("pairing_algorithm = ${arg_idx}"));
-            arg_idx += 1;
-            has_fields = true;
-        }
         if early_arrival_strategy.is_some() {
             if has_fields {
                 query.push_str(", ");
@@ -234,9 +225,6 @@ impl WorkspaceService {
         }
         if let Some(dl) = default_language {
             q = q.bind(dl);
-        }
-        if let Some(pa) = pairing_algorithm {
-            q = q.bind(pa);
         }
         if let Some(eas) = early_arrival_strategy {
             q = q.bind(eas);

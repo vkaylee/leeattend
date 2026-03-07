@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Calculator, Save, ShieldAlert, Settings2, Shield, LayoutGrid, List, Zap } from "lucide-react";
+import { Clock, Calculator, Save, ShieldAlert, Settings2, LayoutGrid, List, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "@/lib/api";
@@ -55,47 +55,45 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
   const [workUnit, setWorkUnit] = useState(workspace.work_unit_minutes);
 
-    const [roundingPolicy, setRoundingPolicy] = useState(workspace.rounding_policy);
+  const [roundingPolicy, setRoundingPolicy] = useState(workspace.rounding_policy);
 
-    const [pairingAlgorithm, setPairingAlgorithm] = useState(workspace.pairing_algorithm || "dp_pattern");
 
-    const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState(workspace.early_arrival_strategy || "block");
 
-  
+  const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState(workspace.early_arrival_strategy || "block");
 
-    const updateWsMutation = useMutation({
 
-      mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
 
-      onSuccess: () => {
+  const updateWsMutation = useMutation({
 
-        toast.success(t("common.success"));
+    mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
 
-        queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
+    onSuccess: () => {
 
-      },
+      toast.success(t("common.success"));
+
+      queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
+
+    },
+
+  });
+
+
+
+  function handleSaveConfig() {
+
+    updateWsMutation.mutate({
+
+      work_unit_minutes: workUnit,
+
+      rounding_policy: roundingPolicy,
+
+      early_arrival_strategy: earlyArrivalStrategy as any
 
     });
 
-  
+  }
 
-    function handleSaveConfig() {
 
-      updateWsMutation.mutate({ 
-
-        work_unit_minutes: workUnit, 
-
-        rounding_policy: roundingPolicy, 
-
-        pairing_algorithm: pairingAlgorithm,
-
-        early_arrival_strategy: earlyArrivalStrategy as any
-
-      });
-
-    }
-
-  
 
 
 
@@ -167,73 +165,67 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
               </div>
 
-                            <div className="space-y-3 md:col-span-2">
 
-                              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.pairing_algorithm")}</label>
 
-                              <Combobox options={[{ value: "dp_pattern", label: t("common.workspace_settings.algorithm_options.dp_pattern"), description: t("common.workspace_settings.algorithm_options.dp_pattern_desc"), icon: <Settings2 size={14} /> }, { value: "anchor_first", label: t("common.workspace_settings.algorithm_options.anchor_first"), description: t("common.workspace_settings.algorithm_options.anchor_first_desc"), icon: <Clock size={14} /> }, { value: "sequential", label: t("common.workspace_settings.algorithm_options.sequential"), description: t("common.workspace_settings.algorithm_options.sequential_desc"), icon: <Calculator size={14} /> }, { value: "fsm", label: t("common.workspace_settings.algorithm_options.fsm"), description: t("common.workspace_settings.algorithm_options.fsm_desc"), icon: <Shield size={14} /> }]} value={pairingAlgorithm} onChange={setPairingAlgorithm} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
 
-                            </div>
 
-              
+              <div className="space-y-3 md:col-span-2">
 
-                                          <div className="space-y-3 md:col-span-2">
 
-              
 
-                                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.early_arrival_strategy")}</label>
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.early_arrival_strategy")}</label>
 
-              
 
-                                            <Combobox 
 
-              
+                <Combobox
 
-                                              options={[
 
-              
 
-                                                { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> }, 
+                  options={[
 
-              
 
-                                                { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> }, 
 
-              
+                    { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> },
 
-                                                { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
 
-              
 
-                                              ]} 
+                    { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> },
 
-              
 
-                                              value={earlyArrivalStrategy} 
 
-              
+                    { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
 
-                                              onChange={(v) => setEarlyArrivalStrategy(v as any)} 
 
-              
 
-                                              className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" 
+                  ]}
 
-              
 
-                                            />
 
-              
+                  value={earlyArrivalStrategy}
 
-                                          </div>
 
-              
 
-                            
+                  onChange={(v) => setEarlyArrivalStrategy(v as any)}
 
-                          </div>
 
-              
+
+                  className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
+
+
+
+                />
+
+
+
+              </div>
+
+
+
+
+
+            </div>
+
+
 
           </div>
 

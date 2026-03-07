@@ -15,7 +15,6 @@
       "time_format": "Time Format",
       "timezone": "System Timezone",
       "default_language": "Default Language",
-      "pairing_algorithm": "Pairing Algorithm",
       "theme_config": "Theme Configuration",
       "primary_color": "Primary Color",
       "invite_member": "Invite Member",
@@ -53,16 +52,6 @@
         "vn": "Vietnam (UTC+7)",
         "th": "Thailand (UTC+7)",
         "utc": "International Standard (UTC)"
-      },
-      "algorithm_options": {
-        "dp_pattern": "Dynamic Pattern (DP)",
-        "dp_pattern_desc": "Best for fixed shifts with breaks. Smart pairing.",
-        "anchor_first": "Anchor (First & Last)",
-        "anchor_first_desc": "Simple. Only takes the first and last records of the day.",
-        "sequential": "Sequential (Retail)",
-        "sequential_desc": "Pairs logs 1+2, 3+4, etc. Best for broken shifts.",
-        "fsm": "Finite State Machine (FSM)",
-        "fsm_desc": "Uses direct In/Out states from devices. Highest precision for high-end hardware."
       },
       "early_arrival_strategy": "Early Arrival Policy",
       "early_arrival_options": {
@@ -1195,7 +1184,6 @@
     "time_format": "Time Format",
     "timezone": "System Timezone",
     "default_language": "Default Language",
-    "pairing_algorithm": "Pairing Algorithm",
     "theme_config": "Theme Configuration",
     "primary_color": "Primary Color",
     "invite_member": "Invite Member",
@@ -1232,16 +1220,6 @@
       "vn": "Vietnam (UTC+7)",
       "th": "Thailand (UTC+7)",
       "utc": "International Standard (UTC)"
-    },
-    "algorithm_options": {
-      "dp_pattern": "Dynamic Pattern (DP)",
-      "dp_pattern_desc": "Best for fixed shifts with breaks. Smart pairing.",
-      "anchor_first": "Anchor (First & Last)",
-      "anchor_first_desc": "Simple. Only takes the first and last records of the day.",
-      "sequential": "Sequential (Retail)",
-      "sequential_desc": "Pairs logs 1+2, 3+4, etc. Best for broken shifts.",
-      "fsm": "State Machine (FSM)",
-      "fsm_desc": "Uses In/Out states directly from device. Highest accuracy for premium hardware."
     }
   },
   "auth": {

@@ -64,7 +64,6 @@ export interface Workspace {
   timezone: string;
   theme_primary_color: string;
   default_language: string;
-  pairing_algorithm: string;
   early_arrival_strategy: "allow" | "block" | "clamp";
   created_at: string;
 }

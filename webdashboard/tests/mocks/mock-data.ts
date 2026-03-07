@@ -4,7 +4,7 @@ export const MOCK_WORKSPACE = {
   timezone: "Asia/Ho_Chi_Minh",
   rounding_policy: "nearest",
   work_unit_minutes: 30,
-  pairing_algorithm: "sequential"
+  early_arrival_strategy: "block" as const,
 };
 
 export const MOCK_USER = {

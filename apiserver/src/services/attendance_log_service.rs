@@ -397,10 +397,6 @@ impl AttendanceLogService {
             .flatten();
         let tz_str = ws.as_ref().map(|w| w.timezone.as_str()).unwrap_or("UTC");
         let tz: chrono_tz::Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
-        let algorithm = ws
-            .as_ref()
-            .map(|w| w.pairing_algorithm.as_str())
-            .unwrap_or("anchor_first");
 
         for date in dates_to_reprocess {
             info!(
@@ -408,7 +404,7 @@ impl AttendanceLogService {
                 employee_id, date
             );
             if let Err(e) =
-                PairingService::reprocess_daily_attendance(pool, workspace_id, employee_id, date, tz, algorithm)
+                PairingService::reprocess_daily_attendance(pool, workspace_id, employee_id, date, tz)
                     .await
             {
                 error!(

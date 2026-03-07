@@ -44,20 +44,13 @@ impl PairingService {
         }
 
         // 2. Fetch Workspace Config
-        let workspace_info = sqlx::query!(
-            "SELECT timezone, pairing_algorithm FROM workspaces WHERE id = $1",
+        let timezone_str = sqlx::query_scalar!(
+            "SELECT timezone FROM workspaces WHERE id = $1",
             log.workspace_id
         )
         .fetch_optional(pool)
-        .await?;
-
-        let timezone_str = workspace_info
-            .as_ref()
-            .map(|w| w.timezone.clone())
-            .unwrap_or_else(|| "UTC".to_string());
-        let algorithm = workspace_info
-            .map(|w| w.pairing_algorithm)
-            .unwrap_or_else(|| "anchor_first".to_string());
+        .await?
+        .unwrap_or_else(|| "UTC".to_string());
         let tz: Tz = timezone_str.parse().unwrap_or(chrono_tz::UTC);
 
         // 3. Determine Local Date
@@ -65,7 +58,7 @@ impl PairingService {
         let local_date = local_dt.date_naive();
 
         // 4. Reprocess that day
-        Self::reprocess_daily_attendance(pool, log.workspace_id, log.employee_id, local_date, tz, &algorithm).await?;
+        Self::reprocess_daily_attendance(pool, log.workspace_id, log.employee_id, local_date, tz).await?;
 
         // 5. Reprocess previous day if early in the morning (Overnight checkouts)
         if local_dt.hour() < 12 {
@@ -74,7 +67,7 @@ impl PairingService {
                 "Log is early in day ({}), reprocessing previous day {} for overnight checkouts",
                 local_dt, prev_date
             );
-            Self::reprocess_daily_attendance(pool, log.workspace_id, log.employee_id, prev_date, tz, &algorithm)
+            Self::reprocess_daily_attendance(pool, log.workspace_id, log.employee_id, prev_date, tz)
                 .await?;
         }
 
@@ -87,11 +80,10 @@ impl PairingService {
         employee_id: Uuid,
         date: NaiveDate,
         tz: Tz,
-        algorithm: &str,
     ) -> Result<(), sqlx::Error> {
         info!(
-            "Reprocessing attendance for emp {} on date {} using {}",
-            employee_id, date, algorithm
+            "Reprocessing attendance for emp {} on date {}",
+            employee_id, date
         );
 
         // 1. Fetch effective schedule
@@ -218,7 +210,7 @@ impl PairingService {
         }
 
         // 4. Run Algorithm
-        let strategy = pairing_algo::get_strategy(algorithm);
+        let strategy = pairing_algo::get_strategy();
         let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
         // 5. Update Database

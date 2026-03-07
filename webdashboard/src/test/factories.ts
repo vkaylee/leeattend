@@ -27,8 +27,7 @@ export const workspaceFactory = (
     timezone: "Asia/Ho_Chi_Minh", // Default value
     theme_primary_color: "#7c3aed",
     default_language: "en",
-    pairing_algorithm: "sequential",
-    early_arrival_strategy: "block",
+    early_arrival_strategy: "block" as const,
     created_at: new Date().toISOString(),
     ...overrides,
   };

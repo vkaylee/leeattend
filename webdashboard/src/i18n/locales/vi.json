@@ -15,7 +15,6 @@
       "time_format": "Định dạng giờ",
       "timezone": "Múi giờ hệ thống",
       "default_language": "Ngôn ngữ mặc định",
-      "pairing_algorithm": "Thuật toán ghép cặp",
       "theme_config": "Cấu hình giao diện",
       "primary_color": "Màu chủ đạo",
       "invite_member": "Mời thành viên",
@@ -53,16 +52,6 @@
         "vn": "Việt Nam (UTC+7)",
         "th": "Thái Lan (UTC+7)",
         "utc": "Giờ quốc tế (UTC)"
-      },
-      "algorithm_options": {
-        "dp_pattern": "Khớp theo mẫu (DP)",
-        "dp_pattern_desc": "Tốt nhất cho ca cố định và có nghỉ giữa ca. Ghép cặp thông minh.",
-        "anchor_first": "Đầu & Cuối (Anchor)",
-        "anchor_first_desc": "Đơn giản nhất. Chỉ lấy bản ghi đầu tiên và cuối cùng trong ngày.",
-        "sequential": "Nối tiếp (Retail)",
-        "sequential_desc": "Ghép cặp log 1+2, 3+4, v.v. Tốt nhất cho ca gãy và quẹt thẻ nhiều lần.",
-        "fsm": "Trạng thái (FSM)",
-        "fsm_desc": "Sử dụng trạng thái Vào/Ra trực tiếp từ thiết bị. Độ chính xác cao nhất cho phần cứng cao cấp."
       },
       "early_arrival_strategy": "Quy tắc đến sớm",
       "early_arrival_options": {
@@ -1195,7 +1184,6 @@
     "time_format": "Định dạng giờ",
     "timezone": "Múi giờ hệ thống",
     "default_language": "Ngôn ngữ mặc định",
-    "pairing_algorithm": "Thuật toán ghép cặp",
     "theme_config": "Cấu hình giao diện",
     "primary_color": "Màu chủ đạo",
     "invite_member": "Mời thành viên",
@@ -1232,16 +1220,6 @@
       "vn": "Việt Nam (UTC+7)",
       "th": "Thái Lan (UTC+7)",
       "utc": "Giờ quốc tế (UTC)"
-    },
-    "algorithm_options": {
-      "dp_pattern": "Khớp theo mẫu (DP)",
-      "dp_pattern_desc": "Tốt nhất cho ca cố định và có nghỉ giữa ca. Ghép cặp thông minh.",
-      "anchor_first": "Đầu & Cuối (Anchor)",
-      "anchor_first_desc": "Đơn giản nhất. Chỉ lấy bản ghi đầu tiên và cuối cùng trong ngày.",
-      "sequential": "Nối tiếp (Retail)",
-      "sequential_desc": "Ghép cặp log 1+2, 3+4, v.v. Tốt nhất cho ca gãy và quẹt thẻ nhiều lần.",
-      "fsm": "Trạng thái (FSM)",
-      "fsm_desc": "Sử dụng trạng thái Vào/Ra trực tiếp từ thiết bị. Độ chính xác cao nhất cho phần cứng cao cấp."
     }
   },
   "auth": {

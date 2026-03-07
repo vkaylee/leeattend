@@ -148,7 +148,6 @@ pub async fn force_reprocess_attendance(
             employee_id,
             curr_date,
             tz,
-            &workspace.pairing_algorithm,
         )
         .await
         .map_err(|e| AppError::from(format!("Processing failed for {curr_date}: {e}")))?;

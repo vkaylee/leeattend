@@ -15,7 +15,6 @@
       "time_format": "时间格式",
       "timezone": "系统时区",
       "default_language": "默认语言",
-      "pairing_algorithm": "匹配算法",
       "theme_config": "主题配置",
       "primary_color": "主色调",
       "invite_member": "邀请成员",
@@ -53,16 +52,6 @@
         "vn": "越南 (UTC+7)",
         "th": "泰国 (UTC+7)",
         "utc": "协调世界时 (UTC)"
-      },
-      "algorithm_options": {
-        "dp_pattern": "动态模式 (DP)",
-        "dp_pattern_desc": "最适合带休息的固定班次。智能匹配。",
-        "anchor_first": "锚点匹配 (首尾)",
-        "anchor_first_desc": "最简单。仅获取当天的第一条和最后一条记录。",
-        "sequential": "Sequential (Retail)",
-        "sequential_desc": "Pairs logs 1+2, 3+4, etc. Best for broken shifts.",
-        "fsm": "Finite State Machine (FSM)",
-        "fsm_desc": "Uses direct In/Out states from devices. Highest precision for high-end hardware."
       },
       "early_arrival_strategy": "Early Arrival Policy",
       "early_arrival_options": {
@@ -1195,7 +1184,6 @@
     "time_format": "时间格式",
     "timezone": "系统时区",
     "default_language": "默认语言",
-    "pairing_algorithm": "匹配算法",
     "theme_config": "主题配置",
     "primary_color": "主色调",
     "invite_member": "邀请成员",
@@ -1232,16 +1220,6 @@
       "vn": "越南 (UTC+7)",
       "th": "泰国 (UTC+7)",
       "utc": "协调世界时 (UTC)"
-    },
-    "algorithm_options": {
-      "dp_pattern": "动态模式 (DP)",
-      "dp_pattern_desc": "最适合带休息的固定班次。智能匹配。",
-      "anchor_first": "锚点匹配 (首尾)",
-      "anchor_first_desc": "最简单。仅获取当天的第一条和最后一条记录。",
-      "sequential": "顺序匹配 (Retail)",
-      "sequential_desc": "按顺序匹配打卡记录。最适合非固定班次。",
-      "fsm": "状态机 (FSM)",
-      "fsm_desc": "直接使用设备的出入状态。高端硬件的最高精度。"
     }
   },
   "auth": {

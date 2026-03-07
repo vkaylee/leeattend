@@ -48,7 +48,7 @@ async fn test_overnight_shift_pairing() {
         .execute(&pool).await.unwrap();
 
     // 3. Process Pairing
-    apiserver::services::pairing_service::PairingService::reprocess_daily_attendance(&pool, employee_id, shift_date, tz, "anchor_first").await.unwrap();
+    apiserver::services::pairing_service::PairingService::reprocess_daily_attendance(&pool, ws_id, employee_id, shift_date, tz).await.unwrap();
 
     // 4. Verify
     let entry = sqlx::query!("SELECT punch_in_time, punch_out_time, duration_minutes FROM time_entries WHERE employee_id = $1", employee_id)
