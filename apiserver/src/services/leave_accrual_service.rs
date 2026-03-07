@@ -1,6 +1,6 @@
 use crate::models::{AccrualFrequency, LeaveAccrualLog, LeavePolicyConfig};
 use crate::repositories::{department_repository, employee_repository, leave_policy_repository};
-use chrono::{DateTime, Datelike, NaiveDate, TimeZone, Utc};
+use chrono::{Datelike, NaiveDate};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -578,30 +578,8 @@ impl LeaveAccrualService {
     }
 }
 
-/// Convert local date/time to UTC DateTime, handling DST edge cases
-fn local_to_utc(
-    tz: &Tz,
-    date: NaiveDate,
-    h: u32,
-    m: u32,
-    s: u32,
-) -> Result<DateTime<Utc>, sqlx::Error> {
-    let naive = date
-        .and_hms_opt(h, m, s)
-        .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {h}:{m}:{s}")))?;
-    match tz.from_local_datetime(&naive) {
-        chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
-        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt.with_timezone(&Utc)),
-        chrono::LocalResult::None => {
-            // DST gap - use next valid time
-            let shifted = naive + chrono::Duration::hours(1);
-            tz.from_local_datetime(&shifted)
-                .single()
-                .map(|dt| dt.with_timezone(&Utc))
-                .ok_or_else(|| sqlx::Error::Protocol("Cannot resolve DST gap".to_string()))
-        }
-    }
-}
+use crate::utils::chrono_helpers::local_to_utc_sqlx as local_to_utc;
+
 
 #[cfg(test)]
 mod tests {

@@ -5,9 +5,9 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::domain::policy::resolver::PolicyResolver;
+use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::models::{
-    AttendanceReportSort, AttendanceSummary, DailyAttendanceReport, PaginatedResponse, PolicyRules,
+    AttendanceReportSort, AttendanceSummary, DailyAttendanceReport, PaginatedResponse,
 };
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
@@ -19,6 +19,86 @@ use crate::services::AttendanceCalculator;
 pub struct ReportService;
 
 impl ReportService {
+    /// Shared calculation for a single day's standard/OT units.
+    ///
+    /// Consolidates the identical logic previously duplicated in
+    /// `get_daily_attendance_report` and `get_workspace_attendance_summary`.
+    #[allow(clippy::too_many_arguments)]
+    async fn calculate_day_units(
+        pool: &PgPool,
+        day_entries: &[&crate::models::TimeEntry],
+        daily: &crate::models::EffectiveSchedule,
+        date: NaiveDate,
+        tz: Tz,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+        early_arrival_strategy: crate::models::EarlyArrivalStrategy,
+        work_unit_minutes: i32,
+        rounding_policy: &str,
+    ) -> (i32, i32) {
+        let actual_punch_in = day_entries
+            .first()
+            .map(|e| e.punch_in_time.with_timezone(&tz));
+        let actual_punch_out = day_entries
+            .last()
+            .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
+
+        if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
+            let actual_break_minutes: i32 = day_entries
+                .iter()
+                .filter(|e| e.entry_type == "break")
+                .map(|e| e.duration_minutes.unwrap_or(0))
+                .sum();
+
+            let shift_start_dt = daily
+                .start_time
+                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+            let shift_end_dt = daily
+                .end_time
+                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+
+            let rules = PolicyResolver::resolve_with_shift_overrides(
+                pool,
+                employee_id,
+                workspace_id,
+                date,
+                &ShiftPolicyOverrides {
+                    grace_period_minutes: daily.early_punch_in_grace_period_minutes,
+                    is_break_auto_deduct: daily.is_break_auto_deduct,
+                    allow_early_ot: daily.allow_early_ot,
+                    early_arrival_strategy,
+                    is_break_overtime: false,
+                },
+            )
+            .await;
+
+            // Handle shift boundaries (with overnight shift support)
+            let (shift_start, shift_end) =
+                if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
+                    if daily.end_time < daily.start_time {
+                        end += chrono::Duration::days(1);
+                    }
+                    (Some(start), Some(end))
+                } else {
+                    (None, None)
+                };
+
+            AttendanceCalculator::calculate_daily_units(
+                punch_in,
+                punch_out,
+                shift_start,
+                shift_end,
+                daily.break_duration_minutes.unwrap_or(0),
+                actual_break_minutes,
+                work_unit_minutes,
+                rounding_policy,
+                &rules,
+                None,
+            )
+        } else {
+            (0, 0)
+        }
+    }
     #[allow(clippy::too_many_arguments)]
     pub async fn get_daily_attendance_report(
         pool: &PgPool,
@@ -165,83 +245,19 @@ impl ReportService {
                     .last()
                     .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
 
-                // --- CALCULATION LOGIC ---
-                let mut std_work_units = 0;
-                let mut ot_work_units = 0;
-
-                if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
-                    let actual_break_minutes: i32 = day_entries
-                        .iter()
-                        .filter(|e| e.entry_type == "break")
-                        .map(|e| e.duration_minutes.unwrap_or(0))
-                        .sum();
-
-                    let shift_start_dt = daily
-                        .start_time
-                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-                    let shift_end_dt = daily
-                        .end_time
-                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-
-                    let mut rules = PolicyResolver::resolve_attendance_rules(
-                        pool,
-                        emp_sched.employee_id,
-                        workspace.id,
-                        date,
-                    )
-                    .await
-                    .unwrap_or(PolicyRules {
-                        grace_period_minutes: daily
-                            .early_punch_in_grace_period_minutes
-                            .unwrap_or(0),
-                        authorized_early_leave_minutes: 0,
-                        is_early_leave_paid: false,
-                        early_arrival_strategy: workspace.early_arrival_strategy,
-                        is_break_auto_deduct: daily.is_break_auto_deduct.unwrap_or(false),
-                        is_break_overtime: false,
-                        allow_early_ot: daily.allow_early_ot.unwrap_or(false),
-                    });
-
-                    // Override rules with shift-specific settings if they exist
-                    if let Some(gp) = daily.early_punch_in_grace_period_minutes {
-                        rules.grace_period_minutes = gp;
-                    }
-                    if let Some(bad) = daily.is_break_auto_deduct {
-                        rules.is_break_auto_deduct = bad;
-                    }
-                    if let Some(aeo) = daily.allow_early_ot {
-                        rules.allow_early_ot = aeo;
-                    }
-
-                    // Handle shift boundaries (with overnight shift support)
-                    let (shift_start, shift_end) =
-                        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                            if daily.end_time < daily.start_time {
-                                end += chrono::Duration::days(1);
-                            }
-                            (Some(start), Some(end))
-                        } else {
-                            // No shift assigned - calculate as raw duration
-                            (None, None)
-                        };
-
-                    let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
-                        punch_in,
-                        punch_out,
-                        shift_start,
-                        shift_end,
-                        daily.break_duration_minutes.unwrap_or(0),
-                        actual_break_minutes,
-                        workspace.work_unit_minutes,
-                        &workspace.rounding_policy,
-                        &rules,
-                        None,
-                    );
-
-                    std_work_units = std_units;
-                    ot_work_units = ot_units;
-                }
-                // -----------------------------
+                let (std_work_units, ot_work_units) = Self::calculate_day_units(
+                    pool,
+                    day_entries,
+                    &daily,
+                    date,
+                    tz,
+                    emp_sched.employee_id,
+                    workspace.id,
+                    workspace.early_arrival_strategy,
+                    workspace.work_unit_minutes,
+                    &workspace.rounding_policy,
+                )
+                .await;
 
                 // --- STATUS DETERMINATION (using shared attendance_utils) ---
                 let holiday_entry = holidays_map.get(&date);
@@ -480,88 +496,22 @@ impl ReportService {
                     .map(|v| v.as_slice())
                     .unwrap_or(&[]);
 
-                let actual_punch_in = day_entries
-                    .first()
-                    .map(|e| e.punch_in_time.with_timezone(&tz));
-                let actual_punch_out = day_entries
-                    .last()
-                    .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
-
-                // Apply calculation only if we have both punch in and out
-                if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
-                    let actual_break_minutes: i32 = day_entries
-                        .iter()
-                        .filter(|e| e.entry_type == "break")
-                        .map(|e| e.duration_minutes.unwrap_or(0))
-                        .sum();
-
-                    let shift_start_dt = daily
-                        .start_time
-                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-                    let shift_end_dt = daily
-                        .end_time
-                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-
-                    // Resolve policy rules (same as daily report)
-                    let mut rules = PolicyResolver::resolve_attendance_rules(
-                        pool,
-                        emp_sched.employee_id,
-                        workspace.id,
-                        date,
-                    )
-                    .await
-                    .unwrap_or(PolicyRules {
-                        grace_period_minutes: daily
-                            .early_punch_in_grace_period_minutes
-                            .unwrap_or(0),
-                        authorized_early_leave_minutes: 0,
-                        is_early_leave_paid: false,
-                        early_arrival_strategy: workspace.early_arrival_strategy,
-                        is_break_auto_deduct: daily.is_break_auto_deduct.unwrap_or(false),
-                        is_break_overtime: false,
-                        allow_early_ot: daily.allow_early_ot.unwrap_or(false),
-                    });
-
-                    // Override with shift-specific settings
-                    if let Some(gp) = daily.early_punch_in_grace_period_minutes {
-                        rules.grace_period_minutes = gp;
-                    }
-                    if let Some(bad) = daily.is_break_auto_deduct {
-                        rules.is_break_auto_deduct = bad;
-                    }
-                    if let Some(aeo) = daily.allow_early_ot {
-                        rules.allow_early_ot = aeo;
-                    }
-
-                    // Handle shift boundaries (with overnight shift support)
-                    let (shift_start, shift_end) =
-                        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                            if daily.end_time < daily.start_time {
-                                end += chrono::Duration::days(1);
-                            }
-                            (Some(start), Some(end))
-                        } else {
-                            // No shift assigned - calculate as raw duration
-                            (None, None)
-                        };
-
-                    // Calculate units using AttendanceCalculator
-                    let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
-                        punch_in,
-                        punch_out,
-                        shift_start,
-                        shift_end,
-                        daily.break_duration_minutes.unwrap_or(0),
-                        actual_break_minutes,
-                        workspace.work_unit_minutes,
-                        &workspace.rounding_policy,
-                        &rules,
-                        None,
-                    );
+                let (std_units, ot_units) = Self::calculate_day_units(
+                    pool,
+                    day_entries,
+                    daily,
+                    date,
+                    tz,
+                    emp_sched.employee_id,
+                    workspace.id,
+                    workspace.early_arrival_strategy,
+                    workspace.work_unit_minutes,
+                    &workspace.rounding_policy,
+                )
+                .await;
 
                     employee_total_std += std_units;
                     employee_total_ot += ot_units;
-                }
             }
 
             employee_totals.insert(emp_sched.employee_id, (employee_total_std, employee_total_ot));

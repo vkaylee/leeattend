@@ -1,10 +1,10 @@
-use chrono::{DateTime, NaiveDate, TimeZone, Utc};
+use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::domain::policy::resolver::PolicyResolver;
-use crate::models::{AttendanceDailySummary, OtStatus, PolicyRules};
+use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::{
     roster_repository, time_entry_repository, workspace_repository::WorkspaceRepository,
     SqlxWorkspaceRepository,
@@ -112,34 +112,20 @@ impl AttendanceSummaryService {
                     }
 
                     // Resolve Policy Rules
-                    let mut rules = PolicyResolver::resolve_attendance_rules(
+                    let rules = PolicyResolver::resolve_with_shift_overrides(
                         pool,
                         employee_id,
                         workspace_id,
                         date,
+                        &crate::domain::policy::resolver::ShiftPolicyOverrides {
+                            grace_period_minutes: daily_schedule.early_punch_in_grace_period_minutes,
+                            is_break_auto_deduct: daily_schedule.is_break_auto_deduct,
+                            allow_early_ot: daily_schedule.allow_early_ot,
+                            early_arrival_strategy: workspace.early_arrival_strategy,
+                            is_break_overtime: false,
+                        },
                     )
-                    .await
-                    .unwrap_or(PolicyRules {
-                        grace_period_minutes: daily_schedule
-                            .early_punch_in_grace_period_minutes
-                            .unwrap_or(0),
-                        authorized_early_leave_minutes: 0,
-                        is_early_leave_paid: false,
-                        early_arrival_strategy: workspace.early_arrival_strategy,
-                        is_break_auto_deduct: daily_schedule.is_break_auto_deduct.unwrap_or(false),
-                        is_break_overtime: false,
-                        allow_early_ot: daily_schedule.allow_early_ot.unwrap_or(false),
-                    });
-
-                    if let Some(gp) = daily_schedule.early_punch_in_grace_period_minutes {
-                        rules.grace_period_minutes = gp;
-                    }
-                    if let Some(bad) = daily_schedule.is_break_auto_deduct {
-                        rules.is_break_auto_deduct = bad;
-                    }
-                    if let Some(aeo) = daily_schedule.allow_early_ot {
-                        rules.allow_early_ot = aeo;
-                    }
+                    .await;
 
                     let buckets = AttendanceCalculator::calculate_buckets(
                         punch_in,
@@ -435,27 +421,5 @@ impl AttendanceSummaryService {
     }
 }
 
-/// Helper to convert local date+time to UTC, handling DST edge cases
-fn local_midnight_to_utc(
-    tz: &Tz,
-    date: NaiveDate,
-    h: u32,
-    m: u32,
-    s: u32,
-) -> Result<DateTime<Utc>, String> {
-    let naive = date
-        .and_hms_opt(h, m, s)
-        .ok_or_else(|| format!("Invalid time: {h}:{m}:{s}"))?;
-    match tz.from_local_datetime(&naive) {
-        chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
-        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt.with_timezone(&Utc)),
-        chrono::LocalResult::None => {
-            // DST gap - use next valid time
-            let shifted = naive + chrono::Duration::hours(1);
-            tz.from_local_datetime(&shifted)
-                .single()
-                .map(|dt| dt.with_timezone(&Utc))
-                .ok_or_else(|| "Cannot resolve DST gap".to_string())
-        }
-    }
-}
+use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
+

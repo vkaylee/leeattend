@@ -8,6 +8,24 @@ pub struct WorkBuckets {
     pub late_ot_minutes: i32,
 }
 
+/// Encapsulates all inputs for daily attendance calculation.
+///
+/// Replaces the 10-parameter function signatures in `calculate_daily_units`
+/// and `calculate_buckets`, improving readability at call sites.
+#[derive(Debug)]
+pub struct DailyCalcInput<T: TimeZone> {
+    pub punch_in: DateTime<T>,
+    pub punch_out: DateTime<T>,
+    pub shift_start: Option<DateTime<T>>,
+    pub shift_end: Option<DateTime<T>>,
+    pub scheduled_break_minutes: i32,
+    pub actual_break_minutes: i32,
+    pub work_unit: i32,
+    pub rounding_policy: String,
+    pub rules: PolicyRules,
+    pub ot_ceiling: Option<DateTime<T>>,
+}
+
 pub struct AttendanceCalculator;
 
 impl AttendanceCalculator {
@@ -193,6 +211,25 @@ impl AttendanceCalculator {
         );
 
         (std_units, ot_units)
+    }
+
+    /// Calculate daily units from a structured input.
+    ///
+    /// Preferred over [`calculate_daily_units`] for new call sites — reduces
+    /// parameter count and improves readability.
+    pub fn calculate_daily_units_from_input<T: TimeZone>(input: &DailyCalcInput<T>) -> (i32, i32) {
+        Self::calculate_daily_units(
+            input.punch_in.clone(),
+            input.punch_out.clone(),
+            input.shift_start.clone(),
+            input.shift_end.clone(),
+            input.scheduled_break_minutes,
+            input.actual_break_minutes,
+            input.work_unit,
+            &input.rounding_policy,
+            &input.rules,
+            input.ot_ceiling.clone(),
+        )
     }
 }
 
@@ -382,5 +419,112 @@ mod tests {
         );
         assert_eq!(b.standard_minutes, 240);
         assert_eq!(b.late_ot_minutes, 60); // 12:00-13:00 = full gap
+    }
+
+    // --- calculate_units rounding tests ---
+
+    #[test]
+    fn test_calculate_units_floor_rounding() {
+        // 75 minutes / 30-minute unit = 2.5 → floor = 2
+        assert_eq!(AttendanceCalculator::calculate_units(75, 30, "floor"), 2);
+        // 90 minutes / 30 = 3.0 → exactly 3
+        assert_eq!(AttendanceCalculator::calculate_units(90, 30, "floor"), 3);
+        // 29 minutes / 30 = 0.966 → floor = 0
+        assert_eq!(AttendanceCalculator::calculate_units(29, 30, "floor"), 0);
+    }
+
+    #[test]
+    fn test_calculate_units_ceil_rounding() {
+        // 75 / 30 = 2.5 → ceil = 3
+        assert_eq!(AttendanceCalculator::calculate_units(75, 30, "ceil"), 3);
+        // 90 / 30 = 3.0 → exactly 3
+        assert_eq!(AttendanceCalculator::calculate_units(90, 30, "ceil"), 3);
+        // 1 / 30 = 0.033 → ceil = 1
+        assert_eq!(AttendanceCalculator::calculate_units(1, 30, "ceil"), 1);
+    }
+
+    #[test]
+    fn test_calculate_units_round_rounding() {
+        // 75 / 30 = 2.5 → round = 3
+        assert_eq!(AttendanceCalculator::calculate_units(75, 30, "round"), 3);
+        // 44 / 30 = 1.47 → round = 1
+        assert_eq!(AttendanceCalculator::calculate_units(44, 30, "round"), 1);
+        // 46 / 30 = 1.53 → round = 2
+        assert_eq!(AttendanceCalculator::calculate_units(46, 30, "round"), 2);
+    }
+
+    #[test]
+    fn test_calculate_units_zero_minutes() {
+        assert_eq!(AttendanceCalculator::calculate_units(0, 30, "floor"), 0);
+        assert_eq!(AttendanceCalculator::calculate_units(0, 30, "ceil"), 0);
+        assert_eq!(AttendanceCalculator::calculate_units(0, 30, "round"), 0);
+    }
+
+    #[test]
+    fn test_calculate_units_default_rounding() {
+        // Unknown rounding policy defaults to floor
+        assert_eq!(AttendanceCalculator::calculate_units(75, 30, "unknown"), 2);
+    }
+
+    // --- DailyCalcInput struct tests ---
+
+    #[test]
+    fn test_daily_calc_input_via_calculate_from_input() {
+        let input = DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(17, 0),
+            shift_start: Some(dt(8, 0)),
+            shift_end: Some(dt(17, 0)),
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            work_unit: 30,
+            rounding_policy: "floor".to_string(),
+            rules: mock_rules(),
+            ot_ceiling: None,
+        };
+        let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units_from_input(&input);
+        // 9h = 540m, floor(540/30) = 18 units (no break auto-deduct in mock_rules)
+        assert_eq!(std_units, 18);
+        assert_eq!(ot_units, 0);
+    }
+
+    #[test]
+    fn test_daily_calc_input_with_break_auto_deduct() {
+        let mut rules = mock_rules();
+        rules.is_break_auto_deduct = true;
+        let input = DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(17, 0),
+            shift_start: Some(dt(8, 0)),
+            shift_end: Some(dt(17, 0)),
+            scheduled_break_minutes: 60,
+            actual_break_minutes: 0,
+            work_unit: 30,
+            rounding_policy: "floor".to_string(),
+            rules,
+            ot_ceiling: None,
+        };
+        let (std_units, _) = AttendanceCalculator::calculate_daily_units_from_input(&input);
+        // 540m - 60m break = 480m, floor(480/30) = 16 units
+        assert_eq!(std_units, 16);
+    }
+
+    #[test]
+    fn test_daily_calc_input_debug_trait() {
+        let input = DailyCalcInput {
+            punch_in: dt(8, 0),
+            punch_out: dt(17, 0),
+            shift_start: None,
+            shift_end: None,
+            scheduled_break_minutes: 0,
+            actual_break_minutes: 0,
+            work_unit: 30,
+            rounding_policy: "floor".to_string(),
+            rules: mock_rules(),
+            ot_ceiling: None,
+        };
+        // Verify Debug trait works without panic
+        let debug_str = format!("{:?}", input);
+        assert!(debug_str.contains("DailyCalcInput"));
     }
 }

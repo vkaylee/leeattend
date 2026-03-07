@@ -1,16 +1,17 @@
 use axum::http::StatusCode;
-use chrono::{DateTime, NaiveDate, TimeZone, Utc};
+use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use futures_util::stream::{self, StreamExt};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use std::collections::{BTreeSet, HashMap};
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::policy::overtime::OvertimeEngine;
 use crate::domain::policy::resolver::PolicyResolver;
-use crate::models::{Payslip, PolicyRules};
+use crate::models::Payslip;
 use crate::repositories::overtime_policy_repository::OvertimePolicyRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
@@ -25,15 +26,49 @@ use crate::services::{
 
 pub struct PayrollService;
 
+// ---------------------------------------------------------------------------
+// Internal data structs for PayrollService decomposition
+// ---------------------------------------------------------------------------
+
+/// All pre-fetched data required for payroll calculation.
+/// Constructed once by `fetch_context()` and passed to subsequent phases.
+struct PayrollContext {
+    workspace: crate::models::Workspace,
+    tz: Tz,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    salary_history: Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>,
+    all_dept_history: Vec<crate::models::EmployeeDepartmentHistory>,
+    daily_entries_map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>>,
+    holidays_map: HashMap<NaiveDate, crate::models::Holiday>,
+    roster_data: Arc<crate::cache::RosterData>,
+    emp_id_number: String,
+    emp_tags: Option<Vec<String>>,
+    payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>>,
+}
+
+/// Running totals accumulated during segment calculation.
+#[allow(dead_code)]
+struct SegmentCalcResult {
+    total_base_pay: Decimal,
+    total_std_units: i32,
+    total_ot_units: i32,
+    total_overtime_pay: Decimal,
+    total_holiday_work_premium: Decimal,
+    total_late_early_count: i32,
+    #[allow(clippy::type_complexity)]
+    segment_snapshots: Vec<(NaiveDate, NaiveDate, Option<Uuid>, Decimal, Decimal, Decimal, Decimal, Decimal, Decimal, String)>,
+}
+
 impl PayrollService {
-    pub async fn calculate_monthly_payslip(
+    /// Phase 1: Fetch all data needed for payroll calculation.
+    async fn fetch_context(
         pool: &PgPool,
         employee_id: Uuid,
         workspace_id: Uuid,
         year: i32,
         month: u32,
-    ) -> Result<Payslip, StatusCode> {
-        // 0. Get workspace settings for Timezone & Rounding
+    ) -> Result<PayrollContext, StatusCode> {
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
@@ -46,7 +81,6 @@ impl PayrollService {
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
-        // 1. Define Period
         let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or(StatusCode::BAD_REQUEST)?;
         let next_month_date = if month == 12 {
             NaiveDate::from_ymd_opt(year + 1, 1, 1)
@@ -58,23 +92,17 @@ impl PayrollService {
             .pred_opt()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        // 2. Fetch History Data for Segmentation
         let salary_history = payroll_repository::get_salary_components_history(
-            pool,
-            employee_id,
-            start_date,
-            end_date,
+            pool, employee_id, start_date, end_date,
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        // Fetch all dept history
         let all_dept_history =
             department_repository::get_employee_department_history(pool, employee_id)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        // 4. Fetch Time Entries (All for the month)
         let start_dt = local_to_utc(&tz, start_date, 0, 0, 0)
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         let end_dt = local_to_utc(&tz, end_date, 23, 59, 59)
@@ -85,15 +113,12 @@ impl PayrollService {
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        // 4b. Fetch holidays for the period (for OT holiday rule filtering)
         let holidays_map = HolidayRepository::get_holidays_in_range(
             pool, workspace_id, start_date, end_date,
         )
         .await
         .unwrap_or_default();
 
-        // 4c. Batch-load roster data for in-memory shift resolution
-        //     (replaces N per-day get_effective_shift DB calls with ~8 parallel queries)
         let roster_data = crate::cache::build_roster_data(pool, workspace_id)
             .await
             .map_err(|e| {
@@ -101,7 +126,6 @@ impl PayrollService {
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
 
-        // Fetch employee info needed for rule evaluation
         let emp_row = sqlx::query(
             "SELECT employee_id_number, tags FROM employees WHERE id = $1",
         )
@@ -120,7 +144,6 @@ impl PayrollService {
             emp_row.get("tags")
         };
 
-        // Pre-fetch rosters in range for this employee
         let rosters = roster_repository::get_employee_rosters(pool, employee_id, start_date, end_date)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -129,17 +152,41 @@ impl PayrollService {
             .map(|r| ((r.employee_id, r.date), r.shift_id))
             .collect();
 
-        // 5. Determine Segments
-        let mut change_points = BTreeSet::new();
-        change_points.insert(start_date);
+        let mut daily_entries_map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>> =
+            HashMap::new();
+        for entry in time_entries {
+            let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
+            daily_entries_map.entry(local_date).or_default().push(entry);
+        }
 
-        for (comp, _) in &salary_history {
-            if comp.effective_date > start_date && comp.effective_date <= end_date {
+        Ok(PayrollContext {
+            workspace,
+            tz,
+            start_date,
+            end_date,
+            salary_history,
+            all_dept_history,
+            daily_entries_map,
+            holidays_map,
+            roster_data,
+            emp_id_number,
+            emp_tags,
+            payroll_roster_map,
+        })
+    }
+
+    /// Phase 2: Determine salary/dept change segments.
+    fn build_segments(ctx: &PayrollContext) -> Vec<(NaiveDate, NaiveDate)> {
+        let mut change_points = BTreeSet::new();
+        change_points.insert(ctx.start_date);
+
+        for (comp, _) in &ctx.salary_history {
+            if comp.effective_date > ctx.start_date && comp.effective_date <= ctx.end_date {
                 change_points.insert(comp.effective_date);
             }
         }
-        for dept in &all_dept_history {
-            if dept.effective_date > start_date && dept.effective_date <= end_date {
+        for dept in &ctx.all_dept_history {
+            if dept.effective_date > ctx.start_date && dept.effective_date <= ctx.end_date {
                 change_points.insert(dept.effective_date);
             }
         }
@@ -152,32 +199,38 @@ impl PayrollService {
             let seg_end = if i + 1 < sorted_dates.len() {
                 sorted_dates[i + 1].pred_opt().unwrap_or(seg_start)
             } else {
-                end_date
+                ctx.end_date
             };
             segments.push((seg_start, seg_end));
         }
+        segments
+    }
 
-        // 6. Calculate Each Segment
+    pub async fn calculate_monthly_payslip(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+        year: i32,
+        month: u32,
+    ) -> Result<Payslip, StatusCode> {
+        // Phase 1: Fetch all context data
+        let ctx = Self::fetch_context(pool, employee_id, workspace_id, year, month).await?;
+
+        // Phase 2: Build segments
+        let segments = Self::build_segments(&ctx);
+        // Phase 3: Calculate each segment
         let mut total_base_pay = Decimal::ZERO;
         let mut total_std_units = 0;
         let mut total_ot_units = 0;
         let mut total_late_early_count = 0;
         let mut segment_snapshots = Vec::new();
-
-        // Prepare time entries grouped by date for faster access
-        let mut daily_entries_map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>> =
-            HashMap::new();
-        for entry in time_entries {
-            let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
-            daily_entries_map.entry(local_date).or_default().push(entry);
-        }
-
         let mut total_overtime_pay = Decimal::ZERO;
         let mut total_holiday_work_premium = Decimal::ZERO;
         let mut policy_cache: HashMap<Uuid, Vec<crate::models::OvertimeRule>> = HashMap::new();
+
         for (seg_start, seg_end) in segments {
             // A. Context Resolution
-            let active_dept = all_dept_history
+            let active_dept = ctx.all_dept_history
                 .iter()
                 .filter(|d| d.effective_date <= seg_start)
                 .max_by_key(|d| d.effective_date);
@@ -186,7 +239,7 @@ impl PayrollService {
             let mut segment_total_base = Decimal::ZERO;
             let mut segment_ot_base = Decimal::ZERO;
             let mut processed_def_ids = BTreeSet::new();
-            for (esc, scd) in salary_history.iter().rev() {
+            for (esc, scd) in ctx.salary_history.iter().rev() {
                 if !processed_def_ids.contains(&scd.id) && esc.effective_date <= seg_start {
                     segment_total_base += esc.amount;
                     if scd.is_base_for_ot {
@@ -208,7 +261,7 @@ impl PayrollService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
             let seg_units_per_day = (std_config.hours_per_day * Decimal::from(60))
-                / Decimal::from(workspace.work_unit_minutes);
+                / Decimal::from(ctx.workspace.work_unit_minutes);
 
             // B. Attendance Calculation
             let mut segment_std_units = 0;
@@ -219,22 +272,22 @@ impl PayrollService {
             while current_date <= seg_end {
                 // Resolve shift from pre-loaded roster data (in-memory, zero DB queries)
                 let (shift_ids, _, _) = roster_repository::resolve_effective_shift_from_data(
-                    &roster_data,
-                    &payroll_roster_map,
+                    &ctx.roster_data,
+                    &ctx.payroll_roster_map,
                     employee_id,
-                    &emp_id_number,
-                    emp_tags.as_ref(),
+                    &ctx.emp_id_number,
+                    ctx.emp_tags.as_ref(),
                     current_date,
                 );
 
                 // Collect resolved shifts sorted by start_time for OT ceiling
                 let mut day_shifts: Vec<_> = shift_ids
                     .iter()
-                    .filter_map(|opt| opt.and_then(|id| roster_data.shifts.get(&id)))
+                    .filter_map(|opt| opt.and_then(|id| ctx.roster_data.shifts.get(&id)))
                     .collect();
                 day_shifts.sort_by_key(|s| s.start_time);
 
-                if let Some(entries) = daily_entries_map.get(&current_date) {
+                if let Some(entries) = ctx.daily_entries_map.get(&current_date) {
                     let work_entries: Vec<_> = entries
                         .iter()
                         .filter(|e| e.entry_type == "work" || e.entry_type.is_empty())
@@ -250,14 +303,14 @@ impl PayrollService {
                     for (shift_idx, s) in day_shifts.iter().enumerate() {
                         // OT ceiling: cap late OT at next shift's start time
                         let ot_ceiling = day_shifts.get(shift_idx + 1).and_then(|next_s| {
-                            tz.from_local_datetime(&current_date.and_time(next_s.start_time))
+                            ctx.tz.from_local_datetime(&current_date.and_time(next_s.start_time))
                                 .single()
                         });
 
-                        let start_dt = tz
+                        let start_dt = ctx.tz
                             .from_local_datetime(&current_date.and_time(s.start_time))
                             .single();
-                        let end_dt = tz
+                        let end_dt = ctx.tz
                             .from_local_datetime(&current_date.and_time(s.end_time))
                             .single();
 
@@ -267,14 +320,13 @@ impl PayrollService {
                             }
 
                             // Find the work entry that belongs to this shift
-                            // (punch_in is within shift range or closest to shift start)
                             let matching_entries: Vec<_> = work_entries.iter().filter(|entry| {
-                                let punch_in = entry.punch_in_time.with_timezone(&tz);
+                                let punch_in = entry.punch_in_time.with_timezone(&ctx.tz);
                                 // Entry belongs to this shift if punch_in is before shift end
                                 // and after previous shift's end (or before shift start with grace)
                                 let prev_end = if shift_idx > 0 {
                                     day_shifts.get(shift_idx - 1).and_then(|prev_s| {
-                                        tz.from_local_datetime(&current_date.and_time(prev_s.end_time)).single()
+                                        ctx.tz.from_local_datetime(&current_date.and_time(prev_s.end_time)).single()
                                     })
                                 } else {
                                     None
@@ -285,37 +337,24 @@ impl PayrollService {
                             }).collect();
 
                             for entry in matching_entries {
-                                let punch_in = entry.punch_in_time.with_timezone(&tz);
+                                let punch_in = entry.punch_in_time.with_timezone(&ctx.tz);
                                 if let Some(punch_out_raw) = entry.punch_out_time {
-                                    let punch_out = punch_out_raw.with_timezone(&tz);
+                                    let punch_out = punch_out_raw.with_timezone(&ctx.tz);
 
-                                    let mut rules = PolicyResolver::resolve_attendance_rules(
+                                    let rules = PolicyResolver::resolve_with_shift_overrides(
                                         pool,
                                         employee_id,
-                                        workspace.id,
+                                        ctx.workspace.id,
                                         current_date,
+                                        &crate::domain::policy::resolver::ShiftPolicyOverrides {
+                                            grace_period_minutes: Some(s.early_punch_in_grace_period_minutes),
+                                            is_break_auto_deduct: Some(s.is_break_auto_deduct),
+                                            allow_early_ot: Some(s.allow_early_ot),
+                                            early_arrival_strategy: ctx.workspace.early_arrival_strategy,
+                                            is_break_overtime: entry.is_break_overtime,
+                                        },
                                     )
-                                    .await
-                                    .unwrap_or(PolicyRules {
-                                        grace_period_minutes: s
-                                            .early_punch_in_grace_period_minutes,
-                                        authorized_early_leave_minutes: 0,
-                                        is_early_leave_paid: false,
-                                        early_arrival_strategy: workspace
-                                            .early_arrival_strategy,
-                                        is_break_auto_deduct: s.is_break_auto_deduct,
-                                        is_break_overtime: entry.is_break_overtime,
-                                        allow_early_ot: s.allow_early_ot,
-                                    });
-
-                                    // Override with shift data only if explicitly configured (non-zero)
-                                    if s.early_punch_in_grace_period_minutes > 0 {
-                                        rules.grace_period_minutes =
-                                            s.early_punch_in_grace_period_minutes;
-                                    }
-                                    rules.is_break_auto_deduct = s.is_break_auto_deduct;
-                                    rules.is_break_overtime = entry.is_break_overtime;
-                                    rules.allow_early_ot = s.allow_early_ot;
+                                    .await;
 
                                     let (std_u, ot_u) =
                                         AttendanceCalculator::calculate_daily_units(
@@ -325,8 +364,8 @@ impl PayrollService {
                                             Some(end),
                                             s.break_duration_minutes,
                                             actual_break_minutes,
-                                            workspace.work_unit_minutes,
-                                            &workspace.rounding_policy,
+                                            ctx.workspace.work_unit_minutes,
+                                            &ctx.workspace.rounding_policy,
                                             &rules,
                                             ot_ceiling,
                                         );
@@ -334,7 +373,7 @@ impl PayrollService {
                                     segment_ot_units += ot_u;
 
                                     // --- HOLIDAY WORK COMPENSATION (configurable per-holiday) ---
-                                    if let Some(holiday) = holidays_map.get(&current_date) {
+                                    if let Some(holiday) = ctx.holidays_map.get(&current_date) {
                                         let daily_rate = if std_config.std_working_days.is_zero() {
                                             Decimal::ZERO
                                         } else {
@@ -369,9 +408,9 @@ impl PayrollService {
                                             let mut total_ot_pay = Decimal::ZERO;
                                             if punch_in < start {
                                                 let ot_end = std::cmp::min(punch_out, start);
-                                                let daily_splits = OvertimeEngine::split_interval_by_day(punch_in, ot_end, &tz);
+                                                let daily_splits = OvertimeEngine::split_interval_by_day(punch_in, ot_end, &ctx.tz);
                                                 for (date, intervals) in daily_splits {
-                                                    let day_is_holiday = holidays_map.contains_key(&date);
+                                                    let day_is_holiday = ctx.holidays_map.contains_key(&date);
                                                     total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, day_is_holiday, &intervals, hourly_rate);
                                                 }
                                             }
@@ -382,21 +421,21 @@ impl PayrollService {
                                                     Some(ceil) => std::cmp::min(punch_out, ceil),
                                                     None => punch_out,
                                                 };
-                                                let daily_splits = OvertimeEngine::split_interval_by_day(ot_start, ot_end_for_pay, &tz);
+                                                let daily_splits = OvertimeEngine::split_interval_by_day(ot_start, ot_end_for_pay, &ctx.tz);
                                                 for (date, intervals) in daily_splits {
-                                                    let day_is_holiday = holidays_map.contains_key(&date);
+                                                    let day_is_holiday = ctx.holidays_map.contains_key(&date);
                                                     total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, day_is_holiday, &intervals, hourly_rate);
                                                 }
                                             }
                                             segment_ot_pay += total_ot_pay;
                                         } else {
                                             let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { Decimal::ZERO } else { (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day };
-                                            segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(1.5).unwrap_or(Decimal::new(15, 1));
+                                            segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(ctx.workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(1.5).unwrap_or(Decimal::new(15, 1));
                                         }
                                     }
 
                                     // Violation detection for IncentiveContext
-                                    if !holidays_map.contains_key(&current_date) {
+                                    if !ctx.holidays_map.contains_key(&current_date) {
                                         let is_late = punch_in
                                             > start
                                                 + chrono::Duration::minutes(
@@ -415,18 +454,18 @@ impl PayrollService {
                     // Fallback: entries with no matching shift (day_shifts is empty)
                     if day_shifts.is_empty() {
                         for entry in &work_entries {
-                            let punch_in = entry.punch_in_time.with_timezone(&tz);
+                            let punch_in = entry.punch_in_time.with_timezone(&ctx.tz);
                             if let Some(punch_out_raw) = entry.punch_out_time {
-                                let punch_out = punch_out_raw.with_timezone(&tz);
+                                let punch_out = punch_out_raw.with_timezone(&ctx.tz);
                                 segment_std_units += AttendanceCalculator::calculate_units(
                                     (punch_out - punch_in).num_minutes() as i32,
-                                    workspace.work_unit_minutes,
-                                    &workspace.rounding_policy,
+                                    ctx.workspace.work_unit_minutes,
+                                    &ctx.workspace.rounding_policy,
                                 );
                             }
                         }
                     }
-                } else if let Some(holiday) = holidays_map.get(&current_date) {
+                } else if let Some(holiday) = ctx.holidays_map.get(&current_date) {
                     // Paid holiday with no attendance → auto-credit standard day
                     if holiday.is_paid {
                         let credit_units = if holiday.holiday_type == "half_day" {
@@ -476,14 +515,14 @@ impl PayrollService {
 
         // 6b. Enforce monthly OT cap from PayrollSettings
         let payroll_settings = crate::repositories::payroll_repository::get_payroll_settings_at(
-            pool, workspace_id, end_date,
+            pool, workspace_id, ctx.end_date,
         )
         .await
         .unwrap_or(None);
         if let Some(ref ps) = payroll_settings {
             if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
                 let max_ot_minutes = max_monthly_hours * Decimal::from(60);
-                let max_ot_units_dec = max_ot_minutes / Decimal::from(workspace.work_unit_minutes);
+                let max_ot_units_dec = max_ot_minutes / Decimal::from(ctx.workspace.work_unit_minutes);
                 let max_ot_units = max_ot_units_dec.to_i32().unwrap_or(i32::MAX);
                 if total_ot_units > max_ot_units {
                     // Proportionally reduce OT pay
@@ -514,8 +553,8 @@ impl PayrollService {
         let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
             pool,
             employee_id,
-            start_date,
-            end_date,
+            ctx.start_date,
+            ctx.end_date,
             workspace_id,
         )
         .await
@@ -581,8 +620,8 @@ impl PayrollService {
                        AND lr.end_date >= h.date
                  )"#,
             workspace_id,
-            start_date,
-            end_date,
+            ctx.start_date,
+            ctx.end_date,
             employee_id
         )
         .fetch_one(pool)
@@ -603,8 +642,8 @@ impl PayrollService {
         let payslip = Payslip {
             id: Uuid::new_v4(),
             employee_id,
-            period_start: start_date,
-            period_end: end_date,
+            period_start: ctx.start_date,
+            period_end: ctx.end_date,
             base_pay_amount: total_base_pay,
             overtime_pay_amount: total_overtime_pay,
             deductions_amount,
@@ -695,21 +734,178 @@ impl PayrollService {
     }
 }
 
-/// Convert local date/time to UTC DateTime, handling DST edge cases
-fn local_to_utc(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Utc>, String> {
-    let naive = date
-        .and_hms_opt(h, m, s)
-        .ok_or_else(|| format!("Invalid time: {h}:{m}:{s}"))?;
-    match tz.from_local_datetime(&naive) {
-        chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
-        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt.with_timezone(&Utc)),
-        chrono::LocalResult::None => {
-            // DST gap - use next valid time
-            let shifted = naive + chrono::Duration::hours(1);
-            tz.from_local_datetime(&shifted)
-                .single()
-                .map(|dt| dt.with_timezone(&Utc))
-                .ok_or_else(|| "Cannot resolve DST gap".to_string())
+use crate::utils::chrono_helpers::local_to_utc;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+
+    fn d(y: i32, m: u32, day: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, day).expect("valid date")
+    }
+
+    fn make_salary_entry(effective_date: NaiveDate) -> (crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition) {
+        (
+            crate::models::EmployeeSalaryComponent {
+                id: Uuid::new_v4(),
+                employee_id: Uuid::new_v4(),
+                component_definition_id: Uuid::new_v4(),
+                amount: Decimal::from(1000),
+                effective_date,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            },
+            crate::models::SalaryComponentDefinition {
+                id: Uuid::new_v4(),
+                workspace_id: Uuid::new_v4(),
+                name: "Base".into(),
+                code: "BASE".into(),
+                is_base_for_ot: true,
+                is_taxable: true,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            },
+        )
+    }
+
+    fn make_dept_entry(effective_date: NaiveDate) -> crate::models::EmployeeDepartmentHistory {
+        crate::models::EmployeeDepartmentHistory {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            department_id: Uuid::new_v4(),
+            effective_date,
+            notes: None,
+            created_at: Utc::now(),
         }
+    }
+
+    fn make_ctx(
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        salary_history: Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>,
+        all_dept_history: Vec<crate::models::EmployeeDepartmentHistory>,
+    ) -> PayrollContext {
+        PayrollContext {
+            workspace: crate::models::Workspace {
+                id: Uuid::new_v4(),
+                name: "Test".into(),
+                work_unit_minutes: 30,
+                rounding_policy: "floor".into(),
+                date_format: "YYYY-MM-DD".into(),
+                time_format: "HH:mm".into(),
+                timezone: "UTC".into(),
+                theme_primary_color: "#000".into(),
+                default_language: "en".into(),
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Allow,
+                holiday_overnight_strategy: "split".into(),
+                default_holiday_ot_multiplier: Decimal::from(2),
+                created_at: Utc::now(),
+            },
+            tz: chrono_tz::UTC,
+            start_date,
+            end_date,
+            salary_history,
+            all_dept_history,
+            daily_entries_map: HashMap::new(),
+            holidays_map: HashMap::new(),
+            roster_data: Arc::new(crate::cache::RosterData {
+                shifts: HashMap::new(),
+                fixed_assignments: HashMap::new(),
+                pattern_assignments: HashMap::new(),
+                dept_patterns: HashMap::new(),
+                dept_fixed_shifts: HashMap::new(),
+                active_rules: Vec::new(),
+                rule_patterns: HashMap::new(),
+                dept_history: HashMap::new(),
+            }),
+            emp_id_number: "EMP001".into(),
+            emp_tags: None,
+            payroll_roster_map: HashMap::new(),
+        }
+    }
+
+    #[test]
+    fn test_build_segments_no_changes() {
+        let ctx = make_ctx(d(2026, 3, 1), d(2026, 3, 31), vec![], vec![]);
+        let segments = PayrollService::build_segments(&ctx);
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0], (d(2026, 3, 1), d(2026, 3, 31)));
+    }
+
+    #[test]
+    fn test_build_segments_salary_change_mid_month() {
+        let ctx = make_ctx(
+            d(2026, 3, 1), d(2026, 3, 31),
+            vec![make_salary_entry(d(2026, 3, 16))],
+            vec![],
+        );
+        let segments = PayrollService::build_segments(&ctx);
+        assert_eq!(segments.len(), 2);
+        assert_eq!(segments[0], (d(2026, 3, 1), d(2026, 3, 15)));
+        assert_eq!(segments[1], (d(2026, 3, 16), d(2026, 3, 31)));
+    }
+
+    #[test]
+    fn test_build_segments_dept_change_mid_month() {
+        let ctx = make_ctx(
+            d(2026, 3, 1), d(2026, 3, 31),
+            vec![],
+            vec![make_dept_entry(d(2026, 3, 10))],
+        );
+        let segments = PayrollService::build_segments(&ctx);
+        assert_eq!(segments.len(), 2);
+        assert_eq!(segments[0], (d(2026, 3, 1), d(2026, 3, 9)));
+        assert_eq!(segments[1], (d(2026, 3, 10), d(2026, 3, 31)));
+    }
+
+    #[test]
+    fn test_build_segments_multiple_changes() {
+        let ctx = make_ctx(
+            d(2026, 3, 1), d(2026, 3, 31),
+            vec![make_salary_entry(d(2026, 3, 10))],
+            vec![make_dept_entry(d(2026, 3, 20))],
+        );
+        let segments = PayrollService::build_segments(&ctx);
+        assert_eq!(segments.len(), 3);
+        assert_eq!(segments[0], (d(2026, 3, 1), d(2026, 3, 9)));
+        assert_eq!(segments[1], (d(2026, 3, 10), d(2026, 3, 19)));
+        assert_eq!(segments[2], (d(2026, 3, 20), d(2026, 3, 31)));
+    }
+
+    #[test]
+    fn test_build_segments_change_on_first_day_no_extra_segment() {
+        let ctx = make_ctx(
+            d(2026, 3, 1), d(2026, 3, 31),
+            vec![make_salary_entry(d(2026, 3, 1))],
+            vec![],
+        );
+        let segments = PayrollService::build_segments(&ctx);
+        assert_eq!(segments.len(), 1); // change on start_date doesn't create extra segment
+    }
+
+    #[test]
+    fn test_build_segments_change_after_end_ignored() {
+        let ctx = make_ctx(
+            d(2026, 3, 1), d(2026, 3, 31),
+            vec![make_salary_entry(d(2026, 4, 5))],
+            vec![],
+        );
+        let segments = PayrollService::build_segments(&ctx);
+        assert_eq!(segments.len(), 1); // change outside range skipped
+    }
+
+    #[test]
+    fn test_build_segments_same_day_salary_and_dept() {
+        let ctx = make_ctx(
+            d(2026, 3, 1), d(2026, 3, 31),
+            vec![make_salary_entry(d(2026, 3, 15))],
+            vec![make_dept_entry(d(2026, 3, 15))],
+        );
+        let segments = PayrollService::build_segments(&ctx);
+        // Same date → deduplicated by BTreeSet
+        assert_eq!(segments.len(), 2);
+        assert_eq!(segments[0], (d(2026, 3, 1), d(2026, 3, 14)));
+        assert_eq!(segments[1], (d(2026, 3, 15), d(2026, 3, 31)));
     }
 }
