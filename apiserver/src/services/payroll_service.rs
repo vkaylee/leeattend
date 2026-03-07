@@ -224,9 +224,7 @@ impl PayrollService {
         segments
     }
 
-    /// Phase 2b: Calculate the daily rate from a segment snapshot.
-    ///
-    /// Pure function — no DB or side effects.
+    /// Phase 2b: Financial rate abstractions to enforce DRY
     fn calculate_daily_rate(total_base: Decimal, std_working_days: Decimal) -> Decimal {
         if std_working_days.is_zero() {
             Decimal::ZERO
@@ -235,10 +233,15 @@ impl PayrollService {
         }
     }
 
+    fn calculate_hourly_rate(ot_base: Decimal, std_working_days: Decimal, hours_per_day: Decimal) -> Decimal {
+        if std_working_days.is_zero() || hours_per_day.is_zero() {
+            Decimal::ZERO
+        } else {
+            (ot_base / std_working_days) / hours_per_day
+        }
+    }
+
     /// Phase 4: Apply monthly OT cap, proportionally reducing OT pay.
-    ///
-    /// Returns `(capped_ot_units, adjusted_ot_pay)`.
-    /// Pure function — no DB or side effects.
     fn apply_ot_cap(
         total_ot_units: i32,
         total_overtime_pay: Decimal,
@@ -429,12 +432,8 @@ impl PayrollService {
                                     segment_ot_units += ot_u;
 
                                     // --- HOLIDAY WORK COMPENSATION (configurable per-holiday) ---
-                                    if let Some(holiday) = ctx.holidays_map.get(&current_date) {
-                                        let daily_rate = if std_config.std_working_days.is_zero() {
-                                            Decimal::ZERO
-                                        } else {
-                                            segment_total_base / std_config.std_working_days
-                                        };
+                                     if let Some(holiday) = ctx.holidays_map.get(&current_date) {
+                                        let daily_rate = Self::calculate_daily_rate(segment_total_base, std_config.std_working_days);
                                         if holiday.is_credit_on_work {
                                             segment_std_units += seg_units_per_day.to_i32().unwrap_or(0);
                                         }
@@ -455,11 +454,7 @@ impl PayrollService {
                                                 r
                                             };
 
-                                            let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() {
-                                                Decimal::ZERO
-                                            } else {
-                                                (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day
-                                            };
+                                            let hourly_rate = Self::calculate_hourly_rate(segment_ot_base, std_config.std_working_days, std_config.hours_per_day);
 
                                             let mut total_ot_pay = Decimal::ZERO;
                                             if punch_in < start {
@@ -485,7 +480,7 @@ impl PayrollService {
                                             }
                                             segment_ot_pay += total_ot_pay;
                                         } else {
-                                            let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { Decimal::ZERO } else { (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day };
+                                            let hourly_rate = Self::calculate_hourly_rate(segment_ot_base, std_config.std_working_days, std_config.hours_per_day);
                                             segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(ctx.workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(DEFAULT_OT_MULTIPLIER).unwrap_or(Decimal::new(15, 1));
                                         }
                                     }
@@ -543,11 +538,7 @@ impl PayrollService {
 
             // C. Financials
             let worked_days_dec = Decimal::from(segment_std_units) / seg_units_per_day;
-            let daily_rate = if std_config.std_working_days.is_zero() {
-                Decimal::ZERO
-            } else {
-                segment_total_base / std_config.std_working_days
-            };
+            let daily_rate = Self::calculate_daily_rate(segment_total_base, std_config.std_working_days);
             let segment_amount = daily_rate * worked_days_dec;
 
             total_base_pay += segment_amount;
@@ -705,6 +696,17 @@ impl PayrollService {
             updated_at: Utc::now(),
         };
 
+        Self::persist_calculated_payslip(pool, payslip, segment_snapshots, incentive_results).await
+    }
+
+    /// Helper extracted to move Database operations out of the calculation flow
+    #[allow(clippy::too_many_arguments)]
+    async fn persist_calculated_payslip(
+        pool: &PgPool,
+        payslip: Payslip,
+        segment_snapshots: Vec<SegmentSnapshot>,
+        incentive_results: Vec<crate::models::IncentiveEvaluationResult>,
+    ) -> Result<Payslip, StatusCode> {
         let created_payslip = payroll_repository::create_payslip(pool, &payslip)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -729,8 +731,7 @@ impl PayrollService {
         }
 
         for res in incentive_results {
-            let _ =
-                payroll_repository::create_payslip_incentive(pool, created_payslip.id, &res).await;
+            let _ = payroll_repository::create_payslip_incentive(pool, created_payslip.id, &res).await;
         }
 
         Ok(created_payslip)
