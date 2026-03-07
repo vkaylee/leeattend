@@ -26,9 +26,20 @@ use axum::{
 use crate::agent_manager::AgentManager;
 use crate::db_pool::DbPools;
 use crate::queue::RedisPool;
-use crate::repositories::{AgentRepository, WorkspaceRepository};
+use crate::repositories::{AgentRepository, EmployeeRepository, WorkspaceRepository};
 use crate::repositories::audit_log_repository::AuditLogRepository;
-use crate::services::{AgentService, AttendanceLogService, ReportCoordinator};
+use crate::services::{AgentService, AttendanceLogService, AttendanceSummaryService, EmployeeService, ReportCoordinator, ReportService, TimeTrackingService};
+use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
+use crate::services::attendance_import_service::AttendanceImportService;
+use crate::services::auth_service::AuthService;
+use crate::services::holiday_leave_service::HolidayLeaveService;
+use crate::services::leave_accrual_service::LeaveAccrualService;
+use crate::services::leave_service::LeaveService;
+use crate::services::payroll_service::PayrollService;
+use crate::services::pairing_service::PairingService;
+use crate::services::shift_service::ShiftService;
+use crate::services::shift_swap_service::ShiftSwapService;
+use crate::services::workspace_service::WorkspaceService;
 use axum::http::{HeaderValue, Method};
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
@@ -39,7 +50,23 @@ pub struct AppState {
     pub agent_repo: Arc<dyn AgentRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub audit_repo: Arc<dyn AuditLogRepository>,
+    pub employee_repo: Arc<dyn EmployeeRepository>,
     pub agent_service: Arc<AgentService>,
+    pub employee_service: Arc<EmployeeService>,
+    pub time_tracking_service: Arc<TimeTrackingService>,
+    pub attendance_summary_service: Arc<AttendanceSummaryService>,
+    pub report_service: Arc<ReportService>,
+    pub pairing_service: Arc<PairingService>,
+    pub adjustment_service: Arc<AttendanceAdjustmentService>,
+    pub import_service: Arc<AttendanceImportService>,
+    pub payroll_service: Arc<PayrollService>,
+    pub auth_service: Arc<AuthService>,
+    pub shift_service: Arc<ShiftService>,
+    pub workspace_service: Arc<WorkspaceService>,
+    pub leave_service: Arc<LeaveService>,
+    pub shift_swap_service: Arc<ShiftSwapService>,
+    pub holiday_leave_service: Arc<HolidayLeaveService>,
+    pub leave_accrual_service: Arc<LeaveAccrualService>,
     pub jwt_secret: String,
     pub attendance_service: Arc<AttendanceLogService>,
 

@@ -70,8 +70,7 @@ async fn test_update_workspace_time_format() {
     assert_eq!(ws.time_format, "24h");
 
     // 2. Update to 12h
-    let updated_ws = WorkspaceService::update_workspace(
-        &pool,
+    let updated_ws = WorkspaceService::new(pool.clone()).update_workspace(
         ws_id,
         None,
         None,

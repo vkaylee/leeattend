@@ -61,7 +61,7 @@ async fn test_payroll_std_days_source_traceability() {
 
     // 3. Scenario A: System Default (No overrides)
     let payslip_a =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2024, 1)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2024, 1)
             .await
             .unwrap();
     let segments_a = payroll_repository::get_payslip_segments(&pool, payslip_a.id)
@@ -87,7 +87,7 @@ async fn test_payroll_std_days_source_traceability() {
     .unwrap();
 
     let payslip_b =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2024, 2)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2024, 2)
             .await
             .unwrap();
     let segments_b = payroll_repository::get_payslip_segments(&pool, payslip_b.id)
@@ -109,7 +109,7 @@ async fn test_payroll_std_days_source_traceability() {
     .unwrap();
 
     let payslip_c =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2024, 3)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2024, 3)
             .await
             .unwrap();
     let segments_c = payroll_repository::get_payslip_segments(&pool, payslip_c.id)
@@ -131,7 +131,7 @@ async fn test_payroll_std_days_source_traceability() {
     .unwrap();
 
     let payslip_d =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2024, 4)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2024, 4)
             .await
             .unwrap();
     let segments_d = payroll_repository::get_payslip_segments(&pool, payslip_d.id)

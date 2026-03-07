@@ -47,8 +47,8 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     tokio::fs::create_dir_all("storage/test_imports").await?;
     tokio::fs::write(&file_path, csv_content).await?;
 
-    let job_id = AttendanceImportService::batch_import_from_file(
-        pool.clone(),
+    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+    let job_id = AttendanceImportService::new(repo, pool.clone()).batch_import_from_file(
         ws_id,
         user_id,
         file_path,
@@ -149,8 +149,8 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     tokio::fs::create_dir_all("storage/test_imports").await?;
     tokio::fs::write(&file_path, csv_content).await?;
 
-    let job_id = AttendanceImportService::batch_import_from_file(
-        pool.clone(),
+    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+    let job_id = AttendanceImportService::new(repo, pool.clone()).batch_import_from_file(
         ws_id,
         user_id,
         file_path,

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::http::StatusCode;
 use chrono::Utc;
 use sqlx::PgPool;
@@ -7,19 +9,29 @@ use uuid::Uuid;
 use crate::models::{
     AdjustmentStatus, AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, TimeEntry,
 };
-use crate::repositories::{attendance_adjustment_repository, time_entry_repository};
+use crate::repositories::{attendance_adjustment_repository, TimeEntryRepository};
 use crate::services::attendance_import_service::AttendanceImportService;
 
-pub struct AttendanceAdjustmentService;
+pub struct AttendanceAdjustmentService {
+    time_entry_repo: Arc<dyn TimeEntryRepository>,
+    /// Kept for operations not yet abstracted (attendance_adjustment_repository, raw SQL)
+    pool: PgPool,
+}
 
 impl AttendanceAdjustmentService {
+    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
+        Self { time_entry_repo, pool }
+    }
+
     /// Resume all jobs that were interrupted by a server restart
     pub async fn resume_all_pending_jobs(pool: PgPool) {
-        AttendanceImportService::resume_all_pending_jobs(pool).await;
+        let te_repo = Arc::new(crate::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+        let import_svc = AttendanceImportService::new(te_repo, pool);
+        import_svc.resume_all_pending_jobs().await;
     }
 
     pub async fn submit_request(
-        pool: &PgPool,
+        &self,
         _workspace_id: Uuid,
         user_id: Uuid,
         req: CreateAttendanceAdjustmentRequest,
@@ -39,7 +51,7 @@ impl AttendanceAdjustmentService {
             updated_at: Utc::now(),
         };
 
-        attendance_adjustment_repository::create_request(pool, &adjustment)
+        attendance_adjustment_repository::create_request(&self.pool, &adjustment)
             .await
             .map_err(|e| {
                 error!("SUBMIT_ADJUSTMENT_ERROR: {:?}", e);
@@ -50,19 +62,19 @@ impl AttendanceAdjustmentService {
     }
 
     pub async fn approve_request(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         approver_id: Uuid,
         request_id: Uuid,
         status: AdjustmentStatus,
     ) -> Result<(), StatusCode> {
-        let request = attendance_adjustment_repository::get_request_by_id(pool, workspace_id, request_id)
+        let request = attendance_adjustment_repository::get_request_by_id(&self.pool, workspace_id, request_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         attendance_adjustment_repository::update_adjustment_status(
-            pool,
+            &self.pool,
             workspace_id,
             request_id,
             status,
@@ -73,7 +85,7 @@ impl AttendanceAdjustmentService {
 
         if status == AdjustmentStatus::Approved {
             if let Some(time_entry_id) = request.time_entry_id {
-                let mut entry = time_entry_repository::get_time_entry_by_id(pool, workspace_id, time_entry_id)
+                let mut entry = self.time_entry_repo.get_time_entry_by_id(workspace_id, time_entry_id)
                     .await
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
                     .ok_or(StatusCode::NOT_FOUND)?;
@@ -87,7 +99,7 @@ impl AttendanceAdjustmentService {
                     entry.duration_minutes = Some(duration.num_minutes() as i32);
                 }
 
-                time_entry_repository::update_time_entry(pool, workspace_id, &entry)
+                self.time_entry_repo.update_time_entry(workspace_id, &entry)
                     .await
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             } else {
@@ -101,7 +113,7 @@ impl AttendanceAdjustmentService {
                     "SELECT workspace_id FROM employees WHERE id = $1",
                     request.employee_id
                 )
-                .fetch_one(pool)
+                .fetch_one(&self.pool)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
                 let entry = TimeEntry {
@@ -120,7 +132,7 @@ impl AttendanceAdjustmentService {
                     updated_at: Utc::now(),
                 };
 
-                time_entry_repository::create_time_entry(pool, &entry)
+                self.time_entry_repo.create_time_entry(&entry)
                     .await
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             }
@@ -144,12 +156,12 @@ impl AttendanceAdjustmentService {
     }
 
     pub async fn get_workspace_requests(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
         attendance_adjustment_repository::get_workspace_adjustment_requests(
-            pool,
+            &self.pool,
             workspace_id,
             status,
         )
@@ -158,11 +170,11 @@ impl AttendanceAdjustmentService {
     }
 
     pub async fn get_my_requests(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
-        attendance_adjustment_repository::get_employee_adjustment_requests(pool, workspace_id, employee_id)
+        attendance_adjustment_repository::get_employee_adjustment_requests(&self.pool, workspace_id, employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }

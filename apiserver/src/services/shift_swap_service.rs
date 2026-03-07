@@ -10,12 +10,18 @@ use crate::models::shift_swap::{
 use crate::models::ShiftRoster;
 use crate::repositories::{roster_repository, shift_swap_repository};
 
-pub struct ShiftSwapService;
+pub struct ShiftSwapService {
+    pool: PgPool,
+}
 
 impl ShiftSwapService {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
     /// Phase 3: Validate swap eligibility (duplicate, conflict, same-shift, OT max).
     async fn validate_eligibility(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         requester_id: Uuid,
         target_id: Uuid,
@@ -23,6 +29,7 @@ impl ShiftSwapService {
         requester_shift_id: Option<Uuid>,
         target_shift_id: Option<Uuid>,
     ) -> Result<(), StatusCode> {
+        let pool = &self.pool;
         // 1. Duplicate check
         let dup = shift_swap_repository::has_active_swap(pool, workspace_id, requester_id, target_id, swap_date)
             .await
@@ -57,7 +64,7 @@ impl ShiftSwapService {
         //    and could push the employee beyond the configured max_ot_hours_per_day.
         //    This is a best-effort guard; actual OT depends on punch times.
         if let (Some(req_shift_id), Some(tgt_shift_id)) = (requester_shift_id, target_shift_id) {
-            if let Ok(Some(ws_id)) = Self::get_workspace_id_for_employee(pool, requester_id).await {
+            if let Ok(Some(ws_id)) = self.get_workspace_id_for_employee(requester_id).await {
                 if let Ok(Some(ps)) = crate::repositories::payroll_repository::get_payroll_settings_at(
                     pool, ws_id, swap_date,
                 ).await {
@@ -103,9 +110,10 @@ impl ShiftSwapService {
 
     /// Helper: get workspace_id from employee_id
     async fn get_workspace_id_for_employee(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
     ) -> Result<Option<Uuid>, StatusCode> {
+        let pool = &self.pool;
         let ws: Option<Uuid> = sqlx::query_scalar(
             "SELECT workspace_id FROM employees WHERE id = $1",
         )
@@ -119,11 +127,12 @@ impl ShiftSwapService {
     /// Admin creates a swap request (Phase 1).
     /// Automatically looks up the effective shifts for both employees on the swap date.
     pub async fn create_swap(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         user_id: Uuid,
         req: CreateShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, StatusCode> {
+        let pool = &self.pool;
         if req.requester_id == req.target_id {
             return Err(StatusCode::BAD_REQUEST);
         }
@@ -164,8 +173,7 @@ impl ShiftSwapService {
                 })?;
 
         // Phase 3: Eligibility validation
-        Self::validate_eligibility(
-            pool,
+        self.validate_eligibility(
             workspace_id,
             req.requester_id,
             req.target_id,
@@ -202,12 +210,13 @@ impl ShiftSwapService {
     /// Admin approves or rejects a swap request.
     /// On approval, atomically swaps the roster entries for both employees.
     pub async fn approve_swap(
-        pool: &PgPool,
+        &self,
         _workspace_id: Uuid,
         approver_id: Uuid,
         request_id: Uuid,
         new_status: ShiftSwapStatus,
     ) -> Result<(), StatusCode> {
+        let pool = &self.pool;
         let request = shift_swap_repository::get_swap_request_by_id(pool, request_id, _workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -280,10 +289,11 @@ impl ShiftSwapService {
 
     /// List swap requests for a workspace with optional status filter.
     pub async fn get_workspace_swaps(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         status: Option<ShiftSwapStatus>,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, StatusCode> {
+        let pool = &self.pool;
         shift_swap_repository::get_workspace_swaps(pool, workspace_id, status)
             .await
             .map_err(|e| {
@@ -298,12 +308,13 @@ impl ShiftSwapService {
 
     /// Employee creates a swap request. Status starts as `pending_target`.
     pub async fn create_ess_swap(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         requester_employee_id: Uuid,
         user_id: Uuid,
         req: crate::models::shift_swap::EssCreateShiftSwapRequest,
     ) -> Result<ShiftSwapRequest, StatusCode> {
+        let pool = &self.pool;
         if requester_employee_id == req.target_id {
             return Err(StatusCode::BAD_REQUEST);
         }
@@ -343,8 +354,7 @@ impl ShiftSwapService {
                 })?;
 
         // Phase 3: Eligibility validation
-        Self::validate_eligibility(
-            pool,
+        self.validate_eligibility(
             workspace_id,
             requester_employee_id,
             req.target_id,
@@ -383,12 +393,13 @@ impl ShiftSwapService {
     /// Accept: `pending_target` → `pending_admin`
     /// Reject: `pending_target` → `rejected`
     pub async fn respond_to_swap(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         target_employee_id: Uuid,
         request_id: Uuid,
         accept: bool,
     ) -> Result<(), StatusCode> {
+        let pool = &self.pool;
         let request = shift_swap_repository::get_swap_request_by_id(pool, request_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -420,11 +431,12 @@ impl ShiftSwapService {
 
     /// Requester cancels a swap request (only if still pending).
     pub async fn cancel_swap(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         requester_employee_id: Uuid,
         request_id: Uuid,
     ) -> Result<(), StatusCode> {
+        let pool = &self.pool;
         let request = shift_swap_repository::get_swap_request_by_id(pool, request_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -458,10 +470,11 @@ impl ShiftSwapService {
 
     /// List swaps for an employee (as requester or target).
     pub async fn get_employee_swaps(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, StatusCode> {
+        let pool = &self.pool;
         shift_swap_repository::get_employee_swaps(pool, employee_id, workspace_id)
             .await
             .map_err(|e| {

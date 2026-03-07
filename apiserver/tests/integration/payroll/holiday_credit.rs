@@ -85,7 +85,7 @@ async fn test_payroll_credits_paid_holiday() {
 
     // 5. Calculate Payroll for May 2026
     let payslip =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 5)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2026, 5)
             .await
             .unwrap();
 

@@ -103,7 +103,7 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
 
     // Calculate payroll
     let payslip =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2026, 1)
             .await
             .unwrap();
 
@@ -204,7 +204,7 @@ async fn test_grace_period_nonzero_shift_overrides() {
         .await;
 
     let payslip =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2026, 1)
             .await
             .unwrap();
 

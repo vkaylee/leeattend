@@ -15,7 +15,7 @@ use crate::models::{
     LeaveTypeBreakdown, OvertimeTrendPoint, PeakTimeSlot, UnexcusedAbsencesPoint, UpdateWorkspaceRequest, Workspace,
     WorkspaceStats,
 };
-use crate::services::WorkspaceService;
+
 use crate::{AppState, UserId};
 
 pub async fn get_attendance_trend(
@@ -1056,7 +1056,7 @@ pub async fn create_workspace(
     UserId(user_id): UserId,
     Json(req): Json<CreateWorkspaceRequest>,
 ) -> AppResult<Json<Workspace>> {
-    WorkspaceService::create_workspace(state.db.api(), &req.name, user_id)
+    state.workspace_service.create_workspace(&req.name, user_id)
         .await
         .map(Json)
         .map_err(AppError::from)
@@ -1069,8 +1069,7 @@ pub async fn update_workspace(
     Json(req): Json<UpdateWorkspaceRequest>,
 ) -> AppResult<Json<Workspace>> {
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
-    crate::services::workspace_service::WorkspaceService::update_workspace(
-        state.db.api(),
+    state.workspace_service.update_workspace(
         ws_id,
         req.name,
         req.work_unit_minutes,

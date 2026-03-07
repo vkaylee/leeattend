@@ -43,14 +43,10 @@ pub async fn calculate_batch_payroll(
     MemberContext { .. }: MemberContext,
     Json(req): Json<BatchCalculatePayrollRequest>,
 ) -> AppResult<Json<BatchCalculatePayrollResponse>> {
-    let response = crate::services::payroll_service::PayrollService::calculate_batch_payslips(
-        state.db.api(),
-        req.employee_ids,
-        workspace_id,
-        req.year,
-        req.month,
-    )
-    .await;
+    let response = state
+        .payroll_service
+        .calculate_batch_payslips(req.employee_ids, workspace_id, req.year, req.month)
+        .await;
     Ok(Json(response))
 }
 
@@ -93,15 +89,11 @@ pub async fn calculate_payroll(
     }: crate::utils::debug::DebugContext,
     Query(query): Query<PayrollQuery>,
 ) -> AppResult<Json<FullPayslipResponse>> {
-    let payslip = crate::services::payroll_service::PayrollService::calculate_monthly_payslip(
-        state.db.api(),
-        employee_id,
-        workspace_id,
-        query.year,
-        query.month,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to calculate payroll".to_string())))?;
+    let payslip = state
+        .payroll_service
+        .calculate_monthly_payslip(employee_id, workspace_id, query.year, query.month)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to calculate payroll".to_string())))?;
 
     // Fetch segments and incentives
     let segments =

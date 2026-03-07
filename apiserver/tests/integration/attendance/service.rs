@@ -27,8 +27,10 @@ async fn test_process_log_success_with_timezone() {
 
     // 2. Process a naive timestamp (8 AM VN should be 1 AM UTC)
     let punch_time_raw = "2026-01-23 08:00:00";
-    let result = AttendanceLogService::process_log(
-        &pool,
+    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(repo, pool.clone()));
+    let (service, _) = AttendanceLogService::new(pool.clone(), pairing, 100, 10, 1000);
+    let result = service.process_log(
         workspace_id,
         "EMP_VN_001",
         punch_time_raw,
@@ -80,9 +82,12 @@ async fn test_same_second_punch_with_different_status_allowed() {
 
     let punch_time_raw = "2026-01-23 08:00:00";
 
+    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(repo, pool.clone()));
+    let (service, _) = AttendanceLogService::new(pool.clone(), pairing, 100, 10, 1000);
+
     // 1. First punch (check-in)
-    let res1 = AttendanceLogService::process_log(
-        &pool,
+    let res1 = service.process_log(
         workspace_id,
         "EMP001",
         punch_time_raw,
@@ -97,8 +102,7 @@ async fn test_same_second_punch_with_different_status_allowed() {
     assert!(res1.unwrap(), "First log should be saved");
 
     // 2. Second punch at EXACTLY same time but different status (check-out)
-    let res2 = AttendanceLogService::process_log(
-        &pool,
+    let res2 = service.process_log(
         workspace_id,
         "EMP001",
         punch_time_raw,
@@ -116,8 +120,7 @@ async fn test_same_second_punch_with_different_status_allowed() {
     );
 
     // 3. Exact duplicate (same time, punch, status) - should be skipped
-    let res3 = AttendanceLogService::process_log(
-        &pool,
+    let res3 = service.process_log(
         workspace_id,
         "EMP001",
         punch_time_raw,

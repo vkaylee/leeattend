@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{DateTime, Duration, NaiveDate, TimeZone, Timelike, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
@@ -6,17 +8,25 @@ use uuid::Uuid;
 
 use crate::models::RawAttendanceLog;
 use crate::repositories::roster_repository;
+use crate::repositories::TimeEntryRepository;
 use crate::services::pairing_algo::{self, PairingShiftConfig};
 
-pub struct PairingService;
+pub struct PairingService {
+    time_entry_repo: Arc<dyn TimeEntryRepository>,
+    /// Kept for operations not yet abstracted (roster, raw SQL queries on time_entries/raw_attendance_logs)
+    pool: PgPool,
+}
 
 impl PairingService {
+    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
+        Self { time_entry_repo, pool }
+    }
+
     pub async fn process_new_raw_log(
-        pool: &PgPool,
+        &self,
         log: &RawAttendanceLog,
     ) -> Result<(), sqlx::Error> {
         // 1. Deduplication (exact match check)
-        // We only skip if there is a log at the EXACT same timestamp to avoid database unique constraint or redundant work.
         let is_duplicate = sqlx::query_scalar!(
             r#"
             SELECT EXISTS (
@@ -31,7 +41,7 @@ impl PairingService {
             log.id,
             log.punch_time
         )
-        .fetch_one(pool)
+        .fetch_one(&self.pool)
         .await?
         .unwrap_or(false);
 
@@ -48,7 +58,7 @@ impl PairingService {
             "SELECT timezone FROM workspaces WHERE id = $1",
             log.workspace_id
         )
-        .fetch_optional(pool)
+        .fetch_optional(&self.pool)
         .await?
         .unwrap_or_else(|| "UTC".to_string());
         let tz: Tz = timezone_str.parse().unwrap_or(chrono_tz::UTC);
@@ -58,7 +68,7 @@ impl PairingService {
         let local_date = local_dt.date_naive();
 
         // 4. Reprocess that day
-        Self::reprocess_daily_attendance(pool, log.workspace_id, log.employee_id, local_date, tz).await?;
+        self.reprocess_daily_attendance(log.workspace_id, log.employee_id, local_date, tz).await?;
 
         // 5. Reprocess previous day if early in the morning (Overnight checkouts)
         if local_dt.hour() < 12 {
@@ -67,7 +77,7 @@ impl PairingService {
                 "Log is early in day ({}), reprocessing previous day {} for overnight checkouts",
                 local_dt, prev_date
             );
-            Self::reprocess_daily_attendance(pool, log.workspace_id, log.employee_id, prev_date, tz)
+            self.reprocess_daily_attendance(log.workspace_id, log.employee_id, prev_date, tz)
                 .await?;
         }
 
@@ -75,7 +85,7 @@ impl PairingService {
     }
 
     pub async fn reprocess_daily_attendance(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
@@ -88,16 +98,15 @@ impl PairingService {
 
         // 1. Fetch effective schedule
         let (shift_id_opt, traces) =
-            roster_repository::get_effective_shift(pool, workspace_id, employee_id, date).await?;
+            roster_repository::get_effective_shift(&self.pool, workspace_id, employee_id, date).await?;
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
-            // ... (rest of shift fetching logic)
             let shift = sqlx::query!(
                 "SELECT start_time, end_time, break_start, break_end FROM shifts WHERE id = $1",
                 shift_id
             )
-            .fetch_optional(pool)
+            .fetch_optional(&self.pool)
             .await?;
 
             if let Some(s) = shift {
@@ -136,13 +145,10 @@ impl PairingService {
         }
 
         // 2. Fetch raw logs
-        // Search window: strictly bounded by shift hours + buffer to avoid cross-day stealing.
         let start_of_day_local = local_to_tz(&tz, date, 0, 0, 0)?;
         let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
 
         let (window_start_utc, window_end_utc) = if let Some(s) = &shift_config {
-            // Use shift start/end with a generous buffer to allow for early/late punches.
-            // 6 hours is generous enough for most workplaces but bounded to avoid picking up logs from other days.
             const LOG_SEARCH_BUFFER_MINUTES: i64 = 360;
             let start_mins = s.start_minutes as i64 - LOG_SEARCH_BUFFER_MINUTES;
             let end_mins = s.end_minutes as i64 + LOG_SEARCH_BUFFER_MINUTES;
@@ -151,7 +157,6 @@ impl PairingService {
             let e_utc = (start_of_day_local + Duration::minutes(end_mins)).with_timezone(&Utc);
             (s_utc, e_utc)
         } else {
-            // Fallback to strict 24h if no shift
             let s_utc = start_of_day_local.with_timezone(&Utc);
             let e_utc = s_utc + Duration::hours(24);
             (s_utc, e_utc)
@@ -165,7 +170,7 @@ impl PairingService {
             window_start_utc,
             window_end_utc
         )
-        .fetch_all(pool)
+        .fetch_all(&self.pool)
         .await?;
 
         // 3. Filter and Linearize Logs
@@ -174,11 +179,8 @@ impl PairingService {
             let mut last_key: Option<(i64, Option<i32>)> = None;
 
             for log in logs {
-                // Extract punch type from metadata if present
                 let punch_type = log.punch_str.and_then(|s: String| s.parse::<i32>().ok());
 
-                // Deduplicate by minute AND punch type
-                // This allows quick corrections (e.g. IN followed by OUT in same minute)
                 let current_minute = log.punch_time.timestamp() / 60;
                 let current_key = (current_minute, punch_type);
                 if let Some(lk) = last_key {
@@ -187,7 +189,6 @@ impl PairingService {
                     }
                 }
 
-                // Linearize: minutes since start_of_day_local
                 let log_local = log.punch_time.with_timezone(&tz);
                 let duration_since_start = log_local.signed_duration_since(start_of_day_local);
 
@@ -202,9 +203,13 @@ impl PairingService {
         }
 
         if filtered_log_events.is_empty() {
-            Self::clear_auto_entries(pool, employee_id, start_of_day_utc, next_day_utc).await?;
+            Self::clear_auto_entries(&self.pool, employee_id, start_of_day_utc, next_day_utc).await?;
 
-            let _ = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, employee_id, date).await;
+            let summary_svc = crate::services::AttendanceSummaryService::new(
+                self.time_entry_repo.clone(),
+                self.pool.clone(),
+            );
+            let _ = summary_svc.recalculate_daily_summary(workspace_id, employee_id, date).await;
 
             return Ok(());
         }
@@ -214,10 +219,8 @@ impl PairingService {
         let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
         // 5. Update Database
-        let mut tx = pool.begin().await?;
+        let mut tx = self.pool.begin().await?;
 
-        // Delete existing entries starting on THIS day only (24h window)
-        // This prevents reprocessing Day N from accidentally deleting morning shifts of Day N+1
         sqlx::query!(
             "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time < $3",
             employee_id,
@@ -228,12 +231,10 @@ impl PairingService {
         .await?;
 
         for session in sessions {
-            // Calculate timestamps based on local day start to ensure accuracy
             let start_dt_local =
                 local_to_tz(&tz, date, 0, 0, 0)? + Duration::minutes(session.start_minutes as i64);
             let start_dt_utc = start_dt_local.with_timezone(&Utc);
 
-            // Important: Only save sessions that actually START on the target date.
             if start_dt_local.date_naive() != date {
                 continue;
             }
@@ -276,7 +277,11 @@ impl PairingService {
         tx.commit().await?;
 
         // Recalculate daily summary for OT workflow
-        if let Err(e) = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, employee_id, date).await {
+        let summary_svc = crate::services::AttendanceSummaryService::new(
+            self.time_entry_repo.clone(),
+            self.pool.clone(),
+        );
+        if let Err(e) = summary_svc.recalculate_daily_summary(workspace_id, employee_id, date).await {
             tracing::error!("Failed to recalculate attendance summary for emp {} on {}: {}", employee_id, date, e);
         }
         Ok(())
@@ -314,10 +319,8 @@ fn local_to_tz(
         chrono::LocalResult::Ambiguous(dt, _) => Ok(dt),
         chrono::LocalResult::None => {
             // DST gap - shift forward in 15-minute increments until valid time found
-            // This is more robust for 30-min or other non-standard DST zones.
             let mut shifted = naive;
             for _ in 0..8 {
-                // Try up to 2 hours
                 shifted += Duration::minutes(15);
                 if let chrono::LocalResult::Single(dt) = tz.from_local_datetime(&shifted) {
                     return Ok(dt);

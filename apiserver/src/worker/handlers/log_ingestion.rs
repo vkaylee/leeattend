@@ -27,8 +27,19 @@ impl LogIngestionHandler {
             .log_ingestion_payload()
             .ok_or("Invalid payload for LogIngestion job")?;
 
-        AttendanceLogService::process_log(
-            db,
+        // Construct temp service with inline PairingService for worker context
+        let time_entry_repo = std::sync::Arc::new(
+            crate::repositories::SqlxTimeEntryRepository::new(db.clone()),
+        );
+        let pairing_svc = std::sync::Arc::new(
+            crate::services::pairing_service::PairingService::new(
+                time_entry_repo, db.clone(),
+            ),
+        );
+        let (log_svc, _handle) = AttendanceLogService::new(
+            db.clone(), pairing_svc, 1, 1, 1000,
+        );
+        log_svc.process_log(
             payload.workspace_id,
             &payload.employee_id_number,
             &payload.punch_time_raw,

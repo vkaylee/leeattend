@@ -6,12 +6,18 @@ use uuid::Uuid;
 use crate::models::{Shift, UpdateShiftRequest};
 use crate::repositories::shift_repository;
 
-pub struct ShiftService;
+pub struct ShiftService {
+    pool: PgPool,
+}
 
 impl ShiftService {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub async fn create_shift(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         name: String,
         report_symbol: Option<String>,
@@ -26,7 +32,7 @@ impl ShiftService {
         allow_early_ot: bool,
     ) -> Result<Shift, StatusCode> {
         shift_repository::create_shift(
-            pool,
+            &self.pool,
             workspace_id,
             name,
             report_symbol,
@@ -47,20 +53,21 @@ impl ShiftService {
     }
 
     pub async fn get_workspace_shifts(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
     ) -> Result<Vec<Shift>, StatusCode> {
-        shift_repository::get_workspace_shifts(pool, workspace_id)
+        shift_repository::get_workspace_shifts(&self.pool, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     pub async fn update_shift(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         shift_id: Uuid,
         req: UpdateShiftRequest,
     ) -> Result<Shift, StatusCode> {
+        let pool = &self.pool;
         let old_shift = shift_repository::get_shift_by_id(pool, workspace_id, shift_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -149,14 +156,14 @@ impl ShiftService {
     }
 
     pub async fn assign_shift(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         shift_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
     ) -> Result<(), StatusCode> {
         match shift_repository::assign_employee_shift(
-            pool,
+            &self.pool,
             employee_id,
             shift_id,
             start_date,

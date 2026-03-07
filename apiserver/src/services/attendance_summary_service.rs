@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
@@ -8,25 +10,33 @@ use crate::domain::policy::defaults::DEFAULT_WORK_MINUTES_PER_DAY;
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::{
-    roster_repository, time_entry_repository, workspace_repository::WorkspaceRepository,
-    SqlxWorkspaceRepository,
+    roster_repository, workspace_repository::WorkspaceRepository,
+    SqlxWorkspaceRepository, TimeEntryRepository,
 };
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::services::AttendanceCalculator;
 
-pub struct AttendanceSummaryService;
+pub struct AttendanceSummaryService {
+    time_entry_repo: Arc<dyn TimeEntryRepository>,
+    /// Kept for operations not yet abstracted (roster, workspace, holiday repos + raw SQL)
+    pool: PgPool,
+}
 
 impl AttendanceSummaryService {
+    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
+        Self { time_entry_repo, pool }
+    }
+
     /// Recalculates and persists the daily summary for a specific employee and date.
     /// This should be called whenever time entries or schedules change.
     pub async fn recalculate_daily_summary(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
     ) -> Result<(), String> {
         // 1. Get Workspace Settings
-        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
@@ -36,10 +46,8 @@ impl AttendanceSummaryService {
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         // 2. Get Effective Schedule for this specific date
-        // We use the existing repo method but filter for just one employee/date implicitly
-        // Optimization: Create a more specific repo method later if needed.
         let schedules = roster_repository::get_workspace_schedules(
-            pool,
+            &self.pool,
             None,
             workspace_id,
             date,
@@ -60,14 +68,11 @@ impl AttendanceSummaryService {
         let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0)?;
         let end_dt_utc = local_midnight_to_utc(&tz, date, 23, 59, 59)?;
 
-        let entries = time_entry_repository::get_employee_time_entries(
-            pool,
-            employee_id,
-            start_dt_utc,
-            end_dt_utc,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+        let entries = self
+            .time_entry_repo
+            .get_employee_time_entries(employee_id, start_dt_utc, end_dt_utc)
+            .await
+            .map_err(|e| e.to_string())?;
 
         // Filter entries that actually belong to this date in local time
         let day_entries: Vec<_> = entries
@@ -115,7 +120,7 @@ impl AttendanceSummaryService {
 
                     // Resolve Policy Rules
                     let rules = PolicyResolver::resolve_with_shift_overrides(
-                        pool,
+                        &self.pool,
                         employee_id,
                         workspace_id,
                         date,
@@ -147,18 +152,15 @@ impl AttendanceSummaryService {
         }
 
         // 4b. Check if this date is a holiday
-        let holiday = HolidayRepository::is_holiday(pool, workspace_id, date)
+        let holiday = HolidayRepository::is_holiday(&self.pool, workspace_id, date)
             .await
             .unwrap_or(None);
         let is_holiday = holiday.is_some();
         let holiday_name = holiday.as_ref().map(|h| h.name.clone());
 
-        // 4c. Holiday leave conflict detection:
-        // If employee worked on a holiday that had a system-generated leave request,
-        // check threshold and potentially reverse the leave deduction.
+        // 4c. Holiday leave conflict detection
         if is_holiday && actual_work_minutes > 0 {
             if let Some(ref hol) = holiday {
-                // Find system-generated leave request for this date
                 let system_leave: Option<(Uuid, Uuid, String)> = sqlx::query_as(
                     r#"SELECT lr.id, lr.leave_type_id, lt.code
                        FROM leave_requests lr
@@ -171,19 +173,18 @@ impl AttendanceSummaryService {
                 )
                 .bind(employee_id)
                 .bind(date)
-                .fetch_optional(pool)
+                .fetch_optional(&self.pool)
                 .await
                 .unwrap_or(None);
 
                 if let Some((leave_request_id, _leave_type_id, _leave_code)) = system_leave {
-                    // Calculate work % against shift
                     let shift_minutes = daily_schedule.start_time
                         .and_then(|st| daily_schedule.end_time.map(|et| {
                             let diff = et.signed_duration_since(st).num_minutes() as i32;
                             let break_mins = daily_schedule.break_duration_minutes.unwrap_or(0);
                             if diff > 0 { diff - break_mins } else { diff + 1440 - break_mins }
                         }))
-                        .unwrap_or(DEFAULT_WORK_MINUTES_PER_DAY); // default 8h if no shift
+                        .unwrap_or(DEFAULT_WORK_MINUTES_PER_DAY);
 
                     let threshold = hol.work_threshold_percent.unwrap_or(50);
                     let work_percent = if shift_minutes > 0 {
@@ -193,12 +194,11 @@ impl AttendanceSummaryService {
                     };
 
                     if work_percent >= threshold {
-                        // Work >= threshold → cancel leave (balance is computed from requests)
                         let _ = sqlx::query(
                             "UPDATE leave_requests SET status = 'cancelled'::leave_status_type, updated_at = NOW() WHERE id = $1"
                         )
                         .bind(leave_request_id)
-                        .execute(pool)
+                        .execute(&self.pool)
                         .await;
 
                         tracing::info!(
@@ -229,7 +229,7 @@ impl AttendanceSummaryService {
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
             employee_id, date
         )
-        .fetch_optional(pool)
+        .fetch_optional(&self.pool)
         .await
         .map_err(|e: sqlx::Error| e.to_string())?;
 
@@ -278,7 +278,7 @@ impl AttendanceSummaryService {
             is_holiday,
             holiday_name as Option<String>
         )
-        .execute(pool)
+        .execute(&self.pool)
         .await
         .map_err(|e: sqlx::Error| e.to_string())?;
 
@@ -286,7 +286,7 @@ impl AttendanceSummaryService {
     }
 
     pub async fn claim_ot(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
@@ -307,7 +307,7 @@ impl AttendanceSummaryService {
             employee_id,
             date
         )
-        .execute(pool)
+        .execute(&self.pool)
         .await
         .map_err(|e: sqlx::Error| e.to_string())?;
 
@@ -318,7 +318,7 @@ impl AttendanceSummaryService {
     }
 
     pub async fn approve_ot(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         date: NaiveDate,
         approved_minutes: i32,
@@ -341,7 +341,7 @@ impl AttendanceSummaryService {
             employee_id,
             date
         )
-        .execute(pool)
+        .execute(&self.pool)
         .await
         .map_err(|e: sqlx::Error| e.to_string())?;
 
@@ -353,7 +353,7 @@ impl AttendanceSummaryService {
 
     #[allow(clippy::too_many_arguments)]
     pub async fn enter_paper_ot(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
@@ -368,7 +368,7 @@ impl AttendanceSummaryService {
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
             employee_id, date
         )
-        .fetch_optional(pool)
+        .fetch_optional(&self.pool)
         .await
         .map_err(|e: sqlx::Error| e.to_string())?;
 
@@ -415,7 +415,7 @@ impl AttendanceSummaryService {
             employee_id, date, claimed_minutes, reason,
             entered_by_user_id, now, photo_url
         )
-        .fetch_one(pool)
+        .fetch_one(&self.pool)
         .await
         .map_err(|e: sqlx::Error| e.to_string())?;
 
@@ -424,4 +424,3 @@ impl AttendanceSummaryService {
 }
 
 use crate::utils::chrono_helpers::local_to_utc as local_midnight_to_utc;
-

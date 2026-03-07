@@ -6,11 +6,13 @@
 
 use chrono::Utc;
 use sqlx::PgPool;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::time::{interval, timeout};
 use tracing::{error, info, warn};
 use uuid::Uuid;
+
 
 use crate::models::{LogSource, RawAttendanceLog};
 use crate::repositories::{employee_repository, raw_attendance_log_repository};
@@ -123,6 +125,7 @@ struct ParsedLogEntry {
 /// and batch-inserts them into the database
 pub async fn run_log_worker(
     pool: PgPool,
+    pairing_service: Arc<PairingService>,
     mut receiver: mpsc::Receiver<AgentLogEntry>,
     batch_size: usize,
     flush_interval_ms: u64,
@@ -143,14 +146,14 @@ pub async fn run_log_worker(
                     Some(log_entry) => {
                         batch.push(log_entry);
                         if batch.len() >= batch_size {
-                            process_batch(&pool, &mut batch).await;
+                            process_batch(&pool, &pairing_service, &mut batch).await;
                         }
                     }
                     None => {
                         // Channel closed, drain remaining logs
                         info!("Agent log buffer closed, draining {} remaining logs", batch.len());
                         if !batch.is_empty() {
-                            process_batch(&pool, &mut batch).await;
+                            process_batch(&pool, &pairing_service, &mut batch).await;
                         }
                         break;
                     }
@@ -159,7 +162,7 @@ pub async fn run_log_worker(
             // Flush timer tick
             _ = flush_timer.tick() => {
                 if !batch.is_empty() {
-                    process_batch(&pool, &mut batch).await;
+                    process_batch(&pool, &pairing_service, &mut batch).await;
                 }
             }
         }
@@ -169,7 +172,7 @@ pub async fn run_log_worker(
 }
 
 /// Process a batch of log entries: parse, insert, and trigger pairing
-async fn process_batch(pool: &PgPool, batch: &mut Vec<AgentLogEntry>) {
+async fn process_batch(pool: &PgPool, pairing_service: &PairingService, batch: &mut Vec<AgentLogEntry>) {
     if batch.is_empty() {
         return;
     }
@@ -218,7 +221,7 @@ async fn process_batch(pool: &PgPool, batch: &mut Vec<AgentLogEntry>) {
 
             // Trigger pairing for each successfully inserted log
             for parsed in &parsed_logs {
-                if let Err(e) = PairingService::process_new_raw_log(pool, &parsed.raw_log).await {
+                if let Err(e) = pairing_service.process_new_raw_log(&parsed.raw_log).await {
                     error!("Pairing error for log {}: {:?}", parsed.raw_log.id, e);
                 }
             }

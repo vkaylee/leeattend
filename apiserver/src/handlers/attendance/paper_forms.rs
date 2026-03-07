@@ -49,9 +49,9 @@ pub async fn enter_paper_ot(
     }
 
     // 4. Call service
-    let result =
-        crate::services::attendance_summary_service::AttendanceSummaryService::enter_paper_ot(
-            state.db.api(),
+    let result = state
+        .attendance_summary_service
+        .enter_paper_ot(
             employee_id,
             req.date,
             req.claimed_minutes,
@@ -269,17 +269,18 @@ pub async fn bulk_upload_paper_ot(
         }
 
         // Call enter_paper_ot service
-        match crate::services::attendance_summary_service::AttendanceSummaryService::enter_paper_ot(
-            state.db.api(),
-            employee.id,
-            date,
-            minutes,
-            reason,
-            ctx.user_id,
-            None,  // No photo URL for bulk upload
-            false, // Don't allow exceed for bulk upload
-        )
-        .await
+        match state
+            .attendance_summary_service
+            .enter_paper_ot(
+                employee.id,
+                date,
+                minutes,
+                reason,
+                ctx.user_id,
+                None,  // No photo URL for bulk upload
+                false, // Don't allow exceed for bulk upload
+            )
+            .await
         {
             Ok(_) => {
                 success_count += 1;

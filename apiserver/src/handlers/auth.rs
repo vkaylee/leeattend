@@ -183,7 +183,7 @@ pub async fn login(
     let access_token =
         AuthService::generate_token(user.id, &state.jwt_secret, 60).map_err(AppError::from)?;
 
-    let refresh_token = AuthService::create_session(state.db.api(), user.id)
+    let refresh_token = state.auth_service.create_session(user.id)
         .await
         .map_err(AppError::from)?;
 
@@ -198,7 +198,7 @@ pub async fn refresh_token(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RefreshRequest>,
 ) -> AppResult<Json<AuthResponse>> {
-    AuthService::refresh_session(state.db.api(), &req.refresh_token, &state.jwt_secret)
+    state.auth_service.refresh_session(&req.refresh_token, &state.jwt_secret)
         .await
         .map(Json)
         .map_err(AppError::Auth)
@@ -233,7 +233,7 @@ pub async fn change_password(
         .await?;
 
     // 6. Revoke all sessions (Force re-login)
-    if let Err(e) = AuthService::revoke_all_sessions_for_user(state.db.api(), user_id).await {
+    if let Err(e) = state.auth_service.revoke_all_sessions_for_user(user_id).await {
         tracing::error!(user_id = %user_id, error = %e, "Failed to revoke sessions after password change");
     }
 
@@ -247,7 +247,7 @@ pub async fn logout(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RefreshRequest>,
 ) -> AppResult<StatusCode> {
-    AuthService::revoke_session(state.db.api(), &req.refresh_token)
+    state.auth_service.revoke_session(&req.refresh_token)
         .await
         .map(|_| StatusCode::OK)
         .map_err(AppError::from)

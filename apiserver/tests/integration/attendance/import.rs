@@ -35,8 +35,8 @@ async fn test_import_csv_with_line_errors() {
         .unwrap();
     tokio::fs::write(&file_path, csv_content).await.unwrap();
 
-    let job_id = AttendanceImportService::batch_import_from_file(
-        pool.clone(),
+    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+    let job_id = AttendanceImportService::new(repo, pool.clone()).batch_import_from_file(
         ws_id,
         user_id,
         file_path,

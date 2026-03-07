@@ -18,7 +18,7 @@ use crate::models::{
     UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
 };
 use crate::repositories::leave_policy_repository;
-use crate::services::leave_accrual_service::LeaveAccrualService;
+
 use crate::{AppState, UserId};
 
 // --- Leave Handlers ---
@@ -30,8 +30,7 @@ pub async fn submit_leave_request(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<SubmitLeaveRequest>,
 ) -> AppResult<(StatusCode, Json<LeaveRequest>)> {
-    let request = crate::services::leave_service::LeaveService::submit_leave_request(
-        state.db.api(),
+    let request = state.leave_service.submit_leave_request(
         workspace_id,
         user_id,
         req,
@@ -61,8 +60,7 @@ pub async fn approve_leave_request(
     ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
 
     ctx.require_scoped_permission(Permission::LeaveRequestsApprove, target_dept_id)?;
-    crate::services::leave_service::LeaveService::approve_leave_request(
-        state.db.api(),
+    state.leave_service.approve_leave_request(
         ctx.workspace_id,
         user_id,
         id,
@@ -94,8 +92,7 @@ pub async fn get_workspace_leave_balances(
 ) -> AppResult<Json<PaginatedResponse<WorkspaceLeaveBalance>>> {
     ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = params.year.unwrap_or_else(|| Utc::now().year());
-    let balances = crate::services::leave_service::LeaveService::get_workspace_balances(
-        state.db.api(),
+    let balances = state.leave_service.get_workspace_balances(
         ctx.workspace_id,
         year,
         params,
@@ -111,8 +108,8 @@ pub async fn get_employee_leave_balances(
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<Vec<EmployeeLeaveBalance>>> {
     let year = Utc::now().year();
-    let balances = crate::services::leave_service::LeaveService::get_employee_balances(
-        state.db.api(), ws_id, emp_id, year,
+    let balances = state.leave_service.get_employee_balances(
+        ws_id, emp_id, year,
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to get employee balances".to_string())))?;
@@ -132,8 +129,7 @@ pub async fn get_workspace_leave_requests(
     Query(query): Query<LeaveStatusQuery>,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     ctx.require_permission(Permission::LeaveRequestsRead)?;
-    let requests = crate::services::leave_service::LeaveService::get_workspace_leave_requests(
-        state.db.api(),
+    let requests = state.leave_service.get_workspace_leave_requests(
         ctx.workspace_id,
         query.status,
     )
@@ -157,8 +153,7 @@ pub async fn get_employee_leave_history(
     // Allow admins to see anyone's history; non-admins can only access via employee self-service
     ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = Utc::now().year();
-    let history = crate::services::leave_service::LeaveService::get_employee_leave_history(
-        state.db.api(),
+    let history = state.leave_service.get_employee_leave_history(
         ctx.workspace_id,
         emp_id,
         year,
@@ -177,7 +172,7 @@ pub async fn adjust_leave_balance(
     Json(req): Json<AdjustBalanceRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::LeaveBalancesAdjust)?;
-    crate::services::leave_service::LeaveService::adjust_balance(state.db.api(), ws_id, emp_id, req)
+    state.leave_service.adjust_balance(ws_id, emp_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to adjust balance".to_string())))?;
 
@@ -342,8 +337,7 @@ pub async fn trigger_accrual_run(
         ))
     } else {
         // Fallback: synchronous processing (no Redis)
-        let logs =
-            LeaveAccrualService::process_workspace_accruals(state.db.api(), workspace_id, date, true)
+        let logs = state.leave_accrual_service.process_workspace_accruals(workspace_id, date, true)
                 .await?;
 
         Ok((

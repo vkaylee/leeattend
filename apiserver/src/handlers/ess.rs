@@ -328,14 +328,14 @@ use crate::models::shift_swap::{
     EssCreateShiftSwapRequest, RespondShiftSwapRequest, ShiftSwapRequest,
     ShiftSwapRequestWithNames,
 };
-use crate::services::shift_swap_service::ShiftSwapService;
+
 
 /// GET /ess/shift-swaps — list swap requests where I am requester or target
 pub async fn ess_get_my_shift_swaps(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<ShiftSwapRequestWithNames>>> {
-    let swaps = ShiftSwapService::get_employee_swaps(state.db.api(), employee.employee_id, employee.workspace_id)
+    let swaps = state.shift_swap_service.get_employee_swaps(employee.employee_id, employee.workspace_id)
         .await
         .map_err(|s| AppError::from((s, "Failed to list shift swaps".to_string())))?;
 
@@ -348,8 +348,7 @@ pub async fn ess_create_shift_swap(
     employee: EmployeeContext,
     Json(req): Json<EssCreateShiftSwapRequest>,
 ) -> AppResult<(StatusCode, Json<ShiftSwapRequest>)> {
-    let swap = ShiftSwapService::create_ess_swap(
-        state.db.api(),
+    let swap = state.shift_swap_service.create_ess_swap(
         employee.workspace_id,
         employee.employee_id,
         employee.user_id,
@@ -368,7 +367,7 @@ pub async fn ess_respond_to_swap(
     Path(id): Path<Uuid>,
     Json(req): Json<RespondShiftSwapRequest>,
 ) -> AppResult<StatusCode> {
-    ShiftSwapService::respond_to_swap(state.db.api(), employee.workspace_id, employee.employee_id, id, req.accept)
+    state.shift_swap_service.respond_to_swap(employee.workspace_id, employee.employee_id, id, req.accept)
         .await
         .map_err(|s| AppError::from((s, "Failed to respond to shift swap".to_string())))?;
 
@@ -381,7 +380,7 @@ pub async fn ess_cancel_swap(
     employee: EmployeeContext,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    ShiftSwapService::cancel_swap(state.db.api(), employee.workspace_id, employee.employee_id, id)
+    state.shift_swap_service.cancel_swap(employee.workspace_id, employee.employee_id, id)
         .await
         .map_err(|s| AppError::from((s, "Failed to cancel shift swap".to_string())))?;
 

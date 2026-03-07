@@ -24,14 +24,11 @@ pub async fn submit_attendance_adjustment(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<CreateAttendanceAdjustmentRequest>,
 ) -> AppResult<(StatusCode, Json<AttendanceAdjustmentRequest>)> {
-    let adjustment = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::submit_request(
-        state.db.api(),
-        workspace_id,
-        user_id,
-        req,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to submit adjustment".to_string())))?;
+    let adjustment = state
+        .adjustment_service
+        .submit_request(workspace_id, user_id, req)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to submit adjustment".to_string())))?;
 
     Ok((StatusCode::CREATED, Json(adjustment)))
 }
@@ -44,15 +41,11 @@ pub async fn approve_attendance_adjustment(
     Json(req): Json<ApproveAttendanceAdjustmentRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::AttendanceAdjustmentsApprove)?;
-    crate::services::attendance_adjustment_service::AttendanceAdjustmentService::approve_request(
-        state.db.api(),
-        ctx.workspace_id,
-        user_id,
-        id,
-        req.status,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to approve adjustment".to_string())))?;
+    state
+        .adjustment_service
+        .approve_request(ctx.workspace_id, user_id, id, req.status)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to approve adjustment".to_string())))?;
 
     Ok(StatusCode::OK)
 }
@@ -63,11 +56,11 @@ pub async fn get_my_attendance_adjustments(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
-    let requests = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_my_requests(
-        state.db.api(), ctx.workspace_id, id,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to get adjustments".to_string())))?;
+    let requests = state
+        .adjustment_service
+        .get_my_requests(ctx.workspace_id, id)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to get adjustments".to_string())))?;
 
     Ok(Json(requests))
 }
@@ -83,10 +76,11 @@ pub async fn get_workspace_attendance_adjustments(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AdjustmentStatusQuery>,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
-    let requests = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_workspace_requests(
-        state.db.api(), workspace_id, query.status
-    ).await
-    .map_err(|s| AppError::from((s, "Failed to get workspace adjustments".to_string())))?;
+    let requests = state
+        .adjustment_service
+        .get_workspace_requests(workspace_id, query.status)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to get workspace adjustments".to_string())))?;
 
     Ok(Json(requests))
 }

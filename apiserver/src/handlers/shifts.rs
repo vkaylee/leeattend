@@ -25,7 +25,7 @@ pub async fn get_shifts(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<Shift>>> {
     let shifts =
-        crate::services::shift_service::ShiftService::get_workspace_shifts(state.db.api(), workspace_id)
+        state.shift_service.get_workspace_shifts(workspace_id)
             .await
             .map_err(|s| AppError::from((s, "Failed to get workspace shifts".to_string())))?;
 
@@ -41,8 +41,7 @@ pub async fn create_shift(
     ctx.require_permission(Permission::ShiftsCreate)?;
 
     let workspace_id = ctx.workspace_id;
-    let shift = crate::services::shift_service::ShiftService::create_shift(
-        state.db.api(),
+    let shift = state.shift_service.create_shift(
         workspace_id,
         req.name,
         req.report_symbol,
@@ -74,7 +73,7 @@ pub async fn update_shift(
 ) -> AppResult<Json<Shift>> {
     ctx.require_permission(Permission::ShiftsUpdate)?;
     let shift =
-        crate::services::shift_service::ShiftService::update_shift(state.db.api(), ctx.workspace_id, shift_id, req)
+        state.shift_service.update_shift(ctx.workspace_id, shift_id, req)
             .await
             .map_err(|s| AppError::from((s, "Failed to update shift".to_string())))?;
 
@@ -91,8 +90,7 @@ pub async fn assign_shift(
     ctx: MemberContext,
     Json(req): Json<AssignShiftRequest>,
 ) -> AppResult<StatusCode> {
-    crate::services::shift_service::ShiftService::assign_shift(
-        state.db.api(),
+    state.shift_service.assign_shift(
         req.employee_id,
         req.shift_id,
         req.start_date,

@@ -42,14 +42,15 @@ pub async fn claim_ot(
         ctx.require_permission(Permission::OvertimeApprove)?;
     }
 
-    crate::services::attendance_summary_service::AttendanceSummaryService::claim_ot(
-        state.db.api(),
-        employee_id,
-        req.date,
-        req.claimed_minutes,
-        req.reason,
-    )
-    .await
+    state
+        .attendance_summary_service
+        .claim_ot(
+            employee_id,
+            req.date,
+            req.claimed_minutes,
+            req.reason,
+        )
+        .await
     .map_err(|e| AppError::Validation(format!("Claim OT Error: {e}")))?;
 
     Ok(StatusCode::OK)
@@ -86,15 +87,16 @@ pub async fn approve_ot(
         _ => return Err(AppError::Validation("Invalid status".to_string())),
     };
 
-    crate::services::attendance_summary_service::AttendanceSummaryService::approve_ot(
-        state.db.api(),
-        employee_id,
-        req.date,
-        req.approved_minutes,
-        req.manager_note,
-        status_enum,
-    )
-    .await
+    state
+        .attendance_summary_service
+        .approve_ot(
+            employee_id,
+            req.date,
+            req.approved_minutes,
+            req.manager_note,
+            status_enum,
+        )
+        .await
     .map_err(|e| AppError::Validation(format!("Approve OT Error: {e}")))?;
 
     Ok(StatusCode::OK)

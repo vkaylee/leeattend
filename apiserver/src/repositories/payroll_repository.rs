@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
@@ -8,6 +9,206 @@ use crate::models::{
     EmployeeSalaryComponent, IncentiveEvaluationResult, IncentiveTier, PayrollIncentivePolicy,
     PayrollSettings, Payslip, PayslipSegment, SalaryComponentDefinition,
 };
+
+// ---------------------------------------------------------------------------
+// Trait: PayrollRepository — DIP abstraction over payroll data access
+// ---------------------------------------------------------------------------
+#[async_trait]
+#[allow(clippy::too_many_arguments)]
+pub trait PayrollRepository: Send + Sync {
+    async fn get_active_incentive_policies(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error>;
+
+    async fn get_policy_tiers(
+        &self,
+        policy_id: Uuid,
+    ) -> Result<Vec<IncentiveTier>, sqlx::Error>;
+
+    async fn create_payslip_incentive(
+        &self,
+        payslip_id: Uuid,
+        result: &IncentiveEvaluationResult,
+    ) -> Result<(), sqlx::Error>;
+
+    async fn get_payslip_incentives(
+        &self,
+        payslip_id: Uuid,
+    ) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error>;
+
+    async fn get_payroll_settings(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Option<PayrollSettings>, sqlx::Error>;
+
+    async fn get_payroll_settings_at(
+        &self,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Option<PayrollSettings>, sqlx::Error>;
+
+    async fn update_payroll_settings(
+        &self,
+        workspace_id: Uuid,
+        std_working_day_mode: String,
+        fixed_std_days: Decimal,
+        working_days_per_week: i32,
+        hours_per_day: Decimal,
+        max_ot_hours_per_day: Option<Decimal>,
+        max_ot_hours_per_month: Option<Decimal>,
+        effective_date: NaiveDate,
+    ) -> Result<PayrollSettings, sqlx::Error>;
+
+    async fn get_salary_component_definitions(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<SalaryComponentDefinition>, sqlx::Error>;
+
+    async fn create_salary_component_definition(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        code: String,
+        is_base_for_ot: bool,
+        is_taxable: bool,
+    ) -> Result<SalaryComponentDefinition, sqlx::Error>;
+
+    async fn assign_employee_salary_component(
+        &self,
+        employee_id: Uuid,
+        component_definition_id: Uuid,
+        amount: Decimal,
+        effective_date: NaiveDate,
+    ) -> Result<EmployeeSalaryComponent, sqlx::Error>;
+
+    async fn get_employee_salary_components(
+        &self,
+        employee_id: Uuid,
+        reference_date: NaiveDate,
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error>;
+
+    async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, sqlx::Error>;
+
+    async fn get_payslips_by_employee(
+        &self,
+        employee_id: Uuid,
+    ) -> Result<Vec<Payslip>, sqlx::Error>;
+
+    async fn get_payslips_by_workspace_period(
+        &self,
+        workspace_id: Uuid,
+        period_start: NaiveDate,
+        period_end: NaiveDate,
+    ) -> Result<Vec<Payslip>, sqlx::Error>;
+
+    async fn get_salary_components_history(
+        &self,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error>;
+
+    async fn create_payslip_segment(
+        &self,
+        payslip_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        department_id: Option<Uuid>,
+        applied_base_salary: Decimal,
+        applied_std_days: Decimal,
+        hours_per_day: Decimal,
+        actual_work_days: Decimal,
+        paid_work_days: Decimal,
+        amount: Decimal,
+        std_days_source: Option<String>,
+    ) -> Result<(), sqlx::Error>;
+
+    async fn get_payslip_segments(
+        &self,
+        payslip_id: Uuid,
+    ) -> Result<Vec<PayslipSegment>, sqlx::Error>;
+}
+
+// ---------------------------------------------------------------------------
+// SqlxPayrollRepository — production implementation backed by PgPool
+// ---------------------------------------------------------------------------
+pub struct SqlxPayrollRepository {
+    pub pool: PgPool,
+}
+
+impl SqlxPayrollRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl PayrollRepository for SqlxPayrollRepository {
+    async fn get_active_incentive_policies(&self, workspace_id: Uuid) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
+        get_active_incentive_policies(&self.pool, workspace_id).await
+    }
+    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, sqlx::Error> {
+        get_policy_tiers(&self.pool, policy_id).await
+    }
+    async fn create_payslip_incentive(&self, payslip_id: Uuid, result: &IncentiveEvaluationResult) -> Result<(), sqlx::Error> {
+        create_payslip_incentive(&self.pool, payslip_id, result).await
+    }
+    async fn get_payslip_incentives(&self, payslip_id: Uuid) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error> {
+        get_payslip_incentives(&self.pool, payslip_id).await
+    }
+    async fn get_payroll_settings(&self, workspace_id: Uuid) -> Result<Option<PayrollSettings>, sqlx::Error> {
+        get_payroll_settings(&self.pool, workspace_id).await
+    }
+    async fn get_payroll_settings_at(&self, workspace_id: Uuid, date: NaiveDate) -> Result<Option<PayrollSettings>, sqlx::Error> {
+        get_payroll_settings_at(&self.pool, workspace_id, date).await
+    }
+    #[allow(clippy::too_many_arguments)]
+    async fn update_payroll_settings(
+        &self, workspace_id: Uuid, std_working_day_mode: String, fixed_std_days: Decimal,
+        working_days_per_week: i32, hours_per_day: Decimal, max_ot_hours_per_day: Option<Decimal>,
+        max_ot_hours_per_month: Option<Decimal>, effective_date: NaiveDate,
+    ) -> Result<PayrollSettings, sqlx::Error> {
+        update_payroll_settings(&self.pool, workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, max_ot_hours_per_day, max_ot_hours_per_month, effective_date).await
+    }
+    async fn get_salary_component_definitions(&self, workspace_id: Uuid) -> Result<Vec<SalaryComponentDefinition>, sqlx::Error> {
+        get_salary_component_definitions(&self.pool, workspace_id).await
+    }
+    async fn create_salary_component_definition(&self, workspace_id: Uuid, name: String, code: String, is_base_for_ot: bool, is_taxable: bool) -> Result<SalaryComponentDefinition, sqlx::Error> {
+        create_salary_component_definition(&self.pool, workspace_id, name, code, is_base_for_ot, is_taxable).await
+    }
+    async fn assign_employee_salary_component(&self, employee_id: Uuid, component_definition_id: Uuid, amount: Decimal, effective_date: NaiveDate) -> Result<EmployeeSalaryComponent, sqlx::Error> {
+        assign_employee_salary_component(&self.pool, employee_id, component_definition_id, amount, effective_date).await
+    }
+    async fn get_employee_salary_components(&self, employee_id: Uuid, reference_date: NaiveDate) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+        get_employee_salary_components(&self.pool, employee_id, reference_date).await
+    }
+    async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, sqlx::Error> {
+        create_payslip(&self.pool, payslip).await
+    }
+    async fn get_payslips_by_employee(&self, employee_id: Uuid) -> Result<Vec<Payslip>, sqlx::Error> {
+        get_payslips_by_employee(&self.pool, employee_id).await
+    }
+    async fn get_payslips_by_workspace_period(&self, workspace_id: Uuid, period_start: NaiveDate, period_end: NaiveDate) -> Result<Vec<Payslip>, sqlx::Error> {
+        get_payslips_by_workspace_period(&self.pool, workspace_id, period_start, period_end).await
+    }
+    async fn get_salary_components_history(&self, employee_id: Uuid, start_date: NaiveDate, end_date: NaiveDate) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+        get_salary_components_history(&self.pool, employee_id, start_date, end_date).await
+    }
+    #[allow(clippy::too_many_arguments)]
+    async fn create_payslip_segment(
+        &self, payslip_id: Uuid, start_date: NaiveDate, end_date: NaiveDate,
+        department_id: Option<Uuid>, applied_base_salary: Decimal, applied_std_days: Decimal,
+        hours_per_day: Decimal, actual_work_days: Decimal, paid_work_days: Decimal,
+        amount: Decimal, std_days_source: Option<String>,
+    ) -> Result<(), sqlx::Error> {
+        create_payslip_segment(&self.pool, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, hours_per_day, actual_work_days, paid_work_days, amount, std_days_source).await
+    }
+    async fn get_payslip_segments(&self, payslip_id: Uuid) -> Result<Vec<PayslipSegment>, sqlx::Error> {
+        get_payslip_segments(&self.pool, payslip_id).await
+    }
+}
+
 
 pub async fn get_active_incentive_policies(
     pool: &PgPool,

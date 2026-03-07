@@ -1,7 +1,7 @@
 use apiserver::db_pool::{DbPoolConfig, DbPools};
 use apiserver::openapi::ApiDoc;
 use apiserver::queue::RedisPool;
-use apiserver::services::{AttendanceImportService, AttendanceLogService, ReportCoordinator};
+use apiserver::services::{AttendanceLogService, ReportCoordinator};
 use apiserver::worker::{JobWorker, WorkerConfig};
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use std::sync::Arc;
@@ -53,7 +53,7 @@ async fn main() {
     // Use API pool for application-level initialization
     let pool = db_pools.api().clone();
 
-    AttendanceImportService::resume_all_pending_jobs(pool.clone()).await;
+    // resume_all_pending_jobs moved to after import_service construction below
 
     #[cfg(debug_assertions)]
     {
@@ -124,6 +124,71 @@ async fn main() {
         agent_repo.clone(),
         agent_manager.clone(),
     ));
+    let employee_repo =
+        Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
+    let employee_service = Arc::new(apiserver::services::EmployeeService::new(
+        employee_repo.clone(),
+        pool.clone(),
+    ));
+    let time_entry_repo =
+        Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
+    let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(
+        time_entry_repo.clone(),
+        pool.clone(),
+    ));
+    let attendance_summary_service = Arc::new(
+        apiserver::services::AttendanceSummaryService::new(
+            time_entry_repo.clone(),
+            pool.clone(),
+        ),
+    );
+    let report_service = Arc::new(apiserver::services::ReportService::new(
+        time_entry_repo.clone(),
+        pool.clone(),
+    ));
+    let pairing_service = Arc::new(
+        apiserver::services::pairing_service::PairingService::new(
+            time_entry_repo.clone(),
+            pool.clone(),
+        ),
+    );
+    let adjustment_service = Arc::new(
+        apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
+            time_entry_repo.clone(),
+            pool.clone(),
+        ),
+    );
+    let import_service = Arc::new(
+        apiserver::services::attendance_import_service::AttendanceImportService::new(
+            time_entry_repo.clone(),
+            pool.clone(),
+        ),
+    );
+    import_service.resume_all_pending_jobs().await;
+    let payroll_service = Arc::new(
+        apiserver::services::payroll_service::PayrollService::new(pool.clone()),
+    );
+    let auth_service = Arc::new(
+        apiserver::services::auth_service::AuthService::new(pool.clone()),
+    );
+    let shift_service = Arc::new(
+        apiserver::services::shift_service::ShiftService::new(pool.clone()),
+    );
+    let workspace_service = Arc::new(
+        apiserver::services::workspace_service::WorkspaceService::new(pool.clone()),
+    );
+    let leave_service = Arc::new(
+        apiserver::services::leave_service::LeaveService::new(pool.clone()),
+    );
+    let shift_swap_service = Arc::new(
+        apiserver::services::shift_swap_service::ShiftSwapService::new(pool.clone()),
+    );
+    let holiday_leave_service = Arc::new(
+        apiserver::services::holiday_leave_service::HolidayLeaveService::new(pool.clone()),
+    );
+    let leave_accrual_service = Arc::new(
+        apiserver::services::leave_accrual_service::LeaveAccrualService::new(pool.clone()),
+    );
     let jwt_secret = if cfg!(debug_assertions) {
         std::env::var("JWT_SECRET").unwrap_or_else(|_| {
             tracing::warn!("⚠️ JWT_SECRET not set — using insecure dev fallback. DO NOT use in production!");
@@ -147,7 +212,7 @@ async fn main() {
         .unwrap_or(1000);
 
     let (attendance_service, log_worker_handle) =
-        AttendanceLogService::new(pool.clone(), buffer_capacity, batch_size, flush_interval_ms);
+        AttendanceLogService::new(pool.clone(), pairing_service.clone(), buffer_capacity, batch_size, flush_interval_ms);
     let attendance_service = Arc::new(attendance_service);
 
     // Roster cache (requires Redis; shared between app state and worker)
@@ -188,7 +253,23 @@ async fn main() {
         agent_repo,
         workspace_repo,
         audit_repo,
+        employee_repo,
         agent_service,
+        employee_service,
+        time_tracking_service,
+        attendance_summary_service,
+        report_service,
+        pairing_service,
+        adjustment_service,
+        import_service,
+        payroll_service,
+        auth_service,
+        shift_service,
+        workspace_service,
+        leave_service,
+        shift_swap_service,
+        holiday_leave_service,
+        leave_accrual_service,
         jwt_secret,
         attendance_service,
         redis: redis_pool,

@@ -46,35 +46,37 @@ pub async fn get_attendance_report(
         .map_err(|_| AppError::Validation("Invalid end_date format".to_string()))?;
 
     if report_type == "daily" {
-        let report = crate::services::ReportService::get_daily_attendance_report(
-            state.db.api(),
-            workspace_id,
-            start_date,
-            end_date,
-            page,
-            limit,
-            employee_ids,
-            department_id,
-        )
-        .await
+        let report = state
+            .report_service
+            .get_daily_attendance_report(
+                workspace_id,
+                start_date,
+                end_date,
+                page,
+                limit,
+                employee_ids,
+                department_id,
+            )
+            .await
         .map_err(|s| AppError::from((s, "Failed to get daily report".to_string())))?;
 
         Ok(Json(
             serde_json::to_value(report).map_err(|e| AppError::from(e.to_string()))?,
         ))
     } else {
-        let summary = crate::services::ReportService::get_workspace_attendance_summary(
-            state.db.api(),
-            workspace_id,
-            start_date,
-            end_date,
-            sort,
-            page,
-            limit,
-            employee_ids,
-            department_id,
-        )
-        .await
+        let summary = state
+            .report_service
+            .get_workspace_attendance_summary(
+                workspace_id,
+                start_date,
+                end_date,
+                sort,
+                page,
+                limit,
+                employee_ids,
+                department_id,
+            )
+            .await
         .map_err(|s| AppError::from((s, "Failed to get summary report".to_string())))?;
 
         Ok(Json(

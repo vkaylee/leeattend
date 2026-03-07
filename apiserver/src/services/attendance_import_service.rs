@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::http::StatusCode;
 use calamine::{Data, DataType, Reader, Xls, Xlsx};
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
@@ -12,7 +14,7 @@ use crate::models::{
     AdjustmentStatus, AttendanceImportJob, CreateAttendanceAdjustmentRequest, Employee,
     ImportJobStatus, LogSource,
 };
-use crate::repositories::{employee_repository, import_job_repository};
+use crate::repositories::{employee_repository, import_job_repository, TimeEntryRepository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::utils::normalize_employee_id;
 
@@ -29,11 +31,17 @@ struct PendingEmployee {
     line_number: usize,
 }
 
-pub struct AttendanceImportService;
+pub struct AttendanceImportService {
+    time_entry_repo: Arc<dyn TimeEntryRepository>,
+    pool: PgPool,
+}
 
 impl AttendanceImportService {
+    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
+        Self { time_entry_repo, pool }
+    }
     pub async fn batch_import_from_file(
-        pool: PgPool,
+        &self,
         workspace_id: Uuid,
         user_id: Uuid,
         file_path: String,
@@ -55,37 +63,42 @@ impl AttendanceImportService {
             updated_at: Utc::now(),
         };
 
-        import_job_repository::create_job(&pool, &job)
+        import_job_repository::create_job(&self.pool, &job)
             .await
             .map_err(|e| {
                 error!("CREATE_JOB_ERROR: {:?}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
 
-        let pool_clone = pool.clone();
+        let pool_clone = self.pool.clone();
+        let time_entry_repo = self.time_entry_repo.clone();
         tokio::spawn(async move {
-            let _ = Self::process_job(pool_clone, job_id).await;
+            let svc = Self { time_entry_repo, pool: pool_clone };
+            let _ = svc.process_job(job_id).await;
         });
 
         Ok(job_id)
     }
 
-    pub async fn resume_all_pending_jobs(pool: PgPool) {
-        if let Ok(jobs) = import_job_repository::get_pending_jobs(&pool).await {
+    pub async fn resume_all_pending_jobs(&self) {
+        if let Ok(jobs) = import_job_repository::get_pending_jobs(&self.pool).await {
             for job in jobs {
                 info!(
                     "Resuming import job: {} (target: {})",
                     job.id, job.target_type
                 );
-                let pool_clone = pool.clone();
+                let pool_clone = self.pool.clone();
+                let time_entry_repo = self.time_entry_repo.clone();
                 tokio::spawn(async move {
-                    let _ = Self::process_job(pool_clone, job.id).await;
+                    let svc = Self { time_entry_repo, pool: pool_clone };
+                    let _ = svc.process_job(job.id).await;
                 });
             }
         }
     }
 
-    async fn process_job(pool: PgPool, job_id: Uuid) -> Result<(), ()> {
+    async fn process_job(&self, job_id: Uuid) -> Result<(), ()> {
+        let pool = self.pool.clone();
         let job = match import_job_repository::get_job_by_id(&pool, job_id).await {
             Ok(Some(j)) => j,
             _ => return Err(()),
@@ -108,7 +121,7 @@ impl AttendanceImportService {
         let timezone = workspace.timezone.clone();
 
         if job.target_type == "employee" {
-            return Self::process_employee_job(pool, job_id, &job).await;
+            return self.process_employee_job(job_id, &job).await;
         }
 
         let file_path = match &job.file_path {
@@ -276,7 +289,7 @@ impl AttendanceImportService {
                 continue;
             }
 
-            match Self::process_import_row(&pool, &job, &row.emp_id_number, row.punch_time).await {
+            match self.process_import_row(&job, &row.emp_id_number, row.punch_time).await {
                 Ok(inserted) => {
                     if inserted > 0 {
                         processed_rows += 1;
@@ -335,10 +348,11 @@ impl AttendanceImportService {
     }
 
     async fn process_employee_job(
-        pool: PgPool,
+        &self,
         job_id: Uuid,
         job: &AttendanceImportJob,
     ) -> Result<(), ()> {
+        let pool = self.pool.clone();
         let file_path = match &job.file_path {
             Some(p) => p,
             None => return Err(()),
@@ -461,12 +475,12 @@ impl AttendanceImportService {
                     };
 
                     // Auto-claim any staged logs for this employee
-                    if let Err(e) = crate::services::attendance_log_service::AttendanceLogService::claim_staged_logs(
-                        &pool,
-                        job.workspace_id,
-                        employee_id,
-                        &emp.id_number,
-                    ).await {
+                    if let Err(e) = {
+                        let te_repo = self.time_entry_repo.clone();
+                        let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, pool.clone()));
+                        let (log_svc, _h) = crate::services::AttendanceLogService::new(pool.clone(), ps, 1, 1, 1000);
+                        log_svc.claim_staged_logs(job.workspace_id, employee_id, &emp.id_number).await
+                    } {
                         error!("Failed to auto-claim logs for employee {}: {}", emp.id_number, e);
                     }
 
@@ -679,13 +693,14 @@ impl AttendanceImportService {
     }
 
     async fn process_import_row(
-        pool: &PgPool,
+        &self,
         job: &AttendanceImportJob,
         emp_id_number: &str,
         punch_time_utc: DateTime<Utc>,
     ) -> Result<usize, StatusCode> {
+        let pool = self.pool.clone();
         let employee = match employee_repository::get_employee_by_id_number(
-            pool,
+            &pool,
             emp_id_number,
             job.workspace_id,
         )
@@ -702,8 +717,10 @@ impl AttendanceImportService {
         };
 
         if job.target_type == "log" {
-            match crate::services::attendance_log_service::AttendanceLogService::process_parsed_log(
-                pool,
+            let te_repo = self.time_entry_repo.clone();
+            let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, pool.clone()));
+            let (log_svc, _h) = crate::services::AttendanceLogService::new(pool.clone(), ps, 1, 1, 1000);
+            match log_svc.process_parsed_log(
                 job.workspace_id,
                 employee.id,
                 punch_time_utc,
@@ -730,16 +747,18 @@ impl AttendanceImportService {
                 reason: Some("Import from Excel/CSV".to_string()),
             };
 
-            if let Ok(adjustment) = AttendanceAdjustmentService::submit_request(
-                pool,
+            let adj_svc = {
+                let te_repo = self.time_entry_repo.clone();
+                crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(te_repo, pool.clone())
+            };
+            if let Ok(adjustment) = adj_svc.submit_request(
                 job.workspace_id,
                 job.user_id,
                 req,
             )
             .await
             {
-                let _ = AttendanceAdjustmentService::approve_request(
-                    pool,
+                let _ = adj_svc.approve_request(
                     job.workspace_id,
                     job.user_id,
                     adjustment.id,

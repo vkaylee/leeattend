@@ -15,9 +15,15 @@ use crate::repositories::{
 };
 use crate::repositories::holiday_repository::HolidayLeaveResult;
 
-pub struct HolidayLeaveService;
+pub struct HolidayLeaveService {
+    pool: PgPool,
+}
 
 impl HolidayLeaveService {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
     /// Process leave deductions for all active employees on an unpaid holiday.
     ///
     /// If the holiday is paid (`is_paid = true`), returns a single `HolidayLeaveResult::Paid`.
@@ -26,10 +32,11 @@ impl HolidayLeaveService {
     /// - If balance >= 1.0: creates auto-approved leave request + audit log
     /// - If balance < 1.0: marks as unpaid
     pub async fn process_holiday_leave(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         holiday: &Holiday,
     ) -> Result<Vec<HolidayLeaveResult>, String> {
+        let pool = &self.pool;
         // Paid holidays need no deduction
         if holiday.is_paid {
             return Ok(vec![HolidayLeaveResult::Paid]);
@@ -40,7 +47,7 @@ impl HolidayLeaveService {
             Some(id) => id,
             None => {
                 // Fallback: find first is_paid=true leave type in workspace
-                Self::find_default_paid_leave_type(pool, workspace_id)
+                self.find_default_paid_leave_type(workspace_id)
                     .await?
                     .ok_or_else(|| {
                         "No paid leave type found in workspace for auto-deduction".to_string()
@@ -68,7 +75,7 @@ impl HolidayLeaveService {
 
         for emp in employees {
             // Check if a leave request already exists for this employee+date (idempotency)
-            let existing = Self::has_existing_leave_for_date(pool, emp.id, holiday.date).await;
+            let existing = self.has_existing_leave_for_date(emp.id, holiday.date).await;
             if existing {
                 // Already processed — skip
                 continue;
@@ -145,9 +152,10 @@ impl HolidayLeaveService {
 
     /// Find the first leave type with `is_paid = true` in the workspace.
     async fn find_default_paid_leave_type(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
     ) -> Result<Option<Uuid>, String> {
+        let pool = &self.pool;
         let result = sqlx::query_scalar!(
             "SELECT id FROM leave_types WHERE workspace_id = $1 AND is_paid = true ORDER BY name ASC LIMIT 1",
             workspace_id
@@ -161,10 +169,11 @@ impl HolidayLeaveService {
 
     /// Check if employee already has an approved leave request covering this date.
     async fn has_existing_leave_for_date(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         date: chrono::NaiveDate,
     ) -> bool {
+        let pool = &self.pool;
         sqlx::query_scalar!(
             r#"SELECT EXISTS(
                 SELECT 1 FROM leave_requests

@@ -13,7 +13,7 @@ use crate::handlers::common::MemberContext;
 use crate::models::shift_swap::{
     ApproveShiftSwapRequest, CreateShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus,
 };
-use crate::services::shift_swap_service::ShiftSwapService;
+
 use crate::AppState;
 use crate::UserId;
 
@@ -30,7 +30,7 @@ pub async fn create_shift_swap(
 ) -> AppResult<(StatusCode, Json<crate::models::shift_swap::ShiftSwapRequest>)> {
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
-    let swap = ShiftSwapService::create_swap(state.db.api(), ctx.workspace_id, user_id, req)
+    let swap = state.shift_swap_service.create_swap(ctx.workspace_id, user_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to create shift swap".to_string())))?;
 
@@ -55,7 +55,7 @@ pub async fn list_shift_swaps(
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
     let swaps =
-        ShiftSwapService::get_workspace_swaps(state.db.api(), ctx.workspace_id, query.status)
+        state.shift_swap_service.get_workspace_swaps(ctx.workspace_id, query.status)
             .await
             .map_err(|s| {
                 AppError::from((s, "Failed to list shift swaps".to_string()))
@@ -77,7 +77,7 @@ pub async fn approve_shift_swap(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::ShiftSwapsApprove)?;
 
-    ShiftSwapService::approve_swap(state.db.api(), ctx.workspace_id, user_id, id, req.status)
+    state.shift_swap_service.approve_swap(ctx.workspace_id, user_id, id, req.status)
         .await
         .map_err(|s| AppError::from((s, "Failed to approve shift swap".to_string())))?;
 

@@ -1,8 +1,73 @@
+use async_trait::async_trait;
 use crate::models::{TimeEntry, TimeEntryWithEmployee};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, query_scalar, PgPool};
 use std::collections::HashMap;
 use uuid::Uuid;
+
+// ---------------------------------------------------------------------------
+// Trait: TimeEntryRepository — DIP abstraction over time entry data access
+// ---------------------------------------------------------------------------
+#[async_trait]
+#[allow(clippy::too_many_arguments)]
+pub trait TimeEntryRepository: Send + Sync {
+    async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), sqlx::Error>;
+    async fn get_time_entry_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
+    async fn get_active_time_entry(&self, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
+    async fn get_latest_active_entry(&self, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
+    async fn update_time_entry(&self, workspace_id: Uuid, entry: &TimeEntry) -> Result<(), sqlx::Error>;
+    async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>;
+    async fn get_employee_time_entries(&self, employee_id: Uuid, from: DateTime<Utc>, to: DateTime<Utc>) -> Result<Vec<TimeEntry>, sqlx::Error>;
+    async fn get_paginated_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>, p_limit: i64, p_offset: i64) -> Result<Vec<TimeEntryWithEmployee>, sqlx::Error>;
+    async fn count_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>) -> Result<i64, sqlx::Error>;
+    async fn get_workspace_time_entries_batch(&self, employee_ids: &[Uuid], from: DateTime<Utc>, to: DateTime<Utc>) -> Result<HashMap<Uuid, Vec<TimeEntry>>, sqlx::Error>;
+}
+
+pub struct SqlxTimeEntryRepository {
+    pub pool: PgPool,
+}
+
+impl SqlxTimeEntryRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl TimeEntryRepository for SqlxTimeEntryRepository {
+    async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), sqlx::Error> {
+        create_time_entry(&self.pool, entry).await
+    }
+    async fn get_time_entry_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
+        get_time_entry_by_id(&self.pool, workspace_id, id).await
+    }
+    async fn get_active_time_entry(&self, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
+        get_active_time_entry(&self.pool, employee_id).await
+    }
+    async fn get_latest_active_entry(&self, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
+        get_latest_active_entry(&self.pool, employee_id).await
+    }
+    async fn update_time_entry(&self, workspace_id: Uuid, entry: &TimeEntry) -> Result<(), sqlx::Error> {
+        update_time_entry(&self.pool, workspace_id, entry).await
+    }
+    async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+        delete_time_entry(&self.pool, workspace_id, id).await
+    }
+    async fn get_employee_time_entries(&self, employee_id: Uuid, from: DateTime<Utc>, to: DateTime<Utc>) -> Result<Vec<TimeEntry>, sqlx::Error> {
+        get_employee_time_entries(&self.pool, employee_id, from, to).await
+    }
+    #[allow(clippy::too_many_arguments)]
+    async fn get_paginated_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>, p_limit: i64, p_offset: i64) -> Result<Vec<TimeEntryWithEmployee>, sqlx::Error> {
+        get_paginated_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to, p_limit, p_offset).await
+    }
+    async fn count_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>) -> Result<i64, sqlx::Error> {
+        count_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to).await
+    }
+    async fn get_workspace_time_entries_batch(&self, employee_ids: &[Uuid], from: DateTime<Utc>, to: DateTime<Utc>) -> Result<HashMap<Uuid, Vec<TimeEntry>>, sqlx::Error> {
+        get_workspace_time_entries_batch(&self.pool, employee_ids, from, to).await
+    }
+}
+
 
 pub async fn create_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), sqlx::Error> {
     query(

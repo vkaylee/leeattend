@@ -14,15 +14,22 @@ use crate::repositories::leave_request_repository;
 use crate::repositories::roster_repository;
 use rust_decimal::prelude::ToPrimitive;
 
-pub struct LeaveService;
+pub struct LeaveService {
+    pool: PgPool,
+}
 
 impl LeaveService {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
     pub async fn get_workspace_balances(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         year: i32,
         params: crate::models::PaginationParams,
     ) -> Result<crate::models::PaginatedResponse<WorkspaceLeaveBalance>, StatusCode> {
+        let pool = &self.pool;
         let limit = params.limit.unwrap_or(20).max(1);
         let page = params.page.unwrap_or(1).max(1);
         let offset = (page - 1) * limit;
@@ -50,12 +57,13 @@ impl LeaveService {
     }
 
     pub async fn get_employee_leave_history(
-        pool: &PgPool,
+        &self,
         _workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryItem>, StatusCode> {
+        let pool = &self.pool;
         // Get Accruals & Adjustments with leave type info via FK join
         let logs: Vec<_> = sqlx::query!(
             r#"
@@ -153,11 +161,12 @@ impl LeaveService {
     }
 
     pub async fn adjust_balance(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         req: AdjustBalanceRequest,
     ) -> Result<(), StatusCode> {
+        let pool = &self.pool;
         let amount_dec =
             rust_decimal::Decimal::from_f64_retain(req.amount).ok_or(StatusCode::BAD_REQUEST)?;
 
@@ -175,11 +184,12 @@ impl LeaveService {
     }
 
     pub async fn get_employee_balances(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, StatusCode> {
+        let pool = &self.pool;
         // Verify employee belongs to workspace
         let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
             .await
@@ -192,11 +202,12 @@ impl LeaveService {
     }
 
     pub async fn submit_leave_request(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         user_id: Uuid,
         req: SubmitLeaveRequest,
     ) -> Result<LeaveRequest, StatusCode> {
+        let pool = &self.pool;
         // Verify employee belongs to workspace
         let _ = employee_repository::get_employee_by_id(pool, req.employee_id, workspace_id)
             .await
@@ -239,12 +250,13 @@ impl LeaveService {
     }
 
     pub async fn approve_leave_request(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         user_id: Uuid,
         request_id: Uuid,
         req: ApproveLeaveRequest,
     ) -> Result<(), StatusCode> {
+        let pool = &self.pool;
         let request = leave_request_repository::get_leave_request_by_id(pool, workspace_id, request_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -313,10 +325,11 @@ impl LeaveService {
     }
 
     pub async fn get_employee_leave_requests(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<LeaveRequest>, StatusCode> {
+        let pool = &self.pool;
         // Verify employee belongs to workspace
         let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
             .await
@@ -329,10 +342,11 @@ impl LeaveService {
     }
 
     pub async fn get_workspace_leave_requests(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, StatusCode> {
+        let pool = &self.pool;
         leave_request_repository::get_workspace_leave_requests(pool, workspace_id, status)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)

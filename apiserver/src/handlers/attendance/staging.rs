@@ -102,7 +102,6 @@ pub async fn resolve_staging_log(
 
     use crate::models::{LogSource, RawAttendanceLog};
     use crate::repositories::raw_attendance_log_repository;
-    use crate::services::pairing_service::PairingService;
 
     // Use transaction to ensure atomicity of read-check-insert-update
     let mut tx = state.db.api().begin().await?;
@@ -173,7 +172,7 @@ pub async fn resolve_staging_log(
     tx.commit().await?;
 
     // 6. Trigger pairing (post-commit side effect, log errors but don't fail the response)
-    if let Err(e) = PairingService::process_new_raw_log(state.db.api(), &raw_log).await {
+    if let Err(e) = state.pairing_service.process_new_raw_log(&raw_log).await {
         tracing::error!(log_id = %log_id, error = %e, "Failed to trigger pairing after staging resolve");
     }
 

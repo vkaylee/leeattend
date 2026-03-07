@@ -90,7 +90,7 @@ async fn test_calculate_payroll_multi_segment() {
 
     // 5. Calculate Payroll
     let payslip =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2026, 1)
             .await
             .unwrap();
 

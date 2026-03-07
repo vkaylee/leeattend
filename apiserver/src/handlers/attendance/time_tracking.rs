@@ -25,13 +25,11 @@ pub async fn punch_in(
     MemberContext { .. }: MemberContext,
     Json(req): Json<PunchInRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
-    let entry = crate::services::time_tracking_service::TimeTrackingService::punch_in(
-        state.db.api(),
-        workspace_id,
-        req,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to punch in".to_string())))?;
+    let entry = state
+        .time_tracking_service
+        .punch_in(workspace_id, req)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to punch in".to_string())))?;
 
     Ok((StatusCode::CREATED, Json(entry)))
 }
@@ -42,14 +40,11 @@ pub async fn punch_out(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<PunchOutRequest>,
 ) -> AppResult<Json<TimeEntry>> {
-    let entry = crate::services::time_tracking_service::TimeTrackingService::punch_out(
-        state.db.api(),
-        workspace_id,
-        employee_id,
-        req,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to punch out".to_string())))?;
+    let entry = state
+        .time_tracking_service
+        .punch_out(workspace_id, employee_id, req)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to punch out".to_string())))?;
 
     Ok(Json(entry))
 }
@@ -60,14 +55,9 @@ pub async fn get_time_history(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<HistoryQuery>,
 ) -> AppResult<Json<Vec<TimeEntry>>> {
-    let entries =
-        crate::services::time_tracking_service::TimeTrackingService::get_employee_history(
-            state.db.api(),
-            workspace_id,
-            employee_id,
-            query.start,
-            query.end,
-        )
+    let entries = state
+        .time_tracking_service
+        .get_employee_history(workspace_id, employee_id, query.start, query.end)
         .await
         .map_err(|s| AppError::from((s, "Failed to get time history".to_string())))?;
 
@@ -80,14 +70,11 @@ pub async fn update_time_entry(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<UpdateTimeEntryRequest>,
 ) -> AppResult<Json<TimeEntry>> {
-    let entry = crate::services::time_tracking_service::TimeTrackingService::update_time_entry(
-        state.db.api(),
-        workspace_id,
-        id,
-        req,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to update time entry".to_string())))?;
+    let entry = state
+        .time_tracking_service
+        .update_time_entry(workspace_id, id, req)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to update time entry".to_string())))?;
 
     Ok(Json(entry))
 }
@@ -97,13 +84,11 @@ pub async fn delete_time_entry(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<StatusCode> {
-    crate::services::time_tracking_service::TimeTrackingService::delete_time_entry(
-        state.db.api(),
-        workspace_id,
-        id,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to delete time entry".to_string())))?;
+    state
+        .time_tracking_service
+        .delete_time_entry(workspace_id, id)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to delete time entry".to_string())))?;
 
     Ok(StatusCode::NO_CONTENT)
 }

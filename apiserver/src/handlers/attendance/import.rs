@@ -55,15 +55,11 @@ pub async fn upload_attendance_excel(
 
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
 
-    let job_id = crate::services::AttendanceImportService::batch_import_from_file(
-        state.db.api().clone(),
-        ws_id,
-        ctx.user_id,
-        path,
-        "adjustment".to_string(),
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
+    let job_id = state
+        .import_service
+        .batch_import_from_file(ws_id, ctx.user_id, path, "adjustment".to_string())
+        .await
+        .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }
@@ -112,15 +108,11 @@ pub async fn upload_attendance_logs(
 
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
 
-    let job_id = crate::services::AttendanceImportService::batch_import_from_file(
-        state.db.api().clone(),
-        ws_id,
-        ctx.user_id,
-        path,
-        "log".to_string(),
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
+    let job_id = state
+        .import_service
+        .batch_import_from_file(ws_id, ctx.user_id, path, "log".to_string())
+        .await
+        .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }
@@ -168,15 +160,11 @@ pub async fn upload_employee_excel(
     }
 
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
-    let job_id = crate::services::AttendanceImportService::batch_import_from_file(
-        state.db.api().clone(),
-        ws_id,
-        ctx.user_id,
-        path,
-        "employee".to_string(),
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
+    let job_id = state
+        .import_service
+        .batch_import_from_file(ws_id, ctx.user_id, path, "employee".to_string())
+        .await
+        .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }

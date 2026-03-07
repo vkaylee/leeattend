@@ -76,7 +76,7 @@ async fn test_net_pay_formula_with_zero_deductions() {
 
     // Calculate payroll
     let payslip =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2026, 1)
             .await
             .unwrap();
 

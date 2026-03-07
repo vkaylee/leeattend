@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
@@ -8,19 +10,27 @@ use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryR
 use crate::repositories::employee_repository;
 use crate::repositories::roster_repository;
 use crate::repositories::shift_repository;
-use crate::repositories::time_entry_repository;
 use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
+use crate::repositories::TimeEntryRepository;
 
-pub struct TimeTrackingService;
+pub struct TimeTrackingService {
+    repo: Arc<dyn TimeEntryRepository>,
+    /// Kept for operations not yet abstracted (employee, roster, shift, workspace repos)
+    pool: PgPool,
+}
 
 impl TimeTrackingService {
+    pub fn new(repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
+        Self { repo, pool }
+    }
+
     pub async fn punch_in(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         req: PunchInRequest,
     ) -> Result<TimeEntry, StatusCode> {
         // Verify employee belongs to workspace
-        let employee = employee_repository::get_employee_by_id(pool, req.employee_id, workspace_id)
+        let employee = employee_repository::get_employee_by_id(&self.pool, req.employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -30,17 +40,19 @@ impl TimeTrackingService {
         }
 
         // Get Workspace Timezone
-        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?; // Should allow not found? No, foreign key usually enforces it, but safe to error.
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         // Check if already punched in
-        if time_entry_repository::get_latest_active_entry(pool, req.employee_id)
+        if self
+            .repo
+            .get_latest_active_entry(req.employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .is_some()
@@ -53,14 +65,14 @@ impl TimeTrackingService {
         let today = local_now.date_naive();
 
         // 1. Identify effective shift
-        let (shift_id, _) = roster_repository::get_effective_shift(pool, workspace_id, req.employee_id, today)
+        let (shift_id, _) = roster_repository::get_effective_shift(&self.pool, workspace_id, req.employee_id, today)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let mut final_is_break_overtime = req.is_break_overtime.unwrap_or(false);
 
         if let Some(sid) = shift_id {
-            let shift = shift_repository::get_shift_by_id(pool, workspace_id, sid)
+            let shift = shift_repository::get_shift_by_id(&self.pool, workspace_id, sid)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
                 .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -100,7 +112,8 @@ impl TimeTrackingService {
             updated_at: now,
         };
 
-        time_entry_repository::create_time_entry(pool, &entry)
+        self.repo
+            .create_time_entry(&entry)
             .await
             .map_err(|e| {
                 eprintln!("Error punching in: {e:?}");
@@ -111,18 +124,20 @@ impl TimeTrackingService {
     }
 
     pub async fn punch_out(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         req: PunchOutRequest,
     ) -> Result<TimeEntry, StatusCode> {
         // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let _ = employee_repository::get_employee_by_id(&self.pool, employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        let mut entry = time_entry_repository::get_latest_active_entry(pool, employee_id)
+        let mut entry = self
+            .repo
+            .get_latest_active_entry(employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::BAD_REQUEST)?; // Not punched in
@@ -141,7 +156,8 @@ impl TimeTrackingService {
         }
         entry.updated_at = Utc::now();
 
-        time_entry_repository::update_time_entry(pool, workspace_id, &entry)
+        self.repo
+            .update_time_entry(workspace_id, &entry)
             .await
             .map_err(|e| {
                 eprintln!("Error punching out: {e:?}");
@@ -149,47 +165,53 @@ impl TimeTrackingService {
             })?;
 
         // Recalculate summary
-        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
         if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
             let tz: Tz = ws.timezone.parse().unwrap_or(chrono_tz::UTC);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
-            let _ = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, employee_id, local_date).await;
+            let summary_svc = crate::services::AttendanceSummaryService::new(
+                self.repo.clone(), self.pool.clone(),
+            );
+            let _ = summary_svc.recalculate_daily_summary(workspace_id, employee_id, local_date).await;
         }
 
         Ok(entry)
     }
 
     pub async fn get_employee_history(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         start_date: DateTime<Utc>,
         end_date: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, StatusCode> {
         // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let _ = employee_repository::get_employee_by_id(&self.pool, employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        time_entry_repository::get_employee_time_entries(pool, employee_id, start_date, end_date)
+        self.repo
+            .get_employee_time_entries(employee_id, start_date, end_date)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     pub async fn update_time_entry(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         id: Uuid,
         req: UpdateTimeEntryRequest,
     ) -> Result<TimeEntry, StatusCode> {
-        let mut entry = time_entry_repository::get_time_entry_by_id(pool, workspace_id, id)
+        let mut entry = self
+            .repo
+            .get_time_entry_by_id(workspace_id, id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         // Verify employee of this entry belongs to the workspace
-        let _ = employee_repository::get_employee_by_id(pool, entry.employee_id, workspace_id)
+        let _ = employee_repository::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::FORBIDDEN)?;
@@ -212,38 +234,45 @@ impl TimeTrackingService {
             entry.duration_minutes = Some(duration.num_minutes() as i32);
         }
 
-        time_entry_repository::update_time_entry(pool, workspace_id, &entry)
+        self.repo
+            .update_time_entry(workspace_id, &entry)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // Recalculate summary
-        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
         if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
             let tz: Tz = ws.timezone.parse().unwrap_or(chrono_tz::UTC);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
-            let _ = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, entry.employee_id, local_date).await;
+            let summary_svc = crate::services::AttendanceSummaryService::new(
+                self.repo.clone(), self.pool.clone(),
+            );
+            let _ = summary_svc.recalculate_daily_summary(workspace_id, entry.employee_id, local_date).await;
         }
 
         Ok(entry)
     }
 
     pub async fn delete_time_entry(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<(), StatusCode> {
-        let entry = time_entry_repository::get_time_entry_by_id(pool, workspace_id, id)
+        let entry = self
+            .repo
+            .get_time_entry_by_id(workspace_id, id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         // Verify employee of this entry belongs to the workspace
-        let _ = employee_repository::get_employee_by_id(pool, entry.employee_id, workspace_id)
+        let _ = employee_repository::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::FORBIDDEN)?;
 
-        time_entry_repository::delete_time_entry(pool, workspace_id, id)
+        self.repo
+            .delete_time_entry(workspace_id, id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

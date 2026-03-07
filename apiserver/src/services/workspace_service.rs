@@ -3,17 +3,21 @@ use crate::repositories::WorkspaceRepository;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-pub struct WorkspaceService;
+pub struct WorkspaceService {
+    pool: PgPool,
+}
 
 impl WorkspaceService {
-    // Note: create_workspace still needs PgPool for transaction across multiple repo-like steps
-    // or we need to add transaction support to repo trait.
-    // For now, let's keep it simple or implement the TX inside repo if it's one atomic operation.
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
     pub async fn create_workspace(
-        db: &PgPool,
+        &self,
         name: &str,
         owner_id: Uuid,
     ) -> Result<Workspace, String> {
+        let db = &self.pool;
         // Kiểm tra user có tồn tại không trước khi bắt đầu transaction
         let user_exists: bool =
             sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)")
@@ -90,7 +94,7 @@ impl WorkspaceService {
 
     #[allow(clippy::too_many_arguments)]
     pub async fn update_workspace(
-        db: &PgPool,
+        &self,
         ws_id: Uuid,
         name: Option<String>,
         work_unit_minutes: Option<i32>,
@@ -237,7 +241,7 @@ impl WorkspaceService {
         }
         q = q.bind(ws_id);
 
-        let ws = q.fetch_one(db).await.map_err(|e| e.to_string())?;
+        let ws = q.fetch_one(&self.pool).await.map_err(|e| e.to_string())?;
         Ok(ws)
     }
 }

@@ -57,8 +57,8 @@ async fn test_accrual_scenarios() {
         .await;
 
     // Run Accrual for Jan 1, 2026
-    let logs = LeaveAccrualService::process_workspace_accruals(
-        &pool,
+    let accrual_service = LeaveAccrualService::new(pool.clone());
+    let logs = accrual_service.process_workspace_accruals(
         ws_id,
         NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
         false,
@@ -116,8 +116,8 @@ async fn test_performance_based_accrual() {
     }
 
     // Run accrual for Feb 1 (checking Jan)
-    let logs = LeaveAccrualService::process_workspace_accruals(
-        &pool,
+    let accrual_service = LeaveAccrualService::new(pool.clone());
+    let logs = accrual_service.process_workspace_accruals(
         ws_id,
         NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
         false,
@@ -137,8 +137,7 @@ async fn test_performance_based_accrual() {
     }
 
     // Retry
-    let logs = LeaveAccrualService::process_workspace_accruals(
-        &pool,
+    let logs = accrual_service.process_workspace_accruals(
         ws_id,
         NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
         false,

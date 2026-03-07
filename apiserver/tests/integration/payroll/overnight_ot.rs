@@ -102,7 +102,7 @@ async fn test_overnight_ot_payroll_calculation() {
 
     // Calculate payroll
     let payslip =
-        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+        PayrollService::new(pool.clone()).calculate_monthly_payslip( employee_id, workspace_id, 2026, 1)
             .await
             .unwrap();
 

@@ -142,14 +142,15 @@ pub async fn force_reprocess_attendance(
 
     let mut curr_date = query.start_date;
     while curr_date <= query.end_date {
-        crate::services::pairing_service::PairingService::reprocess_daily_attendance(
-            state.db.api(),
-            ctx.workspace_id,
-            employee_id,
-            curr_date,
-            tz,
-        )
-        .await
+        state
+            .pairing_service
+            .reprocess_daily_attendance(
+                ctx.workspace_id,
+                employee_id,
+                curr_date,
+                tz,
+            )
+            .await
         .map_err(|e| AppError::from(format!("Processing failed for {curr_date}: {e}")))?;
 
         if let Some(next) = curr_date.succ_opt() {

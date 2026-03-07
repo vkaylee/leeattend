@@ -20,7 +20,9 @@ use crate::repositories::holiday_repository::HolidayRepository;
 use super::attendance_matcher::AttendanceMatcher;
 use super::financial_calculator::FinancialCalculator;
 
-pub struct PayrollService;
+pub struct PayrollService {
+    pool: PgPool,
+}
 
 // ---------------------------------------------------------------------------
 // Internal data structs for PayrollService decomposition
@@ -74,15 +76,20 @@ pub struct SegmentSnapshot {
 }
 
 impl PayrollService {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
     /// Phase 1: Fetch all data needed for payroll calculation.
     /// Public to allow access from decomposed structs.
     async fn fetch_context(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
         year: i32,
         month: u32,
     ) -> Result<PayrollContext, StatusCode> {
+        let pool = &self.pool;
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
@@ -221,14 +228,15 @@ impl PayrollService {
     }
 
     pub async fn calculate_monthly_payslip(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
         year: i32,
         month: u32,
     ) -> Result<Payslip, StatusCode> {
+        let pool = &self.pool;
         // Phase 1: Fetch all context data
-        let ctx = Self::fetch_context(pool, employee_id, workspace_id, year, month).await?;
+        let ctx = self.fetch_context(employee_id, workspace_id, year, month).await?;
 
         // Phase 2: Build segments
         let segments = Self::build_segments(&ctx);
@@ -352,17 +360,18 @@ impl PayrollService {
         );
 
         // Phase 8: Persist — delegated to PayslipPersister
-        Self::persist_calculated_payslip(pool, payslip, segment_snapshots, incentives.results).await
+        self.persist_calculated_payslip(payslip, segment_snapshots, incentives.results).await
     }
 
     /// Helper extracted to move Database operations out of the calculation flow
     #[allow(clippy::too_many_arguments)]
     async fn persist_calculated_payslip(
-        pool: &PgPool,
+        &self,
         payslip: Payslip,
         segment_snapshots: Vec<SegmentSnapshot>,
         incentive_results: Vec<crate::models::IncentiveEvaluationResult>,
     ) -> Result<Payslip, StatusCode> {
+        let pool = &self.pool;
         let created_payslip = payroll_repository::create_payslip(pool, &payslip)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -394,7 +403,7 @@ impl PayrollService {
     }
 
     pub async fn calculate_batch_payslips(
-        pool: &PgPool,
+        &self,
         employee_ids: Vec<Uuid>,
         workspace_id: Uuid,
         year: i32,
@@ -404,10 +413,10 @@ impl PayrollService {
 
         let results: Vec<_> = stream::iter(employee_ids)
             .map(|emp_id| {
-                let pool_clone = pool.clone();
+                let pool_clone = self.pool.clone();
                 async move {
-                    match Self::calculate_monthly_payslip(
-                        &pool_clone,
+                    let svc = Self { pool: pool_clone };
+                    match svc.calculate_monthly_payslip(
                         emp_id,
                         workspace_id,
                         year,

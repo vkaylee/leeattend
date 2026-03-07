@@ -5,7 +5,6 @@ use crate::models::{
     CreateRecruitmentSourceRequest, RecruitmentSource, RecruitmentSourceBreakdown,
     UpdateRecruitmentSourceRequest,
 };
-use crate::services::employee_service::EmployeeService;
 use crate::AppState;
 use axum::{
     extract::{Path, State},
@@ -20,7 +19,9 @@ pub async fn get_recruitment_sources(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSource>>> {
-    let sources = EmployeeService::get_recruitment_sources(state.db.api(), workspace_id)
+    let sources = state
+        .employee_service
+        .get_recruitment_sources(workspace_id)
         .await
         .map_err(|s| AppError::from((s, "Failed to get recruitment sources".to_string())))?;
     Ok(Json(sources))
@@ -33,7 +34,9 @@ pub async fn create_recruitment_source(
     Json(req): Json<CreateRecruitmentSourceRequest>,
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::RecruitmentManage)?;
-    let source = EmployeeService::create_recruitment_source(state.db.api(), ctx.workspace_id, req)
+    let source = state
+        .employee_service
+        .create_recruitment_source(ctx.workspace_id, req)
         .await
         .map_err(|s| AppError::from((s, "Failed to create recruitment source".to_string())))?;
     Ok((StatusCode::CREATED, Json(source)))
@@ -46,12 +49,13 @@ pub async fn update_recruitment_source(
     Json(req): Json<UpdateRecruitmentSourceRequest>,
 ) -> AppResult<Json<RecruitmentSource>> {
     ctx.require_permission(Permission::RecruitmentManage)?;
-    let source =
-        EmployeeService::update_recruitment_source(state.db.api(), id, ctx.workspace_id, req)
-            .await
-            .map_err(|s| {
-                AppError::from((s, "Failed to update recruitment source".to_string()))
-            })?;
+    let source = state
+        .employee_service
+        .update_recruitment_source(id, ctx.workspace_id, req)
+        .await
+        .map_err(|s| {
+            AppError::from((s, "Failed to update recruitment source".to_string()))
+        })?;
     Ok(Json(source))
 }
 
@@ -61,7 +65,9 @@ pub async fn delete_recruitment_source(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::RecruitmentManage)?;
-    EmployeeService::delete_recruitment_source(state.db.api(), id, ctx.workspace_id)
+    state
+        .employee_service
+        .delete_recruitment_source(id, ctx.workspace_id)
         .await
         .map_err(|s| AppError::from((s, "Failed to delete recruitment source".to_string())))?;
     Ok(StatusCode::NO_CONTENT)
@@ -72,12 +78,13 @@ pub async fn get_recruitment_source_breakdown(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSourceBreakdown>>> {
-    let breakdown =
-        EmployeeService::get_recruitment_source_breakdown(state.db.api(), workspace_id)
-            .await
-            .map_err(|s| {
-                AppError::from((s, "Failed to get recruitment source breakdown".to_string()))
-            })?;
+    let breakdown = state
+        .employee_service
+        .get_recruitment_source_breakdown(workspace_id)
+        .await
+        .map_err(|s| {
+            AppError::from((s, "Failed to get recruitment source breakdown".to_string()))
+        })?;
     Ok(Json(breakdown))
 }
 
@@ -97,7 +104,9 @@ pub async fn get_turnover_analytics(
         .and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok())
         .unwrap_or(today);
 
-    let analytics = EmployeeService::get_turnover_analytics(state.db.api(), workspace_id, start, end)
+    let analytics = state
+        .employee_service
+        .get_turnover_analytics(workspace_id, start, end)
         .await
         .map_err(|s| AppError::from((s, "Failed to get turnover analytics".to_string())))?;
     Ok(Json(analytics))

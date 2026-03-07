@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::http::StatusCode;
 use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
@@ -11,21 +13,29 @@ use crate::models::{
 };
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
-    employee_repository, roster_repository, time_entry_repository, SqlxWorkspaceRepository,
+    employee_repository, roster_repository, SqlxWorkspaceRepository, TimeEntryRepository,
 };
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::services::AttendanceCalculator;
 
-pub struct ReportService;
+pub struct ReportService {
+    time_entry_repo: Arc<dyn TimeEntryRepository>,
+    /// Kept for operations not yet abstracted (employee, roster, workspace repos + raw SQL)
+    pool: PgPool,
+}
 
 impl ReportService {
+    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, pool: PgPool) -> Self {
+        Self { time_entry_repo, pool }
+    }
+
     /// Shared calculation for a single day's standard/OT units.
     ///
     /// Consolidates the identical logic previously duplicated in
     /// `get_daily_attendance_report` and `get_workspace_attendance_summary`.
     #[allow(clippy::too_many_arguments)]
     async fn calculate_day_units(
-        pool: &PgPool,
+        &self,
         day_entries: &[&crate::models::TimeEntry],
         daily: &crate::models::EffectiveSchedule,
         date: NaiveDate,
@@ -58,7 +68,7 @@ impl ReportService {
                 .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
 
             let rules = PolicyResolver::resolve_with_shift_overrides(
-                pool,
+                &self.pool,
                 employee_id,
                 workspace_id,
                 date,
@@ -101,7 +111,7 @@ impl ReportService {
     }
     #[allow(clippy::too_many_arguments)]
     pub async fn get_daily_attendance_report(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -111,7 +121,7 @@ impl ReportService {
         department_id: Option<Uuid>,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, StatusCode> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
-        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
@@ -130,7 +140,7 @@ impl ReportService {
         // Daily report always uses ASC sort (no sort parameter exposed)
         let (paginated_employees, total_employees) =
             employee_repository::get_paginated_employee_ids(
-                pool,
+                &self.pool,
                 workspace_id,
                 employee_ids.as_ref(),
                 department_id,
@@ -159,7 +169,7 @@ impl ReportService {
 
         // 3. Get schedules ONLY for paginated employees
         let schedules = roster_repository::get_workspace_schedules(
-            pool,
+            &self.pool,
             None,
             workspace_id,
             start_date,
@@ -176,15 +186,15 @@ impl ReportService {
         .ok_or(StatusCode::BAD_REQUEST)?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
-        let entries_map = time_entry_repository::get_workspace_time_entries_batch(
-            pool, &emp_ids, start_dt, end_dt,
-        )
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let entries_map = self
+            .time_entry_repo
+            .get_workspace_time_entries_batch(&emp_ids, start_dt, end_dt)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 5a. BATCH fetch holidays for the date range
         let holidays_map = HolidayRepository::get_holidays_in_range(
-            pool, workspace_id, start_date, end_date,
+            &self.pool, workspace_id, start_date, end_date,
         )
         .await
         .unwrap_or_default();
@@ -201,7 +211,7 @@ impl ReportService {
             start_date,
             end_date
         )
-        .fetch_all(pool)
+        .fetch_all(&self.pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -212,7 +222,7 @@ impl ReportService {
 
         // 5c. BATCH fetch approved leave requests for holiday-leave status detection
         let leave_date_set = crate::services::attendance_utils::build_leave_date_set(
-            pool, workspace_id, &emp_ids, start_date, end_date,
+            &self.pool, workspace_id, &emp_ids, start_date, end_date,
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -245,8 +255,7 @@ impl ReportService {
                     .last()
                     .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
 
-                let (std_work_units, ot_work_units) = Self::calculate_day_units(
-                    pool,
+                let (std_work_units, ot_work_units) = self.calculate_day_units(
                     day_entries,
                     &daily,
                     date,
@@ -351,7 +360,7 @@ impl ReportService {
     /// 4. Aggregate daily results per employee
     #[allow(clippy::too_many_arguments)]
     pub async fn get_workspace_attendance_summary(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -365,7 +374,7 @@ impl ReportService {
         use std::collections::HashMap;
 
         // 0. Get Workspace Settings
-        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
@@ -387,7 +396,7 @@ impl ReportService {
 
         let (paginated_employees, total_employees) =
             employee_repository::get_paginated_employee_ids(
-                pool,
+                &self.pool,
                 workspace_id,
                 employee_ids.as_ref(),
                 department_id,
@@ -416,7 +425,7 @@ impl ReportService {
 
         // 3. Get schedules ONLY for paginated employees
         let schedules = roster_repository::get_workspace_schedules(
-            pool,
+            &self.pool,
             None,
             workspace_id,
             start_date,
@@ -433,11 +442,11 @@ impl ReportService {
         .ok_or(StatusCode::BAD_REQUEST)?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
-        let entries_map = time_entry_repository::get_workspace_time_entries_batch(
-            pool, &emp_ids, start_dt, end_dt,
-        )
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let entries_map = self
+            .time_entry_repo
+            .get_workspace_time_entries_batch(&emp_ids, start_dt, end_dt)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 6. Fetch leave days for paginated employees (batch query)
         let leave_data: HashMap<Uuid, i64> = sqlx::query(
@@ -456,7 +465,7 @@ impl ReportService {
         .bind(&emp_ids)
         .bind(start_date)
         .bind(end_date)
-        .fetch_all(pool)
+        .fetch_all(&self.pool)
         .await
         .map_err(|e| {
             tracing::error!("Error fetching leave data: {}", e);
@@ -496,8 +505,7 @@ impl ReportService {
                     .map(|v| v.as_slice())
                     .unwrap_or(&[]);
 
-                let (std_units, ot_units) = Self::calculate_day_units(
-                    pool,
+                let (std_units, ot_units) = self.calculate_day_units(
                     day_entries,
                     daily,
                     date,
@@ -534,8 +542,6 @@ impl ReportService {
             .collect();
 
         // 9. Sort within batch (for calculated fields only)
-        // Note: Name sorting (ASC/DESC) is already handled by DB ORDER BY via sort_desc parameter
-        // Calculated field sorts (WorkHours, LeaveDays) only affect order within current page
         if let Some(s) = &sort {
             match s {
                 AttendanceReportSort::NameAsc | AttendanceReportSort::NameDesc => {

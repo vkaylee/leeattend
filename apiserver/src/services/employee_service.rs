@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::http::StatusCode;
 use chrono::Utc;
 use sqlx::PgPool;
@@ -7,36 +9,47 @@ use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmploymentPeriod,
     RehireEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
 };
-use crate::repositories::{employee_repository, user_repository};
+use crate::repositories::{employee_repository, user_repository, EmployeeRepository};
 use crate::utils::normalize_employee_id;
 
-pub struct EmployeeService;
+pub struct EmployeeService {
+    repo: Arc<dyn EmployeeRepository>,
+    /// Kept for operations not yet abstracted (transactions, user_repository, etc.)
+    pool: PgPool,
+}
 
 impl EmployeeService {
+    pub fn new(repo: Arc<dyn EmployeeRepository>, pool: PgPool) -> Self {
+        Self { repo, pool }
+    }
+
     pub async fn get_working_conditions(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Vec<WorkingCondition>, StatusCode> {
-        // Verify employee exists in workspace
-        let emp = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let emp = self
+            .repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        employee_repository::get_working_conditions(pool, emp.id)
+        self.repo
+            .get_working_conditions(emp.id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     pub async fn create_working_condition(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
         req: CreateWorkingConditionRequest,
     ) -> Result<WorkingCondition, StatusCode> {
-        // Verify employee
-        let emp = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let emp = self
+            .repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -51,7 +64,8 @@ impl EmployeeService {
             end_date: req.end_date,
         };
 
-        employee_repository::create_working_condition(pool, &condition)
+        self.repo
+            .create_working_condition(&condition)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -59,18 +73,21 @@ impl EmployeeService {
     }
 
     pub async fn delete_working_condition(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
         condition_id: Uuid,
     ) -> Result<(), StatusCode> {
-        // Verify employee
-        let emp = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let emp = self
+            .repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        let deleted = employee_repository::delete_working_condition(pool, condition_id, emp.id)
+        let deleted = self
+            .repo
+            .delete_working_condition(condition_id, emp.id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -81,19 +98,19 @@ impl EmployeeService {
     }
 
     pub async fn create_employee(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         req: CreateEmployeeRequest,
     ) -> Result<Employee, StatusCode> {
         // Optional: Check if user_id exists if provided
         if let Some(user_id) = req.user_id {
-            user_repository::get_user_by_id(pool, user_id)
+            user_repository::get_user_by_id(&self.pool, user_id)
                 .await
                 .map_err(|e| {
                     eprintln!("Error checking user_id for new employee: {e:?}");
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?
-                .ok_or(StatusCode::BAD_REQUEST)?; // User not found
+                .ok_or(StatusCode::BAD_REQUEST)?;
         }
 
         let employee = Employee {
@@ -110,7 +127,9 @@ impl EmployeeService {
             updated_at: Utc::now(),
         };
 
-        let mut tx = pool
+        // Transaction-based creation still uses pool directly
+        let mut tx = self
+            .pool
             .begin()
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -126,7 +145,8 @@ impl EmployeeService {
 
         // Set recruitment source if provided
         if let Some(source_id) = req.recruitment_source_id {
-            employee_repository::set_employee_recruitment_source(pool, employee.id, Some(source_id))
+            self.repo
+                .set_employee_recruitment_source(employee.id, Some(source_id))
                 .await
                 .map_err(|e| {
                     eprintln!("Error setting recruitment source: {e:?}");
@@ -135,14 +155,12 @@ impl EmployeeService {
         }
 
         // Auto-claim any staged logs for this employee_id_number
-        if let Err(e) = crate::services::AttendanceLogService::claim_staged_logs(
-            pool,
-            workspace_id,
-            employee.id,
-            &employee.employee_id_number,
-        )
-        .await
-        {
+        if let Err(e) = {
+            let te_repo = std::sync::Arc::new(crate::repositories::SqlxTimeEntryRepository::new(self.pool.clone()));
+            let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, self.pool.clone()));
+            let (log_svc, _h) = crate::services::AttendanceLogService::new(self.pool.clone(), ps, 1, 1, 1000);
+            log_svc.claim_staged_logs(workspace_id, employee.id, &employee.employee_id_number).await
+        } {
             tracing::warn!(
                 "Failed to claim staged logs for new employee {}: {}",
                 employee.id,
@@ -154,50 +172,49 @@ impl EmployeeService {
     }
 
     pub async fn rehire_employee(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
         req: RehireEmployeeRequest,
     ) -> Result<Employee, StatusCode> {
-        // Verify employee belongs to workspace and is currently inactive
-        let employee = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let employee = self
+            .repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         if employee.is_active {
-            return Err(StatusCode::BAD_REQUEST); // Already active
+            return Err(StatusCode::BAD_REQUEST);
         }
 
-        // Check if new hire_date is after last termination_date
         if let Some(term_date) = employee.termination_date {
             if req.hire_date <= term_date {
                 return Err(StatusCode::BAD_REQUEST);
             }
         }
 
-        let tx = pool
+        let tx = self
+            .pool
             .begin()
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        // Update employee to be active
-        employee_repository::update_employee(
-            pool,
-            employee_id,
-            workspace_id,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            Some(true),
-        )
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        self.repo
+            .update_employee(
+                employee_id,
+                workspace_id,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(true),
+            )
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        // Create new employment period
         let period = EmploymentPeriod {
             id: Uuid::new_v4(),
             employee_id,
@@ -208,7 +225,8 @@ impl EmployeeService {
             updated_at: Utc::now(),
         };
 
-        employee_repository::create_employment_period(pool, &period)
+        self.repo
+            .create_employment_period(&period)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -216,34 +234,38 @@ impl EmployeeService {
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        self.repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)
     }
 
     pub async fn get_employment_history(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Vec<EmploymentPeriod>, StatusCode> {
-        // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let _ = self
+            .repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        employee_repository::get_employment_history(pool, employee_id)
+        self.repo
+            .get_employment_history(employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     pub async fn get_employee_by_id(
-        pool: &PgPool,
+        &self,
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Employee, StatusCode> {
-        employee_repository::get_employee_by_id(pool, id, workspace_id)
+        self.repo
+            .get_employee_by_id(id, workspace_id)
             .await
             .map_err(|e| {
                 eprintln!("Error getting employee: {e:?}");
@@ -253,13 +275,14 @@ impl EmployeeService {
     }
 
     pub async fn get_all_employees(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         search_query: Option<String>,
         page: i64,
         limit: i64,
     ) -> Result<(Vec<Employee>, i64), StatusCode> {
-        employee_repository::get_all_employees(pool, workspace_id, search_query, page, limit)
+        self.repo
+            .get_all_employees(workspace_id, search_query, page, limit)
             .await
             .map_err(|e| {
                 eprintln!("Error getting all employees: {e:?}");
@@ -268,68 +291,64 @@ impl EmployeeService {
     }
 
     pub async fn update_employee(
-        pool: &PgPool,
+        &self,
         id: Uuid,
         workspace_id: Uuid,
         req: UpdateEmployeeRequest,
     ) -> Result<Employee, StatusCode> {
         // Optional: Check if user_id exists if provided
         if let Some(user_id) = req.user_id {
-            user_repository::get_user_by_id(pool, user_id)
+            user_repository::get_user_by_id(&self.pool, user_id)
                 .await
                 .map_err(|e| {
                     eprintln!("Error checking user_id for update employee: {e:?}");
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?
-                .ok_or(StatusCode::BAD_REQUEST)?; // User not found
+                .ok_or(StatusCode::BAD_REQUEST)?;
         }
 
-        let employee = employee_repository::update_employee(
-            pool,
-            id,
-            workspace_id,
-            req.user_id,
-            req.full_name,
-            req.employee_id_number
-                .clone()
-                .map(|s| normalize_employee_id(&s)),
-            req.hire_date,
-            req.termination_date,
-            req.tags,
-            req.is_active,
-        )
-        .await
-        .map_err(|e| {
-            eprintln!("Error updating employee: {e:?}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .ok_or(StatusCode::NOT_FOUND)?;
-
-        // Update recruitment source if provided
-        if req.recruitment_source_id.is_some() {
-            employee_repository::set_employee_recruitment_source(
-                pool,
+        let employee = self
+            .repo
+            .update_employee(
                 id,
-                req.recruitment_source_id,
+                workspace_id,
+                req.user_id,
+                req.full_name,
+                req.employee_id_number
+                    .clone()
+                    .map(|s| normalize_employee_id(&s)),
+                req.hire_date,
+                req.termination_date,
+                req.tags,
+                req.is_active,
             )
             .await
             .map_err(|e| {
-                eprintln!("Error setting recruitment source: {e:?}");
+                eprintln!("Error updating employee: {e:?}");
                 StatusCode::INTERNAL_SERVER_ERROR
-            })?;
+            })?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        // Update recruitment source if provided
+        if req.recruitment_source_id.is_some() {
+            self.repo
+                .set_employee_recruitment_source(id, req.recruitment_source_id)
+                .await
+                .map_err(|e| {
+                    eprintln!("Error setting recruitment source: {e:?}");
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
         }
 
         // If employee_id_number was updated, try to claim staged logs
         if let Some(new_id_number) = req.employee_id_number {
             let normalized = normalize_employee_id(&new_id_number);
-            if let Err(e) = crate::services::AttendanceLogService::claim_staged_logs(
-                pool,
-                workspace_id,
-                id,
-                &normalized,
-            )
-            .await
-            {
+            if let Err(e) = {
+                let te_repo = std::sync::Arc::new(crate::repositories::SqlxTimeEntryRepository::new(self.pool.clone()));
+                let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, self.pool.clone()));
+                let (log_svc, _h) = crate::services::AttendanceLogService::new(self.pool.clone(), ps, 1, 1, 1000);
+                log_svc.claim_staged_logs(workspace_id, id, &normalized).await
+            } {
                 tracing::warn!(
                     "Failed to claim staged logs for updated employee {}: {}",
                     id,
@@ -344,7 +363,7 @@ impl EmployeeService {
     // ── Recruitment Source Service Methods ──────────────────────────
 
     pub async fn create_recruitment_source(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         req: crate::models::CreateRecruitmentSourceRequest,
     ) -> Result<crate::models::RecruitmentSource, StatusCode> {
@@ -364,7 +383,8 @@ impl EmployeeService {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        employee_repository::create_recruitment_source(pool, &source)
+        self.repo
+            .create_recruitment_source(&source)
             .await
             .map_err(|e| {
                 eprintln!("Error creating recruitment source: {e:?}");
@@ -374,10 +394,11 @@ impl EmployeeService {
     }
 
     pub async fn get_recruitment_sources(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::RecruitmentSource>, StatusCode> {
-        employee_repository::get_recruitment_sources(pool, workspace_id)
+        self.repo
+            .get_recruitment_sources(workspace_id)
             .await
             .map_err(|e| {
                 eprintln!("Error fetching recruitment sources: {e:?}");
@@ -386,39 +407,41 @@ impl EmployeeService {
     }
 
     pub async fn update_recruitment_source(
-        pool: &PgPool,
+        &self,
         id: Uuid,
         workspace_id: Uuid,
         req: crate::models::UpdateRecruitmentSourceRequest,
     ) -> Result<crate::models::RecruitmentSource, StatusCode> {
-        employee_repository::update_recruitment_source(
-            pool,
-            id,
-            workspace_id,
-            req.name,
-            req.referrer_employee_id,
-            req.referral_bonus_amount,
-            req.referral_bonus_paid,
-            req.agency_contact_name,
-            req.agency_contact_email,
-            req.agency_fee_amount,
-            req.agency_fee_paid,
-            req.notes,
-        )
-        .await
-        .map_err(|e| {
-            eprintln!("Error updating recruitment source: {e:?}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .ok_or(StatusCode::NOT_FOUND)
+        self.repo
+            .update_recruitment_source(
+                id,
+                workspace_id,
+                req.name,
+                req.referrer_employee_id,
+                req.referral_bonus_amount,
+                req.referral_bonus_paid,
+                req.agency_contact_name,
+                req.agency_contact_email,
+                req.agency_fee_amount,
+                req.agency_fee_paid,
+                req.notes,
+            )
+            .await
+            .map_err(|e| {
+                eprintln!("Error updating recruitment source: {e:?}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .ok_or(StatusCode::NOT_FOUND)
     }
 
     pub async fn delete_recruitment_source(
-        pool: &PgPool,
+        &self,
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<(), StatusCode> {
-        let rows = employee_repository::delete_recruitment_source(pool, id, workspace_id)
+        let rows = self
+            .repo
+            .delete_recruitment_source(id, workspace_id)
             .await
             .map_err(|e| {
                 eprintln!("Error deleting recruitment source: {e:?}");
@@ -431,10 +454,11 @@ impl EmployeeService {
     }
 
     pub async fn get_recruitment_source_breakdown(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::RecruitmentSourceBreakdown>, StatusCode> {
-        employee_repository::get_recruitment_source_breakdown(pool, workspace_id)
+        self.repo
+            .get_recruitment_source_breakdown(workspace_id)
             .await
             .map_err(|e| {
                 eprintln!("Error fetching recruitment source breakdown: {e:?}");
@@ -443,11 +467,13 @@ impl EmployeeService {
     }
 
     pub async fn delete_employee(
-        pool: &PgPool,
+        &self,
         id: Uuid,
         workspace_id: Uuid,
     ) -> Result<(), StatusCode> {
-        let rows_affected = employee_repository::delete_employee(pool, id, workspace_id)
+        let rows_affected = self
+            .repo
+            .delete_employee(id, workspace_id)
             .await
             .map_err(|e| {
                 eprintln!("Error deleting employee: {e:?}");
@@ -462,18 +488,19 @@ impl EmployeeService {
     }
 
     pub async fn get_department_history(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
     ) -> Result<Vec<crate::models::EmployeeDepartmentHistory>, StatusCode> {
-        // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let _ = self
+            .repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         crate::repositories::department_repository::get_employee_department_history(
-            pool,
+            &self.pool,
             employee_id,
         )
         .await
@@ -481,19 +508,20 @@ impl EmployeeService {
     }
 
     pub async fn transfer_employee(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         workspace_id: Uuid,
         req: crate::models::TransferEmployeeRequest,
     ) -> Result<crate::models::EmployeeDepartmentHistory, StatusCode> {
-        // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+        let _ = self
+            .repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         crate::repositories::department_repository::transfer_employee(
-            pool,
+            &self.pool,
             employee_id,
             req.department_id,
             req.effective_date,
@@ -504,12 +532,13 @@ impl EmployeeService {
     }
 
     pub async fn get_turnover_analytics(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         start_date: chrono::NaiveDate,
         end_date: chrono::NaiveDate,
     ) -> Result<crate::models::TurnoverAnalytics, StatusCode> {
-        employee_repository::get_turnover_analytics(pool, workspace_id, start_date, end_date)
+        self.repo
+            .get_turnover_analytics(workspace_id, start_date, end_date)
             .await
             .map_err(|e| {
                 eprintln!("Error fetching turnover analytics: {e:?}");

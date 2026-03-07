@@ -33,8 +33,8 @@ impl AccrualHandler {
             "Starting leave accrual processing"
         );
 
-        match LeaveAccrualService::process_workspace_accruals(
-            db,
+        let accrual_service = LeaveAccrualService::new(db.clone());
+        match accrual_service.process_workspace_accruals(
             job.workspace_id,
             payload.date,
             payload.force,

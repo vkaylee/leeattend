@@ -75,8 +75,7 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
         .await;
 
     // Trigger recalculation directly via service
-    apiserver::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(
-        &pool,
+    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary(
         workspace_id,
         emp,
         today,

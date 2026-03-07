@@ -103,8 +103,7 @@ async fn test_payroll_holiday_work_with_multiplier() {
     .unwrap();
 
     // Calculate payroll
-    let result = apiserver::services::payroll_service::PayrollService::calculate_monthly_payslip(
-        &pool,
+    let result = apiserver::services::payroll_service::PayrollService::new(pool.clone()).calculate_monthly_payslip(
         emp,
         workspace_id,
         first_of_month.year(),
@@ -206,8 +205,7 @@ async fn test_payroll_holiday_work_no_credit() {
     .await
     .unwrap();
 
-    let payslip = apiserver::services::payroll_service::PayrollService::calculate_monthly_payslip(
-        &pool, emp, workspace_id, first_of_month.year(), first_of_month.month(),
+    let payslip = apiserver::services::payroll_service::PayrollService::new(pool.clone()).calculate_monthly_payslip( emp, workspace_id, first_of_month.year(), first_of_month.month(),
     )
     .await
     .unwrap();
@@ -296,8 +294,7 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
     .await
     .unwrap();
 
-    let payslip = apiserver::services::payroll_service::PayrollService::calculate_monthly_payslip(
-        &pool, emp, workspace_id, first_of_month.year(), first_of_month.month(),
+    let payslip = apiserver::services::payroll_service::PayrollService::new(pool.clone()).calculate_monthly_payslip( emp, workspace_id, first_of_month.year(), first_of_month.month(),
     )
     .await
     .unwrap();
@@ -467,8 +464,7 @@ async fn test_leave_kept_partial_work() {
         .create()
         .await;
 
-    apiserver::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(
-        &pool, workspace_id, emp, today,
+    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary( workspace_id, emp, today,
     )
     .await
     .expect("Recalculate failed");
@@ -653,8 +649,7 @@ async fn test_leave_reversal_only_system() {
         .create()
         .await;
 
-    apiserver::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(
-        &pool, workspace_id, emp, today,
+    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary( workspace_id, emp, today,
     )
     .await
     .expect("Recalculate failed");

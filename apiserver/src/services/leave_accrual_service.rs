@@ -6,9 +6,15 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-pub struct LeaveAccrualService;
+pub struct LeaveAccrualService {
+    pool: PgPool,
+}
 
 impl LeaveAccrualService {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
     /// Pure function to calculate how much leave should be accrued for a given policy and employee state.
     pub fn calculate_accrual_amount(
         config: &LeavePolicyConfig,
@@ -53,12 +59,13 @@ impl LeaveAccrualService {
 
     /// Helper to count "Qualifying Days" for performance-based accrual.
     pub async fn count_qualifying_days(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
         tz: Tz,
     ) -> Result<i32, sqlx::Error> {
+        let pool = &self.pool;
         use std::collections::HashSet;
         let mut qualifying_days = HashSet::new();
 
@@ -271,12 +278,13 @@ impl LeaveAccrualService {
     /// Batch-count qualifying work days per month for an employee in a single SQL query.
     /// Returns a HashMap<NaiveDate, i32> where key = first of month, value = qualifying days.
     pub async fn batch_count_qualifying_days(
-        pool: &PgPool,
+        &self,
         employee_id: Uuid,
         range_start: NaiveDate,
         range_end: NaiveDate,
         tz: Tz,
     ) -> Result<HashMap<NaiveDate, i32>, sqlx::Error> {
+        let pool = &self.pool;
         let start_dt = local_to_utc(&tz, range_start, 0, 0, 0)?;
         let end_dt = local_to_utc(&tz, range_end, 23, 59, 59)?;
 
@@ -344,11 +352,12 @@ impl LeaveAccrualService {
     /// Main orchestrator to process accruals for a workspace on a specific date.
     /// Optimized: uses pre-computed accrual dates and batched qualifying-days queries.
     pub async fn process_workspace_accruals(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         date: NaiveDate,
         force: bool,
     ) -> Result<Vec<LeaveAccrualLog>, sqlx::Error> {
+        let pool = &self.pool;
         // Get Workspace settings for timezone
         let workspace = sqlx::query!(
             "SELECT timezone FROM workspaces WHERE id = $1",
@@ -428,8 +437,7 @@ impl LeaveAccrualService {
                 };
 
                 let qualifying_days_map = if config.min_work_days_threshold.is_some() {
-                    Self::batch_count_qualifying_days(
-                        pool,
+                    self.batch_count_qualifying_days(
                         emp.id,
                         qualifying_range_start,
                         date,

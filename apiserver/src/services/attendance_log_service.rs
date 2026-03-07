@@ -16,15 +16,16 @@ use crate::utils::datetime::parse_datetime_with_tz;
 
 #[derive(Clone)]
 pub struct AttendanceLogService {
-    #[allow(dead_code)]
     pool: PgPool,
+    pairing_service: Arc<PairingService>,
     #[allow(dead_code)] // Buffer kept for potential batch operations
     log_buffer: Arc<AgentLogBuffer>,
 }
 
 impl AttendanceLogService {
     pub fn new(
-        #[allow(dead_code)] pool: PgPool,
+        pool: PgPool,
+        pairing_service: Arc<PairingService>,
         buffer_capacity: usize,
         batch_size: usize,
         flush_interval_ms: u64,
@@ -33,9 +34,11 @@ impl AttendanceLogService {
         let log_buffer = Arc::new(log_buffer);
 
         let pool_clone = pool.clone();
+        let pairing_clone = pairing_service.clone();
         let worker_handle = tokio::spawn(async move {
             agent_log_buffer::run_log_worker(
                 pool_clone,
+                pairing_clone,
                 log_receiver,
                 batch_size,
                 flush_interval_ms,
@@ -43,7 +46,7 @@ impl AttendanceLogService {
             .await;
         });
 
-        let service = Self { pool, log_buffer };
+        let service = Self { pool, pairing_service, log_buffer };
 
         (service, worker_handle)
     }
@@ -82,8 +85,7 @@ impl AttendanceLogService {
     /// Returns Ok(()) for ALL cases except database connection errors.
     /// Unknown users and validation errors are swallowed with 200 OK to prevent agent retries.
     pub async fn ingest_agent_log(&self, entry: AgentLogEntry) -> Result<(), String> {
-        Self::process_log(
-            &self.pool,
+        self.process_log(
             entry.workspace_id,
             &entry.employee_id_number,
             &entry.punch_time_raw,
@@ -107,7 +109,7 @@ impl AttendanceLogService {
     /// - Case 4: Database connection error → Err(msg) (agent should retry)
     #[allow(clippy::too_many_arguments)]
     pub async fn process_log(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id_number: &str,
         punch_time_raw: &str,
@@ -119,6 +121,7 @@ impl AttendanceLogService {
         date_fmt: Option<&str>,
         time_fmt: Option<&str>,
     ) -> Result<bool, String> {
+        let pool = &self.pool;
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         // 1. Resolve employee_id from employee_id_number and workspace_id
@@ -232,7 +235,7 @@ impl AttendanceLogService {
                 );
 
                 // 5. Trigger Pairing Logic
-                if let Err(e) = PairingService::process_new_raw_log(pool, &raw_log).await {
+                if let Err(e) = self.pairing_service.process_new_raw_log(&raw_log).await {
                     error!("Pairing error for log {}: {:?}", raw_log.id, e);
                     // We return Ok(true) because the log WAS saved, pairing is secondary/async-ish
                 }
@@ -255,7 +258,7 @@ impl AttendanceLogService {
 
     /// Optimized version for batch processing where employee and workspace config are already known/cached.
     pub async fn process_parsed_log(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         punch_time: DateTime<Utc>,
@@ -263,6 +266,7 @@ impl AttendanceLogService {
         device_id: Option<String>,
         raw_data: Option<serde_json::Value>,
     ) -> Result<bool, String> {
+        let pool = &self.pool;
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         let punch = raw_data
@@ -291,7 +295,7 @@ impl AttendanceLogService {
 
         match raw_attendance_log_repository::create_raw_log(pool, &raw_log).await {
             Ok(true) => {
-                let _ = PairingService::process_new_raw_log(pool, &raw_log).await;
+                let _ = self.pairing_service.process_new_raw_log(&raw_log).await;
                 Ok(true)
             }
             Ok(false) => Ok(false),
@@ -303,11 +307,12 @@ impl AttendanceLogService {
     /// Finds all pending staging logs matching the employee_id_number and moves them to raw_attendance_logs.
     /// Returns the number of logs claimed.
     pub async fn claim_staged_logs(
-        pool: &PgPool,
+        &self,
         workspace_id: Uuid,
         employee_id: Uuid,
         employee_id_number: &str,
     ) -> Result<u32, String> {
+        let pool = &self.pool;
         // 1. Find all pending staging logs for this employee_id_number
         let staged_logs = sqlx::query_as::<_, staging_log_repository::StagingLog>(
             r#"
@@ -390,7 +395,6 @@ impl AttendanceLogService {
         }
 
         // 4. Trigger pairing for all affected dates
-        // Get workspace timezone for proper reprocessing
         let ws = crate::repositories::workspace_repository::get_workspace_by_id(pool, workspace_id)
             .await
             .ok()
@@ -404,7 +408,7 @@ impl AttendanceLogService {
                 employee_id, date
             );
             if let Err(e) =
-                PairingService::reprocess_daily_attendance(pool, workspace_id, employee_id, date, tz)
+                self.pairing_service.reprocess_daily_attendance(workspace_id, employee_id, date, tz)
                     .await
             {
                 error!(
