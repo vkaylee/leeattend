@@ -93,11 +93,13 @@ pub async fn assign_pattern(
 
 pub async fn get_employee_pattern_history(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Vec<EmployeeWorkingPattern>, sqlx::Error> {
     sqlx::query_as::<_, EmployeeWorkingPattern>(
-        "SELECT * FROM employee_working_patterns WHERE employee_id = $1 ORDER BY start_date DESC",
+        "SELECT * FROM employee_working_patterns WHERE workspace_id = $1 AND employee_id = $2 ORDER BY start_date DESC",
     )
+    .bind(workspace_id)
     .bind(employee_id)
     .fetch_all(pool)
     .await

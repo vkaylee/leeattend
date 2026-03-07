@@ -509,6 +509,7 @@ impl EmployeeService {
 
         crate::repositories::department_repository::get_employee_department_history(
             &self.pool,
+            workspace_id,
             employee_id,
         )
         .await

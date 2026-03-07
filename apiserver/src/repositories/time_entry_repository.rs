@@ -13,14 +13,14 @@ use uuid::Uuid;
 pub trait TimeEntryRepository: super::PoolBacked + Send + Sync {
     async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), sqlx::Error>;
     async fn get_time_entry_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
-    async fn get_active_time_entry(&self, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
-    async fn get_latest_active_entry(&self, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
+    async fn get_active_time_entry(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
+    async fn get_latest_active_entry(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error>;
     async fn update_time_entry(&self, workspace_id: Uuid, entry: &TimeEntry) -> Result<(), sqlx::Error>;
     async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>;
-    async fn get_employee_time_entries(&self, employee_id: Uuid, from: DateTime<Utc>, to: DateTime<Utc>) -> Result<Vec<TimeEntry>, sqlx::Error>;
+    async fn get_employee_time_entries(&self, workspace_id: Uuid, employee_id: Uuid, from: DateTime<Utc>, to: DateTime<Utc>) -> Result<Vec<TimeEntry>, sqlx::Error>;
     async fn get_paginated_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>, p_limit: i64, p_offset: i64) -> Result<Vec<TimeEntryWithEmployee>, sqlx::Error>;
     async fn count_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>) -> Result<i64, sqlx::Error>;
-    async fn get_workspace_time_entries_batch(&self, employee_ids: &[Uuid], from: DateTime<Utc>, to: DateTime<Utc>) -> Result<HashMap<Uuid, Vec<TimeEntry>>, sqlx::Error>;
+    async fn get_workspace_time_entries_batch(&self, workspace_id: Uuid, employee_ids: &[Uuid], from: DateTime<Utc>, to: DateTime<Utc>) -> Result<HashMap<Uuid, Vec<TimeEntry>>, sqlx::Error>;
 }
 
 pub struct SqlxTimeEntryRepository {
@@ -41,11 +41,11 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
     async fn get_time_entry_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
         get_time_entry_by_id(&self.pool, workspace_id, id).await
     }
-    async fn get_active_time_entry(&self, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
-        get_active_time_entry(&self.pool, employee_id).await
+    async fn get_active_time_entry(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
+        get_active_time_entry(&self.pool, workspace_id, employee_id).await
     }
-    async fn get_latest_active_entry(&self, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
-        get_latest_active_entry(&self.pool, employee_id).await
+    async fn get_latest_active_entry(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
+        get_latest_active_entry(&self.pool, workspace_id, employee_id).await
     }
     async fn update_time_entry(&self, workspace_id: Uuid, entry: &TimeEntry) -> Result<(), sqlx::Error> {
         update_time_entry(&self.pool, workspace_id, entry).await
@@ -53,8 +53,8 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
     async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
         delete_time_entry(&self.pool, workspace_id, id).await
     }
-    async fn get_employee_time_entries(&self, employee_id: Uuid, from: DateTime<Utc>, to: DateTime<Utc>) -> Result<Vec<TimeEntry>, sqlx::Error> {
-        get_employee_time_entries(&self.pool, employee_id, from, to).await
+    async fn get_employee_time_entries(&self, workspace_id: Uuid, employee_id: Uuid, from: DateTime<Utc>, to: DateTime<Utc>) -> Result<Vec<TimeEntry>, sqlx::Error> {
+        get_employee_time_entries(&self.pool, workspace_id, employee_id, from, to).await
     }
     #[allow(clippy::too_many_arguments)]
     async fn get_paginated_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>, p_limit: i64, p_offset: i64) -> Result<Vec<TimeEntryWithEmployee>, sqlx::Error> {
@@ -63,8 +63,8 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
     async fn count_logs(&self, workspace_id: Uuid, p_employee_id: Option<Uuid>, p_from: Option<DateTime<Utc>>, p_to: Option<DateTime<Utc>>) -> Result<i64, sqlx::Error> {
         count_logs(&self.pool, workspace_id, p_employee_id, p_from, p_to).await
     }
-    async fn get_workspace_time_entries_batch(&self, employee_ids: &[Uuid], from: DateTime<Utc>, to: DateTime<Utc>) -> Result<HashMap<Uuid, Vec<TimeEntry>>, sqlx::Error> {
-        get_workspace_time_entries_batch(&self.pool, employee_ids, from, to).await
+    async fn get_workspace_time_entries_batch(&self, workspace_id: Uuid, employee_ids: &[Uuid], from: DateTime<Utc>, to: DateTime<Utc>) -> Result<HashMap<Uuid, Vec<TimeEntry>>, sqlx::Error> {
+        get_workspace_time_entries_batch(&self.pool, workspace_id, employee_ids, from, to).await
     }
 }
 
@@ -104,24 +104,28 @@ pub async fn get_time_entry_by_id(
 
 pub async fn get_active_time_entry(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Option<TimeEntry>, sqlx::Error> {
     query_as::<_, TimeEntry>(
-        "SELECT * FROM time_entries WHERE employee_id = $1 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1"
+        "SELECT * FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1"
     )
     .bind(employee_id)
+    .bind(workspace_id)
     .fetch_optional(pool)
     .await
 }
 
 pub async fn get_latest_active_entry(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Option<TimeEntry>, sqlx::Error> {
     query_as::<_, TimeEntry>(
-        "SELECT * FROM time_entries WHERE employee_id = $1 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1"
+        "SELECT * FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1"
     )
     .bind(employee_id)
+    .bind(workspace_id)
     .fetch_optional(pool)
     .await
 }
@@ -154,14 +158,16 @@ pub async fn delete_time_entry(pool: &PgPool, workspace_id: Uuid, id: Uuid) -> R
 
 pub async fn get_employee_time_entries(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
     from: DateTime<Utc>,
     to: DateTime<Utc>,
 ) -> Result<Vec<TimeEntry>, sqlx::Error> {
     query_as::<_, TimeEntry>(
-        "SELECT * FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time <= $3 ORDER BY punch_in_time DESC"
+        "SELECT * FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_in_time >= $3 AND punch_in_time <= $4 ORDER BY punch_in_time DESC"
     )
     .bind(employee_id)
+    .bind(workspace_id)
     .bind(from)
     .bind(to)
     .fetch_all(pool)
@@ -268,6 +274,7 @@ pub async fn count_logs(
 /// Returns HashMap keyed by employee_id for O(1) lookup
 pub async fn get_workspace_time_entries_batch(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_ids: &[Uuid],
     from: DateTime<Utc>,
     to: DateTime<Utc>,
@@ -278,10 +285,12 @@ pub async fn get_workspace_time_entries_batch(
 
     let entries = query_as::<_, TimeEntry>(
         r#"SELECT * FROM time_entries
-           WHERE employee_id = ANY($1)
-           AND punch_in_time >= $2 AND punch_in_time <= $3
+           WHERE workspace_id = $1
+           AND employee_id = ANY($2)
+           AND punch_in_time >= $3 AND punch_in_time <= $4
            ORDER BY employee_id, punch_in_time DESC"#,
     )
+    .bind(workspace_id)
     .bind(employee_ids)
     .bind(from)
     .bind(to)

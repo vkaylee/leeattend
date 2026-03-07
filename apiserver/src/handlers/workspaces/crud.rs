@@ -400,7 +400,7 @@ pub async fn get_unexcused_absences(
     let emp_ids: Vec<Uuid> = schedules.iter().map(|s| s.employee_id).collect();
     let (start_dt, end_dt) = attendance_utils::date_range_to_utc(tz, start_date, end_date);
 
-    let entries_map = state.time_entry_repo.get_workspace_time_entries_batch(&emp_ids, start_dt, end_dt,
+    let entries_map = state.time_entry_repo.get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt,
     )
     .await
     .map_err(|e| AppError::Internal(format!("Error fetching time entries: {e}")))?;

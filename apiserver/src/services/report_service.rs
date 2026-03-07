@@ -188,7 +188,7 @@ impl ReportService {
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(&emp_ids, start_dt, end_dt)
+            .get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -443,7 +443,7 @@ impl ReportService {
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(&emp_ids, start_dt, end_dt)
+            .get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

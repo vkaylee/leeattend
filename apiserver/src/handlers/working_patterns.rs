@@ -88,9 +88,9 @@ pub async fn bulk_assign_pattern(
 pub async fn get_employee_pattern_history(
     State(state): State<Arc<AppState>>,
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
-    _ctx: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeWorkingPattern>>> {
-    let history = service::get_employee_pattern_history(state.db.api(), employee_id).await?;
+    let history = service::get_employee_pattern_history(state.db.api(), ctx.workspace_id, employee_id).await?;
     Ok(Json(history))
 }
 

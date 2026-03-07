@@ -54,7 +54,7 @@ impl TimeTrackingService {
         // Check if already punched in
         if self
             .repo
-            .get_latest_active_entry(req.employee_id)
+            .get_latest_active_entry(workspace_id, req.employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .is_some()
@@ -139,7 +139,7 @@ impl TimeTrackingService {
 
         let mut entry = self
             .repo
-            .get_latest_active_entry(employee_id)
+            .get_latest_active_entry(workspace_id, employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::BAD_REQUEST)?; // Not punched in
@@ -194,7 +194,7 @@ impl TimeTrackingService {
             .ok_or(StatusCode::NOT_FOUND)?;
 
         self.repo
-            .get_employee_time_entries(employee_id, start_date, end_date)
+            .get_employee_time_entries(workspace_id, employee_id, start_date, end_date)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }

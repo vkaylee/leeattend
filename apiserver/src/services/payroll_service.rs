@@ -123,7 +123,7 @@ impl PayrollService {
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let all_dept_history =
-            self.department_repo.get_employee_department_history(employee_id)
+            self.department_repo.get_employee_department_history(workspace_id, employee_id)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -133,7 +133,7 @@ impl PayrollService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let time_entries =
-            self.time_entry_repo.get_employee_time_entries(employee_id, start_dt, end_dt)
+            self.time_entry_repo.get_employee_time_entries(workspace_id, employee_id, start_dt, end_dt)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

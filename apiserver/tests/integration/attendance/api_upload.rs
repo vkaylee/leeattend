@@ -88,6 +88,7 @@ async fn test_upload_attendance_csv_api() {
 
     let entries = apiserver::repositories::time_entry_repository::get_employee_time_entries(
         &factory.pool,
+        ws_id,
         emp_id,
         chrono::Utc::now() - chrono::Duration::days(30),
         chrono::Utc::now() + chrono::Duration::days(30),

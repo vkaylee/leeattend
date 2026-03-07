@@ -18,8 +18,8 @@ pub trait DepartmentRepository: super::PoolBacked + Send + Sync {
     async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>;
     async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, sqlx::Error>;
     async fn transfer_employee(&self, employee_id: Uuid, department_id: Uuid, effective_date: NaiveDate, notes: Option<String>) -> Result<EmployeeDepartmentHistory, sqlx::Error>;
-    async fn get_employee_department_history(&self, employee_id: Uuid) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error>;
-    async fn get_current_department(&self, employee_id: Uuid) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error>;
+    async fn get_employee_department_history(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error>;
+    async fn get_current_department(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error>;
     async fn upsert_department_payroll_config(&self, department_id: Uuid, std_working_days: Decimal, hours_per_day: Decimal, effective_date: NaiveDate) -> Result<DepartmentPayrollConfig, sqlx::Error>;
     async fn get_department_payroll_config_at(&self, department_id: Uuid, date: NaiveDate) -> Result<Option<DepartmentPayrollConfig>, sqlx::Error>;
 }
@@ -56,11 +56,11 @@ impl DepartmentRepository for SqlxDepartmentRepository {
     async fn transfer_employee(&self, employee_id: Uuid, department_id: Uuid, effective_date: NaiveDate, notes: Option<String>) -> Result<EmployeeDepartmentHistory, sqlx::Error> {
         transfer_employee(&self.pool, employee_id, department_id, effective_date, notes).await
     }
-    async fn get_employee_department_history(&self, employee_id: Uuid) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error> {
-        get_employee_department_history(&self.pool, employee_id).await
+    async fn get_employee_department_history(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error> {
+        get_employee_department_history(&self.pool, workspace_id, employee_id).await
     }
-    async fn get_current_department(&self, employee_id: Uuid) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error> {
-        get_current_department(&self.pool, employee_id).await
+    async fn get_current_department(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error> {
+        get_current_department(&self.pool, workspace_id, employee_id).await
     }
     async fn upsert_department_payroll_config(&self, department_id: Uuid, std_working_days: Decimal, hours_per_day: Decimal, effective_date: NaiveDate) -> Result<DepartmentPayrollConfig, sqlx::Error> {
         upsert_department_payroll_config(&self.pool, department_id, std_working_days, hours_per_day, effective_date).await
@@ -224,28 +224,36 @@ pub async fn transfer_employee(
 
 pub async fn get_employee_department_history(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error> {
     sqlx::query_as::<_, EmployeeDepartmentHistory>(
-        r#"SELECT id, employee_id, department_id, effective_date, notes, created_at 
-           FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC"#,
+        r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at 
+           FROM employee_department_history edh
+           JOIN employees e ON e.id = edh.employee_id
+           WHERE edh.employee_id = $1 AND e.workspace_id = $2
+           ORDER BY edh.effective_date DESC"#,
     )
     .bind(employee_id)
+    .bind(workspace_id)
     .fetch_all(pool)
     .await
 }
 
 pub async fn get_current_department(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error> {
     sqlx::query_as::<_, EmployeeDepartmentHistory>(
-        r#"SELECT id, employee_id, department_id, effective_date, notes, created_at 
-           FROM employee_department_history 
-           WHERE employee_id = $1 AND effective_date <= CURRENT_DATE 
-           ORDER BY effective_date DESC LIMIT 1"#,
+        r#"SELECT edh.id, edh.employee_id, edh.department_id, edh.effective_date, edh.notes, edh.created_at 
+           FROM employee_department_history edh
+           JOIN employees e ON e.id = edh.employee_id
+           WHERE edh.employee_id = $1 AND e.workspace_id = $2 AND edh.effective_date <= CURRENT_DATE 
+           ORDER BY edh.effective_date DESC LIMIT 1"#,
     )
     .bind(employee_id)
+    .bind(workspace_id)
     .fetch_optional(pool)
     .await
 }

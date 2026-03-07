@@ -70,7 +70,7 @@ impl AttendanceSummaryService {
 
         let entries = self
             .time_entry_repo
-            .get_employee_time_entries(employee_id, start_dt_utc, end_dt_utc)
+            .get_employee_time_entries(workspace_id, employee_id, start_dt_utc, end_dt_utc)
             .await
             .map_err(|e| e.to_string())?;
 

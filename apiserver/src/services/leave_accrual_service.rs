@@ -385,7 +385,7 @@ impl LeaveAccrualService {
 
         for emp in employees {
             // Resolve policy for employee
-            let dept_hist = self.department_repo.get_current_department(emp.id)
+            let dept_hist = self.department_repo.get_current_department(workspace_id, emp.id)
                 .await
                 .ok()
                 .flatten();

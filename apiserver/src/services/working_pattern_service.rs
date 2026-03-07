@@ -153,9 +153,10 @@ pub async fn bulk_assign_pattern(
 
 pub async fn get_employee_pattern_history(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Vec<EmployeeWorkingPattern>, sqlx::Error> {
-    repo::get_employee_pattern_history(pool, employee_id).await
+    repo::get_employee_pattern_history(pool, workspace_id, employee_id).await
 }
 
 pub async fn delete_working_pattern(pool: &PgPool, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), sqlx::Error> {

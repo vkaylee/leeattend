@@ -80,6 +80,7 @@ impl AttendanceHandler {
             ),
             time_entry_repository::get_workspace_time_entries_batch(
                 pool,
+                workspace_id,
                 employee_ids,
                 start_dt,
                 end_dt,
