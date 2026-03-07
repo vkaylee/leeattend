@@ -319,7 +319,7 @@ mod tests {
         let summaries1 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
             employee_name: "Charlie Brown".to_string(),
-            employee_id_number: String::new(),
+            employee_id_number: "EMP003".to_string(),
             total_std_units: 160,
             total_ot_units: 0,
             total_leave_days: 2,
@@ -327,7 +327,7 @@ mod tests {
         let summaries2 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
             employee_name: "Alice Smith".to_string(),
-            employee_id_number: String::new(),
+            employee_id_number: "EMP001".to_string(),
             total_std_units: 152,
             total_ot_units: 0,
             total_leave_days: 4,
@@ -457,7 +457,7 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "A".to_string(),
-                employee_id_number: String::new(),
+                employee_id_number: "ID-A".to_string(),
                 total_std_units: 160,
                 total_ot_units: 0,
                 total_leave_days: 0,
@@ -465,7 +465,7 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "B".to_string(),
-                employee_id_number: String::new(),
+                employee_id_number: "ID-B".to_string(),
                 total_std_units: 120,
                 total_ot_units: 0,
                 total_leave_days: 3,
@@ -474,7 +474,7 @@ mod tests {
         let s2 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
             employee_name: "C".to_string(),
-            employee_id_number: String::new(),
+            employee_id_number: "ID-C".to_string(),
             total_std_units: 80,
             total_ot_units: 0,
             total_leave_days: 1,
@@ -541,5 +541,51 @@ mod tests {
         .unwrap();
 
         assert_eq!(total_records, 4, "Should be 3 + 1 = 4 total records");
+    }
+
+    #[test]
+    fn test_attendance_summary_serialization_preserves_employee_id_number() {
+        let summary = AttendanceSummary {
+            employee_id: Uuid::new_v4(),
+            employee_name: "Alice".to_string(),
+            employee_id_number: "EMP-001".to_string(),
+            total_std_units: 160,
+            total_ot_units: 0,
+            total_leave_days: 2,
+        };
+        let json = serde_json::to_string(&summary).unwrap();
+        assert!(json.contains("EMP-001"));
+        let deserialized: AttendanceSummary = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.employee_id_number, "EMP-001");
+    }
+
+    #[test]
+    fn test_daily_attendance_report_serialization_preserves_employee_id_number() {
+        let report = DailyAttendanceReport {
+            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            employee_id: Uuid::new_v4(),
+            employee_name: "Bob".to_string(),
+            employee_id_number: "EMP-002".to_string(),
+            shift_symbol: None,
+            scheduled_start: None,
+            scheduled_end: None,
+            break_duration_minutes: None,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            actual_punch_in: None,
+            actual_punch_out: None,
+            std_work_units: 8,
+            ot_work_units: 0,
+            ot_claim_status: None,
+            status: crate::services::attendance_utils::AttendanceStatus::Present,
+            is_holiday: false,
+            holiday_name: None,
+            generation_metadata: None,
+        };
+        let json = serde_json::to_string(&report).unwrap();
+        assert!(json.contains("EMP-002"));
+        let deserialized: DailyAttendanceReport = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.employee_id_number, "EMP-002");
     }
 }

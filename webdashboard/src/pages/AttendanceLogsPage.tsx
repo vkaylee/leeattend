@@ -257,7 +257,7 @@ export default function AttendanceLogsPage() {
   });
 
   const handleCreateEmployee = (enrollmentId: string) => {
-    navigate(`/employees/new?enrollment_id=${encodeURIComponent(enrollmentId)}`);
+    navigate(`/employees?enrollment_id=${encodeURIComponent(enrollmentId)}`);
   };
 
   return (
