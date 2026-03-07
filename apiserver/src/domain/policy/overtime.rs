@@ -392,4 +392,59 @@ mod tests {
         let pay_holiday = OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, true, &ot_intervals, hourly_rate);
         assert_eq!(pay_holiday, Decimal::new(600, 0));
     }
+
+    #[test]
+    fn test_no_rules_returns_empty_segments() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date");
+        let segments = OvertimeEngine::calculate_segments(&[], date, false);
+        assert!(segments.is_empty());
+    }
+
+    #[test]
+    fn test_no_matching_day_returns_empty() {
+        // Rule only applies to Saturday (day_mask = 1 << 5 = 32)
+        let rule = mock_rule(1, Decimal::new(20, 1), None, None, 32);
+        // Monday
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date");
+        let segments = OvertimeEngine::calculate_segments(&[rule], date, false);
+        assert!(segments.is_empty());
+    }
+
+    #[test]
+    fn test_multiple_ot_intervals() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date");
+        let rules = vec![mock_rule(1, Decimal::new(15, 1), None, None, 127)];
+
+        // Two separate intervals: 1h evening + 1h night
+        let intervals = vec![
+            (
+                NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+                NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
+            ),
+            (
+                NaiveTime::from_hms_opt(20, 0, 0).unwrap(),
+                NaiveTime::from_hms_opt(21, 0, 0).unwrap(),
+            ),
+        ];
+        let hourly_rate = Decimal::new(100, 0);
+        let pay = OvertimeEngine::calculate_overtime_pay_from_times(
+            &rules, date, false, &intervals, hourly_rate,
+        );
+        // 2h total × 100 × 1.5 = 300
+        assert_eq!(pay, Decimal::new(300, 0));
+    }
+
+    #[test]
+    fn test_zero_hourly_rate() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date");
+        let rules = vec![mock_rule(1, Decimal::new(15, 1), None, None, 127)];
+        let intervals = vec![(
+            NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(20, 0, 0).unwrap(),
+        )];
+        let pay = OvertimeEngine::calculate_overtime_pay_from_times(
+            &rules, date, false, &intervals, Decimal::ZERO,
+        );
+        assert_eq!(pay, Decimal::ZERO);
+    }
 }

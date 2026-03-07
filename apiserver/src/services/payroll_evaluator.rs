@@ -240,4 +240,203 @@ mod tests {
             "Holiday exclusion saves employee 100k in incentive"
         );
     }
+
+    // --- Additional tests ---
+
+    #[test]
+    fn test_percentage_payout_type() {
+        let p_id = Uuid::new_v4();
+        let policy = PayrollIncentivePolicy {
+            id: p_id,
+            workspace_id: Uuid::new_v4(),
+            name: "Bonus".into(),
+            base_amount: 1_000_000.0, // 1M base
+            payout_type: "percentage".into(),
+            is_active: true,
+            created_at: chrono::Utc::now(),
+        };
+        let tiers = vec![IncentiveTier {
+            id: Uuid::new_v4(),
+            policy_id: p_id,
+            priority: 1,
+            max_late_early_count: None,
+            max_unpaid_leave_days: None,
+            max_sick_leave_days: None,
+            max_total_leave_days: None,
+            payout_amount: 0.1, // 10%
+        }];
+        let ctx = IncentiveContext {
+            total_work_units: 160,
+            total_leave_days: 0.0,
+            unpaid_leave_days: 0.0,
+            sick_leave_days: 0.0,
+            late_early_count: 0,
+        };
+        let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx);
+        // percentage: base_amount * payout_amount = 1_000_000 * 0.1 = 100_000
+        assert_eq!(res.amount, Decimal::from(100_000));
+    }
+
+    #[test]
+    fn test_unpaid_leave_exceeds_threshold() {
+        let p_id = Uuid::new_v4();
+        let policy = PayrollIncentivePolicy {
+            id: p_id,
+            workspace_id: Uuid::new_v4(),
+            name: "Attendance Bonus".into(),
+            base_amount: 200_000.0,
+            payout_type: "fixed".into(),
+            is_active: true,
+            created_at: chrono::Utc::now(),
+        };
+        let tiers = vec![IncentiveTier {
+            id: Uuid::new_v4(),
+            policy_id: p_id,
+            priority: 1,
+            max_late_early_count: None,
+            max_unpaid_leave_days: Some(1.0), // Max 1 unpaid leave day
+            max_sick_leave_days: None,
+            max_total_leave_days: None,
+            payout_amount: 200_000.0,
+        }];
+        // Employee has 2 unpaid leave days → exceeds threshold
+        let ctx = IncentiveContext {
+            total_work_units: 160,
+            total_leave_days: 2.0,
+            unpaid_leave_days: 2.0,
+            sick_leave_days: 0.0,
+            late_early_count: 0,
+        };
+        let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx);
+        assert_eq!(res.amount, Decimal::ZERO);
+    }
+
+    #[test]
+    fn test_sick_leave_threshold() {
+        let p_id = Uuid::new_v4();
+        let policy = PayrollIncentivePolicy {
+            id: p_id,
+            workspace_id: Uuid::new_v4(),
+            name: "Health Bonus".into(),
+            base_amount: 100_000.0,
+            payout_type: "fixed".into(),
+            is_active: true,
+            created_at: chrono::Utc::now(),
+        };
+        let tiers = vec![IncentiveTier {
+            id: Uuid::new_v4(),
+            policy_id: p_id,
+            priority: 1,
+            max_late_early_count: None,
+            max_unpaid_leave_days: None,
+            max_sick_leave_days: Some(0.0), // No sick days allowed
+            max_total_leave_days: None,
+            payout_amount: 100_000.0,
+        }];
+        // Employee has 1 sick day
+        let ctx = IncentiveContext {
+            total_work_units: 160,
+            total_leave_days: 1.0,
+            unpaid_leave_days: 0.0,
+            sick_leave_days: 1.0,
+            late_early_count: 0,
+        };
+        let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx);
+        assert_eq!(res.amount, Decimal::ZERO);
+    }
+
+    #[test]
+    fn test_total_leave_threshold() {
+        let p_id = Uuid::new_v4();
+        let policy = PayrollIncentivePolicy {
+            id: p_id,
+            workspace_id: Uuid::new_v4(),
+            name: "Full Bonus".into(),
+            base_amount: 500_000.0,
+            payout_type: "fixed".into(),
+            is_active: true,
+            created_at: chrono::Utc::now(),
+        };
+        let tiers = vec![IncentiveTier {
+            id: Uuid::new_v4(),
+            policy_id: p_id,
+            priority: 1,
+            max_late_early_count: None,
+            max_unpaid_leave_days: None,
+            max_sick_leave_days: None,
+            max_total_leave_days: Some(3.0), // Max 3 total leave days
+            payout_amount: 500_000.0,
+        }];
+        // Exactly at limit → should pass
+        let ctx_pass = IncentiveContext {
+            total_work_units: 160,
+            total_leave_days: 3.0,
+            unpaid_leave_days: 1.0,
+            sick_leave_days: 2.0,
+            late_early_count: 0,
+        };
+        let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_pass);
+        assert_eq!(res.amount, Decimal::from(500_000));
+
+        // Above limit → should fail
+        let ctx_fail = IncentiveContext {
+            total_work_units: 160,
+            total_leave_days: 4.0,
+            unpaid_leave_days: 2.0,
+            sick_leave_days: 2.0,
+            late_early_count: 0,
+        };
+        let res2 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_fail);
+        assert_eq!(res2.amount, Decimal::ZERO);
+    }
+
+    #[test]
+    fn test_tier_priority_selects_best_match() {
+        let p_id = Uuid::new_v4();
+        let policy = PayrollIncentivePolicy {
+            id: p_id,
+            workspace_id: Uuid::new_v4(),
+            name: "Multi-Tier".into(),
+            base_amount: 300_000.0,
+            payout_type: "fixed".into(),
+            is_active: true,
+            created_at: chrono::Utc::now(),
+        };
+        let t2_id = Uuid::new_v4();
+        let tiers = vec![
+            // Tier 1: strict (priority 1) — requires 0 late
+            IncentiveTier {
+                id: Uuid::new_v4(),
+                policy_id: p_id,
+                priority: 1,
+                max_late_early_count: Some(0),
+                max_unpaid_leave_days: None,
+                max_sick_leave_days: None,
+                max_total_leave_days: None,
+                payout_amount: 300_000.0,
+            },
+            // Tier 2: lenient (priority 2) — allows up to 5 late
+            IncentiveTier {
+                id: t2_id,
+                policy_id: p_id,
+                priority: 2,
+                max_late_early_count: Some(5),
+                max_unpaid_leave_days: None,
+                max_sick_leave_days: None,
+                max_total_leave_days: None,
+                payout_amount: 100_000.0,
+            },
+        ];
+        // Employee is late 2 times → doesn't match Tier 1, matches Tier 2
+        let ctx = IncentiveContext {
+            total_work_units: 160,
+            total_leave_days: 0.0,
+            unpaid_leave_days: 0.0,
+            sick_leave_days: 0.0,
+            late_early_count: 2,
+        };
+        let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx);
+        assert_eq!(res.amount, Decimal::from(100_000));
+        assert_eq!(res.tier_id, Some(t2_id));
+    }
 }

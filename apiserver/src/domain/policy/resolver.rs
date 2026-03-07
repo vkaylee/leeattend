@@ -1,3 +1,6 @@
+use crate::domain::policy::defaults::{
+    DEFAULT_GRACE_PERIOD_MINUTES, DEFAULT_HOURS_PER_DAY, DEFAULT_STD_WORKING_DAYS,
+};
 use crate::models::{EarlyArrivalStrategy, PolicyRules, WorkingCondition};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
@@ -73,8 +76,8 @@ impl PolicyResolver {
 
         // 4. System Default fallback
         Ok(StandardMonthConfig {
-            std_working_days: Decimal::from(26),
-            hours_per_day: Decimal::from(8),
+            std_working_days: Decimal::from(DEFAULT_STD_WORKING_DAYS),
+            hours_per_day: Decimal::from(DEFAULT_HOURS_PER_DAY),
             source: "system".to_string(),
         })
     }
@@ -110,7 +113,7 @@ impl PolicyResolver {
 
         // 3. Merge logic
         let mut rules = PolicyRules {
-            grace_period_minutes: 15, // Default company grace
+            grace_period_minutes: DEFAULT_GRACE_PERIOD_MINUTES,
             authorized_early_leave_minutes: 0,
             is_early_leave_paid: false,
             early_arrival_strategy: ws.early_arrival_strategy,
@@ -222,7 +225,7 @@ impl PolicyResolver {
         early_arrival_strategy: EarlyArrivalStrategy,
     ) -> PolicyRules {
         let mut rules = PolicyRules {
-            grace_period_minutes: 15,
+            grace_period_minutes: DEFAULT_GRACE_PERIOD_MINUTES,
             authorized_early_leave_minutes: 0,
             is_early_leave_paid: false,
             early_arrival_strategy,

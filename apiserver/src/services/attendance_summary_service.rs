@@ -3,6 +3,8 @@ use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::domain::policy::defaults::DEFAULT_WORK_MINUTES_PER_DAY;
+
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceDailySummary, OtStatus};
 use crate::repositories::{
@@ -181,7 +183,7 @@ impl AttendanceSummaryService {
                             let break_mins = daily_schedule.break_duration_minutes.unwrap_or(0);
                             if diff > 0 { diff - break_mins } else { diff + 1440 - break_mins }
                         }))
-                        .unwrap_or(480); // default 8h if no shift
+                        .unwrap_or(DEFAULT_WORK_MINUTES_PER_DAY); // default 8h if no shift
 
                     let threshold = hol.work_threshold_percent.unwrap_or(50);
                     let work_percent = if shift_minutes > 0 {

@@ -9,6 +9,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::policy::defaults::DEFAULT_OT_MULTIPLIER;
 use crate::domain::policy::overtime::OvertimeEngine;
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::Payslip;
@@ -56,8 +57,25 @@ struct SegmentCalcResult {
     total_overtime_pay: Decimal,
     total_holiday_work_premium: Decimal,
     total_late_early_count: i32,
-    #[allow(clippy::type_complexity)]
-    segment_snapshots: Vec<(NaiveDate, NaiveDate, Option<Uuid>, Decimal, Decimal, Decimal, Decimal, Decimal, Decimal, String)>,
+    segment_snapshots: Vec<SegmentSnapshot>,
+}
+
+/// Named record for a payroll segment snapshot.
+///
+/// Replaces the 10-element tuple that was previously used for
+/// `segment_snapshots`, giving each field a meaningful name.
+#[derive(Debug, Clone)]
+struct SegmentSnapshot {
+    seg_start: NaiveDate,
+    seg_end: NaiveDate,
+    department_id: Option<Uuid>,
+    total_base: Decimal,
+    std_working_days: Decimal,
+    hours_per_day: Decimal,
+    actual_worked_days: Decimal,
+    paid_days: Decimal,
+    amount: Decimal,
+    source: String,
 }
 
 impl PayrollService {
@@ -204,6 +222,44 @@ impl PayrollService {
             segments.push((seg_start, seg_end));
         }
         segments
+    }
+
+    /// Phase 2b: Calculate the daily rate from a segment snapshot.
+    ///
+    /// Pure function — no DB or side effects.
+    fn calculate_daily_rate(total_base: Decimal, std_working_days: Decimal) -> Decimal {
+        if std_working_days.is_zero() {
+            Decimal::ZERO
+        } else {
+            total_base / std_working_days
+        }
+    }
+
+    /// Phase 4: Apply monthly OT cap, proportionally reducing OT pay.
+    ///
+    /// Returns `(capped_ot_units, adjusted_ot_pay)`.
+    /// Pure function — no DB or side effects.
+    fn apply_ot_cap(
+        total_ot_units: i32,
+        total_overtime_pay: Decimal,
+        max_monthly_hours: Decimal,
+        work_unit_minutes: i32,
+    ) -> (i32, Decimal) {
+        let max_ot_minutes = max_monthly_hours * Decimal::from(60);
+        let max_ot_units_dec = max_ot_minutes / Decimal::from(work_unit_minutes);
+        let max_ot_units = max_ot_units_dec.to_i32().unwrap_or(i32::MAX);
+
+        if total_ot_units > max_ot_units {
+            let adjusted_pay = if total_ot_units > 0 {
+                let ratio = Decimal::from(max_ot_units) / Decimal::from(total_ot_units);
+                (total_overtime_pay * ratio).round_dp(0)
+            } else {
+                total_overtime_pay
+            };
+            (max_ot_units, adjusted_pay)
+        } else {
+            (total_ot_units, total_overtime_pay)
+        }
     }
 
     pub async fn calculate_monthly_payslip(
@@ -430,7 +486,7 @@ impl PayrollService {
                                             segment_ot_pay += total_ot_pay;
                                         } else {
                                             let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { Decimal::ZERO } else { (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day };
-                                            segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(ctx.workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(1.5).unwrap_or(Decimal::new(15, 1));
+                                            segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(ctx.workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(DEFAULT_OT_MULTIPLIER).unwrap_or(Decimal::new(15, 1));
                                         }
                                     }
 
@@ -499,18 +555,18 @@ impl PayrollService {
             total_ot_units += segment_ot_units;
             total_overtime_pay += segment_ot_pay;
 
-            segment_snapshots.push((
+            segment_snapshots.push(SegmentSnapshot {
                 seg_start,
                 seg_end,
-                dept_id,
-                segment_total_base,
-                std_config.std_working_days,
-                std_config.hours_per_day,
-                worked_days_dec,
-                worked_days_dec,
-                segment_amount,
-                std_config.source,
-            ));
+                department_id: dept_id,
+                total_base: segment_total_base,
+                std_working_days: std_config.std_working_days,
+                hours_per_day: std_config.hours_per_day,
+                actual_worked_days: worked_days_dec,
+                paid_days: worked_days_dec,
+                amount: segment_amount,
+                source: std_config.source,
+            });
         }
 
         // 6b. Enforce monthly OT cap from PayrollSettings
@@ -521,24 +577,22 @@ impl PayrollService {
         .unwrap_or(None);
         if let Some(ref ps) = payroll_settings {
             if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
-                let max_ot_minutes = max_monthly_hours * Decimal::from(60);
-                let max_ot_units_dec = max_ot_minutes / Decimal::from(ctx.workspace.work_unit_minutes);
-                let max_ot_units = max_ot_units_dec.to_i32().unwrap_or(i32::MAX);
-                if total_ot_units > max_ot_units {
-                    // Proportionally reduce OT pay
-                    if total_ot_units > 0 {
-                        let ratio = Decimal::from(max_ot_units) / Decimal::from(total_ot_units);
-                        total_overtime_pay = (total_overtime_pay * ratio)
-                            .round_dp(0);
-                    }
-                    total_ot_units = max_ot_units;
+                let (capped_units, capped_pay) = Self::apply_ot_cap(
+                    total_ot_units,
+                    total_overtime_pay,
+                    max_monthly_hours,
+                    ctx.workspace.work_unit_minutes,
+                );
+                if capped_units < total_ot_units {
                     tracing::info!(
                         employee_id = %employee_id,
                         "Monthly OT capped at {} units (max {} hours)",
-                        max_ot_units,
+                        capped_units,
                         max_monthly_hours
                     );
                 }
+                total_ot_units = capped_units;
+                total_overtime_pay = capped_pay;
             }
         }
 
@@ -593,11 +647,8 @@ impl PayrollService {
         let mut deductions_amount = Decimal::ZERO;
         if leave_breakdown.unpaid_days > 0.0 {
             if let Some(last_snap) = segment_snapshots.last() {
-                let daily_rate = if last_snap.4.is_zero() {
-                    Decimal::ZERO
-                } else {
-                    last_snap.3 / last_snap.4
-                };
+                let daily_rate =
+                    Self::calculate_daily_rate(last_snap.total_base, last_snap.std_working_days);
                 deductions_amount = daily_rate
                     * Decimal::from_f64(leave_breakdown.unpaid_days).unwrap_or(Decimal::ZERO);
             }
@@ -630,11 +681,8 @@ impl PayrollService {
 
         if unpaid_holiday_days > 0 {
             if let Some(last_snap) = segment_snapshots.last() {
-                let daily_rate = if last_snap.4.is_zero() {
-                    Decimal::ZERO
-                } else {
-                    last_snap.3 / last_snap.4
-                };
+                let daily_rate =
+                    Self::calculate_daily_rate(last_snap.total_base, last_snap.std_working_days);
                 deductions_amount += daily_rate * Decimal::from(unpaid_holiday_days);
             }
         }
@@ -661,21 +709,20 @@ impl PayrollService {
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        for (start, end, dept, base, std, hours, actual, paid, amount, source) in segment_snapshots
-        {
+        for snap in segment_snapshots {
             payroll_repository::create_payslip_segment(
                 pool,
                 created_payslip.id,
-                start,
-                end,
-                dept,
-                base,
-                std,
-                hours,
-                actual,
-                paid,
-                amount,
-                Some(source),
+                snap.seg_start,
+                snap.seg_end,
+                snap.department_id,
+                snap.total_base,
+                snap.std_working_days,
+                snap.hours_per_day,
+                snap.actual_worked_days,
+                snap.paid_days,
+                snap.amount,
+                Some(snap.source),
             )
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -907,5 +954,136 @@ mod tests {
         assert_eq!(segments.len(), 2);
         assert_eq!(segments[0], (d(2026, 3, 1), d(2026, 3, 14)));
         assert_eq!(segments[1], (d(2026, 3, 15), d(2026, 3, 31)));
+    }
+
+    // --- Tests for calculate_daily_rate ---
+
+    #[test]
+    fn test_daily_rate_normal() {
+        // Base salary 26_000 / 26 working days = 1_000 per day
+        let rate = PayrollService::calculate_daily_rate(
+            Decimal::from(26_000),
+            Decimal::from(26),
+        );
+        assert_eq!(rate, Decimal::from(1_000));
+    }
+
+    #[test]
+    fn test_daily_rate_zero_working_days_returns_zero() {
+        // Edge case: zero working days should not panic/divide-by-zero
+        let rate = PayrollService::calculate_daily_rate(
+            Decimal::from(30_000),
+            Decimal::ZERO,
+        );
+        assert_eq!(rate, Decimal::ZERO);
+    }
+
+    #[test]
+    fn test_daily_rate_zero_base_returns_zero() {
+        let rate = PayrollService::calculate_daily_rate(
+            Decimal::ZERO,
+            Decimal::from(26),
+        );
+        assert_eq!(rate, Decimal::ZERO);
+    }
+
+    // --- Tests for apply_ot_cap ---
+
+    #[test]
+    fn test_ot_cap_no_cap_needed() {
+        // 10 OT units, cap allows 20 hours (= 40 units at 30-min work_unit)
+        let (units, pay) = PayrollService::apply_ot_cap(
+            10,                   // total_ot_units
+            Decimal::from(5_000), // total_overtime_pay
+            Decimal::from(20),    // max_monthly_hours = 20h
+            30,                   // work_unit_minutes = 30 min
+        );
+        // 20h * 60 = 1200 min / 30 = 40 max units; 10 < 40 → no cap
+        assert_eq!(units, 10);
+        assert_eq!(pay, Decimal::from(5_000));
+    }
+
+    #[test]
+    fn test_ot_cap_applied() {
+        // 50 OT units exceed cap of 40 → should be reduced
+        let (units, pay) = PayrollService::apply_ot_cap(
+            50,                    // total_ot_units
+            Decimal::from(10_000), // total_overtime_pay
+            Decimal::from(20),     // max_monthly_hours = 20h
+            30,                    // work_unit_minutes = 30 min
+        );
+        // Max units = 20*60/30 = 40
+        assert_eq!(units, 40);
+        // Pay proportional: 10_000 * (40/50) = 8_000
+        assert_eq!(pay, Decimal::from(8_000));
+    }
+
+    #[test]
+    fn test_ot_cap_exact_limit() {
+        let (units, pay) = PayrollService::apply_ot_cap(
+            40,                   // exactly at limit
+            Decimal::from(8_000),
+            Decimal::from(20),    // 20h * 60 / 30 = 40
+            30,
+        );
+        assert_eq!(units, 40); // no reduction
+        assert_eq!(pay, Decimal::from(8_000));
+    }
+
+    #[test]
+    fn test_ot_cap_zero_units() {
+        let (units, pay) = PayrollService::apply_ot_cap(
+            0,
+            Decimal::ZERO,
+            Decimal::from(20),
+            30,
+        );
+        assert_eq!(units, 0);
+        assert_eq!(pay, Decimal::ZERO);
+    }
+
+    // --- Tests for SegmentSnapshot struct ---
+
+    #[test]
+    fn test_segment_snapshot_construction() {
+        let snap = SegmentSnapshot {
+            seg_start: d(2026, 3, 1),
+            seg_end: d(2026, 3, 15),
+            department_id: Some(Uuid::new_v4()),
+            total_base: Decimal::from(13_000),
+            std_working_days: Decimal::from(26),
+            hours_per_day: Decimal::from(8),
+            actual_worked_days: Decimal::from(11),
+            paid_days: Decimal::from(11),
+            amount: Decimal::from(5_500),
+            source: "workspace".to_string(),
+        };
+
+        assert_eq!(snap.seg_start, d(2026, 3, 1));
+        assert_eq!(snap.seg_end, d(2026, 3, 15));
+        assert!(snap.department_id.is_some());
+        assert_eq!(snap.source, "workspace");
+    }
+
+    #[test]
+    fn test_segment_snapshot_daily_rate_via_helper() {
+        let snap = SegmentSnapshot {
+            seg_start: d(2026, 3, 1),
+            seg_end: d(2026, 3, 31),
+            department_id: None,
+            total_base: Decimal::from(26_000),
+            std_working_days: Decimal::from(26),
+            hours_per_day: Decimal::from(8),
+            actual_worked_days: Decimal::from(22),
+            paid_days: Decimal::from(22),
+            amount: Decimal::from(22_000),
+            source: "system".to_string(),
+        };
+
+        let daily_rate = PayrollService::calculate_daily_rate(
+            snap.total_base,
+            snap.std_working_days,
+        );
+        assert_eq!(daily_rate, Decimal::from(1_000));
     }
 }
