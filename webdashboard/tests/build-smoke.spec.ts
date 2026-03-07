@@ -7,7 +7,7 @@ import { expect } from "@playwright/test";
 test.describe("UI Build Smoke Test", () => {
   test("should load the application and render the root element without errors", async ({ page, baseURL }) => {
     const errors: string[] = [];
-    
+
     // Thu thập tất cả lỗi trình duyệt
     page.on("pageerror", (err) => {
       errors.push(err.message);
@@ -20,7 +20,11 @@ test.describe("UI Build Smoke Test", () => {
     // Chờ cho đến khi biến mất màn hình loading
     await page.waitForFunction(() => {
       const text = document.body.innerText;
-      return !text.includes("Checking security") && !text.includes("Đang kiểm tra bảo mật");
+      return text.trim().length > 0 &&
+        !text.includes("Checking security") &&
+        !text.includes("Đang kiểm tra bảo mật") &&
+        !text.includes("Loading workspace") &&
+        !text.includes("Đang tải");
     }, { timeout: 15000 }).catch(() => console.log("Timeout waiting for security screen to detach, continuing..."));
 
     // 1. Kiểm tra không có lỗi runtime nghiêm trọng làm chết app
@@ -32,15 +36,15 @@ test.describe("UI Build Smoke Test", () => {
 
     // 3. Đảm bảo không render trang trắng (Kiểm tra có text hoặc element quan trọng)
     const bodyText = await page.innerText("body");
-    const hasAppContent = bodyText.includes("LeeAttend") || 
-                         bodyText.includes("Attend") ||
-                         bodyText.includes("Sign in") || 
-                         bodyText.includes("Đăng nhập") || 
-                         bodyText.includes("Dashboard") ||
-                         bodyText.includes("Bảng điều khiển") ||
-                         bodyText.includes("Fast Login") ||
-                         bodyText.includes("FAST LOGIN");
-    
+    const hasAppContent = bodyText.includes("LeeAttend") ||
+      bodyText.includes("Attend") ||
+      bodyText.includes("Sign in") ||
+      bodyText.includes("Đăng nhập") ||
+      bodyText.includes("Dashboard") ||
+      bodyText.includes("Bảng điều khiển") ||
+      bodyText.includes("Fast Login") ||
+      bodyText.includes("FAST LOGIN");
+
     expect(hasAppContent).toBe(true);
   });
 
@@ -51,8 +55,8 @@ test.describe("UI Build Smoke Test", () => {
     const images = await page.locator("img").count();
     // Thường login page sẽ có logo
     if (page.url().includes("/login")) {
-       // login page mới có nhiều decor, ít nhất 1 logo/icon
-       expect(images).toBeGreaterThanOrEqual(0);
+      // login page mới có nhiều decor, ít nhất 1 logo/icon
+      expect(images).toBeGreaterThanOrEqual(0);
     }
   });
 });
