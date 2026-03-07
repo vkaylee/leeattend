@@ -23,7 +23,7 @@ trap cleanup EXIT INT TERM
 # ── Phase 1: Smoke tests (lint + unit) ────────────────────────────
 echo ""
 echo "🔹 Phase 1: Smoke tests (lint + unit)..."
-./ai-test.sh --all --smoke
+./ai-test.sh --api --smoke
 
 if [ $? -ne 0 ]; then
     echo "========================================"

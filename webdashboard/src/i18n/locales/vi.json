@@ -2307,7 +2307,8 @@
       "desc_placeholder": "Mô tả tùy chọn",
       "desc_label": "Mô tả ngắn",
       "weekly_grid_title": "Lưới lịch tuần",
-      "prefill_standard": "Điền mẫu hành chính"
+      "prefill_standard": "Điền mẫu hành chính",
+      "add_shift": "Thêm ca"
     },
     "weekly_config": "Cấu hình tuần",
     "actions": {

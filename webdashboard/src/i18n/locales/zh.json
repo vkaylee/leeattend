@@ -2307,7 +2307,8 @@
       "desc_placeholder": "可选描述",
       "desc_label": "简短描述",
       "weekly_grid_title": "每周日程网格",
-      "prefill_standard": "填充标准模式"
+      "prefill_standard": "填充标准模式",
+      "add_shift": "添加班次"
     },
     "weekly_config": "每周配置",
     "actions": {

@@ -11,7 +11,7 @@ use uuid::Uuid;
 /// Check whether two time ranges overlap.
 /// Handles overnight shifts (end < start) by treating the range as wrapping past midnight.
 fn times_overlap(s1: NaiveTime, e1: NaiveTime, s2: NaiveTime, e2: NaiveTime) -> bool {
-    // For simplicity, compare as minutes-from-midnight.
+    // Compare as seconds-from-midnight.
     // Overnight shifts (e.g., 22:00–06:00) are expanded to a wider range.
     let to_range = |s: NaiveTime, e: NaiveTime| -> (i64, i64) {
         let sm = s.num_seconds_from_midnight() as i64;
@@ -25,7 +25,15 @@ fn times_overlap(s1: NaiveTime, e1: NaiveTime, s2: NaiveTime, e2: NaiveTime) -> 
     };
     let (a_start, a_end) = to_range(s1, e1);
     let (b_start, b_end) = to_range(s2, e2);
-    a_start < b_end && b_start < a_end
+
+    // Check overlap in original position
+    let overlaps = a_start < b_end && b_start < a_end;
+    // Also check with b shifted by +24h (handles overnight A vs early-morning B)
+    let overlaps_shifted_b = a_start < (b_end + 86400) && (b_start + 86400) < a_end;
+    // Also check with a shifted by +24h (handles early-morning A vs overnight B)
+    let overlaps_shifted_a = (a_start + 86400) < b_end && b_start < (a_end + 86400);
+
+    overlaps || overlaps_shifted_b || overlaps_shifted_a
 }
 
 pub async fn create_working_pattern(

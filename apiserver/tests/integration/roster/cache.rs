@@ -252,12 +252,12 @@ async fn test_assignment_rules_and_rule_patterns() {
     assert_eq!(data.rule_patterns.len(), 2);
     assert_eq!(
         data.rule_patterns[&(pattern_id, 1)],
-        Some(shift_id),
+        vec![Some(shift_id)],
         "Monday should have the shift"
     );
     assert_eq!(
         data.rule_patterns[&(pattern_id, 2)],
-        None,
+        vec![None],
         "Tuesday should be off"
     );
 }

@@ -2307,7 +2307,8 @@
       "desc_placeholder": "Optional description",
       "desc_label": "Short description",
       "weekly_grid_title": "Weekly Schedule Grid",
-      "prefill_standard": "Fill Standard Pattern"
+      "prefill_standard": "Fill Standard Pattern",
+      "add_shift": "Add Shift"
     },
     "weekly_config": "Weekly Config",
     "actions": {
