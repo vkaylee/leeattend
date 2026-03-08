@@ -88,11 +88,11 @@ else
     fail "TESTS FAILED banner is missing"
 fi
 
-# ── Test 3: "Last 30 lines" summary section appears ──────────────────
-if echo "$OUTPUT" | grep -q "Last 30 lines"; then
-    pass "Last 30 lines summary section is displayed"
+# ── Test 3: Failure details summary section appears ──────────────────
+if echo "$OUTPUT" | grep -qE "(Last 30 lines|Failure Details)"; then
+    pass "Failure details summary section is displayed"
 else
-    fail "Last 30 lines summary section is missing"
+    fail "Failure details summary section is missing"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────

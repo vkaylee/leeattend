@@ -116,15 +116,21 @@ while [ ! -f "$EXIT_CODE_FILE" ]; do
     sleep 1
 done
 
-# Small delay to let tail -f flush remaining output
-sleep 0.5
+# Read exit code from file
+EXIT_CODE=$(cat "$EXIT_CODE_FILE" 2>/dev/null || echo "1")
+
+# Give tail -f time to flush remaining output.
+# On failure, on_task_failure writes the full log AFTER setting exit code,
+# so we must wait longer for that output to arrive in the log file.
+if [ "$EXIT_CODE" -eq 0 ]; then
+    sleep 0.5
+else
+    sleep 2
+fi
 
 # Kill tail -f (no longer needed, process is done)
 kill $_TAIL_PID 2>/dev/null || true
 wait $_TAIL_PID 2>/dev/null || true
-
-# Read exit code from file
-EXIT_CODE=$(cat "$EXIT_CODE_FILE" 2>/dev/null || echo "1")
 
 echo ""
 echo "================================================================"
@@ -134,8 +140,27 @@ else
     echo "❌ TESTS FAILED (exit code: $EXIT_CODE)"
     echo "================================================================"
     echo ""
-    echo "──── Last 30 lines ────"
-    tail -30 "$LOG_FILE" 2>/dev/null || true
+    # Print failure details from the nextest/test log (clean output, no ANSI).
+    # on_task_failure creates a symlink at .test_logs/latest-failure.log
+    FAILURE_LOG="$SCRIPT_DIR/.test_logs/latest-failure.log"
+    PREBUILD_LOG="$SCRIPT_DIR/.test_logs/prebuild.log"
+    if [ -f "$FAILURE_LOG" ]; then
+        echo "──── Failure Details (from $FAILURE_LOG) ────"
+        # Show FAIL lines, panic messages, and assertion details
+        grep -E '(FAIL|panicked|assertion|left:|right:|error:|stderr)' "$FAILURE_LOG" 2>/dev/null | head -20
+        echo ""
+        echo "──── Full Failure Context ────"
+        # Show everything from first FAIL line onward (compact)
+        grep -n 'FAIL' "$FAILURE_LOG" 2>/dev/null | head -1 | while IFS=: read -r line_num _rest; do
+            sed -n "${line_num},\$p" "$FAILURE_LOG" | head -40
+        done
+    elif [ -f "$PREBUILD_LOG" ]; then
+        echo "──── Build Error Details ────"
+        grep -E '(^error|^\s+-->|could not compile)' "$PREBUILD_LOG" 2>/dev/null | tail -20
+    else
+        echo "──── Last 30 lines ────"
+        tail -30 "$LOG_FILE" 2>/dev/null || true
+    fi
 fi
 echo "================================================================"
 

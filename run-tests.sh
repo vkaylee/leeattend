@@ -731,23 +731,16 @@ cleanup() {
         # to completely detach from PTY. Even stdout/stderr can hold FDs open
         # if Docker CLI spawns child processes that inherit them.
 
-        # Sync local logs into the persistent volume
-        echo -e "${BLUE}📦 Backing up test logs to docker volume 'test-logs'...${NC}"
-        timeout 10 setsid docker run --rm \
-            -v leeattend-test_test-logs:/logs \
-            -v "$PROJECT_ROOT/.test_logs:/local" \
-            alpine cp -r /local/. /logs/ </dev/null >/dev/null 2>&1 || true
-
         # Stop containers — use dc_detached for complete PTY detachment
         dc_detached down --remove-orphans --timeout 5 || {
             echo -e "${YELLOW}⚠️  Warning: Cleanup encountered some issues.${NC}"
         }
-        # Only remove ephemeral volumes, leave target-cache, sccache-cache, test-logs intact
-        setsid docker volume prune -f \
-            --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" \
-            --filter "label=com.docker.compose.volume=shared-data" \
-            </dev/null >/dev/null 2>&1 || true
-        echo -e "${GREEN}✅ Environment cleaned up (logs and cache preserved).${NC}"
+        # Remove ephemeral volumes (shared-data + test-logs are tmpfs, no need to keep)
+        for _vol in shared-data test-logs; do
+            setsid docker volume rm "leeattend-test_${_vol}" \
+                </dev/null >/dev/null 2>&1 || true
+        done
+        echo -e "${GREEN}✅ Environment cleaned up (cache preserved, ephemeral volumes removed).${NC}"
     fi
 
     # ── Final PTY sweep ──────────────────────────────────────────────

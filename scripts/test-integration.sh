@@ -72,10 +72,21 @@ leeattend_run_integration() {
 
     if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
         echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
+        local prebuild_exit=0
         if [[ "${USE_DOCKER:-}" == "true" ]]; then
             $DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c "cargo test --no-run -j $CARGO_BUILD_JOBS" </dev/null > "$LOG_DIR/prebuild.log" 2>&1
+            prebuild_exit=$?
         else
             run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && DATABASE_URL=$DATABASE_URL cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
+            prebuild_exit=$?
+        fi
+        if [[ $prebuild_exit -ne 0 ]]; then
+            echo -e "  ${RED}❌ Pre-compilation FAILED (exit code: $prebuild_exit)${NC}"
+            echo -e "  ${RED}── Build Error Log ──${NC}"
+            # Show only the error lines, not the full compile output
+            grep -E '(^error|^\s+-->|could not compile)' "$LOG_DIR/prebuild.log" | tail -30
+            echo -e "  ${RED}── Full log: $LOG_DIR/prebuild.log ──${NC}"
+            return $prebuild_exit
         fi
     fi
 
