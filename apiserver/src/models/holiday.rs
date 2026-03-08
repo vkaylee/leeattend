@@ -108,3 +108,151 @@ fn default_holiday_type() -> String {
 fn default_true() -> bool {
     true
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_holiday_overnight_strategy_default() {
+        let strategy = HolidayOvernightStrategy::default();
+        assert_eq!(strategy, HolidayOvernightStrategy::SplitAtMidnight);
+    }
+
+    #[test]
+    fn test_holiday_overnight_strategy_display() {
+        assert_eq!(
+            HolidayOvernightStrategy::SplitAtMidnight.to_string(),
+            "split_at_midnight"
+        );
+        assert_eq!(
+            HolidayOvernightStrategy::ByPunchInDate.to_string(),
+            "by_punch_in_date"
+        );
+        assert_eq!(
+            HolidayOvernightStrategy::ByMajorityHours.to_string(),
+            "by_majority_hours"
+        );
+    }
+
+    #[test]
+    fn test_holiday_overnight_strategy_from_str() {
+        assert_eq!(
+            HolidayOvernightStrategy::from_str("split_at_midnight").unwrap(),
+            HolidayOvernightStrategy::SplitAtMidnight
+        );
+        assert_eq!(
+            HolidayOvernightStrategy::from_str("by_punch_in_date").unwrap(),
+            HolidayOvernightStrategy::ByPunchInDate
+        );
+        assert_eq!(
+            HolidayOvernightStrategy::from_str("by_majority_hours").unwrap(),
+            HolidayOvernightStrategy::ByMajorityHours
+        );
+    }
+
+    #[test]
+    fn test_holiday_overnight_strategy_from_str_invalid() {
+        let result = HolidayOvernightStrategy::from_str("invalid_strategy");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Unknown holiday overnight strategy"));
+    }
+
+    #[test]
+    fn test_holiday_overnight_strategy_serde_roundtrip() {
+        let strategies = vec![
+            HolidayOvernightStrategy::SplitAtMidnight,
+            HolidayOvernightStrategy::ByPunchInDate,
+            HolidayOvernightStrategy::ByMajorityHours,
+        ];
+        for strategy in strategies {
+            let json = serde_json::to_string(&strategy).unwrap();
+            let deserialized: HolidayOvernightStrategy = serde_json::from_str(&json).unwrap();
+            assert_eq!(strategy, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_default_holiday_type() {
+        assert_eq!(default_holiday_type(), "national");
+    }
+
+    #[test]
+    fn test_default_true() {
+        assert!(default_true());
+    }
+
+    #[test]
+    fn test_create_holiday_request_deserialization() {
+        let json = r#"{
+            "name": "New Year",
+            "date": "2026-01-01"
+        }"#;
+        let req: CreateHolidayRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.name, "New Year");
+        assert_eq!(req.date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap());
+        assert_eq!(req.holiday_type, "national"); // default
+        assert!(req.is_paid); // default true
+        assert!(req.is_credit_on_work); // default true
+        assert!(req.leave_type_id.is_none());
+        assert!(req.ot_multiplier.is_none());
+    }
+
+    #[test]
+    fn test_create_holiday_request_with_all_fields() {
+        let json = r#"{
+            "name": "Company Day",
+            "date": "2026-06-15",
+            "holiday_type": "company",
+            "is_paid": false,
+            "ot_multiplier": "2.5",
+            "description": "Annual company day",
+            "work_threshold_percent": 75,
+            "is_credit_on_work": false
+        }"#;
+        let req: CreateHolidayRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.name, "Company Day");
+        assert_eq!(req.holiday_type, "company");
+        assert!(!req.is_paid);
+        assert!(!req.is_credit_on_work);
+        assert_eq!(req.work_threshold_percent, Some(75));
+        assert!(req.description.is_some());
+    }
+
+    #[test]
+    fn test_update_holiday_request_all_none() {
+        let json = r#"{}"#;
+        let req: UpdateHolidayRequest = serde_json::from_str(json).unwrap();
+        assert!(req.name.is_none());
+        assert!(req.date.is_none());
+        assert!(req.holiday_type.is_none());
+        assert!(req.is_paid.is_none());
+    }
+
+    #[test]
+    fn test_holiday_serialization_roundtrip() {
+        let holiday = Holiday {
+            id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            name: "Test Holiday".to_string(),
+            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            holiday_type: "national".to_string(),
+            is_paid: true,
+            leave_type_id: None,
+            ot_multiplier: Some(Decimal::from(2)),
+            description: Some("A test holiday".to_string()),
+            work_threshold_percent: Some(50),
+            is_credit_on_work: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&holiday).unwrap();
+        let deserialized: Holiday = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.name, "Test Holiday");
+        assert_eq!(deserialized.holiday_type, "national");
+        assert!(deserialized.is_paid);
+        assert_eq!(deserialized.ot_multiplier, Some(Decimal::from(2)));
+    }
+}

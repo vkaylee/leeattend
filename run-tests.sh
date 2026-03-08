@@ -793,6 +793,11 @@ if [[ "$COVERAGE" == "true" ]]; then
             wait_for_web_test
         fi
         if [[ "$FILTER" != *"web"* ]] || [[ -z "$FILTER" ]]; then
+            # Force re-migration: test_db uses tmpfs (RAM disk), so data may
+            # have been lost if the container was rebuilt/restarted between
+            # earlier phases and coverage.  Reset the cache flag so
+            # ensure_db_migrated() actually runs migrations again.
+            _DB_MIGRATED=false
             ensure_db_migrated
         fi
     fi
