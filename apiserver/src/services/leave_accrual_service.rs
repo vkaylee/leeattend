@@ -72,6 +72,7 @@ impl LeaveAccrualService {
     /// Helper to count "Qualifying Days" for performance-based accrual.
     pub async fn count_qualifying_days(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -87,17 +88,20 @@ impl LeaveAccrualService {
 
         let work_days = sqlx::query!(
             r#"
-            SELECT DISTINCT(punch_in_time AT TIME ZONE $2)::date as "date!"
-            FROM time_entries
-            WHERE employee_id = $1
-              AND punch_in_time >= $3
-              AND punch_in_time <= $4
-              AND entry_type = 'work'
+            SELECT DISTINCT(te.punch_in_time AT TIME ZONE $2)::date as "date!"
+            FROM time_entries te
+            JOIN employees e ON te.employee_id = e.id
+            WHERE te.employee_id = $1
+              AND e.workspace_id = $5
+              AND te.punch_in_time >= $3
+              AND te.punch_in_time <= $4
+              AND te.entry_type = 'work'
             "#,
             employee_id,
             tz.to_string(),
             start_dt,
-            end_dt
+            end_dt,
+            workspace_id
         )
         .fetch_all(pool)
         .await?;
@@ -109,16 +113,19 @@ impl LeaveAccrualService {
         // Approved Leave days
         let leave_days = sqlx::query!(
             r#"
-            SELECT start_date, end_date
-            FROM leave_requests
-            WHERE employee_id = $1
-              AND status = 'approved'
-              AND start_date <= $3
-              AND end_date >= $2
+            SELECT lr.start_date, lr.end_date
+            FROM leave_requests lr
+            JOIN employees e ON lr.employee_id = e.id
+            WHERE lr.employee_id = $1
+              AND e.workspace_id = $4
+              AND lr.status = 'approved'
+              AND lr.start_date <= $3
+              AND lr.end_date >= $2
             "#,
             employee_id,
             start_date,
-            end_date
+            end_date,
+            workspace_id
         )
         .fetch_all(pool)
         .await?;
@@ -291,6 +298,7 @@ impl LeaveAccrualService {
     /// Returns a HashMap<NaiveDate, i32> where key = first of month, value = qualifying days.
     pub async fn batch_count_qualifying_days(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         range_start: NaiveDate,
         range_end: NaiveDate,
@@ -303,19 +311,22 @@ impl LeaveAccrualService {
         // Count distinct work days per month from time_entries
         let work_rows = sqlx::query!(
             r#"
-            SELECT date_trunc('month', (punch_in_time AT TIME ZONE $2))::date as "month!",
-                   COUNT(DISTINCT (punch_in_time AT TIME ZONE $2)::date) as "count!"
-            FROM time_entries
-            WHERE employee_id = $1
-              AND punch_in_time >= $3
-              AND punch_in_time <= $4
-              AND entry_type = 'work'
+            SELECT date_trunc('month', (te.punch_in_time AT TIME ZONE $2))::date as "month!",
+                   COUNT(DISTINCT (te.punch_in_time AT TIME ZONE $2)::date) as "count!"
+            FROM time_entries te
+            JOIN employees e ON te.employee_id = e.id
+            WHERE te.employee_id = $1
+              AND e.workspace_id = $5
+              AND te.punch_in_time >= $3
+              AND te.punch_in_time <= $4
+              AND te.entry_type = 'work'
             GROUP BY 1
             "#,
             employee_id,
             tz.to_string(),
             start_dt,
-            end_dt
+            end_dt,
+            workspace_id
         )
         .fetch_all(pool)
         .await?;
@@ -328,16 +339,19 @@ impl LeaveAccrualService {
         // Also count approved leave days per month
         let leave_rows = sqlx::query!(
             r#"
-            SELECT start_date, end_date
-            FROM leave_requests
-            WHERE employee_id = $1
-              AND status = 'approved'
-              AND start_date <= $3
-              AND end_date >= $2
+            SELECT lr.start_date, lr.end_date
+            FROM leave_requests lr
+            JOIN employees e ON lr.employee_id = e.id
+            WHERE lr.employee_id = $1
+              AND e.workspace_id = $4
+              AND lr.status = 'approved'
+              AND lr.start_date <= $3
+              AND lr.end_date >= $2
             "#,
             employee_id,
             range_start,
-            range_end
+            range_end,
+            workspace_id
         )
         .fetch_all(pool)
         .await?;
@@ -404,8 +418,9 @@ impl LeaveAccrualService {
 
                 // Fetch the assignment record to get the true effective_from
                 let assignment = sqlx::query!(
-                    "SELECT effective_from FROM leave_policy_assignments WHERE id = $1",
-                    assignment_id
+                    "SELECT effective_from FROM leave_policy_assignments WHERE id = $1 AND workspace_id = $2",
+                    assignment_id,
+                    workspace_id
                 )
                 .fetch_one(pool)
                 .await?;
@@ -449,6 +464,7 @@ impl LeaveAccrualService {
 
                 let qualifying_days_map = if config.min_work_days_threshold.is_some() {
                     self.batch_count_qualifying_days(
+                        workspace_id,
                         emp.id,
                         qualifying_range_start,
                         date,
@@ -498,11 +514,12 @@ impl LeaveAccrualService {
                         let existing_log = sqlx::query!(
                             r#"
                             SELECT id, amount FROM leave_accrual_logs
-                            WHERE employee_id = $1 AND leave_type_id = $2 AND accrual_date = $3
+                            WHERE employee_id = $1 AND leave_type_id = $2 AND accrual_date = $3 AND workspace_id = $4
                             "#,
                             emp.id,
                             leave_type_id,
-                            accrual_date
+                            accrual_date,
+                            workspace_id
                         )
                         .fetch_optional(pool)
                         .await?;
@@ -517,13 +534,14 @@ impl LeaveAccrualService {
                                     r#"
                                     UPDATE leave_accrual_logs
                                     SET amount = $1, notes = COALESCE(notes, '') || ' (Re-calculated)'
-                                    WHERE id = $2
+                                    WHERE id = $2 AND workspace_id = $3
                                     RETURNING id, workspace_id, employee_id, policy_assignment_id,
                                               accrual_date, amount, leave_type_id, notes,
                                               created_at as "created_at!"
                                     "#,
                                     decimal_amount,
-                                    old_log.id
+                                    old_log.id,
+                                    workspace_id
                                 )
                                 .fetch_one(pool)
                                 .await?;

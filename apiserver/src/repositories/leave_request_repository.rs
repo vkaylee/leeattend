@@ -192,7 +192,9 @@ pub async fn get_approved_leave_breakdown(
                SUM(LEAST(lr.end_date, $3) - GREATEST(lr.start_date, $2) + 1) as days
         FROM leave_requests lr
         JOIN leave_types lt ON lr.leave_type_id = lt.id
+        JOIN employees e ON lr.employee_id = e.id
         WHERE lr.employee_id = $1
+          AND e.workspace_id = $4
           AND lr.status = 'approved'
           AND lr.start_date <= $3
           AND lr.end_date >= $2
@@ -202,6 +204,7 @@ pub async fn get_approved_leave_breakdown(
     .bind(employee_id)
     .bind(start_date)
     .bind(end_date)
+    .bind(workspace_id)
     .fetch_all(pool)
     .await?;
 

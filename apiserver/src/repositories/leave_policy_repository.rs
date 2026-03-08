@@ -169,8 +169,9 @@ pub async fn create_policy_assignment(
 
     // 1. Get the leave_type of the policy being assigned
     let leave_type_id = sqlx::query!(
-        "SELECT leave_type_id FROM leave_policy_definitions WHERE id = $1",
-        assignment.policy_id
+        "SELECT leave_type_id FROM leave_policy_definitions WHERE id = $1 AND workspace_id = $2",
+        assignment.policy_id,
+        assignment.workspace_id
     )
     .fetch_one(&mut *tx)
     .await?

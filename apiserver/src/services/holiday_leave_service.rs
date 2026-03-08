@@ -71,8 +71,9 @@ impl HolidayLeaveService {
 
         // Get leave type name for audit trail
         let leave_type_name = sqlx::query_scalar!(
-            "SELECT name FROM leave_types WHERE id = $1",
-            leave_type_id
+            "SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2",
+            leave_type_id,
+            workspace_id
         )
         .fetch_optional(pool)
         .await
@@ -96,7 +97,7 @@ impl HolidayLeaveService {
             }
 
             // Check leave balance
-            let balances = self.leave_balance_repo.get_employee_balances(emp.id, year)
+            let balances = self.leave_balance_repo.get_employee_balances(workspace_id, emp.id, year)
                 .await
                 .map_err(|e| e.to_string())?;
 

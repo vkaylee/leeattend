@@ -9,7 +9,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 #[async_trait]
 pub trait LeaveBalanceRepository: super::PoolBacked + Send + Sync {
-    async fn get_employee_balances(&self, employee_id: Uuid, year: i32) -> Result<Vec<EmployeeLeaveBalance>, sqlx::Error>;
+    async fn get_employee_balances(&self, workspace_id: Uuid, employee_id: Uuid, year: i32) -> Result<Vec<EmployeeLeaveBalance>, sqlx::Error>;
     async fn get_workspace_balances(&self, workspace_id: Uuid, year: i32, limit: i64, offset: i64, search: Option<String>) -> Result<(Vec<WorkspaceLeaveBalance>, i64), sqlx::Error>;
     async fn upsert_leave_balance(&self, balance: &LeaveBalance) -> Result<(), sqlx::Error>;
     async fn adjust_balance(&self, workspace_id: Uuid, employee_id: Uuid, leave_type_id: Uuid, amount: rust_decimal::Decimal, transaction_date: chrono::NaiveDate, reason: &str) -> Result<(), sqlx::Error>;
@@ -28,8 +28,8 @@ impl SqlxLeaveBalanceRepository {
 
 #[async_trait]
 impl LeaveBalanceRepository for SqlxLeaveBalanceRepository {
-    async fn get_employee_balances(&self, employee_id: Uuid, year: i32) -> Result<Vec<EmployeeLeaveBalance>, sqlx::Error> {
-        get_employee_balances(&self.pool, employee_id, year).await
+    async fn get_employee_balances(&self, workspace_id: Uuid, employee_id: Uuid, year: i32) -> Result<Vec<EmployeeLeaveBalance>, sqlx::Error> {
+        get_employee_balances(&self.pool, workspace_id, employee_id, year).await
     }
     async fn get_workspace_balances(&self, workspace_id: Uuid, year: i32, limit: i64, offset: i64, search: Option<String>) -> Result<(Vec<WorkspaceLeaveBalance>, i64), sqlx::Error> {
         get_workspace_balances(&self.pool, workspace_id, year, limit, offset, search).await
@@ -44,6 +44,7 @@ impl LeaveBalanceRepository for SqlxLeaveBalanceRepository {
 
 pub async fn get_employee_balances(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
     year: i32,
 ) -> Result<Vec<EmployeeLeaveBalance>, sqlx::Error> {
@@ -59,7 +60,9 @@ pub async fn get_employee_balances(
                      WHERE EXTRACT(DOW FROM d) NOT IN (0, 6))
                 )::INT as used_days
             FROM leave_requests lr
+            JOIN employees e_usage ON lr.employee_id = e_usage.id
             WHERE lr.employee_id = $1
+              AND e_usage.workspace_id = $3
               AND lr.status = 'approved'
               AND EXTRACT(YEAR FROM lr.start_date)::INT = $2
             GROUP BY lr.leave_type_id
@@ -79,11 +82,13 @@ pub async fn get_employee_balances(
             )::FLOAT8 as "remaining!"
         FROM leave_balances lb
         JOIN leave_types lt ON lb.leave_type_id = lt.id
+        JOIN employees e ON lb.employee_id = e.id
         LEFT JOIN leave_usage lu ON lb.leave_type_id = lu.leave_type_id
-        WHERE lb.employee_id = $1 AND lb.year = $2
+        WHERE lb.employee_id = $1 AND lb.year = $2 AND e.workspace_id = $3
         "#,
         employee_id,
-        year
+        year,
+        workspace_id
     )
     .fetch_all(pool)
     .await?;

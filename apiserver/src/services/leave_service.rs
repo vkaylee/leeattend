@@ -69,7 +69,7 @@ impl LeaveService {
 
     pub async fn get_employee_leave_history(
         &self,
-        _workspace_id: Uuid,
+        workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
         leave_type_id: Option<Uuid>,
@@ -82,13 +82,16 @@ impl LeaveService {
                    lal.notes, lal.created_at, lal.policy_assignment_id
             FROM leave_accrual_logs lal
             JOIN leave_types lt ON lal.leave_type_id = lt.id
+            JOIN employees e ON lal.employee_id = e.id
             WHERE lal.employee_id = $1
+              AND e.workspace_id = $4
               AND EXTRACT(YEAR FROM lal.accrual_date) = $2
               AND (lt.id = $3 OR $3 IS NULL)
             "#,
             employee_id,
             year as f64,
-            leave_type_id
+            leave_type_id,
+            workspace_id
         )
         .fetch_all(pool)
         .await
@@ -104,14 +107,17 @@ impl LeaveService {
                    lr.reason, lr.created_at
             FROM leave_requests lr
             JOIN leave_types lt ON lr.leave_type_id = lt.id
+            JOIN employees e ON lr.employee_id = e.id
             WHERE lr.employee_id = $1
+              AND e.workspace_id = $4
               AND lr.status = 'approved'
               AND EXTRACT(YEAR FROM lr.start_date) = $2
               AND (lt.id = $3 OR $3 IS NULL)
             "#,
             employee_id,
             year as f64,
-            leave_type_id
+            leave_type_id,
+            workspace_id
         )
         .fetch_all(pool)
         .await
@@ -204,7 +210,7 @@ impl LeaveService {
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        self.leave_balance_repo.get_employee_balances(employee_id, year)
+        self.leave_balance_repo.get_employee_balances(workspace_id, employee_id, year)
             .await
             .map_err(AppError::Sqlx)
     }
@@ -292,8 +298,9 @@ impl LeaveService {
         if req.status == LeaveStatus::Approved {
             // Get leave type name for roster notes
             let leave_type_name = sqlx::query_scalar!(
-                "SELECT name FROM leave_types WHERE id = $1",
-                request.leave_type_id
+                "SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2",
+                request.leave_type_id,
+                workspace_id
             )
             .fetch_optional(pool)
             .await

@@ -1,5 +1,5 @@
 pub mod connection;
-mod message_handler;
+pub mod message_handler;
 mod retry_manager;
 
 pub use connection::CentralClient;

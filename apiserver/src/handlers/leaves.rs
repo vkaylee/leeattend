@@ -53,11 +53,12 @@ pub async fn approve_leave_request(
         SELECT edh.department_id 
         FROM leave_requests lr
         JOIN employee_department_history edh ON lr.employee_id = edh.employee_id
-        WHERE lr.id = $1 
+        JOIN employees e ON lr.employee_id = e.id
+        WHERE lr.id = $1 AND e.workspace_id = $2
         ORDER BY edh.effective_date DESC 
         LIMIT 1
         "#
-    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
+    ).bind(id).bind(ctx.workspace_id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
 
     ctx.require_scoped_permission(Permission::LeaveRequestsApprove, target_dept_id)?;
     state.leaves.service.approve_leave_request(
