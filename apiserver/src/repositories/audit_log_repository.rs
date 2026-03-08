@@ -23,6 +23,10 @@ pub struct SqlxAuditLogRepository {
     pub pool: PgPool,
 }
 
+impl SqlxAuditLogRepository {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
 #[async_trait]
 impl AuditLogRepository for SqlxAuditLogRepository {
     async fn create_log(&self, log: &AuditLog) -> Result<AuditLog, sqlx::Error> {

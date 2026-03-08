@@ -71,13 +71,7 @@ pub async fn approve_ot(
     Json(req): Json<ApproveOtRequest>,
 ) -> AppResult<StatusCode> {
     // RBAC: Only users with OvertimeApprove permission, scoped to department if TeamLead
-    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    )
-    .bind(employee_id)
-    .fetch_optional(state.infra.db.api())
-    .await
-    .unwrap_or(None);
+    let target_dept_id = crate::handlers::common::current_department_id(&state, ctx.workspace_id, employee_id).await;
 
     ctx.require_scoped_permission(Permission::OvertimeApprove, target_dept_id)?;
 

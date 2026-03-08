@@ -46,6 +46,10 @@ pub struct SqlxWorkspaceRepository {
     pub pool: PgPool,
 }
 
+impl SqlxWorkspaceRepository {
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
+}
+
 #[async_trait]
 impl WorkspaceRepository for SqlxWorkspaceRepository {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String> {

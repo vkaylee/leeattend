@@ -77,50 +77,7 @@ async fn main() {
 
     // Initialize Redis for distributed job processing and presence tracking (optional)
     tracing::info!("Initializing Redis connection...");
-    let redis_pool = match std::env::var("REDIS_URL") {
-        Ok(url) => {
-            tracing::info!("Connecting to Redis at {}", url);
-            match timeout(std::time::Duration::from_secs(5), RedisPool::new(&url)).await {
-                Ok(pool_result) => match pool_result {
-                    Ok(pool) => {
-                        // Verify connection with health check
-                        tracing::info!("Redis pool created, checking health...");
-                        match timeout(std::time::Duration::from_secs(5), pool.health_check()).await
-                        {
-                            Ok(Ok(())) => {
-                                tracing::info!(
-                                    "Redis connected for distributed processing and presence"
-                                );
-                                Some(pool)
-                            }
-                            Ok(Err(e)) => {
-                                tracing::warn!("Redis health check failed: {}", e);
-                                None
-                            }
-                            Err(_) => {
-                                tracing::warn!("Redis health check timed out");
-                                None
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        tracing::warn!("Redis connection failed: {}", e);
-                        None
-                    }
-                },
-                Err(_) => {
-                    tracing::warn!("Redis connection timed out");
-                    None
-                }
-            }
-        }
-        Err(_) => {
-            tracing::info!(
-                "REDIS_URL not set, distributed processing and presence tracking disabled"
-            );
-            None
-        }
-    };
+    let redis_pool = init_redis().await;
     tracing::info!("Redis initialization complete");
 
     let agent_manager = AgentManager::new(
@@ -128,11 +85,11 @@ async fn main() {
             .clone()
             .map(|p| Arc::new(p) as Arc<dyn apiserver::agent_manager::PresenceStore>),
     );
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
     let workspace_repo =
-        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository::new(pool.clone()));
     let audit_repo =
-        Arc::new(apiserver::repositories::audit_log_repository::SqlxAuditLogRepository { pool: pool.clone() });
+        Arc::new(apiserver::repositories::audit_log_repository::SqlxAuditLogRepository::new(pool.clone()));
     let agent_service = Arc::new(apiserver::services::AgentService::new(
         agent_repo.clone(),
         agent_manager.clone(),
@@ -453,6 +410,46 @@ async fn main() {
     }
 
     tracing::info!("Server stopped.");
+}
+
+async fn init_redis() -> Option<RedisPool> {
+    let url = match std::env::var("REDIS_URL") {
+        Ok(u) => u,
+        Err(_) => {
+            tracing::info!("REDIS_URL not set, distributed processing and presence tracking disabled");
+            return None;
+        }
+    };
+
+    tracing::info!("Connecting to Redis at {}", url);
+
+    let pool = match timeout(std::time::Duration::from_secs(5), RedisPool::new(&url)).await {
+        Ok(Ok(p)) => p,
+        Ok(Err(e)) => {
+            tracing::warn!("Redis connection failed: {}", e);
+            return None;
+        }
+        Err(_) => {
+            tracing::warn!("Redis connection timed out");
+            return None;
+        }
+    };
+
+    tracing::info!("Redis pool created, checking health...");
+    match timeout(std::time::Duration::from_secs(5), pool.health_check()).await {
+        Ok(Ok(())) => {
+            tracing::info!("Redis connected for distributed processing and presence");
+            Some(pool)
+        }
+        Ok(Err(e)) => {
+            tracing::warn!("Redis health check failed: {}", e);
+            None
+        }
+        Err(_) => {
+            tracing::warn!("Redis health check timed out");
+            None
+        }
+    }
 }
 
 async fn shutdown_signal() {

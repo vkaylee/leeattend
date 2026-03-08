@@ -269,3 +269,24 @@ pub async fn health_check() -> AppResult<Json<GenericResponse>> {
     };
     Ok(Json(response))
 }
+
+// --- Department Scope Helpers ---
+
+/// Look up the current department_id for an employee (for scoped permission checks).
+///
+/// Returns `None` if the employee has no department assignment yet.
+/// Used by handlers that need `require_scoped_permission()`.
+pub async fn current_department_id(
+    state: &AppState,
+    workspace_id: Uuid,
+    employee_id: Uuid,
+) -> Option<Uuid> {
+    state
+        .payroll
+        .department_repo
+        .get_current_department(workspace_id, employee_id)
+        .await
+        .ok()
+        .flatten()
+        .map(|h| h.department_id)
+}

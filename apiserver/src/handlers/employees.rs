@@ -1,6 +1,6 @@
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
-use crate::handlers::common::MemberContext;
+use crate::handlers::common::{self, MemberContext};
 use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory,
     EmploymentPeriod, PaginatedResponse, PaginationParams, RehireEmployeeRequest,
@@ -34,10 +34,7 @@ pub async fn create_working_condition(
     ctx: MemberContext,
     Json(req): Json<CreateWorkingConditionRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
-
+    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let cond = state
         .employees.service
@@ -52,10 +49,7 @@ pub async fn delete_working_condition(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
-
+    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     state
         .employees.service
@@ -124,10 +118,7 @@ pub async fn update_employee(
     ctx: MemberContext,
     Json(req): Json<UpdateEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
-    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
-
+    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let employee = state
         .employees.service
@@ -142,10 +133,7 @@ pub async fn delete_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
-    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
-
+    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::EmployeesDelete, target_dept_id)?;
     let workspace_id = ctx.workspace_id;
     state
@@ -175,10 +163,7 @@ pub async fn rehire_employee(
     ctx: MemberContext,
     Json(req): Json<RehireEmployeeRequest>,
 ) -> AppResult<Json<Employee>> {
-    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
-
+    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::EmployeesRehire, target_dept_id)?;
     let employee = state
         .employees.service
@@ -207,10 +192,7 @@ pub async fn transfer_employee(
     ctx: MemberContext,
     Json(req): Json<TransferEmployeeRequest>,
 ) -> AppResult<Json<EmployeeDepartmentHistory>> {
-    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
-
+    let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::DepartmentsTransfer, target_dept_id)?;
     let history = state
         .employees.service
