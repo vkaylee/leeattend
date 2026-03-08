@@ -15,26 +15,27 @@
 | Command | Why |
 |---------|-----|
 | `git commit`, `git push`, `git pull` | GPG agent holds PTY |
-| `docker compose up/down/exec/build` | Docker CLI spawns children |
+| `podman-compose up/down/exec/build` | Podman CLI spawns children |
 | Any script with `&` (background jobs) | Background process inherits PTY |
 
 ```bash
 # ✅ Correct
 git commit -m "message" </dev/null
-docker compose down </dev/null
+podman-compose down </dev/null
 ./run-tests.sh --api --smoke </dev/null
 
 # ❌ Wrong — will hang
 git commit -m "message"
-docker compose down
+podman-compose down
 ```
 
 ## 🧪 Testing — MANDATORY RULES
 
 > [!WARNING]
 > **NEVER run `cargo test`, `npm test`, `npx playwright test`, or any test
-> command directly.** This project uses Docker-based test isolation.
+> command directly.** This project uses Podman-based test isolation.
 > The ONLY way to run tests is through `./run-tests.sh`.
+> **AI Agents**: Always append `</dev/null` to prevent PTY hangs.
 
 | What you want | Command |
 |---------------|---------|
@@ -55,7 +56,7 @@ docker compose down
 | API Server | Rust (Axum) | `apiserver/` |
 | Agent (ZK Worker) | Rust | `agent-main/` |
 | Web Dashboard | React + TypeScript | `webdashboard/` |
-| Docker | Compose | `docker-compose*.yml` |
+| Containers | Compose | `docker-compose*.yml` |
 | Tests | Rust + Playwright | `./run-tests.sh` |
 
 ## 📝 Commit Convention

@@ -90,8 +90,8 @@ run_static_scan() {
             ((file_fails++)) || true
         done < <(grep -n '[^&]&[[:space:]]*$' "$file" 2>/dev/null || true)
 
-        # ── Pattern 2: Actual docker/docker-compose invocations without </dev/null
-        # Only match lines where docker is actually INVOKED (not mentioned in strings)
+        # ── Pattern 2: Actual podman/podman-compose invocations without </dev/null
+        # Only match lines where podman is actually INVOKED (not mentioned in strings)
         # Store regex patterns in variables to avoid bash parser issues with |, [[, ;;
         local _patt_echo='echo|printf|BOLD|NC'
         local _patt_cond='if[[:space:]]|elif[[:space:]]'
@@ -112,15 +112,15 @@ run_static_scan() {
             local _patt_func='^[[:space:]]*(dc|dc_detached)[[:space:]]*\(\)'
             [[ "$line" =~ $_patt_case ]] && continue
             [[ "$line" =~ $_patt_func ]] && continue
-            # Must actually start with docker or $DOCKER (stripped of leading whitespace)
+            # Must actually start with podman or $DOCKER (stripped of leading whitespace)
             local trimmed
             trimmed="$(echo "$line" | sed 's/^[[:space:]]*//')"
-            # Only flag if the line starts with docker, $DOCKER, or common wrappers
-            if [[ "$trimmed" =~ ^(docker|\$DOCKER|\$\{DOCKER|timeout.*docker|setsid.*docker) ]]; then
-                fail "$basename:$lineno — docker command without </dev/null: $trimmed"
+            # Only flag if the line starts with podman, $DOCKER, or common wrappers
+            if [[ "$trimmed" =~ ^(podman|\$DOCKER|\$\{DOCKER|timeout.*podman|setsid.*podman) ]]; then
+                fail "$basename:$lineno — podman command without </dev/null: $trimmed"
                 ((file_fails++)) || true
             fi
-        done < <(grep -n '\bdocker\b' "$file" 2>/dev/null || true)
+        done < <(grep -n '\bpodman\b' "$file" 2>/dev/null || true)
 
         # ── Pattern 3: `sleep` in background watchdog pattern ────────────
         while IFS=: read -r lineno line; do
@@ -197,16 +197,13 @@ run_static_scan() {
     done
 
     # ── Cross-file check: trap cleanup must exist in main scripts ─────
-    for main_script in "$PROJECT_ROOT/run-tests.sh" "$PROJECT_ROOT/ai-test.sh"; do
+    for main_script in "$PROJECT_ROOT/run-tests.sh"; do
         [[ -f "$main_script" ]] || continue
         local bn
         bn="$(basename "$main_script")"
         if ! grep -q 'trap.*cleanup.*EXIT' "$main_script" 2>/dev/null && \
            ! grep -q 'trap.*EXIT' "$main_script" 2>/dev/null; then
-            # ai-test.sh uses setsid pattern instead of trap — that's OK
-            if [[ "$bn" != "ai-test.sh" ]]; then
                 fail "$bn — missing 'trap cleanup EXIT' handler"
-            fi
         fi
     done
 }
@@ -219,7 +216,7 @@ run_static_scan() {
 run_runtime_test() {
     echo -e "\n${BLUE}${BOLD}═══ LAYER 2: Runtime PTY Hang Test ═══${NC}"
 
-    # Prevent recursive loops: ai-test.sh calls us, we call ai-test.sh
+    # Prevent recursive loops: run-tests.sh calls us
     export _PTY_CHECK_DONE=1
 
     if ! command -v script &>/dev/null; then
@@ -235,21 +232,14 @@ run_runtime_test() {
     _pty_test "run-tests.sh --api --smoke --dry-run" \
         "$PROJECT_ROOT/run-tests.sh" "--api --smoke --dry-run" 15
 
-    # Test 3: ai-test.sh --help (should fail fast, not hang)
-    if [[ -f "$PROJECT_ROOT/ai-test.sh" ]]; then
-        _pty_test "ai-test.sh --help (via wrapper)" \
-            "$PROJECT_ROOT/ai-test.sh" "--help" 15
-    fi
+    # Test 3: Argument word-splitting test
+    _arg_quoting_test
 
-    # Test 4: Orphan process leak detection
     # Test 4: Orphan process leak detection
     _orphan_leak_test
 
     # Test 5: Signal cleanup — verify SIGTERM triggers clean exit
     _signal_cleanup_test
-
-    # Test 6: Argument word-splitting test (validates $* fix in ai-test.sh)
-    _arg_quoting_test
 }
 
 # Run a single command inside a PTY and verify it exits within timeout.
@@ -287,7 +277,7 @@ _pty_test() {
 }
 
 # Verify that arguments with special characters pass through correctly.
-# This validates that the $* → "$@" quoting fix in ai-test.sh works.
+# This validates that argument quoting works correctly in run-tests.sh.
 _arg_quoting_test() {
     echo -e "  ${BLUE}Testing: argument quoting (spaces/special chars)${NC}"
 
@@ -321,7 +311,7 @@ _orphan_leak_test() {
         sleep 0.3
         # Check if we left any docker/cargo orphans behind
         # (pgrep returns 1 if no match — that's the GOOD case)
-        if pgrep -f "docker.*leeattend-test" >/dev/null 2>&1; then
+        if pgrep -f "podman.*leeattend-test" >/dev/null 2>&1; then
             exit 1  # orphans found
         fi
         exit 0

@@ -1,8 +1,8 @@
-# Docker Workflow & Multi-Environment Setup
+# Podman Workflow & Multi-Environment Setup
 
-LeeAttend uses a layered Docker architecture for fast development, reliable testing, and production deployments.
+LeeAttend uses a layered Podman Compose architecture for fast development, reliable testing, and production deployments.
 
-All Docker operations go through **`./run-tests.sh --docker=ENV CMD`**.
+All container operations go through **`./run-tests.sh --docker=ENV CMD`**.
 
 ---
 
@@ -17,9 +17,9 @@ All Docker operations go through **`./run-tests.sh --docker=ENV CMD`**.
 
 ---
 
-## 🐳 Multi-Stage Dockerfiles
+## 🐳 Multi-Stage Containerfiles
 
-Each service (`apiserver`, `agent-main`, `webdashboard`) uses a single `Dockerfile` with stages:
+Each service (`apiserver`, `agent-main`, `webdashboard`) uses a single `Dockerfile` (Containerfile) with stages:
 
 - `dev` — includes `cargo-watch`, local target dir
 - `test` — includes `nextest`, Playwright dependencies, `sccache`
@@ -55,7 +55,7 @@ Use `./run-tests.sh --docker=ENV CMD` for all environments.
 
 > [!NOTE]
 > For running tests, Human users should prefer `./run-tests.sh --api` or `./run-tests.sh --all` which manage the test
-> environment automatically. **AI Agents MUST use `./ai-test.sh`** to prevent PTY hangs.
+> environment automatically. **AI Agents** should append `</dev/null` to prevent PTY hangs.
 
 ### Production
 
@@ -78,7 +78,7 @@ Use `./run-tests.sh --docker=ENV CMD` for all environments.
 - **CI (GitHub Actions):** `docker-compose.ci.yml` nullifies `tmpfs` to allow `type=gha` buildx cache to persist compiled artifacts across CI runs.
 
 ### 3. Build Context Optimization
-`.dockerignore` blocks `target/`, `node_modules/`, `.test_logs/` — Docker gets only kilobytes of source instead of gigabytes.
+`.dockerignore` blocks `target/`, `node_modules/`, `.test_logs/` — the build context gets only kilobytes of source instead of gigabytes.
 
 ### 4. Cache Management
 
@@ -93,12 +93,12 @@ Use `./run-tests.sh --docker=ENV CMD` for all environments.
 
 ## 🧪 Integration with Test Runner
 
-`./run-tests.sh` (or `./ai-test.sh` for AI Agents) automatically composes the correct Docker files and uses `test` stage containers:
+`./run-tests.sh` automatically composes the correct files and uses `test` stage containers:
 
 ```bash
 ./run-tests.sh --all            # Full test pipeline (manages Docker automatically)
 ./run-tests.sh --api --smoke    # Lint + unit only (fast)
-./run-tests.sh --logs           # Read test output from Docker volume
+./run-tests.sh --logs           # Read test output from container volume
 ```
 
 See `./run-tests.sh --help` for the complete reference.

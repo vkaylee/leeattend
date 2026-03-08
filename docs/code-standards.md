@@ -409,7 +409,7 @@ Use `Arc<dyn RepositoryTrait>` to inject into Services. Initialize all dependenc
 
 ### 🧪 Unified Test Orchestrator (`run-tests.sh`)
 
-To ensure high-quality delivery and fast feedback loops, the project uses a unified test orchestrator. This tool handles environment setup (Postgres in Docker), parallel execution, and result aggregation.
+To ensure high-quality delivery and fast feedback loops, the project uses a unified test orchestrator. This tool handles environment setup (Postgres in containers), parallel execution, and result aggregation.
 
 #### ⚠️ WSL Performance Protocol (CRITICAL)
 
@@ -418,12 +418,12 @@ To ensure high-quality delivery and fast feedback loops, the project uses a unif
 **Mandatory Rules:**
 1. **NEVER** run `cargo test`, `cargo nextest`, `pytest`, or any test command directly on the host.
 2. **Humans MUST** use `./run-tests.sh` for ALL testing requests (unit, integration, e2e). 
-3. **AI Agents MUST** use `./ai-test.sh` (a PTY-safe wrapper) to prevent terminal hangs.
-4. All tests run inside Docker containers to avoid WSL2 Disk I/O bottlenecks.
+3. **AI Agents**: Append `</dev/null` to `./run-tests.sh` commands to prevent PTY hangs.
+4. All tests run inside Podman containers to avoid WSL2 Disk I/O bottlenecks.
 
 #### 1. Test Execution & Tools
 - **Nextest**: The project uses `cargo nextest` for all Rust tests. It provides better parallelism, faster execution, and isolated process management.
-- **Docker Isolation**: All tests (Unit & Integration) run inside Docker containers.
+- **Container Isolation**: All tests (Unit & Integration) run inside Podman containers.
 - **Internal Networking**: Database connections use internal hostnames (e.g., `test_db:5432`). Host port mapping is disabled.
 - **Database Performance**: Test databases are tuned for speed with `fsync=off`, `synchronous_commit=off`, and `full_page_writes=off`.
 
@@ -433,7 +433,7 @@ To ensure high-quality delivery and fast feedback loops, the project uses a unif
 
 #### 3. Logs & Debugging
 - **Memory-Backed Logs**: All logs are written to `.test_logs/` (backed by RAM).
-- **Container Logs**: Use `docker compose logs` or inspect `.test_logs/` to debug failures within the Docker environment.
+- **Container Logs**: Use `podman-compose logs` or inspect `.test_logs/` to debug failures within the container environment.
 
 ### 🚀 Mandatory Passing Tests
 - **Zero Tolerance**: All tests (Unit tests, Integration tests, Frontend tests) **MUST** pass before any commit or merge command. Code with failing tests will not be accepted.
@@ -450,7 +450,7 @@ To ensure high-quality delivery and fast feedback loops, the project uses a unif
     ```
   - For AI Agents:
     ```bash
-    ./ai-test.sh
+    ./run-tests.sh </dev/null
     ```
 
 ### Integration Tests (Rust)
@@ -469,7 +469,7 @@ We use a **Dynamic Test Database** pattern to ensure test isolation and allow pa
 
 For E2E stability and performance, we adhere to the **Isolated Sequential Environment** standard:
 
-1. **Sequential Execution (Rule of 1)**: In Docker or restricted environments, Playwright **MUST** run with exactly one worker (`--workers 1`). This eliminates CPU/RAM contention and race conditions in Mock API intercepts.
+1. **Sequential Execution (Rule of 1)**: In container or restricted environments, Playwright **MUST** run with exactly one worker (`--workers 1`). This eliminates CPU/RAM contention and race conditions in Mock API intercepts.
 2. **Mock API Architecture**: Frontend E2E tests are 100% decoupled from the backend using Playwright's `page.route`. All API responses must be mocked in `tests/mocks/api-intercept.ts`.
 3. **Architecture (POM & Fixtures)**:
     - **Page Object Model (POM)**: BẮT BUỘC đóng gói selector và hành động vào các class trong `tests/pom/` (ví dụ: `LoginPage`, `EmployeesPage`).
@@ -485,7 +485,7 @@ For E2E stability and performance, we adhere to the **Isolated Sequential Enviro
 5. **Navigation Reliability**: 
     - Prioritize using `page.goto('/target-path')` in regression tests to bypass sidebar animations or nested menus, making tests faster and more stable.
 6. **Resilient Timeouts**: 
-    - **Global Test Timeout**: 90 giây (Docker environment overhead).
+    - **Global Test Timeout**: 90 giây (container environment overhead).
     - **Expect Timeout**: 10 giây.
     - Các test phức tạp có thể sử dụng `test.slow()` để nhân 3 timeout mặc định.
 

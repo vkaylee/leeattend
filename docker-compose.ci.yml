@@ -1,5 +1,5 @@
 # ==============================================================================
-# Docker Compose — CI Override
+# Podman Compose — CI Override
 # ==============================================================================
 # Applied ONLY in CI environments (when CI=true) by run-tests.sh.
 # NOT applied during local development.
@@ -11,7 +11,7 @@
 #   so the pre-built layers from cargo-chef are used directly.
 #
 # USAGE:
-#   docker compose -f docker-compose.yml -f docker-compose.test.yml -f docker-compose.ci.yml up
+#   podman-compose -f docker-compose.yml -f docker-compose.test.yml -f docker-compose.ci.yml up
 #   (automatically handled by run-tests.sh when CI=true)
 # ==============================================================================
 

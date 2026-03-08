@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 show_help() {
     echo -e "${BLUE}${BOLD}🚀 LeeAttend Test Runner${NC}"
     echo "================================================================================"
-    echo "Single entry point for ALL test and Docker operations in LeeAttend."
+    echo "Single entry point for ALL test and container operations in LeeAttend."
     echo "Never run scripts in scripts/ directly — they are internal modules."
     echo ""
     echo -e "${BOLD}📋 USAGE${NC}"
@@ -41,12 +41,12 @@ show_help() {
     echo -e "    ${GREEN}--coverage${NC}         Measure test coverage (Rust: llvm-cov, Web: vitest)"
     echo -e "                       Outputs: .test_logs/coverage-*.lcov + HTML reports"
     echo ""
-    echo -e "${BOLD}🐳 DOCKER ENVIRONMENT MODE:${NC}"
-    echo -e "    ${GREEN}--docker=ENV CMD${NC}   Run any docker compose command for ENV (dev|test|prod)"
+    echo -e "${BOLD}🐳 CONTAINER ENVIRONMENT MODE:${NC}"
+    echo -e "    ${GREEN}--docker=ENV CMD${NC}   Run any podman-compose command for ENV (dev|test|prod)"
     echo -e "                       ENV profiles: dev → docker-compose.dev.yml"
     echo -e "                                      test → docker-compose.test.yml"
     echo -e "                                      prod → docker-compose.yml only"
-    echo -e "                       CMD = any docker compose subcommand (up, down, build, exec, logs, ps...)"
+    echo -e "                       CMD = any podman-compose subcommand (up, down, build, exec, logs, ps...)"
     echo ""
     echo -e "${BOLD}⚡ TEST OPTIONS (combine with test modes):${NC}"
     echo -e "    ${GREEN}--test=PATTERN${NC}     Run ONLY tests matching PATTERN (regex for Rust, string for Playwright)"
@@ -66,8 +66,8 @@ show_help() {
     echo -e "    ${GREEN}--clean${NC}            Full reset: stop containers, delete volumes + cache"
     echo ""
     echo -e "${BOLD}📜 LOG ACCESS:${NC}"
-    echo -e "    ${GREEN}--logs${NC}             Dump all test logs from the persistent Docker volume"
-    echo -e "    ${GREEN}--tail-logs${NC}        Live-tail test logs from the Docker volume"
+    echo -e "    ${GREEN}--logs${NC}             Dump all test logs from the persistent volume"
+    echo -e "    ${GREEN}--tail-logs${NC}        Live-tail test logs from the volume"
     echo ""
     echo -e "${BOLD}════════════════════════════════════════ EXAMPLES ════════════════════════════════════════${NC}"
     echo ""
@@ -97,7 +97,7 @@ show_help() {
     echo "    ./run-tests.sh --api            # API only: Lint → Unit → Integration"
     echo "    ./run-tests.sh --web            # Web only: Lint → Unit → Playwright E2E"
     echo ""
-    echo -e "${YELLOW}# 6. Docker environment management (replaces docker-helper.sh):${NC}"
+    echo -e "${YELLOW}# 6. Container environment management:${NC}"
     echo "    ./run-tests.sh --docker=dev up -d                # Start dev environment"
     echo "    ./run-tests.sh --docker=dev down                 # Stop dev environment"
     echo "    ./run-tests.sh --docker=dev logs -f              # Tail all dev logs"
@@ -146,12 +146,12 @@ show_help() {
     echo "    2. Use --dry-run to verify what will run before executing"
     echo "    3. Use --test-only + --test=NAME for fast iteration on a single test"
     echo "    4. Use --docker=dev exec SERVICE bash to run ad-hoc commands in containers"
-    echo "    5. Test logs are stored in Docker volume. Use --logs or --tail-logs to read them"
+    echo "    5. Test logs are stored in a volume. Use --logs or --tail-logs to read them"
     echo "    6. Cache persists across runs. Use --clean only when something is truly broken"
 }
 
 # --- Docker env command handler (must run before sourcing modules) ---
-# Handles: ./run-tests.sh --docker=ENV [docker compose subcommand...]
+# Handles: ./run-tests.sh --docker=ENV [podman-compose subcommand...]
 for _arg in "$@"; do
     if [[ "$_arg" == --docker=* ]]; then
         _env="${_arg#--docker=}"
@@ -168,7 +168,7 @@ for _arg in "$@"; do
                 ;;
             *)
                 echo -e "${RED}Error: Unknown environment '$_env'. Use: dev, test, prod${NC}"
-                echo "Usage: ./run-tests.sh --docker=ENV [docker compose subcommand...]"
+                echo "Usage: ./run-tests.sh --docker=ENV [podman-compose subcommand...]"
                 exit 1
                 ;;
         esac
@@ -178,17 +178,31 @@ for _arg in "$@"; do
             [[ "$_a" == --docker=* ]] && continue
             _docker_args+=("$_a")
         done
-        echo "Running: docker compose $_files ${_docker_args[*]}"
-        docker compose $_files "${_docker_args[@]}" </dev/null
+        echo "Running: podman-compose $_files ${_docker_args[*]}"
+        podman-compose $_files "${_docker_args[@]}" </dev/null
         exit $?
     fi
 done
+
+# ── PTY Safety Gate ──────────────────────────────────────────────────
+# Run STATIC scan only before anything else. Runtime tests (which use
+# the `script` command) are excluded here because `script` creates PTY
+# child processes that themselves leak FDs in git hook context.
+# For full runtime tests, run: ./scripts/test-pty-safety.sh
+if [[ -z "${_PTY_CHECK_DONE:-}" && -f "$SCRIPT_DIR/scripts/test-pty-safety.sh" ]]; then
+    echo "🔒 Running PTY safety check (static)..."
+    if ! "$SCRIPT_DIR/scripts/test-pty-safety.sh" --static; then
+        echo "❌ PTY safety check failed — fix issues above before running tests."
+        exit 1
+    fi
+    echo ""
+fi
 
 # --- Environment Setup ---
 export USE_DOCKER=true
 export COMPOSE_PROJECT_NAME="leeattend-test"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export DOCKER_COMPOSE_CMD="docker compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
+export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
 
 # Cargo cache settings
 export CARGO_TARGET_DIR="$PROJECT_ROOT/target"
@@ -199,21 +213,17 @@ if [[ "${CI:-}" == "true" && -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
     export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD -f $PROJECT_ROOT/docker-compose.ci.yml"
 fi
 
-# ── PTY-Safe Docker Compose wrappers ────────────────────────────────
+# ── Podman Compose wrappers ─────────────────────────────────────────
 #
 # dc()          — Normal use. Redirects stdin only (</dev/null).
-#                 Output is preserved so callers can see Docker progress.
-#                 Safe for: dc up, dc exec, dc build, etc.
-#
-# dc_detached() — Cleanup use. Runs in a NEW session (setsid) with ALL
-#                 FDs detached. Guarantees no Docker child can hold PTY.
-#                 Safe for: dc_detached down, dc_detached volume prune.
+# dc_detached() — Cleanup use. Redirect all FDs (Podman is daemonless,
+#                 so no setsid needed — children die with parent).
 #
 dc() {
     $DOCKER_COMPOSE_CMD "$@" </dev/null
 }
 dc_detached() {
-    setsid $DOCKER_COMPOSE_CMD "$@" </dev/null >/dev/null 2>&1
+    $DOCKER_COMPOSE_CMD "$@" </dev/null >/dev/null 2>&1
 }
 export -f dc dc_detached
 
@@ -263,7 +273,8 @@ ensure_db_migrated() {
     echo -e "${BLUE}🗄️ Ensuring database is migrated (required for sqlx compile checks)...${NC}"
 
     # Start test_db + apiserver_test (which has sqlx-cli)
-    dc up -d --build=false test_db apiserver_test
+    dc build test_db apiserver_test
+    dc up -d test_db apiserver_test
 
     # Wait for DB healthy
     local timeout="${TIMEOUT_DB_WAIT:-120}"
@@ -296,7 +307,7 @@ run_lint() {
     echo -e "\n${BLUE}🔹 Running Linting [$filter]...${NC}"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        echo -e "${BLUE}🏗️ Ensuring Docker containers are up for Linting...${NC}"
+        echo -e "${BLUE}🏗️ Ensuring containers are up for Linting...${NC}"
         local services=""
         local need_web=false
         
@@ -311,7 +322,8 @@ run_lint() {
             need_web=true
         fi
         
-        dc up -d --build=false $services
+        dc build $services
+        dc up -d $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
 
         # Migrations must run before any Rust compilation (sqlx verifies queries at compile time).
@@ -327,7 +339,7 @@ run_unit() {
     echo -e "\n${BLUE}🔹 Running Unit Tests [$filter]...${NC}"
     
     if [[ "$USE_DOCKER" == "true" ]]; then
-        echo -e "${BLUE}🏗️ Ensuring Docker containers are up...${NC}"
+        echo -e "${BLUE}🏗️ Ensuring containers are up...${NC}"
         local services=""
         local need_web=false
         
@@ -343,7 +355,8 @@ run_unit() {
             need_web=true
         fi
         
-        dc up -d --build=false $services
+        dc build $services
+        dc up -d $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
 
         # Migrations must run before cargo compile (sqlx verifies queries at compile time)
@@ -362,7 +375,7 @@ run_integration() {
     echo -e "\n${BLUE}🔹 Running Integration & E2E Tests [$filter]...${NC}"
     
     if [[ "$USE_DOCKER" == "true" ]]; then
-        echo -e "${BLUE}🏗️ Ensuring Docker environment for Integration tests...${NC}"
+        echo -e "${BLUE}🏗️ Ensuring environment for Integration tests...${NC}"
         local services=""
         local need_web=false
         
@@ -379,7 +392,8 @@ run_integration() {
             fi
         fi
 
-        dc up -d --build=false $services
+        dc build $services
+        dc up -d $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
 
@@ -658,7 +672,8 @@ if [[ "$WARM_CACHE" == "true" ]]; then
     
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # Start containers
-        dc up -d --build=false apiserver_test agent_test web_test
+        dc build apiserver_test agent_test web_test
+        dc up -d apiserver_test agent_test web_test
         
         echo -e "${BLUE}📦 Pre-compiling apiserver...${NC}"
         dc exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
@@ -675,7 +690,7 @@ if [[ "$WARM_CACHE" == "true" ]]; then
         echo -e "${GREEN}✅ Cache warmed up!${NC}"
         echo -e "${BLUE}💡 Run tests now: ./run-tests.sh --api${NC}"
     else
-        echo -e "${YELLOW}⚠️ Warm-cache only works with Docker. Use --help for options.${NC}"
+        echo -e "${YELLOW}⚠️ Warm-cache only works with containers. Use --help for options.${NC}"
     fi
     exit 0
 fi
@@ -711,25 +726,21 @@ cleanup() {
     sleep 0.5
     pkill -KILL -P $$ 2>/dev/null || true
 
-    # Also kill any cargo/nextest processes left inside Docker containers
+    # Also kill any cargo/nextest processes left inside containers
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         for ctr in apiserver_test agent_test; do
-            timeout 5 setsid docker exec "${COMPOSE_PROJECT_NAME}-${ctr}-1" \
+            timeout 5 podman exec "${COMPOSE_PROJECT_NAME}-${ctr}-1" \
                 pkill -f 'cargo|nextest' </dev/null >/dev/null 2>&1 || true
         done
     fi
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        # CRITICAL: All docker commands use full FD redirect (</dev/null >/dev/null 2>&1)
-        # to completely detach from PTY. Even stdout/stderr can hold FDs open
-        # if Docker CLI spawns child processes that inherit them.
-
-        # Stop containers — use dc_detached for complete PTY detachment
+        # Stop containers (Podman is daemonless — no setsid needed)
         dc_detached down --remove-orphans --timeout 5 || {
             echo -e "${YELLOW}⚠️  Warning: Cleanup encountered some issues.${NC}"
         }
-        # Remove ephemeral volumes (shared-data is tmpfs)
-        setsid docker volume rm "leeattend-test_shared-data" \
+        # Remove ephemeral volumes
+        podman volume rm "leeattend-test_shared-data" \
             </dev/null >/dev/null 2>&1 || true
         echo -e "${GREEN}✅ Environment cleaned up (cache preserved).${NC}"
     fi
@@ -771,7 +782,8 @@ if [[ "$COVERAGE" == "true" ]]; then
         else
             _cov_services="test_db apiserver_test agent_test web_test"
         fi
-        dc up -d --build=false $_cov_services
+        dc build $_cov_services
+        dc up -d $_cov_services
         if [[ "$FILTER" == *"web"* || -z "$FILTER" ]]; then
             wait_for_web_test
         fi

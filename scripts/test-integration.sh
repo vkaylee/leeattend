@@ -51,15 +51,24 @@ leeattend_run_integration() {
         
         if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
             # START API SERVER IN BACKGROUND FOR AGENT INTEGRATION TESTS
+            # Use direct `podman exec` (not podman-compose exec) for speed —
+            # podman-compose exec reinitializes compose state on every call,
+            # adding ~2-3s overhead per invocation. With 60 health checks,
+            # that's 2-3 minutes wasted just on overhead.
+            local _apiserver_ctr="${COMPOSE_PROJECT_NAME}_apiserver_test_1"
             echo -e "  ${BLUE}🚀 Starting API Server in background inside Docker...${NC}"
-            $DOCKER_COMPOSE_CMD exec -T -d -e DATABASE_URL=$API_SERVER_DB_URL apiserver_test bash -c "cargo run --bin apiserver > /workspace/apiserver/apiserver.log 2>&1" </dev/null
+            podman exec -d -e DATABASE_URL=$API_SERVER_DB_URL "$_apiserver_ctr" bash -c "cargo run --bin apiserver > /workspace/apiserver/apiserver.log 2>&1" </dev/null
             
-            # Wait for server to be ready
-            echo -n "  Waiting for API Server (timeout: 60s)..."
-            for i in {1..60}; do
-                if $DOCKER_COMPOSE_CMD exec -T apiserver_test curl -s http://localhost:3000/api/health > /dev/null; then
+            # Wait for server to be ready (direct podman exec for speed)
+            echo -n "  Waiting for API Server (timeout: 120s)..."
+            for i in {1..120}; do
+                if podman exec "$_apiserver_ctr" curl -s http://localhost:3000/api/health </dev/null > /dev/null 2>&1; then
                     echo " Ready!"
                     break
+                fi
+                if [[ $i -eq 120 ]]; then
+                    echo -e "\n  ${RED}❌ API Server failed to start! Logs:${NC}"
+                    podman exec "$_apiserver_ctr" cat /workspace/apiserver/apiserver.log </dev/null 2>&1 | tail -20
                 fi
                 echo -n "."
                 sleep 1

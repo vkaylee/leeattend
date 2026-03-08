@@ -334,42 +334,42 @@ proxy: {
 
 ## 🧪 4. Môi trường Kiểm thử (Testing Environment)
 
-Để đảm bảo chất lượng code, LeeAttend áp dụng quy trình kiểm thử nghiêm ngặt dựa trên hạ tầng Docker.
+Để đảm bảo chất lượng code, LeeAttend áp dụng quy trình kiểm thử nghiêm ngặt dựa trên hạ tầng Podman.
 
 ### 🚀 Nguyên tắc Vàng
 - **Mandatory Passing**: 100% các bài test (Rust, Python, React) **BẮT BUỘC** phải PASS trước khi commit.
 - **Isolation**: Mọi bài test đều chạy trong container. Không được phép chạy test trực tiếp trên host nếu có tương tác Database.
-- **Unified Entry Point**: Luôn sử dụng `./run-tests.sh` (hoặc `./ai-test.sh` cho AI Agents) để thực thi.
+- **Unified Entry Point**: Luôn sử dụng `./run-tests.sh` để thực thi. AI Agents thêm `</dev/null` để tránh PTY hang.
 
 ### ⚙️ Quy trình chạy Test (Tự động hoàn toàn)
 Bạn không cần cấu hình file `.env.test` thủ công. Hệ thống tự động quản lý vòng đời của hạ tầng test:
 
 ```bash
 # Chạy toàn bộ (Lint + Unit + Integration + E2E)
-./run-tests.sh --all     # (AI Agent dùng ./ai-test.sh --all)
+./run-tests.sh --all
 
 # Chạy riêng Backend (Rust + Python)
-./run-tests.sh --api [pattern]   # (AI Agent dùng ./ai-test.sh --api)
+./run-tests.sh --api [pattern]
 
 # Chạy riêng Frontend (Playwright)
-./run-tests.sh --web [pattern]   # (AI Agent dùng ./ai-test.sh --web)
+./run-tests.sh --web [pattern]
 ```
 
 ### ⚡ Tối ưu hóa (Key Features)
-- **Docker Isolation**: Tất cả tests chạy trong Docker containers để tránh I/O bottleneck trên WSL.
+- **Container Isolation**: Tất cả tests chạy trong Podman containers để tránh I/O bottleneck trên WSL.
 - **Nextest**: Sử dụng `cargo nextest` cho hiệu năng vượt trội.
-- **Chef Cache**: Tối ưu hóa Docker build cache cho dependencies.
+- **Chef Cache**: Tối ưu hóa container build cache cho dependencies.
 
 ---
 
 ## 🔑 Security Considerations
 
-## 🐳 3. Docker Compose Production Deployment (Recommended)
+## 🐳 3. Podman Compose Production Deployment (Recommended)
 
 This is the most reliable way to deploy LeeAttend in a production environment. It packages all services, including the database and Redis, into a single, orchestrated environment.
 
 ### Prerequisites
-- Docker and Docker Compose (V2) installed.
+- Podman and podman-compose installed.
 - Domain name pointed to your server IP (optional but recommended).
 
 ### 🚀 Setup Steps
@@ -386,16 +386,16 @@ This is the most reliable way to deploy LeeAttend in a production environment. I
    - `JWT_SECRET`: Set a secure JWT secret.
 
 3. **Build and Launch**:
-   You can use the helper script or run docker compose directly using the base file:
+   You can use the helper script or run podman-compose directly using the base file:
    ```bash
-   # Option A: Using run-tests.sh (or ai-test.sh for AI Agents)
+   # Option A: Using run-tests.sh
    ./run-tests.sh --docker=prod up --build -d
 
-   # Option B: Direct docker compose
-   docker compose -f docker-compose.yml up --build -d
+   # Option B: Direct podman-compose
+   podman-compose -f docker-compose.yml up --build -d
    ```
 
-### 🏗 Architecture in Docker
+### 🏗 Architecture in Podman
 The production setup uses the `runtime` stage of our multi-stage Dockerfiles for minimal image size and maximum security.
 
 - **`webdashboard`**: React Frontend served by Nginx (Port 80 by default).

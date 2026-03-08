@@ -1,2 +1,2 @@
 #!/bin/bash
-docker compose -f docker-compose.dev.yml exec apiserver curl -s "$@"
+podman-compose -f docker-compose.dev.yml exec apiserver curl -s "$@"

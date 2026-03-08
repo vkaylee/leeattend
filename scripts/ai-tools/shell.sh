@@ -6,4 +6,4 @@ if [ -z "$1" ]; then
   echo "Example: ./shell.sh apiserver"
   exit 1
 fi
-docker compose -f docker-compose.dev.yml exec "$1" bash
+podman-compose -f docker-compose.dev.yml exec "$1" bash

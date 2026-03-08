@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 # Multi-stage build for Rust API Server supporting Dev, Test, and Prod
 
 # Stage 1: Cargo Chef base

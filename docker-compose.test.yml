@@ -1,5 +1,5 @@
 # ==============================================================================
-# Docker Compose — Test Environment
+# Podman Compose — Test Environment
 # ==============================================================================
 # Used by: ./run-tests.sh (primary) and ./setup-test-env.sh
 # Override:  docker-compose.ci.yml (applied only when CI=true)
@@ -23,7 +23,7 @@ services:
   # Runs entirely in RAM for speed. Data is disposable (recreated each session).
   # fsync=off + synchronous_commit=off eliminate disk I/O entirely.
   test_db:
-    image: postgres:16
+    image: docker.io/library/postgres:16
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
     environment:
       POSTGRES_DB: test_database
@@ -31,7 +31,7 @@ services:
       POSTGRES_PASSWORD: test_password
       POSTGRES_HOST_AUTH_METHOD: trust  # No password needed inside test network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U test_user -d test_database" ]
+      test: "pg_isready -U test_user -d test_database"
       interval: 5s
       timeout: 5s
       retries: 5
@@ -42,6 +42,7 @@ services:
   # Builds from Dockerfile "test" stage (includes cargo-chef pre-cooked deps, sqlx-cli, nextest).
   # Stays idle; run-tests.sh exec's cargo clippy / cargo nextest into it.
   apiserver_test:
+    image: localhost/leeattend-test_apiserver_test
     build:
       context: ./apiserver
       target: test  # Dockerfile stage with test tools + pre-compiled deps
@@ -61,7 +62,7 @@ services:
       - .:/workspace                        # Bind-mount source code from host
       - target-cache:/workspace/target      # Persistent: compiled artifacts survive restarts
       # Share host's cargo registry — avoids re-downloading crates and benefits
-      - ${CARGO_HOME:-${HOME}/.cargo}/registry:/usr/local/cargo/registry
+      - ${HOME}/.cargo/registry:/usr/local/cargo/registry
       - sccache-cache:/workspace/.sccache   # Persistent: sccache objects
       - shared-data:/workspace/shared       # Ephemeral: for inter-container data (e.g. openapi.json)
 
@@ -69,6 +70,7 @@ services:
   # Same architecture as apiserver_test. Uses SQLite in-memory for its own DB.
   # Shares the same target-cache and cargo registry as apiserver_test.
   agent_test:
+    image: localhost/leeattend-test_agent_test
     build:
       context: ./agent-main
       target: test
@@ -87,13 +89,14 @@ services:
     volumes:
       - .:/workspace
       - target-cache:/workspace/target
-      - ${CARGO_HOME:-${HOME}/.cargo}/registry:/usr/local/cargo/registry
+      - ${HOME}/.cargo/registry:/usr/local/cargo/registry
       - sccache-cache:/workspace/.sccache
 
   # --- Web Dashboard Test Container ---
   # Builds from webdashboard Dockerfile "test" stage (includes Playwright + Chromium).
   # node_modules use a persistent named volume to avoid re-installing on each run.
   web_test:
+    image: localhost/leeattend-test_web_test
     build:
       context: ./webdashboard
       target: test  # Dockerfile stage with Playwright + browser deps
@@ -111,7 +114,7 @@ services:
 
 # ==============================================================================
 # Volume Strategy:
-#   - Named volumes (persistent): survive "docker compose down", cleared with "down -v"
+#   - Named volumes (persistent): survive "podman-compose down", cleared with "down -v"
 #     → Use for compilation artifacts that are expensive to recreate
 #   - tmpfs (ephemeral): RAM-only, lost on container stop
 #     → Use only for small, truly disposable data

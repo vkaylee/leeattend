@@ -1,109 +1,58 @@
 #!/bin/bash
 
 # ==============================================================================
-# Pre-commit hook: Run tests + compile-check before commit
+# Pre-commit hook: Run smoke tests before commit.
 # ==============================================================================
-# Uses ai-test.sh (PTY-safe wrapper) to avoid terminal hangs.
+# Uses run-tests.sh (Podman-compatible, PTY-safe).
+# With Podman (daemonless), containers are direct children of this process.
+# No setsid needed — just redirect output to file so test logs don't pollute
+# git commit output, then print failure details.
 # ==============================================================================
 
-echo "========================================"
-echo "🔒 Running pre-commit checks..."
-echo "========================================"
+set -euo pipefail
 
-# Change to project root
-cd "$(git rev-parse --show-toplevel)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+LOG="/tmp/pre-commit-$$.log"
 
-# ── Cleanup Handler ──────────────────────────────────────────────────────────
-# Ensure test containers started in Phase 2 are properly destroyed on exit/error
-cleanup() {
-    docker compose -p leeattend-test -f docker-compose.test.yml down --remove-orphans --timeout 5 </dev/null >/dev/null 2>&1 || true
-}
-trap cleanup EXIT INT TERM
+echo "🔍 Pre-commit: running smoke tests..."
 
-# ── Phase 1: Smoke tests (lint + unit) ────────────────────────────
-echo ""
-echo "🔹 Phase 1: Smoke tests (lint + unit)..."
-./ai-test.sh --api --smoke
+# Run tests with output to file (keeps git commit output clean)
+"$REPO_ROOT/run-tests.sh" --api --smoke >"$LOG" 2>&1
+EXIT_CODE=$?
 
-if [ $? -ne 0 ]; then
-    echo "========================================"
-    echo "❌ SMOKE TESTS FAILED - Commit aborted"
-    echo "========================================"
-    echo "💡 Fix the failing tests before committing."
-    exit 1
+if [ "$EXIT_CODE" -eq 0 ]; then
+    echo "✅ Smoke tests passed."
+else
+    echo "❌ Smoke tests FAILED (exit code: $EXIT_CODE)"
+    echo "================================================================"
+
+    FAILURE_LOG="$REPO_ROOT/.test_logs/latest-failure.log"
+    PREBUILD_LOG="$REPO_ROOT/.test_logs/prebuild.log"
+    if [ -f "$FAILURE_LOG" ]; then
+        echo "──── Failure Details ────"
+        grep -E '(FAIL|panicked|assertion|left:|right:|error:|stderr)' "$FAILURE_LOG" 2>/dev/null | head -20
+        echo ""
+        echo "──── Full Failure Context ────"
+        grep -n 'FAIL' "$FAILURE_LOG" 2>/dev/null | head -1 | while IFS=: read -r line_num _rest; do
+            sed -n "${line_num},\$p" "$FAILURE_LOG" | head -40
+        done
+    elif [ -f "$PREBUILD_LOG" ]; then
+        echo "──── Build Error Details ────"
+        grep -E '(^error|^\s+-->|could not compile)' "$PREBUILD_LOG" 2>/dev/null | tail -20
+    else
+        echo "──── Last 30 lines of test output ────"
+        tail -30 "$LOG" 2>/dev/null || true
+    fi
+    echo "================================================================"
 fi
 
-# ── Phase 2: Compile-check integration tests ─────────────────────
-# Smoke mode skips integration test compilation. This step ensures
-# struct changes, missing fields, and type errors are caught.
-# Uses --no-run: compiles all test targets WITHOUT executing them.
-echo ""
-echo "🔹 Phase 2: Compile-checking integration test targets..."
-
-COMPILE_FAILED=0
-
-# Ensure Docker test containers exist (fully detached from PTY)
-docker compose -p leeattend-test -f docker-compose.test.yml up -d agent_test apiserver_test </dev/null >/dev/null 2>&1
-
-# Helper: run a docker exec command PTY-safe via file-based exit code
-pty_safe_docker_exec() {
-    local LABEL="$1"; shift
-    local LOG="/tmp/pre-commit-${LABEL}-$$.log"
-    local RC="/tmp/pre-commit-${LABEL}-$$.rc"
-    local CMD="/tmp/pre-commit-${LABEL}-$$.sh"
-    rm -f "$LOG" "$RC" "$CMD"
-
-    # Write command to temp script to preserve argument quoting
-    echo '#!/bin/bash' > "$CMD"
-    printf '%q ' "$@" >> "$CMD"
-    echo '' >> "$CMD"
-    chmod +x "$CMD"
-
-    setsid bash -c "'$CMD' > '$LOG' 2>&1; echo \$? > '$RC'; rm -f '$CMD'" </dev/null >/dev/null 2>&1 &
-
-    while [ ! -f "$RC" ]; do sleep 2; done
-
-    local EXIT_CODE
-    EXIT_CODE=$(cat "$RC" 2>/dev/null || echo "1")
-    tail -5 "$LOG"
-    rm -f "$LOG" "$RC"
-    return "$EXIT_CODE"
-}
-
-# Compile-check agent-main tests (no-run = compile only)
-echo "  → agent-main..."
-if ! pty_safe_docker_exec "agent" docker exec leeattend-test-agent_test-1 \
-    cargo test --no-run --manifest-path /workspace/agent-main/Cargo.toml; then
-    COMPILE_FAILED=1
-fi
-
-# Compile-check apiserver tests (no-run = compile only)
-# sqlx macros require a live DB with schema — run migrations first
-echo "  → apiserver (migrate + compile)..."
-if ! pty_safe_docker_exec "apiserver" docker exec leeattend-test-apiserver_test-1 bash -c \
-    'cd /workspace/apiserver && sqlx database create 2>/dev/null; sqlx migrate run && cargo test --no-run'; then
-    COMPILE_FAILED=1
-fi
-
-if [ $COMPILE_FAILED -ne 0 ]; then
-    echo "========================================"
-    echo "❌ INTEGRATION TEST COMPILATION FAILED - Commit aborted"
-    echo "========================================"
-    echo "💡 Fix compilation errors in test files before committing."
-    exit 1
-fi
-
-echo "✅ All test targets compile successfully."
-
-echo "========================================"
-echo "✅ All pre-commit checks passed!"
-echo "========================================"
-
-# Re-stage any tracked files modified by tests (e.g. Cargo.lock updated by Docker/cargo)
-# Safe: `git add -u` only stages already-tracked files, never new untracked files
+# Re-stage any tracked files modified by tests (e.g. Cargo.lock)
 MODIFIED=$(git diff --name-only)
 if [ -n "$MODIFIED" ]; then
     echo "📎 Re-staging tracked files modified during tests:"
     echo "$MODIFIED" | sed 's/^/   /'
     git add -u
 fi
+
+rm -f "$LOG"
+exit "$EXIT_CODE"

@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 # Multi-stage build for React Frontend supporting Dev, Test, and Prod
 
 # Stage 1: Base (OS deps + npm install)

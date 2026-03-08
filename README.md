@@ -30,7 +30,7 @@ leeattend/
 > **MANDATORY RULES:** Before running any commands or starting implementation, you MUST read:
 > 👉 **[PROJECT_OS.md](./PROJECT_OS.md)**
 >
-> This file contains the mandatory technical protocols, build/test commands (via `run-tests.sh` for Humans, `ai-test.sh` for AI Agents), and the Definition of Done required for this project.
+> This file contains the mandatory technical protocols, build/test commands (via `run-tests.sh`), and the Definition of Done required for this project.
 
 ### Quick Start (Dev Mode)
 To spin up the entire environment with hot-reloading:
@@ -62,9 +62,9 @@ Always use the unified orchestrator:
   ```
 - **For AI Agents (IMPORTANT: prevents PTY hangs)**:
   ```bash
-  ./ai-test.sh --all             # Run full suite
-  ./ai-test.sh --api [pattern]   # Run backend tests
-  ./ai-test.sh --web [pattern]   # Run frontend tests
+  ./run-tests.sh --all </dev/null             # Run full suite
+  ./run-tests.sh --api [pattern] </dev/null   # Run backend tests
+  ./run-tests.sh --web [pattern] </dev/null   # Run frontend tests
   ```
 
 ### Key Features
@@ -73,7 +73,7 @@ Always use the unified orchestrator:
 - **Cargo Nextest**: Modern test runner for faster, isolated Rust tests.
 - **Docker Isolation**: All tests run inside containers. Database is internal (`test_db:5432`) with no host port mapping.
 ### ⚠️ WSL Performance Note
-On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./run-tests.sh` (or `./ai-test.sh` for AI Agents)** which runs tests inside Docker containers.
+On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./run-tests.sh`** which runs tests inside Podman containers. AI Agents should append `</dev/null`.
 
 ## 📝 Changelog
 See [CHANGELOG.md](./CHANGELOG.md) for version history.

@@ -10,7 +10,7 @@ set -euo pipefail
 # --- Configuration ---
 export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export COMPOSE_PROJECT_NAME="leeattend-test"
-export DOCKER_COMPOSE_CMD="docker compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
+export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
 export LOG_DIR="$PROJECT_ROOT/.test_logs"
 mkdir -p "$LOG_DIR"
 
@@ -51,7 +51,7 @@ run_with_timeout() {
 leeattend_cleanup() {
     echo -e "\n${YELLOW}🧹 [Parent] Cleaning up test environment...${NC}"
     $DOCKER_COMPOSE_CMD down --remove-orphans </dev/null > /dev/null 2>&1
-    docker volume prune -f --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.volume=shared-data" > /dev/null 2>&1 || true
+    podman volume prune -f --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.volume=shared-data" > /dev/null 2>&1 || true
     rm -f apiserver/.api_port* webdashboard/.web_port*
     echo -e "${GREEN}✅ Cleanup complete.${NC}"
 }

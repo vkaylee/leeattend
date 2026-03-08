@@ -24,7 +24,7 @@ echo ""
 # Build and extract in one step using --output
 echo "[1/1] Building and extracting..."
 mkdir -p "$OUTPUT_DIR"
-DOCKER_BUILDKIT=1 docker build \
+podman build \
     -f Dockerfile.windows \
     --build-arg VITE_API_URL="$API_URL" \
     --target output \
