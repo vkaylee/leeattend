@@ -21,20 +21,53 @@ use agent::worker::Worker;
 use agent::zk_worker;
 use agent::mock_worker;
 use agent::central_client::connection::DeviceLocks;
+use agent::redb_store::RedbStore;
+
+/// Shared context passed to every spawned worker.
+/// Avoids repeating 5 identical clone() args at each spawn_worker call site.
+#[derive(Clone)]
+struct WorkerContext {
+    log_tx: mpsc::Sender<(Arc<String>, models::AttendanceData)>,
+    hybrid_db: HybridDatabase,
+    semaphore: Arc<Semaphore>,
+    success_skip_polls: u32,
+    device_locks: DeviceLocks,
+}
+
+/// Extract device metadata fields from a serde_json info object and persist.
+/// Centralises the 10-field unwrap_or("N/A") pattern that was previously duplicated.
+fn update_metadata_from_info(store: &RedbStore, device_id: &str, info: &serde_json::Value) {
+    if let Some(obj) = info.as_object() {
+        let _ = store.update_device_metadata(
+            device_id,
+            obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
+            obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
+            obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
+            obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
+            obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
+            obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
+            obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
+            obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+            obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+            obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A"),
+        );
+    }
+}
 
 /// Spawn a single device polling worker with its own cancellation token.
 /// The worker connects, polls attendance logs, and sends them to log_tx.
 /// On cancellation, it gracefully disconnects from the device.
 fn spawn_worker(
     config: WorkerConfig,
-    log_tx: mpsc::Sender<(Arc<String>, models::AttendanceData)>,
-    hybrid_db: HybridDatabase,
-    sem: Arc<Semaphore>,
-    success_skip_polls: u32,
-    device_locks: DeviceLocks,
+    ctx: WorkerContext,
     token: CancellationToken,
 ) {
     let worker_id = Arc::new(config.id.clone());
+    let log_tx = ctx.log_tx;
+    let hybrid_db = ctx.hybrid_db;
+    let sem = ctx.semaphore;
+    let success_skip_polls = ctx.success_skip_polls;
+    let device_locks = ctx.device_locks;
 
     tokio::spawn(async move {
         info!("[{}] Device Polling Loop started ({})", config.name, config.ip);
@@ -82,21 +115,7 @@ fn spawn_worker(
 
             match worker_impl.get_info().await {
                 Ok(info) => {
-                    if let Some(obj) = info.as_object() {
-                        let _ = hybrid_db.store().update_device_metadata(
-                            &config.id,
-                            obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                            obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                            obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                            obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                            obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                            obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                            obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                            obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                            obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                            obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
-                        );
-                    }
+                    update_metadata_from_info(hybrid_db.store(), &config.id, &info);
                 }
                 Err(e) => {
                     warn!("[{}] Initial get_info failed: {}, disconnecting and retrying...", config.name, e);
@@ -135,21 +154,7 @@ fn spawn_worker(
                 if poll_count % 5 == 1 {
                     match worker_impl.get_info().await {
                         Ok(mut info) => {
-                            if let Some(obj) = info.as_object() {
-                                let _ = hybrid_db.store().update_device_metadata(
-                                    &config.id,
-                                    obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
-                                    obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-                                    obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
-                                );
-                            }
+                            update_metadata_from_info(hybrid_db.store(), &config.id, &info);
 
                             if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&config.id) {
                                 info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
@@ -502,6 +507,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // Bundle shared worker dependencies into a single context
+    let mut worker_ctx = WorkerContext {
+        log_tx: log_tx.clone(),
+        hybrid_db: hybrid_db.clone(),
+        semaphore: semaphore.clone(),
+        success_skip_polls: config.success_skip_polls,
+        device_locks: device_locks.clone(),
+    };
+
     // Initial device load
     match hybrid_db.store().get_active_devices() {
         Ok(devices) => {
@@ -513,7 +527,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             for d in &devices {
                 let wc = to_worker_config(d);
                 let token = CancellationToken::new();
-                spawn_worker(wc.clone(), log_tx.clone(), hybrid_db.clone(), semaphore.clone(), config.success_skip_polls, device_locks.clone(), token.clone());
+                spawn_worker(wc.clone(), worker_ctx.clone(), token.clone());
                 worker_registry.insert(d.id.clone(), (wc, token));
             }
         }
@@ -541,6 +555,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     sleep(Duration::from_secs(2)).await;
                     semaphore = Arc::new(Semaphore::new(current_max_workers));
+                    worker_ctx.semaphore = semaphore.clone();
                     // Fall through to respawn all devices below
                 }
 
@@ -589,7 +604,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let new_config = &new_configs[id];
                     info!("🔄 [{}] Config changed (ip/port/brand/password), restarting worker", new_config.name);
                     let token = CancellationToken::new();
-                    spawn_worker(new_config.clone(), log_tx.clone(), hybrid_db.clone(), semaphore.clone(), config.success_skip_polls, device_locks.clone(), token.clone());
+                    spawn_worker(new_config.clone(), worker_ctx.clone(), token.clone());
                     worker_registry.insert(id.clone(), (new_config.clone(), token));
                 }
 
@@ -598,7 +613,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let new_config = &new_configs[id];
                     info!("➕ [{}] New device detected, spawning worker ({})", new_config.name, new_config.ip);
                     let token = CancellationToken::new();
-                    spawn_worker(new_config.clone(), log_tx.clone(), hybrid_db.clone(), semaphore.clone(), config.success_skip_polls, device_locks.clone(), token.clone());
+                    spawn_worker(new_config.clone(), worker_ctx.clone(), token.clone());
                     worker_registry.insert(id.clone(), (new_config.clone(), token));
                 }
 
