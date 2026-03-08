@@ -493,18 +493,11 @@ done
 
 # Handle log extraction
 if [[ "$SHOW_LOGS" == "true" || "$TAIL_LOGS" == "true" ]]; then
-    if [[ "${USE_DOCKER:-}" != "true" ]]; then
-        echo -e "${YELLOW}Logs from volume are only accessible when using Docker.${NC}"
-        echo -e "Local logs: cat $PROJECT_ROOT/.test_logs/*.log"
-        exit 0
-    fi
-    
-    echo -e "${BLUE}${BOLD}📜 Extracting test logs from persistent volume...${NC}"
-    # Use a temporary busybox container to read from the log volume
+    echo -e "${BLUE}${BOLD}📜 Reading test logs from .test_logs/...${NC}"
     if [[ "$TAIL_LOGS" == "true" ]]; then
-        docker run --rm -v leeattend-test_test-logs:/logs alpine tail -f /logs/results.txt /logs/*.log </dev/null 2>/dev/null || echo "No logs found or container exited."
+        tail -f "$PROJECT_ROOT/.test_logs"/*.log </dev/null 2>/dev/null || echo "No logs found."
     else
-        docker run --rm -v leeattend-test_test-logs:/logs alpine cat /logs/results.txt /logs/*.log </dev/null 2>/dev/null | grep -v 'No such file or directory' || echo "No logs found."
+        cat "$PROJECT_ROOT/.test_logs"/*.log </dev/null 2>/dev/null || echo "No logs found."
     fi
     exit 0
 fi
@@ -735,12 +728,10 @@ cleanup() {
         dc_detached down --remove-orphans --timeout 5 || {
             echo -e "${YELLOW}⚠️  Warning: Cleanup encountered some issues.${NC}"
         }
-        # Remove ephemeral volumes (shared-data + test-logs are tmpfs, no need to keep)
-        for _vol in shared-data test-logs; do
-            setsid docker volume rm "leeattend-test_${_vol}" \
-                </dev/null >/dev/null 2>&1 || true
-        done
-        echo -e "${GREEN}✅ Environment cleaned up (cache preserved, ephemeral volumes removed).${NC}"
+        # Remove ephemeral volumes (shared-data is tmpfs)
+        setsid docker volume rm "leeattend-test_shared-data" \
+            </dev/null >/dev/null 2>&1 || true
+        echo -e "${GREEN}✅ Environment cleaned up (cache preserved).${NC}"
     fi
 
     # ── Final PTY sweep ──────────────────────────────────────────────
