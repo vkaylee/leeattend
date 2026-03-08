@@ -31,7 +31,7 @@ leeattend_run_integration() {
     fi
 
     # Default URL for internal tests
-    export DATABASE_URL="postgres://test_user:test_password@test_db:5432/test_database"
+    export DATABASE_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
 
     local APISERVER_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass"
     
@@ -43,13 +43,16 @@ leeattend_run_integration() {
     local PW_CMD="npx playwright test $PW_ARGS --workers 1"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        # In Docker, we connect to 'test_db' service and template DB
-        local DOCKER_DB_URL="postgres://test_user:test_password@test_db:5432/test_database"
+        # DOCKER_DB_URL: Used for sqlx compile-time macro checks (needs schema)
+        local DOCKER_DB_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
+        # API_SERVER_DB_URL: Used for the background API server process.
+        # MUST NOT use the template DB — holding connections blocks CREATE DATABASE ... TEMPLATE.
+        local API_SERVER_DB_URL="postgres://test_user:test_password@test_db:5432/test_database"
         
         if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
             # START API SERVER IN BACKGROUND FOR AGENT INTEGRATION TESTS
             echo -e "  ${BLUE}🚀 Starting API Server in background inside Docker...${NC}"
-            $DOCKER_COMPOSE_CMD exec -T -d -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c "cargo run --bin apiserver > /workspace/apiserver/apiserver.log 2>&1" </dev/null
+            $DOCKER_COMPOSE_CMD exec -T -d -e DATABASE_URL=$API_SERVER_DB_URL apiserver_test bash -c "cargo run --bin apiserver > /workspace/apiserver/apiserver.log 2>&1" </dev/null
             
             # Wait for server to be ready
             echo -n "  Waiting for API Server (timeout: 60s)..."

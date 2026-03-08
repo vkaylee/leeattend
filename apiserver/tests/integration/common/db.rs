@@ -157,32 +157,26 @@ impl TestDatabase {
         Ok(())
     }
 
-    /// Blocking cleanup wrapper for use in Drop trait
+    /// Blocking cleanup wrapper for use in Drop trait.
+    /// Runs cleanup on a dedicated thread with its own runtime to avoid
+    /// panics from block_in_place (requires multi-threaded runtime, but
+    /// nextest uses current-thread). Joins the thread to ensure cleanup
+    /// completes before the test process exits.
     fn cleanup_database_blocking(db_name: String, admin_url: String) {
-        // Use tokio's Handle to run async code from sync context
-        if let Ok(handle) = tokio::runtime::Handle::try_current() {
-            // We're inside a tokio runtime, spawn a task
-            let db_name_clone = db_name.clone();
-            handle.spawn(async move {
-                if let Err(e) = Self::cleanup_database_async(&db_name_clone, &admin_url).await {
-                    eprintln!("Async cleanup failed for {db_name_clone}: {e}");
+        let handle = std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            if let Ok(rt) = rt {
+                // cleanup_database_async already uses pg_terminate_backend
+                // to forcefully kill all connections before DROP DATABASE.
+                if let Err(e) = rt.block_on(Self::cleanup_database_async(&db_name, &admin_url)) {
+                    eprintln!("Cleanup failed for {db_name}: {e}");
                 }
-            });
-        } else {
-            // No runtime available, create a new one for cleanup
-            std::thread::spawn(move || {
-                let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build();
-                if let Ok(rt) = rt {
-                    rt.block_on(async {
-                        if let Err(e) = Self::cleanup_database_async(&db_name, &admin_url).await {
-                            eprintln!("Sync cleanup failed for {db_name}: {e}");
-                        }
-                    });
-                }
-            });
-        }
+            }
+        });
+        // Wait for the cleanup thread to finish
+        let _ = handle.join();
     }
 
     pub fn pool(&self) -> PgPool {
@@ -203,3 +197,4 @@ impl Drop for TestDatabase {
         Self::cleanup_database_blocking(self.db_name.clone(), self.base_url.clone());
     }
 }
+
