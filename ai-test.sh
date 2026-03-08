@@ -105,20 +105,23 @@ _CHILD_PIDS+=($!)
 
 # FIX: Ensure log file exists before polling (setsid may not have written yet)
 touch "$LOG_FILE"
+# Stream log output in real-time with tail -f
+# This ensures logs appear immediately, especially on failures.
+tail -f "$LOG_FILE" </dev/null &
+_TAIL_PID=$!
+_CHILD_PIDS+=($_TAIL_PID)
 
-# Poll until the exit code file appears (= subprocess finished)
-POLL_INTERVAL=5
-ELAPSED=0
+# Wait for the exit code file to appear (= subprocess finished)
 while [ ! -f "$EXIT_CODE_FILE" ]; do
-    sleep $POLL_INTERVAL
-    ELAPSED=$((ELAPSED + POLL_INTERVAL))
-
-    # Show the last line as a progress indicator every 15s
-    if (( ELAPSED % 15 == 0 )); then
-        LAST_LINE=$(tail -1 "$LOG_FILE" 2>/dev/null || echo "...")
-        echo "  ⏳ ${ELAPSED}s — $LAST_LINE"
-    fi
+    sleep 1
 done
+
+# Small delay to let tail -f flush remaining output
+sleep 0.5
+
+# Kill tail -f (no longer needed, process is done)
+kill $_TAIL_PID 2>/dev/null || true
+wait $_TAIL_PID 2>/dev/null || true
 
 # Read exit code from file
 EXIT_CODE=$(cat "$EXIT_CODE_FILE" 2>/dev/null || echo "1")
@@ -127,18 +130,14 @@ echo ""
 echo "================================================================"
 if [ "$EXIT_CODE" -eq 0 ]; then
     echo "✅ ALL TESTS PASSED"
-    echo "================================================================"
-    cat "$LOG_FILE" || true
 else
     echo "❌ TESTS FAILED (exit code: $EXIT_CODE)"
     echo "================================================================"
-    # FIX: Output to stdout (not stderr) so AI agent tools capture it.
-    # Previous >&2 was invisible to most agent terminal readers.
-    cat "$LOG_FILE" || true
     echo ""
     echo "──── Last 30 lines ────"
     tail -30 "$LOG_FILE" 2>/dev/null || true
 fi
+echo "================================================================"
 
 # Clean up temp files
 rm -f "$LOG_FILE" "$EXIT_CODE_FILE"

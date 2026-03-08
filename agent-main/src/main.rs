@@ -21,7 +21,7 @@ use agent::worker::Worker;
 use agent::zk_worker;
 use agent::mock_worker;
 use agent::central_client::connection::DeviceLocks;
-use agent::redb_store::RedbStore;
+use agent::utils::update_metadata_from_info;
 
 /// Shared context passed to every spawned worker.
 /// Avoids repeating 5 identical clone() args at each spawn_worker call site.
@@ -32,26 +32,6 @@ struct WorkerContext {
     semaphore: Arc<Semaphore>,
     success_skip_polls: u32,
     device_locks: DeviceLocks,
-}
-
-/// Extract device metadata fields from a serde_json info object and persist.
-/// Centralises the 10-field unwrap_or("N/A") pattern that was previously duplicated.
-fn update_metadata_from_info(store: &RedbStore, device_id: &str, info: &serde_json::Value) {
-    if let Some(obj) = info.as_object() {
-        let _ = store.update_device_metadata(
-            device_id,
-            obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
-            obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
-            obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
-            obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
-            obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
-            obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
-            obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
-            obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-            obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-            obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A"),
-        );
-    }
 }
 
 /// Spawn a single device polling worker with its own cancellation token.
