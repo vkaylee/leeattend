@@ -34,20 +34,37 @@ impl TestDatabase {
         let _database_name = url_parts.pop().unwrap_or("postgres");
         let base_connection_string = url_parts.join("/");
 
+        // Connect to admin database (NOT the template!) to avoid blocking
+        // CREATE DATABASE ... TEMPLATE. PostgreSQL requires zero active
+        // connections on the template database.
+        let admin_url = format!("{base_connection_string}/test_database");
+
         let db_name = format!("test_db_{}", Uuid::new_v4().simple());
 
         Self::init_trap();
 
-        let mut connection = PgConnection::connect(&base_url)
+        let mut connection = PgConnection::connect(&admin_url)
             .await
             .expect("Failed to connect to Postgres admin");
 
-        // Use template database to avoid running migrations
+        // Use template database to avoid running migrations.
+        // Retry with backoff since parallel tests may briefly connect to the
+        // template (e.g., during fallback migration), causing transient blocks.
         let sql = format!("CREATE DATABASE \"{db_name}\" TEMPLATE leeattend_test_template");
-        let create_result = connection.execute(sql.as_str()).await;
+        let mut create_result = Err(sqlx::Error::PoolClosed); // sentinel
+        for attempt in 0..5 {
+            create_result = connection.execute(sql.as_str()).await;
+            if create_result.is_ok() {
+                break;
+            }
+            if attempt < 4 {
+                let delay = std::time::Duration::from_millis(200 * (1 << attempt));
+                tokio::time::sleep(delay).await;
+            }
+        }
 
         if let Err(e) = create_result {
-            eprintln!("Warning: Failed to create database from template: {e}. Falling back to manual migration.");
+            eprintln!("Warning: Failed to create database from template after retries: {e}. Falling back to manual migration.");
             let sql_fallback = format!("CREATE DATABASE \"{db_name}\"");
             connection
                 .execute(sql_fallback.as_str())

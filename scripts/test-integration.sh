@@ -31,7 +31,7 @@ leeattend_run_integration() {
     fi
 
     # Default URL for internal tests
-    export DATABASE_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
+    export DATABASE_URL="postgres://test_user:test_password@test_db:5432/test_database"
 
     local APISERVER_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass"
     
@@ -44,7 +44,7 @@ leeattend_run_integration() {
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # In Docker, we connect to 'test_db' service and template DB
-        local DOCKER_DB_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
+        local DOCKER_DB_URL="postgres://test_user:test_password@test_db:5432/test_database"
         
         if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
             # START API SERVER IN BACKGROUND FOR AGENT INTEGRATION TESTS
