@@ -6,7 +6,7 @@ use agent::models::AttendanceData;
 fn test_retry_count_increments() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
-    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data = AttendanceData {
         user_id: "U001".to_string(),
@@ -30,7 +30,7 @@ fn test_retry_count_increments() {
 fn test_max_retry_limit_moves_to_dlq() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
-    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data = AttendanceData {
         user_id: "U001".to_string(),
@@ -63,7 +63,7 @@ fn test_max_retry_limit_moves_to_dlq() {
 fn test_valid_retries_not_moved_to_dlq() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
-    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data = AttendanceData {
         user_id: "U001".to_string(),
@@ -93,7 +93,7 @@ fn test_configurable_retry_limits() {
     let store = hybrid.store();
 
     store.upsert_agent_config("max_retry_count", "5").unwrap();
-    store.upsert_device("config_device", "Cfg Dev", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("config_device", "Cfg Dev", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     assert_eq!(store.get_agent_config("max_retry_count").unwrap(), Some("5".to_string()));
 
@@ -119,7 +119,7 @@ fn test_configurable_retry_limits() {
 fn test_dlq_preserves_metadata() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
-    store.upsert_device("metadata_test", "Meta Dev", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("metadata_test", "Meta Dev", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data = AttendanceData {
         user_id: "U999".to_string(),

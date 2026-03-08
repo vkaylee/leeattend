@@ -16,7 +16,7 @@ fn make_attendance(user_id: &str, timestamp: &str) -> AttendanceData {
 #[test]
 fn benchmark_insert_latency() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("BENCH_DEV", "Bench Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("BENCH_DEV", "Bench Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let start = Instant::now();
     let count = 100;
@@ -33,7 +33,7 @@ fn benchmark_insert_latency() {
 #[test]
 fn benchmark_query_latency() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("BENCH_DEV", "Bench Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("BENCH_DEV", "Bench Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     for i in 0..500 {
         let data = make_attendance(&format!("U{i:04}"), &format!("2026-01-27 10:{:02}:00", i % 60));
@@ -54,7 +54,7 @@ fn benchmark_query_latency() {
 #[test]
 fn benchmark_batch_insert_latency() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("BENCH_DEV", "Bench Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("BENCH_DEV", "Bench Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let batch: Vec<(String, AttendanceData)> = (0..100).map(|i| {
         ("BENCH_DEV".to_string(), make_attendance(&format!("U{i:04}"), &format!("2026-01-27 10:{:02}:00", i % 60)))
@@ -75,7 +75,7 @@ fn benchmark_batch_insert_latency() {
 #[test]
 fn benchmark_mark_operations() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("BENCH_DEV", "Bench Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("BENCH_DEV", "Bench Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let mut ids = Vec::new();
     for i in 0..100 {
@@ -96,7 +96,7 @@ fn benchmark_mark_operations() {
 #[test]
 fn integration_full_sync_workflow() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     // 1. Insert logs
     let data = make_attendance("U001", "2026-01-27 10:00:00");
@@ -119,7 +119,7 @@ fn integration_full_sync_workflow() {
 #[test]
 fn integration_restart_recovery_with_inflight() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data = make_attendance("U001", "2026-01-27 10:00:00");
     let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
@@ -147,8 +147,8 @@ fn integration_restart_recovery_with_inflight() {
 #[test]
 fn integration_concurrent_device_writes() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
-    hybrid.store().upsert_device("DEV2", "Device 2", "1.2.3.5", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+    hybrid.store().upsert_device("DEV2", "Device 2", "1.2.3.5", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     for i in 0..5 {
         let _ = hybrid.save_raw_attendance("DEV1", make_attendance(&format!("U{i}"), "2026-01-27 10:00:00"));
@@ -161,7 +161,7 @@ fn integration_concurrent_device_writes() {
 #[test]
 fn integration_mixed_sync_states() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let mut all_ids = Vec::new();
     for i in 0..6 {
@@ -196,7 +196,7 @@ fn edge_case_empty_batch_insert() {
 #[test]
 fn edge_case_get_unsynced_after_all_synced() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data = make_attendance("U001", "2026-01-27 10:00:00");
     let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
@@ -209,7 +209,7 @@ fn edge_case_get_unsynced_after_all_synced() {
 #[test]
 fn edge_case_duplicate_insert() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data = make_attendance("U001", "2026-01-27 10:00:00");
     let id1 = hybrid.save_raw_attendance("DEV1", data.clone());
@@ -222,7 +222,7 @@ fn edge_case_duplicate_insert() {
 #[test]
 fn edge_case_cleanup_synced_no_old_logs() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data = make_attendance("U001", "2026-01-27 10:00:00");
     let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
@@ -236,7 +236,7 @@ fn edge_case_cleanup_synced_no_old_logs() {
 #[test]
 fn edge_case_multiple_timestamp_formats() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     // Standard format
     let data1 = make_attendance("U001", "2026-01-27 10:00:00");

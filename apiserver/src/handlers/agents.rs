@@ -140,6 +140,15 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         .agents.manager
                                         .record_heartbeat(id.to_string())
                                         .await;
+
+                                    // Send heartbeat_ack with server_time for clock sync
+                                    let _ = tx.send(Message::Text(
+                                        serde_json::json!({
+                                            "type": "heartbeat_ack",
+                                            "server_time": chrono::Utc::now().to_rfc3339()
+                                        })
+                                        .to_string(),
+                                    ));
                                 }
                             }
                         } else if (v["type"] == "handshake" || !agent_id.is_empty())

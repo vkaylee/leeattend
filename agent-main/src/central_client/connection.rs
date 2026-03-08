@@ -22,6 +22,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use super::message_handler::handle_incoming_text;
 use super::retry_manager::{RetryManager, calculate_sync_stats};
 
+use crate::time_sync::TimeSync;
 use dashmap::DashMap;
 
 // Retry configuration constants
@@ -47,15 +48,16 @@ pub struct CentralClient {
     #[allow(dead_code)]
     command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>,
     device_locks: DeviceLocks,
+    time_sync: Arc<TimeSync>,
 }
 
 #[allow(clippy::collapsible_if)]
 impl CentralClient {
-    pub fn new(url: String, agent_id: String, token: String, hybrid_db: HybridDatabase, inflight_timeout_secs: u64, command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>, device_locks: DeviceLocks) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
+    pub fn new(url: String, agent_id: String, token: String, hybrid_db: HybridDatabase, inflight_timeout_secs: u64, command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>, device_locks: DeviceLocks, time_sync: Arc<TimeSync>) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
         let (tx, rx) = mpsc::channel(100);
         let (reload_tx, reload_rx) = mpsc::channel(1);
         let is_connected = Arc::new(AtomicBool::new(false));
-        (Self { url, agent_id, token, hybrid_db, inflight_timeout_secs, tx, reload_tx, is_connected, command_registry, device_locks }, rx, reload_rx)
+        (Self { url, agent_id, token, hybrid_db, inflight_timeout_secs, tx, reload_tx, is_connected, command_registry, device_locks, time_sync }, rx, reload_rx)
     }
 
     pub fn get_tx(&self) -> mpsc::Sender<CentralMessage> {
@@ -76,6 +78,7 @@ impl CentralClient {
         let sync_agent_id = agent_id.clone();
         let connected = self.is_connected.clone();
         let inflight_timeout_secs = self.inflight_timeout_secs;
+        let sync_time = self.time_sync.clone();
         tokio::spawn(async move {
             let mut last_stale_check = Instant::now();
 
@@ -145,7 +148,7 @@ impl CentralClient {
                     }
                 }
                 // Cache batch timestamp: all logs in this cycle share the same send time
-                let batch_timestamp = chrono::Utc::now().to_rfc3339();
+                let batch_timestamp = sync_time.corrected_now().to_rfc3339();
                 for log in logs {
                     // Convert Unix timestamp to formatted string
                     let timestamp_str = chrono::DateTime::from_timestamp(log.timestamp, 0)
@@ -193,12 +196,13 @@ impl CentralClient {
         // 2. Heartbeat Task
         let hb_agent_id = agent_id.clone();
         let hb_tx = tx.clone();
+        let hb_time = self.time_sync.clone();
         tokio::spawn(async move {
             loop {
                 sleep(Duration::from_secs(30)).await;
                 let hb = CentralMessage::Heartbeat {
                     agent_id: hb_agent_id.clone(),
-                    timestamp: chrono::Utc::now().to_rfc3339(),
+                    timestamp: hb_time.corrected_now().to_rfc3339(),
                 };
                 let _ = hb_tx.send(hb).await;
             }
@@ -207,6 +211,7 @@ impl CentralClient {
         // 3. WS Connection Manager
         let conn_reload_tx = ws_reload_tx.clone();
         let ws_connected = self.is_connected.clone();
+        let ws_time = self.time_sync.clone();
         tokio::spawn(async move {
             let mut manager = RetryManager::new();
             let mut rx_opt: Option<mpsc::Receiver<CentralMessage>> = Some(rx);
@@ -235,7 +240,7 @@ impl CentralClient {
                         let handshake = CentralMessage::Handshake {
                             agent_id: agent_id.clone(),
                             token: token.clone(),
-                            timestamp: chrono::Utc::now().to_rfc3339(),
+                            timestamp: ws_time.corrected_now().to_rfc3339(),
                         };
                         if let Ok(text) = serde_json::to_string(&handshake) {
                             if write.send(Message::Text(text.into())).await.is_err() {
@@ -255,12 +260,13 @@ impl CentralClient {
                         let read_reload_tx = conn_reload_tx.clone();
                         let read_tx = tx.clone();
                         let read_device_locks = self.device_locks.clone();
+                        let read_time = ws_time.clone();
                         let mut read_task = tokio::spawn(async move {
                             let mut read = read;
                             while let Some(msg) = read.next().await {
                                 match msg {
                                     Ok(Message::Text(text)) => {
-                                        handle_incoming_text(&text, &read_hybrid, &read_reload_tx, &read_tx, &read_device_locks).await;
+                                        handle_incoming_text(&text, &read_hybrid, &read_reload_tx, &read_tx, &read_device_locks, &read_time).await;
                                     }
                                     Ok(Message::Ping(_)) => {
                                         // Pong is handled automatically by tungstenite

@@ -1890,7 +1890,7 @@
       "serial": "Serial Number",
       "mac": "MAC Address",
       "hw_fw": "Hardware / FW",
-      "last_synced": "Last synced: {{time}}",
+      "last_synced": "Info updated: {{time}}",
       "loading": "Loading device info...",
       "enable_btn": "Enable Device",
       "disable_btn": "Disable Device"

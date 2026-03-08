@@ -133,7 +133,7 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
 
     // 3. Verify audit log for grant
     let audit_logs = sqlx::query!("SELECT action, details FROM audit_logs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1", ws_id)
-        .fetch_one(state.db.api())
+        .fetch_one(state.infra.db.api())
         .await
         .unwrap();
 
@@ -159,7 +159,7 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
 
     // 5. Verify audit log for revoke
     let audit_logs_after = sqlx::query!("SELECT action FROM audit_logs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1", ws_id)
-        .fetch_one(state.db.api())
+        .fetch_one(state.infra.db.api())
         .await
         .unwrap();
 

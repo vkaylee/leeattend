@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTickingDeviceTime } from "@/hooks/useTickingDeviceTime";
 import { useTranslation } from "react-i18next";
 import {
   Cpu,
@@ -38,6 +39,21 @@ interface DeviceListItemProps {
   onDelete: (id: string) => Promise<void>;
   onEdit?: (device: Device) => void;
   onRefresh?: (deviceId: string) => void;
+}
+
+function DeviceTimeTicker({ deviceTime, lastSync }: { deviceTime?: string; lastSync?: string }) {
+  const { t } = useTranslation();
+  const tickingTime = useTickingDeviceTime(deviceTime, lastSync);
+
+  return (
+    <div className="flex flex-col gap-1 min-w-[150px]">
+      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.device_time")}</span>
+      <div className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400">
+        <Clock size={12} />
+        <span className="text-[10px] font-mono font-black tracking-tighter">{tickingTime || "--:--:--"}</span>
+      </div>
+    </div>
+  );
 }
 
 export default function DeviceListItem({
@@ -206,14 +222,8 @@ export default function DeviceListItem({
           </div>
         </div>
 
-        {/* Device Time - Moved up in priority to avoid being the last item cut off */}
-        <div className="flex flex-col gap-1 min-w-[150px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.device_time")}</span>
-          <div className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400">
-            <Clock size={12} />
-            <span className="text-[10px] font-mono font-black tracking-tighter">{displayInfo?.device_time || "--:--:--"}</span>
-          </div>
-        </div>
+        {/* Device Time - Live ticking clock */}
+        <DeviceTimeTicker deviceTime={displayInfo?.device_time} lastSync={displayInfo?.last_sync} />
 
         {/* Serial Number */}
         <div className="flex flex-col gap-1 min-w-[130px]">

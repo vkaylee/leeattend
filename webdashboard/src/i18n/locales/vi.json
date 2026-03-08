@@ -1890,7 +1890,7 @@
       "serial": "Số Serial",
       "mac": "Địa chỉ MAC",
       "hw_fw": "Phần cứng / FW",
-      "last_synced": "Đồng bộ lần cuối: {{time}}",
+      "last_synced": "Cập nhật info: {{time}}",
       "loading": "Đang tải thông tin thiết bị...",
       "enable_btn": "Bật thiết bị",
       "disable_btn": "Tắt thiết bị"

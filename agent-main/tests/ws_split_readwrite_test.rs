@@ -11,7 +11,7 @@ fn test_concurrent_device_writes_data_integrity() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
-    store.upsert_device("DEV_BULK", "Bulk Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("DEV_BULK", "Bulk Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     // Insert 20 logs
     let mut ids = Vec::new();
@@ -41,7 +41,7 @@ fn test_connection_failure_preserves_logs() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
-    store.upsert_device("DEV_FAIL", "Fail Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("DEV_FAIL", "Fail Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
     hybrid.save_raw_attendance("DEV_FAIL", AttendanceData {
         user_id: "USER_FAIL".into(),
         timestamp: "2026-01-26 12:00:00".into(),
@@ -58,7 +58,7 @@ fn test_no_ack_starvation_under_load() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
-    store.upsert_device("DEV_LOAD", "Load Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("DEV_LOAD", "Load Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     // Insert 50 logs for load testing
     let mut ids = Vec::new();

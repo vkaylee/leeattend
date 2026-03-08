@@ -37,7 +37,7 @@ impl Worker for MockWorker {
         Ok(vec![log])
     }
 
-    async fn get_info(&mut self) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_info(&mut self, _time_sync: &crate::time_sync::TimeSync) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         Ok(serde_json::json!({
             "users_count": 100,
             "users_capacity": 1000,
@@ -65,7 +65,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_worker_capacity() {
         let mut worker = MockWorker::new();
-        let info = worker.get_info().await.expect("Failed to get info");
+        let info = worker.get_info(&crate::time_sync::TimeSync::new()).await.expect("Failed to get info");
         
         assert_eq!(info["users_count"], 100);
         assert_eq!(info["users_capacity"], 1000);

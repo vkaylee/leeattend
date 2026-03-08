@@ -16,3 +16,4 @@ pub mod mock_worker;
 pub mod worker;
 
 pub mod zk_worker;
+pub mod time_sync;

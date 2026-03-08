@@ -4,7 +4,7 @@ use agent::models::AttendanceData;
 #[test]
 fn test_batch_worker_inserts_records() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("D1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("D1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     // Simulate batch worker: accumulate and insert
     let items: Vec<(String, AttendanceData)> = (0..3).map(|i| {

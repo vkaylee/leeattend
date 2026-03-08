@@ -132,7 +132,7 @@ mod tests {
     fn setup_db() -> HybridDatabase {
         let db = HybridDatabase::new(":memory:", 1000, 90).unwrap();
         // Setup a device with UTC timezone for test
-        db.store().upsert_device("DEV001", "Test Device", "192.168.1.1", 4370, "zkteco", "UTC", None, true).unwrap();
+        db.store().upsert_device("DEV001", "Test Device", "192.168.1.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
         db
     }
 
@@ -233,8 +233,8 @@ mod tests {
     fn test_device_management() {
         let db = HybridDatabase::new(":memory:", 1000, 90).unwrap();
 
-        db.store().upsert_device("DEV001", "Device 1", "192.168.1.1", 4370, "zkteco", "Asia/Ho_Chi_Minh", None, true).unwrap();
-        db.store().upsert_device("DEV002", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", None, false).unwrap();
+        db.store().upsert_device("DEV001", "Device 1", "192.168.1.1", 4370, "zkteco", "Asia/Ho_Chi_Minh", None, true, 123456).unwrap();
+        db.store().upsert_device("DEV002", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", None, false, 123456).unwrap();
 
         let active = db.store().get_active_devices().unwrap();
         assert_eq!(active.len(), 1);
@@ -256,7 +256,7 @@ mod tests {
     #[test]
     fn test_eviction() {
         let db = HybridDatabase::new(":memory:", 1000, 1).unwrap(); // 1 day TTL
-        db.store().upsert_device("DEV001", "Test", "192.168.1.1", 4370, "zkteco", "UTC", None, true).unwrap();
+        db.store().upsert_device("DEV001", "Test", "192.168.1.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
         // Insert log with current timestamp (within TTL)
         let data = make_attendance("user1", "2025-06-01 08:00:00");

@@ -1,10 +1,11 @@
 use agent::mock_worker::MockWorker;
 use agent::worker::Worker;
+use agent::time_sync::TimeSync;
 
 #[tokio::test]
 async fn test_mock_worker_get_info_contains_logs_capacity() {
     let mut worker = MockWorker::new();
-    let info = worker.get_info().await.unwrap();
+    let info = worker.get_info(&TimeSync::new()).await.unwrap();
 
     // Verify logs_capacity field exists and is a positive number
     assert!(
@@ -20,7 +21,7 @@ async fn test_mock_worker_get_info_contains_logs_capacity() {
 #[tokio::test]
 async fn test_mock_worker_get_info_contains_logs_count() {
     let mut worker = MockWorker::new();
-    let info = worker.get_info().await.unwrap();
+    let info = worker.get_info(&TimeSync::new()).await.unwrap();
 
     assert!(
         info.get("logs_count").is_some(),
@@ -35,7 +36,7 @@ async fn test_mock_worker_get_info_contains_logs_count() {
 #[tokio::test]
 async fn test_mock_worker_get_info_capacity_greater_than_count() {
     let mut worker = MockWorker::new();
-    let info = worker.get_info().await.unwrap();
+    let info = worker.get_info(&TimeSync::new()).await.unwrap();
 
     let logs_count = info["logs_count"].as_i64().unwrap();
     let logs_capacity = info["logs_capacity"].as_i64().unwrap();
@@ -49,7 +50,7 @@ async fn test_mock_worker_get_info_capacity_greater_than_count() {
 #[tokio::test]
 async fn test_mock_worker_get_info_all_required_fields() {
     let mut worker = MockWorker::new();
-    let info = worker.get_info().await.unwrap();
+    let info = worker.get_info(&TimeSync::new()).await.unwrap();
 
     let required_fields = [
         "users_count",

@@ -3,7 +3,7 @@ use crate::redb_store::RedbStore;
 
 /// Extract device metadata fields from a serde_json info object and persist.
 /// Centralises the 10-field unwrap_or("N/A") pattern.
-pub fn update_metadata_from_info(store: &RedbStore, device_id: &str, info: &serde_json::Value) {
+pub fn update_metadata_from_info(store: &RedbStore, device_id: &str, info: &serde_json::Value, now_ts: i64) {
     if let Some(obj) = info.as_object() {
         let _ = store.update_device_metadata(
             device_id,
@@ -17,6 +17,7 @@ pub fn update_metadata_from_info(store: &RedbStore, device_id: &str, info: &serd
             obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
             obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
             obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A"),
+            now_ts,
         );
     }
 }
@@ -111,7 +112,7 @@ mod tests {
     #[test]
     fn test_update_metadata_full_info() {
         let store = make_store();
-        store.upsert_device("dev1", "Office", "192.168.1.1", 4370, "zkteco", "UTC", None, true).unwrap();
+        store.upsert_device("dev1", "Office", "192.168.1.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
         let info = serde_json::json!({
             "mac": "AA:BB:CC:DD:EE:FF",
@@ -126,7 +127,7 @@ mod tests {
             "device_time": "2026-03-08 09:00:00"
         });
 
-        update_metadata_from_info(&store, "dev1", &info);
+        update_metadata_from_info(&store, "dev1", &info, 123456);
 
         let meta = store.get_device_metadata("dev1").unwrap().unwrap();
         assert_eq!(meta.mac.as_deref(), Some("AA:BB:CC:DD:EE:FF"));
@@ -144,7 +145,7 @@ mod tests {
     #[test]
     fn test_update_metadata_partial_info_defaults_to_na() {
         let store = make_store();
-        store.upsert_device("dev2", "Lobby", "10.0.0.1", 4370, "zkteco", "UTC", None, true).unwrap();
+        store.upsert_device("dev2", "Lobby", "10.0.0.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
         // Only mac and serial present — other fields should default to N/A / 0
         let info = serde_json::json!({
@@ -152,7 +153,7 @@ mod tests {
             "serial": "SN999"
         });
 
-        update_metadata_from_info(&store, "dev2", &info);
+        update_metadata_from_info(&store, "dev2", &info, 123456);
 
         let meta = store.get_device_metadata("dev2").unwrap().unwrap();
         assert_eq!(meta.mac.as_deref(), Some("11:22:33:44:55:66"));
@@ -167,10 +168,10 @@ mod tests {
     #[test]
     fn test_update_metadata_empty_object_sets_defaults() {
         let store = make_store();
-        store.upsert_device("dev3", "Gate", "10.0.0.2", 4370, "zkteco", "UTC", None, true).unwrap();
+        store.upsert_device("dev3", "Gate", "10.0.0.2", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
         let info = serde_json::json!({});
-        update_metadata_from_info(&store, "dev3", &info);
+        update_metadata_from_info(&store, "dev3", &info, 123456);
 
         let meta = store.get_device_metadata("dev3").unwrap().unwrap();
         assert_eq!(meta.mac.as_deref(), Some("N/A"));
@@ -181,12 +182,12 @@ mod tests {
     #[test]
     fn test_update_metadata_non_object_is_noop() {
         let store = make_store();
-        store.upsert_device("dev4", "Door", "10.0.0.3", 4370, "zkteco", "UTC", None, true).unwrap();
+        store.upsert_device("dev4", "Door", "10.0.0.3", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
         // Array, string, null — none are objects, so nothing should be updated
-        update_metadata_from_info(&store, "dev4", &serde_json::json!([1, 2, 3]));
-        update_metadata_from_info(&store, "dev4", &serde_json::json!("just a string"));
-        update_metadata_from_info(&store, "dev4", &serde_json::Value::Null);
+        update_metadata_from_info(&store, "dev4", &serde_json::json!([1, 2, 3]), 123456);
+        update_metadata_from_info(&store, "dev4", &serde_json::json!("just a string"), 123456);
+        update_metadata_from_info(&store, "dev4", &serde_json::Value::Null, 123456);
 
         let meta = store.get_device_metadata("dev4").unwrap().unwrap();
         // Device exists but metadata fields were never set (only upsert_device fields)
@@ -199,7 +200,7 @@ mod tests {
         let store = make_store();
         // Device "ghost" was never upserted
         let info = serde_json::json!({ "mac": "FF:FF:FF:FF:FF:FF" });
-        update_metadata_from_info(&store, "ghost", &info);
+        update_metadata_from_info(&store, "ghost", &info, 123456);
 
         // Should not crash, device simply doesn't exist
         assert!(store.get_device_metadata("ghost").unwrap().is_none());

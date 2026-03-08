@@ -26,7 +26,7 @@ fn test_handle_config_push_with_brand() {
     if let CentralMessage::ConfigPush { data } = config_msg {
         for d in data.devices {
             let tz = d.timezone.as_deref().unwrap_or("UTC");
-            hybrid.store().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, tz, None, d.is_enabled).unwrap();
+            hybrid.store().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, tz, None, d.is_enabled, 123456).unwrap();
         }
     }
 

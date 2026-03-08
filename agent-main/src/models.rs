@@ -51,6 +51,9 @@ pub enum CentralMessage {
         status: Option<String>,
         error: Option<String>,
     },
+    HeartbeatAck {
+        server_time: String,
+    },
     ConfigPush {
         data: ConfigData,
     },

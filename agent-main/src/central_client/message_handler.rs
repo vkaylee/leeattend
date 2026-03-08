@@ -1,13 +1,15 @@
 use log::{debug, error, info, warn};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use crate::models::CentralMessage;
 use crate::hybrid_database::HybridDatabase;
+use crate::time_sync::TimeSync;
 
 use super::connection::DeviceLocks;
 use super::retry_manager::parse_composite_key;
 
-pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload_tx: &mpsc::Sender<()>, central_tx: &mpsc::Sender<CentralMessage>, _device_locks: &DeviceLocks) {
+pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload_tx: &mpsc::Sender<()>, central_tx: &mpsc::Sender<CentralMessage>, _device_locks: &DeviceLocks, time_sync: &Arc<TimeSync>) {
     debug!("Received message from central: {text}");
     if let Ok(msg) = serde_json::from_str::<CentralMessage>(text) {
         match msg {
@@ -32,7 +34,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 // 3. Upsert devices
                 for d in data.devices {
                     let timezone = d.timezone.as_deref().unwrap_or("UTC");
-                    let _ = hybrid_db.store().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, timezone, d.password.as_deref(), d.is_enabled);
+                    let _ = hybrid_db.store().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, timezone, d.password.as_deref(), d.is_enabled, time_sync.corrected_timestamp());
                 }
 
                 // 4. Capture new active state
@@ -129,6 +131,9 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                     }
                 }
             }
+            CentralMessage::HeartbeatAck { server_time } => {
+                time_sync.update_offset(&server_time);
+            }
             _ => {}
         }
     } else {
@@ -160,14 +165,16 @@ mod tests {
         let (reload_tx, _reload_rx) = mpsc::channel(1);
         let error_msg = r#"{"type":"error", "code":"INVALID_TOKEN", "message":"Invalid token provided"}"#;
         let (central_tx, _central_rx) = mpsc::channel(1);
-        handle_incoming_text(error_msg, &hybrid_db, &reload_tx, &central_tx, &locks).await;
+        let time_sync = Arc::new(TimeSync::new());
+        handle_incoming_text(error_msg, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
     }
 
     #[tokio::test]
     async fn test_handle_incoming_ack_failure() {
         let hybrid_db = setup_db();
         let locks = setup_locks();
-        hybrid_db.store().upsert_device("dev1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+        let time_sync = Arc::new(TimeSync::new());
+        hybrid_db.store().upsert_device("dev1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, time_sync.corrected_timestamp()).unwrap();
 
         let data = AttendanceData { user_id: "user1".into(), timestamp: "2026-01-27 10:00:00".into(), status: Some(-1), punch: Some(-1) };
         let id = hybrid_db.save_raw_attendance("dev1", data).unwrap();
@@ -176,14 +183,15 @@ mod tests {
         let (reload_tx, _reload_rx) = mpsc::channel(1);
         let ack_error = r#"{"type":"ack", "msg_id":"dev1:user1:1737972000:-1:-1", "status":"error", "error":"Server overloaded"}"#;
         let (central_tx, _central_rx) = mpsc::channel(1);
-        handle_incoming_text(ack_error, &hybrid_db, &reload_tx, &central_tx, &locks).await;
+        handle_incoming_text(ack_error, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
     }
 
     #[tokio::test]
     async fn test_ack_handling() {
         let hybrid_db = setup_db();
         let locks = setup_locks();
-        hybrid_db.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+        let time_sync = Arc::new(TimeSync::new());
+        hybrid_db.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, time_sync.corrected_timestamp()).unwrap();
 
         let data = AttendanceData { user_id: "U999".into(), timestamp: "2026-01-31 12:00:00".into(), status: Some(1), punch: Some(0) };
         let id = hybrid_db.save_raw_attendance("DEV1", data).unwrap();
@@ -197,7 +205,7 @@ mod tests {
 
         let (reload_tx, _reload_rx) = mpsc::channel(1);
         let (central_tx, _central_rx) = mpsc::channel(1);
-        handle_incoming_text(&ack_msg, &hybrid_db, &reload_tx, &central_tx, &locks).await;
+        handle_incoming_text(&ack_msg, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
 
         // After successful ACK, log should be removed from active storage
         assert_eq!(hybrid_db.count_unsynced_logs(), 0);
@@ -213,7 +221,8 @@ mod tests {
     #[tokio::test]
     async fn test_sync_allowed_when_devices_configured() {
         let hybrid_db = setup_db();
-        hybrid_db.store().upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", None, true).unwrap();
+        let time_sync = Arc::new(TimeSync::new());
+        hybrid_db.store().upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", None, true, time_sync.corrected_timestamp()).unwrap();
         let devices = hybrid_db.store().get_active_devices().unwrap();
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].id, "dev1");
@@ -222,7 +231,8 @@ mod tests {
     #[tokio::test]
     async fn test_sync_blocked_after_devices_deactivated() {
         let hybrid_db = setup_db();
-        hybrid_db.store().upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", None, true).unwrap();
+        let time_sync = Arc::new(TimeSync::new());
+        hybrid_db.store().upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", None, true, time_sync.corrected_timestamp()).unwrap();
         hybrid_db.store().deactivate_devices_not_in(&[]).unwrap();
         let devices = hybrid_db.store().get_active_devices().unwrap();
         assert_eq!(devices.len(), 0);
@@ -232,9 +242,10 @@ mod tests {
     async fn test_device_metadata_persistence() {
         let hybrid_db = setup_db();
         let s = hybrid_db.store();
+        let time_sync = Arc::new(TimeSync::new());
 
-        s.upsert_device("dev_123", "Test Device", "1.1.1.1", 4370, "zkteco", "UTC", None, true).unwrap();
-        s.update_device_metadata("dev_123", "00:11:22:33:44:55", "SN123456", "v1.0", "Linux", "xFace100", 100, 5000, 1000, 10000, "2023-01-01 12:00:00").unwrap();
+        s.upsert_device("dev_123", "Test Device", "1.1.1.1", 4370, "zkteco", "UTC", None, true, time_sync.corrected_timestamp()).unwrap();
+        s.update_device_metadata("dev_123", "00:11:22:33:44:55", "SN123456", "v1.0", "Linux", "xFace100", 100, 5000, 1000, 10000, "2023-01-01 12:00:00", time_sync.corrected_timestamp()).unwrap();
 
         let dev = s.get_device_metadata("dev_123").unwrap().unwrap();
         assert_eq!(dev.mac.as_deref(), Some("00:11:22:33:44:55"));
@@ -252,12 +263,13 @@ mod tests {
         let locks = setup_locks();
         let (reload_tx, _reload_rx) = mpsc::channel(1);
         let (central_tx, mut central_rx) = mpsc::channel(1);
+        let time_sync = Arc::new(TimeSync::new());
 
-        hybrid_db.store().upsert_device("dev_info_test", "Test Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
-        hybrid_db.store().update_device_metadata("dev_info_test", "MAC_ADDR", "SERIAL_NUM", "FW_VER", "PLATFORM", "HW_NAME", 50, 500, 1000, 10000, "2023-10-27 10:00:00").unwrap();
+        hybrid_db.store().upsert_device("dev_info_test", "Test Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true, time_sync.corrected_timestamp()).unwrap();
+        hybrid_db.store().update_device_metadata("dev_info_test", "MAC_ADDR", "SERIAL_NUM", "FW_VER", "PLATFORM", "HW_NAME", 50, 500, 1000, 10000, "2023-10-27 10:00:00", time_sync.corrected_timestamp()).unwrap();
 
         let cmd_json = r#"{"type": "command", "id": "cmd_123", "method": "get_device_info", "device_id": "dev_info_test", "params": {}}"#;
-        handle_incoming_text(cmd_json, &hybrid_db, &reload_tx, &central_tx, &locks).await;
+        handle_incoming_text(cmd_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
 
         if let Some(CentralMessage::CommandResponse { command_id, status, data, error }) = central_rx.recv().await {
             assert_eq!(command_id, "cmd_123");
@@ -280,7 +292,8 @@ mod tests {
         let (central_tx, _central_rx) = mpsc::channel(1);
 
         let config_json = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_pwd_push", "name": "Push Password Device", "ip": "1.2.3.4", "port": 4370, "brand": "zkteco", "timezone": "UTC", "password": "98765", "is_enabled": true}], "max_concurrent_workers": 5}}"#;
-        handle_incoming_text(config_json, &hybrid_db, &reload_tx, &central_tx, &locks).await;
+        let time_sync = Arc::new(TimeSync::new());
+        handle_incoming_text(config_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
 
         let devices = hybrid_db.store().get_active_devices().unwrap();
         let dev = devices.iter().find(|d| d.id == "dev_pwd_push").unwrap();

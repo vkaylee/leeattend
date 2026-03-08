@@ -58,7 +58,7 @@ async fn test_create_employee_id_normalization() {
     let db_emp: (String,) =
         sqlx::query_as("SELECT employee_id_number FROM employees WHERE id = $1")
             .bind(created_emp.id)
-            .fetch_one(state.db.api())
+            .fetch_one(state.infra.db.api())
             .await
             .unwrap();
 
@@ -124,7 +124,7 @@ async fn test_update_employee_id_normalization() {
     let db_emp: (String,) =
         sqlx::query_as("SELECT employee_id_number FROM employees WHERE id = $1")
             .bind(emp_id)
-            .fetch_one(state.db.api())
+            .fetch_one(state.infra.db.api())
             .await
             .unwrap();
 

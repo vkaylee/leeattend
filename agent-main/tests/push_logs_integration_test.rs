@@ -12,7 +12,7 @@ fn test_end_to_end_log_push_data_flow() {
     let store = hybrid.store();
 
     // Setup device
-    store.upsert_device("DEV1", "Test Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("DEV1", "Test Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     // Insert a log
     let log_data = AttendanceData {
@@ -42,7 +42,7 @@ fn test_reliable_sync_with_retry() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
-    store.upsert_device("DEV_RETRY", "Retry Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("DEV_RETRY", "Retry Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let id = hybrid.save_raw_attendance("DEV_RETRY", AttendanceData {
         user_id: "RETRY_USER".into(),

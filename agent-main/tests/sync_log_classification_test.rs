@@ -6,7 +6,7 @@ use agent::models::AttendanceData;
 fn test_sync_log_classification_new_vs_retry() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
-    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     // Insert 5 logs — all new (updated_at = None)
     let mut ids = Vec::new();
@@ -41,7 +41,7 @@ fn test_sync_log_classification_new_vs_retry() {
 #[test]
 fn test_sync_message_includes_classification() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     for i in 1..=10 {
         let data = AttendanceData {

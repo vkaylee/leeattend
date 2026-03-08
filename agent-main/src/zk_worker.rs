@@ -198,7 +198,7 @@ impl Worker for ZkWorker {
         }
     }
 
-    async fn get_info(&mut self) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_info(&mut self, time_sync: &crate::time_sync::TimeSync) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         let ip = self.ip.clone();
         let ip_thread = ip.clone();
         let zk_arc = self.zk.clone();
@@ -219,6 +219,7 @@ impl Worker for ZkWorker {
         let cached_name = self.device_name.clone().unwrap_or("N/A".to_string());
         let cached_users_cap = self.users_capacity.unwrap_or(0);
         let cached_logs_cap = self.logs_capacity.unwrap_or(0);
+        let last_sync_time = time_sync.corrected_now().to_rfc3339();
 
         let join_handle = tokio::task::spawn_blocking(move || {
             let mut guard = zk_arc.lock().map_err(|_| "Mutex poisoned".to_string())?;
@@ -260,7 +261,7 @@ impl Worker for ZkWorker {
                 "serial": cached_serial,
                 "platform": cached_platform,
                 "hw_name": cached_name,
-                "last_sync": chrono::Utc::now().to_rfc3339()
+                "last_sync": last_sync_time
             });
             
             // Mutex unlocked here when guard drops

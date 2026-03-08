@@ -32,6 +32,7 @@ struct WorkerContext {
     semaphore: Arc<Semaphore>,
     success_skip_polls: u32,
     device_locks: DeviceLocks,
+    time_sync: Arc<agent::time_sync::TimeSync>,
 }
 
 /// Spawn a single device polling worker with its own cancellation token.
@@ -93,9 +94,9 @@ fn spawn_worker(
                 continue;
             }
 
-            match worker_impl.get_info().await {
+            match worker_impl.get_info(ctx.time_sync.as_ref()).await {
                 Ok(info) => {
-                    update_metadata_from_info(hybrid_db.store(), &config.id, &info);
+                    update_metadata_from_info(hybrid_db.store(), &config.id, &info, ctx.time_sync.corrected_timestamp());
                 }
                 Err(e) => {
                     warn!("[{}] Initial get_info failed: {}, disconnecting and retrying...", config.name, e);
@@ -132,9 +133,9 @@ fn spawn_worker(
                 poll_count += 1;
 
                 if poll_count % 5 == 1 {
-                    match worker_impl.get_info().await {
+                    match worker_impl.get_info(ctx.time_sync.as_ref()).await {
                         Ok(mut info) => {
-                            update_metadata_from_info(hybrid_db.store(), &config.id, &info);
+                            update_metadata_from_info(hybrid_db.store(), &config.id, &info, ctx.time_sync.corrected_timestamp());
 
                             if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&config.id) {
                                 info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
@@ -170,7 +171,7 @@ fn spawn_worker(
                             let fetched_count = logs_vec.len();
                             let mut duplicate_count = 0;
 
-                            let _ = hybrid_db.store().update_device_counts(&config.id, -1, fetched_count as i64);
+                            let _ = hybrid_db.store().update_device_counts(&config.id, -1, fetched_count as i64, ctx.time_sync.corrected_timestamp());
 
                             #[allow(unused_variables)]
                             let mut quick_info = json!({
@@ -349,6 +350,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let command_registry = Arc::new(DashMap::new());
     let device_locks: DeviceLocks = Arc::new(DashMap::new());
+    let time_sync = Arc::new(agent::time_sync::TimeSync::new());
     let (central_client, central_rx, mut reload_rx) = agent::central_client::CentralClient::new(
         config.central_server_url.clone(),
         config.agent_id.clone(),
@@ -357,6 +359,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.inflight_timeout_secs,
         command_registry.clone(),
         device_locks.clone(),
+        time_sync.clone(),
     );
 
     let central_client_task = central_client.start(central_rx);
@@ -494,6 +497,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         semaphore: semaphore.clone(),
         success_skip_polls: config.success_skip_polls,
         device_locks: device_locks.clone(),
+        time_sync: time_sync.clone(),
     };
 
     // Initial device load

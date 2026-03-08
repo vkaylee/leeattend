@@ -28,7 +28,7 @@ fn make_attendance(user_id: &str, timestamp: &str) -> AttendanceData {
 fn setup_with_device(device_id: &str) -> HybridDatabase {
     let db = setup();
     db.store()
-        .upsert_device(device_id, "Test Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true)
+        .upsert_device(device_id, "Test Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true, 123456)
         .unwrap();
     db
 }

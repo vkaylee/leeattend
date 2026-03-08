@@ -1,5 +1,5 @@
 import { screen } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import DeviceListItem from "../DeviceListItem";
 import { Device, DeviceStatus } from "@/lib/api";
 import { renderWithClient } from "@/test/utils";
@@ -10,6 +10,12 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+}));
+
+// Mock useTickingDeviceTime — returns the deviceTime as-is for simplicity in tests
+const mockUseTickingDeviceTime = vi.fn();
+vi.mock("@/hooks/useTickingDeviceTime", () => ({
+  useTickingDeviceTime: (...args: unknown[]) => mockUseTickingDeviceTime(...args),
 }));
 
 const mockDevice: Device = {
@@ -41,6 +47,11 @@ const mockStatus: DeviceStatus = {
 const LOGS_LABEL = "devices.info.logs_capacity";
 
 describe("DeviceListItem", () => {
+  beforeEach(() => {
+    // Default: return the deviceTime argument as-is (passthrough)
+    mockUseTickingDeviceTime.mockImplementation((dt: string | undefined) => dt ?? null);
+  });
+
   it("renders basic device info", () => {
     renderWithClient(
       <ToastProvider>
@@ -393,7 +404,8 @@ describe("DeviceListItem", () => {
 
   // ===== DEVICE TIME TESTS =====
 
-  it("renders device_time when provided", () => {
+  it("renders ticking device_time when provided", () => {
+    mockUseTickingDeviceTime.mockReturnValue("2026-02-27 14:30:05");
     const statusWithTime: DeviceStatus = {
       ...mockStatus,
       info: { ...mockStatus.info!, device_time: "2026-02-27 14:30:00" },
@@ -408,10 +420,11 @@ describe("DeviceListItem", () => {
         />
       </ToastProvider>
     );
-    expect(screen.getByText("2026-02-27 14:30:00")).toBeDefined();
+    expect(screen.getByText("2026-02-27 14:30:05")).toBeDefined();
   });
 
   it("renders '--:--:--' when device_time is missing", () => {
+    mockUseTickingDeviceTime.mockReturnValue(null);
     renderWithClient(
       <ToastProvider>
         <DeviceListItem

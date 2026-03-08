@@ -24,9 +24,9 @@ fn test_clear_startup_config_deactivates_devices() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
-    store.upsert_device("device1", "Office", "192.168.1.100", 4370, "zkteco", "UTC", None, true).unwrap();
-    store.upsert_device("device2", "Warehouse", "192.168.1.101", 4370, "zkteco", "UTC", None, true).unwrap();
-    store.upsert_device("device3", "Factory", "192.168.1.102", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("device1", "Office", "192.168.1.100", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+    store.upsert_device("device2", "Warehouse", "192.168.1.101", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+    store.upsert_device("device3", "Factory", "192.168.1.102", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     assert_eq!(store.get_active_devices().unwrap().len(), 3);
 
@@ -50,8 +50,8 @@ fn test_clear_startup_config_preserves_logs() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
-    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
-    store.upsert_device("device2", "Dev 2", "1.2.3.5", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+    store.upsert_device("device2", "Dev 2", "1.2.3.5", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data1 = AttendanceData { user_id: "U001".to_string(), timestamp: "2026-01-29 08:00:00".to_string(), status: Some(1), punch: Some(0) };
     let data2 = AttendanceData { user_id: "U002".to_string(), timestamp: "2026-01-29 09:00:00".to_string(), status: Some(1), punch: Some(0) };
@@ -72,7 +72,7 @@ fn test_startup_simulation_with_config_push() {
 
     // Stale config from previous session
     store.upsert_agent_config("max_concurrent_workers", "2").unwrap();
-    store.upsert_device("old_device", "Old Office", "192.168.1.50", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("old_device", "Old Office", "192.168.1.50", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     assert_eq!(store.get_agent_config("max_concurrent_workers").unwrap(), Some("2".to_string()));
     assert_eq!(store.get_active_devices().unwrap().len(), 1);
@@ -86,8 +86,8 @@ fn test_startup_simulation_with_config_push() {
 
     // Fresh config push
     store.upsert_agent_config("max_concurrent_workers", "4").unwrap();
-    store.upsert_device("device1", "New Office", "192.168.1.100", 4370, "zkteco", "UTC", None, true).unwrap();
-    store.upsert_device("device2", "New WH", "192.168.1.101", 4370, "zkteco", "UTC", None, true).unwrap();
+    store.upsert_device("device1", "New Office", "192.168.1.100", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+    store.upsert_device("device2", "New WH", "192.168.1.101", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     assert_eq!(store.get_agent_config("max_concurrent_workers").unwrap(), Some("4".to_string()));
     assert_eq!(store.get_active_devices().unwrap().len(), 2);

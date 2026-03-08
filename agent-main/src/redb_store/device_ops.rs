@@ -24,8 +24,8 @@ impl RedbStore {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str, timezone: &str, password: Option<&str>, is_enabled: bool) -> Result<(), StoreError> {
-        let now = chrono::Utc::now().timestamp();
+    pub fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str, timezone: &str, password: Option<&str>, is_enabled: bool, now_ts: i64) -> Result<(), StoreError> {
+        let now = now_ts;
 
         // Read existing device data first (separate read txn)
         let existing = {
@@ -91,8 +91,8 @@ impl RedbStore {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn update_device_metadata(&self, id: &str, mac: &str, serial: &str, fw: &str, plt: &str, hw: &str, users: i64, logs: i64, users_cap: i64, logs_cap: i64, time: &str) -> Result<(), StoreError> {
-        let now = chrono::Utc::now().timestamp();
+    pub fn update_device_metadata(&self, id: &str, mac: &str, serial: &str, fw: &str, plt: &str, hw: &str, users: i64, logs: i64, users_cap: i64, logs_cap: i64, time: &str, now_ts: i64) -> Result<(), StoreError> {
+        let now = now_ts;
 
         // Read existing device (separate read txn to avoid borrow conflict)
         let existing = {
@@ -120,7 +120,7 @@ impl RedbStore {
         Ok(())
     }
 
-    pub fn update_device_counts(&self, id: &str, users: i64, logs: i64) -> Result<(), StoreError> {
+    pub fn update_device_counts(&self, id: &str, users: i64, logs: i64, now_ts: i64) -> Result<(), StoreError> {
         // Read existing device
         let key = self.find_device_key_ci(id)?;
         let k = match key { Some(k) => k, None => return Ok(()) };
@@ -135,7 +135,7 @@ impl RedbStore {
         if let Some(mut d) = existing {
             if users >= 0 { d.users_count = Some(users); }
             if logs >= 0 { d.logs_count = Some(logs); }
-            d.last_info_update = Some(chrono::Utc::now().timestamp());
+            d.last_info_update = Some(now_ts);
 
             let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
             {

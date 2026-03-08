@@ -15,7 +15,7 @@ fn test_normalize_employee_id_direct() {
 #[test]
 fn test_employee_id_stored_with_leading_zeros() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let data = AttendanceData {
         user_id: "0058".to_string(),
@@ -37,7 +37,7 @@ fn test_employee_id_stored_with_leading_zeros() {
 #[test]
 fn test_multiple_employee_id_formats() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).unwrap();
+    hybrid.store().upsert_device("device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
     let test_cases = vec![
         ("0001", "1"), ("0026", "26"), ("0058", "58"),
