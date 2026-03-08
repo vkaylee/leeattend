@@ -713,16 +713,25 @@ rm -f "$PROJECT_ROOT/.test_logs/results.txt"
 # Cleanup handler: stop containers on exit
 cleanup() {
     local exit_code=$?
-    echo -e "\n${BLUE}🧹 Cleaning up test environment...${NC}"
 
-    # ── PTY Safety: Kill all child processes ──────────────────────────
-    # When run from AI agents or git hooks, orphan docker-exec processes
-    # can hold PTY file descriptors open, making the parent appear hung.
-    # Kill direct children of this script (not ourselves) to clean up.
+    # ── PTY FD Isolation ─────────────────────────────────────────────
+    # CRITICAL: Podman/podman-compose processes spawned below inherit
+    # the script's PTY file descriptors. Even after the script exits
+    # and the shell returns to prompt, these orphan FDs keep the PTY
+    # "open" — causing AI agent tools (command_status) to report the
+    # command as still RUNNING with "No output".
+    #
+    # Fix: redirect stdout/stderr to a log file BEFORE spawning any
+    # podman processes. This severs the PTY FD chain so cleanup
+    # processes cannot hold the parent terminal open.
+    local _cleanup_log="${LOG_DIR:-/tmp}/cleanup.log"
+    echo -e "\n🧹 Cleaning up test environment..." >&2
+    exec 1>>"$_cleanup_log" 2>&1
+
+    # ── Kill all child processes ─────────────────────────────────────
     # Ignore TERM in this handler so we survive our own cleanup kills.
     trap '' TERM
     pkill -TERM -P $$ 2>/dev/null || true
-    # FIX: Reduced from 1s — in git hook context, less delay before force-kill
     sleep 0.5
     pkill -KILL -P $$ 2>/dev/null || true
 
@@ -736,18 +745,14 @@ cleanup() {
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # Stop containers (Podman is daemonless — no setsid needed)
-        dc_detached down --remove-orphans --timeout 5 || {
-            echo -e "${YELLOW}⚠️  Warning: Cleanup encountered some issues.${NC}"
-        }
+        dc_detached down --remove-orphans --timeout 5 || true
         # Remove ephemeral volumes
         podman volume rm "leeattend-test_shared-data" \
             </dev/null >/dev/null 2>&1 || true
-        echo -e "${GREEN}✅ Environment cleaned up (cache preserved).${NC}"
+        echo "✅ Environment cleaned up (cache preserved)."
     fi
 
     # ── Final PTY sweep ──────────────────────────────────────────────
-    # Docker commands above may have spawned NEW child processes.
-    # One last aggressive kill to catch any stragglers before exit.
     pkill -KILL -P $$ 2>/dev/null || true
 
     exit "$exit_code"

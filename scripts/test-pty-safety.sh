@@ -206,6 +206,28 @@ run_static_scan() {
                 fail "$bn — missing 'trap cleanup EXIT' handler"
         fi
     done
+
+    # ── Pattern 11: cleanup functions must redirect FDs before podman ──
+    # If a cleanup() function contains podman/docker commands but does NOT
+    # redirect stdout/stderr via `exec`, child processes will inherit the
+    # parent's PTY FDs. This causes AI agent tools to report commands as
+    # still RUNNING after the script has exited.
+    for file in "${files[@]}"; do
+        local basename
+        basename="$(basename "$file")"
+        # Extract cleanup function body (between 'cleanup()' and next '}' at column 0)
+        local cleanup_body
+        cleanup_body=$(sed -n '/^cleanup()/,/^}/p' "$file" 2>/dev/null || true)
+        [[ -z "$cleanup_body" ]] && continue
+
+        if echo "$cleanup_body" | grep -qE 'podman|docker|dc_detached'; then
+            if ! echo "$cleanup_body" | grep -qE 'exec [0-9]*>|exec [0-9]*>>'; then
+                fail "$basename — cleanup() spawns podman/docker but missing 'exec' FD redirect (PTY FD leak risk)"
+            else
+                pass "$basename — cleanup() has FD isolation before podman"
+            fi
+        fi
+    done
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════

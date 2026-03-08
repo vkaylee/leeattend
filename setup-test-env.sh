@@ -102,12 +102,12 @@ leeattend_setup() {
     echo -e "  Running migrations..."
     if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$MAIN_DB_URL' > .test_logs/parent_mig_main.log 2>&1"; then
         echo -e "${RED}❌ Main migration FAILED. Logs from container:${NC}"
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test cat .test_logs/parent_mig_main.log
+        $DOCKER_COMPOSE_CMD exec -T apiserver_test cat .test_logs/parent_mig_main.log </dev/null
         exit 1
     fi
     if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$TEMPLATE_DB_URL' > .test_logs/parent_mig_template.log 2>&1"; then
         echo -e "${RED}❌ Template migration FAILED. Logs from container:${NC}"
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test cat .test_logs/parent_mig_template.log
+        $DOCKER_COMPOSE_CMD exec -T apiserver_test cat .test_logs/parent_mig_template.log </dev/null
         exit 1
     fi
 

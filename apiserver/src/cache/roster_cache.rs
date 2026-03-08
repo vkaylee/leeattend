@@ -217,7 +217,7 @@ pub async fn build_roster_data(
         active_rules,
         rule_pattern_rows,
         dept_history_rows,
-    ): (_, _, _, _, _, _, _, _) = tokio::try_join!(
+    ) = tokio::try_join!(
         async { q1.await.map_err(|e: sqlx::Error| format!("shifts: {e}")) },
         async { q2.await.map_err(|e: sqlx::Error| format!("fixed_assignments: {e}")) },
         async { q3.await.map_err(|e: sqlx::Error| format!("pattern_assignments: {e}")) },

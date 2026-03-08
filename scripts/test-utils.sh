@@ -163,6 +163,7 @@ get_phase_timeout() {
         *Lint*) echo "$TIMEOUT_LINT" ;;
         *Unit*) echo "$TIMEOUT_UNIT" ;;
         *Integration*|*E2E*) echo "$TIMEOUT_INTEGRATION" ;;
+        *Coverage*) echo "$TIMEOUT_INTEGRATION" ;;
         *) echo "$TIMEOUT_UNIT" ;;
     esac
 }
@@ -179,14 +180,23 @@ on_task_failure() {
     ln -sf "$log_file" "$LOG_DIR/latest-failure.log"
 
     # Show concise summary of failures in this specific file
-    leeattend_summarize_failures "$(dirname "$log_file")" | grep -A 10 "$name"
+    leeattend_summarize_failures "$(dirname "$log_file")" | grep -A 10 "$name" || true
     
-    echo -e "${YELLOW}--- FULL LOG CONTENT FOR $name ---${NC}"
     if [ -f "$log_file" ]; then
-        # If log is huge, show last 200 lines, otherwise show all
-        local line_count=$(wc -l < "$log_file")
+        # ── Extract key errors first (compile errors, panics, test failures) ──
+        local errors
+        errors=$(grep -nE '^error\[|^error:|panicked at|FAIL \[|thread .* panicked' "$log_file" 2>/dev/null || true)
+        if [ -n "$errors" ]; then
+            echo -e "${RED}${BOLD}── KEY ERRORS ──${NC}"
+            echo "$errors" | head -30
+            echo -e "${RED}${BOLD}────────────────${NC}"
+        fi
+
+        echo -e "${YELLOW}--- LOG TAIL FOR $name ---${NC}"
+        local line_count
+        line_count=$(wc -l < "$log_file")
         if [ "$line_count" -gt 200 ]; then
-            echo -e "${BLUE}(Log is large, showing last 200 lines)${NC}"
+            echo -e "${BLUE}(Log has $line_count lines, showing last 200)${NC}"
             tail -n 200 "$log_file"
         else
             cat "$log_file"
