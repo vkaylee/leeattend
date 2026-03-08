@@ -27,7 +27,7 @@ pub async fn get_member_extra_permissions(
     )
     .bind(ctx.workspace_id)
     .bind(user_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.infra.db.api())
     .await?;
 
     Ok(Json(perms))
@@ -66,11 +66,11 @@ pub async fn assign_extra_permission(
     .bind(&req.permission)
     .bind(req.expires_at)
     .bind(ctx.user_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.infra.db.api())
     .await?;
 
     AuditHelper::log(
-        &state.audit_repo,
+        &state.core.audit_repo,
         ctx.workspace_id,
         Some(ctx.user_id),
         Some(user_id),
@@ -99,12 +99,12 @@ pub async fn revoke_extra_permission(
     )
     .bind(perm_id)
     .bind(ctx.workspace_id)
-    .execute(state.db.api())
+    .execute(state.infra.db.api())
     .await?;
 
     if res.rows_affected() > 0 {
         AuditHelper::log(
-            &state.audit_repo,
+            &state.core.audit_repo,
             ctx.workspace_id,
             Some(ctx.user_id),
             Some(user_id),

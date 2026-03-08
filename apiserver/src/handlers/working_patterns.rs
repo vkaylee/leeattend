@@ -26,9 +26,9 @@ pub async fn create_pattern(
     Json(req): Json<CreateWorkingPatternRequest>,
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::PatternsCreate)?;
-    let pattern = service::create_working_pattern(state.db.api(), ctx.workspace_id, req).await?;
+    let pattern = service::create_working_pattern(state.infra.db.api(), ctx.workspace_id, req).await?;
 
-    if let Some(cache) = &state.roster_cache {
+    if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -40,7 +40,7 @@ pub async fn list_patterns(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkingPattern>>> {
-    let patterns = service::list_patterns(state.db.api(), ctx.workspace_id).await?;
+    let patterns = service::list_patterns(state.infra.db.api(), ctx.workspace_id).await?;
     Ok(Json(patterns))
 }
 
@@ -49,7 +49,7 @@ pub async fn get_pattern_details(
     Path((_ws_id, pattern_id)): Path<(Uuid, Uuid)>,
     _ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkingPatternDetail>>> {
-    let details = service::get_pattern_details(state.db.api(), pattern_id).await?;
+    let details = service::get_pattern_details(state.infra.db.api(), pattern_id).await?;
     Ok(Json(details))
 }
 
@@ -60,9 +60,9 @@ pub async fn assign_pattern(
     Json(req): Json<AssignPatternRequest>,
 ) -> AppResult<Json<EmployeeWorkingPattern>> {
     ctx.require_permission(Permission::PatternsAssign)?;
-    let assignment = service::assign_pattern(state.db.api(), ctx.workspace_id, employee_id, req).await?;
+    let assignment = service::assign_pattern(state.infra.db.api(), ctx.workspace_id, employee_id, req).await?;
 
-    if let Some(cache) = &state.roster_cache {
+    if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -76,9 +76,9 @@ pub async fn bulk_assign_pattern(
     Json(req): Json<BulkAssignPatternRequest>,
 ) -> AppResult<Json<BulkAssignResponse>> {
     ctx.require_permission(Permission::PatternsAssign)?;
-    let result = service::bulk_assign_pattern(state.db.api(), ctx.workspace_id, req).await?;
+    let result = service::bulk_assign_pattern(state.infra.db.api(), ctx.workspace_id, req).await?;
 
-    if let Some(cache) = &state.roster_cache {
+    if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
     }
 
@@ -90,7 +90,7 @@ pub async fn get_employee_pattern_history(
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeWorkingPattern>>> {
-    let history = service::get_employee_pattern_history(state.db.api(), ctx.workspace_id, employee_id).await?;
+    let history = service::get_employee_pattern_history(state.infra.db.api(), ctx.workspace_id, employee_id).await?;
     Ok(Json(history))
 }
 
@@ -100,9 +100,9 @@ pub async fn delete_pattern(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::PatternsDelete)?;
-    service::delete_working_pattern(state.db.api(), ctx.workspace_id, pattern_id).await?;
+    service::delete_working_pattern(state.infra.db.api(), ctx.workspace_id, pattern_id).await?;
 
-    if let Some(cache) = &state.roster_cache {
+    if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
     }
 

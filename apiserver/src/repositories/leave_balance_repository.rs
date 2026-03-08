@@ -302,6 +302,6 @@ pub async fn adjust_balance(
 }
 
 impl super::PoolBacked for SqlxLeaveBalanceRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

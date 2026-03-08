@@ -44,7 +44,7 @@ pub async fn calculate_batch_payroll(
     Json(req): Json<BatchCalculatePayrollRequest>,
 ) -> AppResult<Json<BatchCalculatePayrollResponse>> {
     let response = state
-        .payroll_service
+        .payroll.service
         .calculate_batch_payslips(req.employee_ids, workspace_id, req.year, req.month)
         .await;
     Ok(Json(response))
@@ -69,7 +69,7 @@ pub async fn get_workspace_payslips(
         .and_then(|d| d.pred_opt())
         .ok_or_else(|| AppError::Validation("Invalid date range".to_string()))?;
 
-    let payslips = state.payroll_repo.get_payslips_by_workspace_period(workspace_id,
+    let payslips = state.payroll.repo.get_payslips_by_workspace_period(workspace_id,
         start_date,
         end_date,
     )
@@ -88,24 +88,24 @@ pub async fn calculate_payroll(
     Query(query): Query<PayrollQuery>,
 ) -> AppResult<Json<FullPayslipResponse>> {
     let payslip = state
-        .payroll_service
+        .payroll.service
         .calculate_monthly_payslip(employee_id, workspace_id, query.year, query.month)
         .await
-        .map_err(|s| AppError::from((s, "Failed to calculate payroll".to_string())))?;
+        ?;
 
     // Fetch segments and incentives
     let segments =
-        state.payroll_repo.get_payslip_segments(payslip.id)
+        state.payroll.repo.get_payslip_segments(payslip.id)
             .await
             .unwrap_or_default();
     let incentives =
-        state.payroll_repo.get_payslip_incentives(payslip.id)
+        state.payroll.repo.get_payslip_incentives(payslip.id)
             .await
             .unwrap_or_default();
 
     // Fetch salary components at the period start date
     let salary_components =
-        state.payroll_repo.get_employee_salary_components(workspace_id, employee_id,
+        state.payroll.repo.get_employee_salary_components(workspace_id, employee_id,
             payslip.period_start,
         )
         .await
@@ -146,23 +146,23 @@ pub async fn get_employee_payslips(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<FullPayslipResponse>>> {
     let payslips =
-        state.payroll_repo.get_payslips_by_employee(workspace_id, employee_id)
+        state.payroll.repo.get_payslips_by_employee(workspace_id, employee_id)
             .await?;
 
     let mut responses = Vec::new();
     for p in payslips {
         let segments =
-            state.payroll_repo.get_payslip_segments(p.id)
+            state.payroll.repo.get_payslip_segments(p.id)
                 .await
                 .unwrap_or_default();
         let incentives =
-            state.payroll_repo.get_payslip_incentives(p.id)
+            state.payroll.repo.get_payslip_incentives(p.id)
                 .await
                 .unwrap_or_default();
 
         // Fetch salary components at the period start date
         let salary_components =
-            state.payroll_repo.get_employee_salary_components(workspace_id, employee_id,
+            state.payroll.repo.get_employee_salary_components(workspace_id, employee_id,
                 p.period_start,
             )
             .await

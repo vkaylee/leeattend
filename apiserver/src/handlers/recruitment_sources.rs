@@ -1,5 +1,5 @@
 use crate::domain::permissions::Permission;
-use crate::errors::{AppError, AppResult};
+use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
 use crate::models::{
     CreateRecruitmentSourceRequest, RecruitmentSource, RecruitmentSourceBreakdown,
@@ -20,10 +20,10 @@ pub async fn get_recruitment_sources(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSource>>> {
     let sources = state
-        .employee_service
+        .employees.service
         .get_recruitment_sources(workspace_id)
         .await
-        .map_err(|s| AppError::from((s, "Failed to get recruitment sources".to_string())))?;
+        ?;
     Ok(Json(sources))
 }
 
@@ -35,10 +35,10 @@ pub async fn create_recruitment_source(
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::RecruitmentManage)?;
     let source = state
-        .employee_service
+        .employees.service
         .create_recruitment_source(ctx.workspace_id, req)
         .await
-        .map_err(|s| AppError::from((s, "Failed to create recruitment source".to_string())))?;
+        ?;
     Ok((StatusCode::CREATED, Json(source)))
 }
 
@@ -50,12 +50,9 @@ pub async fn update_recruitment_source(
 ) -> AppResult<Json<RecruitmentSource>> {
     ctx.require_permission(Permission::RecruitmentManage)?;
     let source = state
-        .employee_service
+        .employees.service
         .update_recruitment_source(id, ctx.workspace_id, req)
-        .await
-        .map_err(|s| {
-            AppError::from((s, "Failed to update recruitment source".to_string()))
-        })?;
+        .await?;
     Ok(Json(source))
 }
 
@@ -66,10 +63,10 @@ pub async fn delete_recruitment_source(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::RecruitmentManage)?;
     state
-        .employee_service
+        .employees.service
         .delete_recruitment_source(id, ctx.workspace_id)
         .await
-        .map_err(|s| AppError::from((s, "Failed to delete recruitment source".to_string())))?;
+        ?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -79,12 +76,9 @@ pub async fn get_recruitment_source_breakdown(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSourceBreakdown>>> {
     let breakdown = state
-        .employee_service
+        .employees.service
         .get_recruitment_source_breakdown(workspace_id)
-        .await
-        .map_err(|s| {
-            AppError::from((s, "Failed to get recruitment source breakdown".to_string()))
-        })?;
+        .await?;
     Ok(Json(breakdown))
 }
 
@@ -105,10 +99,10 @@ pub async fn get_turnover_analytics(
         .unwrap_or(today);
 
     let analytics = state
-        .employee_service
+        .employees.service
         .get_turnover_analytics(workspace_id, start, end)
         .await
-        .map_err(|s| AppError::from((s, "Failed to get turnover analytics".to_string())))?;
+        ?;
     Ok(Json(analytics))
 }
 

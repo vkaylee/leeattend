@@ -19,13 +19,13 @@ pub async fn get_incentive_policies(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> AppResult<Json<Vec<PayrollIncentivePolicyResponse>>> {
-    let policies = state.payroll_repo.get_active_incentive_policies(workspace_id,
+    let policies = state.payroll.repo.get_active_incentive_policies(workspace_id,
     )
     .await?;
 
     let mut response = Vec::new();
     for policy in policies {
-        let tiers = state.payroll_repo.get_policy_tiers(policy.id)
+        let tiers = state.payroll.repo.get_policy_tiers(policy.id)
             .await
             .unwrap_or_default();
         response.push(PayrollIncentivePolicyResponse { policy, tiers });
@@ -49,7 +49,7 @@ pub async fn create_incentive_policy(
     .bind(&req.name)
     .bind(req.base_amount)
     .bind(&req.payout_type)
-    .fetch_one(state.db.api())
+    .fetch_one(state.infra.db.api())
     .await?;
 
     for tier in &req.tiers {
@@ -66,7 +66,7 @@ pub async fn create_incentive_policy(
         .bind(tier.max_sick_leave_days)
         .bind(tier.max_total_leave_days)
         .bind(tier.payout_amount)
-        .execute(state.db.api())
+        .execute(state.infra.db.api())
         .await?;
     }
 
@@ -91,7 +91,7 @@ pub async fn delete_incentive_policy(
     sqlx::query("DELETE FROM payroll_incentive_policies WHERE id = $1 AND workspace_id = $2")
         .bind(policy_id)
         .bind(ws_id)
-        .execute(state.db.api())
+        .execute(state.infra.db.api())
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }

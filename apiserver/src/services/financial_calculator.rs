@@ -3,7 +3,7 @@
 //!
 //! Extracted from `PayrollService` to satisfy SRP.
 
-use axum::http::StatusCode;
+use crate::errors::AppError;
 use chrono::{NaiveDate, Utc};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
@@ -92,7 +92,7 @@ impl FinancialCalculator {
         total_late_early_count: i32,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<IncentivesResult, StatusCode> {
+    ) -> Result<IncentivesResult, AppError> {
         let active_policies = payroll_repository::get_active_incentive_policies(pool, workspace_id)
             .await
             .unwrap_or_default();
@@ -113,7 +113,7 @@ impl FinancialCalculator {
                 employee_id,
                 e
             );
-            StatusCode::INTERNAL_SERVER_ERROR
+            AppError::Internal("Internal error".into())
         })?;
 
         if !active_policies.is_empty() {
@@ -155,14 +155,14 @@ impl FinancialCalculator {
         start_date: NaiveDate,
         end_date: NaiveDate,
         segment_snapshots: &[SegmentSnapshot],
-    ) -> Result<DeductionsResult, StatusCode> {
+    ) -> Result<DeductionsResult, AppError> {
         let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
             pool, employee_id, start_date, end_date, workspace_id,
         )
         .await
         .map_err(|e| {
             tracing::error!("Failed to fetch leave breakdown: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            AppError::Internal("Internal error".into())
         })?;
 
         let mut deductions_amount = Decimal::ZERO;

@@ -47,7 +47,7 @@ pub async fn get_attendance_report(
 
     if report_type == "daily" {
         let report = state
-            .report_service
+            .reports.service
             .get_daily_attendance_report(
                 workspace_id,
                 start_date,
@@ -58,14 +58,14 @@ pub async fn get_attendance_report(
                 department_id,
             )
             .await
-        .map_err(|s| AppError::from((s, "Failed to get daily report".to_string())))?;
+        ?;
 
         Ok(Json(
             serde_json::to_value(report).map_err(|e| AppError::from(e.to_string()))?,
         ))
     } else {
         let summary = state
-            .report_service
+            .reports.service
             .get_workspace_attendance_summary(
                 workspace_id,
                 start_date,
@@ -77,7 +77,7 @@ pub async fn get_attendance_report(
                 department_id,
             )
             .await
-        .map_err(|s| AppError::from((s, "Failed to get summary report".to_string())))?;
+        ?;
 
         Ok(Json(
             serde_json::to_value(summary).map_err(|e| AppError::from(e.to_string()))?,

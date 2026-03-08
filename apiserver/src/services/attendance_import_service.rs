@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::http::StatusCode;
+use crate::errors::AppError;
 use calamine::{Data, DataType, Reader, Xls, Xlsx};
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
@@ -57,7 +57,7 @@ impl AttendanceImportService {
         user_id: Uuid,
         file_path: String,
         target_type: String, // "adjustment" or "log"
-    ) -> Result<Uuid, StatusCode> {
+    ) -> Result<Uuid, AppError> {
         let job_id = Uuid::new_v4();
 
         let job = AttendanceImportJob {
@@ -78,7 +78,7 @@ impl AttendanceImportService {
             .await
             .map_err(|e| {
                 error!("CREATE_JOB_ERROR: {:?}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })?;
 
         let pool_clone = self.pool.clone();
@@ -707,7 +707,7 @@ impl AttendanceImportService {
         job: &AttendanceImportJob,
         emp_id_number: &str,
         punch_time_utc: DateTime<Utc>,
-    ) -> Result<usize, StatusCode> {
+    ) -> Result<usize, AppError> {
         let pool = self.pool.clone();
         let employee = match self.employee_repo.get_employee_by_id_number(
             emp_id_number,
@@ -747,7 +747,7 @@ impl AttendanceImportService {
                 Ok(false) => Ok(0),
                 Err(e) => {
                     error!("UNIFIED_LOG_SERVICE_ERROR: {}", e);
-                    Err(StatusCode::INTERNAL_SERVER_ERROR)
+                    Err(AppError::Internal("Internal error".into()))
                 }
             }
         } else {

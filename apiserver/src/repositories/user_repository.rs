@@ -96,6 +96,6 @@ pub async fn get_user_by_id(pool: &PgPool, id: Uuid) -> Result<Option<User>, sql
 }
 
 impl super::PoolBacked for SqlxUserRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

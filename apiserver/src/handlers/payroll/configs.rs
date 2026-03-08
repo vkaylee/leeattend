@@ -20,7 +20,7 @@ pub async fn set_department_payroll_config(
     MemberContext { .. }: MemberContext,
     Json(req): Json<SetDepartmentPayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<DepartmentPayrollConfig>)> {
-    let config = state.department_repo.upsert_department_payroll_config(department_id,
+    let config = state.payroll.department_repo.upsert_department_payroll_config(department_id,
         req.std_working_days,
         req.hours_per_day,
         req.effective_date,
@@ -36,7 +36,7 @@ pub async fn set_employee_payroll_config(
     MemberContext { .. }: MemberContext,
     Json(req): Json<SetEmployeePayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeePayrollConfig>)> {
-    let config = state.employee_repo.upsert_employee_payroll_config(employee_id,
+    let config = state.employees.repo.upsert_employee_payroll_config(employee_id,
         req.std_working_days,
         req.hours_per_day,
         req.effective_date,
@@ -59,7 +59,7 @@ pub async fn get_department_payroll_configs(
            ORDER BY effective_date DESC"#,
         department_id
     )
-    .fetch_all(state.db.api())
+    .fetch_all(state.infra.db.api())
     .await?;
 
     Ok(Json(configs))
@@ -78,7 +78,7 @@ pub async fn get_employee_payroll_configs(
            ORDER BY effective_date DESC"#,
         employee_id
     )
-    .fetch_all(state.db.api())
+    .fetch_all(state.infra.db.api())
     .await?;
 
     Ok(Json(configs))

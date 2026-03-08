@@ -144,6 +144,6 @@ pub async fn get_employee_adjustment_requests(
 }
 
 impl super::PoolBacked for SqlxAttendanceAdjustmentRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

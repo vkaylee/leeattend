@@ -44,7 +44,7 @@ pub async fn get_audit_logs(
     let offset = (page - 1) * limit;
 
     let (logs, total) = state
-        .audit_repo
+        .core.audit_repo
         .find_by_workspace(ws_id, limit, offset, params.action, params.start_date, params.end_date)
         .await?;
 

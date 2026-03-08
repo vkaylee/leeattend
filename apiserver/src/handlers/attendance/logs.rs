@@ -33,7 +33,7 @@ pub async fn get_attendance_logs(
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
-    let logs = state.time_entry_repo.get_paginated_logs(workspace_id,
+    let logs = state.attendance.time_entry_repo.get_paginated_logs(workspace_id,
         query.employee_id,
         query.from,
         query.to,
@@ -42,7 +42,7 @@ pub async fn get_attendance_logs(
     )
     .await?;
 
-    let total = state.time_entry_repo.count_logs(workspace_id,
+    let total = state.attendance.time_entry_repo.count_logs(workspace_id,
         query.employee_id,
         query.from,
         query.to,
@@ -67,7 +67,7 @@ pub async fn get_raw_attendance_logs(
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
-    let logs = state.raw_log_repo.get_paginated_raw_logs(workspace_id,
+    let logs = state.attendance.raw_log_repo.get_paginated_raw_logs(workspace_id,
         query.employee_id,
         query.from,
         query.to,
@@ -76,7 +76,7 @@ pub async fn get_raw_attendance_logs(
     )
     .await?;
 
-    let total = state.raw_log_repo.count_raw_logs(workspace_id,
+    let total = state.attendance.raw_log_repo.count_raw_logs(workspace_id,
         query.employee_id,
         query.from,
         query.to,
@@ -120,7 +120,7 @@ pub async fn force_reprocess_attendance(
     }
 
     let workspace = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
-        pool: state.db.api().clone(),
+        pool: state.infra.db.api().clone(),
     }
     .get_workspace_by_id(ctx.workspace_id)
     .await
@@ -135,7 +135,7 @@ pub async fn force_reprocess_attendance(
     let mut curr_date = query.start_date;
     while curr_date <= query.end_date {
         state
-            .pairing_service
+            .attendance.pairing_service
             .reprocess_daily_attendance(
                 ctx.workspace_id,
                 employee_id,

@@ -20,7 +20,7 @@ pub async fn get_member_roles(
     ctx: MemberContext,
 ) -> AppResult<Json<serde_json::Value>> {
     match WorkspaceService::get_member_roles(
-        state.workspace_repo.as_ref(),
+        state.core.workspace_repo.as_ref(),
         ctx.workspace_id,
         user_id,
     )
@@ -57,11 +57,11 @@ pub async fn assign_extra_role(
     .bind(user_id)
     .bind(req.role)
     .bind(req.expires_at)
-    .fetch_one(state.db.api())
+    .fetch_one(state.infra.db.api())
     .await?;
 
     AuditHelper::log(
-        &state.audit_repo,
+        &state.core.audit_repo,
         ctx.workspace_id,
         Some(ctx.user_id),
         Some(user_id),
@@ -86,12 +86,12 @@ pub async fn revoke_extra_role(
     let res = sqlx::query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2")
         .bind(role_id)
         .bind(ctx.workspace_id)
-        .execute(state.db.api())
+        .execute(state.infra.db.api())
         .await?;
 
     if res.rows_affected() > 0 {
         AuditHelper::log(
-            &state.audit_repo,
+            &state.core.audit_repo,
             ctx.workspace_id,
             Some(ctx.user_id),
             Some(user_id),

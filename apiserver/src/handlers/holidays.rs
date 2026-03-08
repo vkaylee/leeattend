@@ -27,7 +27,7 @@ pub async fn list_holidays(
     ctx: MemberContext,
     Query(query): Query<ListHolidaysQuery>,
 ) -> AppResult<Json<Vec<Holiday>>> {
-    let holidays = HolidayRepository::list(state.db.api(), ctx.workspace_id, query.year)
+    let holidays = HolidayRepository::list(state.infra.db.api(), ctx.workspace_id, query.year)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -40,7 +40,7 @@ pub async fn get_holiday(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Holiday>> {
-    let holiday = HolidayRepository::get_by_id(state.db.api(), ctx.workspace_id, id)
+    let holiday = HolidayRepository::get_by_id(state.infra.db.api(), ctx.workspace_id, id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
@@ -57,7 +57,7 @@ pub async fn create_holiday(
     ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = HolidayRepository::create(
-        state.db.api(),
+        state.infra.db.api(),
         ctx.workspace_id,
         &req.name,
         req.date,
@@ -91,7 +91,7 @@ pub async fn update_holiday(
     ctx.require_permission(Permission::HolidaysManage)?;
 
     let holiday = HolidayRepository::update(
-        state.db.api(),
+        state.infra.db.api(),
         ctx.workspace_id,
         id,
         req.name.as_deref(),
@@ -119,7 +119,7 @@ pub async fn delete_holiday(
 ) -> AppResult<axum::http::StatusCode> {
     ctx.require_permission(Permission::HolidaysManage)?;
 
-    let deleted = HolidayRepository::delete(state.db.api(), ctx.workspace_id, id)
+    let deleted = HolidayRepository::delete(state.infra.db.api(), ctx.workspace_id, id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -139,12 +139,12 @@ pub async fn process_holiday_leave(
 ) -> AppResult<Json<Vec<HolidayLeaveResult>>> {
     ctx.require_permission(Permission::HolidaysManage)?;
 
-    let holiday = HolidayRepository::get_by_id(state.db.api(), ctx.workspace_id, id)
+    let holiday = HolidayRepository::get_by_id(state.infra.db.api(), ctx.workspace_id, id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
-    let results = state.holiday_leave_service.process_holiday_leave(
+    let results = state.leaves.holiday_leave_service.process_holiday_leave(
         ctx.workspace_id,
         &holiday,
     )

@@ -37,7 +37,7 @@ pub async fn enter_paper_ot(
 
     // 2. Validate employee exists in workspace
     let _employee =
-        state.employee_repo.get_employee_by_id(employee_id, ws_id)
+        state.employees.repo.get_employee_by_id(employee_id, ws_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -50,7 +50,7 @@ pub async fn enter_paper_ot(
 
     // 4. Call service
     let result = state
-        .attendance_summary_service
+        .attendance.summary_service
         .enter_paper_ot(
             employee_id,
             req.date,
@@ -218,7 +218,7 @@ pub async fn bulk_upload_paper_ot(
         seen_keys.insert(key);
 
         // Find employee by employee_id_number
-        let employee = match state.employee_repo.get_employee_by_id_number(&employee_id_str,
+        let employee = match state.employees.repo.get_employee_by_id_number(&employee_id_str,
             ws_id,
         )
         .await
@@ -249,7 +249,7 @@ pub async fn bulk_upload_paper_ot(
             date,
             ws_id
         )
-        .fetch_optional(state.db.api())
+        .fetch_optional(state.infra.db.api())
         .await;
 
         if let Ok(Some(summary)) = existing_summary {
@@ -268,7 +268,7 @@ pub async fn bulk_upload_paper_ot(
 
         // Call enter_paper_ot service
         match state
-            .attendance_summary_service
+            .attendance.summary_service
             .enter_paper_ot(
                 employee.id,
                 date,

@@ -28,9 +28,7 @@ pub struct SqlxTimeEntryRepository {
 }
 
 impl SqlxTimeEntryRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
 }
 
 #[async_trait]
@@ -307,6 +305,6 @@ pub async fn get_workspace_time_entries_batch(
 }
 
 impl super::PoolBacked for SqlxTimeEntryRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

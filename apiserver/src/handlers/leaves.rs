@@ -30,13 +30,13 @@ pub async fn submit_leave_request(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<SubmitLeaveRequest>,
 ) -> AppResult<(StatusCode, Json<LeaveRequest>)> {
-    let request = state.leave_service.submit_leave_request(
+    let request = state.leaves.service.submit_leave_request(
         workspace_id,
         user_id,
         req,
     )
     .await
-    .map_err(|s| AppError::from((s, "Failed to submit leave request".to_string())))?;
+    ?;
 
     Ok((StatusCode::CREATED, Json(request)))
 }
@@ -57,17 +57,17 @@ pub async fn approve_leave_request(
         ORDER BY edh.effective_date DESC 
         LIMIT 1
         "#
-    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
 
     ctx.require_scoped_permission(Permission::LeaveRequestsApprove, target_dept_id)?;
-    state.leave_service.approve_leave_request(
+    state.leaves.service.approve_leave_request(
         ctx.workspace_id,
         user_id,
         id,
         req,
     )
     .await
-    .map_err(|s| AppError::from((s, "Failed to approve leave request".to_string())))?;
+    ?;
 
     Ok(StatusCode::OK)
 }
@@ -79,7 +79,7 @@ pub async fn get_my_leave_requests(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     let requests =
-        state.leave_request_repo.get_employee_leave_requests(ctx.workspace_id, id)
+        state.leaves.request_repo.get_employee_leave_requests(ctx.workspace_id, id)
             .await?;
     Ok(Json(requests))
 }
@@ -92,13 +92,13 @@ pub async fn get_workspace_leave_balances(
 ) -> AppResult<Json<PaginatedResponse<WorkspaceLeaveBalance>>> {
     ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = params.year.unwrap_or_else(|| Utc::now().year());
-    let balances = state.leave_service.get_workspace_balances(
+    let balances = state.leaves.service.get_workspace_balances(
         ctx.workspace_id,
         year,
         params,
     )
     .await
-    .map_err(|s| AppError::from((s, "Failed to get workspace balances".to_string())))?;
+    ?;
 
     Ok(Json(balances))
 }
@@ -108,11 +108,11 @@ pub async fn get_employee_leave_balances(
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<Vec<EmployeeLeaveBalance>>> {
     let year = Utc::now().year();
-    let balances = state.leave_service.get_employee_balances(
+    let balances = state.leaves.service.get_employee_balances(
         ws_id, emp_id, year,
     )
     .await
-    .map_err(|s| AppError::from((s, "Failed to get employee balances".to_string())))?;
+    ?;
 
     Ok(Json(balances))
 }
@@ -129,12 +129,12 @@ pub async fn get_workspace_leave_requests(
     Query(query): Query<LeaveStatusQuery>,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     ctx.require_permission(Permission::LeaveRequestsRead)?;
-    let requests = state.leave_service.get_workspace_leave_requests(
+    let requests = state.leaves.service.get_workspace_leave_requests(
         ctx.workspace_id,
         query.status,
     )
     .await
-    .map_err(|s| AppError::from((s, "Failed to get workspace leave requests".to_string())))?;
+    ?;
 
     Ok(Json(requests))
 }
@@ -153,14 +153,14 @@ pub async fn get_employee_leave_history(
     // Allow admins to see anyone's history; non-admins can only access via employee self-service
     ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = Utc::now().year();
-    let history = state.leave_service.get_employee_leave_history(
+    let history = state.leaves.service.get_employee_leave_history(
         ctx.workspace_id,
         emp_id,
         year,
         query.leave_type_id,
     )
     .await
-    .map_err(|s| AppError::from((s, "Failed to get employee history".to_string())))?;
+    ?;
 
     Ok(Json(history))
 }
@@ -172,9 +172,9 @@ pub async fn adjust_leave_balance(
     Json(req): Json<AdjustBalanceRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::LeaveBalancesAdjust)?;
-    state.leave_service.adjust_balance(ws_id, emp_id, req)
+    state.leaves.service.adjust_balance(ws_id, emp_id, req)
         .await
-        .map_err(|s| AppError::from((s, "Failed to adjust balance".to_string())))?;
+        ?;
 
     Ok(StatusCode::OK)
 }
@@ -187,7 +187,7 @@ pub async fn create_leave_policy(
 ) -> AppResult<(StatusCode, Json<LeavePolicyDefinition>)> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let policy = state.leave_policy_repo.create_policy_definition(workspace_id,
+    let policy = state.leaves.policy_repo.create_policy_definition(workspace_id,
         &req.name,
         req.description.as_deref(),
         req.leave_type_id,
@@ -206,7 +206,7 @@ pub async fn update_leave_policy(
 ) -> AppResult<Json<LeavePolicyDefinition>> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let policy = state.leave_policy_repo.update_policy_definition(policy_id,
+    let policy = state.leaves.policy_repo.update_policy_definition(policy_id,
         workspace_id,
         req.name.as_deref(),
         req.description.as_deref(),
@@ -226,7 +226,7 @@ pub async fn delete_leave_policy(
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let rows =
-        state.leave_policy_repo.delete_policy_definition(policy_id, workspace_id)
+        state.leaves.policy_repo.delete_policy_definition(policy_id, workspace_id)
             .await?;
 
     if rows > 0 {
@@ -241,7 +241,7 @@ pub async fn get_leave_policies(
     State(state): State<Arc<AppState>>,
     _ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeavePolicyDefinition>>> {
-    let policies = state.leave_policy_repo.get_policy_definitions(workspace_id).await?;
+    let policies = state.leaves.policy_repo.get_policy_definitions(workspace_id).await?;
     Ok(Json(policies))
 }
 
@@ -264,7 +264,7 @@ pub async fn assign_leave_policy(
         created_at: chrono::Utc::now(),
     };
 
-    let saved = state.leave_policy_repo.create_policy_assignment(&assignment).await?;
+    let saved = state.leaves.policy_repo.create_policy_assignment(&assignment).await?;
     Ok((StatusCode::CREATED, Json(saved)))
 }
 
@@ -292,7 +292,7 @@ pub async fn trigger_accrual_run(
         .map_err(|_| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
 
     // Try to enqueue as background job if Redis is available
-    if let Some(ref redis) = state.redis {
+    if let Some(ref redis) = state.infra.redis {
         use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType, ReportType};
         use crate::queue::JobQueue;
 
@@ -333,7 +333,7 @@ pub async fn trigger_accrual_run(
         ))
     } else {
         // Fallback: synchronous processing (no Redis)
-        let logs = state.leave_accrual_service.process_workspace_accruals(workspace_id, date, true)
+        let logs = state.leaves.accrual_service.process_workspace_accruals(workspace_id, date, true)
                 .await?;
 
         Ok((
@@ -362,7 +362,7 @@ pub async fn get_job_status(
     State(state): State<Arc<AppState>>,
     _ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {
-    let redis = state.redis.as_ref().ok_or_else(|| {
+    let redis = state.infra.redis.as_ref().ok_or_else(|| {
         AppError::Internal("Redis not available".to_string())
     })?;
 
@@ -393,7 +393,7 @@ pub async fn get_leave_policy_assignments(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<crate::models::LeavePolicyAssignmentDetail>>> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
-    let assignments = state.leave_policy_repo.get_policy_assignments(ctx.workspace_id,
+    let assignments = state.leaves.policy_repo.get_policy_assignments(ctx.workspace_id,
     )
     .await?;
     Ok(Json(assignments))

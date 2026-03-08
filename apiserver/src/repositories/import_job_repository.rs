@@ -129,6 +129,6 @@ pub async fn get_pending_jobs(pool: &PgPool) -> Result<Vec<AttendanceImportJob>,
 }
 
 impl super::PoolBacked for SqlxImportJobRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

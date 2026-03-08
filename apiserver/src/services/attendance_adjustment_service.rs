@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::http::StatusCode;
+use crate::errors::AppError;
 use chrono::Utc;
 use sqlx::PgPool;
 use tracing::error;
@@ -40,7 +40,7 @@ impl AttendanceAdjustmentService {
         _workspace_id: Uuid,
         user_id: Uuid,
         req: CreateAttendanceAdjustmentRequest,
-    ) -> Result<AttendanceAdjustmentRequest, StatusCode> {
+    ) -> Result<AttendanceAdjustmentRequest, AppError> {
         let adjustment = AttendanceAdjustmentRequest {
             id: Uuid::new_v4(),
             employee_id: req.employee_id,
@@ -60,7 +60,7 @@ impl AttendanceAdjustmentService {
             .await
             .map_err(|e| {
                 error!("SUBMIT_ADJUSTMENT_ERROR: {:?}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })?;
 
         Ok(adjustment)
@@ -72,11 +72,11 @@ impl AttendanceAdjustmentService {
         approver_id: Uuid,
         request_id: Uuid,
         status: AdjustmentStatus,
-    ) -> Result<(), StatusCode> {
+    ) -> Result<(), AppError> {
         let request = self.adj_repo.get_request_by_id(workspace_id, request_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .ok_or(StatusCode::NOT_FOUND)?;
+            .map_err(AppError::Sqlx)?
+            .ok_or(AppError::NotFound("Not found".into()))?;
 
         self.adj_repo.update_adjustment_status(
             workspace_id,
@@ -85,14 +85,14 @@ impl AttendanceAdjustmentService {
             Some(approver_id),
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(AppError::Sqlx)?;
 
         if status == AdjustmentStatus::Approved {
             if let Some(time_entry_id) = request.time_entry_id {
                 let mut entry = self.time_entry_repo.get_time_entry_by_id(workspace_id, time_entry_id)
                     .await
-                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-                    .ok_or(StatusCode::NOT_FOUND)?;
+                    .map_err(AppError::Sqlx)?
+                    .ok_or(AppError::NotFound("Not found".into()))?;
 
                 entry.punch_in_time = request.requested_punch_in_time;
                 entry.punch_out_time = request.requested_punch_out_time;
@@ -105,7 +105,7 @@ impl AttendanceAdjustmentService {
 
                 self.time_entry_repo.update_time_entry(workspace_id, &entry)
                     .await
-                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                    .map_err(AppError::Sqlx)?;
             } else {
                 let mut duration_minutes = None;
                 if let Some(punch_out) = request.requested_punch_out_time {
@@ -119,7 +119,7 @@ impl AttendanceAdjustmentService {
                 )
                 .fetch_one(&self.pool)
                 .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                .map_err(AppError::Sqlx)?;
                 let entry = TimeEntry {
                     id: Uuid::new_v4(),
                     employee_id: request.employee_id,
@@ -138,7 +138,7 @@ impl AttendanceAdjustmentService {
 
                 self.time_entry_repo.create_time_entry(&entry)
                     .await
-                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                    .map_err(AppError::Sqlx)?;
             }
         }
 
@@ -163,23 +163,23 @@ impl AttendanceAdjustmentService {
         &self,
         workspace_id: Uuid,
         status: Option<AdjustmentStatus>,
-    ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
+    ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
         self.adj_repo.get_workspace_adjustment_requests(
             workspace_id,
             status,
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        .map_err(AppError::Sqlx)
     }
 
     pub async fn get_my_requests(
         &self,
         workspace_id: Uuid,
         employee_id: Uuid,
-    ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
+    ) -> Result<Vec<AttendanceAdjustmentRequest>, AppError> {
         self.adj_repo.get_employee_adjustment_requests(workspace_id, employee_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+            .map_err(AppError::Sqlx)
     }
 }
 

@@ -29,7 +29,7 @@ pub async fn claim_ot(
 ) -> AppResult<StatusCode> {
     // 1. Verify ownership (Employee can only claim for themselves) or has OvertimeClaim permission
     let employee =
-        state.employee_repo.get_employee_by_id(employee_id, ws_id)
+        state.employees.repo.get_employee_by_id(employee_id, ws_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -43,7 +43,7 @@ pub async fn claim_ot(
     }
 
     state
-        .attendance_summary_service
+        .attendance.summary_service
         .claim_ot(
             employee_id,
             req.date,
@@ -75,7 +75,7 @@ pub async fn approve_ot(
         "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
     )
     .bind(employee_id)
-    .fetch_optional(state.db.api())
+    .fetch_optional(state.infra.db.api())
     .await
     .unwrap_or(None);
 
@@ -88,7 +88,7 @@ pub async fn approve_ot(
     };
 
     state
-        .attendance_summary_service
+        .attendance.summary_service
         .approve_ot(
             employee_id,
             req.date,
@@ -127,7 +127,7 @@ pub async fn get_attendance_summaries(
             ws_id,
             ctx.user_id
         )
-        .fetch_optional(state.db.api())
+        .fetch_optional(state.infra.db.api())
         .await?;
 
         let my_id = emp_record
@@ -148,7 +148,7 @@ pub async fn get_attendance_summaries(
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: crate::models::OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE workspace_id = $1 AND employee_id = $2 AND date >= $3 AND date <= $4 ORDER BY date ASC",
             ws_id, emp_id, query.start_date, query.end_date
         )
-        .fetch_all(state.db.api())
+        .fetch_all(state.infra.db.api())
         .await?
     } else {
         sqlx::query_as!(
@@ -156,7 +156,7 @@ pub async fn get_attendance_summaries(
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: crate::models::OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE workspace_id = $1 AND date >= $2 AND date <= $3 ORDER BY date ASC, employee_id ASC",
             ws_id, query.start_date, query.end_date
         )
-        .fetch_all(state.db.api())
+        .fetch_all(state.infra.db.api())
         .await?
     };
 

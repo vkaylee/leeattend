@@ -161,6 +161,6 @@ pub async fn count_pending_staging_logs(
 }
 
 impl super::PoolBacked for SqlxStagingLogRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

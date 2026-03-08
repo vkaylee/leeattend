@@ -90,6 +90,6 @@ pub async fn create_error_log_with_fingerprint(
 }
 
 impl super::PoolBacked for SqlxAttendanceLogErrorRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

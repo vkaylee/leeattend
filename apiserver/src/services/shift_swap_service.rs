@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::http::StatusCode;
+use crate::errors::AppError;
 use chrono::Utc;
 use sqlx::PgPool;
 use tracing::error;
@@ -39,17 +39,17 @@ impl ShiftSwapService {
         swap_date: chrono::NaiveDate,
         requester_shift_id: Option<Uuid>,
         target_shift_id: Option<Uuid>,
-    ) -> Result<(), StatusCode> {
+    ) -> Result<(), AppError> {
         let pool = &self.pool;
         // 1. Duplicate check
         let dup = self.swap_repo.has_active_swap(workspace_id, requester_id, target_id, swap_date)
             .await
             .map_err(|e| {
                 error!("SWAP_DUP_CHECK: {:?}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })?;
         if dup {
-            return Err(StatusCode::CONFLICT); // duplicate swap
+            return Err(AppError::Conflict("Conflict".into())); // duplicate swap
         }
 
         // 2. Conflict check — either employee already has an approved swap on this date
@@ -59,16 +59,16 @@ impl ShiftSwapService {
                     .await
                     .map_err(|e| {
                         error!("SWAP_CONFLICT_CHECK: {:?}", e);
-                        StatusCode::INTERNAL_SERVER_ERROR
+                        AppError::Internal("Internal error".into())
                     })?;
             if conflict {
-                return Err(StatusCode::CONFLICT); // already swapped that day
+                return Err(AppError::Conflict("Conflict".into())); // already swapped that day
             }
         }
 
         // 3. Same-shift guard — swap is pointless if both have the same shift
         if requester_shift_id == target_shift_id {
-            return Err(StatusCode::BAD_REQUEST); // same shift, no point
+            return Err(AppError::Validation("Invalid request".into())); // same shift, no point
         }
 
         // 4. OT max daily check — warn if the new shift is significantly longer
@@ -123,7 +123,7 @@ impl ShiftSwapService {
     async fn get_workspace_id_for_employee(
         &self,
         employee_id: Uuid,
-    ) -> Result<Option<Uuid>, StatusCode> {
+    ) -> Result<Option<Uuid>, AppError> {
         let pool = &self.pool;
         let ws: Option<Uuid> = sqlx::query_scalar(
             "SELECT workspace_id FROM employees WHERE id = $1",
@@ -131,7 +131,7 @@ impl ShiftSwapService {
         .bind(employee_id)
         .fetch_optional(pool)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(AppError::Sqlx)?;
         Ok(ws)
     }
 
@@ -142,10 +142,10 @@ impl ShiftSwapService {
         workspace_id: Uuid,
         user_id: Uuid,
         req: CreateShiftSwapRequest,
-    ) -> Result<ShiftSwapRequest, StatusCode> {
+    ) -> Result<ShiftSwapRequest, AppError> {
         let pool = &self.pool;
         if req.requester_id == req.target_id {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(AppError::Validation("Invalid request".into()));
         }
 
         // Validate both employees belong to this workspace
@@ -159,11 +159,11 @@ impl ShiftSwapService {
         .await
         .map_err(|e| {
             error!("SHIFT_SWAP_VALIDATE_ERROR: {:?}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            AppError::Internal("Internal error".into())
         })?;
 
         if count != 2 {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(AppError::Validation("Invalid request".into()));
         }
 
         // Look up current effective shifts for both employees
@@ -172,7 +172,7 @@ impl ShiftSwapService {
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_LOOKUP_REQUESTER: {:?}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
+                    AppError::Internal("Internal error".into())
                 })?;
 
         let (target_shift_id, _) =
@@ -180,7 +180,7 @@ impl ShiftSwapService {
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_LOOKUP_TARGET: {:?}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
+                    AppError::Internal("Internal error".into())
                 })?;
 
         // Phase 3: Eligibility validation
@@ -214,7 +214,7 @@ impl ShiftSwapService {
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_CREATE_ERROR: {:?}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })
     }
 
@@ -226,15 +226,15 @@ impl ShiftSwapService {
         approver_id: Uuid,
         request_id: Uuid,
         new_status: ShiftSwapStatus,
-    ) -> Result<(), StatusCode> {
+    ) -> Result<(), AppError> {
         let request = self.swap_repo.get_swap_request_by_id(request_id, _workspace_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .ok_or(StatusCode::NOT_FOUND)?;
+            .map_err(AppError::Sqlx)?
+            .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Only pending requests can be approved/rejected
         if request.status != ShiftSwapStatus::PendingAdmin {
-            return Err(StatusCode::CONFLICT);
+            return Err(AppError::Conflict("Conflict".into()));
         }
 
         // Update the status first
@@ -247,7 +247,7 @@ impl ShiftSwapService {
         .await
         .map_err(|e| {
             error!("SHIFT_SWAP_STATUS_UPDATE_ERROR: {:?}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            AppError::Internal("Internal error".into())
         })?;
 
         // If approved, swap the roster entries
@@ -282,14 +282,14 @@ impl ShiftSwapService {
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_REQUESTER_ERROR: {:?}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
+                    AppError::Internal("Internal error".into())
                 })?;
 
             self.roster_repo.upsert_roster( &target_roster)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_ROSTER_TARGET_ERROR: {:?}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
+                    AppError::Internal("Internal error".into())
                 })?;
         }
 
@@ -301,12 +301,12 @@ impl ShiftSwapService {
         &self,
         workspace_id: Uuid,
         status: Option<ShiftSwapStatus>,
-    ) -> Result<Vec<ShiftSwapRequestWithNames>, StatusCode> {
+    ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         self.swap_repo.get_workspace_swaps(workspace_id, status)
             .await
             .map_err(|e| {
                 error!("SHIFT_SWAP_LIST_ERROR: {:?}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })
     }
 
@@ -321,10 +321,10 @@ impl ShiftSwapService {
         requester_employee_id: Uuid,
         user_id: Uuid,
         req: crate::models::shift_swap::EssCreateShiftSwapRequest,
-    ) -> Result<ShiftSwapRequest, StatusCode> {
+    ) -> Result<ShiftSwapRequest, AppError> {
         let pool = &self.pool;
         if requester_employee_id == req.target_id {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(AppError::Validation("Invalid request".into()));
         }
 
         // Validate target belongs to same workspace
@@ -337,11 +337,11 @@ impl ShiftSwapService {
         .await
         .map_err(|e| {
             error!("ESS_SWAP_VALIDATE_TARGET: {:?}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            AppError::Internal("Internal error".into())
         })?;
 
         if !target_exists {
-            return Err(StatusCode::BAD_REQUEST);
+            return Err(AppError::Validation("Invalid request".into()));
         }
 
         // Look up effective shifts
@@ -350,7 +350,7 @@ impl ShiftSwapService {
                 .await
                 .map_err(|e| {
                     error!("ESS_SWAP_LOOKUP_REQUESTER: {:?}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
+                    AppError::Internal("Internal error".into())
                 })?;
 
         let (target_shift_id, _) =
@@ -358,7 +358,7 @@ impl ShiftSwapService {
                 .await
                 .map_err(|e| {
                     error!("ESS_SWAP_LOOKUP_TARGET: {:?}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
+                    AppError::Internal("Internal error".into())
                 })?;
 
         // Phase 3: Eligibility validation
@@ -393,7 +393,7 @@ impl ShiftSwapService {
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_CREATE_ERROR: {:?}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })
     }
 
@@ -406,20 +406,20 @@ impl ShiftSwapService {
         target_employee_id: Uuid,
         request_id: Uuid,
         accept: bool,
-    ) -> Result<(), StatusCode> {
+    ) -> Result<(), AppError> {
         let request = self.swap_repo.get_swap_request_by_id(request_id, workspace_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .ok_or(StatusCode::NOT_FOUND)?;
+            .map_err(AppError::Sqlx)?
+            .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Only the target can respond
         if request.target_id != target_employee_id {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(AppError::Forbidden("Forbidden".into()));
         }
 
         // Only pending_target requests can be responded to
         if request.status != ShiftSwapStatus::PendingTarget {
-            return Err(StatusCode::CONFLICT);
+            return Err(AppError::Conflict("Conflict".into()));
         }
 
         let new_status = if accept {
@@ -432,7 +432,7 @@ impl ShiftSwapService {
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_RESPOND_ERROR: {:?}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })
     }
 
@@ -442,22 +442,22 @@ impl ShiftSwapService {
         workspace_id: Uuid,
         requester_employee_id: Uuid,
         request_id: Uuid,
-    ) -> Result<(), StatusCode> {
+    ) -> Result<(), AppError> {
         let request = self.swap_repo.get_swap_request_by_id(request_id, workspace_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .ok_or(StatusCode::NOT_FOUND)?;
+            .map_err(AppError::Sqlx)?
+            .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Only the requester can cancel
         if request.requester_id != requester_employee_id {
-            return Err(StatusCode::FORBIDDEN);
+            return Err(AppError::Forbidden("Forbidden".into()));
         }
 
         // Can only cancel pending requests
         if request.status != ShiftSwapStatus::PendingTarget
             && request.status != ShiftSwapStatus::PendingAdmin
         {
-            return Err(StatusCode::CONFLICT);
+            return Err(AppError::Conflict("Conflict".into()));
         }
 
         self.swap_repo.update_swap_status(
@@ -469,7 +469,7 @@ impl ShiftSwapService {
         .await
         .map_err(|e| {
             error!("ESS_SWAP_CANCEL_ERROR: {:?}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            AppError::Internal("Internal error".into())
         })
     }
 
@@ -478,12 +478,12 @@ impl ShiftSwapService {
         &self,
         employee_id: Uuid,
         workspace_id: Uuid,
-    ) -> Result<Vec<ShiftSwapRequestWithNames>, StatusCode> {
+    ) -> Result<Vec<ShiftSwapRequestWithNames>, AppError> {
         self.swap_repo.get_employee_swaps(employee_id, workspace_id)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_LIST_ERROR: {:?}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })
     }
 }

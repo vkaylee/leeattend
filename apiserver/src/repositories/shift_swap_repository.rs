@@ -276,6 +276,6 @@ pub async fn get_workspace_swap_stats(
 }
 
 impl super::PoolBacked for SqlxShiftSwapRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

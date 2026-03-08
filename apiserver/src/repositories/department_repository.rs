@@ -303,6 +303,6 @@ pub async fn get_department_payroll_config_at(
 }
 
 impl super::PoolBacked for SqlxDepartmentRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

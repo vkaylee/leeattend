@@ -19,7 +19,7 @@ pub async fn clear_workspace_data(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ClearWorkspaceDataQuery>,
 ) -> AppResult<StatusCode> {
-    let mut tx = state.db.api().begin().await?;
+    let mut tx = state.infra.db.api().begin().await?;
 
     match query.group.as_str() {
         "attendance" => {

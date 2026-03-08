@@ -62,7 +62,7 @@ pub async fn get_monitor_overview(
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<MonitorOverviewResponse>> {
     let redis = state
-        .redis
+        .infra.redis
         .as_ref()
         .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
 

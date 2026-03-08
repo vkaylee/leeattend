@@ -7,7 +7,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::domain::permissions::Permission;
-use crate::errors::{AppError, AppResult};
+use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AdjustmentStatus, ApproveAttendanceAdjustmentRequest, AttendanceAdjustmentRequest,
@@ -25,10 +25,10 @@ pub async fn submit_attendance_adjustment(
     Json(req): Json<CreateAttendanceAdjustmentRequest>,
 ) -> AppResult<(StatusCode, Json<AttendanceAdjustmentRequest>)> {
     let adjustment = state
-        .adjustment_service
+        .attendance.adjustment_service
         .submit_request(workspace_id, user_id, req)
         .await
-        .map_err(|s| AppError::from((s, "Failed to submit adjustment".to_string())))?;
+        ?;
 
     Ok((StatusCode::CREATED, Json(adjustment)))
 }
@@ -42,10 +42,10 @@ pub async fn approve_attendance_adjustment(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::AttendanceAdjustmentsApprove)?;
     state
-        .adjustment_service
+        .attendance.adjustment_service
         .approve_request(ctx.workspace_id, user_id, id, req.status)
         .await
-        .map_err(|s| AppError::from((s, "Failed to approve adjustment".to_string())))?;
+        ?;
 
     Ok(StatusCode::OK)
 }
@@ -57,10 +57,10 @@ pub async fn get_my_attendance_adjustments(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
     let requests = state
-        .adjustment_service
+        .attendance.adjustment_service
         .get_my_requests(ctx.workspace_id, id)
         .await
-        .map_err(|s| AppError::from((s, "Failed to get adjustments".to_string())))?;
+        ?;
 
     Ok(Json(requests))
 }
@@ -77,10 +77,10 @@ pub async fn get_workspace_attendance_adjustments(
     Query(query): Query<AdjustmentStatusQuery>,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
     let requests = state
-        .adjustment_service
+        .attendance.adjustment_service
         .get_workspace_requests(workspace_id, query.status)
         .await
-        .map_err(|s| AppError::from((s, "Failed to get workspace adjustments".to_string())))?;
+        ?;
 
     Ok(Json(requests))
 }

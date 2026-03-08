@@ -32,7 +32,7 @@ pub async fn get_debug_users(
         let users = sqlx::query_as::<_, DebugUser>(
             r#"SELECT id, COALESCE(full_name, 'Unknown') as name, email, role FROM users LIMIT 20"#,
         )
-        .fetch_all(state.db.api())
+        .fetch_all(state.infra.db.api())
         .await?;
 
         Ok(Json(users))
@@ -52,7 +52,7 @@ pub async fn clear_debug_db(
 ) -> AppResult<impl IntoResponse> {
     #[cfg(debug_assertions)]
     {
-        let mut tx = state.db.api().begin().await?;
+        let mut tx = state.infra.db.api().begin().await?;
 
         match payload.group.as_str() {
             "attendance" => {

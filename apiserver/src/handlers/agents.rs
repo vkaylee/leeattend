@@ -67,7 +67,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         (data["user_id"].as_str(), data["timestamp"].as_str())
                                     {
                                         // Try async enqueue via Redis; fall back to sync processing
-                                        let result = if let Some(ref redis) = state_clone.redis {
+                                        let result = if let Some(ref redis) = state_clone.infra.redis {
                                             // Async path: enqueue to Redis for worker processing
                                             use crate::queue::{Job, JobPayload, JobPriority, JobQueue, LogIngestionPayload, TaskType};
                                             let payload = LogIngestionPayload {
@@ -104,7 +104,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                 ws_time_fmt.clone(),
                                             );
                                             state_clone
-                                                .attendance_service
+                                                .attendance.log_service
                                                 .ingest_agent_log(entry)
                                                 .await
                                         };
@@ -130,14 +130,14 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 crate::agent_manager::CentralMessage,
                             >(v.clone())
                             {
-                                state_clone.agent_manager.handle_response(resp).await;
+                                state_clone.agents.manager.handle_response(resp).await;
                             }
                         } else if v["type"] == "heartbeat" {
                             if let Some(id) = v["agent_id"].as_str() {
                                 // Ensure agent updates only their own timestamp
                                 if id == agent_id {
                                     state_clone
-                                        .agent_manager
+                                        .agents.manager
                                         .record_heartbeat(id.to_string())
                                         .await;
                                 }
@@ -148,14 +148,14 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                             if let (Some(id), Some(token)) =
                                 (v["agent_id"].as_str(), v["token"].as_str())
                             {
-                                match state_clone.agent_service.authorize_agent(id, token).await {
+                                match state_clone.agents.service.authorize_agent(id, token).await {
                                     Ok(Some(agent)) => {
                                         agent_id = id.to_string();
                                         workspace_id = agent.workspace_id;
 
                                         // Fetch workspace config for timezone aware parsing
                                         if let Ok(Some(ws)) = state_clone
-                                            .workspace_repo
+                                            .core.workspace_repo
                                             .get_workspace_by_id(workspace_id)
                                             .await
                                         {
@@ -166,17 +166,17 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         }
 
                                         state_clone
-                                            .agent_manager
+                                            .agents.manager
                                             .add_agent(agent_id.clone(), tx.clone())
                                             .await;
 
                                         let _ = state_clone
-                                            .agent_service
+                                            .agents.service
                                             .update_last_ip(&agent_id, "websocket_conn")
                                             .await;
 
                                         let _ = state_clone
-                                            .agent_service
+                                            .agents.service
                                             .notify_config_update(&agent_id)
                                             .await;
                                     }
@@ -222,7 +222,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
             }
         }
         if !agent_id.is_empty() {
-            state_clone.agent_manager.remove_agent(&agent_id).await;
+            state_clone.agents.manager.remove_agent(&agent_id).await;
         }
     });
 
@@ -249,11 +249,11 @@ pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Ve
     let db_agents = sqlx::query_as::<_, AuthorizedAgent>(
         "SELECT * FROM authorized_agents WHERE is_active = true",
     )
-    .fetch_all(state.db.api())
+    .fetch_all(state.infra.db.api())
     .await?;
 
     // 2. Get status (online/offline) from AgentManager (Redis-backed)
-    let mut agents_status = state.agent_manager.get_all_agents_status(db_agents).await;
+    let mut agents_status = state.agents.manager.get_all_agents_status(db_agents).await;
 
     if agents_status.is_empty() {
         return Ok(Json(Vec::new()));
@@ -265,7 +265,7 @@ pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Ve
         "SELECT * FROM devices WHERE agent_id = ANY($1) ORDER BY created_at DESC",
     )
     .bind(&agent_ids)
-    .fetch_all(state.db.api())
+    .fetch_all(state.infra.db.api())
     .await?;
 
     // Group devices by agent_id
@@ -314,7 +314,7 @@ pub async fn send_command(
     )
     .bind(&agent_id)
     .bind(ctx.workspace_id)
-    .fetch_one(state.db.api())
+    .fetch_one(state.infra.db.api())
     .await?;
 
     if !agent_exists {
@@ -335,7 +335,7 @@ pub async fn send_command(
     };
 
     state
-        .agent_manager
+        .agents.manager
         .send_command(&agent_id, command)
         .await
         .map_err(AppError::NotFound)?;
@@ -363,7 +363,7 @@ pub async fn get_devices(
         "SELECT * FROM devices WHERE workspace_id = $1 ORDER BY created_at DESC",
     )
     .bind(workspace_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.infra.db.api())
     .await?;
 
     Ok(Json(devices))
@@ -387,11 +387,11 @@ pub async fn create_device(
     .bind(port)
     .bind(workspace_id)
     .bind(req.brand.unwrap_or_else(|| "zkteco".to_string()))
-    .execute(state.db.api())
+    .execute(state.infra.db.api())
     .await?;
 
     let _ = state
-        .agent_service
+        .agents.service
         .notify_config_update(&req.agent_id)
         .await;
 
@@ -408,7 +408,7 @@ pub async fn update_device(
         sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(id)
             .bind(workspace_id)
-            .fetch_one(state.db.api())
+            .fetch_one(state.infra.db.api())
             .await
             .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
 
@@ -428,11 +428,11 @@ pub async fn update_device(
     .bind(brand)
     .bind(id)
     .bind(workspace_id)
-    .execute(state.db.api())
+    .execute(state.infra.db.api())
     .await?;
 
     let _ = state
-        .agent_service
+        .agents.service
         .notify_config_update(&current_device.agent_id)
         .await;
 
@@ -448,18 +448,18 @@ pub async fn delete_device(
         sqlx::query_scalar("SELECT agent_id FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(id)
             .bind(workspace_id)
-            .fetch_optional(state.db.api())
+            .fetch_optional(state.infra.db.api())
             .await?;
 
     let res = sqlx::query("DELETE FROM devices WHERE id = $1 AND workspace_id = $2")
         .bind(id)
         .bind(workspace_id)
-        .execute(state.db.api())
+        .execute(state.infra.db.api())
         .await?;
 
     if res.rows_affected() > 0 {
         if let Some(aid) = agent_id {
-            let _ = state.agent_service.notify_config_update(&aid).await;
+            let _ = state.agents.service.notify_config_update(&aid).await;
         }
         Ok(StatusCode::NO_CONTENT)
     } else {
@@ -491,7 +491,7 @@ pub async fn get_authorized_agents(
 
     let agents = sqlx::query_as::<_, AuthorizedAgent>(&query)
         .bind(workspace_id)
-        .fetch_all(state.db.api())
+        .fetch_all(state.infra.db.api())
         .await?;
 
     Ok(Json(agents))
@@ -510,7 +510,7 @@ pub async fn create_authorized_agent(
     .bind(&req.token)
     .bind(workspace_id)
     .bind(req.max_concurrent_workers.unwrap_or(2))
-    .execute(state.db.api())
+    .execute(state.infra.db.api())
     .await?;
 
     Ok((
@@ -531,12 +531,12 @@ pub async fn update_agent_trust(
     .bind(req.is_trusted)
     .bind(&id)
     .bind(workspace_id)
-    .execute(state.db.api())
+    .execute(state.infra.db.api())
     .await?;
 
     if res.rows_affected() > 0 {
         if !req.is_trusted {
-            state.agent_manager.remove_agent(&id).await;
+            state.agents.manager.remove_agent(&id).await;
         }
         Ok(StatusCode::OK)
     } else {
@@ -554,7 +554,7 @@ pub async fn get_authorized_agent_by_id(
     )
     .bind(id)
     .bind(workspace_id)
-    .fetch_optional(state.db.api())
+    .fetch_optional(state.infra.db.api())
     .await?
     .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
 
@@ -621,16 +621,16 @@ pub async fn update_authorized_agent(
 
     let agent = query_builder
         .build_query_as::<AuthorizedAgent>()
-        .fetch_optional(state.db.api())
+        .fetch_optional(state.infra.db.api())
         .await?
         .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
 
     if (req.is_trusted == Some(false) || req.is_active == Some(false))
-        && state.agent_manager.is_online(&agent.id).await
+        && state.agents.manager.is_online(&agent.id).await
     {
-        state.agent_manager.remove_agent(&agent.id).await;
+        state.agents.manager.remove_agent(&agent.id).await;
     } else {
-        let _ = state.agent_service.notify_config_update(&agent.id).await;
+        let _ = state.agents.service.notify_config_update(&agent.id).await;
     }
     Ok(Json(agent))
 }
@@ -644,12 +644,12 @@ pub async fn get_device_info_on_demand(
         sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(id)
             .bind(workspace_id)
-            .fetch_one(state.db.api())
+            .fetch_one(state.infra.db.api())
             .await
             .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
 
     let info = state
-        .agent_manager
+        .agents.manager
         .get_device_info(&device.agent_id, &device.id.to_string())
         .await
         .map_err(AppError::Internal)?;
@@ -667,11 +667,11 @@ pub async fn delete_authorized_agent(
     )
     .bind(&id)
     .bind(workspace_id)
-    .execute(state.db.api())
+    .execute(state.infra.db.api())
     .await?;
 
     if res.rows_affected() > 0 {
-        state.agent_manager.remove_agent(&id).await;
+        state.agents.manager.remove_agent(&id).await;
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound("Agent not found".to_string()))

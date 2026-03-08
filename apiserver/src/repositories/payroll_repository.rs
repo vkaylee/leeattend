@@ -141,9 +141,7 @@ pub struct SqlxPayrollRepository {
 }
 
 impl SqlxPayrollRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
+    pub fn new(pool: PgPool) -> Self { Self { pool } }
 }
 
 #[async_trait]
@@ -675,6 +673,6 @@ pub async fn get_payslip_segments(
 }
 
 impl super::PoolBacked for SqlxPayrollRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

@@ -263,6 +263,6 @@ impl HolidayRepository {
 }
 
 impl super::PoolBacked for SqlxHolidayRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

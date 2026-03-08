@@ -1,8 +1,8 @@
-use axum::http::StatusCode;
 use chrono::{Local, NaiveDate, NaiveTime};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::errors::AppError;
 use crate::models::{Shift, UpdateShiftRequest};
 use crate::repositories::shift_repository;
 
@@ -30,7 +30,7 @@ impl ShiftService {
         break_is_overtime: bool,
         early_punch_in_grace_period_minutes: i32,
         allow_early_ot: bool,
-    ) -> Result<Shift, StatusCode> {
+    ) -> Result<Shift, AppError> {
         shift_repository::create_shift(
             &self.pool,
             workspace_id,
@@ -49,16 +49,16 @@ impl ShiftService {
             None, // parent_shift_id
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        .map_err(AppError::Sqlx)
     }
 
     pub async fn get_workspace_shifts(
         &self,
         workspace_id: Uuid,
-    ) -> Result<Vec<Shift>, StatusCode> {
+    ) -> Result<Vec<Shift>, AppError> {
         shift_repository::get_workspace_shifts(&self.pool, workspace_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+            .map_err(AppError::Sqlx)
     }
 
     pub async fn update_shift(
@@ -66,12 +66,12 @@ impl ShiftService {
         workspace_id: Uuid,
         shift_id: Uuid,
         req: UpdateShiftRequest,
-    ) -> Result<Shift, StatusCode> {
+    ) -> Result<Shift, AppError> {
         let pool = &self.pool;
         let old_shift = shift_repository::get_shift_by_id(pool, workspace_id, shift_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .ok_or(StatusCode::NOT_FOUND)?;
+            .map_err(AppError::Sqlx)?
+            .ok_or(AppError::NotFound("Shift not found".into()))?;
 
         let has_time_changes = old_shift.start_time != req.start_time
             || old_shift.end_time != req.end_time
@@ -99,22 +99,19 @@ impl ShiftService {
                 req.allow_early_ot,
             )
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+            .map_err(AppError::Sqlx)
         } else {
             // Create new version
             let effective_date = req
                 .effective_date
                 .unwrap_or_else(|| Local::now().date_naive());
 
-            let mut tx = pool
-                .begin()
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let mut tx = pool.begin().await.map_err(AppError::Sqlx)?;
 
             // 1. Archive old version
             shift_repository::archive_shift(&mut *tx, workspace_id, shift_id)
                 .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                .map_err(AppError::Sqlx)?;
 
             // 2. Create new version
             let new_shift = shift_repository::create_shift(
@@ -135,7 +132,7 @@ impl ShiftService {
                 Some(shift_id),
             )
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Sqlx)?;
 
             // 3. Migrate assignments
             shift_repository::update_assignments_to_new_version_tx(
@@ -145,11 +142,9 @@ impl ShiftService {
                 effective_date,
             )
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Sqlx)?;
 
-            tx.commit()
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            tx.commit().await.map_err(AppError::Sqlx)?;
 
             Ok(new_shift)
         }
@@ -161,7 +156,7 @@ impl ShiftService {
         shift_id: Uuid,
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
-    ) -> Result<(), StatusCode> {
+    ) -> Result<(), AppError> {
         match shift_repository::assign_employee_shift(
             &self.pool,
             employee_id,
@@ -173,9 +168,9 @@ impl ShiftService {
         {
             Ok(_) => Ok(()),
             Err(sqlx::Error::Database(e)) if e.constraint() == Some("uq_employee_shift_start") => {
-                Err(StatusCode::CONFLICT)
+                Err(AppError::Conflict("Shift assignment already exists for this date".into()))
             }
-            Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Err(e) => Err(AppError::Sqlx(e)),
         }
     }
 }

@@ -19,7 +19,7 @@ pub async fn get_salary_components(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> AppResult<Json<Vec<SalaryComponentDefinition>>> {
-    let components = state.payroll_repo.get_salary_component_definitions(workspace_id,
+    let components = state.payroll.repo.get_salary_component_definitions(workspace_id,
     )
     .await?;
 
@@ -32,7 +32,7 @@ pub async fn create_salary_component(
     MemberContext { .. }: MemberContext,
     Json(req): Json<CreateSalaryComponentRequest>,
 ) -> AppResult<(StatusCode, Json<SalaryComponentDefinition>)> {
-    let component = state.payroll_repo.create_salary_component_definition(workspace_id,
+    let component = state.payroll.repo.create_salary_component_definition(workspace_id,
         req.name,
         req.code,
         req.is_base_for_ot,
@@ -50,7 +50,7 @@ pub async fn get_employee_salary_components(
 ) -> AppResult<Json<Vec<serde_json::Value>>> {
     // Note: This returns latest components for effective_date = now
     let now = chrono::Utc::now().date_naive();
-    let components = state.payroll_repo.get_employee_salary_components(workspace_id, employee_id,
+    let components = state.payroll.repo.get_employee_salary_components(workspace_id, employee_id,
         now,
     )
     .await?;
@@ -82,7 +82,7 @@ pub async fn assign_employee_salary_component(
     MemberContext { .. }: MemberContext,
     Json(req): Json<AssignSalaryComponentRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeeSalaryComponent>)> {
-    let component = state.payroll_repo.assign_employee_salary_component(employee_id,
+    let component = state.payroll.repo.assign_employee_salary_component(employee_id,
         req.component_definition_id,
         req.amount,
         req.effective_date,

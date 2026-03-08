@@ -43,7 +43,7 @@ pub async fn ws_auth_middleware(
         }
     };
 
-    match crate::services::auth_service::AuthService::verify_token(token, &state.jwt_secret) {
+    match crate::services::auth_service::AuthService::verify_token(token, &state.core.jwt_secret) {
         Ok(user_id) => {
             request.extensions_mut().insert(user_id);
             next.run(request).await
@@ -64,7 +64,7 @@ pub async fn report_stream_ws(
 ) -> Response {
 
     // 2. Check if Redis is available
-    let redis = match &state.redis {
+    let redis = match &state.infra.redis {
         Some(redis) => redis.clone(),
         None => {
             return (
@@ -91,7 +91,7 @@ pub async fn report_stream_ws(
 
     // Check if user belongs to the workspace of this job
     let is_member = match state
-        .workspace_repo
+        .core.workspace_repo
         .find_primary_role(metadata.workspace_id, user_id)
         .await
     {

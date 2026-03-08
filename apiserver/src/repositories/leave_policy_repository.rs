@@ -393,6 +393,6 @@ pub async fn get_policy_assignments(
 }
 
 impl super::PoolBacked for SqlxLeavePolicyRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

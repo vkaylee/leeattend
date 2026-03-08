@@ -56,10 +56,10 @@ pub async fn upload_attendance_excel(
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
 
     let job_id = state
-        .import_service
+        .attendance.import_service
         .batch_import_from_file(ws_id, ctx.user_id, path, "adjustment".to_string())
         .await
-        .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
+        ?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }
@@ -109,10 +109,10 @@ pub async fn upload_attendance_logs(
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
 
     let job_id = state
-        .import_service
+        .attendance.import_service
         .batch_import_from_file(ws_id, ctx.user_id, path, "log".to_string())
         .await
-        .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
+        ?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }
@@ -161,10 +161,10 @@ pub async fn upload_employee_excel(
 
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
     let job_id = state
-        .import_service
+        .attendance.import_service
         .batch_import_from_file(ws_id, ctx.user_id, path, "employee".to_string())
         .await
-        .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
+        ?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }
@@ -180,7 +180,7 @@ pub async fn get_latest_import_job(
     MemberContext { workspace_id, .. }: MemberContext,
     axum::extract::Query(query): axum::extract::Query<ImportJobQuery>,
 ) -> AppResult<Json<Option<AttendanceImportJob>>> {
-    let job = state.import_repo.get_latest_job(workspace_id,
+    let job = state.attendance.import_repo.get_latest_job(workspace_id,
         query.target_type,
     )
     .await?;
@@ -192,7 +192,7 @@ pub async fn get_import_job_status(
     MemberContext { .. }: MemberContext,
     Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
-    let job = state.import_repo.get_job_by_id(job_id)
+    let job = state.attendance.import_repo.get_job_by_id(job_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 

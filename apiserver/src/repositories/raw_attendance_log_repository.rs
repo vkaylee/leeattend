@@ -218,6 +218,6 @@ pub async fn create_raw_logs_batch(
 }
 
 impl super::PoolBacked for SqlxRawAttendanceLogRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

@@ -40,7 +40,7 @@ pub async fn get_my_profile(
     )
     .bind(employee.employee_id)
     .bind(employee.workspace_id)
-    .fetch_one(state.db.reader())
+    .fetch_one(state.infra.db.reader())
     .await?;
 
     // Get profile (may not exist yet)
@@ -48,7 +48,7 @@ pub async fn get_my_profile(
         "SELECT * FROM employee_profiles WHERE employee_id = $1",
     )
     .bind(employee.employee_id)
-    .fetch_optional(state.db.reader())
+    .fetch_optional(state.infra.db.reader())
     .await?;
 
     // Get emergency contacts
@@ -56,7 +56,7 @@ pub async fn get_my_profile(
         "SELECT * FROM employee_emergency_contacts WHERE employee_id = $1 ORDER BY is_primary DESC, created_at",
     )
     .bind(employee.employee_id)
-    .fetch_all(state.db.reader())
+    .fetch_all(state.infra.db.reader())
     .await?;
 
     Ok(Json(MyProfileResponse {
@@ -99,7 +99,7 @@ pub async fn update_my_profile(
     .bind(&req.bank_name)
     .bind(&req.bank_account_number)
     .bind(&req.bank_branch)
-    .fetch_one(state.db.api())
+    .fetch_one(state.infra.db.api())
     .await?;
 
     Ok(Json(profile))
@@ -116,7 +116,7 @@ pub async fn get_my_emergency_contacts(
         "SELECT * FROM employee_emergency_contacts WHERE employee_id = $1 ORDER BY is_primary DESC, created_at",
     )
     .bind(employee.employee_id)
-    .fetch_all(state.db.reader())
+    .fetch_all(state.infra.db.reader())
     .await?;
 
     Ok(Json(contacts))
@@ -136,7 +136,7 @@ pub async fn add_emergency_contact(
             "UPDATE employee_emergency_contacts SET is_primary = false WHERE employee_id = $1",
         )
         .bind(employee.employee_id)
-        .execute(state.db.api())
+        .execute(state.infra.db.api())
         .await?;
     }
 
@@ -152,7 +152,7 @@ pub async fn add_emergency_contact(
     .bind(&req.relationship)
     .bind(&req.phone)
     .bind(is_primary)
-    .fetch_one(state.db.api())
+    .fetch_one(state.infra.db.api())
     .await?;
 
     Ok((StatusCode::CREATED, Json(contact)))
@@ -169,7 +169,7 @@ pub async fn delete_emergency_contact(
         sqlx::query("DELETE FROM employee_emergency_contacts WHERE id = $1 AND employee_id = $2")
             .bind(contact_id)
             .bind(employee.employee_id)
-            .execute(state.db.api())
+            .execute(state.infra.db.api())
             .await?;
 
     if result.rows_affected() == 0 {
@@ -190,7 +190,7 @@ pub async fn get_my_documents(
         "SELECT * FROM employee_documents WHERE employee_id = $1 AND is_active = true ORDER BY created_at DESC",
     )
     .bind(employee.employee_id)
-    .fetch_all(state.db.reader())
+    .fetch_all(state.infra.db.reader())
     .await?;
 
     Ok(Json(docs))
@@ -208,7 +208,7 @@ pub async fn get_my_payslips(
     )
     .bind(employee.employee_id)
     .bind(employee.workspace_id)
-    .fetch_all(state.db.reader())
+    .fetch_all(state.infra.db.reader())
     .await?;
 
     Ok(Json(payslips))
@@ -248,7 +248,7 @@ pub async fn get_my_attendance(
     .bind(employee.workspace_id)
     .bind(start)
     .bind(end)
-    .fetch_all(state.db.reader())
+    .fetch_all(state.infra.db.reader())
     .await?;
 
     Ok(Json(entries))
@@ -305,7 +305,7 @@ pub async fn get_my_leave_balances(
     .bind(employee.employee_id)
     .bind(year)
     .bind(employee.workspace_id)
-    .fetch_all(state.db.reader())
+    .fetch_all(state.infra.db.reader())
     .await?;
 
     Ok(Json(balances))
@@ -321,7 +321,7 @@ pub async fn ess_get_my_leave_requests(
     )
     .bind(employee.employee_id)
     .bind(employee.workspace_id)
-    .fetch_all(state.db.reader())
+    .fetch_all(state.infra.db.reader())
     .await?;
 
     Ok(Json(requests))
@@ -340,9 +340,9 @@ pub async fn ess_get_my_shift_swaps(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<ShiftSwapRequestWithNames>>> {
-    let swaps = state.shift_swap_service.get_employee_swaps(employee.employee_id, employee.workspace_id)
+    let swaps = state.shifts.swap_service.get_employee_swaps(employee.employee_id, employee.workspace_id)
         .await
-        .map_err(|s| AppError::from((s, "Failed to list shift swaps".to_string())))?;
+        ?;
 
     Ok(Json(swaps))
 }
@@ -353,14 +353,14 @@ pub async fn ess_create_shift_swap(
     employee: EmployeeContext,
     Json(req): Json<EssCreateShiftSwapRequest>,
 ) -> AppResult<(StatusCode, Json<ShiftSwapRequest>)> {
-    let swap = state.shift_swap_service.create_ess_swap(
+    let swap = state.shifts.swap_service.create_ess_swap(
         employee.workspace_id,
         employee.employee_id,
         employee.user_id,
         req,
     )
     .await
-    .map_err(|s| AppError::from((s, "Failed to create shift swap".to_string())))?;
+    ?;
 
     Ok((StatusCode::CREATED, Json(swap)))
 }
@@ -372,9 +372,9 @@ pub async fn ess_respond_to_swap(
     Path(id): Path<Uuid>,
     Json(req): Json<RespondShiftSwapRequest>,
 ) -> AppResult<StatusCode> {
-    state.shift_swap_service.respond_to_swap(employee.workspace_id, employee.employee_id, id, req.accept)
+    state.shifts.swap_service.respond_to_swap(employee.workspace_id, employee.employee_id, id, req.accept)
         .await
-        .map_err(|s| AppError::from((s, "Failed to respond to shift swap".to_string())))?;
+        ?;
 
     Ok(StatusCode::OK)
 }
@@ -385,9 +385,9 @@ pub async fn ess_cancel_swap(
     employee: EmployeeContext,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    state.shift_swap_service.cancel_swap(employee.workspace_id, employee.employee_id, id)
+    state.shifts.swap_service.cancel_swap(employee.workspace_id, employee.employee_id, id)
         .await
-        .map_err(|s| AppError::from((s, "Failed to cancel shift swap".to_string())))?;
+        ?;
 
     Ok(StatusCode::NO_CONTENT)
 }

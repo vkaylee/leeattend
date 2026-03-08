@@ -21,10 +21,10 @@ pub async fn get_working_conditions(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<WorkingCondition>>> {
     let conditions = state
-        .employee_service
+        .employees.service
         .get_working_conditions(id, workspace_id)
         .await
-        .map_err(|s| AppError::from((s, "Failed to get working conditions".to_string())))?;
+        ?;
     Ok(Json(conditions))
 }
 
@@ -36,14 +36,14 @@ pub async fn create_working_condition(
 ) -> AppResult<impl IntoResponse> {
     let target_dept_id: Option<Uuid> = sqlx::query_scalar(
         "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
 
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let cond = state
-        .employee_service
+        .employees.service
         .create_working_condition(id, ctx.workspace_id, req)
         .await
-        .map_err(|s| AppError::from((s, "Failed to create working condition".to_string())))?;
+        ?;
     Ok((StatusCode::CREATED, Json(cond)))
 }
 
@@ -54,14 +54,14 @@ pub async fn delete_working_condition(
 ) -> AppResult<StatusCode> {
     let target_dept_id: Option<Uuid> = sqlx::query_scalar(
         "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
 
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     state
-        .employee_service
+        .employees.service
         .delete_working_condition(id, ctx.workspace_id, cond_id)
         .await
-        .map_err(|s| AppError::from((s, "Failed to delete working condition".to_string())))?;
+        ?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -76,10 +76,10 @@ pub async fn get_employees(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
     let (data, total) = state
-        .employee_service
+        .employees.service
         .get_all_employees(workspace_id, query.q, page, limit)
         .await
-        .map_err(|s| AppError::from((s, "Failed to get employees".to_string())))?;
+        ?;
 
     Ok(Json(PaginatedResponse {
         data,
@@ -95,7 +95,7 @@ pub async fn get_employee(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Employee>> {
     let employee = state
-        .employee_service
+        .employees.service
         .get_employee_by_id(id, workspace_id)
         .await
         .map_err(|_| AppError::NotFound("Employee not found".to_string()))?;
@@ -111,10 +111,10 @@ pub async fn create_employee(
     // Since a new employee has no department yet, a scoped-only user cannot create employees.
     ctx.require_scoped_permission(Permission::EmployeesCreate, None)?;
     let employee = state
-        .employee_service
+        .employees.service
         .create_employee(ctx.workspace_id, req)
         .await
-        .map_err(|s| AppError::from((s, "Failed to create employee".to_string())))?;
+        ?;
     Ok((StatusCode::CREATED, Json(employee)))
 }
 
@@ -126,14 +126,14 @@ pub async fn update_employee(
 ) -> AppResult<Json<Employee>> {
     let target_dept_id: Option<Uuid> = sqlx::query_scalar(
         "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
 
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let employee = state
-        .employee_service
+        .employees.service
         .update_employee(id, ctx.workspace_id, req)
         .await
-        .map_err(|s| AppError::from((s, "Failed to update employee".to_string())))?;
+        ?;
     Ok(Json(employee))
 }
 
@@ -144,12 +144,12 @@ pub async fn delete_employee(
 ) -> AppResult<StatusCode> {
     let target_dept_id: Option<Uuid> = sqlx::query_scalar(
         "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
 
     ctx.require_scoped_permission(Permission::EmployeesDelete, target_dept_id)?;
     let workspace_id = ctx.workspace_id;
     state
-        .employee_service
+        .employees.service
         .delete_employee(id, workspace_id)
         .await
         .map_err(|_| AppError::NotFound("Employee not found".to_string()))?;
@@ -162,10 +162,10 @@ pub async fn get_employee_history(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<EmploymentPeriod>>> {
     let history = state
-        .employee_service
+        .employees.service
         .get_employment_history(id, workspace_id)
         .await
-        .map_err(|s| AppError::from((s, "Failed to get employment history".to_string())))?;
+        ?;
     Ok(Json(history))
 }
 
@@ -177,14 +177,14 @@ pub async fn rehire_employee(
 ) -> AppResult<Json<Employee>> {
     let target_dept_id: Option<Uuid> = sqlx::query_scalar(
         "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
 
     ctx.require_scoped_permission(Permission::EmployeesRehire, target_dept_id)?;
     let employee = state
-        .employee_service
+        .employees.service
         .rehire_employee(id, ctx.workspace_id, req)
         .await
-        .map_err(|s| AppError::from((s, "Failed to rehire employee".to_string())))?;
+        ?;
     Ok(Json(employee))
 }
 
@@ -194,10 +194,10 @@ pub async fn get_employee_department_history(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeDepartmentHistory>>> {
     let history = state
-        .employee_service
+        .employees.service
         .get_department_history(id, workspace_id)
         .await
-        .map_err(|s| AppError::from((s, "Failed to get department history".to_string())))?;
+        ?;
     Ok(Json(history))
 }
 
@@ -209,13 +209,13 @@ pub async fn transfer_employee(
 ) -> AppResult<Json<EmployeeDepartmentHistory>> {
     let target_dept_id: Option<Uuid> = sqlx::query_scalar(
         "SELECT department_id FROM employee_department_history WHERE employee_id = $1 ORDER BY effective_date DESC LIMIT 1"
-    ).bind(id).fetch_optional(state.db.api()).await.unwrap_or(None);
+    ).bind(id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
 
     ctx.require_scoped_permission(Permission::DepartmentsTransfer, target_dept_id)?;
     let history = state
-        .employee_service
+        .employees.service
         .transfer_employee(id, ctx.workspace_id, req)
         .await
-        .map_err(|s| AppError::from((s, "Failed to transfer employee".to_string())))?;
+        ?;
     Ok(Json(history))
 }

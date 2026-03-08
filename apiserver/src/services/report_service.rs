@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::http::StatusCode;
+use crate::errors::AppError;
 use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
@@ -120,7 +120,7 @@ impl ReportService {
         limit: Option<i64>,
         employee_ids: Option<Vec<Uuid>>,
         department_id: Option<Uuid>,
-    ) -> Result<PaginatedResponse<DailyAttendanceReport>, StatusCode> {
+    ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
         let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
         let workspace = workspace_repo
@@ -128,9 +128,9 @@ impl ReportService {
             .await
             .map_err(|e| {
                 tracing::error!("Error fetching workspace: {}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })?
-            .ok_or(StatusCode::NOT_FOUND)?;
+            .ok_or(AppError::NotFound("Not found".into()))?;
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
@@ -152,7 +152,7 @@ impl ReportService {
             .await
             .map_err(|e| {
                 tracing::error!("Error fetching paginated employees: {}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })?;
 
         // Early return if no employees
@@ -177,20 +177,20 @@ impl ReportService {
             Some(&emp_ids),
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(AppError::Sqlx)?;
 
         // 4. Convert NaiveDate to DateTime<Utc> using Workspace Timezone
         let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
             tz, start_date, end_date,
         )
-        .ok_or(StatusCode::BAD_REQUEST)?;
+        .ok_or(AppError::Validation("Invalid request".into()))?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
             .time_entry_repo
             .get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Sqlx)?;
 
         // 5a. BATCH fetch holidays for the date range
         let holidays_map = HolidayRepository::get_holidays_in_range(
@@ -213,7 +213,7 @@ impl ReportService {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(AppError::Sqlx)?;
 
         let ot_status_map: HashMap<(Uuid, NaiveDate), String> = ot_status_rows
             .into_iter()
@@ -225,7 +225,7 @@ impl ReportService {
             &self.pool, workspace_id, &emp_ids, start_date, end_date,
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(AppError::Sqlx)?;
 
         // 6. Calculate reports (same logic as before)
         let mut reports = Vec::new();
@@ -369,7 +369,7 @@ impl ReportService {
         limit: Option<i64>,
         employee_ids: Option<Vec<Uuid>>,
         department_id: Option<Uuid>,
-    ) -> Result<PaginatedResponse<AttendanceSummary>, StatusCode> {
+    ) -> Result<PaginatedResponse<AttendanceSummary>, AppError> {
         use sqlx::Row;
         use std::collections::HashMap;
 
@@ -380,9 +380,9 @@ impl ReportService {
             .await
             .map_err(|e| {
                 tracing::error!("Error fetching workspace: {}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })?
-            .ok_or(StatusCode::NOT_FOUND)?;
+            .ok_or(AppError::NotFound("Not found".into()))?;
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
@@ -407,7 +407,7 @@ impl ReportService {
             .await
             .map_err(|e| {
                 tracing::error!("Error fetching paginated employees: {}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })?;
 
         // Early return if no employees
@@ -432,20 +432,20 @@ impl ReportService {
             Some(&emp_ids),
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(AppError::Sqlx)?;
 
         // 4. Convert dates to UTC for time entry query
         let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
             tz, start_date, end_date,
         )
-        .ok_or(StatusCode::BAD_REQUEST)?;
+        .ok_or(AppError::Validation("Invalid request".into()))?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
             .time_entry_repo
             .get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Sqlx)?;
 
         // 6. Fetch leave days for paginated employees (batch query)
         let leave_data: HashMap<Uuid, i64> = sqlx::query(
@@ -468,7 +468,7 @@ impl ReportService {
         .await
         .map_err(|e| {
             tracing::error!("Error fetching leave data: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            AppError::Internal("Internal error".into())
         })?
         .into_iter()
         .map(|row| {

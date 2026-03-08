@@ -58,7 +58,7 @@ async fn main() {
     // ║  reader pool → dashboard analytics, ESS read-only queries     ║
     // ║                                                               ║
     // ║  ⚠  DO NOT pass worker_pool to API services                   ║
-    // ║  ⚠  DO NOT use state.db.reader() for mutations (INSERT/etc)   ║
+    // ║  ⚠  DO NOT use state.infra.db.reader() for mutations (INSERT/etc)   ║
     // ╚═══════════════════════════════════════════════════════════════╝
 
     // Use API pool for application-level initialization (HTTP handlers, CRUD)
@@ -322,45 +322,63 @@ async fn main() {
     // roster_repo already created earlier (before shift_swap_service / payroll_service)
 
     let state = Arc::new(AppState {
-        agent_manager,
-        db: db_pools,
-        agent_repo,
-        workspace_repo,
-        audit_repo,
-        employee_repo,
-        agent_service,
-        employee_service,
-        time_tracking_service,
-        attendance_summary_service,
-        report_service,
-        pairing_service,
-        adjustment_service,
-        import_service,
-        payroll_service,
-        auth_service,
-        shift_service,
-        workspace_service,
-        leave_service,
-        shift_swap_service,
-        holiday_leave_service,
-        leave_accrual_service,
-        jwt_secret,
-        attendance_service,
-        payroll_repo,
-        department_repo,
-        time_entry_repo,
-        staging_repo,
-        raw_log_repo,
-        user_repo,
-        leave_request_repo,
-        leave_policy_repo,
-        shift_swap_repo,
-        import_repo,
-        holiday_repo,
-        roster_repo,
-        redis: redis_pool,
-        coordinator,
-        roster_cache,
+        employees: apiserver::EmployeeState {
+            service: employee_service,
+            repo: employee_repo,
+        },
+        attendance: apiserver::AttendanceState {
+            time_tracking_service,
+            summary_service: attendance_summary_service,
+            log_service: attendance_service,
+            pairing_service,
+            adjustment_service,
+            import_service,
+            time_entry_repo,
+            staging_repo,
+            raw_log_repo,
+            import_repo,
+        },
+        shifts: apiserver::ShiftState {
+            service: shift_service,
+            swap_service: shift_swap_service,
+            roster_repo,
+            swap_repo: shift_swap_repo,
+        },
+        leaves: apiserver::LeaveState {
+            service: leave_service,
+            holiday_leave_service,
+            accrual_service: leave_accrual_service,
+            request_repo: leave_request_repo,
+            policy_repo: leave_policy_repo,
+            holiday_repo,
+        },
+        payroll: apiserver::PayrollState {
+            service: payroll_service,
+            repo: payroll_repo,
+            department_repo,
+        },
+        reports: apiserver::ReportState {
+            service: report_service,
+            coordinator,
+        },
+        core: apiserver::CoreState {
+            auth_service,
+            workspace_service,
+            workspace_repo,
+            audit_repo,
+            user_repo,
+            jwt_secret,
+        },
+        agents: apiserver::AgentState {
+            manager: agent_manager,
+            service: agent_service,
+            repo: agent_repo,
+        },
+        infra: apiserver::InfraState {
+            db: db_pools,
+            redis: redis_pool,
+            roster_cache,
+        },
     });
 
     let app = create_app(state.clone());
@@ -425,7 +443,7 @@ async fn main() {
         }
     }
 
-    state.agent_manager.shutdown().await;
+    state.agents.manager.shutdown().await;
 
     drop(state);
 

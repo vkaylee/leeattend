@@ -256,6 +256,6 @@ pub async fn get_approved_leave_breakdown(
 }
 
 impl super::PoolBacked for SqlxLeaveRequestRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
+    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }

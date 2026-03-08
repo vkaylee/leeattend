@@ -1,4 +1,4 @@
-use axum::http::StatusCode;
+use crate::errors::AppError;
 use chrono::NaiveDate;
 use chrono_tz::Tz;
 use futures_util::stream::{self, StreamExt};
@@ -92,50 +92,50 @@ impl PayrollService {
         workspace_id: Uuid,
         year: i32,
         month: u32,
-    ) -> Result<PayrollContext, StatusCode> {
+    ) -> Result<PayrollContext, AppError> {
         let pool = &self.pool;
         let workspace = self.workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
             .map_err(|e| {
                 tracing::error!("Error fetching workspace: {}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })?
-            .ok_or(StatusCode::NOT_FOUND)?;
+            .ok_or(AppError::NotFound("Not found".into()))?;
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
-        let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or(StatusCode::BAD_REQUEST)?;
+        let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or(AppError::Validation("Invalid request".into()))?;
         let next_month_date = if month == 12 {
             NaiveDate::from_ymd_opt(year + 1, 1, 1)
         } else {
             NaiveDate::from_ymd_opt(year, month + 1, 1)
         }
-        .ok_or(StatusCode::BAD_REQUEST)?;
+        .ok_or(AppError::Validation("Invalid request".into()))?;
         let end_date = next_month_date
             .pred_opt()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+            .ok_or(AppError::Internal("Internal error".into()))?;
 
         let salary_history = self.payroll_repo.get_salary_components_history(
             workspace_id, employee_id, start_date, end_date,
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(AppError::Sqlx)?;
 
         let all_dept_history =
             self.department_repo.get_employee_department_history(workspace_id, employee_id)
                 .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                .map_err(AppError::Sqlx)?;
 
         let start_dt = local_to_utc(&tz, start_date, 0, 0, 0)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Internal)?;
         let end_dt = local_to_utc(&tz, end_date, 23, 59, 59)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Internal)?;
 
         let time_entries =
             self.time_entry_repo.get_employee_time_entries(workspace_id, employee_id, start_dt, end_dt)
                 .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                .map_err(AppError::Sqlx)?;
 
         let holidays_map = self.holiday_repo.get_holidays_in_range(
             workspace_id, start_date, end_date,
@@ -147,7 +147,7 @@ impl PayrollService {
             .await
             .map_err(|e| {
                 tracing::error!("Failed to build roster data: {}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                AppError::Internal("Internal error".into())
             })?;
 
         let emp_row = sqlx::query(
@@ -156,8 +156,8 @@ impl PayrollService {
         .bind(employee_id)
         .fetch_optional(pool)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .map_err(AppError::Sqlx)?
+        .ok_or(AppError::NotFound("Not found".into()))?;
 
         let emp_id_number: String = {
             use sqlx::Row;
@@ -170,7 +170,7 @@ impl PayrollService {
 
         let rosters = self.roster_repo.get_employee_rosters( employee_id, start_date, end_date)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Sqlx)?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
             .into_iter()
             .map(|r| ((r.employee_id, r.date), r.shift_id))
@@ -236,7 +236,7 @@ impl PayrollService {
         workspace_id: Uuid,
         year: i32,
         month: u32,
-    ) -> Result<Payslip, StatusCode> {
+    ) -> Result<Payslip, AppError> {
         let pool = &self.pool;
         // Phase 1: Fetch all context data
         let ctx = self.fetch_context(employee_id, workspace_id, year, month).await?;
@@ -280,7 +280,7 @@ impl PayrollService {
                 pool, employee_id, dept_id, workspace_id, seg_start,
             )
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Sqlx)?;
 
             let seg_units_per_day = (std_config.hours_per_day * Decimal::from(60))
                 / Decimal::from(ctx.workspace.work_unit_minutes);
@@ -373,10 +373,10 @@ impl PayrollService {
         payslip: Payslip,
         segment_snapshots: Vec<SegmentSnapshot>,
         incentive_results: Vec<crate::models::IncentiveEvaluationResult>,
-    ) -> Result<Payslip, StatusCode> {
+    ) -> Result<Payslip, AppError> {
         let created_payslip = self.payroll_repo.create_payslip(&payslip)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Sqlx)?;
 
         for snap in segment_snapshots {
             self.payroll_repo.create_payslip_segment(
@@ -393,7 +393,7 @@ impl PayrollService {
                 Some(snap.source),
             )
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(AppError::Sqlx)?;
         }
 
         for res in incentive_results {

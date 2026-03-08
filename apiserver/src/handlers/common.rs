@@ -136,7 +136,7 @@ where
 
         // 1. Fetch Primary Role
         let primary_role = app_state
-            .workspace_repo
+            .core.workspace_repo
             .find_primary_role(workspace_id, user_id)
             .await
             .map_err(AppError::from)?
@@ -144,7 +144,7 @@ where
 
         // 2. Fetch Active Extra Roles
         let all_extra_roles = app_state
-            .workspace_repo
+            .core.workspace_repo
             .find_extra_roles(workspace_id, user_id)
             .await
             .map_err(AppError::from)?;
@@ -166,7 +166,7 @@ where
         )
         .bind(workspace_id)
         .bind(user_id)
-        .fetch_all(app_state.db.api())
+        .fetch_all(app_state.infra.db.api())
         .await
         .unwrap_or_default();
 
@@ -196,7 +196,7 @@ where
             )
             .bind(workspace_id)
             .bind(user_id)
-            .fetch_all(app_state.db.api())
+            .fetch_all(app_state.infra.db.api())
             .await
             .unwrap_or_default();
 
@@ -246,7 +246,7 @@ where
         )
         .bind(user_id)
         .bind(workspace_id)
-        .fetch_optional(app_state.db.api())
+        .fetch_optional(app_state.infra.db.api())
         .await
         .map_err(AppError::Sqlx)?
         .ok_or_else(|| {

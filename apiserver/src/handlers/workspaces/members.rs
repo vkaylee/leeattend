@@ -31,7 +31,7 @@ pub async fn get_workspace_members(
          WHERE wm.workspace_id = $1",
     )
     .bind(workspace_id)
-    .fetch_all(state.db.api())
+    .fetch_all(state.infra.db.api())
     .await?;
 
     Ok(Json(members))
@@ -48,7 +48,7 @@ pub async fn add_workspace_member(
 
     let user_id: Uuid = sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
         .bind(&req.email)
-        .fetch_optional(state.db.api())
+        .fetch_optional(state.infra.db.api())
         .await?
         .ok_or_else(|| AppError::NotFound("User with this email not found".to_string()))?;
 
@@ -59,11 +59,11 @@ pub async fn add_workspace_member(
     .bind(ctx.workspace_id)
     .bind(user_id)
     .bind(req.role)
-    .execute(state.db.api())
+    .execute(state.infra.db.api())
     .await?;
 
     AuditHelper::log(
-        &state.audit_repo,
+        &state.core.audit_repo,
         ctx.workspace_id,
         Some(ctx.user_id),
         Some(user_id),
@@ -87,13 +87,13 @@ pub async fn update_workspace_member_role(
     ctx.require_permission(Permission::MembersRolesManage)?;
 
     state
-        .workspace_repo
+        .core.workspace_repo
         .update_member_role(ctx.workspace_id, user_id, req.role)
         .await
         .map_err(AppError::from)?;
 
     AuditHelper::log(
-        &state.audit_repo,
+        &state.core.audit_repo,
         ctx.workspace_id,
         Some(ctx.user_id),
         Some(user_id),
@@ -123,13 +123,13 @@ pub async fn remove_workspace_member(
     }
 
     state
-        .workspace_repo
+        .core.workspace_repo
         .remove_member(ctx.workspace_id, user_id)
         .await
         .map_err(AppError::from)?;
 
     AuditHelper::log(
-        &state.audit_repo,
+        &state.core.audit_repo,
         ctx.workspace_id,
         Some(ctx.user_id),
         Some(user_id),
