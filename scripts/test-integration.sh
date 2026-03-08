@@ -85,7 +85,6 @@ leeattend_run_integration() {
             echo -e "  ${RED}── Build Error Log ──${NC}"
             # Show only the error lines, not the full compile output
             grep -E '(^error|^\s+-->|could not compile)' "$LOG_DIR/prebuild.log" | tail -30
-            echo -e "  ${RED}── Full log: $LOG_DIR/prebuild.log ──${NC}"
             return $prebuild_exit
         fi
     fi

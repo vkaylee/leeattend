@@ -195,9 +195,6 @@ on_task_failure() {
         echo -e "${RED}Log file not found: $log_file${NC}"
     fi
     echo -e "${YELLOW}----------------------------------${NC}"
-    
-    echo -e "${BLUE}💡 Tip: Full log at $log_file${NC}"
-    echo -e "${BLUE}💡 Tip: Run 'cat .test_logs/latest-failure.log' to see full error.${NC}"
 }
 
 # Helper to handle task timeout
@@ -218,9 +215,6 @@ on_task_timeout() {
         echo -e "${RED}Log file not found: $log_file${NC}"
     fi
     echo -e "${YELLOW}-----------------------------------------${NC}"
-    
-    echo -e "${BLUE}💡 Tip: Full log at $log_file${NC}"
-    echo -e "${BLUE}💡 Tip: Run 'cat .test_logs/latest-failure.log' to see where it hung.${NC}"
 }
 
 # Core runner: Executes tasks. Run sequentially if NUM_WORKERS=1, else parallel.
