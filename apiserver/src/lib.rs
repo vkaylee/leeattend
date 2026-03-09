@@ -18,6 +18,7 @@ pub mod state;
 pub mod utils;
 pub mod worker;
 pub mod mw;
+pub mod app_builder;
 
 use axum::{
     routing::{get, post},
