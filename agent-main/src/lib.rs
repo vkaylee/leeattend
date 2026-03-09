@@ -17,3 +17,4 @@ pub mod worker;
 
 pub mod zk_worker;
 pub mod time_sync;
+pub mod orchestrator;
