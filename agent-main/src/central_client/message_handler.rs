@@ -44,14 +44,14 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
 
                 // 5. Unload disabled devices immediately
                 for id in old_active_ids.difference(&new_active_ids) {
-                    let _ = hybrid_db.unload_device_memory(id);
+                    let _ = hybrid_db.unload_device_memory(id.clone()).await;
                 }
 
                 let _ = reload_tx.try_send(());
             }
             CentralMessage::Ack { msg_id, status, .. } => {
                 if status.as_deref() == Some("success") {
-                    if !hybrid_db.mark_synced_by_key(&msg_id) {
+                    if !hybrid_db.mark_synced_by_key(msg_id.clone()).await {
                         debug!("ACK for already-synced log (disk update OK): {msg_id}");
                     }
                     if let Some((device_id, user_id, timestamp_unix, punch, status)) = parse_composite_key(&msg_id) {
@@ -59,7 +59,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                     } else {
                         warn!("⚠️ Failed to parse composite key: {msg_id}");
                     }
-                } else if !hybrid_db.reset_to_unsynced_by_key(&msg_id) {
+                } else if !hybrid_db.reset_to_unsynced_by_key(msg_id.clone()).await {
                     debug!("Failed ACK for already-synced log: {msg_id}");
                 } else {
                      warn!("⚠️ ACK Failed: Resetting log {msg_id} for retry");
@@ -177,8 +177,8 @@ mod tests {
         hybrid_db.store().upsert_device("dev1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, time_sync.corrected_timestamp()).unwrap();
 
         let data = AttendanceData { user_id: "user1".into(), timestamp: "2026-01-27 10:00:00".into(), status: Some(-1), punch: Some(-1) };
-        let id = hybrid_db.save_raw_attendance("dev1", data).unwrap();
-        hybrid_db.mark_in_flight(&[id]);
+        let id = hybrid_db.save_raw_attendance("dev1".into(), data).await.unwrap();
+        hybrid_db.mark_in_flight(vec![id]).await;
 
         let (reload_tx, _reload_rx) = mpsc::channel(1);
         let ack_error = r#"{"type":"ack", "msg_id":"dev1:user1:1737972000:-1:-1", "status":"error", "error":"Server overloaded"}"#;
@@ -194,9 +194,9 @@ mod tests {
         hybrid_db.store().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, time_sync.corrected_timestamp()).unwrap();
 
         let data = AttendanceData { user_id: "U999".into(), timestamp: "2026-01-31 12:00:00".into(), status: Some(1), punch: Some(0) };
-        let id = hybrid_db.save_raw_attendance("DEV1", data).unwrap();
-        hybrid_db.mark_in_flight(&[id]);
-        assert_eq!(hybrid_db.count_unsynced_logs(), 0);
+        let id = hybrid_db.save_raw_attendance("DEV1".into(), data).await.unwrap();
+        hybrid_db.mark_in_flight(vec![id]).await;
+        assert_eq!(hybrid_db.count_unsynced_logs().await, 0);
 
         let ts_unix = chrono::NaiveDateTime::parse_from_str("2026-01-31 12:00:00", "%Y-%m-%d %H:%M:%S")
             .unwrap().and_utc().timestamp();
@@ -208,7 +208,7 @@ mod tests {
         handle_incoming_text(&ack_msg, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
 
         // After successful ACK, log should be removed from active storage
-        assert_eq!(hybrid_db.count_unsynced_logs(), 0);
+        assert_eq!(hybrid_db.count_unsynced_logs().await, 0);
     }
 
     #[tokio::test]

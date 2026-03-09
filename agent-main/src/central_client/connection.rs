@@ -124,7 +124,7 @@ impl CentralClient {
                 // Read from memory
                 let limit = 500;
                 let start = Instant::now();
-                let logs = sync_hybrid.get_unsynced_logs(limit);
+                let logs = sync_hybrid.get_unsynced_logs(limit).await.unwrap_or_default();
                 let count = logs.len();
 
                 if count > 0 {
@@ -134,13 +134,13 @@ impl CentralClient {
                     // Calculate stats for better visibility
                     let stats_str = calculate_sync_stats(&logs);
 
-                    let total_pending = sync_hybrid.count_unsynced_logs();
+                    let total_pending = sync_hybrid.count_unsynced_logs().await;
 
                     info!("📤 Syncing {count} logs to central server ({stats_str} | Pending: {total_pending})...");
 
                     // Mark in-flight in memory
                     let log_ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
-                    sync_hybrid.mark_in_flight(&log_ids);
+                    sync_hybrid.mark_in_flight(log_ids).await;
 
                     let mem_latency = start.elapsed();
                     if mem_latency.as_millis() > 5 {
@@ -174,7 +174,7 @@ impl CentralClient {
                 }
 
                 // Adaptive sleep based on queue size
-                let unsynced_count = sync_hybrid.count_unsynced_logs();
+                let unsynced_count = sync_hybrid.count_unsynced_logs().await;
 
                 // Backoff is now handled inside RedbStore's get_unsynced()
                 // No separate monitoring needed

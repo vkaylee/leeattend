@@ -196,7 +196,7 @@ impl Orchestrator {
                                 buffer.push(item);
                                 if buffer.len() >= 100 {
                                     let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
-                                    if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save) {
+                                    if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save).await {
                                         error!("Failed to save batch: {e}");
                                     }
                                     sleep(Duration::from_millis(10)).await;
@@ -208,7 +208,7 @@ impl Orchestrator {
                     _ = interval.tick() => {
                         if !buffer.is_empty() {
                             let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
-                            if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save) {
+                            if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save).await {
                                 error!("Failed to save timed batch: {e}");
                             }
                         }
@@ -235,7 +235,8 @@ impl Orchestrator {
             loop {
                 tokio::select! {
                     _ = disk_cleanup_timer.tick() => {
-                        match cleanup_hybrid.store().cleanup_old_synced_logs(365) {
+                        let cleanup_hybrid_clone = cleanup_hybrid.clone();
+                        match tokio::task::spawn_blocking(move || cleanup_hybrid_clone.store().cleanup_old_synced_logs(365)).await.unwrap_or(Err(crate::redb_store::StoreError::Internal("Task paniced".into()))) {
                             Ok(deleted) => {
                                 if deleted > 0 {
                                     info!("🧹 Disk cleanup: removed {deleted} old synced logs (>365 days)");
@@ -270,7 +271,7 @@ impl Orchestrator {
             loop {
                 tokio::select! {
                     _ = evict_timer.tick() => {
-                        let (evicted, before, after) = evict_hybrid.evict_old_signatures();
+                        let (evicted, before, after) = evict_hybrid.evict_old_signatures().await;
                         if evicted > 0 {
                             info!("🧹 Signature eviction: removed {evicted} expired signatures ({before} -> {after})");
                         }

@@ -2,8 +2,8 @@ use agent::hybrid_database::HybridDatabase;
 use agent::models::AttendanceData;
 
 /// Test that new logs (updated_at IS None) are correctly identified vs retries.
-#[test]
-fn test_sync_log_classification_new_vs_retry() {
+#[tokio::test]
+async fn test_sync_log_classification_new_vs_retry() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
     store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
@@ -17,7 +17,7 @@ fn test_sync_log_classification_new_vs_retry() {
             status: Some(1),
             punch: Some(0),
         };
-        ids.push(hybrid.save_raw_attendance("device1", data).unwrap());
+        ids.push(hybrid.save_raw_attendance("device1".into(), data).await.unwrap());
     }
 
     // Mark first 3 as in-flight (sets updated_at + retry_count)
@@ -33,13 +33,13 @@ fn test_sync_log_classification_new_vs_retry() {
     assert_eq!(total_unsynced, 5, "Should have 5 unsynced logs total");
 
     // Verify the 2 new logs are retrievable (no backoff)
-    let new_logs = hybrid.get_unsynced_logs(10);
+    let new_logs = hybrid.get_unsynced_logs(10).await.unwrap();
     assert_eq!(new_logs.len(), 2, "Should have 2 new logs (no backoff) immediately available");
 }
 
 /// Test sync message includes classification.
-#[test]
-fn test_sync_message_includes_classification() {
+#[tokio::test]
+async fn test_sync_message_includes_classification() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     hybrid.store().upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
@@ -50,10 +50,10 @@ fn test_sync_message_includes_classification() {
             status: Some(1),
             punch: Some(0),
         };
-        let _ = hybrid.save_raw_attendance("device1", data);
+        let _ = hybrid.save_raw_attendance("device1".into(), data).await;
     }
 
-    let logs = hybrid.get_unsynced_logs(10);
+    let logs = hybrid.get_unsynced_logs(10).await.unwrap();
     let new_count = logs.iter().filter(|l| l.updated_at.is_none()).count();
     let retry_count = logs.len() - new_count;
 

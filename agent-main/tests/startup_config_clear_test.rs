@@ -45,8 +45,8 @@ fn test_clear_startup_config_on_empty_database() {
     assert_eq!(store.get_active_devices().unwrap().len(), 0);
 }
 
-#[test]
-fn test_clear_startup_config_preserves_logs() {
+#[tokio::test]
+async fn test_clear_startup_config_preserves_logs() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
@@ -56,13 +56,13 @@ fn test_clear_startup_config_preserves_logs() {
     let data1 = AttendanceData { user_id: "U001".to_string(), timestamp: "2026-01-29 08:00:00".to_string(), status: Some(1), punch: Some(0) };
     let data2 = AttendanceData { user_id: "U002".to_string(), timestamp: "2026-01-29 09:00:00".to_string(), status: Some(1), punch: Some(0) };
 
-    hybrid.save_raw_attendance("device1", data1).unwrap();
-    hybrid.save_raw_attendance("device2", data2).unwrap();
-    assert_eq!(hybrid.count_unsynced_logs(), 2);
+    hybrid.save_raw_attendance("device1".into(), data1).await.unwrap();
+    hybrid.save_raw_attendance("device2".into(), data2).await.unwrap();
+    assert_eq!(hybrid.count_unsynced_logs().await, 2);
 
     store.clear_all_config().unwrap();
 
-    assert_eq!(hybrid.count_unsynced_logs(), 2);
+    assert_eq!(hybrid.count_unsynced_logs().await, 2);
 }
 
 #[test]

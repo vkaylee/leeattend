@@ -94,7 +94,7 @@ async fn test_central_client_connection_and_sync() {
         status: Some(1),
         punch: Some(1),
     };
-    hybrid.save_raw_attendance("DEV_SYNC", log_data).unwrap();
+    hybrid.save_raw_attendance("DEV_SYNC".into(), log_data).await.unwrap();
 
     // Wait for the attendance log to be sent over WS
     let mut found_log = false;

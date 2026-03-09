@@ -37,16 +37,16 @@ fn setup_with_device(device_id: &str) -> HybridDatabase {
 // 1. count_unsynced
 // =============================================================================
 
-#[test]
-fn test_count_unsynced() {
+#[tokio::test]
+async fn test_count_unsynced() {
     let db = setup_with_device("DEV1");
     let store = db.store();
 
     assert_eq!(store.count_unsynced().unwrap(), 0);
 
-    let id1 = db.save_raw_attendance("DEV1", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
-    let id2 = db.save_raw_attendance("DEV1", make_attendance("U2", "2026-01-01 11:00:00")).unwrap();
-    let _id3 = db.save_raw_attendance("DEV1", make_attendance("U3", "2026-01-01 12:00:00")).unwrap();
+    let id1 = db.save_raw_attendance("DEV1".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
+    let id2 = db.save_raw_attendance("DEV1".into(), make_attendance("U2", "2026-01-01 11:00:00")).await.unwrap();
+    let _id3 = db.save_raw_attendance("DEV1".into(), make_attendance("U3", "2026-01-01 12:00:00")).await.unwrap();
 
     assert_eq!(store.count_unsynced().unwrap(), 3);
 
@@ -64,14 +64,14 @@ fn test_count_unsynced() {
 // 2. reset_syncing_status — crash recovery
 // =============================================================================
 
-#[test]
-fn test_reset_syncing_status_crash_recovery() {
+#[tokio::test]
+async fn test_reset_syncing_status_crash_recovery() {
     let db = setup_with_device("DEV_CR");
     let store = db.store();
 
-    let id1 = db.save_raw_attendance("DEV_CR", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
-    let id2 = db.save_raw_attendance("DEV_CR", make_attendance("U2", "2026-01-01 11:00:00")).unwrap();
-    let id3 = db.save_raw_attendance("DEV_CR", make_attendance("U3", "2026-01-01 12:00:00")).unwrap();
+    let id1 = db.save_raw_attendance("DEV_CR".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
+    let id2 = db.save_raw_attendance("DEV_CR".into(), make_attendance("U2", "2026-01-01 11:00:00")).await.unwrap();
+    let id3 = db.save_raw_attendance("DEV_CR".into(), make_attendance("U3", "2026-01-01 12:00:00")).await.unwrap();
 
     // Mark all in-flight (simulating crash mid-sync)
     store.mark_in_flight(&[id1, id2, id3]).unwrap();
@@ -91,12 +91,12 @@ fn test_reset_syncing_status_crash_recovery() {
 // 3. reset_stale_syncing — timeout-based reset
 // =============================================================================
 
-#[test]
-fn test_reset_stale_syncing() {
+#[tokio::test]
+async fn test_reset_stale_syncing() {
     let db = setup_with_device("DEV_STALE");
     let store = db.store();
 
-    let id1 = db.save_raw_attendance("DEV_STALE", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
+    let id1 = db.save_raw_attendance("DEV_STALE".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
 
     // Mark in-flight (updated_at = now)
     store.mark_in_flight(&[id1]).unwrap();
@@ -115,16 +115,16 @@ fn test_reset_stale_syncing() {
 // 4. get_max_id
 // =============================================================================
 
-#[test]
-fn test_get_max_id() {
+#[tokio::test]
+async fn test_get_max_id() {
     let db = setup_with_device("DEV_MAX");
     let store = db.store();
 
     // Empty DB
     assert_eq!(store.get_max_id().unwrap(), 0);
 
-    let _id1 = db.save_raw_attendance("DEV_MAX", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
-    let id2 = db.save_raw_attendance("DEV_MAX", make_attendance("U2", "2026-01-01 11:00:00")).unwrap();
+    let _id1 = db.save_raw_attendance("DEV_MAX".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
+    let id2 = db.save_raw_attendance("DEV_MAX".into(), make_attendance("U2", "2026-01-01 11:00:00")).await.unwrap();
 
     assert_eq!(store.get_max_id().unwrap(), id2);
 
@@ -141,16 +141,16 @@ fn test_get_max_id() {
 // 5. Device signature load/unload
 // =============================================================================
 
-#[test]
-fn test_device_signature_load_unload() {
+#[tokio::test]
+async fn test_device_signature_load_unload() {
     let db = setup_with_device("DEV_SIG");
     let store = db.store();
 
     // Insert a log (automatically creates signature via insert)
-    let _id = db.save_raw_attendance("DEV_SIG", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
+    let _id = db.save_raw_attendance("DEV_SIG".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
 
     // Trying to insert same data again should be rejected (Duplicate error)
-    let result = db.save_raw_attendance("DEV_SIG", make_attendance("U1", "2026-01-01 10:00:00"));
+    let result = db.save_raw_attendance("DEV_SIG".into(), make_attendance("U1", "2026-01-01 10:00:00")).await;
     assert!(result.is_err(), "Duplicate insert should return Err");
 
     // Remove signatures for device (also removes logs and indices)
@@ -161,11 +161,11 @@ fn test_device_signature_load_unload() {
     assert!(!store.has_signature("DEV_SIG", "U1", 1735689600, Some(1), Some(1)).unwrap());
 
     // Now the same data can be inserted again (signature gone)
-    let id2 = db.save_raw_attendance("DEV_SIG", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
+    let id2 = db.save_raw_attendance("DEV_SIG".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
     assert!(id2 > 0, "Should insert successfully after signature removal");
 
     // Redb persists signatures on insert — duplicate should be rejected immediately
-    let result = db.save_raw_attendance("DEV_SIG", make_attendance("U1", "2026-01-01 10:00:00"));
+    let result = db.save_raw_attendance("DEV_SIG".into(), make_attendance("U1", "2026-01-01 10:00:00")).await;
     assert!(result.is_err(), "Duplicate should be rejected (signatures persist in redb)");
 }
 
@@ -173,12 +173,12 @@ fn test_device_signature_load_unload() {
 // 6. move_expired_logs_to_dlq
 // =============================================================================
 
-#[test]
-fn test_move_expired_to_dlq() {
+#[tokio::test]
+async fn test_move_expired_to_dlq() {
     let db = setup_with_device("DEV_DLQ");
     let store = db.store();
 
-    let id = db.save_raw_attendance("DEV_DLQ", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
+    let id = db.save_raw_attendance("DEV_DLQ".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
 
     // Simulate multiple retries by marking in-flight then resetting
     // mark_in_flight increments retry_count each time
@@ -211,12 +211,12 @@ fn test_move_expired_to_dlq() {
 // 7. retry_failed_log
 // =============================================================================
 
-#[test]
-fn test_retry_failed_log() {
+#[tokio::test]
+async fn test_retry_failed_log() {
     let db = setup_with_device("DEV_RETRY");
     let store = db.store();
 
-    let id = db.save_raw_attendance("DEV_RETRY", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
+    let id = db.save_raw_attendance("DEV_RETRY".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
 
     // Exceed retries and move to DLQ
     for _ in 0..4 {
@@ -242,15 +242,15 @@ fn test_retry_failed_log() {
 // 8. delete_failed_log and purge_failed_logs
 // =============================================================================
 
-#[test]
-fn test_delete_and_purge_failed_logs() {
+#[tokio::test]
+async fn test_delete_and_purge_failed_logs() {
     let db = setup_with_device("DEV_PURGE");
     let store = db.store();
 
     // Create 3 logs and push all to DLQ
-    let id1 = db.save_raw_attendance("DEV_PURGE", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
-    let id2 = db.save_raw_attendance("DEV_PURGE", make_attendance("U2", "2026-01-01 11:00:00")).unwrap();
-    let id3 = db.save_raw_attendance("DEV_PURGE", make_attendance("U3", "2026-01-01 12:00:00")).unwrap();
+    let id1 = db.save_raw_attendance("DEV_PURGE".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
+    let id2 = db.save_raw_attendance("DEV_PURGE".into(), make_attendance("U2", "2026-01-01 11:00:00")).await.unwrap();
+    let id3 = db.save_raw_attendance("DEV_PURGE".into(), make_attendance("U3", "2026-01-01 12:00:00")).await.unwrap();
 
     for id in [id1, id2, id3] {
         for _ in 0..4 {
@@ -301,15 +301,15 @@ fn test_record_parsing_error() {
 // 10. Backoff filtering in get_unsynced
 // =============================================================================
 
-#[test]
-fn test_backoff_filtering() {
+#[tokio::test]
+async fn test_backoff_filtering() {
     let db = setup_with_device("DEV_BO");
     let store = db.store();
 
-    let id = db.save_raw_attendance("DEV_BO", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
+    let id = db.save_raw_attendance("DEV_BO".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
 
     // Fresh log should be returned (no backoff)
-    let unsynced = db.get_unsynced_logs(10);
+    let unsynced = db.get_unsynced_logs(10).await.unwrap();
     assert_eq!(unsynced.len(), 1);
 
     // Simulate a retry: mark in-flight then reset
@@ -320,7 +320,7 @@ fn test_backoff_filtering() {
 
     // After 1 retry, backoff = 5*2 = 10 seconds
     // Since we just set updated_at = now, the log should be in backoff
-    let unsynced = db.get_unsynced_logs(10);
+    let unsynced = db.get_unsynced_logs(10).await.unwrap();
     assert_eq!(unsynced.len(), 0, "Log should be in backoff after retry");
 
     // But count_unsynced doesn't apply backoff (counts raw state)

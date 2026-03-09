@@ -6,8 +6,8 @@
 use agent::hybrid_database::HybridDatabase;
 use agent::models::AttendanceData;
 
-#[test]
-fn test_end_to_end_log_push_data_flow() {
+#[tokio::test]
+async fn test_end_to_end_log_push_data_flow() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
@@ -21,35 +21,35 @@ fn test_end_to_end_log_push_data_flow() {
         status: Some(1),
         punch: Some(1),
     };
-    let id = hybrid.save_raw_attendance("DEV1", log_data).unwrap();
+    let id = hybrid.save_raw_attendance("DEV1".into(), log_data).await.unwrap();
 
     // Verify unsynced
-    let unsynced = hybrid.get_unsynced_logs(10);
+    let unsynced = hybrid.get_unsynced_logs(10).await.unwrap();
     assert_eq!(unsynced.len(), 1);
     assert_eq!(unsynced[0].user_id, "USER1");
 
     // Mark in-flight
-    hybrid.mark_in_flight(&[id]);
-    assert_eq!(hybrid.get_unsynced_logs(10).len(), 0);
+    hybrid.mark_in_flight(vec![id]).await;
+    assert_eq!(hybrid.get_unsynced_logs(10).await.unwrap().len(), 0);
 
     // Mark synced (simulates ACK)
     store.mark_synced(&[id]).unwrap();
-    assert_eq!(hybrid.count_unsynced_logs(), 0);
+    assert_eq!(hybrid.count_unsynced_logs().await, 0);
 }
 
-#[test]
-fn test_reliable_sync_with_retry() {
+#[tokio::test]
+async fn test_reliable_sync_with_retry() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
     store.upsert_device("DEV_RETRY", "Retry Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
-    let id = hybrid.save_raw_attendance("DEV_RETRY", AttendanceData {
+    let id = hybrid.save_raw_attendance("DEV_RETRY".into(), AttendanceData {
         user_id: "RETRY_USER".into(),
         timestamp: "2026-01-26 12:00:00".into(),
         status: Some(1),
         punch: Some(1),
-    }).unwrap();
+    }).await.unwrap();
 
     // First attempt: mark in-flight then simulate failure
     store.mark_in_flight(&[id]).unwrap();
@@ -63,5 +63,5 @@ fn test_reliable_sync_with_retry() {
     store.mark_in_flight(&[id]).unwrap();
     store.mark_synced(&[id]).unwrap();
 
-    assert_eq!(hybrid.count_unsynced_logs(), 0);
+    assert_eq!(hybrid.count_unsynced_logs().await, 0);
 }

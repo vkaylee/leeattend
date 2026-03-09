@@ -2,8 +2,8 @@ use agent::hybrid_database::HybridDatabase;
 use agent::models::AttendanceData;
 
 /// Test retry count increments on each mark_in_flight call
-#[test]
-fn test_retry_count_increments() {
+#[tokio::test]
+async fn test_retry_count_increments() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
     store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
@@ -14,7 +14,7 @@ fn test_retry_count_increments() {
         status: Some(1),
         punch: Some(0),
     };
-    let id = hybrid.save_raw_attendance("device1", data).unwrap();
+    let id = hybrid.save_raw_attendance("device1".into(), data).await.unwrap();
 
     for expected_count in 1..=3i64 {
         store.mark_in_flight(&[id]).unwrap();
@@ -26,8 +26,8 @@ fn test_retry_count_increments() {
 }
 
 /// Test logs exceeding max retry count are moved to DLQ
-#[test]
-fn test_max_retry_limit_moves_to_dlq() {
+#[tokio::test]
+async fn test_max_retry_limit_moves_to_dlq() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
     store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
@@ -38,7 +38,7 @@ fn test_max_retry_limit_moves_to_dlq() {
         status: Some(1),
         punch: Some(0),
     };
-    let id = hybrid.save_raw_attendance("device1", data).unwrap();
+    let id = hybrid.save_raw_attendance("device1".into(), data).await.unwrap();
 
     // Simulate 10 failed attempts
     for _ in 0..10 {
@@ -59,8 +59,8 @@ fn test_max_retry_limit_moves_to_dlq() {
 }
 
 /// Test logs within limits are NOT moved to DLQ
-#[test]
-fn test_valid_retries_not_moved_to_dlq() {
+#[tokio::test]
+async fn test_valid_retries_not_moved_to_dlq() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
     store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
@@ -71,7 +71,7 @@ fn test_valid_retries_not_moved_to_dlq() {
         status: Some(1),
         punch: Some(0),
     };
-    let id = hybrid.save_raw_attendance("device1", data).unwrap();
+    let id = hybrid.save_raw_attendance("device1".into(), data).await.unwrap();
 
     // Simulate 5 retries (below limit of 10)
     for _ in 0..5 {
@@ -87,8 +87,8 @@ fn test_valid_retries_not_moved_to_dlq() {
 }
 
 /// Test configurable retry limits via agent_config
-#[test]
-fn test_configurable_retry_limits() {
+#[tokio::test]
+async fn test_configurable_retry_limits() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 
@@ -103,7 +103,7 @@ fn test_configurable_retry_limits() {
         status: Some(1),
         punch: Some(0),
     };
-    let id = hybrid.save_raw_attendance("config_device", data).unwrap();
+    let id = hybrid.save_raw_attendance("config_device".into(), data).await.unwrap();
 
     for _ in 0..5 {
         store.mark_in_flight(&[id]).unwrap();
@@ -115,8 +115,8 @@ fn test_configurable_retry_limits() {
 }
 
 /// Test DLQ preserves log metadata
-#[test]
-fn test_dlq_preserves_metadata() {
+#[tokio::test]
+async fn test_dlq_preserves_metadata() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
     store.upsert_device("metadata_test", "Meta Dev", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
@@ -127,7 +127,7 @@ fn test_dlq_preserves_metadata() {
         status: Some(1),
         punch: Some(3),
     };
-    let id = hybrid.save_raw_attendance("metadata_test", data).unwrap();
+    let id = hybrid.save_raw_attendance("metadata_test".into(), data).await.unwrap();
 
     for _ in 0..10 {
         store.mark_in_flight(&[id]).unwrap();

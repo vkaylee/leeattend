@@ -32,13 +32,13 @@ fn setup_with_device(device_id: &str) -> HybridDatabase {
 // 1. cleanup_old_synced_logs
 // =============================================================================
 
-#[test]
-fn test_cleanup_old_synced_logs() {
+#[tokio::test]
+async fn test_cleanup_old_synced_logs() {
     let db = setup_with_device("DEV_MAINT");
     let store = db.store();
 
-    let id1 = db.save_raw_attendance("DEV_MAINT", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
-    let id2 = db.save_raw_attendance("DEV_MAINT", make_attendance("U2", "2026-01-01 11:00:00")).unwrap();
+    let id1 = db.save_raw_attendance("DEV_MAINT".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
+    let id2 = db.save_raw_attendance("DEV_MAINT".into(), make_attendance("U2", "2026-01-01 11:00:00")).await.unwrap();
 
     // Mark both in flight
     store.mark_in_flight(&[id1, id2]).unwrap();
@@ -66,13 +66,13 @@ fn test_cleanup_old_synced_logs() {
 // 2. get_failed_logs & get_all_logs
 // =============================================================================
 
-#[test]
-fn test_get_failed_and_all_logs() {
+#[tokio::test]
+async fn test_get_failed_and_all_logs() {
     let db = setup_with_device("DEV_MAINT");
     let store = db.store();
 
-    let id1 = db.save_raw_attendance("DEV_MAINT", make_attendance("U1", "2026-01-01 10:00:00")).unwrap();
-    let id2 = db.save_raw_attendance("DEV_MAINT", make_attendance("U2", "2026-01-01 11:00:00")).unwrap();
+    let id1 = db.save_raw_attendance("DEV_MAINT".into(), make_attendance("U1", "2026-01-01 10:00:00")).await.unwrap();
+    let id2 = db.save_raw_attendance("DEV_MAINT".into(), make_attendance("U2", "2026-01-01 11:00:00")).await.unwrap();
 
     // Get all logs
     let all_logs = store.get_all_logs().unwrap();

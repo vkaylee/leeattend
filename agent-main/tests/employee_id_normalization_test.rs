@@ -12,8 +12,8 @@ fn test_normalize_employee_id_direct() {
 }
 
 /// Test employee ID normalization in database flow
-#[test]
-fn test_employee_id_stored_with_leading_zeros() {
+#[tokio::test]
+async fn test_employee_id_stored_with_leading_zeros() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     hybrid.store().upsert_device("device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
@@ -23,9 +23,9 @@ fn test_employee_id_stored_with_leading_zeros() {
         status: Some(1),
         punch: Some(0),
     };
-    hybrid.save_raw_attendance("device1", data).unwrap();
+    hybrid.save_raw_attendance("device1".into(), data).await.unwrap();
 
-    let logs = hybrid.get_unsynced_logs(1);
+    let logs = hybrid.get_unsynced_logs(1).await.unwrap();
     assert_eq!(logs.len(), 1);
     assert_eq!(logs[0].user_id, "0058", "Should store original format");
 
@@ -34,8 +34,8 @@ fn test_employee_id_stored_with_leading_zeros() {
 }
 
 /// Test multiple employee IDs with various formats
-#[test]
-fn test_multiple_employee_id_formats() {
+#[tokio::test]
+async fn test_multiple_employee_id_formats() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     hybrid.store().upsert_device("device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 
@@ -51,10 +51,10 @@ fn test_multiple_employee_id_formats() {
             status: Some(1),
             punch: Some(0),
         };
-        let _ = hybrid.save_raw_attendance("device1", data);
+        let _ = hybrid.save_raw_attendance("device1".into(), data).await;
     }
 
-    let logs = hybrid.get_unsynced_logs(10);
+    let logs = hybrid.get_unsynced_logs(10).await.unwrap();
     for log in &logs {
         let normalized = normalize_employee_id(&log.user_id);
         let expected = test_cases.iter().find(|(orig, _)| *orig == log.user_id).unwrap().1;

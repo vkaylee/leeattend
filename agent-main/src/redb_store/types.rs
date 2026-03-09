@@ -110,6 +110,7 @@ pub enum StoreError {
     Duplicate,
     DbError(String),
     DeserializeError(String),
+    Internal(String),
 }
 
 impl std::fmt::Display for StoreError {
@@ -121,6 +122,7 @@ impl std::fmt::Display for StoreError {
             StoreError::Duplicate => write!(f, "Duplicate log rejected"),
             StoreError::DbError(s) => write!(f, "Database error: {s}"),
             StoreError::DeserializeError(s) => write!(f, "Deserialization error: {s}"),
+            StoreError::Internal(s) => write!(f, "Internal error: {s}"),
         }
     }
 }
