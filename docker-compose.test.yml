@@ -58,6 +58,8 @@ services:
       - CARGO_BUILD_JOBS=4
       - SCCACHE_DIR=/workspace/.sccache     # Compile cache to avoid redundant recompilation
       - RUSTC_WRAPPER=sccache
+    tmpfs:
+      - /workspace/target/nextest
     volumes:
       - .:/workspace                        # Bind-mount source code from host
       - target-cache:/workspace/target      # Persistent: compiled artifacts survive restarts
@@ -86,6 +88,8 @@ services:
       - CARGO_BUILD_JOBS=4
       - SCCACHE_DIR=/workspace/.sccache
       - RUSTC_WRAPPER=sccache
+    tmpfs:
+      - /workspace/target/nextest
     volumes:
       - .:/workspace
       - target-cache:/workspace/target
