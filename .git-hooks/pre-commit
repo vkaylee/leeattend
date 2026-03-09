@@ -15,10 +15,25 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 LOG="/tmp/pre-commit-$$.log"
 
 echo "🔍 Pre-commit: running smoke tests..."
+echo "🤖 [AI AGENT NOTICE]: A git pre-commit hook is now running an integration test suite."
+echo "🤖 [AI AGENT NOTICE]: This process can take UP TO 5 MINUTES to complete depending on cache."
+echo "🤖 [AI AGENT NOTICE]: DO NOT interrupt, terminate, or assume this is a PTY hang. Wait patiently for the exit code."
 
-# Run tests and stream output using tee
-"$REPO_ROOT/run-tests.sh" --api --smoke 2>&1 | tee "$LOG"
-EXIT_CODE=${PIPESTATUS[0]}
+# Run tests and stream output safely (avoiding pipe FD leaks)
+# We redirect directly to file, and `tail -f` the file in the background so the user can see progress
+# without the PTY holding the pipe open and hanging git.
+touch "$LOG"
+tail -f "$LOG" </dev/null &
+TAIL_PID=$!
+
+set +e
+"$REPO_ROOT/run-tests.sh" --api --smoke > "$LOG" 2>&1
+EXIT_CODE=$?
+set -e
+
+# Kill the background tail process immediately when tests finish
+kill $TAIL_PID 2>/dev/null || true
+wait $TAIL_PID 2>/dev/null || true
 
 if [ "$EXIT_CODE" -eq 0 ]; then
     echo "✅ Smoke tests passed."

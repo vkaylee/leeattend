@@ -688,15 +688,18 @@ if [[ "$WARM_CACHE" == "true" ]]; then
         
         echo -e "${BLUE}📦 Pre-compiling apiserver...${NC}"
         dc exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
+        pid_api=$!
         
         echo -e "${BLUE}📦 Pre-compiling agent-main...${NC}"
         dc exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
+        pid_agent=$!
         
         echo -e "${BLUE}📦 Installing web dependencies...${NC}"
         dc exec -T web_test npm install --no-audit --no-fund </dev/null &
+        pid_web=$!
         
-        # Wait for all to complete
-        wait
+        # Wait for explicit PIDs to complete
+        wait $pid_api $pid_agent $pid_web
         
         echo -e "${GREEN}✅ Cache warmed up!${NC}"
         echo -e "${BLUE}💡 Run tests now: ./run-tests.sh --api${NC}"
