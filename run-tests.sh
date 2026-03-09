@@ -213,6 +213,17 @@ if [[ "${CI:-}" == "true" && -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
     export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD -f $PROJECT_ROOT/docker-compose.ci.yml"
 fi
 
+# ── Compose Configuration Validation ─────────────────────────────────
+# Fail early if there are syntax errors or broken variables in the compose files.
+if [[ "${USE_DOCKER:-}" == "true" ]]; then
+    if ! $DOCKER_COMPOSE_CMD config -q > /dev/null 2>&1; then
+        echo -e "${RED}❌ Docker Compose configuration is invalid or contains broken variables.${NC}"
+        echo -e "${YELLOW}Run '$DOCKER_COMPOSE_CMD config' manually to see the exact error.${NC}"
+        exit 1
+    fi
+fi
+
+
 # ── Podman Compose wrappers ─────────────────────────────────────────
 #
 # dc()          — Normal use. Redirects stdin only (</dev/null).

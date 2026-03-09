@@ -18,10 +18,10 @@ services:
     restart: always
     environment:
       POSTGRES_DB: ${DB_NAME:-leeattend}
-      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password_required}
     healthcheck:
-      test: "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-leeattend}"
+      test: "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-leeattend}"
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,7 +31,7 @@ services:
     restart: always
     command: redis-server --requirepass ${REDIS_PASSWORD:-dev_password}
     healthcheck:
-      test: [ "CMD", "sh", "-c", "redis-cli -a $${REDIS_PASSWORD:-dev_password} ping" ]
+      test: [ "CMD", "sh", "-c", "redis-cli -a ${REDIS_PASSWORD:-dev_password} ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,7 +43,7 @@ services:
       dockerfile: Dockerfile
       target: runtime
       args:
-        DATABASE_URL: ${API_DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-password_required}@db:5432/${DB_NAME:-leeattend}}
+        DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-password_required}@db:5432/${DB_NAME:-leeattend}
     restart: always
     depends_on:
       db:
@@ -56,7 +56,7 @@ services:
       timeout: 5s
       retries: 5
     environment:
-      - DATABASE_URL=${API_DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-password_required}@db:5432/${DB_NAME:-leeattend}}
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-password_required}@db:5432/${DB_NAME:-leeattend}
       - DATABASE_READER_URL=${DATABASE_READER_URL:-}
       - DB_API_MAX_CONN=${DB_API_MAX_CONN:-20}
       - DB_WORKER_MAX_CONN=${DB_WORKER_MAX_CONN:-5}
@@ -86,10 +86,10 @@ services:
       target: runtime
     restart: always
     depends_on:
-      apiserver:
-        condition: service_healthy
+      webdashboard:
+        condition: service_started
     environment:
-      - CENTRAL_SERVER_URL=${AGENT_CENTRAL_SERVER_URL:-ws://apiserver:3000/api/ws}
+      - CENTRAL_SERVER_URL=${AGENT_CENTRAL_SERVER_URL:-ws://webdashboard:80/api/ws}
       - DATABASE_URL=${AGENT_DATABASE_URL:-sqlite:///app/data/agent.db}
       - AGENT_ID=${AGENT_ID:-prod-agent}
       - AGENT_TOKEN=${AGENT_TOKEN:-CHANGE_ME_IN_PRODUCTION}
