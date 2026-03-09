@@ -47,7 +47,7 @@ leeattend_run_coverage() {
         # apiserver — lcov + html report
         APISERVER_COV_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \
 \"mkdir -p /workspace/.test_logs && \
-$COVERAGE_ENV cargo llvm-cov nextest --lib \
+$COVERAGE_ENV cargo llvm-cov nextest --lib --test integration \
   --lcov --output-path /workspace/.test_logs/coverage-apiserver.lcov \
   --no-tests=pass 2>&1 && \
 $COVERAGE_ENV cargo llvm-cov report --html \
@@ -74,7 +74,7 @@ $COVERAGE_ENV cargo llvm-cov report \
         WEB_COV_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run test:coverage"
     else
         # Local (non-Docker) fallback
-        APISERVER_COV_CMD="cd apiserver && $COVERAGE_ENV cargo llvm-cov nextest --lib \
+        APISERVER_COV_CMD="cd apiserver && $COVERAGE_ENV cargo llvm-cov nextest --lib --test integration \
   --lcov --output-path ../.test_logs/coverage-apiserver.lcov --no-tests=pass && \
 $COVERAGE_ENV cargo llvm-cov report --html \
   --output-dir ../.test_logs/coverage-apiserver-html && \

@@ -307,4 +307,81 @@ mod tests {
         assert_eq!(units, 4);
         assert_eq!(pay, Decimal::from(2000));
     }
+
+    #[test]
+    fn test_apply_ot_cap_zero_units() {
+        let (units, pay) = FinancialCalculator::apply_ot_cap(
+            0, Decimal::ZERO, Decimal::from(10), 30,
+        );
+        assert_eq!(units, 0);
+        assert_eq!(pay, Decimal::ZERO);
+    }
+
+    #[test]
+    fn test_assemble_payslip_basic() {
+        let emp = Uuid::new_v4();
+        let start = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date");
+        let end = NaiveDate::from_ymd_opt(2026, 1, 31).expect("valid date");
+
+        let slip = FinancialCalculator::assemble_payslip(
+            emp,
+            start,
+            end,
+            Decimal::from(10000),  // base
+            Decimal::from(2000),   // OT
+            Decimal::from(500),    // holiday premium
+            Decimal::from(300),    // incentive
+            Decimal::from(800),    // deductions
+            26,                     // std units
+            10,                     // OT units
+        );
+
+        assert_eq!(slip.employee_id, emp);
+        assert_eq!(slip.period_start, start);
+        assert_eq!(slip.period_end, end);
+        assert_eq!(slip.base_pay_amount, Decimal::from(10000));
+        assert_eq!(slip.overtime_pay_amount, Decimal::from(2000));
+        assert_eq!(slip.holiday_work_premium_amount, Decimal::from(500));
+        assert_eq!(slip.deductions_amount, Decimal::from(800));
+        // net = 10000 + 2000 + 300 + 500 - 800 = 12000
+        assert_eq!(slip.net_pay_amount, Decimal::from(12000));
+        assert_eq!(slip.standard_units, 26);
+        assert_eq!(slip.overtime_units, 10);
+        assert_eq!(slip.status, "draft");
+    }
+
+    #[test]
+    fn test_assemble_payslip_zero_everything() {
+        let emp = Uuid::new_v4();
+        let start = NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date");
+        let end = NaiveDate::from_ymd_opt(2026, 3, 31).expect("valid date");
+
+        let slip = FinancialCalculator::assemble_payslip(
+            emp, start, end,
+            Decimal::ZERO, Decimal::ZERO, Decimal::ZERO,
+            Decimal::ZERO, Decimal::ZERO, 0, 0,
+        );
+
+        assert_eq!(slip.net_pay_amount, Decimal::ZERO);
+        assert_eq!(slip.standard_units, 0);
+        assert_eq!(slip.overtime_units, 0);
+    }
+
+    #[test]
+    fn test_incentives_result_construction() {
+        let result = IncentivesResult {
+            total_amount: Decimal::from(1500),
+            results: vec![],
+        };
+        assert_eq!(result.total_amount, Decimal::from(1500));
+        assert!(result.results.is_empty());
+    }
+
+    #[test]
+    fn test_deductions_result_construction() {
+        let result = DeductionsResult {
+            amount: Decimal::from(500),
+        };
+        assert_eq!(result.amount, Decimal::from(500));
+    }
 }

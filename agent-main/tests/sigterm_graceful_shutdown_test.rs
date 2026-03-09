@@ -176,9 +176,13 @@ async fn test_cancellation_during_idle_does_not_hang() {
     let worker_token = cancel_token.clone();
 
     let handle = tokio::spawn(async move {
-        // Simulate a worker in its poll sleep
-        while !worker_token.is_cancelled() {
-            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+        // Simulate a worker in its poll sleep — use select! so cancellation
+        // interrupts the long sleep immediately.
+        loop {
+            tokio::select! {
+                _ = worker_token.cancelled() => break,
+                _ = tokio::time::sleep(std::time::Duration::from_secs(60)) => {}
+            }
         }
         // Should reach here after cancel, not hang
     });

@@ -60,6 +60,10 @@ run_static_scan() {
     while IFS= read -r f; do
         files+=("$f")
     done < <(find "$PROJECT_ROOT/scripts/ai-tools" -maxdepth 1 -name "*.sh" -type f 2>/dev/null)
+    # Also scan git hooks (they often don't have .sh extensions)
+    while IFS= read -r f; do
+        files+=("$f")
+    done < <(find "$PROJECT_ROOT/.git-hooks" -type f 2>/dev/null | grep -v 'sample')
 
     if [[ ${#files[@]} -eq 0 ]]; then
         warn "No .sh files found to scan"
@@ -112,15 +116,15 @@ run_static_scan() {
             local _patt_func='^[[:space:]]*(dc|dc_detached)[[:space:]]*\(\)'
             [[ "$line" =~ $_patt_case ]] && continue
             [[ "$line" =~ $_patt_func ]] && continue
-            # Must actually start with podman or $DOCKER (stripped of leading whitespace)
+            # Must actually start with podman/docker or $DOCKER (stripped of leading whitespace)
             local trimmed
             trimmed="$(echo "$line" | sed 's/^[[:space:]]*//')"
-            # Only flag if the line starts with podman, $DOCKER, or common wrappers
-            if [[ "$trimmed" =~ ^(podman|\$DOCKER|\$\{DOCKER|timeout.*podman|setsid.*podman) ]]; then
-                fail "$basename:$lineno — podman command without </dev/null: $trimmed"
+            # Only flag if the line starts with podman, docker, $DOCKER, or common wrappers
+            if [[ "$trimmed" =~ ^(podman|docker|\$DOCKER|\$\{DOCKER|timeout.*podman|timeout.*docker|setsid.*podman|setsid.*docker) ]]; then
+                fail "$basename:$lineno — container command without </dev/null: $trimmed"
                 ((file_fails++)) || true
             fi
-        done < <(grep -n '\bpodman\b' "$file" 2>/dev/null || true)
+        done < <(grep -nE '\bpodman\b|\bdocker\b|\$DOCKER' "$file" 2>/dev/null || true)
 
         # ── Pattern 3: `sleep` in background watchdog pattern ────────────
         while IFS=: read -r lineno line; do
@@ -190,6 +194,34 @@ run_static_scan() {
             [[ "$line" =~ echo ]] && continue
             warn "$basename:$lineno — \$DOCKER_COMPOSE_CMD used directly (use dc() wrapper instead): $(echo "$line" | sed 's/^[[:space:]]*//' | head -c 80)"
         done < <(grep -n '\$DOCKER_COMPOSE_CMD' "$file" 2>/dev/null | grep -v 'export\|^[[:space:]]*#\|dc()' || true)
+
+        # ── Pattern 12: compose exec without -T (TTY Hang in CI/Hooks) ────────
+        while IFS=: read -r lineno line; do
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue
+            if echo "$line" | grep -qE 'compose[[:space:]]+exec'; then
+                if ! echo "$line" | grep -qE 'exec[[:space:]]+-[[:alnum:]]*T'; then
+                    fail "$basename:$lineno — compose exec without -T (allocates TTY, hangs CI/Agent): $(echo "$line" | sed 's/^[[:space:]]*//')"
+                    ((file_fails++)) || true
+                fi
+            fi
+        done < <(grep -nE 'compose[[:space:]]+exec' "$file" 2>/dev/null || true)
+
+        # ── Pattern 13: global 'wait' without exact PID ───────────────────────
+        while IFS=: read -r lineno line; do
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue
+            # Check if it's literally just "wait" or "wait " without arguments
+            if echo "$line" | grep -qE '^[[:space:]]*wait[[:space:]]*$'; then
+                warn "$basename:$lineno — global 'wait' without PID (hangs if background daemons exist): $(echo "$line" | sed 's/^[[:space:]]*//')"
+            fi
+        done < <(grep -n 'wait' "$file" 2>/dev/null || true)
+
+        # ── Pattern 14: '| tee' pipe usage (inherits PTY FDs to children) ──────
+        while IFS=: read -r lineno line; do
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue
+            if echo "$line" | grep -qE '\|\s*tee\b'; then
+                warn "$basename:$lineno — '| tee' pipe found (background processes inside the pipe block will inherit and hang the pipe): $(echo "$line" | sed 's/^[[:space:]]*//')"
+            fi
+        done < <(grep -nE '\|\s*tee' "$file" 2>/dev/null || true)
 
         if [[ $file_fails -eq 0 ]]; then
             pass "$basename — clean"

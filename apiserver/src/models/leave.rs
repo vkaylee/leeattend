@@ -230,3 +230,196 @@ pub struct LeavePolicyAssignmentDetail {
     pub policy_name: String,
     pub leave_type_name: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_leave_type_config_default() {
+        let config = LeaveTypeConfig::default();
+        assert!(!config.requires_document);
+        assert!(!config.allow_negative_balance);
+        assert!(config.negative_balance_limit.is_none());
+        assert!(!config.approval_required);
+    }
+
+    #[test]
+    fn test_leave_type_config_serde_with_defaults() {
+        let json = r#"{}"#;
+        let config: LeaveTypeConfig = serde_json::from_str(json).unwrap();
+        assert!(!config.requires_document);
+        assert!(!config.allow_negative_balance);
+        assert!(config.negative_balance_limit.is_none());
+        assert!(!config.approval_required);
+    }
+
+    #[test]
+    fn test_leave_type_config_serde_full() {
+        let json = r#"{
+            "requires_document": true,
+            "allow_negative_balance": true,
+            "negative_balance_limit": 5.0,
+            "approval_required": true
+        }"#;
+        let config: LeaveTypeConfig = serde_json::from_str(json).unwrap();
+        assert!(config.requires_document);
+        assert!(config.allow_negative_balance);
+        assert_eq!(config.negative_balance_limit, Some(5.0));
+        assert!(config.approval_required);
+    }
+
+    #[test]
+    fn test_leave_type_config_roundtrip() {
+        let config = LeaveTypeConfig {
+            requires_document: true,
+            allow_negative_balance: false,
+            negative_balance_limit: Some(3.0),
+            approval_required: true,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let back: LeaveTypeConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.requires_document, config.requires_document);
+        assert_eq!(back.allow_negative_balance, config.allow_negative_balance);
+        assert_eq!(back.negative_balance_limit, config.negative_balance_limit);
+    }
+
+    #[test]
+    fn test_leave_policy_config_serde() {
+        let json = r#"{
+            "frequency": "monthly",
+            "accrual_amount": 1.5,
+            "accrual_timing": "start_of_period",
+            "carry_over_limit": 10,
+            "max_balance": 30.0,
+            "reset_month": 1,
+            "min_work_days_threshold": 22.0
+        }"#;
+        let config: LeavePolicyConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(config.accrual_amount, 1.5);
+        assert_eq!(config.accrual_timing, "start_of_period");
+        assert_eq!(config.carry_over_limit, Some(10));
+        assert_eq!(config.max_balance, Some(30.0));
+        assert_eq!(config.reset_month, Some(1));
+        assert!(config.seniority_bonus.is_empty()); // default empty vec
+    }
+
+    #[test]
+    fn test_leave_policy_config_with_seniority_bonus() {
+        let json = r#"{
+            "frequency": "yearly",
+            "accrual_amount": 12.0,
+            "accrual_timing": "end_of_period",
+            "seniority_bonus": [
+                {"months": 12, "bonus_amount": 1.0},
+                {"months": 36, "bonus_amount": 3.0}
+            ]
+        }"#;
+        let config: LeavePolicyConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(config.seniority_bonus.len(), 2);
+        assert_eq!(config.seniority_bonus[0].months, 12);
+        assert_eq!(config.seniority_bonus[0].bonus_amount, 1.0);
+    }
+
+    #[test]
+    fn test_submit_leave_request_serde() {
+        let json = r#"{
+            "employee_id": "00000000-0000-0000-0000-000000000001",
+            "leave_type_id": "00000000-0000-0000-0000-000000000002",
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-05",
+            "reason": "Vacation"
+        }"#;
+        let req: SubmitLeaveRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.start_date, NaiveDate::from_ymd_opt(2026, 3, 1).unwrap());
+        assert_eq!(req.end_date, NaiveDate::from_ymd_opt(2026, 3, 5).unwrap());
+        assert_eq!(req.reason.as_deref(), Some("Vacation"));
+    }
+
+    #[test]
+    fn test_approve_leave_request_serde() {
+        let json = r#"{"status": "approved"}"#;
+        let req: ApproveLeaveRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.status, LeaveStatus::Approved);
+    }
+
+    #[test]
+    fn test_assign_leave_policy_request_defaults() {
+        let json = r#"{
+            "assignee_type": "workspace",
+            "policy_id": "00000000-0000-0000-0000-000000000001",
+            "effective_from": "2026-01-01"
+        }"#;
+        let req: AssignLeavePolicyRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.assignee_type, "workspace");
+        assert!(req.assignee_id.is_none()); // serde default
+        assert!(req.effective_to.is_none()); // serde default
+    }
+
+    #[test]
+    fn test_adjust_balance_request_serde() {
+        let json = r#"{
+            "leave_type_id": "00000000-0000-0000-0000-000000000001",
+            "amount": -2.0,
+            "reason": "Correction",
+            "transaction_date": "2026-03-15"
+        }"#;
+        let req: AdjustBalanceRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.amount, -2.0);
+        assert_eq!(req.reason, "Correction");
+    }
+
+    #[test]
+    fn test_update_leave_balance_request_empty() {
+        let json = r#"{}"#;
+        let req: UpdateLeaveBalanceRequest = serde_json::from_str(json).unwrap();
+        assert!(req.entitlement.is_none());
+        assert!(req.carried_over.is_none());
+    }
+
+    #[test]
+    fn test_employee_leave_balance_serde() {
+        let balance = EmployeeLeaveBalance {
+            leave_type_id: Uuid::new_v4(),
+            leave_type_code: "AL".to_string(),
+            leave_type_name: "Annual Leave".to_string(),
+            is_paid: true,
+            entitlement: 12,
+            accrued_amount: 6.0,
+            carried_over: 2,
+            used: 3,
+            remaining: 5.0,
+        };
+        let json = serde_json::to_string(&balance).unwrap();
+        let back: EmployeeLeaveBalance = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.leave_type_code, "AL");
+        assert_eq!(back.remaining, 5.0);
+    }
+
+    #[test]
+    fn test_create_leave_policy_request_serde() {
+        let json = r#"{
+            "name": "Standard AL Policy",
+            "leave_type_id": "00000000-0000-0000-0000-000000000001",
+            "rule_config": {
+                "frequency": "monthly",
+                "accrual_amount": 1.0,
+                "accrual_timing": "start_of_period"
+            }
+        }"#;
+        let req: CreateLeavePolicyRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.name, "Standard AL Policy");
+        assert!(req.description.is_none());
+    }
+
+    #[test]
+    fn test_update_leave_policy_request_all_none() {
+        let json = r#"{}"#;
+        let req: UpdateLeavePolicyRequest = serde_json::from_str(json).unwrap();
+        assert!(req.name.is_none());
+        assert!(req.description.is_none());
+        assert!(req.leave_type_id.is_none());
+        assert!(req.rule_config.is_none());
+    }
+}
+

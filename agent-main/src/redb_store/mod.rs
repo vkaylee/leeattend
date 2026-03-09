@@ -215,3 +215,117 @@ impl RedbStore {
         table.get(hash).ok()?.map(|v: redb::AccessGuard<'_, i64>| v.value())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_store() -> RedbStore {
+        RedbStore::new(":memory:", 90).expect("in-memory store")
+    }
+
+    #[test]
+    fn test_new_in_memory() {
+        let store = make_store();
+        assert_eq!(store.count_total().unwrap(), 0);
+        assert_eq!(store.count_signatures().unwrap(), 0);
+        assert_eq!(store.signature_ttl_days(), 90);
+    }
+
+    #[test]
+    fn test_count_total_empty() {
+        let store = make_store();
+        assert_eq!(store.count_total().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_count_signatures_empty() {
+        let store = make_store();
+        assert_eq!(store.count_signatures().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_has_signature_empty() {
+        let store = make_store();
+        assert!(!store.has_signature("DEV", "USR", 100, Some(1), Some(1)).unwrap());
+    }
+
+    #[test]
+    fn test_has_signature_after_insert() {
+        let store = make_store();
+        let data = crate::models::AttendanceData {
+            user_id: "U1".into(),
+            timestamp: "2026-01-01 10:00:00".into(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        store.insert("DEV1", &data, 5000).unwrap();
+        assert!(store.has_signature("DEV1", "U1", 5000, Some(1), Some(1)).unwrap());
+        // Different params = no signature
+        assert!(!store.has_signature("DEV1", "U1", 5001, Some(1), Some(1)).unwrap());
+    }
+
+    #[test]
+    fn test_compute_signature_deterministic() {
+        let sig1 = RedbStore::compute_signature("DEV", "USR", 100, Some(1), Some(0));
+        let sig2 = RedbStore::compute_signature("DEV", "USR", 100, Some(1), Some(0));
+        assert_eq!(sig1, sig2);
+    }
+
+    #[test]
+    fn test_compute_signature_different_inputs() {
+        let sig1 = RedbStore::compute_signature("DEV1", "USR", 100, Some(1), Some(0));
+        let sig2 = RedbStore::compute_signature("DEV2", "USR", 100, Some(1), Some(0));
+        assert_ne!(sig1, sig2);
+    }
+
+    #[test]
+    fn test_compute_signature_none_vs_some() {
+        let sig1 = RedbStore::compute_signature("D", "U", 100, None, None);
+        let sig2 = RedbStore::compute_signature("D", "U", 100, Some(0), Some(0));
+        assert_ne!(sig1, sig2);
+    }
+
+    #[test]
+    fn test_get_id_by_composite_key() {
+        let store = make_store();
+        let data = crate::models::AttendanceData {
+            user_id: "USR1".into(),
+            timestamp: "2026-01-01 10:00:00".into(),
+            status: Some(1),
+            punch: Some(2),
+        };
+        let id = store.insert("DEV1", &data, 50000).unwrap();
+
+        let key = format!("DEV1:USR1:50000:2:1");
+        let found = store.get_id_by_composite_key(&key);
+        assert_eq!(found, Some(id));
+    }
+
+    #[test]
+    fn test_get_id_by_composite_key_not_found() {
+        let store = make_store();
+        assert_eq!(store.get_id_by_composite_key("X:Y:0:1:1"), None);
+    }
+
+    #[test]
+    fn test_get_id_by_composite_key_invalid_format() {
+        let store = make_store();
+        assert_eq!(store.get_id_by_composite_key("invalid"), None);
+    }
+
+    #[test]
+    fn test_next_id_increments() {
+        let store = make_store();
+        let id1 = store.next_id();
+        let id2 = store.next_id();
+        assert_eq!(id2, id1 + 1);
+    }
+
+    #[test]
+    fn test_compute_composite_hash_differs_from_signature() {
+        let sig = RedbStore::compute_signature("D", "U", 100, Some(1), Some(0));
+        let comp = RedbStore::compute_composite_hash("D", "U", 100, Some(1), Some(0));
+        assert_ne!(sig, comp);
+    }
+}

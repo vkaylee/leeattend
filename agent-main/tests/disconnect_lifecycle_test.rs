@@ -1,4 +1,5 @@
 use agent::mock_worker::MockWorker;
+use agent::time_sync::TimeSync;
 use agent::worker::Worker;
 
 /// Test that MockWorker::disconnect() completes without error.
@@ -39,7 +40,8 @@ async fn test_worker_lifecycle_connect_operations_disconnect() {
     assert!(connected);
     
     // Operations
-    let info = worker.get_info().await.unwrap();
+    let time_sync = TimeSync::new();
+    let info = worker.get_info(&time_sync).await.unwrap();
     assert!(info.get("firmware").is_some());
     
     let logs = worker.get_attendance_logs().await.unwrap();
@@ -72,6 +74,7 @@ async fn test_operations_after_disconnect_on_mock() {
     // MockWorker doesn't track connection state, so these still succeed.
     // But this test documents the expected lifecycle pattern.
     // For ZkWorker, these would fail with "Device not connected" after disconnect.
-    let result = worker.get_info().await;
+    let time_sync = TimeSync::new();
+    let result = worker.get_info(&time_sync).await;
     assert!(result.is_ok(), "MockWorker should still return data (stateless)");
 }

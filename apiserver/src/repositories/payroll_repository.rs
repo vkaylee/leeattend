@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{NaiveDate, Utc};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
 use sqlx::{query_as, PgPool, Row};
@@ -233,7 +233,7 @@ pub async fn get_active_incentive_policies(
             base_amount: row.get("base_amount"),
             payout_type: row.get("payout_type"),
             is_active: row.get("is_active"),
-            created_at: DateTime::from_naive_utc_and_offset(row.get("created_at"), Utc),
+            created_at: row.get("created_at"),
         })
         .collect())
 }

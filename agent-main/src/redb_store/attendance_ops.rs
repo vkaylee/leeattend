@@ -218,3 +218,192 @@ impl RedbStore {
         std::cmp::min(base * (1 << std::cmp::min(retry_count, 6)), max)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::AttendanceData;
+
+    fn make_store() -> RedbStore {
+        RedbStore::new(":memory:", 90).expect("in-memory store")
+    }
+
+    fn make_data(user_id: &str) -> AttendanceData {
+        AttendanceData {
+            user_id: user_id.into(),
+            timestamp: "2026-01-01 10:00:00".into(),
+            status: Some(1),
+            punch: Some(1),
+        }
+    }
+
+    #[test]
+    fn test_insert_single() {
+        let store = make_store();
+        let data = make_data("U1");
+        let id = store.insert("DEV1", &data, 1000).unwrap();
+        assert!(id > 0);
+        assert_eq!(store.count_total().unwrap(), 1);
+    }
+
+    #[test]
+    fn test_insert_duplicate_rejected() {
+        let store = make_store();
+        let data = make_data("U1");
+        store.insert("DEV1", &data, 1000).unwrap();
+
+        // Same signature → duplicate
+        let result = store.insert("DEV1", &data, 1000);
+        assert!(matches!(result, Err(StoreError::Duplicate)));
+    }
+
+    #[test]
+    fn test_insert_different_timestamp_allowed() {
+        let store = make_store();
+        let data = make_data("U1");
+        store.insert("DEV1", &data, 1000).unwrap();
+        store.insert("DEV1", &data, 2000).unwrap(); // Different ts
+        assert_eq!(store.count_total().unwrap(), 2);
+    }
+
+    #[test]
+    fn test_insert_batch_empty() {
+        let store = make_store();
+        let batch: Vec<(String, AttendanceData, i64)> = vec![];
+        let count = store.insert_batch(&batch).unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_insert_batch_multiple() {
+        let store = make_store();
+        let batch: Vec<(String, AttendanceData, i64)> = vec![
+            ("DEV1".into(), make_data("U1"), 1000),
+            ("DEV1".into(), make_data("U2"), 2000),
+            ("DEV1".into(), make_data("U3"), 3000),
+        ];
+        let count = store.insert_batch(&batch).unwrap();
+        assert_eq!(count, 3);
+        assert_eq!(store.count_total().unwrap(), 3);
+    }
+
+    #[test]
+    fn test_insert_batch_dedup() {
+        let store = make_store();
+        let batch: Vec<(String, AttendanceData, i64)> = vec![
+            ("DEV1".into(), make_data("U1"), 1000),
+            ("DEV1".into(), make_data("U1"), 1000), // Duplicate
+            ("DEV1".into(), make_data("U2"), 2000),
+        ];
+        let count = store.insert_batch(&batch).unwrap();
+        assert_eq!(count, 2); // Only 2 unique
+    }
+
+    #[test]
+    fn test_get_unsynced() {
+        let store = make_store();
+        store.insert("DEV1", &make_data("U1"), 1000).unwrap();
+        store.insert("DEV1", &make_data("U2"), 2000).unwrap();
+
+        let unsynced = store.get_unsynced(10).unwrap();
+        assert_eq!(unsynced.len(), 2);
+    }
+
+    #[test]
+    fn test_get_unsynced_with_limit() {
+        let store = make_store();
+        for i in 0..5 {
+            store.insert("DEV1", &make_data(&format!("U{i}")), (i + 1) * 1000).unwrap();
+        }
+
+        let unsynced = store.get_unsynced(3).unwrap();
+        assert_eq!(unsynced.len(), 3);
+    }
+
+    #[test]
+    fn test_get_unsynced_excludes_synced() {
+        let store = make_store();
+        let id1 = store.insert("DEV1", &make_data("U1"), 1000).unwrap();
+        store.insert("DEV1", &make_data("U2"), 2000).unwrap();
+
+        store.mark_in_flight(&[id1]).unwrap();
+        store.mark_synced(&[id1]).unwrap();
+
+        let unsynced = store.get_unsynced(10).unwrap();
+        assert_eq!(unsynced.len(), 1);
+        assert_eq!(unsynced[0].user_id, "U2");
+    }
+
+    #[test]
+    fn test_count_unsynced() {
+        let store = make_store();
+        store.insert("DEV1", &make_data("U1"), 1000).unwrap();
+        store.insert("DEV1", &make_data("U2"), 2000).unwrap();
+
+        assert_eq!(store.count_unsynced().unwrap(), 2);
+
+        let id = store.get_unsynced(1).unwrap()[0].id;
+        store.mark_in_flight(&[id]).unwrap();
+        // in_flight = state 2, not 0
+        assert_eq!(store.count_unsynced().unwrap(), 1);
+    }
+
+    #[test]
+    fn test_remove_signatures_for_device() {
+        let store = make_store();
+        store.insert("DEV1", &make_data("U1"), 1000).unwrap();
+        store.insert("DEV1", &make_data("U2"), 2000).unwrap();
+        store.insert("DEV2", &make_data("U3"), 3000).unwrap();
+
+        let removed = store.remove_signatures_for_device("DEV1").unwrap();
+        assert_eq!(removed, 2);
+
+        // DEV1 logs should be gone
+        assert_eq!(store.count_total().unwrap(), 1);
+        // Signatures for DEV1 should be gone too
+        assert!(!store.has_signature("DEV1", "U1", 1000, Some(1), Some(1)).unwrap());
+        // DEV2 signature should still exist
+        assert!(store.has_signature("DEV2", "U3", 3000, Some(1), Some(1)).unwrap());
+    }
+
+    #[test]
+    fn test_remove_signatures_for_device_none() {
+        let store = make_store();
+        let removed = store.remove_signatures_for_device("NONEXIST").unwrap();
+        assert_eq!(removed, 0);
+    }
+
+    #[test]
+    fn test_calculate_backoff() {
+        assert_eq!(RedbStore::calculate_backoff(0), 5);   // 5 * 1
+        assert_eq!(RedbStore::calculate_backoff(1), 10);  // 5 * 2
+        assert_eq!(RedbStore::calculate_backoff(2), 20);  // 5 * 4
+        assert_eq!(RedbStore::calculate_backoff(3), 40);  // 5 * 8
+        assert_eq!(RedbStore::calculate_backoff(6), 300); // Capped at 300
+        assert_eq!(RedbStore::calculate_backoff(100), 300); // Still capped
+    }
+
+    #[test]
+    fn test_insert_stores_correct_fields() {
+        let store = make_store();
+        let data = AttendanceData {
+            user_id: "USER42".into(),
+            timestamp: "2026-06-15 14:30:00".into(),
+            status: Some(2),
+            punch: Some(0),
+        };
+        let id = store.insert("DEVICE_A", &data, 1718456200).unwrap();
+
+        let logs = store.get_all_logs().unwrap();
+        assert_eq!(logs.len(), 1);
+        let log = &logs[0];
+        assert_eq!(log.id, id);
+        assert_eq!(log.device_id, "DEVICE_A");
+        assert_eq!(log.user_id, "USER42");
+        assert_eq!(log.timestamp, 1718456200);
+        assert_eq!(log.status, Some(2));
+        assert_eq!(log.punch, Some(0));
+        assert_eq!(log.is_synced, 0);
+        assert_eq!(log.retry_count, 0);
+    }
+}

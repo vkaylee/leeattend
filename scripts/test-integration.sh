@@ -34,6 +34,7 @@ leeattend_run_integration() {
     export DATABASE_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
 
     local APISERVER_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass"
+    local AGENT_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass"
     
     # For Playwright, we use -g for grep if pattern is provided
     local PW_ARGS=""
@@ -76,6 +77,7 @@ leeattend_run_integration() {
         fi
 
         APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass\" </dev/null"
+        AGENT_INT_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass\" </dev/null"
         PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test $PW_ARGS --workers 1\" </dev/null"
     fi
 
@@ -101,5 +103,6 @@ leeattend_run_integration() {
     # Note: Individual task timeouts are handled by run_parallel_ordered via TIMEOUT_INTEGRATION
     run_parallel_ordered "Phase 3 (Integration & E2E)" "$COMPONENT_FILTER" \
         "1|apiserver-int|apiserver|$APISERVER_INT_CMD" \
-        "2|playwright-e2e|webdashboard|$PW_CMD"
+        "2|agent-int|agent-main|$AGENT_INT_CMD" \
+        "3|playwright-e2e|webdashboard|$PW_CMD"
 }

@@ -213,6 +213,17 @@ if [[ "${CI:-}" == "true" && -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
     export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD -f $PROJECT_ROOT/docker-compose.ci.yml"
 fi
 
+# ── Compose Configuration Validation ─────────────────────────────────
+# Fail early if there are syntax errors or broken variables in the compose files.
+if [[ "${USE_DOCKER:-}" == "true" ]]; then
+    if ! $DOCKER_COMPOSE_CMD config -q > /dev/null 2>&1; then
+        echo -e "${RED}❌ Docker Compose configuration is invalid or contains broken variables.${NC}"
+        echo -e "${YELLOW}Run '$DOCKER_COMPOSE_CMD config' manually to see the exact error.${NC}"
+        exit 1
+    fi
+fi
+
+
 # ── Podman Compose wrappers ─────────────────────────────────────────
 #
 # dc()          — Normal use. Redirects stdin only (</dev/null).
@@ -677,15 +688,18 @@ if [[ "$WARM_CACHE" == "true" ]]; then
         
         echo -e "${BLUE}📦 Pre-compiling apiserver...${NC}"
         dc exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
+        pid_api=$!
         
         echo -e "${BLUE}📦 Pre-compiling agent-main...${NC}"
         dc exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
+        pid_agent=$!
         
         echo -e "${BLUE}📦 Installing web dependencies...${NC}"
         dc exec -T web_test npm install --no-audit --no-fund </dev/null &
+        pid_web=$!
         
-        # Wait for all to complete
-        wait
+        # Wait for explicit PIDs to complete
+        wait $pid_api $pid_agent $pid_web
         
         echo -e "${GREEN}✅ Cache warmed up!${NC}"
         echo -e "${BLUE}💡 Run tests now: ./run-tests.sh --api${NC}"
@@ -793,6 +807,11 @@ if [[ "$COVERAGE" == "true" ]]; then
             wait_for_web_test
         fi
         if [[ "$FILTER" != *"web"* ]] || [[ -z "$FILTER" ]]; then
+            # Force re-migration: test_db uses tmpfs (RAM disk), so data may
+            # have been lost if the container was rebuilt/restarted between
+            # earlier phases and coverage.  Reset the cache flag so
+            # ensure_db_migrated() actually runs migrations again.
+            _DB_MIGRATED=false
             ensure_db_migrated
         fi
     fi

@@ -35,7 +35,7 @@ pub async fn get_incentive_policies(
 
 pub async fn create_incentive_policy(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, workspace_id)): Path<(Uuid, Uuid)>,
+    Path(workspace_id): Path<Uuid>,
     Json(req): Json<CreatePayrollIncentivePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<PayrollIncentivePolicy>)> {
     let policy_id = Uuid::new_v4();

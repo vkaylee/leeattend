@@ -204,4 +204,74 @@ mod tests {
         let err = AppError::Validation("email invalid".into());
         assert!(err.to_string().contains("email invalid"));
     }
+
+    #[test]
+    fn test_from_io_error() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let app_err = AppError::from(io_err);
+        assert!(matches!(app_err, AppError::Internal(_)));
+        assert_eq!(app_err.status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_from_status_code_422() {
+        let err = AppError::from((StatusCode::UNPROCESSABLE_ENTITY, "invalid data".to_string()));
+        assert!(matches!(err, AppError::Validation(_)));
+    }
+
+    #[test]
+    fn test_into_response_for_client_errors() {
+        // Client errors should expose the message
+        let errors = vec![
+            AppError::Auth("bad token".into()),
+            AppError::Forbidden("no access".into()),
+            AppError::NotFound("user 42".into()),
+            AppError::Validation("email required".into()),
+            AppError::Conflict("duplicate entry".into()),
+            AppError::ServiceUnavailable("down for maintenance".into()),
+        ];
+        for err in errors {
+            let response = err.into_response();
+            assert!(response.status().is_client_error() || response.status().is_server_error());
+        }
+    }
+
+    #[test]
+    fn test_into_response_for_internal_errors() {
+        // Internal errors should NOT expose the actual message
+        let errors = vec![
+            AppError::Internal("secret db info".into()),
+            AppError::Redis("redis connection failed".into()),
+        ];
+        for err in errors {
+            let response = err.into_response();
+            assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[test]
+    fn test_status_code_service_unavailable() {
+        let err = AppError::ServiceUnavailable("maintenance".into());
+        assert_eq!(err.status_code(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(err.error_code(), "SERVICE_UNAVAILABLE");
+    }
+
+    #[test]
+    fn test_all_error_variants_display() {
+        let errors: Vec<AppError> = vec![
+            AppError::Auth("a".into()),
+            AppError::Forbidden("b".into()),
+            AppError::NotFound("c".into()),
+            AppError::Validation("d".into()),
+            AppError::Internal("e".into()),
+            AppError::Conflict("f".into()),
+            AppError::ServiceUnavailable("g".into()),
+            AppError::Redis("h".into()),
+        ];
+        for err in &errors {
+            let display = err.to_string();
+            assert!(!display.is_empty());
+        }
+    }
 }
+

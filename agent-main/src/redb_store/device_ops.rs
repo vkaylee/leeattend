@@ -314,3 +314,262 @@ impl RedbStore {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_store() -> RedbStore {
+        RedbStore::new(":memory:", 90).expect("in-memory store")
+    }
+
+    fn add_device(store: &RedbStore, id: &str) {
+        store.upsert_device(id, "Test Device", "192.168.1.1", 4370, "zkteco", "UTC", None, true, 100000).unwrap();
+    }
+
+    #[test]
+    fn test_upsert_device_new() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        let devices = store.get_active_devices().unwrap();
+        assert_eq!(devices.len(), 1);
+        assert_eq!(devices[0].id, "DEV1");
+        assert_eq!(devices[0].ip, "192.168.1.1");
+        assert!(devices[0].is_active);
+    }
+
+    #[test]
+    fn test_upsert_device_update_preserves_metadata() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        store.update_device_metadata("DEV1", "AA:BB", "SN123", "1.0", "Linux", "ZK400", 50, 1000, 100, 50000, "2026-01-01 12:00:00", 200000).unwrap();
+
+        // Re-upsert with different IP
+        store.upsert_device("DEV1", "Updated", "10.0.0.1", 4370, "zkteco", "UTC", None, true, 300000).unwrap();
+
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.ip, "10.0.0.1");
+        assert_eq!(dev.mac, Some("AA:BB".into())); // Preserved
+        assert_eq!(dev.serial, Some("SN123".into())); // Preserved
+    }
+
+    #[test]
+    fn test_get_active_devices_filters_inactive() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        store.upsert_device("DEV2", "Inactive", "10.0.0.2", 4370, "zkteco", "UTC", None, false, 100000).unwrap();
+
+        let active = store.get_active_devices().unwrap();
+        assert_eq!(active.len(), 1);
+        assert_eq!(active[0].id, "DEV1");
+    }
+
+    #[test]
+    fn test_get_device_metadata_not_found() {
+        let store = make_store();
+        let dev = store.get_device_metadata("NONEXIST").unwrap();
+        assert!(dev.is_none());
+    }
+
+    #[test]
+    fn test_get_device_metadata_case_insensitive() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        let dev = store.get_device_metadata("dev1").unwrap();
+        assert!(dev.is_some());
+    }
+
+    #[test]
+    fn test_update_device_metadata() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+
+        store.update_device_metadata(
+            "DEV1", "AA:BB:CC", "SN456", "2.0", "Linux", "ZK800",
+            100, 5000, 200, 100000, "2026-01-01 15:00:00", 200000
+        ).unwrap();
+
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.mac, Some("AA:BB:CC".into()));
+        assert_eq!(dev.serial, Some("SN456".into()));
+        assert_eq!(dev.firmware, Some("2.0".into()));
+        assert_eq!(dev.users_count, Some(100));
+        assert_eq!(dev.logs_count, Some(5000));
+    }
+
+    #[test]
+    fn test_update_device_metadata_nonexistent() {
+        let store = make_store();
+        // Should not panic on nonexistent device
+        store.update_device_metadata("NOPE", "AA", "SN", "1.0", "L", "Z", 0, 0, 0, 0, "time", 100).unwrap();
+    }
+
+    #[test]
+    fn test_update_device_counts() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+
+        store.update_device_counts("DEV1", 42, 1000, 200000).unwrap();
+
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.users_count, Some(42));
+        assert_eq!(dev.logs_count, Some(1000));
+    }
+
+    #[test]
+    fn test_update_device_counts_nonexistent() {
+        let store = make_store();
+        store.update_device_counts("NOPE", 10, 20, 100).unwrap(); // Should not panic
+    }
+
+    #[test]
+    fn test_deactivate_devices_not_in() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        add_device(&store, "DEV2");
+        add_device(&store, "DEV3");
+
+        let deactivated = store.deactivate_devices_not_in(&["DEV1".into(), "DEV3".into()]).unwrap();
+        assert_eq!(deactivated, 1);
+
+        let active = store.get_active_devices().unwrap();
+        assert_eq!(active.len(), 2);
+        let ids: Vec<&str> = active.iter().map(|d| d.id.as_str()).collect();
+        assert!(ids.contains(&"DEV1"));
+        assert!(ids.contains(&"DEV3"));
+    }
+
+    #[test]
+    fn test_deactivate_devices_not_in_all_active() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        let deactivated = store.deactivate_devices_not_in(&["DEV1".into()]).unwrap();
+        assert_eq!(deactivated, 0);
+    }
+
+    #[test]
+    fn test_agent_config_crud() {
+        let store = make_store();
+
+        // Get nonexistent key
+        assert!(store.get_agent_config("key1").unwrap().is_none());
+
+        // Set and get
+        store.upsert_agent_config("key1", "value1").unwrap();
+        assert_eq!(store.get_agent_config("key1").unwrap(), Some("value1".into()));
+
+        // Update
+        store.upsert_agent_config("key1", "updated").unwrap();
+        assert_eq!(store.get_agent_config("key1").unwrap(), Some("updated".into()));
+    }
+
+    #[test]
+    fn test_clear_all_config() {
+        let store = make_store();
+        store.upsert_agent_config("k1", "v1").unwrap();
+        store.upsert_agent_config("k2", "v2").unwrap();
+
+        store.clear_all_config().unwrap();
+
+        assert!(store.get_agent_config("k1").unwrap().is_none());
+        assert!(store.get_agent_config("k2").unwrap().is_none());
+    }
+
+    #[test]
+    fn test_clear_all_config_empty() {
+        let store = make_store();
+        store.clear_all_config().unwrap(); // Should not panic
+    }
+
+    #[test]
+    fn test_clear_startup_config() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        store.upsert_agent_config("central_url", "ws://server:3000").unwrap();
+
+        store.clear_startup_config().unwrap();
+
+        // Config should be cleared
+        assert!(store.get_agent_config("central_url").unwrap().is_none());
+
+        // Devices should be deactivated
+        let active = store.get_active_devices().unwrap();
+        assert!(active.is_empty());
+
+        // But device should still exist (just inactive)
+        let all = store.get_all_devices().unwrap();
+        assert_eq!(all.len(), 1);
+        assert!(!all[0].is_active);
+    }
+
+    #[test]
+    fn test_get_all_devices() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        store.upsert_device("DEV2", "Inactive", "10.0.0.2", 4370, "zkteco", "UTC", None, false, 100).unwrap();
+
+        let all = store.get_all_devices().unwrap();
+        assert_eq!(all.len(), 2);
+    }
+
+    #[test]
+    fn test_deactivate_all_devices() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        add_device(&store, "DEV2");
+
+        store.deactivate_all_devices().unwrap();
+
+        let active = store.get_active_devices().unwrap();
+        assert!(active.is_empty());
+
+        let all = store.get_all_devices().unwrap();
+        assert_eq!(all.len(), 2);
+        assert!(all.iter().all(|d| !d.is_active));
+    }
+
+    #[test]
+    fn test_deactivate_all_devices_already_inactive() {
+        let store = make_store();
+        store.upsert_device("DEV1", "D", "1.1.1.1", 4370, "z", "UTC", None, false, 100).unwrap();
+        store.deactivate_all_devices().unwrap(); // Should not panic
+    }
+
+    #[test]
+    fn test_get_device_timezone_default_utc() {
+        let store = make_store();
+        // No device → default UTC
+        let tz = store.get_device_timezone("NOPE").unwrap();
+        assert_eq!(tz, chrono_tz::UTC);
+    }
+
+    #[test]
+    fn test_get_device_timezone_custom() {
+        let store = make_store();
+        store.upsert_device("DEV1", "D", "1.1.1.1", 4370, "z", "Asia/Ho_Chi_Minh", None, true, 100).unwrap();
+        let tz = store.get_device_timezone("DEV1").unwrap();
+        assert_eq!(tz, chrono_tz::Asia::Ho_Chi_Minh);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_timestamp() {
+        let ts = RedbStore::parse_local_to_utc_timestamp("2026-01-01 08:00:00", chrono_tz::Asia::Ho_Chi_Minh).unwrap();
+        // 8:00 AM in HCM (UTC+7) = 1:00 AM UTC
+        let expected_ts = RedbStore::parse_local_to_utc_timestamp("2026-01-01 01:00:00", chrono_tz::UTC).unwrap();
+        assert_eq!(ts, expected_ts);
+    }
+
+    #[test]
+    fn test_parse_local_to_utc_timestamp_invalid() {
+        let result = RedbStore::parse_local_to_utc_timestamp("not-a-date", chrono_tz::UTC);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_upsert_device_with_password() {
+        let store = make_store();
+        store.upsert_device("DEV1", "D", "1.1.1.1", 4370, "z", "UTC", Some("secret"), true, 100).unwrap();
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.password, Some("secret".into()));
+    }
+}

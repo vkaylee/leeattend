@@ -243,3 +243,224 @@ impl RedbStore {
         Ok(logs)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_store() -> RedbStore {
+        RedbStore::new(":memory:", 90).expect("in-memory store")
+    }
+
+    fn insert_log(store: &RedbStore, device_id: &str, user_id: &str, ts: i64) -> i64 {
+        use crate::models::AttendanceData;
+        let data = AttendanceData {
+            user_id: user_id.into(),
+            timestamp: format!("2026-01-01 10:00:00"),
+            status: Some(1),
+            punch: Some(1),
+        };
+        store.insert(device_id, &data, ts).unwrap()
+    }
+
+    #[test]
+    fn test_get_all_logs_empty() {
+        let store = make_store();
+        let logs = store.get_all_logs().unwrap();
+        assert!(logs.is_empty());
+    }
+
+    #[test]
+    fn test_get_all_logs_returns_inserted() {
+        let store = make_store();
+        let id1 = insert_log(&store, "DEV1", "U1", 1000);
+        let id2 = insert_log(&store, "DEV1", "U2", 2000);
+        let logs = store.get_all_logs().unwrap();
+        assert_eq!(logs.len(), 2);
+        let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+        assert!(ids.contains(&id1));
+        assert!(ids.contains(&id2));
+    }
+
+    #[test]
+    fn test_get_failed_logs_empty() {
+        let store = make_store();
+        let failed = store.get_failed_logs().unwrap();
+        assert!(failed.is_empty());
+    }
+
+    #[test]
+    fn test_count_failed_logs_zero() {
+        let store = make_store();
+        assert_eq!(store.count_failed_logs().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_cleanup_old_synced_logs_no_synced() {
+        let store = make_store();
+        insert_log(&store, "DEV1", "U1", 1000);
+        // No logs are synced, so cleanup returns 0
+        let cleaned = store.cleanup_old_synced_logs(30).unwrap();
+        assert_eq!(cleaned, 0);
+    }
+
+    #[test]
+    fn test_move_expired_logs_to_dlq_no_expired() {
+        let store = make_store();
+        insert_log(&store, "DEV1", "U1", 1000);
+        // retry_count is 0, max_retries is 3 → nothing to move
+        let moved = store.move_expired_logs_to_dlq(3).unwrap();
+        assert_eq!(moved, 0);
+    }
+
+    #[test]
+    fn test_move_expired_logs_to_dlq_with_retries() {
+        let store = make_store();
+        let id = insert_log(&store, "DEV1", "U1", 1000);
+
+        // Simulate retries by marking in_flight multiple times
+        for _ in 0..4 {
+            store.mark_in_flight(&[id]).unwrap();
+            store.reset_to_unsynced(id).unwrap();
+        }
+
+        // Now retry_count should be >= 3
+        let moved = store.move_expired_logs_to_dlq(3).unwrap();
+        assert_eq!(moved, 1);
+
+        // Verify moved to failed logs
+        let failed = store.get_failed_logs().unwrap();
+        assert_eq!(failed.len(), 1);
+        assert_eq!(failed[0].device_id, "DEV1");
+
+        // Verify removed from active
+        let all = store.get_all_logs().unwrap();
+        assert!(all.is_empty());
+
+        // Count failed
+        assert_eq!(store.count_failed_logs().unwrap(), 1);
+    }
+
+    #[test]
+    fn test_retry_failed_log_success() {
+        let store = make_store();
+        let id = insert_log(&store, "DEV1", "U1", 1000);
+
+        // Move to DLQ
+        for _ in 0..4 {
+            store.mark_in_flight(&[id]).unwrap();
+            store.reset_to_unsynced(id).unwrap();
+        }
+        store.move_expired_logs_to_dlq(3).unwrap();
+
+        // Retry the failed log
+        let result = store.retry_failed_log(id).unwrap();
+        assert!(result);
+
+        // Failed logs should be empty now
+        assert_eq!(store.count_failed_logs().unwrap(), 0);
+
+        // Active logs should have one entry
+        let all = store.get_all_logs().unwrap();
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].device_id, "DEV1");
+        assert_eq!(all[0].retry_count, 0); // Reset on retry
+    }
+
+    #[test]
+    fn test_retry_failed_log_not_found() {
+        let store = make_store();
+        let result = store.retry_failed_log(99999).unwrap();
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_delete_failed_log() {
+        let store = make_store();
+        let id = insert_log(&store, "DEV1", "U1", 1000);
+
+        // Move to DLQ
+        for _ in 0..4 {
+            store.mark_in_flight(&[id]).unwrap();
+            store.reset_to_unsynced(id).unwrap();
+        }
+        store.move_expired_logs_to_dlq(3).unwrap();
+
+        // Delete failed log
+        let deleted = store.delete_failed_log(id).unwrap();
+        assert!(deleted);
+        assert_eq!(store.count_failed_logs().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_delete_failed_log_not_found() {
+        let store = make_store();
+        let deleted = store.delete_failed_log(99999).unwrap();
+        assert!(!deleted);
+    }
+
+    #[test]
+    fn test_purge_failed_logs() {
+        let store = make_store();
+        let id1 = insert_log(&store, "DEV1", "U1", 1000);
+        let id2 = insert_log(&store, "DEV1", "U2", 2000);
+
+        // Move both to DLQ
+        for id in [id1, id2] {
+            for _ in 0..4 {
+                store.mark_in_flight(&[id]).unwrap();
+                store.reset_to_unsynced(id).unwrap();
+            }
+        }
+        store.move_expired_logs_to_dlq(3).unwrap();
+        assert_eq!(store.count_failed_logs().unwrap(), 2);
+
+        // Purge all
+        let purged = store.purge_failed_logs().unwrap();
+        assert_eq!(purged, 2);
+        assert_eq!(store.count_failed_logs().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_purge_failed_logs_empty() {
+        let store = make_store();
+        let purged = store.purge_failed_logs().unwrap();
+        assert_eq!(purged, 0);
+    }
+
+    #[test]
+    fn test_record_parsing_error() {
+        let store = make_store();
+        // Should not panic or error
+        store.record_parsing_error("DEV1", "invalid-ts", "parse failed").unwrap();
+        store.record_parsing_error("DEV2", "also-bad", "another error").unwrap();
+    }
+
+    #[test]
+    fn test_move_expired_then_purge_lifecycle() {
+        let store = make_store();
+        let id1 = insert_log(&store, "DEV1", "U1", 1000);
+        let id2 = insert_log(&store, "DEV1", "U2", 2000);
+        let id3 = insert_log(&store, "DEV1", "U3", 3000);
+
+        // Only id1 and id2 exceed max retries
+        for id in [id1, id2] {
+            for _ in 0..5 {
+                store.mark_in_flight(&[id]).unwrap();
+                store.reset_to_unsynced(id).unwrap();
+            }
+        }
+
+        let moved = store.move_expired_logs_to_dlq(3).unwrap();
+        assert_eq!(moved, 2);
+
+        // id3 should still be active
+        let active = store.get_all_logs().unwrap();
+        assert_eq!(active.len(), 1);
+        assert_eq!(active[0].id, id3);
+
+        // Purge all failed
+        let purged = store.purge_failed_logs().unwrap();
+        assert_eq!(purged, 2);
+    }
+}

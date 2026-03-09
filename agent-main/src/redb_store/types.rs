@@ -126,3 +126,115 @@ impl std::fmt::Display for StoreError {
 }
 
 impl std::error::Error for StoreError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stored_log_roundtrip() {
+        let log = StoredLog {
+            id: 42,
+            device_id: "DEV1".into(),
+            user_id: "USER1".into(),
+            timestamp: 1700000000,
+            status: Some(1),
+            punch: Some(0),
+            is_synced: 0,
+            created_at: 1700000000,
+            updated_at: None,
+            retry_count: 0,
+        };
+        let bytes = log.to_bytes();
+        let decoded = StoredLog::from_bytes(&bytes).unwrap();
+        assert_eq!(decoded.id, 42);
+        assert_eq!(decoded.device_id, "DEV1");
+        assert_eq!(decoded.user_id, "USER1");
+        assert_eq!(decoded.timestamp, 1700000000);
+        assert_eq!(decoded.status, Some(1));
+        assert_eq!(decoded.punch, Some(0));
+    }
+
+    #[test]
+    fn test_stored_log_composite_key() {
+        let log = StoredLog {
+            id: 1, device_id: "DEV".into(), user_id: "USR".into(),
+            timestamp: 100, status: Some(1), punch: Some(2),
+            is_synced: 0, created_at: 0, updated_at: None, retry_count: 0,
+        };
+        assert_eq!(log.composite_key(), "DEV:USR:100:2:1");
+    }
+
+    #[test]
+    fn test_stored_log_composite_key_none_values() {
+        let log = StoredLog {
+            id: 1, device_id: "D".into(), user_id: "U".into(),
+            timestamp: 50, status: None, punch: None,
+            is_synced: 0, created_at: 0, updated_at: None, retry_count: 0,
+        };
+        assert_eq!(log.composite_key(), "D:U:50:-1:-1");
+    }
+
+    #[test]
+    fn test_stored_device_roundtrip() {
+        let device = StoredDevice {
+            id: "DEV1".into(), name: "Test".into(), ip: "1.2.3.4".into(),
+            port: 4370, brand: "zkteco".into(), timezone: "UTC".into(),
+            last_seen: Some(100), is_active: true,
+            mac: Some("AA:BB".into()), serial: None, firmware: None,
+            platform: None, hw_name: None, users_count: Some(50),
+            logs_count: Some(1000), users_capacity: None, logs_capacity: None,
+            password: None, device_time: None, last_info_update: None,
+        };
+        let bytes = device.to_bytes();
+        let decoded = StoredDevice::from_bytes(&bytes).unwrap();
+        assert_eq!(decoded.id, "DEV1");
+        assert_eq!(decoded.mac, Some("AA:BB".into()));
+        assert_eq!(decoded.users_count, Some(50));
+    }
+
+    #[test]
+    fn test_stored_failed_log_roundtrip() {
+        let fl = StoredFailedLog {
+            id: 99, device_id: "D".into(), user_id: "U".into(),
+            timestamp: 500, status: Some(1), punch: Some(0),
+            failed_at: 600, failure_reason: "timeout".into(),
+            retry_attempts: 5, first_attempt_at: Some(100), last_attempt_at: Some(500),
+        };
+        let bytes = fl.to_bytes();
+        let decoded = StoredFailedLog::from_bytes(&bytes).unwrap();
+        assert_eq!(decoded.id, 99);
+        assert_eq!(decoded.failure_reason, "timeout");
+        assert_eq!(decoded.retry_attempts, 5);
+    }
+
+    #[test]
+    fn test_store_error_display() {
+        assert_eq!(format!("{}", StoreError::CapacityExceeded), "Store capacity exceeded");
+        assert_eq!(format!("{}", StoreError::InvalidTimestamp), "Invalid timestamp format");
+        assert_eq!(format!("{}", StoreError::NotFound), "Log not found");
+        assert_eq!(format!("{}", StoreError::Duplicate), "Duplicate log rejected");
+        assert_eq!(format!("{}", StoreError::DbError("test".into())), "Database error: test");
+        assert_eq!(format!("{}", StoreError::DeserializeError("bad".into())), "Deserialization error: bad");
+    }
+
+    #[test]
+    fn test_from_bytes_invalid_data() {
+        let result = StoredLog::from_bytes(&[0, 1, 2, 3]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_stored_log_with_updated_at() {
+        let log = StoredLog {
+            id: 1, device_id: "D".into(), user_id: "U".into(),
+            timestamp: 100, status: None, punch: None,
+            is_synced: 2, created_at: 50, updated_at: Some(75), retry_count: 3,
+        };
+        let bytes = log.to_bytes();
+        let decoded = StoredLog::from_bytes(&bytes).unwrap();
+        assert_eq!(decoded.updated_at, Some(75));
+        assert_eq!(decoded.retry_count, 3);
+        assert_eq!(decoded.is_synced, 2);
+    }
+}

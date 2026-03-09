@@ -9,13 +9,13 @@
 use std::sync::Arc;
 use agent::time_sync::TimeSync;
 use agent::hybrid_database::HybridDatabase;
-use agent::models::{CentralMessage, AttendanceData};
+use agent::models::CentralMessage;
 use agent::central_client::message_handler::handle_incoming_text;
 use tokio::sync::mpsc;
 use dashmap::DashMap;
 use chrono::{Utc, Duration};
 
-type DeviceLocks = Arc<DashMap<String, ()>>;
+type DeviceLocks = Arc<DashMap<String, std::sync::Arc<tokio::sync::Mutex<()>>>>;
 
 fn setup_db() -> HybridDatabase {
     HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed")
