@@ -98,6 +98,7 @@ impl AgentLogBuffer {
 
     /// Send a log entry to the buffer
     /// Uses timeout to apply backpressure if buffer is full
+    #[tracing::instrument(skip_all, err)]
     pub async fn send(&self, entry: AgentLogEntry) -> Result<(), String> {
         // Apply backpressure with 100ms timeout
         match timeout(Duration::from_millis(100), self.sender.send(entry)).await {
@@ -123,6 +124,7 @@ struct ParsedLogEntry {
 
 /// Background worker that processes agent logs from the buffer
 /// and batch-inserts them into the database
+#[tracing::instrument(skip_all)]
 pub async fn run_log_worker(
     pool: PgPool,
     pairing_service: Arc<PairingService>,

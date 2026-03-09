@@ -84,6 +84,7 @@ impl FinancialCalculator {
     // -----------------------------------------------------------------------
 
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all, err)]
     pub async fn calculate_incentives(
         pool: &PgPool,
         workspace_id: Uuid,
@@ -148,6 +149,7 @@ impl FinancialCalculator {
     // -----------------------------------------------------------------------
 
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all, err)]
     pub async fn calculate_deductions(
         pool: &PgPool,
         workspace_id: Uuid,

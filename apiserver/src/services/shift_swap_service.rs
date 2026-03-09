@@ -137,6 +137,7 @@ impl ShiftSwapService {
 
     /// Admin creates a swap request (Phase 1).
     /// Automatically looks up the effective shifts for both employees on the swap date.
+    #[tracing::instrument(skip_all, err)]
     pub async fn create_swap(
         &self,
         workspace_id: Uuid,
@@ -220,6 +221,7 @@ impl ShiftSwapService {
 
     /// Admin approves or rejects a swap request.
     /// On approval, atomically swaps the roster entries for both employees.
+    #[tracing::instrument(skip_all, err)]
     pub async fn approve_swap(
         &self,
         _workspace_id: Uuid,
@@ -297,6 +299,7 @@ impl ShiftSwapService {
     }
 
     /// List swap requests for a workspace with optional status filter.
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_swaps(
         &self,
         workspace_id: Uuid,
@@ -315,6 +318,7 @@ impl ShiftSwapService {
     // -----------------------------------------------------------------------
 
     /// Employee creates a swap request. Status starts as `pending_target`.
+    #[tracing::instrument(skip_all, err)]
     pub async fn create_ess_swap(
         &self,
         workspace_id: Uuid,
@@ -400,6 +404,7 @@ impl ShiftSwapService {
     /// Target employee responds to a swap request.
     /// Accept: `pending_target` → `pending_admin`
     /// Reject: `pending_target` → `rejected`
+    #[tracing::instrument(skip_all, err)]
     pub async fn respond_to_swap(
         &self,
         workspace_id: Uuid,
@@ -437,6 +442,7 @@ impl ShiftSwapService {
     }
 
     /// Requester cancels a swap request (only if still pending).
+    #[tracing::instrument(skip_all, err)]
     pub async fn cancel_swap(
         &self,
         workspace_id: Uuid,
@@ -474,6 +480,7 @@ impl ShiftSwapService {
     }
 
     /// List swaps for an employee (as requester or target).
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_employee_swaps(
         &self,
         employee_id: Uuid,

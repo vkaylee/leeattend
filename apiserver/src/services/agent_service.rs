@@ -13,6 +13,7 @@ impl AgentService {
         Self { repo, manager }
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn notify_config_update(&self, agent_id: &str) -> Result<(), String> {
         let devices = self.repo.find_devices_by_agent_id(agent_id).await?;
         let agent = self.repo.find_by_id(agent_id).await?;
@@ -39,6 +40,7 @@ impl AgentService {
             .map_err(|e| e.to_string())
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn authorize_agent(
         &self,
         id: &str,
@@ -58,10 +60,12 @@ impl AgentService {
         Ok(agent)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String> {
         self.repo.update_last_ip(id, ip).await
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn update_last_seen(&self, id: &str) -> Result<(), String> {
         self.repo.update_last_seen(id).await
     }

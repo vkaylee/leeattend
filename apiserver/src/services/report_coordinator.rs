@@ -122,6 +122,7 @@ impl ReportCoordinator {
     ///
     /// # Returns
     /// Job creation response with job_id and status URL.
+    #[tracing::instrument(skip_all, err)]
     pub async fn create_report_job(
         &self,
         workspace_id: Uuid,
@@ -230,6 +231,7 @@ impl ReportCoordinator {
     ///
     /// # Returns
     /// Current job status with progress and result URL if complete.
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_job_status(&self, job_id: Uuid) -> Result<JobStatusResponse, ReportError> {
         let meta = self
             .queue
@@ -266,6 +268,7 @@ impl ReportCoordinator {
     ///
     /// # Returns
     /// Ok(()) if cancelled, error if already complete or not found.
+    #[tracing::instrument(skip_all, err)]
     pub async fn cancel_job(&self, job_id: Uuid) -> Result<(), ReportError> {
         let mut meta = self
             .queue
@@ -302,6 +305,7 @@ impl ReportCoordinator {
     ///
     /// # Returns
     /// true if this was the last batch (merge should be triggered).
+    #[tracing::instrument(skip_all, err)]
     pub async fn on_batch_complete(
         &self,
         parent_job_id: Uuid,

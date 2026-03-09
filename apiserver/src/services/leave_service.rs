@@ -36,6 +36,7 @@ impl LeaveService {
         Self { leave_balance_repo, leave_request_repo, employee_repo, roster_repo, pool }
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_balances(
         &self,
         workspace_id: Uuid,
@@ -67,6 +68,7 @@ impl LeaveService {
         })
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_employee_leave_history(
         &self,
         workspace_id: Uuid,
@@ -177,6 +179,7 @@ impl LeaveService {
         Ok(history)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn adjust_balance(
         &self,
         workspace_id: Uuid,
@@ -198,6 +201,7 @@ impl LeaveService {
         .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_employee_balances(
         &self,
         workspace_id: Uuid,
@@ -215,6 +219,7 @@ impl LeaveService {
             .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn submit_leave_request(
         &self,
         workspace_id: Uuid,
@@ -263,6 +268,7 @@ impl LeaveService {
         Ok(request)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn approve_leave_request(
         &self,
         workspace_id: Uuid,
@@ -337,6 +343,7 @@ impl LeaveService {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_employee_leave_requests(
         &self,
         workspace_id: Uuid,
@@ -353,6 +360,7 @@ impl LeaveService {
             .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_leave_requests(
         &self,
         workspace_id: Uuid,

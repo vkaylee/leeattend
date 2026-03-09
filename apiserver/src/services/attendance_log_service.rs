@@ -94,6 +94,7 @@ impl AttendanceLogService {
     /// Process agent log synchronously to ensure ACK reflects actual parsing/DB result.
     /// Returns Ok(()) for ALL cases except database connection errors.
     /// Unknown users and validation errors are swallowed with 200 OK to prevent agent retries.
+    #[tracing::instrument(skip_all, err)]
     pub async fn ingest_agent_log(&self, entry: AgentLogEntry) -> Result<(), String> {
         self.process_log(
             entry.workspace_id,
@@ -118,6 +119,7 @@ impl AttendanceLogService {
     /// - Case 3: Parse/validation error → insert to attendance_log_errors → Ok(false)
     /// - Case 4: Database connection error → Err(msg) (agent should retry)
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all, err)]
     pub async fn process_log(
         &self,
         workspace_id: Uuid,
@@ -264,6 +266,7 @@ impl AttendanceLogService {
     }
 
     /// Optimized version for batch processing where employee and workspace config are already known/cached.
+    #[tracing::instrument(skip_all, err)]
     pub async fn process_parsed_log(
         &self,
         workspace_id: Uuid,
@@ -312,6 +315,7 @@ impl AttendanceLogService {
     /// Claim staged logs for a newly created/updated employee.
     /// Finds all pending staging logs matching the employee_id_number and moves them to raw_attendance_logs.
     /// Returns the number of logs claimed.
+    #[tracing::instrument(skip_all, err)]
     pub async fn claim_staged_logs(
         &self,
         workspace_id: Uuid,

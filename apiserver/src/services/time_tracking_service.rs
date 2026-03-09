@@ -26,6 +26,7 @@ impl TimeTrackingService {
         Self { repo, roster_repo, pool }
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn punch_in(
         &self,
         workspace_id: Uuid,
@@ -122,6 +123,7 @@ impl TimeTrackingService {
         Ok(entry)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn punch_out(
         &self,
         workspace_id: Uuid,
@@ -174,6 +176,7 @@ impl TimeTrackingService {
         Ok(entry)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_employee_history(
         &self,
         workspace_id: Uuid,
@@ -193,6 +196,7 @@ impl TimeTrackingService {
             .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn update_time_entry(
         &self,
         workspace_id: Uuid,
@@ -249,6 +253,7 @@ impl TimeTrackingService {
         Ok(entry)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn delete_time_entry(
         &self,
         workspace_id: Uuid,

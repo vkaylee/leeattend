@@ -30,6 +30,7 @@ impl AttendanceSummaryService {
 
     /// Recalculates and persists the daily summary for a specific employee and date.
     /// This should be called whenever time entries or schedules change.
+    #[tracing::instrument(skip_all, err)]
     pub async fn recalculate_daily_summary(
         &self,
         workspace_id: Uuid,
@@ -285,6 +286,7 @@ impl AttendanceSummaryService {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn claim_ot(
         &self,
         employee_id: Uuid,
@@ -317,6 +319,7 @@ impl AttendanceSummaryService {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn approve_ot(
         &self,
         employee_id: Uuid,
@@ -352,6 +355,7 @@ impl AttendanceSummaryService {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all, err)]
     pub async fn enter_paper_ot(
         &self,
         employee_id: Uuid,

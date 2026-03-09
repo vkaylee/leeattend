@@ -36,6 +36,7 @@ fn times_overlap(s1: NaiveTime, e1: NaiveTime, s2: NaiveTime, e2: NaiveTime) -> 
     overlaps || overlaps_shifted_b || overlaps_shifted_a
 }
 
+#[tracing::instrument(skip_all, err)]
 pub async fn create_working_pattern(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -104,6 +105,7 @@ pub async fn create_working_pattern(
     Ok(pattern)
 }
 
+#[tracing::instrument(skip_all, err)]
 pub async fn list_patterns(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -111,6 +113,7 @@ pub async fn list_patterns(
     repo::get_patterns(pool, workspace_id).await
 }
 
+#[tracing::instrument(skip_all, err)]
 pub async fn get_pattern_details(
     pool: &PgPool,
     pattern_id: Uuid,
@@ -118,6 +121,7 @@ pub async fn get_pattern_details(
     repo::get_pattern_details(pool, pattern_id).await
 }
 
+#[tracing::instrument(skip_all, err)]
 pub async fn assign_pattern(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -135,6 +139,7 @@ pub async fn assign_pattern(
     .await
 }
 
+#[tracing::instrument(skip_all, err)]
 pub async fn bulk_assign_pattern(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -151,6 +156,7 @@ pub async fn bulk_assign_pattern(
     .await
 }
 
+#[tracing::instrument(skip_all, err)]
 pub async fn get_employee_pattern_history(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -159,6 +165,7 @@ pub async fn get_employee_pattern_history(
     repo::get_employee_pattern_history(pool, workspace_id, employee_id).await
 }
 
+#[tracing::instrument(skip_all, err)]
 pub async fn delete_working_pattern(pool: &PgPool, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), sqlx::Error> {
     repo::delete_pattern(pool, workspace_id, pattern_id).await
 }

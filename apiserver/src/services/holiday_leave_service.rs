@@ -45,6 +45,7 @@ impl HolidayLeaveService {
     /// - Checks leave balance for the appropriate leave type
     /// - If balance >= 1.0: creates auto-approved leave request + audit log
     /// - If balance < 1.0: marks as unpaid
+    #[tracing::instrument(skip_all, err)]
     pub async fn process_holiday_leave(
         &self,
         workspace_id: Uuid,

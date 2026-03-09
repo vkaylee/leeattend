@@ -12,6 +12,7 @@ impl WorkspaceService {
         Self { pool }
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn create_workspace(
         &self,
         name: &str,
@@ -77,6 +78,7 @@ impl WorkspaceService {
         Ok(workspace)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_member_roles(
         repo: &dyn WorkspaceRepository,
         workspace_id: Uuid,
@@ -93,6 +95,7 @@ impl WorkspaceService {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all, err)]
     pub async fn update_workspace(
         &self,
         ws_id: Uuid,
