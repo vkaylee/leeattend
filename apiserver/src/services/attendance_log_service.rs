@@ -429,3 +429,99 @@ impl AttendanceLogService {
         Ok(claimed_count)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fingerprint_deterministic() {
+        let fp1 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+        );
+        let fp2 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+        );
+        assert_eq!(fp1, fp2);
+        assert_eq!(fp1.len(), 64); // SHA256 hex is 64 chars
+    }
+
+    #[test]
+    fn test_fingerprint_different_device() {
+        let fp1 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+        );
+        let fp2 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV2"), "U001", "2026-01-01 08:00:00", None,
+        );
+        assert_ne!(fp1, fp2);
+    }
+
+    #[test]
+    fn test_fingerprint_no_device() {
+        let fp1 = AttendanceLogService::calculate_fingerprint(
+            None, "U001", "2026-01-01 08:00:00", None,
+        );
+        let fp2 = AttendanceLogService::calculate_fingerprint(
+            Some(""), "U001", "2026-01-01 08:00:00", None,
+        );
+        // None and "" should produce the same fingerprint
+        assert_eq!(fp1, fp2);
+    }
+
+    #[test]
+    fn test_fingerprint_with_raw_data() {
+        let raw = serde_json::json!({"punch": 1, "status": 2});
+        let fp1 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw),
+        );
+        let fp2 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+        );
+        assert_ne!(fp1, fp2);
+    }
+
+    #[test]
+    fn test_fingerprint_different_punch() {
+        let raw1 = serde_json::json!({"punch": 1, "status": 0});
+        let raw2 = serde_json::json!({"punch": 2, "status": 0});
+        let fp1 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw1),
+        );
+        let fp2 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw2),
+        );
+        assert_ne!(fp1, fp2);
+    }
+
+    #[test]
+    fn test_fingerprint_raw_data_no_punch_status() {
+        let raw = serde_json::json!({"other": "data"});
+        let fp = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw),
+        );
+        assert_eq!(fp.len(), 64);
+    }
+
+    #[test]
+    fn test_fingerprint_different_user() {
+        let fp1 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+        );
+        let fp2 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U002", "2026-01-01 08:00:00", None,
+        );
+        assert_ne!(fp1, fp2);
+    }
+
+    #[test]
+    fn test_fingerprint_different_timestamp() {
+        let fp1 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+        );
+        let fp2 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 09:00:00", None,
+        );
+        assert_ne!(fp1, fp2);
+    }
+}

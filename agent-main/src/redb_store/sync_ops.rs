@@ -246,3 +246,195 @@ impl RedbStore {
         Ok((evicted, before, after))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_store() -> RedbStore {
+        RedbStore::new(":memory:", 90).expect("in-memory store")
+    }
+
+    fn insert_log(store: &RedbStore, device_id: &str, user_id: &str, ts: i64) -> i64 {
+        use crate::models::AttendanceData;
+        let data = AttendanceData {
+            user_id: user_id.into(),
+            timestamp: "2026-01-01 10:00:00".into(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        store.insert(device_id, &data, ts).unwrap()
+    }
+
+    #[test]
+    fn test_mark_in_flight_empty_ids() {
+        let store = make_store();
+        store.mark_in_flight(&[]).unwrap();
+    }
+
+    #[test]
+    fn test_mark_in_flight_updates_sync_state() {
+        let store = make_store();
+        let id = insert_log(&store, "DEV1", "U1", 1000);
+
+        store.mark_in_flight(&[id]).unwrap();
+
+        let logs = store.get_all_logs().unwrap();
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].is_synced, 2);
+        assert_eq!(logs[0].retry_count, 1);
+        assert!(logs[0].updated_at.is_some());
+    }
+
+    #[test]
+    fn test_mark_synced_removes_from_active() {
+        let store = make_store();
+        let id = insert_log(&store, "DEV1", "U1", 1000);
+
+        store.mark_in_flight(&[id]).unwrap();
+        store.mark_synced(&[id]).unwrap();
+
+        let logs = store.get_all_logs().unwrap();
+        assert!(logs.is_empty(), "Synced logs should be removed from active storage");
+    }
+
+    #[test]
+    fn test_mark_synced_empty_ids() {
+        let store = make_store();
+        store.mark_synced(&[]).unwrap();
+    }
+
+    #[test]
+    fn test_reset_to_unsynced() {
+        let store = make_store();
+        let id = insert_log(&store, "DEV1", "U1", 1000);
+
+        store.mark_in_flight(&[id]).unwrap();
+        assert_eq!(store.get_all_logs().unwrap()[0].is_synced, 2);
+
+        store.reset_to_unsynced(id).unwrap();
+        assert_eq!(store.get_all_logs().unwrap()[0].is_synced, 0);
+    }
+
+    #[test]
+    fn test_reset_to_unsynced_nonexistent() {
+        let store = make_store();
+        // Should not panic on nonexistent ID
+        store.reset_to_unsynced(99999).unwrap();
+    }
+
+    #[test]
+    fn test_mark_synced_by_key() {
+        let store = make_store();
+        let id = insert_log(&store, "DEV1", "U1", 1000);
+        store.mark_in_flight(&[id]).unwrap();
+
+        let log = &store.get_all_logs().unwrap()[0];
+        let key = log.composite_key();
+
+        let result = store.mark_synced_by_key(&key);
+        assert!(result);
+        assert!(store.get_all_logs().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_mark_synced_by_key_not_found() {
+        let store = make_store();
+        let result = store.mark_synced_by_key("invalid:key:0:1:1");
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_reset_to_unsynced_by_key() {
+        let store = make_store();
+        let id = insert_log(&store, "DEV1", "U1", 1000);
+        store.mark_in_flight(&[id]).unwrap();
+
+        let log = &store.get_all_logs().unwrap()[0];
+        let key = log.composite_key();
+
+        let result = store.reset_to_unsynced_by_key(&key);
+        assert!(result);
+        assert_eq!(store.get_all_logs().unwrap()[0].is_synced, 0);
+    }
+
+    #[test]
+    fn test_reset_to_unsynced_by_key_not_found() {
+        let store = make_store();
+        let result = store.reset_to_unsynced_by_key("invalid:key:0:1:1");
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_reset_syncing_status() {
+        let store = make_store();
+        let id1 = insert_log(&store, "DEV1", "U1", 1000);
+        let id2 = insert_log(&store, "DEV1", "U2", 2000);
+
+        store.mark_in_flight(&[id1, id2]).unwrap();
+
+        let reset = store.reset_syncing_status().unwrap();
+        assert_eq!(reset, 2);
+
+        let logs = store.get_all_logs().unwrap();
+        assert!(logs.iter().all(|l| l.is_synced == 0));
+    }
+
+    #[test]
+    fn test_reset_syncing_status_no_inflight() {
+        let store = make_store();
+        insert_log(&store, "DEV1", "U1", 1000);
+        let reset = store.reset_syncing_status().unwrap();
+        assert_eq!(reset, 0);
+    }
+
+    #[test]
+    fn test_get_max_id_empty() {
+        let store = make_store();
+        let max = store.get_max_id().unwrap();
+        assert_eq!(max, 0);
+    }
+
+    #[test]
+    fn test_get_max_id_with_data() {
+        let store = make_store();
+        let id1 = insert_log(&store, "DEV1", "U1", 1000);
+        let id2 = insert_log(&store, "DEV1", "U2", 2000);
+        let max = store.get_max_id().unwrap();
+        assert_eq!(max, std::cmp::max(id1, id2));
+    }
+
+    #[test]
+    fn test_evict_old_signatures_none_expired() {
+        let store = make_store();
+        insert_log(&store, "DEV1", "U1", chrono::Utc::now().timestamp());
+        let (evicted, before, after) = store.evict_old_signatures().unwrap();
+        assert_eq!(evicted, 0);
+        assert_eq!(before, 1);
+        assert_eq!(after, 1);
+    }
+
+    #[test]
+    fn test_evict_old_signatures_empty() {
+        let store = make_store();
+        let (evicted, before, after) = store.evict_old_signatures().unwrap();
+        assert_eq!(evicted, 0);
+        assert_eq!(before, 0);
+        assert_eq!(after, 0);
+    }
+
+    #[test]
+    fn test_mark_in_flight_increments_retry_count() {
+        let store = make_store();
+        let id = insert_log(&store, "DEV1", "U1", 1000);
+
+        store.mark_in_flight(&[id]).unwrap();
+        store.reset_to_unsynced(id).unwrap();
+        store.mark_in_flight(&[id]).unwrap();
+        store.reset_to_unsynced(id).unwrap();
+        store.mark_in_flight(&[id]).unwrap();
+
+        let log = &store.get_all_logs().unwrap()[0];
+        assert_eq!(log.retry_count, 3);
+    }
+}

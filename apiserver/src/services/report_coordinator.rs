@@ -479,4 +479,93 @@ mod tests {
         let estimated = (total_batches as u64) * ESTIMATED_SECONDS_PER_BATCH;
         assert_eq!(estimated, 140); // 140 seconds
     }
+
+    #[test]
+    fn test_report_error_display() {
+        assert_eq!(
+            format!("{}", ReportError::NoEmployees),
+            "No active employees found for report"
+        );
+        assert_eq!(format!("{}", ReportError::JobNotFound), "Job not found");
+        assert_eq!(
+            format!("{}", ReportError::CannotCancel),
+            "Cannot cancel completed or failed job"
+        );
+        assert_eq!(
+            format!("{}", ReportError::QueueError("timeout".into())),
+            "Queue error: timeout"
+        );
+        assert_eq!(
+            format!("{}", ReportError::DatabaseError("conn refused".into())),
+            "Database error: conn refused"
+        );
+    }
+
+    #[test]
+    fn test_batch_splitting_large() {
+        let employees: Vec<Uuid> = (0..1000).map(|_| Uuid::new_v4()).collect();
+        let batches: Vec<Vec<Uuid>> = employees
+            .chunks(BATCH_SIZE)
+            .map(|chunk| chunk.to_vec())
+            .collect();
+        assert_eq!(batches.len(), 20);
+        assert!(batches.iter().all(|b| b.len() == 50));
+    }
+
+    #[test]
+    fn test_batch_splitting_remainder() {
+        let employees: Vec<Uuid> = (0..73).map(|_| Uuid::new_v4()).collect();
+        let batches: Vec<Vec<Uuid>> = employees
+            .chunks(BATCH_SIZE)
+            .map(|chunk| chunk.to_vec())
+            .collect();
+        assert_eq!(batches.len(), 2);
+        assert_eq!(batches[0].len(), 50);
+        assert_eq!(batches[1].len(), 23);
+    }
+
+    #[test]
+    fn test_batch_size_constant() {
+        assert_eq!(BATCH_SIZE, 50);
+        assert_eq!(JOB_TIMEOUT_SECS, 3600);
+        assert_eq!(ESTIMATED_SECONDS_PER_BATCH, 1);
+    }
+
+    #[test]
+    fn test_create_job_response_serialization() {
+        let response = CreateJobResponse {
+            job_id: Uuid::nil(),
+            status: "pending".into(),
+            total_batches: 5,
+            estimated_seconds: 5,
+            status_url: "/api/reports/jobs/x".into(),
+        };
+        let json = serde_json::to_value(&response).unwrap();
+        assert_eq!(json["status"], "pending");
+        assert_eq!(json["total_batches"], 5);
+    }
+
+    #[test]
+    fn test_job_progress_serialization() {
+        let progress = JobProgress {
+            total_batches: 10,
+            completed_batches: 5,
+            failed_batches: 1,
+            percentage: 50.0,
+        };
+        let json = serde_json::to_value(&progress).unwrap();
+        assert_eq!(json["total_batches"], 10);
+        assert_eq!(json["completed_batches"], 5);
+        assert_eq!(json["failed_batches"], 1);
+    }
+
+    #[test]
+    fn test_report_error_is_debug() {
+        // Ensure all variants implement Debug
+        let _ = format!("{:?}", ReportError::NoEmployees);
+        let _ = format!("{:?}", ReportError::JobNotFound);
+        let _ = format!("{:?}", ReportError::CannotCancel);
+        let _ = format!("{:?}", ReportError::QueueError("x".into()));
+        let _ = format!("{:?}", ReportError::DatabaseError("y".into()));
+    }
 }

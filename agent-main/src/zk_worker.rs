@@ -314,3 +314,46 @@ impl Default for ZkWorker {
         Self::new(None)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_zk_error_display() {
+        let err = ZkError { message: "connection timeout".into() };
+        assert_eq!(format!("{err}"), "connection timeout");
+    }
+
+    #[test]
+    fn test_zk_error_debug() {
+        let err = ZkError { message: "test".into() };
+        let debug = format!("{err:?}");
+        assert!(debug.contains("ZkError"));
+        assert!(debug.contains("test"));
+    }
+
+    #[test]
+    fn test_zk_error_is_std_error() {
+        let err = ZkError { message: "x".into() };
+        let _: &dyn std::error::Error = &err;
+    }
+
+    #[test]
+    fn test_zk_worker_new_no_password() {
+        let worker = ZkWorker::new(None);
+        assert!(worker.zk.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn test_zk_worker_new_with_password() {
+        let worker = ZkWorker::new(Some(12345));
+        assert!(worker.zk.lock().unwrap().is_none()); // Not connected yet
+    }
+
+    #[test]
+    fn test_zk_worker_default() {
+        let worker = ZkWorker::default();
+        assert!(worker.zk.lock().unwrap().is_none());
+    }
+}

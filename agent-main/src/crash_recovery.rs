@@ -114,4 +114,68 @@ mod tests {
         let marker = CrashMarker::new("/var/lib/agent/data.redb");
         assert!(marker.path.contains("/var/lib/agent/.agent_running"));
     }
+
+    #[test]
+    fn test_crash_marker_write_and_check() {
+        let tmp = std::env::temp_dir().join("crash_test_write");
+        let _ = fs::create_dir_all(&tmp);
+        let db_path = tmp.join("test.redb").to_string_lossy().to_string();
+
+        let marker = CrashMarker::new(&db_path);
+        assert!(!marker.check_crash());
+
+        marker.write().unwrap();
+        assert!(marker.check_crash());
+
+        let info = marker.read_crash_info().unwrap();
+        assert!(info.contains("pid="));
+        assert!(info.contains("started="));
+
+        marker.remove().unwrap();
+        assert!(!marker.check_crash());
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_crash_marker_remove_nonexistent() {
+        let marker = CrashMarker::new("/tmp/crash_test_nonex/data.redb");
+        // Should not error when file doesn't exist
+        marker.remove().unwrap();
+    }
+
+    #[test]
+    fn test_crash_marker_read_info_nonexistent() {
+        let marker = CrashMarker::new("/tmp/crash_test_noread/data.redb");
+        assert!(marker.read_crash_info().is_none());
+    }
+
+    #[test]
+    fn test_recover_from_crash() {
+        let store = crate::redb_store::RedbStore::new(":memory:", 90).unwrap();
+        // Insert log and mark in-flight
+        let data = crate::models::AttendanceData {
+            user_id: "U1".into(),
+            timestamp: "2026-01-01 10:00:00".into(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        let id = store.insert("DEV1", &data, 1000).unwrap();
+        store.mark_in_flight(&[id]).unwrap();
+
+        // Recover should reset in-flight logs
+        let total = recover_from_crash(&store).unwrap();
+        assert!(total > 0);
+
+        // After recovery, log should be unsynced (0)
+        let logs = store.get_all_logs().unwrap();
+        assert_eq!(logs[0].is_synced, 0);
+    }
+
+    #[test]
+    fn test_recover_from_crash_nothing_to_recover() {
+        let store = crate::redb_store::RedbStore::new(":memory:", 90).unwrap();
+        let total = recover_from_crash(&store).unwrap();
+        assert_eq!(total, 0);
+    }
 }
