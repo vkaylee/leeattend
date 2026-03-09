@@ -7,6 +7,7 @@ pub struct AuditHelper;
 
 impl AuditHelper {
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all)]
     pub async fn log(
         repo: &Arc<dyn crate::repositories::audit_log_repository::AuditLogRepository>,
         workspace_id: Uuid,

@@ -230,6 +230,7 @@ impl PayrollService {
         segments
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn calculate_monthly_payslip(
         &self,
         employee_id: Uuid,
@@ -403,6 +404,7 @@ impl PayrollService {
         Ok(created_payslip)
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn calculate_batch_payslips(
         &self,
         employee_ids: Vec<Uuid>,

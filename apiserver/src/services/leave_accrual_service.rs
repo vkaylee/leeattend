@@ -70,6 +70,7 @@ impl LeaveAccrualService {
     }
 
     /// Helper to count "Qualifying Days" for performance-based accrual.
+    #[tracing::instrument(skip_all, err)]
     pub async fn count_qualifying_days(
         &self,
         workspace_id: Uuid,
@@ -296,6 +297,7 @@ impl LeaveAccrualService {
 
     /// Batch-count qualifying work days per month for an employee in a single SQL query.
     /// Returns a HashMap<NaiveDate, i32> where key = first of month, value = qualifying days.
+    #[tracing::instrument(skip_all, err)]
     pub async fn batch_count_qualifying_days(
         &self,
         workspace_id: Uuid,
@@ -377,6 +379,7 @@ impl LeaveAccrualService {
 
     /// Main orchestrator to process accruals for a workspace on a specific date.
     /// Optimized: uses pre-computed accrual dates and batched qualifying-days queries.
+    #[tracing::instrument(skip_all, err)]
     pub async fn process_workspace_accruals(
         &self,
         workspace_id: Uuid,

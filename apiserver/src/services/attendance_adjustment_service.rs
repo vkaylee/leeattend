@@ -26,6 +26,7 @@ impl AttendanceAdjustmentService {
     }
 
     /// Resume all jobs that were interrupted by a server restart
+    #[tracing::instrument(skip_all)]
     pub async fn resume_all_pending_jobs(pool: PgPool) {
         let import_repo = Arc::new(crate::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
         let adj_repo = Arc::new(crate::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
@@ -35,6 +36,7 @@ impl AttendanceAdjustmentService {
         import_svc.resume_all_pending_jobs().await;
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn submit_request(
         &self,
         _workspace_id: Uuid,
@@ -66,6 +68,7 @@ impl AttendanceAdjustmentService {
         Ok(adjustment)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn approve_request(
         &self,
         workspace_id: Uuid,
@@ -159,6 +162,7 @@ impl AttendanceAdjustmentService {
         )
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_requests(
         &self,
         workspace_id: Uuid,
@@ -172,6 +176,7 @@ impl AttendanceAdjustmentService {
         .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_my_requests(
         &self,
         workspace_id: Uuid,

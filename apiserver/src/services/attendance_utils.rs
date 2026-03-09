@@ -215,6 +215,7 @@ pub fn date_range_to_utc_checked(
 // ---------------------------------------------------------------------------
 
 /// Batch-fetch approved leave requests and build a `HashSet<(employee_id, date)>`.
+#[tracing::instrument(skip_all, err)]
 pub async fn build_leave_date_set(
     pool: &PgPool,
     workspace_id: Uuid,

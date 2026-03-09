@@ -111,6 +111,7 @@ impl ReportService {
         }
     }
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_daily_attendance_report(
         &self,
         workspace_id: Uuid,
@@ -359,6 +360,7 @@ impl ReportService {
     /// 3. Apply AttendanceCalculator for each day (same as detail report)
     /// 4. Aggregate daily results per employee
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_attendance_summary(
         &self,
         workspace_id: Uuid,

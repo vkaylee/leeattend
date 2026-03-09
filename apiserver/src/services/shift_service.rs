@@ -16,6 +16,7 @@ impl ShiftService {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all, err)]
     pub async fn create_shift(
         &self,
         workspace_id: Uuid,
@@ -52,6 +53,7 @@ impl ShiftService {
         .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_shifts(
         &self,
         workspace_id: Uuid,
@@ -61,6 +63,7 @@ impl ShiftService {
             .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn update_shift(
         &self,
         workspace_id: Uuid,
@@ -150,6 +153,7 @@ impl ShiftService {
         }
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn assign_shift(
         &self,
         employee_id: Uuid,

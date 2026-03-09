@@ -51,6 +51,7 @@ impl AttendanceImportService {
     ) -> Self {
         Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool }
     }
+    #[tracing::instrument(skip_all, err)]
     pub async fn batch_import_from_file(
         &self,
         workspace_id: Uuid,
@@ -94,6 +95,7 @@ impl AttendanceImportService {
         Ok(job_id)
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn resume_all_pending_jobs(&self) {
         if let Ok(jobs) = self.import_repo.get_pending_jobs().await {
             for job in jobs {

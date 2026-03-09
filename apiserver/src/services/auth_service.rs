@@ -69,6 +69,7 @@ impl AuthService {
 
     // --- DB methods (use self.pool) ---
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn create_session(&self, user_id: Uuid) -> Result<String, String> {
         let token = Uuid::new_v4().to_string();
         let expires_at = Utc::now() + Duration::days(7);
@@ -102,6 +103,7 @@ impl AuthService {
         Ok(token)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn refresh_session(
         &self,
         refresh_token: &str,
@@ -145,6 +147,7 @@ impl AuthService {
         })
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn revoke_session(&self, refresh_token: &str) -> Result<(), String> {
         sqlx::query("UPDATE sessions SET revoked_at = NOW() WHERE token = $1")
             .bind(refresh_token)
@@ -154,6 +157,7 @@ impl AuthService {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn revoke_all_sessions_for_user(&self, user_id: Uuid) -> Result<(), String> {
         sqlx::query("UPDATE sessions SET revoked_at = NOW() WHERE user_id = $1")
             .bind(user_id)

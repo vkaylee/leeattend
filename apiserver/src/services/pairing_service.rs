@@ -23,6 +23,7 @@ impl PairingService {
         Self { time_entry_repo, roster_repo, pool }
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn process_new_raw_log(
         &self,
         log: &RawAttendanceLog,
@@ -85,6 +86,7 @@ impl PairingService {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn reprocess_daily_attendance(
         &self,
         workspace_id: Uuid,

@@ -23,6 +23,7 @@ impl EmployeeService {
         Self { repo, pool }
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_working_conditions(
         &self,
         employee_id: Uuid,
@@ -40,6 +41,7 @@ impl EmployeeService {
             .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn create_working_condition(
         &self,
         employee_id: Uuid,
@@ -70,6 +72,7 @@ impl EmployeeService {
         Ok(condition)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn delete_working_condition(
         &self,
         employee_id: Uuid,
@@ -94,6 +97,7 @@ impl EmployeeService {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn create_employee(
         &self,
         workspace_id: Uuid,
@@ -156,6 +160,7 @@ impl EmployeeService {
         Ok(employee)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn rehire_employee(
         &self,
         employee_id: Uuid,
@@ -220,6 +225,7 @@ impl EmployeeService {
             .ok_or(AppError::NotFound("Employee not found after rehire".into()))
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_employment_history(
         &self,
         employee_id: Uuid,
@@ -237,6 +243,7 @@ impl EmployeeService {
             .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_employee_by_id(
         &self,
         id: Uuid,
@@ -248,6 +255,7 @@ impl EmployeeService {
             .ok_or(AppError::NotFound("Employee not found".into()))
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_all_employees(
         &self,
         workspace_id: Uuid,
@@ -261,6 +269,7 @@ impl EmployeeService {
             .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn update_employee(
         &self,
         id: Uuid,
@@ -326,6 +335,7 @@ impl EmployeeService {
 
     // ── Recruitment Source Service Methods ──────────────────────────
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn create_recruitment_source(
         &self,
         workspace_id: Uuid,
@@ -354,6 +364,7 @@ impl EmployeeService {
         Ok(source)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_recruitment_sources(
         &self,
         workspace_id: Uuid,
@@ -364,6 +375,7 @@ impl EmployeeService {
             .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn update_recruitment_source(
         &self,
         id: Uuid,
@@ -388,6 +400,7 @@ impl EmployeeService {
             .ok_or(AppError::NotFound("Recruitment source not found".into()))
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn delete_recruitment_source(
         &self,
         id: Uuid,
@@ -404,6 +417,7 @@ impl EmployeeService {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_recruitment_source_breakdown(
         &self,
         workspace_id: Uuid,
@@ -414,6 +428,7 @@ impl EmployeeService {
             .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn delete_employee(
         &self,
         id: Uuid,
@@ -432,6 +447,7 @@ impl EmployeeService {
         }
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_department_history(
         &self,
         employee_id: Uuid,
@@ -452,6 +468,7 @@ impl EmployeeService {
         .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn transfer_employee(
         &self,
         employee_id: Uuid,
@@ -475,6 +492,7 @@ impl EmployeeService {
         .map_err(AppError::Sqlx)
     }
 
+    #[tracing::instrument(skip_all, err)]
     pub async fn get_turnover_analytics(
         &self,
         workspace_id: Uuid,
