@@ -173,7 +173,7 @@ async fn test_working_pattern_assign_to_employee() {
     // Assign pattern to employee
     let assign_body = serde_json::json!({
         "pattern_id": pattern_id,
-        "effective_from": "2026-01-01"
+        "start_date": "2026-01-01"
     });
 
     let resp = app

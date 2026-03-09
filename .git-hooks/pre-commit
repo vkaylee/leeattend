@@ -16,9 +16,9 @@ LOG="/tmp/pre-commit-$$.log"
 
 echo "🔍 Pre-commit: running smoke tests..."
 
-# Run tests with output to file (keeps git commit output clean)
-"$REPO_ROOT/run-tests.sh" --api --smoke >"$LOG" 2>&1
-EXIT_CODE=$?
+# Run tests and stream output using tee
+"$REPO_ROOT/run-tests.sh" --api --smoke 2>&1 | tee "$LOG"
+EXIT_CODE=${PIPESTATUS[0]}
 
 if [ "$EXIT_CODE" -eq 0 ]; then
     echo "✅ Smoke tests passed."

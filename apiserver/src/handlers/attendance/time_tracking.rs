@@ -65,7 +65,7 @@ pub async fn get_time_history(
 }
 
 pub async fn update_time_entry(
-    Path(id): Path<Uuid>,
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<UpdateTimeEntryRequest>,
@@ -80,7 +80,7 @@ pub async fn update_time_entry(
 }
 
 pub async fn delete_time_entry(
-    Path(id): Path<Uuid>,
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<StatusCode> {
