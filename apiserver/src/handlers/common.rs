@@ -10,7 +10,6 @@ use axum::{
     http::request::Parts,
     Json,
 };
-use sqlx;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -161,16 +160,14 @@ where
         let mut permissions = permissions::effective_permissions(&roles);
 
         // 3. Fetch Active Extra Permissions (individual overrides)
-        let extra_perm_rows: Vec<(String,)> = sqlx::query_as(
-            "SELECT permission FROM workspace_member_extra_permissions WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW()",
-        )
-        .bind(workspace_id)
-        .bind(user_id)
-        .fetch_all(app_state.infra.db.api())
-        .await
-        .unwrap_or_default();
+        let extra_perms = app_state
+            .core
+            .workspace_repo
+            .find_extra_permissions(workspace_id, user_id)
+            .await
+            .unwrap_or_default();
 
-        for (perm_str,) in &extra_perm_rows {
+        for perm_str in &extra_perms {
             if let Some(perm) = permissions::Permission::from_str_permission(perm_str) {
                 permissions.insert(perm);
             }
@@ -186,21 +183,14 @@ where
         } else {
             // For TeamLead or normal members with extra permissions,
             // restrict their scope to the departments they belong to.
-            let depts: Vec<(Uuid,)> = sqlx::query_as(
-                r#"
-                SELECT DISTINCT edh.department_id 
-                FROM employees e
-                JOIN employee_department_history edh ON e.id = edh.employee_id
-                WHERE e.workspace_id = $1 AND e.user_id = $2
-                "#
-            )
-            .bind(workspace_id)
-            .bind(user_id)
-            .fetch_all(app_state.infra.db.api())
-            .await
-            .unwrap_or_default();
+            let depts = app_state
+                .employees
+                .repo
+                .get_managed_departments(workspace_id, user_id)
+                .await
+                .unwrap_or_default();
 
-            Some(depts.into_iter().map(|(id,)| id).collect())
+            Some(depts.into_iter().collect())
         };
 
         Ok(MemberContext {
@@ -238,24 +228,19 @@ where
         let app_state = Arc::<AppState>::from_ref(state);
 
         // Find employee linked to this user in this workspace
-        let employee = sqlx::query_as::<_, (Uuid,)>(
-            r#"
-            SELECT id FROM employees
-            WHERE user_id = $1 AND workspace_id = $2 AND is_active = true
-            "#,
-        )
-        .bind(user_id)
-        .bind(workspace_id)
-        .fetch_optional(app_state.infra.db.api())
-        .await
-        .map_err(AppError::Sqlx)?
-        .ok_or_else(|| {
-            AppError::Forbidden("No employee record linked to your account".to_string())
-        })?;
+        let employee_id = app_state
+            .employees
+            .repo
+            .get_employee_id_by_user_id(workspace_id, user_id)
+            .await
+            .map_err(AppError::Sqlx)?
+            .ok_or_else(|| {
+                AppError::Forbidden("No employee record linked to your account".to_string())
+            })?;
 
         Ok(EmployeeContext {
             user_id,
-            employee_id: employee.0,
+            employee_id,
             workspace_id,
         })
     }
