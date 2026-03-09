@@ -60,6 +60,7 @@ services:
       - RUSTC_WRAPPER=sccache
     tmpfs:
       - /workspace/target/nextest
+      - /workspace/target/debug/incremental
     volumes:
       - .:/workspace                        # Bind-mount source code from host
       - target-cache:/workspace/target      # Persistent: compiled artifacts survive restarts
@@ -90,6 +91,7 @@ services:
       - RUSTC_WRAPPER=sccache
     tmpfs:
       - /workspace/target/nextest
+      - /workspace/target/debug/incremental
     volumes:
       - .:/workspace
       - target-cache:/workspace/target
