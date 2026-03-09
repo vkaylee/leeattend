@@ -192,6 +192,18 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<TurnoverAnalytics, sqlx::Error>;
+
+    async fn get_managed_departments(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Vec<Uuid>, sqlx::Error>;
+
+    async fn get_employee_id_by_user_id(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<Uuid>, sqlx::Error>;
 }
 
 // ---------------------------------------------------------------------------
@@ -468,6 +480,46 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         end_date: NaiveDate,
     ) -> Result<TurnoverAnalytics, sqlx::Error> {
         get_turnover_analytics(&self.pool, workspace_id, start_date, end_date).await
+    }
+
+    async fn get_managed_departments(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Vec<Uuid>, sqlx::Error> {
+        let depts: Vec<(Uuid,)> = sqlx::query_as(
+            r#"
+            SELECT DISTINCT edh.department_id 
+            FROM employees e
+            JOIN employee_department_history edh ON e.id = edh.employee_id
+            WHERE e.workspace_id = $1 AND e.user_id = $2
+            "#
+        )
+        .bind(workspace_id)
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(depts.into_iter().map(|(id,)| id).collect())
+    }
+
+    async fn get_employee_id_by_user_id(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Option<Uuid>, sqlx::Error> {
+        let employee: Option<(Uuid,)> = sqlx::query_as(
+            r#"
+            SELECT id FROM employees
+            WHERE user_id = $1 AND workspace_id = $2 AND is_active = true
+            "#,
+        )
+        .bind(user_id)
+        .bind(workspace_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(employee.map(|(id,)| id))
     }
 }
 

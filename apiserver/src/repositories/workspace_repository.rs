@@ -40,6 +40,11 @@ pub trait WorkspaceRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<MemberExtraRole>, String>;
+    async fn find_extra_permissions(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Vec<String>, String>;
 }
 
 pub struct SqlxWorkspaceRepository {
@@ -159,6 +164,23 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         .map_err(|e| e.to_string())?;
 
         Ok(roles)
+    }
+
+    async fn find_extra_permissions(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Vec<String>, String> {
+        let permissions: Vec<(String,)> = sqlx::query_as(
+            "SELECT permission FROM workspace_member_extra_permissions WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW()",
+        )
+        .bind(workspace_id)
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok(permissions.into_iter().map(|(p,)| p).collect())
     }
 }
 
