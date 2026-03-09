@@ -16,7 +16,7 @@ use crate::models::{
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::import_job_repository::ImportJobRepository;
-use crate::repositories::{employee_repository, EmployeeRepository, TimeEntryRepository};
+use crate::repositories::{employee, EmployeeRepository, TimeEntryRepository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::utils::normalize_employee_id;
 
@@ -625,7 +625,7 @@ impl AttendanceImportService {
             updated_at: Utc::now(),
         };
 
-        let inserted = employee_repository::create_employee_tx_skip_duplicates(&mut tx, &employee)
+        let inserted = employee::create_employee_tx_skip_duplicates(&mut tx, &employee)
             .await
             .map_err(|e| e.to_string())?;
 

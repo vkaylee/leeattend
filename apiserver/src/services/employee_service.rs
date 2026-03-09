@@ -9,7 +9,7 @@ use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmploymentPeriod,
     RehireEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
 };
-use crate::repositories::{employee_repository, user_repository, EmployeeRepository};
+use crate::repositories::{employee, user_repository, EmployeeRepository};
 use crate::utils::normalize_employee_id;
 
 pub struct EmployeeService {
@@ -126,7 +126,7 @@ impl EmployeeService {
 
         // Transaction-based creation still uses pool directly
         let mut tx = self.pool.begin().await.map_err(AppError::Sqlx)?;
-        employee_repository::create_employee_tx(&mut tx, &employee)
+        employee::create_employee_tx(&mut tx, &employee)
             .await
             .map_err(AppError::Sqlx)?;
         tx.commit().await.map_err(AppError::Sqlx)?;

@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 
 use crate::models::{LogSource, RawAttendanceLog};
-use crate::repositories::{employee_repository, raw_attendance_log_repository};
+use crate::repositories::{employee, raw_attendance_log_repository};
 use crate::services::pairing_service::PairingService;
 use crate::utils::datetime::parse_datetime_with_tz;
 
@@ -239,7 +239,7 @@ async fn process_batch(pool: &PgPool, pairing_service: &PairingService, batch: &
 /// Parse a raw log entry into a validated RawAttendanceLog
 async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedLogEntry, String> {
     // Resolve employee_id from employee_id_number
-    let employee = match employee_repository::find_by_number(
+    let employee = match employee::find_by_number(
         pool,
         entry.workspace_id,
         &entry.employee_id_number,

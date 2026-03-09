@@ -13,7 +13,7 @@ use crate::models::{
 };
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
-    employee_repository, SqlxWorkspaceRepository, TimeEntryRepository,
+    employee, SqlxWorkspaceRepository, TimeEntryRepository,
 };
 use crate::repositories::roster_repository::RosterRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
@@ -141,7 +141,7 @@ impl ReportService {
 
         // Daily report always uses ASC sort (no sort parameter exposed)
         let (paginated_employees, total_employees) =
-            employee_repository::get_paginated_employee_ids(
+            employee::get_paginated_employee_ids(
                 &self.pool,
                 workspace_id,
                 employee_ids.as_ref(),
@@ -397,7 +397,7 @@ impl ReportService {
         let sort_desc = matches!(sort, Some(AttendanceReportSort::NameDesc));
 
         let (paginated_employees, total_employees) =
-            employee_repository::get_paginated_employee_ids(
+            employee::get_paginated_employee_ids(
                 &self.pool,
                 workspace_id,
                 employee_ids.as_ref(),

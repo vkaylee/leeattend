@@ -13,7 +13,7 @@ use crate::queue::{
     DateRange, Job, JobMetadata, JobPayload, JobPriority, JobQueue, JobStatus, MergePayload, RedisPool,
     ReportConfig, ReportPayload, ReportType, TaskType,
 };
-use crate::repositories::employee_repository;
+use crate::repositories::employee;
 
 // Configuration constants for batch processing
 pub const BATCH_SIZE: usize = 50;
@@ -398,7 +398,7 @@ impl ReportCoordinator {
         workspace_id: Uuid,
         filter_ids: Option<&Vec<Uuid>>,
     ) -> Result<Vec<Uuid>, ReportError> {
-        employee_repository::get_active_employee_ids(&self.db, workspace_id, filter_ids)
+        employee::get_active_employee_ids(&self.db, workspace_id, filter_ids)
             .await
             .map_err(|e| ReportError::DatabaseError(e.to_string()))
     }

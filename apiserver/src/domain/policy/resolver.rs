@@ -26,7 +26,7 @@ impl PolicyResolver {
         date: NaiveDate,
     ) -> Result<StandardMonthConfig, sqlx::Error> {
         // 1. Check Individual Override (Highest Priority)
-        let emp_config = crate::repositories::employee_repository::get_employee_payroll_config_at(
+        let emp_config = crate::repositories::employee::get_employee_payroll_config_at(
             pool,
             employee_id,
             date,

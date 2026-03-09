@@ -2,7 +2,7 @@ use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::models::ImportJobStatus;
 use apiserver::repositories::{
-    employee_repository, import_job_repository, raw_attendance_log_repository,
+    employee, import_job_repository, raw_attendance_log_repository,
     staging_log_repository,
 };
 use apiserver::services::AttendanceImportService;
@@ -77,7 +77,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     assert!(job_finished, "Job timed out");
 
     // 3. Verify employee was created
-    let employee = employee_repository::get_employee_by_id_number(&pool, emp_id_number, ws_id)
+    let employee = employee::get_employee_by_id_number(&pool, emp_id_number, ws_id)
         .await?
         .ok_or("Employee should be created")?;
 

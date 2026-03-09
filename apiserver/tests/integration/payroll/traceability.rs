@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::repositories::{department_repository, employee_repository, payroll_repository};
+use apiserver::repositories::{department_repository, employee, payroll_repository};
 use apiserver::services::payroll_service::PayrollService;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
@@ -142,7 +142,7 @@ async fn test_payroll_std_days_source_traceability() {
     assert_eq!(segments_c[0].applied_std_days, Decimal::from(22));
 
     // 6. Scenario D: Individual Override
-    employee_repository::upsert_employee_payroll_config(
+    employee::upsert_employee_payroll_config(
         &pool,
         employee_id,
         Decimal::from(20),

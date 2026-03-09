@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::errors::AppError;
 use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
-use crate::repositories::employee_repository;
+use crate::repositories::employee;
 
 use crate::repositories::shift_repository;
 use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
@@ -33,7 +33,7 @@ impl TimeTrackingService {
         req: PunchInRequest,
     ) -> Result<TimeEntry, AppError> {
         // Verify employee belongs to workspace
-        let employee = employee_repository::get_employee_by_id(&self.pool, req.employee_id, workspace_id)
+        let employee = employee::get_employee_by_id(&self.pool, req.employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
@@ -131,7 +131,7 @@ impl TimeTrackingService {
         req: PunchOutRequest,
     ) -> Result<TimeEntry, AppError> {
         // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(&self.pool, employee_id, workspace_id)
+        let _ = employee::get_employee_by_id(&self.pool, employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
@@ -185,7 +185,7 @@ impl TimeTrackingService {
         end_date: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, AppError> {
         // Verify employee belongs to workspace
-        let _ = employee_repository::get_employee_by_id(&self.pool, employee_id, workspace_id)
+        let _ = employee::get_employee_by_id(&self.pool, employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
@@ -211,7 +211,7 @@ impl TimeTrackingService {
             .ok_or(AppError::NotFound("Time entry not found".into()))?;
 
         // Verify employee of this entry belongs to the workspace
-        let _ = employee_repository::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
+        let _ = employee::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::Forbidden("Employee does not belong to workspace".into()))?;
@@ -267,7 +267,7 @@ impl TimeTrackingService {
             .ok_or(AppError::NotFound("Time entry not found".into()))?;
 
         // Verify employee of this entry belongs to the workspace
-        let _ = employee_repository::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
+        let _ = employee::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::Forbidden("Employee does not belong to workspace".into()))?;

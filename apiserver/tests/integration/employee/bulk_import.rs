@@ -86,7 +86,7 @@ async fn test_upload_employee_csv_api() {
     assert!(completed, "Employee CSV Job did not complete");
 
     // Verify employees created
-    let emp1 = apiserver::repositories::employee_repository::get_employee_by_id_number(
+    let emp1 = apiserver::repositories::employee::get_employee_by_id_number(
         &factory.pool,
         "EMP001",
         ws_id,
@@ -97,7 +97,7 @@ async fn test_upload_employee_csv_api() {
     let emp1 = emp1.unwrap();
     assert_eq!(emp1.full_name, "John Doe");
 
-    let emp2 = apiserver::repositories::employee_repository::get_employee_by_id_number(
+    let emp2 = apiserver::repositories::employee::get_employee_by_id_number(
         &factory.pool,
         "EMP002",
         ws_id,
@@ -172,7 +172,7 @@ async fn test_upload_employee_duplicate_id_skips() {
     assert!(completed, "Job should have completed");
 
     // Verify "DUP001" is NOT updated
-    let emp_dup = apiserver::repositories::employee_repository::get_employee_by_id_number(
+    let emp_dup = apiserver::repositories::employee::get_employee_by_id_number(
         &factory.pool,
         "DUP001",
         ws_id,
@@ -183,7 +183,7 @@ async fn test_upload_employee_duplicate_id_skips() {
     assert_eq!(emp_dup.full_name, "Old Name");
 
     // Verify "NEW002" IS created
-    let emp_new = apiserver::repositories::employee_repository::get_employee_by_id_number(
+    let emp_new = apiserver::repositories::employee::get_employee_by_id_number(
         &factory.pool,
         "NEW002",
         ws_id,
