@@ -511,7 +511,10 @@ impl LeaveAccrualService {
                     if amount > 0.0 {
                         use rust_decimal::prelude::FromPrimitive;
                         let decimal_amount =
-                            rust_decimal::Decimal::from_f64(amount).unwrap_or_default();
+                            rust_decimal::Decimal::from_f64(amount).ok_or_else(|| {
+                                tracing::error!(amount, "Invalid f64 for leave accrual Decimal conversion");
+                                sqlx::Error::Protocol(format!("Cannot convert {amount} to Decimal"))
+                            })?;
 
                         // Check if a log already exists for this date/type/employee
                         let existing_log = sqlx::query!(

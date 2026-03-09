@@ -50,7 +50,7 @@ impl AttendanceMatcher {
         seg_units_per_day: Decimal,
         policy_cache: &mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
     ) -> SegmentAttendanceResult {
-        let employee_id = ctx.salary_history.first().map(|(c, _)| c.employee_id).unwrap_or_default();
+        let employee_id = ctx.employee_id;
         let workspace_id = ctx.workspace.id;
 
         let mut segment_std_units = 0i32;
@@ -181,7 +181,14 @@ impl AttendanceMatcher {
                                         let rules = if let Some(r) = policy_cache.get(&policy_id) {
                                             r.clone()
                                         } else {
-                                            let r = OvertimePolicyRepository::get_policy_with_rules(pool, workspace_id, policy_id).await.unwrap_or(None).map(|(_, rules)| rules).unwrap_or_default();
+                                            let r = match OvertimePolicyRepository::get_policy_with_rules(pool, workspace_id, policy_id).await {
+                                                Ok(Some((_, rules))) => rules,
+                                                Ok(None) => Vec::new(),
+                                                Err(e) => {
+                                                    tracing::warn!(policy_id = %policy_id, error = %e, "Failed to fetch OT policy rules, using empty rules");
+                                                    Vec::new()
+                                                }
+                                            };
                                             policy_cache.insert(policy_id, r.clone());
                                             r
                                         };

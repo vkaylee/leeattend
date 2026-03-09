@@ -96,7 +96,7 @@ impl FinancialCalculator {
     ) -> Result<IncentivesResult, AppError> {
         let active_policies = payroll_repository::get_active_incentive_policies(pool, workspace_id)
             .await
-            .unwrap_or_default();
+            .map_err(AppError::Sqlx)?;
         let mut incentive_results = Vec::new();
         let mut total_incentive_amount = Decimal::ZERO;
 
@@ -129,8 +129,8 @@ impl FinancialCalculator {
             for policy in active_policies {
                 let tiers = payroll_repository::get_policy_tiers(pool, policy.id)
                     .await
-                    .unwrap_or_default();
-                let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &context);
+                    .map_err(AppError::Sqlx)?;
+                let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &context)?;
                 if !res.amount.is_zero() {
                     total_incentive_amount += res.amount;
                     incentive_results.push(res);

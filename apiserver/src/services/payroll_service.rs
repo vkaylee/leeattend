@@ -38,6 +38,7 @@ pub struct PayrollService {
 /// All pre-fetched data required for payroll calculation.
 /// Constructed once by `fetch_context()` and passed to subsequent phases.
 pub struct PayrollContext {
+    pub(crate) employee_id: Uuid,
     pub(crate) workspace: crate::models::Workspace,
     pub(crate) tz: Tz,
     pub(crate) start_date: NaiveDate,
@@ -141,7 +142,7 @@ impl PayrollService {
             workspace_id, start_date, end_date,
         )
         .await
-        .unwrap_or_default();
+        .map_err(AppError::Sqlx)?;
 
         let roster_data = crate::cache::build_roster_data(pool, workspace_id)
             .await
@@ -184,6 +185,7 @@ impl PayrollService {
         }
 
         Ok(PayrollContext {
+            employee_id,
             workspace,
             tz,
             start_date,
@@ -510,6 +512,7 @@ mod tests {
         all_dept_history: Vec<crate::models::EmployeeDepartmentHistory>,
     ) -> PayrollContext {
         PayrollContext {
+            employee_id: Uuid::new_v4(),
             workspace: crate::models::Workspace {
                 id: Uuid::new_v4(),
                 name: "Test".into(),
