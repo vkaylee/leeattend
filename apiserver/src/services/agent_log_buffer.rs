@@ -272,18 +272,7 @@ async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedL
         )
     })?;
 
-    let punch = entry
-        .raw_data
-        .as_ref()
-        .and_then(|d| d["punch"].as_i64())
-        .map(|v| v as i32)
-        .unwrap_or(-1);
-    let status = entry
-        .raw_data
-        .as_ref()
-        .and_then(|d| d["status"].as_i64())
-        .map(|v| v as i32)
-        .unwrap_or(-1);
+    let (punch, status) = crate::services::attendance_utils::extract_punch_status(entry.raw_data.as_ref());
 
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),

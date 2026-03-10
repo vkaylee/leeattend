@@ -62,16 +62,9 @@ impl AttendanceLogService {
     }
 
     /// Extract punch/status from raw_data JSON, defaulting to -1.
+    /// Delegates to shared [`crate::services::attendance_utils::extract_punch_status`].
     fn extract_punch_status(raw_data: Option<&serde_json::Value>) -> (i32, i32) {
-        let punch = raw_data
-            .and_then(|d| d["punch"].as_i64())
-            .map(|v| v as i32)
-            .unwrap_or(-1);
-        let status = raw_data
-            .and_then(|d| d["status"].as_i64())
-            .map(|v| v as i32)
-            .unwrap_or(-1);
-        (punch, status)
+        crate::services::attendance_utils::extract_punch_status(raw_data)
     }
 
     /// Calculate fingerprint for deduplication.

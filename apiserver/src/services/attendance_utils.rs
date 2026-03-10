@@ -154,6 +154,26 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
 }
 
 // ---------------------------------------------------------------------------
+// extract_punch_status — shared punch/status extraction from raw_data
+// ---------------------------------------------------------------------------
+
+/// Extract punch/status from raw_data JSON, defaulting to -1.
+///
+/// Used by `attendance_log_service.rs` and `agent_log_buffer.rs` to extract
+/// punch mode and status from the device-provided raw JSON data.
+pub fn extract_punch_status(raw_data: Option<&serde_json::Value>) -> (i32, i32) {
+    let punch = raw_data
+        .and_then(|d| d["punch"].as_i64())
+        .map(|v| v as i32)
+        .unwrap_or(-1);
+    let status = raw_data
+        .and_then(|d| d["status"].as_i64())
+        .map(|v| v as i32)
+        .unwrap_or(-1);
+    (punch, status)
+}
+
+// ---------------------------------------------------------------------------
 // date_range_to_utc — convert NaiveDate range to UTC DateTime range
 // ---------------------------------------------------------------------------
 
