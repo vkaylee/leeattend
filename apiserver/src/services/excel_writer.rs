@@ -1113,4 +1113,31 @@ mod tests {
         let text = format!("{}{}/{}/{}/{}", prefix, fmt_h(std_h), fmt_h(0.5), fmt_h(0.0), fmt_h(0.0));
         assert_eq!(text, "FX7.5/0.5/0/0");
     }
+
+    // --- format_time / format_datetime tests ---
+
+    #[test]
+    fn test_format_time_some() {
+        let t = NaiveTime::from_hms_opt(8, 30, 0);
+        assert_eq!(format_time(t), "08:30");
+    }
+
+    #[test]
+    fn test_format_time_none() {
+        assert_eq!(format_time(None), "");
+    }
+
+    #[test]
+    fn test_format_datetime_some() {
+        use chrono::TimeZone;
+        let dt = chrono::Utc.with_ymd_and_hms(2026, 3, 1, 1, 30, 0).single();
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap(); // UTC+7
+        assert_eq!(format_datetime(dt, tz), "08:30"); // 01:30 UTC = 08:30 VN
+    }
+
+    #[test]
+    fn test_format_datetime_none() {
+        let tz: Tz = "UTC".parse().unwrap();
+        assert_eq!(format_datetime(None, tz), "");
+    }
 }

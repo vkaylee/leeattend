@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tokio::task::JoinHandle;
 use std::time::Instant;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
@@ -101,7 +102,7 @@ impl Orchestrator {
         self.start_signature_eviction_worker();
 
         let mut semaphore = Arc::new(Semaphore::new(current_max_workers));
-        let mut worker_registry: HashMap<String, (WorkerConfig, CancellationToken)> = HashMap::new();
+        let mut worker_registry: HashMap<String, (WorkerConfig, CancellationToken, JoinHandle<()>)> = HashMap::new();
 
         let mut worker_ctx = WorkerContext {
             log_tx: log_tx.clone(),
@@ -126,11 +127,17 @@ impl Orchestrator {
                 }
                 _ = self.cancel_token.cancelled() => {
                     info!("Stopping orchestrator...");
-                    for (_id, (name_config, token)) in worker_registry.drain() {
+                    let mut handles = Vec::new();
+                    for (_id, (name_config, token, handle)) in worker_registry.drain() {
                         info!("⏹️ [{}] Stopping worker for shutdown", name_config.name);
                         token.cancel();
+                        handles.push(handle);
                     }
-                    sleep(Duration::from_secs(2)).await;
+                    // Wait for all workers to finish (with timeout)
+                    let _ = tokio::time::timeout(
+                        Duration::from_secs(5),
+                        futures::future::join_all(handles),
+                    ).await;
                     break;
                 }
             }
@@ -292,7 +299,7 @@ impl Orchestrator {
 
     fn load_initial_devices(
         &self, 
-        worker_registry: &mut HashMap<String, (WorkerConfig, CancellationToken)>,
+        worker_registry: &mut HashMap<String, (WorkerConfig, CancellationToken, JoinHandle<()>)>,
         worker_ctx: &WorkerContext,
         current_max_workers: usize
     ) {
@@ -306,8 +313,8 @@ impl Orchestrator {
                 for d in &devices {
                     let wc = to_worker_config(d);
                     let token = CancellationToken::new();
-                    spawn_worker(wc.clone(), worker_ctx.clone(), token.clone());
-                    worker_registry.insert(d.id.clone(), (wc, token));
+                    let handle = spawn_worker(wc.clone(), worker_ctx.clone(), token.clone());
+                    worker_registry.insert(d.id.clone(), (wc, token, handle));
                 }
             }
             Err(e) => {
@@ -319,7 +326,7 @@ impl Orchestrator {
     async fn handle_config_reload(
         &self,
         current_max_workers: &mut usize,
-        worker_registry: &mut HashMap<String, (WorkerConfig, CancellationToken)>,
+        worker_registry: &mut HashMap<String, (WorkerConfig, CancellationToken, JoinHandle<()>)>,
         worker_ctx: &mut WorkerContext,
         semaphore: &mut Arc<Semaphore>,
     ) {
@@ -330,11 +337,17 @@ impl Orchestrator {
         {
             info!("⚡ Max Workers changed: {} -> {new_val}. Full restart required.", current_max_workers);
             *current_max_workers = new_val;
-            for (id, (_, token)) in worker_registry.drain() {
+            let mut handles = Vec::new();
+            for (id, (_, token, handle)) in worker_registry.drain() {
                 info!("⏹️ [{id}] Stopping worker for semaphore resize");
                 token.cancel();
+                handles.push(handle);
             }
-            sleep(Duration::from_secs(2)).await;
+            // Wait for all workers to actually stop before resizing semaphore
+            let _ = tokio::time::timeout(
+                Duration::from_secs(5),
+                futures::future::join_all(handles),
+            ).await;
             *semaphore = Arc::new(Semaphore::new(*current_max_workers));
             worker_ctx.semaphore = semaphore.clone();
         }
@@ -356,10 +369,12 @@ impl Orchestrator {
         let old_ids: Vec<String> = worker_registry.keys().cloned().collect();
         for id in &old_ids {
             if !new_configs.contains_key(id)
-                && let Some((wc, token)) = worker_registry.remove(id)
+                && let Some((wc, token, handle)) = worker_registry.remove(id)
             {
                 info!("⏹️ [{}] Device removed/disabled, stopping worker", wc.name);
                 token.cancel();
+                // Wait for worker to fully stop before proceeding
+                let _ = tokio::time::timeout(Duration::from_secs(5), handle).await;
             }
         }
 
@@ -368,7 +383,7 @@ impl Orchestrator {
         let mut to_add: Vec<String> = Vec::new();
 
         for (id, new_config) in &new_configs {
-            if let Some((old_config, _)) = worker_registry.get(id) {
+            if let Some((old_config, _, _)) = worker_registry.get(id) {
                 if old_config.connection_changed(new_config) {
                     to_restart.push(id.clone());
                 }
@@ -377,16 +392,17 @@ impl Orchestrator {
             }
         }
 
-        // Apply: restart changed workers
+        // Apply: restart changed workers — await old worker shutdown before spawning new
         for id in &to_restart {
-            if let Some((_, old_token)) = worker_registry.remove(id) {
+            if let Some((_, old_token, old_handle)) = worker_registry.remove(id) {
                 old_token.cancel();
+                let _ = tokio::time::timeout(Duration::from_secs(5), old_handle).await;
             }
             let new_config = &new_configs[id];
             info!("🔄 [{}] Config changed (ip/port/brand/password), restarting worker", new_config.name);
             let token = CancellationToken::new();
-            spawn_worker(new_config.clone(), worker_ctx.clone(), token.clone());
-            worker_registry.insert(id.clone(), (new_config.clone(), token));
+            let handle = spawn_worker(new_config.clone(), worker_ctx.clone(), token.clone());
+            worker_registry.insert(id.clone(), (new_config.clone(), token, handle));
         }
 
         // Apply: spawn new devices
@@ -394,8 +410,8 @@ impl Orchestrator {
             let new_config = &new_configs[id];
             info!("➕ [{}] New device detected, spawning worker ({})", new_config.name, new_config.ip);
             let token = CancellationToken::new();
-            spawn_worker(new_config.clone(), worker_ctx.clone(), token.clone());
-            worker_registry.insert(id.clone(), (new_config.clone(), token));
+            let handle = spawn_worker(new_config.clone(), worker_ctx.clone(), token.clone());
+            worker_registry.insert(id.clone(), (new_config.clone(), token, handle));
         }
 
         info!("📡 Active workers: {}", worker_registry.len());
@@ -422,7 +438,7 @@ pub fn spawn_worker(
     config: WorkerConfig,
     ctx: WorkerContext,
     token: CancellationToken,
-) {
+) -> JoinHandle<()> {
     let worker_id = Arc::new(config.id.clone());
     let log_tx = ctx.log_tx;
     let hybrid_db = ctx.hybrid_db;
@@ -572,7 +588,10 @@ pub fn spawn_worker(
                     debug!("[{}] Skipping poll (cooldown: {} remaining) [interval: {}s]",
                           config.name, polling_state.skip_remaining, capped_interval);
                     drop(_permit);
-                    sleep(Duration::from_secs(capped_interval)).await;
+                    tokio::select! {
+                        _ = token.cancelled() => { break; }
+                        _ = sleep(Duration::from_secs(capped_interval)) => {}
+                    }
                     continue;
                 }
 
@@ -652,7 +671,12 @@ pub fn spawn_worker(
 
                 drop(_permit);
                 let capped_interval = std::cmp::min(polling_state.interval(), SESSION_SAFE_INTERVAL_SECS);
-                sleep(Duration::from_secs(capped_interval)).await;
+                // Cancel-aware sleep: respond to shutdown immediately instead of
+                // sleeping the full interval while new worker is waiting
+                tokio::select! {
+                    _ = token.cancelled() => { break; }
+                    _ = sleep(Duration::from_secs(capped_interval)) => {}
+                }
             }
 
             // Graceful disconnect — always, whether error or cancellation
@@ -674,5 +698,5 @@ pub fn spawn_worker(
         }
 
         info!("[{}] Worker stopped", config.name);
-    });
+    })
 }

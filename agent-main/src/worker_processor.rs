@@ -14,11 +14,12 @@ pub struct WorkerConfig {
 
 impl WorkerConfig {
     /// Returns true if connection-relevant fields changed (needs reconnect).
-    /// Name/timezone changes do NOT require reconnect.
+    /// Note: `use_legacy_checksum` is excluded because it's auto-detected and
+    /// persisted per-device — including it causes false restarts on every
+    /// ConfigPush after first connect (None→Some(detected) diff).
     pub fn connection_changed(&self, other: &WorkerConfig) -> bool {
         self.ip != other.ip || self.port != other.port
             || self.brand != other.brand || self.password != other.password
-            || self.use_legacy_checksum != other.use_legacy_checksum
     }
 }
 
@@ -62,9 +63,10 @@ mod tests {
         brand_changed.brand = "mock".into();
         assert!(base.connection_changed(&brand_changed));
 
-        // Legacy checksum changed → reconnect
+        // Legacy checksum changed → NO reconnect (excluded from comparison,
+        // auto-detected and persisted per-device)
         let mut checksum_changed = base.clone();
         checksum_changed.use_legacy_checksum = Some(true);
-        assert!(base.connection_changed(&checksum_changed));
+        assert!(!base.connection_changed(&checksum_changed));
     }
 }

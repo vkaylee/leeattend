@@ -410,3 +410,103 @@ pub async fn get_dev_super_user(
         "refresh_token": "dev_refresh_token"
     })))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- validate_password tests ---
+
+    #[test]
+    fn test_password_valid() {
+        assert!(validate_password("secure1pass").is_ok());
+        assert!(validate_password("my!secret8").is_ok());
+        assert!(validate_password("12345678").is_ok());
+    }
+
+    #[test]
+    fn test_password_too_short() {
+        assert!(validate_password("abc1").is_err());
+        assert!(validate_password("1234567").is_err());
+    }
+
+    #[test]
+    fn test_password_too_long() {
+        let long = "a1".repeat(65); // 130 chars > 128
+        assert!(validate_password(&long).is_err());
+    }
+
+    #[test]
+    fn test_password_no_digit_or_special() {
+        assert!(validate_password("abcdefghi").is_err());
+        assert!(validate_password("NoDigitsHere").is_err());
+    }
+
+    #[test]
+    fn test_password_special_char_accepted() {
+        assert!(validate_password("password!").is_ok());
+        assert!(validate_password("pass@wrd").is_ok());
+    }
+
+    #[test]
+    fn test_password_exactly_min_length() {
+        assert!(validate_password("abcdef1!").is_ok()); // 8 chars
+    }
+
+    // --- validate_email tests ---
+
+    #[test]
+    fn test_email_valid() {
+        assert!(validate_email("user@example.com").is_ok());
+        assert!(validate_email("a@b.co").is_ok());
+        assert!(validate_email("user+tag@sub.domain.com").is_ok());
+    }
+
+    #[test]
+    fn test_email_empty() {
+        assert!(validate_email("").is_err());
+        assert!(validate_email("   ").is_err());
+    }
+
+    #[test]
+    fn test_email_no_at() {
+        assert!(validate_email("userexample.com").is_err());
+    }
+
+    #[test]
+    fn test_email_no_dot_in_domain() {
+        assert!(validate_email("user@localhost").is_err());
+    }
+
+    #[test]
+    fn test_email_empty_local_part() {
+        assert!(validate_email("@example.com").is_err());
+    }
+
+    #[test]
+    fn test_email_domain_starts_with_dot() {
+        assert!(validate_email("user@.example.com").is_err());
+    }
+
+    #[test]
+    fn test_email_domain_ends_with_dot() {
+        assert!(validate_email("user@example.com.").is_err());
+    }
+
+    #[test]
+    fn test_email_consecutive_dots() {
+        assert!(validate_email("user@example..com").is_err());
+    }
+
+    #[test]
+    fn test_email_too_long_local() {
+        let local = "a".repeat(65);
+        assert!(validate_email(&format!("{local}@example.com")).is_err());
+    }
+
+    #[test]
+    fn test_email_too_long_total() {
+        let long_email = format!("{}@{}.com", "a".repeat(64), "b".repeat(200));
+        assert!(validate_email(&long_email).is_err());
+    }
+}
