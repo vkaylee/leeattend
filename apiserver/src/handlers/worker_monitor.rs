@@ -90,7 +90,7 @@ pub async fn get_monitor_overview(
     let stale_cutoff = now - TimeDelta::seconds(STALE_THRESHOLD_SECS);
 
     let (active_workers, idle_workers, workers) = if !worker_keys.is_empty() {
-        let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_default();
+        let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_else(|e| { tracing::warn!(error = %e, "Redis MGET failed for worker heartbeats"); vec![] });
         filter_stale_workers(values, stale_cutoff)
     } else {
         (0, 0, Vec::new())
@@ -100,7 +100,7 @@ pub async fn get_monitor_overview(
 
     // 5. Get recent job metadata
     let queue = crate::queue::JobQueue::new(redis.clone());
-    let recent_jobs = queue.list_recent_jobs(50).await.unwrap_or_default();
+    let recent_jobs = queue.list_recent_jobs(50).await.unwrap_or_else(|e| { tracing::warn!(error = %e, "Failed to list recent jobs"); vec![] });
 
     Ok(Json(MonitorOverviewResponse {
         pending_tasks,

@@ -68,8 +68,7 @@ pub async fn get_turnover_analytics(
     .bind(start_date)
     .bind(end_date)
     .fetch_all(pool)
-    .await
-    .unwrap_or_default();
+    .await?;
 
     // 3. By recruitment source
     #[derive(Debug, sqlx::FromRow)]
@@ -99,8 +98,7 @@ pub async fn get_turnover_analytics(
     .bind(start_date)
     .bind(end_date)
     .fetch_all(pool)
-    .await
-    .unwrap_or_default();
+    .await?;
 
     // 4. By department (latest department assignment before termination)
     #[derive(Debug, sqlx::FromRow)]
@@ -135,8 +133,7 @@ pub async fn get_turnover_analytics(
     .bind(start_date)
     .bind(end_date)
     .fetch_all(pool)
-    .await
-    .unwrap_or_default();
+    .await?;
 
     Ok(TurnoverAnalytics {
         tenure_distribution: tenure_rows

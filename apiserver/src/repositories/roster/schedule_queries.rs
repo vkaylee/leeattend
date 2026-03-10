@@ -60,8 +60,7 @@ pub async fn get_workspace_schedules(
     let holidays_map = HolidayRepository::get_holidays_in_range(
         pool, workspace_id, start_date, end_date,
     )
-    .await
-    .unwrap_or_default();
+    .await?;
 
     // 3. Fetch Rosters in range (per-request — date-bounded)
     let rosters = sqlx::query_as::<_, ShiftRoster>(
@@ -249,7 +248,7 @@ pub async fn get_effective_shift(
     .await?;
 
     if let Some(info) = employee_full {
-        let rules = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(pool, info.workspace_id).await.unwrap_or_default();
+        let rules = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(pool, info.workspace_id).await?;
 
         if !rules.is_empty() {
             // Pre-fetch pattern details for all active rules in one batch query

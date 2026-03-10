@@ -151,7 +151,10 @@ async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::que
                     total_batches: meta.total_batches,
                     total_records: 0,
                 };
-                let json = serde_json::to_string(&done_msg).unwrap_or_default();
+                let json = serde_json::to_string(&done_msg).unwrap_or_else(|e| {
+                    warn!(job_id = %job_id, error = %e, "Failed to serialize Done message");
+                    r#"{"type":"DONE"}"#.to_string()
+                });
                 let _ = sender.send(Message::Text(json)).await;
                 let _ = sender.close().await;
                 let _ = subscriber.close().await;
@@ -163,7 +166,10 @@ async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::que
                     message: meta.error_message.unwrap_or_else(|| "Job failed".into()),
                     batch_index: None,
                 };
-                let json = serde_json::to_string(&err_msg).unwrap_or_default();
+                let json = serde_json::to_string(&err_msg).unwrap_or_else(|e| {
+                    warn!(job_id = %job_id, error = %e, "Failed to serialize Error message");
+                    r#"{"type":"ERROR","message":"Job failed"}"#.to_string()
+                });
                 let _ = sender.send(Message::Text(json)).await;
                 let _ = sender.close().await;
                 let _ = subscriber.close().await;
@@ -264,4 +270,52 @@ async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::que
     // Abort forward task on client disconnect
     forward_task.abort();
     info!(job_id = %job_id, "Report stream connection closed");
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::queue::StreamMessage;
+
+    /// The hardcoded fallback JSON for Done must be valid JSON parseable as a generic object.
+    #[test]
+    fn test_done_fallback_json_is_valid() {
+        let fallback = r#"{"type":"DONE"}"#;
+        let parsed: serde_json::Value = serde_json::from_str(fallback)
+            .expect("Done fallback JSON must be valid");
+        assert_eq!(parsed["type"], "DONE");
+    }
+
+    /// The hardcoded fallback JSON for Error must be valid JSON with type and message fields.
+    #[test]
+    fn test_error_fallback_json_is_valid() {
+        let fallback = r#"{"type":"ERROR","message":"Job failed"}"#;
+        let parsed: serde_json::Value = serde_json::from_str(fallback)
+            .expect("Error fallback JSON must be valid");
+        assert_eq!(parsed["type"], "ERROR");
+        assert_eq!(parsed["message"], "Job failed");
+    }
+
+    /// Normal StreamMessage::Done serialization should always succeed.
+    #[test]
+    fn test_stream_message_done_serializes() {
+        let msg = StreamMessage::Done {
+            total_batches: 5,
+            total_records: 0,
+        };
+        let json = serde_json::to_string(&msg);
+        assert!(json.is_ok(), "Done serialization must not fail");
+        assert!(json.unwrap().contains("\"type\":\"DONE\""));
+    }
+
+    /// Normal StreamMessage::Error serialization should always succeed.
+    #[test]
+    fn test_stream_message_error_serializes() {
+        let msg = StreamMessage::Error {
+            message: "Job failed".to_string(),
+            batch_index: None,
+        };
+        let json = serde_json::to_string(&msg);
+        assert!(json.is_ok(), "Error serialization must not fail");
+        assert!(json.unwrap().contains("\"type\":\"ERROR\""));
+    }
 }

@@ -272,8 +272,10 @@ pub async fn create_payslip_incentive(
     payslip_id: Uuid,
     result: &IncentiveEvaluationResult,
 ) -> Result<(), sqlx::Error> {
-    let amount_f64 = result.amount.to_f64().unwrap_or_default();
-    let standard_amount_f64 = result.standard_amount.to_f64().unwrap_or_default();
+    let amount_f64 = result.amount.to_f64()
+        .ok_or_else(|| sqlx::Error::Protocol(format!("Decimal→f64 overflow for incentive amount: {}", result.amount)))?;
+    let standard_amount_f64 = result.standard_amount.to_f64()
+        .ok_or_else(|| sqlx::Error::Protocol(format!("Decimal→f64 overflow for standard_amount: {}", result.standard_amount)))?;
     sqlx::query(
         r#"INSERT INTO payslip_incentives (payslip_id, policy_name, amount, tier_id, standard_amount)
            VALUES ($1, $2, $3, $4, $5)"#,
@@ -299,15 +301,20 @@ pub async fn get_payslip_incentives(
     .fetch_all(pool)
     .await?;
 
-    Ok(rows
+    let results: Vec<IncentiveEvaluationResult> = rows
         .into_iter()
-        .map(|row| IncentiveEvaluationResult {
-            policy_name: row.get("policy_name"),
-            amount: Decimal::from_f64(row.get("amount")).unwrap_or_default(),
-            standard_amount: Decimal::from_f64(row.get("standard_amount")).unwrap_or_default(),
-            tier_id: row.get("tier_id"),
+        .map(|row| -> Result<IncentiveEvaluationResult, sqlx::Error> {
+            Ok(IncentiveEvaluationResult {
+                policy_name: row.get("policy_name"),
+                amount: Decimal::from_f64(row.get("amount"))
+                    .ok_or_else(|| sqlx::Error::Protocol("f64→Decimal conversion failed for incentive amount".into()))?,
+                standard_amount: Decimal::from_f64(row.get("standard_amount"))
+                    .ok_or_else(|| sqlx::Error::Protocol("f64→Decimal conversion failed for standard_amount".into()))?,
+                tier_id: row.get("tier_id"),
+            })
         })
-        .collect())
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(results)
 }
 
 pub async fn get_payroll_settings(
@@ -675,4 +682,110 @@ pub async fn get_payslip_segments(
 impl super::PoolBacked for SqlxPayrollRepository {
     fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
+}
+
+#[cfg(test)]
+mod tests {
+    use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+    use rust_decimal::Decimal;
+    use uuid::Uuid;
+
+    use crate::models::IncentiveEvaluationResult;
+
+    /// Normal Decimal values should convert to f64 successfully.
+    #[test]
+    fn test_decimal_to_f64_normal_values() {
+        let values = [
+            Decimal::ZERO,
+            Decimal::new(1_500_000_00, 2),  // 1,500,000.00
+            Decimal::new(999_999_99, 2),    // 9,999,99.99
+            Decimal::new(-500_00, 2),       // -500.00
+        ];
+        for val in values {
+            assert!(
+                val.to_f64().is_some(),
+                "Normal Decimal {:?} should convert to f64",
+                val
+            );
+        }
+    }
+
+    /// Decimal::MAX → f64 produces Infinity, which fails from_f64() roundtrip.
+    /// This is the exact error chain that previously produced silent 0₫ in payslips:
+    /// DB returns huge Decimal → to_f64() → Infinity → from_f64(Infinity) → None → 0₫
+    #[test]
+    fn test_decimal_max_roundtrip_fails() {
+        let huge = Decimal::MAX;
+        let as_f64 = huge.to_f64();
+        // to_f64 may succeed with Infinity
+        if let Some(f) = as_f64 {
+            // But from_f64(Infinity) must reject it
+            assert!(
+                Decimal::from_f64(f).is_none(),
+                "Decimal::MAX roundtrip via f64 should fail — this proves the error path matters"
+            );
+        }
+        // Either to_f64 returns None or the roundtrip fails — both exercise the error path
+    }
+
+    /// f64 NaN and Infinity cannot become Decimal → from_f64() returns None.
+    /// Without proper error handling, this would silently zero out a payslip amount.
+    #[test]
+    fn test_f64_nan_infinity_fail_to_decimal() {
+        assert!(Decimal::from_f64(f64::NAN).is_none(), "NaN must not silently become Decimal::ZERO");
+        assert!(Decimal::from_f64(f64::INFINITY).is_none(), "Infinity must not silently become Decimal::ZERO");
+        assert!(Decimal::from_f64(f64::NEG_INFINITY).is_none(), "Negative infinity must not silently become Decimal::ZERO");
+    }
+
+    /// Simulates the error path in `create_payslip_incentive` — ensures the
+    /// ok_or_else pattern produces a meaningful error message for debugging.
+    #[test]
+    fn test_create_payslip_incentive_decimal_validation_error_message() {
+        let result = IncentiveEvaluationResult {
+            policy_name: "Attendance Bonus".to_string(),
+            amount: Decimal::new(1_000_000_00, 2),
+            standard_amount: Decimal::new(1_000_000_00, 2),
+            tier_id: Some(Uuid::new_v4()),
+        };
+
+        // Normal case should succeed
+        let ok = result.amount.to_f64()
+            .ok_or_else(|| format!("Decimal→f64 overflow for incentive amount: {}", result.amount));
+        assert!(ok.is_ok(), "Normal Decimal should convert to f64");
+
+        // Verify the error message format for the f64→Decimal path (NaN from DB)
+        let err = Decimal::from_f64(f64::NAN)
+            .ok_or_else(|| "f64→Decimal conversion failed for incentive amount".to_string());
+        assert!(err.is_err(), "NaN should fail from_f64");
+        assert!(err.unwrap_err().contains("conversion failed"));
+    }
+
+    /// Validates that normal incentive amounts pass validation cleanly.
+    #[test]
+    fn test_create_payslip_incentive_normal_amounts_pass() {
+        let result = IncentiveEvaluationResult {
+            policy_name: "Monthly Bonus".to_string(),
+            amount: Decimal::new(5_000_000_00, 2),     // 5,000,000.00 VND
+            standard_amount: Decimal::new(5_000_000_00, 2),
+            tier_id: None,
+        };
+
+        assert!(result.amount.to_f64().is_some());
+        assert!(result.standard_amount.to_f64().is_some());
+    }
+
+    /// Validates the f64→Decimal roundtrip in `get_payslip_incentives`.
+    #[test]
+    fn test_f64_to_decimal_roundtrip_precision() {
+        let original = Decimal::new(1_234_567_89, 2); // 12,345,678.9
+        let as_f64 = original.to_f64().expect("normal conversion");
+        let back = Decimal::from_f64(as_f64).expect("roundtrip should work");
+
+        let diff = (original - back).abs();
+        assert!(
+            diff < Decimal::new(1, 2),
+            "Roundtrip precision loss too large: original={}, back={}, diff={}",
+            original, back, diff
+        );
+    }
 }

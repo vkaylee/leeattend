@@ -198,7 +198,7 @@ impl ReportService {
             &self.pool, workspace_id, start_date, end_date,
         )
         .await
-        .unwrap_or_default();
+        .map_err(AppError::Sqlx)?;
 
         // 5b. BATCH fetch OT claim statuses from attendance_daily_summaries
         let ot_status_rows = sqlx::query!(

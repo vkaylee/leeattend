@@ -96,20 +96,17 @@ pub async fn calculate_payroll(
     // Fetch segments and incentives
     let segments =
         state.payroll.repo.get_payslip_segments(payslip.id)
-            .await
-            .unwrap_or_default();
+            .await?;
     let incentives =
         state.payroll.repo.get_payslip_incentives(payslip.id)
-            .await
-            .unwrap_or_default();
+            .await?;
 
     // Fetch salary components at the period start date
     let salary_components =
         state.payroll.repo.get_employee_salary_components(workspace_id, employee_id,
             payslip.period_start,
         )
-        .await
-        .unwrap_or_default()
+        .await?
         .into_iter()
         .map(|(component, definition)| SalaryComponentWithDefinition {
             component,
@@ -153,20 +150,17 @@ pub async fn get_employee_payslips(
     for p in payslips {
         let segments =
             state.payroll.repo.get_payslip_segments(p.id)
-                .await
-                .unwrap_or_default();
+                .await?;
         let incentives =
             state.payroll.repo.get_payslip_incentives(p.id)
-                .await
-                .unwrap_or_default();
+                .await?;
 
         // Fetch salary components at the period start date
         let salary_components =
             state.payroll.repo.get_employee_salary_components(workspace_id, employee_id,
                 p.period_start,
             )
-            .await
-            .unwrap_or_default()
+            .await?
             .into_iter()
             .map(|(component, definition)| SalaryComponentWithDefinition {
                 component,

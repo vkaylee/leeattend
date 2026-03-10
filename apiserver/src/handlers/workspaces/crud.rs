@@ -109,7 +109,7 @@ pub async fn get_attendance_trend(
     .bind(workspace_id)
     .fetch_all(state.infra.db.reader())
     .await
-    .unwrap_or_default()
+    .unwrap_or_else(|e| { tracing::warn!(error = %e, "late detection query failed, degrading gracefully"); vec![] })
     .into_iter()
     .map(|r| (r.work_date, r.late_count))
     .collect();
@@ -227,7 +227,7 @@ pub async fn get_department_attendance(
     .bind(today)
     .fetch_all(state.infra.db.reader())
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| { tracing::warn!(error = %e, "present count query failed, degrading gracefully"); vec![] });
 
     let present_map: std::collections::HashMap<Uuid, i64> = present_rows
         .into_iter()
@@ -272,7 +272,7 @@ pub async fn get_department_attendance(
         .bind(today)
         .fetch_all(state.infra.db.reader())
         .await
-        .unwrap_or_default()
+        .unwrap_or_else(|e| { tracing::warn!(error = %e, "late detection query failed, degrading gracefully"); vec![] })
         .into_iter()
         .map(|r| (r.department_id, r.late_count))
         .collect()
@@ -310,7 +310,7 @@ pub async fn get_department_attendance(
     .bind(today)
     .fetch_all(state.infra.db.reader())
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| { tracing::warn!(error = %e, "leave count query failed, degrading gracefully"); vec![] });
 
     let leave_map: std::collections::HashMap<Uuid, i64> = leave_rows
         .into_iter()
@@ -607,7 +607,7 @@ pub async fn get_overtime_trend(
     .bind(today)
     .fetch_all(state.infra.db.reader())
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| { tracing::warn!(error = %e, "overtime trend query failed, degrading gracefully"); vec![] });
 
     let trend: Vec<OvertimeTrendPoint> = rows
         .into_iter()
@@ -862,7 +862,7 @@ pub async fn get_peak_times(
     .bind(workspace_id)
     .fetch_all(state.infra.db.reader())
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| { tracing::warn!(error = %e, "peak times query failed, degrading gracefully"); vec![] });
 
     let result: Vec<PeakTimeSlot> = rows
         .into_iter()
@@ -913,7 +913,7 @@ pub async fn get_leave_types_breakdown(
     .bind(workspace_id)
     .fetch_all(state.infra.db.reader())
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| { tracing::warn!(error = %e, "leave types query failed, degrading gracefully"); vec![] });
 
     let result: Vec<LeaveTypeBreakdown> = rows
         .into_iter()
@@ -998,7 +998,7 @@ pub async fn get_lateness_by_day(
     .bind(workspace_id)
     .fetch_all(state.infra.db.reader())
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|e| { tracing::warn!(error = %e, "lateness by day query failed, degrading gracefully"); vec![] });
 
     let day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
