@@ -74,7 +74,7 @@ pub async fn get_attendance_trend(
     .fetch_all(state.infra.db.reader())
     .await?;
 
-    // Late detection: separate query (roster_entries may not exist yet)
+    // Late detection: separate query (shift_rosters may not exist yet)
     #[derive(Debug, sqlx::FromRow)]
     struct LateRow {
         work_date: NaiveDate,
@@ -99,7 +99,7 @@ pub async fn get_attendance_trend(
         SELECT fp.work_date,
                COUNT(DISTINCT fp.employee_id) AS late_count
         FROM first_punches fp
-        JOIN roster_entries re ON re.employee_id = fp.employee_id AND re.date = fp.work_date
+        JOIN shift_rosters re ON re.employee_id = fp.employee_id AND re.date = fp.work_date
         JOIN shifts s ON s.id = re.shift_id
         WHERE fp.first_punch > (s.start_time + INTERVAL '5 minutes')
         GROUP BY fp.work_date
@@ -261,7 +261,7 @@ pub async fn get_department_attendance(
                    COUNT(DISTINCT fp.employee_id) AS late_count
             FROM first_punches fp
             JOIN latest_dept ld ON ld.employee_id = fp.employee_id
-            JOIN roster_entries re ON re.employee_id = fp.employee_id AND re.date = $3
+            JOIN shift_rosters re ON re.employee_id = fp.employee_id AND re.date = $3
             JOIN shifts s ON s.id = re.shift_id
             WHERE fp.first_punch::time > (s.start_time + INTERVAL '5 minutes')
             GROUP BY ld.department_id
@@ -720,7 +720,7 @@ pub async fn get_workspace_stats(
         ),
         scheduled AS (
             SELECT re.employee_id, s.start_time
-            FROM roster_entries re
+            FROM shift_rosters re
             JOIN shifts s ON re.shift_id = s.id
             WHERE re.date = $3
             AND re.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
@@ -750,7 +750,7 @@ pub async fn get_workspace_stats(
         ),
         scheduled AS (
             SELECT re.employee_id, s.end_time
-            FROM roster_entries re
+            FROM shift_rosters re
             JOIN shifts s ON re.shift_id = s.id
             WHERE re.date = $3
             AND re.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)

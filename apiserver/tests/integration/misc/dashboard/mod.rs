@@ -538,3 +538,409 @@ async fn test_unexcused_absences_includes_employees_without_department() {
     });
     assert!(has_employee_fields, "Expected employee fields in group_by=employee response");
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  5. Attendance Trend
+// ═══════════════════════════════════════════════════════════════════
+
+#[tokio::test]
+async fn test_attendance_trend_returns_30_days_data() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let res = client
+        .get(format!("{address}/api/dashboard/attendance-trend"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert_eq!(body.len(), 30, "Expected 30 days of trend data");
+
+    // Check structure: each point has date, present, late, absent, on_leave
+    for point in &body {
+        assert!(point["date"].is_string());
+        assert!(point["present"].is_number());
+        assert!(point["late"].is_number());
+        assert!(point["absent"].is_number());
+        assert!(point["on_leave"].is_number());
+    }
+
+    // With no employees, all counts should be zero
+    for point in &body {
+        assert_eq!(point["present"].as_i64().unwrap(), 0);
+        assert_eq!(point["late"].as_i64().unwrap(), 0);
+    }
+}
+
+#[tokio::test]
+async fn test_attendance_trend_includes_present_and_late() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let pool = _db.pool();
+
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .create()
+        .await;
+
+    let today = Utc::now().date_naive();
+
+    // Create shift 08:00-17:00 and assign via shift_rosters (direct roster entry)
+    let shift_id = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_times(
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+        )
+        .create()
+        .await;
+
+    // Insert into shift_rosters directly (the table that was fixed)
+    sqlx::query(
+        "INSERT INTO shift_rosters (employee_id, shift_id, date, status) VALUES ($1, $2, $3, 'confirmed')"
+    )
+    .bind(emp_id)
+    .bind(shift_id)
+    .bind(today)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    // Create a LATE punch-in (08:30, past 5-min grace)
+    let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
+    let punch_out = today.and_hms_opt(17, 0, 0).unwrap().and_utc();
+
+    factory
+        .time_entry()
+        .with_employee(emp_id)
+        .with_punch_in(punch_in)
+        .with_punch_out(punch_out)
+        .create()
+        .await;
+
+    let res = client
+        .get(format!("{address}/api/dashboard/attendance-trend"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert_eq!(body.len(), 30);
+
+    // Find today's entry — should have present=1 and late=1
+    let today_str = today.format("%Y-%m-%d").to_string();
+    let today_point = body.iter().find(|p| p["date"].as_str().unwrap() == today_str);
+    assert!(today_point.is_some(), "Expected today in trend data");
+    let today_point = today_point.unwrap();
+    assert_eq!(today_point["present"].as_i64().unwrap(), 1, "Expected 1 present");
+    assert_eq!(today_point["late"].as_i64().unwrap(), 1, "Expected 1 late (uses shift_rosters join)");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  6. Department Attendance
+// ═══════════════════════════════════════════════════════════════════
+
+#[tokio::test]
+async fn test_department_attendance_returns_empty_with_no_departments() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let res = client
+        .get(format!("{address}/api/dashboard/department-attendance"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert!(body.is_empty(), "Expected empty when no departments");
+}
+
+#[tokio::test]
+async fn test_department_attendance_returns_data_with_present_employees() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let pool = _db.pool();
+
+    let dept_id = factory.department().with_workspace(ws_id).create().await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let today = Utc::now().date_naive();
+
+    // Assign employee to department
+    sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, $3)")
+        .bind(emp_id)
+        .bind(dept_id)
+        .bind(today - Duration::days(30))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // Create time entry for today
+    let punch_in = today.and_hms_opt(8, 0, 0).unwrap().and_utc();
+    let punch_out = today.and_hms_opt(17, 0, 0).unwrap().and_utc();
+    factory
+        .time_entry()
+        .with_employee(emp_id)
+        .with_punch_in(punch_in)
+        .with_punch_out(punch_out)
+        .create()
+        .await;
+
+    let res = client
+        .get(format!("{address}/api/dashboard/department-attendance"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert!(!body.is_empty(), "Expected department attendance data");
+
+    // Check structure
+    for item in &body {
+        assert!(item["department_id"].is_string());
+        assert!(item["department_name"].is_string());
+        assert!(item["on_time"].is_number());
+        assert!(item["late"].is_number());
+        assert!(item["absent"].is_number());
+        assert!(item["on_leave"].is_number());
+    }
+
+    // The employee should show as on_time (no shift_rosters entry → late=0, on_time=present)
+    let total_on_time: i64 = body.iter().map(|i| i["on_time"].as_i64().unwrap()).sum();
+    assert!(total_on_time >= 1, "Expected at least 1 on_time, got {total_on_time}");
+}
+
+#[tokio::test]
+async fn test_department_attendance_supports_week_range() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let res = client
+        .get(format!("{address}/api/dashboard/department-attendance?range=week"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let _body: Vec<serde_json::Value> = res.json().await.unwrap();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  7. Workspace Stats
+// ═══════════════════════════════════════════════════════════════════
+
+#[tokio::test]
+async fn test_workspace_stats_returns_all_fields() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let res = client
+        .get(format!("{address}/api/dashboard/workspace-stats"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: serde_json::Value = res.json().await.unwrap();
+
+    // All expected fields should be present
+    assert!(body["total_employees"].is_number());
+    assert!(body["present_today"].is_number());
+    assert!(body["pending_leave_requests"].is_number());
+    assert!(body["estimated_monthly_payroll"].is_string() || body["estimated_monthly_payroll"].is_number());
+    assert!(body["late_today"].is_number());
+    assert!(body["absent_today"].is_number());
+    assert!(body["on_leave_today"].is_number());
+    assert!(body["early_departure_today"].is_number());
+    assert!(body["avg_work_hours_today"].is_number());
+
+    // With no employees, all counts should be zero
+    assert_eq!(body["total_employees"].as_i64().unwrap(), 0);
+    assert_eq!(body["present_today"].as_i64().unwrap(), 0);
+}
+
+#[tokio::test]
+async fn test_workspace_stats_counts_present_and_absent() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    // Create 2 employees
+    let emp1 = factory.employee().with_workspace(ws_id).create().await;
+    let _emp2 = factory.employee().with_workspace(ws_id).create().await;
+
+    // Only emp1 punches in today
+    let today = Utc::now().date_naive();
+    let punch_in = today.and_hms_opt(8, 0, 0).unwrap().and_utc();
+    factory
+        .time_entry()
+        .with_employee(emp1)
+        .with_punch_in(punch_in)
+        .create()
+        .await;
+
+    let res = client
+        .get(format!("{address}/api/dashboard/workspace-stats"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(body["total_employees"].as_i64().unwrap(), 2);
+    assert_eq!(body["present_today"].as_i64().unwrap(), 1);
+    assert_eq!(body["absent_today"].as_i64().unwrap(), 1);
+}
+
+#[tokio::test]
+async fn test_workspace_stats_detects_late_today() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let pool = _db.pool();
+
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let today = Utc::now().date_naive();
+
+    // Create shift and assign via shift_rosters (the fixed table)
+    let shift_id = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_times(
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+        )
+        .create()
+        .await;
+
+    sqlx::query(
+        "INSERT INTO shift_rosters (employee_id, shift_id, date, status) VALUES ($1, $2, $3, 'confirmed')"
+    )
+    .bind(emp_id)
+    .bind(shift_id)
+    .bind(today)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    // Late punch-in at 08:30 (past 5-min grace)
+    let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
+    factory
+        .time_entry()
+        .with_employee(emp_id)
+        .with_punch_in(punch_in)
+        .create()
+        .await;
+
+    let res = client
+        .get(format!("{address}/api/dashboard/workspace-stats"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(body["present_today"].as_i64().unwrap(), 1);
+    assert_eq!(
+        body["late_today"].as_i64().unwrap(), 1,
+        "Expected late_today=1 (exercises shift_rosters join)"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  8. Overtime Trend
+// ═══════════════════════════════════════════════════════════════════
+
+#[tokio::test]
+async fn test_overtime_trend_returns_empty_with_no_data() {
+    let (address, ws_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let res = client
+        .get(format!("{address}/api/dashboard/overtime-trend"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert!(body.is_empty(), "Expected empty when no attendance summaries");
+}
+
+#[tokio::test]
+async fn test_overtime_trend_returns_correct_structure() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let pool = _db.pool();
+
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let today = Utc::now().date_naive();
+
+    // Insert a summary row with overtime data
+    sqlx::query(
+        r#"INSERT INTO attendance_daily_summaries
+           (workspace_id, employee_id, date, system_detected_ot_minutes, approved_ot_minutes)
+           VALUES ($1, $2, $3, 60, 30)"#,
+    )
+    .bind(ws_id)
+    .bind(emp_id)
+    .bind(today)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let res = client
+        .get(format!("{address}/api/dashboard/overtime-trend"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert!(!body.is_empty(), "Expected overtime data");
+
+    let point = &body[0];
+    assert!(point["date"].is_string());
+    assert!(point["system_ot_hours"].is_number());
+    assert!(point["approved_ot_hours"].is_number());
+
+    // 60 min = 1.0 hours, 30 min = 0.5 hours
+    let system_ot = point["system_ot_hours"].as_f64().unwrap();
+    let approved_ot = point["approved_ot_hours"].as_f64().unwrap();
+    assert!((system_ot - 1.0).abs() < 0.01, "Expected system_ot_hours=1.0, got {system_ot}");
+    assert!((approved_ot - 0.5).abs() < 0.01, "Expected approved_ot_hours=0.5, got {approved_ot}");
+}
