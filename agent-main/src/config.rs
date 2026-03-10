@@ -17,6 +17,8 @@ pub struct Config {
     pub inflight_timeout_secs: u64,
     /// Number of poll cycles to skip after successful log fetch (TTL cooldown)
     pub success_skip_polls: u32,
+    /// Max seconds a device connection stays open before forced reconnect
+    pub connection_max_lifetime_secs: u64,
 }
 
 impl Config {
@@ -78,6 +80,11 @@ impl Config {
             .parse()
             .unwrap_or(60);
 
+        let connection_max_lifetime_secs = env::var("CONNECTION_MAX_LIFETIME_SECS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(1800);
+
         if !fallbacks.is_empty() {
             warn!("⚠️  PHÁT HIỆN THIẾU CẤU HÌNH .ENV - SỬ DỤNG GIÁ TRỊ MẶC ĐỊNH:");
             for f in fallbacks {
@@ -98,6 +105,7 @@ impl Config {
             signature_cleanup_hours,
             inflight_timeout_secs,
             success_skip_polls,
+            connection_max_lifetime_secs,
         }
     }
 
@@ -121,6 +129,7 @@ impl Config {
         info!("Signature Cleanup  : every {}h", self.signature_cleanup_hours);
         info!("Inflight Timeout   : {}s", self.inflight_timeout_secs);
         info!("Success Skip Polls : {} cycles", self.success_skip_polls);
+        info!("Connection Lifetime: {}s ({} min)", self.connection_max_lifetime_secs, self.connection_max_lifetime_secs / 60);
         info!("------------------------------------------------------------");
         info!("🔄 RETRY & BACKOFF CONSTANTS");
         info!("------------------------------------------------------------");
@@ -155,6 +164,7 @@ mod tests {
             signature_cleanup_hours: 24,
             inflight_timeout_secs: 300,
             success_skip_polls: 60,
+            connection_max_lifetime_secs: 1800,
         };
 
         assert_eq!(config.agent_id, "test-agent");
@@ -168,6 +178,7 @@ mod tests {
         assert_eq!(config.signature_cleanup_hours, 24);
         assert_eq!(config.inflight_timeout_secs, 300);
         assert_eq!(config.success_skip_polls, 60);
+        assert_eq!(config.connection_max_lifetime_secs, 1800);
     }
 
     #[test]
@@ -187,6 +198,7 @@ mod tests {
             std::env::set_var("SIGNATURE_CLEANUP_HOURS", "12");
             std::env::set_var("INFLIGHT_TIMEOUT_SECS", "600");
             std::env::set_var("SUCCESS_SKIP_POLLS", "5");
+            std::env::set_var("CONNECTION_MAX_LIFETIME_SECS", "900");
         }
 
         let config = Config::load();
@@ -202,6 +214,7 @@ mod tests {
         assert_eq!(config.signature_cleanup_hours, 12);
         assert_eq!(config.inflight_timeout_secs, 600);
         assert_eq!(config.success_skip_polls, 5);
+        assert_eq!(config.connection_max_lifetime_secs, 900);
 
         // Cleanup
         unsafe {
@@ -216,6 +229,7 @@ mod tests {
             std::env::remove_var("SIGNATURE_CLEANUP_HOURS");
             std::env::remove_var("INFLIGHT_TIMEOUT_SECS");
             std::env::remove_var("SUCCESS_SKIP_POLLS");
+            std::env::remove_var("CONNECTION_MAX_LIFETIME_SECS");
         }
     }
 
@@ -282,6 +296,7 @@ mod tests {
             signature_cleanup_hours: 24,
             inflight_timeout_secs: 300,
             success_skip_polls: 60,
+            connection_max_lifetime_secs: 1800,
         };
 
         // Should not panic

@@ -53,6 +53,10 @@ impl Worker for MockWorker {
         }))
     }
 
+    async fn ping(&mut self) -> bool {
+        true // Mock is always "connected"
+    }
+
     async fn disconnect(&mut self) {
         // No-op for mock workers — no real connection to release
     }
@@ -72,5 +76,17 @@ mod tests {
         assert_eq!(info["logs_capacity"], 10000);
         assert!(info["device_time"].is_string());
         assert_ne!(info["device_time"], "N/A");
+    }
+
+    #[tokio::test]
+    async fn test_mock_worker_ping_always_true() {
+        let mut worker = MockWorker::new();
+        assert!(worker.ping().await, "MockWorker ping should always return true");
+    }
+
+    #[tokio::test]
+    async fn test_mock_worker_disconnect_no_panic() {
+        let mut worker = MockWorker::new();
+        worker.disconnect().await; // Should be a no-op, no panic
     }
 }

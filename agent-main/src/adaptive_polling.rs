@@ -3,7 +3,7 @@
 
 /// Polling interval configuration
 pub const BASE_POLL_INTERVAL_SECS: u64 = 5;
-pub const MAX_POLL_INTERVAL_SECS: u64 = 60;
+pub const MAX_POLL_INTERVAL_SECS: u64 = 45;
 const ESCALATION_THRESHOLD: u32 = 3;
 
 /// Default number of poll cycles to skip after a successful fetch with new data.
@@ -149,9 +149,9 @@ mod tests {
         // Poll 3: escalate 5->10 (consecutive=3, >= threshold)
         // Poll 4: escalate 10->20 (consecutive=4, >= threshold)
         // Poll 5: escalate 20->40 (consecutive=5, >= threshold)
-        // Poll 6: escalate 40->60 (consecutive=6, >= threshold, hit max)
-        // Poll 7+: stay at 60 (max capped)
-        let expected_intervals = [5, 5, 10, 20, 40, 60, 60, 60];
+        // Poll 6: escalate 40->45 (consecutive=6, >= threshold, hit max)
+        // Poll 7+: stay at 45 (max capped)
+        let expected_intervals = [5, 5, 10, 20, 40, 45, 45, 45];
 
         for (i, &expected) in expected_intervals.iter().enumerate() {
             state.update(false);
@@ -296,5 +296,29 @@ mod tests {
     fn test_custom_skip_polls_value() {
         let state = AdaptivePollingState::with_skip_polls(5);
         assert_eq!(state.skip_polls_config, 5);
+    }
+
+    /// Verify MAX_POLL_INTERVAL_SECS is set to 45s.
+    /// This value must stay below typical ZK device UDP session timeout (~60s)
+    /// to prevent silent session loss during adaptive polling.
+    #[test]
+    fn test_max_poll_interval_below_udp_session_timeout() {
+        assert_eq!(MAX_POLL_INTERVAL_SECS, 45, "MAX_POLL_INTERVAL must be 45s (below ZK UDP session timeout)");
+        assert!(MAX_POLL_INTERVAL_SECS < 60, "MAX_POLL_INTERVAL must be below 60s UDP session timeout");
+    }
+
+    /// Verify that escalation progression reaches exactly 45s and never exceeds it.
+    /// This is critical for preventing UDP session timeouts on ZK devices.
+    #[test]
+    fn test_escalation_never_exceeds_session_safe_limit() {
+        let mut state = AdaptivePollingState::new();
+
+        // Run many no-data polls
+        for _ in 0..50 {
+            state.update(false);
+        }
+
+        // Must cap at MAX_POLL_INTERVAL_SECS = 45
+        assert_eq!(state.interval(), 45, "Interval must cap at 45s, not higher");
     }
 }

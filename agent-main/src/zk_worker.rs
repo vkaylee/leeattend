@@ -123,8 +123,12 @@ impl Worker for ZkWorker {
                 Err(Box::new(ZkError { message: msg }))
             },
             Err(_) => {
+                // TIMEOUT — blocking thread still running with ZK instance.
+                // Abort it so the ZK gets dropped (triggers rustzk cleanup).
+                // Note: spawn_blocking tasks cannot be truly aborted, but
+                // the ZK will be dropped when the thread eventually finishes.
+                warn!("⚠️ [{ip}] Connection timed out after 20s — blocking thread may still be running");
                 let msg = format!("❌ [{ip}] Connection timed out after 20s");
-                warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
             }
         }
@@ -181,16 +185,24 @@ impl Worker for ZkWorker {
             }
             Err(_) => {
                 // TIMEOUT — blocking thread still holds mutex lock.
-                // Spawn cleanup task that waits for lock then force-disconnects.
+                // Instead of spawning a cleanup task (which races with outer disconnect()),
+                // we clear the ZK instance here. The outer loop will call disconnect()
+                // which will see None and no-op, avoiding the race condition.
+                // The blocking thread will eventually finish and release the lock.
                 let cleanup_arc = self.zk.clone();
                 let cleanup_ip = self.ip.clone();
                 tokio::task::spawn_blocking(move || {
+                    // Wait for blocking thread to release lock, then take & disconnect
                     if let Ok(mut guard) = cleanup_arc.lock()
                         && let Some(mut zk) = guard.take() {
-                            warn!("[{cleanup_ip}] Force-disconnecting after get_logs timeout (300s)...");
+                            warn!("[{cleanup_ip}] Force-disconnecting after get_logs timeout (300s)");
                             let _ = zk.disconnect();
                         }
                 });
+                // Mark our local ZK as gone so outer disconnect() is a no-op
+                if let Ok(mut guard) = self.zk.try_lock() {
+                    let _ = guard.take();
+                }
                 let msg = format!("[{ip}] Getting logs timed out after 300s — force-disconnect scheduled");
                 warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
@@ -279,19 +291,60 @@ impl Worker for ZkWorker {
                 message: format!("[{ip}] Task join error during get_info: {e}"),
             })),
             Err(_) => {
-                // TIMEOUT — spawn cleanup task to force-disconnect
+                // TIMEOUT — blocking thread still holds mutex lock.
+                // Spawn cleanup that waits for lock release, then disconnects.
                 let cleanup_arc = self.zk.clone();
                 let cleanup_ip = self.ip.clone();
                 tokio::task::spawn_blocking(move || {
                     if let Ok(mut guard) = cleanup_arc.lock()
                         && let Some(mut zk) = guard.take() {
-                            warn!("[{cleanup_ip}] Force-disconnecting after get_info timeout (30s)...");
+                            warn!("[{cleanup_ip}] Force-disconnecting after get_info timeout (30s)");
                             let _ = zk.disconnect();
                         }
                 });
+                // Try to clear local ZK so outer disconnect() is a no-op
+                if let Ok(mut guard) = self.zk.try_lock() {
+                    let _ = guard.take();
+                }
                 let msg = format!("[{ip}] Getting device info timed out after 30s — force-disconnect scheduled");
                 warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
+            }
+        }
+    }
+
+    async fn ping(&mut self) -> bool {
+        let zk_arc = self.zk.clone();
+        let ip = self.ip.clone();
+
+        // Quick check: if ZK is already gone, no point pinging
+        if let Ok(guard) = self.zk.try_lock()
+            && guard.is_none()
+        {
+            return false;
+        }
+
+        let join_handle = tokio::task::spawn_blocking(move || {
+            let mut guard = zk_arc.lock().map_err(|_| "Mutex poisoned")?;
+            let zk = guard.as_mut().ok_or("Device not connected")?;
+            // Use get_time() as a lightweight probe — it's a single UDP roundtrip
+            zk.get_time().map_err(|e| format!("{e}"))?;
+            Ok::<_, String>(())
+        });
+
+        match tokio::time::timeout(Duration::from_secs(5), join_handle).await {
+            Ok(Ok(Ok(()))) => true,
+            Ok(Ok(Err(e))) => {
+                debug!("[{ip}] Ping failed: {e}");
+                false
+            }
+            Ok(Err(e)) => {
+                debug!("[{ip}] Ping task error: {e}");
+                false
+            }
+            Err(_) => {
+                warn!("[{ip}] Ping timed out after 5s — connection likely dead");
+                false
             }
         }
     }

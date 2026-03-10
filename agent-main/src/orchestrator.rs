@@ -31,6 +31,7 @@ pub struct WorkerContext {
     pub success_skip_polls: u32,
     pub device_locks: DeviceLocks,
     pub time_sync: Arc<crate::time_sync::TimeSync>,
+    pub connection_max_lifetime_secs: u64,
 }
 
 pub struct Orchestrator {
@@ -107,6 +108,7 @@ impl Orchestrator {
             success_skip_polls: self.config.success_skip_polls,
             device_locks: device_locks.clone(),
             time_sync: time_sync.clone(),
+            connection_max_lifetime_secs: self.config.connection_max_lifetime_secs,
         };
 
         // Initial device load
@@ -409,6 +411,9 @@ fn to_worker_config(d: &crate::redb_store::StoredDevice) -> WorkerConfig {
     }
 }
 
+/// Maximum poll interval to stay below typical ZK device UDP session timeout (~60s).
+const SESSION_SAFE_INTERVAL_SECS: u64 = 45;
+
 pub fn spawn_worker(
     config: WorkerConfig,
     ctx: WorkerContext,
@@ -420,6 +425,7 @@ pub fn spawn_worker(
     let sem = ctx.semaphore;
     let success_skip_polls = ctx.success_skip_polls;
     let device_locks = ctx.device_locks;
+    let connection_max_lifetime = ctx.connection_max_lifetime_secs;
 
     tokio::spawn(async move {
         info!("[{}] Device Polling Loop started ({})", config.name, config.ip);
@@ -449,6 +455,13 @@ pub fn spawn_worker(
                 }
             };
 
+            // Device lock covers connect + initial get_info to prevent
+            // commands from racing with the connection setup phase.
+            let connect_device_lock = device_locks.entry(config.id.clone())
+                .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+                .clone();
+            let _connect_device_guard = connect_device_lock.lock().await;
+
             let mut worker_impl: Box<dyn Worker> = if config.brand == "mock" {
                 Box::new(mock_worker::MockWorker::new())
             } else {
@@ -460,6 +473,7 @@ pub fn spawn_worker(
 
             if let Err(e) = worker_impl.connect(&config.ip, config.port as u16).await {
                 error!("[{}] Device connection failed: {}", config.name, e);
+                drop(_connect_device_guard);
                 drop(_connect_permit);
                 retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                 continue;
@@ -472,13 +486,16 @@ pub fn spawn_worker(
                 Err(e) => {
                     warn!("[{}] Initial get_info failed: {}, disconnecting and retrying...", config.name, e);
                     worker_impl.disconnect().await;
+                    drop(_connect_device_guard);
                     drop(_connect_permit);
                     retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                     continue;
                 }
             }
 
-            // Connection + initial get_info succeeded — release connect permit.
+            // Connection + initial get_info succeeded — release connect-phase guards.
+            let connected_at = Instant::now();
+            drop(_connect_device_guard);
             drop(_connect_permit);
 
             let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
@@ -488,6 +505,13 @@ pub fn spawn_worker(
             let mut poll_count = 0;
 
             while !token.is_cancelled() {
+                // Check connection lifetime — force reconnect if exceeded
+                if connected_at.elapsed() >= Duration::from_secs(connection_max_lifetime) {
+                    info!("[{}] Connection lifetime exceeded ({}s), reconnecting...",
+                          config.name, connection_max_lifetime);
+                    break;
+                }
+
                 let _permit = match sem.acquire().await {
                     Ok(p) => p,
                     Err(_) => {
@@ -522,11 +546,18 @@ pub fn spawn_worker(
 
                 // TTL skip: if cooldown is active after a successful fetch, skip this poll cycle
                 if polling_state.should_skip() {
+                    let capped_interval = std::cmp::min(polling_state.interval(), SESSION_SAFE_INTERVAL_SECS);
                     debug!("[{}] Skipping poll (cooldown: {} remaining) [interval: {}s]",
-                          config.name, polling_state.skip_remaining, polling_state.interval());
+                          config.name, polling_state.skip_remaining, capped_interval);
                     drop(_permit);
-                    sleep(Duration::from_secs(polling_state.interval())).await;
+                    sleep(Duration::from_secs(capped_interval)).await;
                     continue;
+                }
+
+                // Heartbeat: lightweight ping before heavy fetch to detect silent UDP loss
+                if !worker_impl.ping().await {
+                    warn!("[{}] Heartbeat ping failed, connection lost — reconnecting...", config.name);
+                    break;
                 }
 
                 match worker_impl.get_attendance_logs().await {
@@ -598,7 +629,8 @@ pub fn spawn_worker(
                 }
 
                 drop(_permit);
-                sleep(Duration::from_secs(polling_state.interval())).await;
+                let capped_interval = std::cmp::min(polling_state.interval(), SESSION_SAFE_INTERVAL_SECS);
+                sleep(Duration::from_secs(capped_interval)).await;
             }
 
             // Graceful disconnect — always, whether error or cancellation

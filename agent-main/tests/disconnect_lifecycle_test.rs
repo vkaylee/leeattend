@@ -78,3 +78,82 @@ async fn test_operations_after_disconnect_on_mock() {
     let result = worker.get_info(&time_sync).await;
     assert!(result.is_ok(), "MockWorker should still return data (stateless)");
 }
+
+// === Ping Lifecycle Tests ===
+
+/// Test that ping() returns true on a connected MockWorker.
+/// This validates the basic trait contract for heartbeat probes.
+#[tokio::test]
+async fn test_mock_worker_ping_returns_true() {
+    let mut worker = MockWorker::new();
+    worker.connect("127.0.0.1", 4370).await.unwrap();
+    
+    assert!(worker.ping().await, "MockWorker ping should always return true");
+}
+
+/// Test that ping() is safe to call before connect.
+/// MockWorker is stateless, so this should succeed.
+#[tokio::test]
+async fn test_mock_worker_ping_before_connect() {
+    let mut worker = MockWorker::new();
+    
+    // MockWorker has no real connection state, ping is always true
+    assert!(worker.ping().await, "MockWorker ping before connect should return true");
+}
+
+/// Test ping() after disconnect is still safe on MockWorker.
+/// In real ZkWorker, ping would return false after disconnect.
+#[tokio::test]
+async fn test_mock_worker_ping_after_disconnect() {
+    let mut worker = MockWorker::new();
+    worker.connect("127.0.0.1", 4370).await.unwrap();
+    worker.disconnect().await;
+    
+    // MockWorker is stateless — always true
+    assert!(worker.ping().await, "MockWorker ping after disconnect should still return true (stateless)");
+}
+
+/// Test full lifecycle with ping as heartbeat:
+/// connect → ping → get_info → ping → get_logs → ping → disconnect
+#[tokio::test]
+async fn test_full_lifecycle_with_ping_heartbeat() {
+    let mut worker = MockWorker::new();
+    
+    // Connect
+    worker.connect("127.0.0.1", 4370).await.unwrap();
+    
+    // Heartbeat 1
+    assert!(worker.ping().await, "Ping should succeed after connect");
+    
+    // Operation 1
+    let time_sync = TimeSync::new();
+    let info = worker.get_info(&time_sync).await.unwrap();
+    assert!(info.get("firmware").is_some());
+    
+    // Heartbeat 2
+    assert!(worker.ping().await, "Ping should succeed after get_info");
+    
+    // Operation 2
+    let logs = worker.get_attendance_logs().await.unwrap();
+    assert!(!logs.is_empty());
+    
+    // Heartbeat 3
+    assert!(worker.ping().await, "Ping should succeed after get_logs");
+    
+    // Disconnect
+    worker.disconnect().await;
+}
+
+/// Test repeated pings (simulating polling loop heartbeats).
+/// Ensures ping doesn't degrade or leak resources over many calls.
+#[tokio::test]
+async fn test_repeated_pings_stability() {
+    let mut worker = MockWorker::new();
+    worker.connect("127.0.0.1", 4370).await.unwrap();
+    
+    for i in 0..100 {
+        assert!(worker.ping().await, "Ping failed on iteration {i}");
+    }
+    
+    worker.disconnect().await;
+}
