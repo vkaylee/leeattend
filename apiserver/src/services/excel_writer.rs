@@ -115,9 +115,7 @@ impl ExcelWriter {
         timezone: &str,
         work_unit_minutes: i32,
     ) -> Result<Vec<u8>, String> {
-        let tz: Tz = timezone
-            .parse()
-            .unwrap_or(chrono_tz::UTC);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(timezone);
         let mut workbook = Workbook::new();
         Self::write_timesheet_matrix(&mut workbook, reports, workspace_name, date_range, tz, work_unit_minutes)?;
         Self::write_raw_details(&mut workbook, reports, workspace_name, date_range, tz)?;

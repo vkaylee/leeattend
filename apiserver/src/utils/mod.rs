@@ -5,10 +5,11 @@ pub mod serde_helpers;
 pub mod tz;
 
 /// Normalizes an employee ID by trimming whitespace and removing leading zeros if the ID is purely numeric.
+/// Empty or whitespace-only strings return "0" (consistent with agent-main behavior).
 pub fn normalize_employee_id(id: &str) -> String {
     let trimmed = id.trim();
     if trimmed.is_empty() {
-        return "".to_string();
+        return "0".to_string();
     }
 
     // Check if the ID is purely numeric
@@ -47,9 +48,9 @@ mod tests {
         assert_eq!(normalize_employee_id("00A1"), "00A1");
         assert_eq!(normalize_employee_id("123-456"), "123-456");
 
-        // Edge cases
-        assert_eq!(normalize_employee_id(""), "");
-        assert_eq!(normalize_employee_id("   "), "");
+        // Edge cases — empty/whitespace → "0" (consistent with agent-main)
+        assert_eq!(normalize_employee_id(""), "0");
+        assert_eq!(normalize_employee_id("   "), "0");
         assert_eq!(normalize_employee_id("00 123"), "00 123"); // Space breaks numeric check
     }
 }

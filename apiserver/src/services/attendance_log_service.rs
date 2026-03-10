@@ -61,6 +61,19 @@ impl AttendanceLogService {
         (service, worker_handle)
     }
 
+    /// Extract punch/status from raw_data JSON, defaulting to -1.
+    fn extract_punch_status(raw_data: Option<&serde_json::Value>) -> (i32, i32) {
+        let punch = raw_data
+            .and_then(|d| d["punch"].as_i64())
+            .map(|v| v as i32)
+            .unwrap_or(-1);
+        let status = raw_data
+            .and_then(|d| d["status"].as_i64())
+            .map(|v| v as i32)
+            .unwrap_or(-1);
+        (punch, status)
+    }
+
     /// Calculate fingerprint for deduplication.
     /// Format: SHA256(device_id|raw_user_id|punch_time_raw|punch|status)
     fn calculate_fingerprint(
@@ -211,16 +224,7 @@ impl AttendanceLogService {
         };
 
         // 3. Create RawAttendanceLog
-        let punch = raw_data
-            .as_ref()
-            .and_then(|d| d["punch"].as_i64())
-            .map(|v| v as i32)
-            .unwrap_or(-1);
-        let status = raw_data
-            .as_ref()
-            .and_then(|d| d["status"].as_i64())
-            .map(|v| v as i32)
-            .unwrap_or(-1);
+        let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
 
         let raw_log = RawAttendanceLog {
             id: Uuid::new_v4(),
@@ -278,16 +282,7 @@ impl AttendanceLogService {
     ) -> Result<bool, String> {
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
-        let punch = raw_data
-            .as_ref()
-            .and_then(|d| d["punch"].as_i64())
-            .map(|v| v as i32)
-            .unwrap_or(-1);
-        let status = raw_data
-            .as_ref()
-            .and_then(|d| d["status"].as_i64())
-            .map(|v| v as i32)
-            .unwrap_or(-1);
+        let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
 
         let raw_log = RawAttendanceLog {
             id: Uuid::new_v4(),
@@ -347,18 +342,7 @@ impl AttendanceLogService {
 
         for staged in &staged_logs {
             // 2. Create RawAttendanceLog from staging
-            let punch = staged
-                .raw_data
-                .as_ref()
-                .and_then(|d| d["punch"].as_i64())
-                .map(|v| v as i32)
-                .unwrap_or(-1);
-            let status = staged
-                .raw_data
-                .as_ref()
-                .and_then(|d| d["status"].as_i64())
-                .map(|v| v as i32)
-                .unwrap_or(-1);
+            let (punch, status) = Self::extract_punch_status(staged.raw_data.as_ref());
 
             let raw_log = RawAttendanceLog {
                 id: Uuid::new_v4(),
@@ -408,7 +392,7 @@ impl AttendanceLogService {
             .ok()
             .flatten();
         let tz_str = ws.as_ref().map(|w| w.timezone.as_str()).unwrap_or("UTC");
-        let tz: chrono_tz::Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
+        let tz: chrono_tz::Tz = crate::utils::tz::parse_workspace_tz(tz_str);
 
         for date in dates_to_reprocess {
             info!(
@@ -527,5 +511,54 @@ mod tests {
             Some("DEV1"), "U001", "2026-01-01 09:00:00", None,
         );
         assert_ne!(fp1, fp2);
+    }
+
+    // === extract_punch_status tests ===
+
+    #[test]
+    fn test_extract_punch_status_with_values() {
+        let raw = serde_json::json!({"punch": 1, "status": 2});
+        let (punch, status) = AttendanceLogService::extract_punch_status(Some(&raw));
+        assert_eq!(punch, 1);
+        assert_eq!(status, 2);
+    }
+
+    #[test]
+    fn test_extract_punch_status_none() {
+        let (punch, status) = AttendanceLogService::extract_punch_status(None);
+        assert_eq!(punch, -1);
+        assert_eq!(status, -1);
+    }
+
+    #[test]
+    fn test_extract_punch_status_missing_keys() {
+        let raw = serde_json::json!({"other": "data"});
+        let (punch, status) = AttendanceLogService::extract_punch_status(Some(&raw));
+        assert_eq!(punch, -1);
+        assert_eq!(status, -1);
+    }
+
+    #[test]
+    fn test_extract_punch_status_partial() {
+        let raw = serde_json::json!({"punch": 3});
+        let (punch, status) = AttendanceLogService::extract_punch_status(Some(&raw));
+        assert_eq!(punch, 3);
+        assert_eq!(status, -1);
+    }
+
+    #[test]
+    fn test_extract_punch_status_zero_values() {
+        let raw = serde_json::json!({"punch": 0, "status": 0});
+        let (punch, status) = AttendanceLogService::extract_punch_status(Some(&raw));
+        assert_eq!(punch, 0);
+        assert_eq!(status, 0);
+    }
+
+    #[test]
+    fn test_extract_punch_status_string_values_ignored() {
+        let raw = serde_json::json!({"punch": "not_a_number", "status": "invalid"});
+        let (punch, status) = AttendanceLogService::extract_punch_status(Some(&raw));
+        assert_eq!(punch, -1);
+        assert_eq!(status, -1);
     }
 }
