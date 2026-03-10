@@ -205,44 +205,62 @@ timeout 300 ./my-script.sh </dev/null 2>&1
 ## Step 7: Detect PTY hang vs normal execution
 
 AI agents cannot distinguish a long-running command from a PTY hang.
-Use this **PTY-safe heartbeat loop** to auto-update a marker file:
+Use a **temp script with heartbeat loop** to monitor progress.
+
+**⚠️ IMPORTANT: Heartbeat wrappers MUST be written as script files.**
+Inline compound commands (via `run_command`) break `$$` expansion in
+subshells, causing heartbeat to silently fail. Always create a temp script.
+
+### Step 7a: Create temp script with heartbeat
 
 ```bash
-# 1. Start heartbeat (PTY-safe + self-killing when parent dies)
+cat > /tmp/pty-safe-run.sh << 'SCRIPT'
+#!/bin/bash
+set -uo pipefail
+
+# Heartbeat: auto-updates every 2s, self-kills when parent dies
 HB="/tmp/.pty-heartbeat-$$"
 PARENT_PID=$$
-( while kill -0 $PARENT_PID 2>/dev/null; do date +%s > "$HB"; sleep 2; done; rm -f "$HB" ) </dev/null >/dev/null 2>&1 &
+( while kill -0 $PARENT_PID 2>/dev/null; do
+    date +%s > "$HB"
+    sleep 2
+  done
+  rm -f "$HB"
+) </dev/null >/dev/null 2>&1 &
 HB_PID=$!
 
-# 2. Run the actual command
-git -c commit.gpgsign=false commit --no-verify -m "msg" </dev/null
+# Run the actual command (passed as arguments)
+"$@" </dev/null
 CMD_EXIT=$?
 
-# 3. Cleanup heartbeat (explicit PID, no orphans)
+# Cleanup heartbeat
 kill $HB_PID 2>/dev/null; wait $HB_PID 2>/dev/null; rm -f "$HB"
+
+# Self-cleanup
+rm -f "$0"
 exit $CMD_EXIT
+SCRIPT
+chmod +x /tmp/pty-safe-run.sh
 ```
 
-Why this is safe:
-- `</dev/null >/dev/null 2>&1 &` — all 3 FDs detached, no PTY inheritance
-- `kill -0 $PARENT_PID` — loop self-exits when parent process dies (crash, disconnect)
-- `rm -f "$HB"` in loop — auto-cleanup even without explicit kill
-- `kill $HB_PID` + `wait $HB_PID` — belt-and-suspenders cleanup on normal exit
-
-**AI agent detection** — check heartbeat file from a separate command:
+### Step 7b: Run command through wrapper
 
 ```bash
-# Read heartbeat timestamp:
-cat /tmp/.pty-heartbeat-*
-# Compare with current time:
-echo $(( $(date +%s) - $(cat /tmp/.pty-heartbeat-*) ))
+/tmp/pty-safe-run.sh git -c commit.gpgsign=false commit -m "msg"
 ```
 
-| Heartbeat age | `PTY_DONE` in file? | Diagnosis | Action |
-|---|---|---|---|
-| < 5 seconds | — | Running normally | Keep waiting |
-| > 10 seconds | No | **PTY hang likely** | Ask user to intervene |
-| File gone | — | Command finished | Check exit code normally |
+### Step 7c: Check heartbeat from separate command (if command seems slow)
+
+```bash
+# Heartbeat age in seconds:
+echo $(( $(date +%s) - $(cat /tmp/.pty-heartbeat-* 2>/dev/null || echo 0) ))
+```
+
+| Heartbeat age | Diagnosis | Action |
+|---|---|---|
+| < 5 seconds | Running normally | Keep waiting |
+| > 10 seconds | **PTY hang likely** | Ask user to intervene |
+| File gone | Command finished | Check exit code normally |
 
 **⛔ CRITICAL: When you suspect a hang, NEVER terminate the process.**
 Ask the user to investigate or kill it manually. Terminating may create

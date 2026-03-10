@@ -89,12 +89,73 @@ Wrapper scripts for direct host → container access:
 
 ---
 
-## 🎯 DEFINITION OF DONE (AI Checklist)
-- [ ] Code is formatted (`cargo fmt`, `prettier`)
-- [ ] Linter is clean (`clippy`, `eslint`)
-- [ ] **Manual Verification**: Test run inside Docker succeeds
-- [ ] **Regression**: `./run-tests.sh` passes relevant suites
-- [ ] **Documentation**: `PROJECT_OS.md` or `README.md` updated if logic changed
+## 🎯 DEFINITION OF DONE — MANDATORY AI PROTOCOL
+
+> [!IMPORTANT]
+> These are **non-negotiable automated steps**. After any code change, the AI **MUST** execute these steps autonomously without waiting for user instruction.
+
+**After EVERY code change, the AI MUST run the following checklist:**
+- [ ] **Format**: Code is formatted (`cargo fmt`, `prettier`)
+- [ ] **Lint**: Linter is clean (`clippy`, `eslint`)
+- [ ] **Write/Update Tests**: (see "Test Authoring" section below)
+- [ ] **Test**: Run the test scope relevant to the change:
+  - Changed `apiserver/` or `agent-main/` → `./run-tests.sh --api --smoke`
+  - Changed `webdashboard/` → `./run-tests.sh --web --smoke`
+  - Major refactor → `./run-tests.sh --all --smoke`
+- [ ] **Verify**: If smoke fails → run full suite for the changed component to identify exact failure
+- [ ] **Report**: Summarize pass/fail + which tests were run
+
+> [!WARNING]
+> **NEVER mark a task as "done" or hand off to the user if tests are still failing.**
+> If tests fail after a fix, continue iterating until they pass or explicitly ask the user for guidance.
+
+---
+
+## 🧪 TEST AUTHORING — AI MUST WRITE TESTS PROACTIVELY
+
+> [!IMPORTANT]
+> Whenever the AI **adds or modifies code**, it MUST autonomously write or update tests alongside the implementation. Do NOT wait for the user to ask.
+
+### Rules
+
+| Scenario | What AI Must Do |
+|---|---|
+| **New function/method added** | Write at least 1 unit test for the happy path + 1 for the error/edge case |
+| **Bug fixed** | Write a regression test that would have caught the bug |
+| **API endpoint added/changed** | Write/update integration test covering the endpoint |
+| **Frontend component added** | Write a Vitest unit test for the component |
+| **UI flow changed** | Update or add a Playwright E2E test |
+| **Refactor (behavior unchanged)** | Verify existing tests still cover the refactored code; add new ones if coverage drops |
+
+### Test File Conventions
+
+- **Rust (apiserver / agent-main):**
+  - Unit tests: inline `#[cfg(test)] mod tests { ... }` in the same file
+  - Integration tests: `apiserver/tests/integration/` or `agent-main/tests/`
+  - Pattern: `./run-tests.sh --api --test=module::test_name`
+
+- **Web (webdashboard):**
+  - Unit tests: `src/**/__tests__/*.test.tsx` adjacent to component
+  - E2E tests: `tests/*.spec.ts` (Playwright)
+  - Pattern: `./run-tests.sh --web --test=ComponentName`
+
+### Minimum Coverage Expectation
+
+| Component | Coverage Target |
+|---|---|
+| `apiserver` | ≥ 70% line coverage trên toàn crate |
+| `agent-main` | ≥ 70% line coverage trên toàn crate |
+| `webdashboard` | ≥ 60% line coverage (Vitest) |
+| **Từng file vừa sửa** | 100% các function được thêm/sửa phải có test |
+
+> Check coverage: `./run-tests.sh --api --coverage` hoặc `./run-tests.sh --web --coverage`
+
+### Legacy Code Policy
+
+Khi sửa file không có test:
+- Chỉ cần viết test **cho đoạn code vừa sửa/thêm**, không bắt buộc cover toàn bộ file.
+- Nếu việc add test sẽ làm thay đổi quá lớn scope → note rõ trong summary và tạo task riêng.
+
 
 ---
 
