@@ -12,6 +12,8 @@
 #   ./scripts/test-pty-safety.sh              # Run all tests
 #   ./scripts/test-pty-safety.sh --static     # Static scan only
 #   ./scripts/test-pty-safety.sh --runtime    # Runtime tests only
+#   ./scripts/test-pty-safety.sh --command "podman exec foo"   # Check single command
+#   ./scripts/test-pty-safety.sh --check-file ./script.sh      # Check single file
 #
 # Exit code: 0 = all pass, 1 = failures found
 # ==============================================================================
@@ -42,13 +44,217 @@ fail() { ((FAIL++)) || true; echo -e "  ${RED}✗${NC} $1"; }
 warn() { ((WARN++)) || true; echo -e "  ${YELLOW}⚠${NC} $1"; }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# LAYER 1: STATIC SCAN
-# Scans all .sh files for known PTY-unsafe patterns.
+# CORE: Scan a single file for PTY-unsafe patterns
+# Usage: scan_single_file "/path/to/file"
+# Sets global FAIL/WARN/PASS counters
+# ═══════════════════════════════════════════════════════════════════════════════
+scan_single_file() {
+    local file="$1"
+    local basename
+    basename="$(basename "$file")"
+    local file_fails=0
+
+    # ── Pattern 1: Bare background `&` without FD redirection ─────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ /dev/null ]] && continue
+        [[ "$line" =~ setsid ]] && continue
+        fail "$basename:$lineno — Bare background '&' without </dev/null: $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: add \`</dev/null\` before \`&\` to detach stdin from PTY" >&2
+        ((file_fails++)) || true
+    done < <(grep -n '[^&]&[[:space:]]*$' "$file" 2>/dev/null || true)
+
+    # ── Pattern 16: Background inside subshell `(cmd &)` ──────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ /dev/null ]] && continue
+        fail "$basename:$lineno — Background '&' inside subshell without </dev/null: $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: add \`</dev/null\` before \`&\` inside the subshell" >&2
+        ((file_fails++)) || true
+    done < <(grep -nE '&\s*\)' "$file" 2>/dev/null || true)
+
+    # ── Pattern 2: podman/docker invocations without </dev/null ────────
+    local _patt_echo='echo|printf|BOLD|NC'
+    local _patt_cond='if[[:space:]]|elif[[:space:]]'
+    local _patt_test='\[\[|\-f[[:space:]]|==|!='
+    local _patt_tool='grep|sed|awk'
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ /dev/null ]] && continue
+        [[ "$line" == *'\' ]] && continue
+        [[ "$line" =~ $_patt_echo ]] && continue
+        [[ "$line" =~ ^[[:space:]]*[A-Z_]+= ]] && continue
+        [[ "$line" =~ $_patt_cond ]] && continue
+        [[ "$line" =~ $_patt_test ]] && continue
+        [[ "$line" =~ $_patt_tool ]] && continue
+        local _patt_case='^[[:space:]]*(;;|\))'
+        local _patt_func='^[[:space:]]*(dc|dc_detached)[[:space:]]*\(\)'
+        [[ "$line" =~ $_patt_case ]] && continue
+        [[ "$line" =~ $_patt_func ]] && continue
+        local trimmed
+        trimmed="$(echo "$line" | sed 's/^[[:space:]]*//')"
+        if [[ "$trimmed" =~ ^(podman|docker|\$DOCKER|\$\{DOCKER|timeout.*podman|timeout.*docker|setsid.*podman|setsid.*docker) ]]; then
+            fail "$basename:$lineno — container command without </dev/null: $trimmed"
+            echo -e "    → fix: append \`</dev/null\` at end of command to prevent stdin inheritance" >&2
+            ((file_fails++)) || true
+        fi
+    done < <(grep -nE '\bpodman\b|\bdocker\b|\$DOCKER' "$file" 2>/dev/null || true)
+
+    # ── Pattern 3: Background watchdog (sleep+kill) ───────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        fail "$basename:$lineno — Background watchdog pattern (sleep+kill): $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: use \`timeout\` command instead of sleep+kill watchdog" >&2
+        ((file_fails++)) || true
+    done < <(grep -n 'sleep.*kill\|kill.*sleep' "$file" 2>/dev/null | grep '&' || true)
+
+    # ── Pattern 4: git commit without --no-gpg-sign ──────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ --no-gpg-sign ]] && continue
+        fail "$basename:$lineno — git commit without --no-gpg-sign: $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: add \`--no-gpg-sign\` to skip GPG agent (holds PTY). Also append \`</dev/null\`" >&2
+        ((file_fails++)) || true
+    done < <(grep -n 'git commit' "$file" 2>/dev/null || true)
+
+    # ── Pattern 5: $* inside bash -c (word-splitting) ────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        fail "$basename:$lineno — \$* inside bash -c (word-splitting risk): $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: replace \`\$*\` with \`\$@\` (preserves quoting) or use \`\"\$@\"\`" >&2
+        ((file_fails++)) || true
+    done < <(grep -n 'bash -c.*\$\*' "$file" 2>/dev/null || true)
+
+    # ── Pattern 6: nohup ──────────────────────────────────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        fail "$basename:$lineno — nohup masks exit codes and detaches stdout/stderr: $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: remove nohup. Use \`cmd </dev/null >log 2>&1 &\` for background execution instead" >&2
+        ((file_fails++)) || true
+    done < <(grep -n '\bnohup\b' "$file" 2>/dev/null || true)
+
+    # ── Pattern 7: disown ─────────────────────────────────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        warn "$basename:$lineno — 'disown' may orphan PTY-holding process: $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: ensure process has all FDs redirected before disown, or use explicit \`wait \$PID\`" >&2
+    done < <(grep -n '\bdisown\b' "$file" 2>/dev/null || true)
+
+    # ── Pattern 8: coproc ─────────────────────────────────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        fail "$basename:$lineno — coproc creates background FD-holding process: $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: replace coproc with explicit background process + named pipe or temp file" >&2
+        ((file_fails++)) || true
+    done < <(grep -n '\bcoproc\b' "$file" 2>/dev/null || true)
+
+    # ── Pattern 9: setsid without FD redirect ─────────────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ /dev/null ]] && continue
+        [[ "$line" == *'\' ]] && continue
+        fail "$basename:$lineno — setsid without FD redirect: $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: add \`</dev/null >/dev/null 2>&1\` to fully detach all FDs" >&2
+        ((file_fails++)) || true
+    done < <(grep -n '\bsetsid\b' "$file" 2>/dev/null || true)
+
+    # ── Pattern 10: $DOCKER_COMPOSE_CMD without dc() wrapper ──────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ /dev/null ]] && continue
+        [[ "$line" == *'\' ]] && continue
+        [[ "$line" =~ ^[[:space:]]*(export|local)[[:space:]] ]] && continue
+        [[ "$line" =~ ^[[:space:]]*[A-Z_]+= ]] && continue
+        local _patt_if='if[[:space:]]|elif[[:space:]]|until[[:space:]]'
+        [[ "$line" =~ $_patt_if ]] && continue
+        [[ "$line" =~ echo ]] && continue
+        warn "$basename:$lineno — \$DOCKER_COMPOSE_CMD used directly: $(echo "$line" | sed 's/^[[:space:]]*//' | head -c 80)"
+        echo -e "    → fix: use the dc() wrapper function which includes </dev/null, or append </dev/null manually" >&2
+    done < <(grep -n '\$DOCKER_COMPOSE_CMD' "$file" 2>/dev/null | grep -v 'export\|^[[:space:]]*#\|dc()' || true)
+
+    # ── Pattern 12: compose exec without -T ───────────────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        if echo "$line" | grep -qE 'compose[[:space:]]+exec'; then
+            if ! echo "$line" | grep -qE 'exec[[:space:]]+-[[:alnum:]]*T'; then
+                fail "$basename:$lineno — compose exec without TTY disable flag: $(echo "$line" | sed 's/^[[:space:]]*//')"
+                echo -e "    → fix: add TTY disable flag after exec (e.g. \`-T\`). Run \`<tool> exec --help\` to verify flag" >&2
+                ((file_fails++)) || true
+            fi
+        fi
+    done < <(grep -nE 'compose[[:space:]]+exec' "$file" 2>/dev/null || true)
+
+    # ── Pattern 13: global 'wait' without exact PID ───────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        if echo "$line" | grep -qE '^[[:space:]]*wait[[:space:]]*$'; then
+            warn "$basename:$lineno — global 'wait' without PID (hangs if background daemons exist): $(echo "$line" | sed 's/^[[:space:]]*//')"
+            echo -e "    → fix: use \`wait \$PID\` with explicit PID from \`\$!\` after backgrounding" >&2
+        fi
+    done < <(grep -n 'wait' "$file" 2>/dev/null || true)
+
+    # ── Pattern 14: '| tee' pipe usage ────────────────────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        if echo "$line" | grep -qE '\|\s*tee\b'; then
+            warn "$basename:$lineno — '| tee' pipe (FD leak risk to children): $(echo "$line" | sed 's/^[[:space:]]*//')"
+            echo -e "    → fix: replace \`cmd | tee file\` with \`cmd >file 2>&1\` and use \`cat file\` after" >&2
+        fi
+    done < <(grep -nE '\|\s*tee' "$file" 2>/dev/null || true)
+
+    # ── Pattern 15: Interactive commands ───────────────────────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        fail "$basename:$lineno — Interactive command will hang in agentic terminal: $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: remove interactive command. Ask user to run it manually if needed" >&2
+        ((file_fails++)) || true
+    done < <(grep -nE '^[[:space:]]*(fzf|vim|nvim|nano|less|more|emacs)\b' "$file" 2>/dev/null || true)
+
+    # ── Pattern 17: `read` / `select` (blocks on stdin) ───────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ read.*-t ]] && continue
+        [[ "$line" =~ \<\<\< ]] && continue
+        [[ "$line" =~ read.*\< ]] && continue
+        [[ "$line" =~ while.*read ]] && continue
+        [[ "$line" =~ done.*\< ]] && continue
+        fail "$basename:$lineno — 'read'/'select' blocks on stdin (AI agent cannot provide input): $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: use a default value or timeout flag (e.g. \`read -t 5\`). Remove if user input not needed" >&2
+        ((file_fails++)) || true
+    done < <(grep -nE '^\s*(read|select)\b' "$file" 2>/dev/null || true)
+
+    # ── Pattern 18: `sudo` without -n (non-interactive) ───────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ sudo.*-n ]] && continue
+        [[ "$line" =~ sudo.*--non-interactive ]] && continue
+        fail "$basename:$lineno — 'sudo' without non-interactive flag (will prompt for password): $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: add non-interactive flag. Run \`sudo --help\` to find correct flag for your platform" >&2
+        ((file_fails++)) || true
+    done < <(grep -nE '\bsudo\b' "$file" 2>/dev/null || true)
+
+    # ── Pattern 19: `ssh` without BatchMode (may prompt) ──────────────
+    while IFS=: read -r lineno line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ BatchMode ]] && continue
+        [[ "$line" =~ StrictHostKeyChecking ]] && continue
+        [[ "$line" =~ ssh-(keygen|add|agent|copy-id) ]] && continue
+        fail "$basename:$lineno — 'ssh' without non-interactive mode (may prompt for password/fingerprint): $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: add batch/non-interactive option. Run \`ssh --help\` or check \`man ssh\` for flag on your platform" >&2
+        ((file_fails++)) || true
+    done < <(grep -nE '^\s*ssh\b' "$file" 2>/dev/null || true)
+
+    if [[ $file_fails -eq 0 ]]; then
+        pass "$basename — clean"
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LAYER 1: STATIC SCAN — scans all project .sh files
 # ═══════════════════════════════════════════════════════════════════════════════
 run_static_scan() {
     echo -e "\n${BLUE}${BOLD}═══ LAYER 1: Static PTY Safety Scan ═══${NC}"
 
-    # Files to scan (project root .sh + scripts/*.sh)
     local files=()
     while IFS= read -r f; do
         files+=("$f")
@@ -56,11 +262,9 @@ run_static_scan() {
     while IFS= read -r f; do
         files+=("$f")
     done < <(find "$PROJECT_ROOT/scripts" -maxdepth 1 -name "*.sh" -type f 2>/dev/null | grep -v 'test-pty-safety\.sh')
-    # Also scan ai-tools scripts
     while IFS= read -r f; do
         files+=("$f")
     done < <(find "$PROJECT_ROOT/scripts/ai-tools" -maxdepth 1 -name "*.sh" -type f 2>/dev/null)
-    # Also scan git hooks (they often don't have .sh extensions)
     while IFS= read -r f; do
         files+=("$f")
     done < <(find "$PROJECT_ROOT/.git-hooks" -type f 2>/dev/null | grep -v 'sample')
@@ -73,159 +277,7 @@ run_static_scan() {
     echo -e "  ${BLUE}Scanning ${#files[@]} files...${NC}"
 
     for file in "${files[@]}"; do
-        local basename
-        basename="$(basename "$file")"
-        local file_fails=0
-
-        # ── Pattern 1: Bare background `&` without FD redirection ─────────
-        # Matches: `command &` at end of line
-        # Excludes: lines with </dev/null or >/dev/null before &
-        # Excludes: comment lines
-        while IFS=: read -r lineno line; do
-            # Skip comments
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            # Skip if already has /dev/null redirect
-            [[ "$line" =~ /dev/null ]] && continue
-            # Skip lines inside functions named dc_detached (they use setsid)
-            # This is a known safe pattern
-            [[ "$line" =~ setsid ]] && continue
-
-            fail "$basename:$lineno — Bare background '&' without </dev/null: $(echo "$line" | sed 's/^[[:space:]]*//')"
-            ((file_fails++)) || true
-        done < <(grep -n '[^&]&[[:space:]]*$' "$file" 2>/dev/null || true)
-
-        # ── Pattern 2: Actual podman/podman-compose invocations without </dev/null
-        # Only match lines where podman is actually INVOKED (not mentioned in strings)
-        # Store regex patterns in variables to avoid bash parser issues with |, [[, ;;
-        local _patt_echo='echo|printf|BOLD|NC'
-        local _patt_cond='if[[:space:]]|elif[[:space:]]'
-        local _patt_test='\[\[|\-f[[:space:]]|==|!='
-        local _patt_tool='grep|sed|awk'
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            [[ "$line" =~ /dev/null ]] && continue
-            # Skip multi-line commands (redirect may be on continuation line)
-            [[ "$line" == *'\' ]] && continue
-            [[ "$line" =~ $_patt_echo ]] && continue
-            [[ "$line" =~ ^[[:space:]]*[A-Z_]+= ]] && continue
-            [[ "$line" =~ $_patt_cond ]] && continue
-            [[ "$line" =~ $_patt_test ]] && continue
-            [[ "$line" =~ $_patt_tool ]] && continue
-            # Skip case patterns and function definitions
-            local _patt_case='^[[:space:]]*(;;|\))'
-            local _patt_func='^[[:space:]]*(dc|dc_detached)[[:space:]]*\(\)'
-            [[ "$line" =~ $_patt_case ]] && continue
-            [[ "$line" =~ $_patt_func ]] && continue
-            # Must actually start with podman/docker or $DOCKER (stripped of leading whitespace)
-            local trimmed
-            trimmed="$(echo "$line" | sed 's/^[[:space:]]*//')"
-            # Only flag if the line starts with podman, docker, $DOCKER, or common wrappers
-            if [[ "$trimmed" =~ ^(podman|docker|\$DOCKER|\$\{DOCKER|timeout.*podman|timeout.*docker|setsid.*podman|setsid.*docker) ]]; then
-                fail "$basename:$lineno — container command without </dev/null: $trimmed"
-                ((file_fails++)) || true
-            fi
-        done < <(grep -nE '\bpodman\b|\bdocker\b|\$DOCKER' "$file" 2>/dev/null || true)
-
-        # ── Pattern 3: `sleep` in background watchdog pattern ────────────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            fail "$basename:$lineno — Background watchdog pattern (sleep+kill): $(echo "$line" | sed 's/^[[:space:]]*//')"
-            ((file_fails++)) || true
-        done < <(grep -n 'sleep.*kill\|kill.*sleep' "$file" 2>/dev/null | grep '&' || true)
-
-        # ── Pattern 4: `git commit` without --no-gpg-sign ───────────────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            [[ "$line" =~ --no-gpg-sign ]] && continue
-            fail "$basename:$lineno — git commit without --no-gpg-sign: $(echo "$line" | sed 's/^[[:space:]]*//')"
-            ((file_fails++)) || true
-        done < <(grep -n 'git commit' "$file" 2>/dev/null || true)
-
-        # ── Pattern 5: $* inside bash -c (word-splitting) ───────────────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            fail "$basename:$lineno — \$* inside bash -c (word-splitting risk): $(echo "$line" | sed 's/^[[:space:]]*//')"
-            ((file_fails++)) || true
-        done < <(grep -n 'bash -c.*\$\*' "$file" 2>/dev/null || true)
-
-        # ── Pattern 6: `nohup` without FD redirection ────────────────────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            [[ "$line" =~ /dev/null ]] && continue
-            fail "$basename:$lineno — nohup without FD redirect: $(echo "$line" | sed 's/^[[:space:]]*//')"
-            ((file_fails++)) || true
-        done < <(grep -n '\bnohup\b' "$file" 2>/dev/null || true)
-
-        # ── Pattern 7: `disown` (orphans process, can leak PTY FDs) ──────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            warn "$basename:$lineno — 'disown' usage (may orphan PTY-holding process): $(echo "$line" | sed 's/^[[:space:]]*//')"
-        done < <(grep -n '\bdisown\b' "$file" 2>/dev/null || true)
-
-        # ── Pattern 8: `coproc` (creates background process with FDs) ────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            fail "$basename:$lineno — coproc creates background FD-holding process: $(echo "$line" | sed 's/^[[:space:]]*//')"
-            ((file_fails++)) || true
-        done < <(grep -n '\bcoproc\b' "$file" 2>/dev/null || true)
-
-        # ── Pattern 9: `setsid` WITHOUT FD redirect (partial detach) ─────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            [[ "$line" =~ /dev/null ]] && continue
-            [[ "$line" == *'\' ]] && continue
-            fail "$basename:$lineno — setsid without </dev/null >/dev/null 2>&1: $(echo "$line" | sed 's/^[[:space:]]*//')"
-            ((file_fails++)) || true
-        done < <(grep -n '\bsetsid\b' "$file" 2>/dev/null || true)
-
-        # ── Pattern 10: $DOCKER_COMPOSE_CMD used directly without </dev/null ─
-        # Scripts should use dc() wrapper, not $DOCKER_COMPOSE_CMD directly.
-        # dc() already adds </dev/null. Direct usage may forget it.
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            [[ "$line" =~ /dev/null ]] && continue
-            [[ "$line" == *'\' ]] && continue
-            # Skip export/assignment lines
-            [[ "$line" =~ ^[[:space:]]*(export|local)[[:space:]] ]] && continue
-            [[ "$line" =~ ^[[:space:]]*[A-Z_]+= ]] && continue
-            # Skip if/conditional lines
-            local _patt_if='if[[:space:]]|elif[[:space:]]|until[[:space:]]'
-            [[ "$line" =~ $_patt_if ]] && continue
-            [[ "$line" =~ echo ]] && continue
-            warn "$basename:$lineno — \$DOCKER_COMPOSE_CMD used directly (use dc() wrapper instead): $(echo "$line" | sed 's/^[[:space:]]*//' | head -c 80)"
-        done < <(grep -n '\$DOCKER_COMPOSE_CMD' "$file" 2>/dev/null | grep -v 'export\|^[[:space:]]*#\|dc()' || true)
-
-        # ── Pattern 12: compose exec without -T (TTY Hang in CI/Hooks) ────────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            if echo "$line" | grep -qE 'compose[[:space:]]+exec'; then
-                if ! echo "$line" | grep -qE 'exec[[:space:]]+-[[:alnum:]]*T'; then
-                    fail "$basename:$lineno — compose exec without -T (allocates TTY, hangs CI/Agent): $(echo "$line" | sed 's/^[[:space:]]*//')"
-                    ((file_fails++)) || true
-                fi
-            fi
-        done < <(grep -nE 'compose[[:space:]]+exec' "$file" 2>/dev/null || true)
-
-        # ── Pattern 13: global 'wait' without exact PID ───────────────────────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            # Check if it's literally just "wait" or "wait " without arguments
-            if echo "$line" | grep -qE '^[[:space:]]*wait[[:space:]]*$'; then
-                warn "$basename:$lineno — global 'wait' without PID (hangs if background daemons exist): $(echo "$line" | sed 's/^[[:space:]]*//')"
-            fi
-        done < <(grep -n 'wait' "$file" 2>/dev/null || true)
-
-        # ── Pattern 14: '| tee' pipe usage (inherits PTY FDs to children) ──────
-        while IFS=: read -r lineno line; do
-            [[ "$line" =~ ^[[:space:]]*# ]] && continue
-            if echo "$line" | grep -qE '\|\s*tee\b'; then
-                warn "$basename:$lineno — '| tee' pipe found (background processes inside the pipe block will inherit and hang the pipe): $(echo "$line" | sed 's/^[[:space:]]*//')"
-            fi
-        done < <(grep -nE '\|\s*tee' "$file" 2>/dev/null || true)
-
-        if [[ $file_fails -eq 0 ]]; then
-            pass "$basename — clean"
-        fi
+        scan_single_file "$file"
     done
 
     # ── Cross-file check: trap cleanup must exist in main scripts ─────
@@ -239,15 +291,10 @@ run_static_scan() {
         fi
     done
 
-    # ── Pattern 11: cleanup functions must redirect FDs before podman ──
-    # If a cleanup() function contains podman/docker commands but does NOT
-    # redirect stdout/stderr via `exec`, child processes will inherit the
-    # parent's PTY FDs. This causes AI agent tools to report commands as
-    # still RUNNING after the script has exited.
+    # ── Pattern 11: cleanup() must redirect FDs before podman ─────────
     for file in "${files[@]}"; do
         local basename
         basename="$(basename "$file")"
-        # Extract cleanup function body (between 'cleanup()' and next '}' at column 0)
         local cleanup_body
         cleanup_body=$(sed -n '/^cleanup()/,/^}/p' "$file" 2>/dev/null || true)
         [[ -z "$cleanup_body" ]] && continue
@@ -260,6 +307,19 @@ run_static_scan() {
             fi
         fi
     done
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUICK CHECK: Check a single command string for PTY-unsafe patterns
+# Usage: check_command_string "podman-compose exec apiserver cargo test"
+# ═══════════════════════════════════════════════════════════════════════════════
+check_command_string() {
+    local cmd="$1"
+    local tmpfile
+    tmpfile="$(mktemp /tmp/pty-check-XXXXXX.sh)"
+    echo "$cmd" > "$tmpfile"
+    scan_single_file "$tmpfile"
+    rm -f "$tmpfile"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -412,25 +472,260 @@ _signal_cleanup_test() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# SELF-TEST: Verify all patterns detect correctly
+# Usage: test-pty-safety.sh --self-test
+# ═══════════════════════════════════════════════════════════════════════════════
+run_self_test() {
+    local SELF="$0"
+    local ST_PASS=0 ST_FAIL=0 ST_TOTAL=0
+
+    _st_expect_unsafe() {
+        local desc="$1" cmd="$2"
+        ((ST_TOTAL++)) || true
+        if "$SELF" --command="$cmd" >/dev/null 2>&1; then
+            echo -e "  ${RED}✗ FAIL${NC} $desc — expected UNSAFE but got SAFE"
+            ((ST_FAIL++)) || true
+        else
+            echo -e "  ${GREEN}✓${NC} $desc"; ((ST_PASS++)) || true
+        fi
+    }
+    _st_expect_safe() {
+        local desc="$1" cmd="$2"
+        ((ST_TOTAL++)) || true
+        if "$SELF" --command="$cmd" >/dev/null 2>&1; then
+            echo -e "  ${GREEN}✓${NC} $desc"; ((ST_PASS++)) || true
+        else
+            echo -e "  ${RED}✗ FAIL${NC} $desc — expected SAFE but got UNSAFE"
+            ((ST_FAIL++)) || true
+        fi
+    }
+    _st_expect_fix() {
+        local desc="$1" cmd="$2" expected="$3"
+        ((ST_TOTAL++)) || true
+        local out; out=$("$SELF" --command="$cmd" 2>&1 || true)
+        if echo "$out" | grep -q "$expected"; then
+            echo -e "  ${GREEN}✓${NC} $desc — fix message ok"; ((ST_PASS++)) || true
+        else
+            echo -e "  ${RED}✗ FAIL${NC} $desc — missing: '$expected'"
+            ((ST_FAIL++)) || true
+        fi
+    }
+    _st_file_unsafe() {
+        local desc="$1" content="$2"
+        local tmp; tmp="$(mktemp /tmp/pty-st-XXXXXX.sh)"; echo "$content" > "$tmp"
+        ((ST_TOTAL++)) || true
+        if "$SELF" --check-file="$tmp" >/dev/null 2>&1; then
+            echo -e "  ${RED}✗ FAIL${NC} $desc — expected UNSAFE"; ((ST_FAIL++)) || true
+        else
+            echo -e "  ${GREEN}✓${NC} $desc"; ((ST_PASS++)) || true
+        fi
+        rm -f "$tmp"
+    }
+    _st_file_safe() {
+        local desc="$1" content="$2"
+        local tmp; tmp="$(mktemp /tmp/pty-st-XXXXXX.sh)"; echo "$content" > "$tmp"
+        ((ST_TOTAL++)) || true
+        if "$SELF" --check-file="$tmp" >/dev/null 2>&1; then
+            echo -e "  ${GREEN}✓${NC} $desc"; ((ST_PASS++)) || true
+        else
+            echo -e "  ${RED}✗ FAIL${NC} $desc — expected SAFE"; ((ST_FAIL++)) || true
+        fi
+        rm -f "$tmp"
+    }
+
+    echo -e "${BLUE}${BOLD}🧪 PTY Safety Scanner — Self-Test${NC}\n"
+
+    echo -e "${BOLD}P1: bare \`&\`${NC}"
+    _st_expect_unsafe "bare &"                  "./build.sh &"
+    _st_expect_safe   "& with </dev/null"       "./build.sh </dev/null &"
+    _st_expect_safe   "no background"           "./build.sh"
+
+    echo -e "${BOLD}P16: subshell \`&\`${NC}"
+    _st_expect_unsafe "subshell &"              "(cd /tmp && ./build.sh &)"
+    _st_expect_safe   "subshell & safe"         "(cd /tmp && ./build.sh </dev/null &)"
+
+    echo -e "${BOLD}P2: container </dev/null${NC}"
+    _st_expect_unsafe "podman bare"             "podman run myimage"
+    _st_expect_unsafe "docker bare"             "docker run myimage"
+    _st_expect_safe   "podman safe"             "podman run myimage </dev/null"
+
+    echo -e "${BOLD}P4: git commit${NC}"
+    _st_expect_unsafe "git commit bare"         "git commit -m 'test'"
+    _st_expect_safe   "git commit safe"         "git commit --no-gpg-sign -m 'test'"
+
+    echo -e "${BOLD}P6: nohup${NC}"
+    _st_expect_unsafe "nohup"                   "nohup ./server.sh &"
+    _st_expect_safe   "no nohup"                "./server.sh </dev/null &"
+
+    echo -e "${BOLD}P7: disown (warning)${NC}"
+    _st_expect_safe   "disown warn-only"        "disown %1"
+
+    echo -e "${BOLD}P8: coproc${NC}"
+    _st_expect_unsafe "coproc"                  "coproc myproc { sleep 10; }"
+
+    echo -e "${BOLD}P9: setsid${NC}"
+    _st_expect_unsafe "setsid bare"             "setsid ./daemon.sh"
+    _st_expect_safe   "setsid safe"             "setsid ./daemon.sh </dev/null >/dev/null 2>&1"
+
+    echo -e "${BOLD}P12: compose exec -T${NC}"
+    _st_expect_unsafe "exec no -T"              "podman-compose exec apiserver cargo test"
+    _st_expect_safe   "exec with -T"            "podman-compose exec -T apiserver cargo test </dev/null"
+
+    echo -e "${BOLD}P14: | tee (warning)${NC}"
+    _st_expect_safe   "tee warn-only"           "./run.sh | tee out.log"
+
+    echo -e "${BOLD}P15: interactive${NC}"
+    _st_expect_unsafe "vim"                     "vim file.txt"
+    _st_expect_unsafe "nano"                    "nano config.yml"
+    _st_expect_safe   "cat (ok)"                "cat file.txt"
+
+    echo -e "${BOLD}P17: read/select${NC}"
+    _st_expect_unsafe "read -p"                 "read -p 'Name: ' NAME"
+    _st_expect_unsafe "select"                  "select opt in a b; do echo \$opt; done"
+    _st_expect_safe   "read -t (timeout)"       "read -t 5 -p 'x' NAME"
+
+    echo -e "${BOLD}P18: sudo${NC}"
+    _st_expect_unsafe "sudo bare"               "sudo systemctl restart nginx"
+    _st_expect_safe   "sudo -n"                 "sudo -n systemctl restart nginx"
+    _st_expect_safe   "sudo --non-interactive"  "sudo --non-interactive apt update"
+
+    echo -e "${BOLD}P19: ssh${NC}"
+    _st_expect_unsafe "ssh bare"                "ssh user@host ls"
+    _st_expect_safe   "ssh BatchMode"           "ssh -o BatchMode=yes user@host ls"
+    _st_expect_safe   "ssh-keygen"              "ssh-keygen -t rsa"
+
+    echo -e "${BOLD}Fix messages${NC}"
+    _st_expect_fix "container" "podman run foo"  "fix:"
+    _st_expect_fix "nohup"     "nohup ./x.sh &"  "fix:"
+    _st_expect_fix "sudo"      "sudo reboot"     "fix:"
+    _st_expect_fix "ssh"       "ssh root@host"    "fix:"
+    _st_expect_fix "read"      "read -p 'x' Y"   "fix:"
+    _st_expect_fix "vim"       "vim foo.txt"      "fix:"
+
+    echo -e "${BOLD}--check-file mode${NC}"
+    _st_file_unsafe "file bare &" '#!/bin/bash
+./long-task.sh &
+wait'
+    _st_file_safe "file safe &" '#!/bin/bash
+./long-task.sh </dev/null &
+BG_PID=$!
+wait $BG_PID'
+    _st_file_safe "clean file" '#!/bin/bash
+echo "hello"
+cargo test >out.log 2>&1'
+
+    echo -e "${BOLD}Edge cases${NC}"
+    _st_file_safe "continuation line" 'podman exec mycontainer \
+  cargo test </dev/null'
+    _st_file_safe "comments skipped" '#!/bin/bash
+# nohup ./server.sh &
+# podman exec foo
+echo "safe"'
+
+    echo -e "\n${BLUE}${BOLD}═══ Self-Test Summary ═══${NC}"
+    echo -e "  Total: $ST_TOTAL  ${GREEN}Pass: $ST_PASS${NC}  ${RED}Fail: $ST_FAIL${NC}"
+    if [[ $ST_FAIL -gt 0 ]]; then
+        echo -e "${RED}${BOLD}❌ Self-test FAILED${NC}"; exit 1
+    else
+        echo -e "${GREEN}${BOLD}✅ All $ST_TOTAL self-tests passed${NC}"; exit 0
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 main() {
-    echo -e "${BLUE}${BOLD}🔒 PTY Safety Test Suite${NC}"
-    echo -e "${BLUE}Testing scripts for PTY file descriptor leaks...${NC}"
-
     local run_static=true
     local run_runtime=true
+    local check_cmd=""
+    local check_file=""
 
     for arg in "$@"; do
         case "$arg" in
-            --static)  run_runtime=false ;;
-            --runtime) run_static=false ;;
+            --static)    run_runtime=false ;;
+            --runtime)   run_static=false ;;
+            --command=*) check_cmd="${arg#--command=}" ;;
+            --check-file=*) check_file="${arg#--check-file=}" ;;
+            --self-test) run_self_test ;;
             --help)
-                echo "Usage: $0 [--static|--runtime]"
+                cat <<'HELP'
+Usage: test-pty-safety.sh [OPTIONS]
+
+Modes:
+  (no flags)              Run full suite (static + runtime)
+  --static                Static scan only (fast, no Docker needed)
+  --runtime               Runtime PTY hang tests only
+  --command="CMD"          Check a single command string for PTY-unsafe patterns
+  --check-file=PATH       Check a single script file for PTY-unsafe patterns
+  --self-test             Run self-test to verify all patterns work correctly
+  --help                  Show this help
+
+Examples:
+  ./scripts/test-pty-safety.sh --command="podman exec apiserver cargo test"
+  ./scripts/test-pty-safety.sh --check-file=./my-script.sh
+  ./scripts/test-pty-safety.sh --static
+  ./scripts/test-pty-safety.sh --self-test
+
+Exit code: 0 = all pass, 1 = failures found
+HELP
                 exit 0
                 ;;
         esac
     done
+
+    # Handle --command= (also accept positional: --command "CMD")
+    if [[ -z "$check_cmd" ]]; then
+        local prev=""
+        for arg in "$@"; do
+            if [[ "$prev" == "--command" ]]; then
+                check_cmd="$arg"
+                break
+            fi
+            prev="$arg"
+        done
+    fi
+    # Handle --check-file positional
+    if [[ -z "$check_file" ]]; then
+        local prev=""
+        for arg in "$@"; do
+            if [[ "$prev" == "--check-file" ]]; then
+                check_file="$arg"
+                break
+            fi
+            prev="$arg"
+        done
+    fi
+
+    # ── Quick check modes (no banner, minimal output) ─────────────────
+    if [[ -n "$check_cmd" ]]; then
+        check_command_string "$check_cmd"
+        if [[ $FAIL -gt 0 ]]; then
+            echo -e "${RED}✗ UNSAFE — $FAIL violation(s) found${NC}" >&2
+            exit 1
+        else
+            echo -e "${GREEN}✓ SAFE — no PTY violations detected${NC}"
+            exit 0
+        fi
+    fi
+
+    if [[ -n "$check_file" ]]; then
+        if [[ ! -f "$check_file" ]]; then
+            echo "Error: file not found: $check_file" >&2
+            exit 2
+        fi
+        scan_single_file "$check_file"
+        if [[ $FAIL -gt 0 ]]; then
+            echo -e "${RED}✗ UNSAFE — $FAIL violation(s) found${NC}" >&2
+            exit 1
+        else
+            echo -e "${GREEN}✓ SAFE — no PTY violations detected${NC}"
+            exit 0
+        fi
+    fi
+
+    # ── Full suite mode ───────────────────────────────────────────────
+    echo -e "${BLUE}${BOLD}🔒 PTY Safety Test Suite${NC}"
+    echo -e "${BLUE}Testing scripts for PTY file descriptor leaks...${NC}"
 
     [[ "$run_static" == "true" ]] && run_static_scan
     [[ "$run_runtime" == "true" ]] && run_runtime_test
@@ -448,3 +743,4 @@ main() {
 }
 
 main "$@"
+
