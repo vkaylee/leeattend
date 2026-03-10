@@ -2,6 +2,7 @@ pub mod chrono_helpers;
 pub mod datetime;
 pub mod debug;
 pub mod serde_helpers;
+pub mod tz;
 
 /// Normalizes an employee ID by trimming whitespace and removing leading zeros if the ID is purely numeric.
 pub fn normalize_employee_id(id: &str) -> String {

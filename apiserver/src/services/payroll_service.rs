@@ -104,7 +104,7 @@ impl PayrollService {
             })?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or(AppError::Validation("Invalid request".into()))?;
         let next_month_date = if month == 12 {

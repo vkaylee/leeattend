@@ -45,7 +45,7 @@ impl AttendanceSummaryService {
             .map_err(|e| e.to_string())?
             .ok_or("Workspace not found")?;
 
-        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         // 2. Get Effective Schedule for this specific date
         let schedules = self.roster_repo.get_workspace_schedules(

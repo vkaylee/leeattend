@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Duration, NaiveDate, TimeZone, Timelike, Utc};
+use chrono::{DateTime, Duration, NaiveDate, Timelike, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use tracing::info;
@@ -63,7 +63,7 @@ impl PairingService {
         .fetch_optional(&self.pool)
         .await?
         .unwrap_or_else(|| "UTC".to_string());
-        let tz: Tz = timezone_str.parse().unwrap_or(chrono_tz::UTC);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(&timezone_str);
 
         // 3. Determine Local Date
         let local_dt = log.punch_time.with_timezone(&tz);
@@ -148,7 +148,7 @@ impl PairingService {
         }
 
         // 2. Fetch raw logs
-        let start_of_day_local = local_to_tz(&tz, date, 0, 0, 0)?;
+        let start_of_day_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?;
         let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
 
         let (window_start_utc, window_end_utc) = if let Some(s) = &shift_config {
@@ -236,7 +236,7 @@ impl PairingService {
 
         for session in sessions {
             let start_dt_local =
-                local_to_tz(&tz, date, 0, 0, 0)? + Duration::minutes(session.start_minutes as i64);
+                crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)? + Duration::minutes(session.start_minutes as i64);
             let start_dt_utc = start_dt_local.with_timezone(&Utc);
 
             if start_dt_local.date_naive() != date {
@@ -244,7 +244,7 @@ impl PairingService {
             }
 
             let end_dt_utc = if let Some(m) = session.end_minutes {
-                let end_dt_local = local_to_tz(&tz, date, 0, 0, 0)? + Duration::minutes(m as i64);
+                let end_dt_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)? + Duration::minutes(m as i64);
                 Some(end_dt_local.with_timezone(&Utc))
             } else {
                 None
@@ -308,32 +308,4 @@ impl PairingService {
     }
 }
 
-/// Convert local date/time to timezone-aware DateTime, handling DST edge cases
-fn local_to_tz(
-    tz: &Tz,
-    date: NaiveDate,
-    h: u32,
-    m: u32,
-    s: u32,
-) -> Result<DateTime<Tz>, sqlx::Error> {
-    let naive = date
-        .and_hms_opt(h, m, s)
-        .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {h}:{m}:{s}")))?;
-    match tz.from_local_datetime(&naive) {
-        chrono::LocalResult::Single(dt) => Ok(dt),
-        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt),
-        chrono::LocalResult::None => {
-            // DST gap - shift forward in 15-minute increments until valid time found
-            let mut shifted = naive;
-            for _ in 0..8 {
-                shifted += Duration::minutes(15);
-                if let chrono::LocalResult::Single(dt) = tz.from_local_datetime(&shifted) {
-                    return Ok(dt);
-                }
-            }
-            Err(sqlx::Error::Protocol(
-                "Cannot resolve DST gap after 2 hours of searching".to_string(),
-            ))
-        }
-    }
-}
+// local_to_tz is now provided by crate::utils::tz::local_to_tz

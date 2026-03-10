@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use chrono_tz::Tz;
 
 /// Parses a datetime string into Utc.
@@ -87,16 +87,12 @@ pub fn parse_datetime_with_tz(
 }
 
 fn naive_to_utc(naive: NaiveDateTime, tz: Tz) -> Result<DateTime<Utc>, String> {
-    match tz.from_local_datetime(&naive) {
-        chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
-        chrono::LocalResult::Ambiguous(dt1, _dt2) => {
-            // In case of DST overlap, pick the first one (standard practice)
-            Ok(dt1.with_timezone(&Utc))
-        }
-        chrono::LocalResult::None => {
-            Err("Thời gian không tồn tại trong múi giờ này (do thay đổi giờ mùa hè).".to_string())
-        }
-    }
+    // Delegate to the unified DST-handling implementation in tz.rs
+    let date = naive.date();
+    let h = naive.hour();
+    let m = naive.minute();
+    let s = naive.second();
+    super::tz::local_to_utc(&tz, date, h, m, s)
 }
 
 #[cfg(test)]
@@ -161,22 +157,105 @@ mod tests {
     #[test]
     fn test_parse_dst_gap() {
         // America/New_York DST starts 2026-03-08 02:00:00
-        // 02:30:00 does not exist
+        // 02:30:00 does not exist — unified DST strategy resolves by shifting +1h
         let res = parse_datetime_with_tz(
             "08/03/2026 02:30:00",
             "America/New_York",
             Some("DD/MM/YYYY"),
             Some("24h"),
         );
-        assert!(res.is_err());
-        assert!(res
-            .expect_err("should be error")
-            .contains("thay đổi giờ mùa hè"));
+        // With unified DST handling, gaps are resolved (shifted to 03:30 EDT)
+        assert!(res.is_ok(), "DST gap should now be resolved, not rejected");
+        let dt = res.expect("should be ok");
+        // 03:30 EDT (UTC-4) = 07:30 UTC
+        assert_eq!(dt.hour(), 7);
+        assert_eq!(dt.minute(), 30);
     }
 
     #[test]
     fn test_parse_empty() {
         let res = parse_datetime_with_tz("", "UTC", None, None);
+        assert!(res.is_err());
+    }
+
+    // --- Additional delegation chain tests ---
+
+    #[test]
+    fn test_parse_dst_ambiguous_via_delegation() {
+        // Fall-back: America/New_York 2026-11-01 01:30:00 exists twice
+        // The delegation to tz::local_to_utc should pick the first (EDT, UTC-4)
+        let res = parse_datetime_with_tz(
+            "01/11/2026 01:30:00",
+            "America/New_York",
+            Some("DD/MM/YYYY"),
+            Some("24h"),
+        );
+        assert!(res.is_ok(), "Ambiguous time should be resolved via delegation");
+        let dt = res.expect("should be ok");
+        // First occurrence: EDT (UTC-4) → 05:30 UTC
+        assert_eq!(dt.hour(), 5);
+        assert_eq!(dt.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_12h_format_am() {
+        let res = parse_datetime_with_tz(
+            "16/01/2026 08:30 AM",
+            "Asia/Ho_Chi_Minh",
+            Some("DD/MM/YYYY"),
+            Some("12h"),
+        );
+        assert!(res.is_ok());
+        let dt = res.expect("should be ok");
+        // 08:30 VN (UTC+7) = 01:30 UTC
+        assert_eq!(dt.hour(), 1);
+        assert_eq!(dt.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_midnight_24h() {
+        let res = parse_datetime_with_tz(
+            "16/01/2026 00:00:00",
+            "Asia/Ho_Chi_Minh",
+            Some("DD/MM/YYYY"),
+            Some("24h"),
+        );
+        assert!(res.is_ok());
+        let dt = res.expect("should be ok");
+        // 00:00 VN (UTC+7) = 17:00 previous day UTC
+        assert_eq!(dt.hour(), 17);
+    }
+
+    #[test]
+    fn test_parse_with_offset_ignores_workspace_tz() {
+        // When the string already has an offset, workspace tz should be ignored
+        let dt = parse_datetime_with_tz(
+            "2026-01-16T10:00:00+05:00",
+            "UTC", // This should be ignored
+            None,
+            None,
+        )
+        .expect("valid offset datetime");
+        // 10:00+05:00 = 05:00 UTC
+        assert_eq!(dt.hour(), 5);
+    }
+
+    #[test]
+    fn test_parse_rfc3339_format() {
+        let dt = parse_datetime_with_tz(
+            "2026-06-15T14:30:00Z",
+            "Asia/Ho_Chi_Minh", // Should be ignored for RFC3339
+            None,
+            None,
+        )
+        .expect("valid RFC3339");
+        assert_eq!(dt.hour(), 14);
+        assert_eq!(dt.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_gibberish_returns_error() {
+        let res = parse_datetime_with_tz("not-a-date", "UTC", None, None);
         assert!(res.is_err());
     }
 }

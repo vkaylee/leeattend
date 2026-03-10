@@ -383,7 +383,7 @@ pub async fn get_unexcused_absences(
         .map_err(|e| AppError::Internal(format!("Error fetching workspace: {e}")))?
         .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
 
-    let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+    let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
     // 2. Get schedules for ALL active employees (reuses 6-priority chain logic)
     let schedules = state.shifts.roster_repo.get_workspace_schedules(

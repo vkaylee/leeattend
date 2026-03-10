@@ -676,7 +676,7 @@ impl AttendanceImportService {
                 },
                 Some(cell_data) => {
                     if let Some(naive) = cell_data.as_datetime() {
-                        let tz: Tz = timezone.parse().unwrap_or(chrono_tz::Asia::Ho_Chi_Minh);
+                        let tz: Tz = crate::utils::tz::parse_workspace_tz(timezone);
                         match tz.from_local_datetime(&naive) {
                             chrono::LocalResult::Single(dt) => Some(dt.with_timezone::<Utc>(&Utc)),
                             _ => Some(DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc)),

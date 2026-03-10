@@ -60,7 +60,7 @@ impl AttendanceHandler {
             .await
             .map_err(|e| format!("Failed to get workspace config: {e}"))?;
 
-        let tz: Tz = workspace_config.timezone.parse().unwrap_or(chrono_tz::UTC);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace_config.timezone);
 
         // 2. Convert dates to UTC for time entry query
         let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(

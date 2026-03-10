@@ -50,7 +50,7 @@ impl TimeTrackingService {
             .map_err(AppError::Internal)?
             .ok_or(AppError::Internal("Workspace not found".into()))?;
 
-        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         // Check if already punched in
         if self
@@ -165,7 +165,7 @@ impl TimeTrackingService {
         // Recalculate summary
         let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
         if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
-            let tz: Tz = ws.timezone.parse().unwrap_or(chrono_tz::UTC);
+            let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
                 self.repo.clone(), self.roster_repo.clone(), self.pool.clone(),
@@ -242,7 +242,7 @@ impl TimeTrackingService {
         // Recalculate summary
         let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
         if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
-            let tz: Tz = ws.timezone.parse().unwrap_or(chrono_tz::UTC);
+            let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
                 self.repo.clone(), self.roster_repo.clone(), self.pool.clone(),

@@ -133,7 +133,7 @@ impl ReportService {
             })?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         // 1. PAGINATION AT DATABASE LEVEL
         let page = page.unwrap_or(1);
@@ -386,7 +386,7 @@ impl ReportService {
             })?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         // 1. PAGINATION AT DATABASE LEVEL
         let page = page.unwrap_or(1);

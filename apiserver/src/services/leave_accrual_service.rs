@@ -394,7 +394,7 @@ impl LeaveAccrualService {
         )
         .fetch_one(pool)
         .await?;
-        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         // Get all active employees
         let employees = self.employee_repo.get_active_employees(workspace_id).await?;
