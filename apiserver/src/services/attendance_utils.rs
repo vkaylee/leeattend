@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate, NaiveTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -160,53 +160,35 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
 /// Convert a date range in workspace-local time to UTC `DateTime` range.
 ///
 /// Returns `(start_of_start_date_utc, end_of_end_date_utc)`.
+///
+/// Delegates to [`crate::utils::tz::start_of_day_utc`] / [`crate::utils::tz::end_of_day_utc`]
+/// for proper DST gap handling (shifts forward by 1 hour instead of panicking).
 pub fn date_range_to_utc(
     tz: Tz,
     start_date: NaiveDate,
     end_date: NaiveDate,
 ) -> (DateTime<Utc>, DateTime<Utc>) {
-    let start_dt = tz
-        .from_local_datetime(
-            &start_date
-                .and_hms_opt(0, 0, 0)
-                .expect("valid start time"),
-        )
-        .single()
-        .expect("valid start tz conversion")
-        .with_timezone(&Utc);
-
-    let end_dt = tz
-        .from_local_datetime(
-            &end_date
-                .and_hms_opt(23, 59, 59)
-                .expect("valid end time"),
-        )
-        .single()
-        .expect("valid end tz conversion")
-        .with_timezone(&Utc);
-
+    let start_dt = crate::utils::tz::start_of_day_utc(&tz, start_date)
+        .expect("valid start-of-day conversion");
+    let end_dt = crate::utils::tz::end_of_day_utc(&tz, end_date)
+        .expect("valid end-of-day conversion");
     (start_dt, end_dt)
 }
 
-/// Checked variant of [`date_range_to_utc`] — returns `None` on invalid/ambiguous dates.
+/// Checked variant of [`date_range_to_utc`] — returns `None` on invalid dates.
 ///
 /// Use this in contexts where panicking is not acceptable (e.g., request handlers
 /// that should return an error status code to the client).
+///
+/// Delegates to [`crate::utils::tz::start_of_day_utc`] / [`crate::utils::tz::end_of_day_utc`]
+/// for proper DST gap handling.
 pub fn date_range_to_utc_checked(
     tz: Tz,
     start_date: NaiveDate,
     end_date: NaiveDate,
 ) -> Option<(DateTime<Utc>, DateTime<Utc>)> {
-    let start_dt = tz
-        .from_local_datetime(&start_date.and_hms_opt(0, 0, 0)?)
-        .single()?
-        .with_timezone(&Utc);
-
-    let end_dt = tz
-        .from_local_datetime(&end_date.and_hms_opt(23, 59, 59)?)
-        .single()?
-        .with_timezone(&Utc);
-
+    let start_dt = crate::utils::tz::start_of_day_utc(&tz, start_date).ok()?;
+    let end_dt = crate::utils::tz::end_of_day_utc(&tz, end_date).ok()?;
     Some((start_dt, end_dt))
 }
 

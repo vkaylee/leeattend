@@ -15,6 +15,19 @@ use crate::models::{AttendanceSummary, DailyAttendanceReport};
 pub const EXCEL_CONTENT_TYPE: &str =
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
+/// Convert work units to hours: units × work_unit_minutes / 60
+#[inline]
+fn units_to_hours(units: i32, work_unit_minutes: i32) -> f64 {
+    (units as f64 * work_unit_minutes as f64) / 60.0
+}
+
+/// Ceil-round minutes to work units, then convert to hours: ⌈diff / wum⌉ × wum / 60
+#[inline]
+fn ceil_units_to_hours(diff_minutes: i64, work_unit_minutes: i64) -> f64 {
+    let units = (diff_minutes + work_unit_minutes - 1) / work_unit_minutes;
+    (units * work_unit_minutes) as f64 / 60.0
+}
+
 /// Excel writer for attendance reports.
 pub struct ExcelWriter;
 
@@ -230,7 +243,7 @@ impl ExcelWriter {
                     let prefix = shift_sym.as_deref().unwrap_or("");
 
                     // Convert work units to hours
-                    let std_h = (std_u as f64 * work_unit_minutes as f64) / 60.0;
+                    let std_h = units_to_hours(std_u, work_unit_minutes);
 
                     // Calculate late: ceil to nearest work unit, then convert to hours
                     let late_h = match (punch_in_utc, sched_start) {
@@ -239,8 +252,7 @@ impl ExcelWriter {
                             let pin_time = pin_local.time();
                             if pin_time > sched {
                                 let diff_minutes = (pin_time - sched).num_minutes();
-                                let units = (diff_minutes + work_unit_minutes as i64 - 1) / work_unit_minutes as i64;
-                                (units * work_unit_minutes as i64) as f64 / 60.0
+                                ceil_units_to_hours(diff_minutes, work_unit_minutes as i64)
                             } else {
                                 0.0
                             }
@@ -255,8 +267,7 @@ impl ExcelWriter {
                             let pout_time = pout_local.time();
                             if pout_time < sched {
                                 let diff_minutes = (sched - pout_time).num_minutes();
-                                let units = (diff_minutes + work_unit_minutes as i64 - 1) / work_unit_minutes as i64;
-                                (units * work_unit_minutes as i64) as f64 / 60.0
+                                ceil_units_to_hours(diff_minutes, work_unit_minutes as i64)
                             } else {
                                 0.0
                             }
@@ -264,7 +275,7 @@ impl ExcelWriter {
                         _ => 0.0,
                     };
 
-                    let ot_h = (ot_u as f64 * work_unit_minutes as f64) / 60.0;
+                    let ot_h = units_to_hours(ot_u, work_unit_minutes);
                     let text = format!("{}{}/{}/{}/{}", prefix, fmt_h(std_h), fmt_h(late_h), fmt_h(early_leave_h), fmt_h(ot_h));
                     let fmt = if is_hol {
                         &holiday_fmt
