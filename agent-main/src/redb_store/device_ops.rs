@@ -50,6 +50,7 @@ impl RedbStore {
             password: password.map(|p| p.to_string()),
             device_time: existing.as_ref().and_then(|d| d.device_time.clone()),
             last_info_update: existing.as_ref().and_then(|d| d.last_info_update),
+            use_legacy_checksum: existing.as_ref().and_then(|d| d.use_legacy_checksum),
         };
 
         let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
@@ -71,6 +72,32 @@ impl RedbStore {
             if d.is_active { devices.push(d); }
         }
         Ok(devices)
+    }
+
+    /// Persist the detected checksum mode for a device (smart checksum memory).
+    /// Called after successful connect to remember the auto-detected mode.
+    pub fn update_device_checksum(&self, id: &str, use_legacy: bool) -> Result<(), StoreError> {
+        let key = self.find_device_key_ci(id)?;
+        let k = match key { Some(k) => k, None => return Ok(()) };
+
+        let existing = {
+            let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
+            let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
+            table.get(k.as_str()).map_err(|e| StoreError::DbError(e.to_string()))?
+                .and_then(|g| StoredDevice::from_bytes(g.value()).ok())
+        };
+
+        if let Some(mut d) = existing {
+            d.use_legacy_checksum = Some(use_legacy);
+
+            let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+            {
+                let mut table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
+                table.insert(k.as_str(), d.to_bytes().as_slice()).map_err(|e| StoreError::DbError(e.to_string()))?;
+            }
+            txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+        }
+        Ok(())
     }
 
     pub fn get_device_metadata(&self, id: &str) -> Result<Option<StoredDevice>, StoreError> {
@@ -571,5 +598,119 @@ mod tests {
         store.upsert_device("DEV1", "D", "1.1.1.1", 4370, "z", "UTC", Some("secret"), true, 100).unwrap();
         let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
         assert_eq!(dev.password, Some("secret".into()));
+    }
+
+    // === Smart Checksum Memory Tests ===
+
+    #[test]
+    fn test_new_device_has_no_checksum() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.use_legacy_checksum, None, "New device should have no checksum preference");
+    }
+
+    #[test]
+    fn test_update_device_checksum_legacy() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+
+        store.update_device_checksum("DEV1", true).unwrap();
+
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.use_legacy_checksum, Some(true));
+    }
+
+    #[test]
+    fn test_update_device_checksum_modern() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+
+        store.update_device_checksum("DEV1", false).unwrap();
+
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.use_legacy_checksum, Some(false));
+    }
+
+    #[test]
+    fn test_update_device_checksum_overwrite() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+
+        // First detection: legacy
+        store.update_device_checksum("DEV1", true).unwrap();
+        assert_eq!(store.get_device_metadata("DEV1").unwrap().unwrap().use_legacy_checksum, Some(true));
+
+        // Second detection: modern (firmware upgrade scenario)
+        store.update_device_checksum("DEV1", false).unwrap();
+        assert_eq!(store.get_device_metadata("DEV1").unwrap().unwrap().use_legacy_checksum, Some(false));
+    }
+
+    #[test]
+    fn test_update_device_checksum_nonexistent() {
+        let store = make_store();
+        // Should not panic on nonexistent device
+        store.update_device_checksum("NOPE", true).unwrap();
+    }
+
+    #[test]
+    fn test_update_device_checksum_case_insensitive() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+
+        store.update_device_checksum("dev1", true).unwrap();
+
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.use_legacy_checksum, Some(true));
+    }
+
+    #[test]
+    fn test_upsert_preserves_checksum() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+
+        // Set checksum to legacy
+        store.update_device_checksum("DEV1", true).unwrap();
+
+        // Re-upsert (simulating ConfigPush) — checksum should be preserved
+        store.upsert_device("DEV1", "Updated", "10.0.0.1", 4370, "zkteco", "UTC", None, true, 200000).unwrap();
+
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.ip, "10.0.0.1"); // IP updated
+        assert_eq!(dev.use_legacy_checksum, Some(true)); // Checksum preserved!
+    }
+
+    #[test]
+    fn test_checksum_survives_deactivation_reactivation() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        store.update_device_checksum("DEV1", false).unwrap();
+
+        // Deactivate
+        store.deactivate_devices_not_in(&[]).unwrap();
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert!(!dev.is_active);
+        assert_eq!(dev.use_legacy_checksum, Some(false)); // Still preserved
+
+        // Reactivate via upsert
+        store.upsert_device("DEV1", "D", "1.1.1.1", 4370, "zkteco", "UTC", None, true, 300000).unwrap();
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert!(dev.is_active);
+        assert_eq!(dev.use_legacy_checksum, Some(false)); // Still preserved!
+    }
+
+    #[test]
+    fn test_checksum_does_not_affect_other_metadata() {
+        let store = make_store();
+        add_device(&store, "DEV1");
+        store.update_device_metadata("DEV1", "AA:BB", "SN1", "1.0", "Linux", "ZK400", 50, 1000, 100, 50000, "2026-01-01 12:00:00", 200000).unwrap();
+
+        store.update_device_checksum("DEV1", true).unwrap();
+
+        let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
+        assert_eq!(dev.mac, Some("AA:BB".into())); // Preserved
+        assert_eq!(dev.serial, Some("SN1".into())); // Preserved
+        assert_eq!(dev.users_count, Some(50)); // Preserved
+        assert_eq!(dev.use_legacy_checksum, Some(true)); // Updated
     }
 }

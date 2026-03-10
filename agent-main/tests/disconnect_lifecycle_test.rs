@@ -157,3 +157,19 @@ async fn test_repeated_pings_stability() {
     
     worker.disconnect().await;
 }
+
+// === Detected Checksum Mode Tests ===
+
+/// Test that MockWorker always returns None for detected_checksum_mode.
+/// Mock devices don't have real firmware, so checksum detection is N/A.
+#[tokio::test]
+async fn test_mock_worker_detected_checksum_is_none() {
+    let mut worker = MockWorker::new();
+    assert_eq!(worker.detected_checksum_mode(), None, "MockWorker should return None before connect");
+    
+    worker.connect("127.0.0.1", 4370).await.unwrap();
+    assert_eq!(worker.detected_checksum_mode(), None, "MockWorker should return None after connect");
+    
+    worker.disconnect().await;
+    assert_eq!(worker.detected_checksum_mode(), None, "MockWorker should return None after disconnect");
+}

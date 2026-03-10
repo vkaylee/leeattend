@@ -32,10 +32,14 @@ pub struct ZkWorker {
     users_capacity: Option<usize>,
     logs_capacity: Option<usize>,
     password: Option<u32>,
+    /// If set, skip checksum auto-detect handshake (saves 5-10s per connect).
+    use_legacy_checksum: Option<bool>,
+    /// Checksum mode detected/used during last successful connect.
+    detected_checksum: Option<bool>,
 }
 
 impl ZkWorker {
-    pub fn new(password: Option<u32>) -> Self {
+    pub fn new(password: Option<u32>, use_legacy_checksum: Option<bool>) -> Self {
         Self {
             zk: Arc::new(Mutex::new(None)),
             ip: String::new(),
@@ -47,6 +51,8 @@ impl ZkWorker {
             users_capacity: None,
             logs_capacity: None,
             password,
+            use_legacy_checksum,
+            detected_checksum: None,
         }
     }
 }
@@ -62,6 +68,13 @@ impl Worker for ZkWorker {
         
         if let Some(pwd) = self.password {
             zk.set_password(pwd);
+        }
+
+        // Skip checksum auto-detect if configured (saves 5-10s per connect)
+        if let Some(legacy) = self.use_legacy_checksum {
+            zk.set_legacy_checksum(legacy);
+            debug!("[{ip}] Checksum mode set to {} (skipping auto-detect)",
+                   if legacy { "legacy" } else { "modern" });
         }
 
         let join_handle = tokio::task::spawn_blocking(move || {
@@ -90,6 +103,14 @@ impl Worker for ZkWorker {
 
         match tokio::time::timeout(Duration::from_secs(20), join_handle).await {
             Ok(Ok((zk_instance, Ok(_), static_info))) => {
+                 // Capture detected checksum mode BEFORE moving ZK into mutex
+                 let detected = zk_instance.use_legacy_checksum();
+                 self.detected_checksum = Some(detected);
+                 if self.use_legacy_checksum.is_none() {
+                     info!("[{ip}] Auto-detected checksum: {} (will be remembered for next connect)",
+                           if detected { "legacy" } else { "modern" });
+                 }
+
                  // Store ZK in Arc<Mutex>
                  if let Ok(mut guard) = self.zk.lock() {
                      *guard = Some(zk_instance);
@@ -360,11 +381,15 @@ impl Worker for ZkWorker {
                 }
         }).await;
     }
+
+    fn detected_checksum_mode(&self) -> Option<bool> {
+        self.detected_checksum
+    }
 }
 
 impl Default for ZkWorker {
     fn default() -> Self {
-        Self::new(None)
+        Self::new(None, None)
     }
 }
 
@@ -394,14 +419,27 @@ mod tests {
 
     #[test]
     fn test_zk_worker_new_no_password() {
-        let worker = ZkWorker::new(None);
+        let worker = ZkWorker::new(None, None);
         assert!(worker.zk.lock().unwrap().is_none());
     }
 
     #[test]
     fn test_zk_worker_new_with_password() {
-        let worker = ZkWorker::new(Some(12345));
+        let worker = ZkWorker::new(Some(12345), None);
         assert!(worker.zk.lock().unwrap().is_none()); // Not connected yet
+    }
+
+    #[test]
+    fn test_zk_worker_new_with_legacy_checksum() {
+        let worker = ZkWorker::new(None, Some(true));
+        assert!(worker.use_legacy_checksum == Some(true));
+        assert!(worker.zk.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn test_zk_worker_new_with_modern_checksum() {
+        let worker = ZkWorker::new(None, Some(false));
+        assert!(worker.use_legacy_checksum == Some(false));
     }
 
     #[test]

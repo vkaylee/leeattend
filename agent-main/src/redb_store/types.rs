@@ -63,6 +63,11 @@ pub struct StoredDevice {
     pub password: Option<String>,
     pub device_time: Option<String>,
     pub last_info_update: Option<i64>,
+    /// Detected checksum mode from last successful connect.
+    /// `Some(true)` = legacy, `Some(false)` = modern, `None` = not yet detected.
+    /// Backward compatible: old data without this field deserializes as `None`.
+    #[serde(default)]
+    pub use_legacy_checksum: Option<bool>,
 }
 
 impl StoredDevice {
@@ -187,6 +192,7 @@ mod tests {
             platform: None, hw_name: None, users_count: Some(50),
             logs_count: Some(1000), users_capacity: None, logs_capacity: None,
             password: None, device_time: None, last_info_update: None,
+            use_legacy_checksum: None,
         };
         let bytes = device.to_bytes();
         let decoded = StoredDevice::from_bytes(&bytes).unwrap();

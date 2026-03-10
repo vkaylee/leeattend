@@ -60,6 +60,10 @@ impl Worker for MockWorker {
     async fn disconnect(&mut self) {
         // No-op for mock workers — no real connection to release
     }
+
+    fn detected_checksum_mode(&self) -> Option<bool> {
+        None // Mock has no real device to detect from
+    }
 }
 
 #[cfg(test)]

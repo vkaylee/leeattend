@@ -32,6 +32,8 @@ pub struct WorkerContext {
     pub device_locks: DeviceLocks,
     pub time_sync: Arc<crate::time_sync::TimeSync>,
     pub connection_max_lifetime_secs: u64,
+    /// Global legacy checksum override for ZK devices
+    pub zk_legacy_checksum: Option<bool>,
 }
 
 pub struct Orchestrator {
@@ -109,6 +111,7 @@ impl Orchestrator {
             device_locks: device_locks.clone(),
             time_sync: time_sync.clone(),
             connection_max_lifetime_secs: self.config.connection_max_lifetime_secs,
+            zk_legacy_checksum: self.config.zk_legacy_checksum,
         };
 
         // Initial device load
@@ -408,6 +411,7 @@ fn to_worker_config(d: &crate::redb_store::StoredDevice) -> WorkerConfig {
         ip: d.ip.clone(),
         port: d.port as u32,
         password: d.password.as_ref().and_then(|p| p.parse::<u32>().ok()),
+        use_legacy_checksum: d.use_legacy_checksum, // Smart checksum: persisted from last auto-detect
     }
 }
 
@@ -426,6 +430,7 @@ pub fn spawn_worker(
     let success_skip_polls = ctx.success_skip_polls;
     let device_locks = ctx.device_locks;
     let connection_max_lifetime = ctx.connection_max_lifetime_secs;
+    let zk_legacy_checksum = ctx.zk_legacy_checksum;
 
     tokio::spawn(async move {
         info!("[{}] Device Polling Loop started ({})", config.name, config.ip);
@@ -438,6 +443,11 @@ pub fn spawn_worker(
         let mut retry_count: u32 = 0;
         #[allow(unused_assignments)]
         let mut stable_since: Option<Instant> = None;
+
+        // Reconnect frequency monitoring: track timestamps of recent reconnects
+        let mut reconnect_timestamps: Vec<Instant> = Vec::new();
+        const RECONNECT_WINDOW_SECS: u64 = 3600; // 1 hour
+        const RECONNECT_WARN_THRESHOLD: usize = 5;
 
         while !token.is_cancelled() {
             if retry_count > 0 {
@@ -465,7 +475,9 @@ pub fn spawn_worker(
             let mut worker_impl: Box<dyn Worker> = if config.brand == "mock" {
                 Box::new(mock_worker::MockWorker::new())
             } else {
-                Box::new(zk_worker::ZkWorker::new(config.password))
+                // Apply global legacy checksum if set, otherwise use per-device config
+                let checksum = config.use_legacy_checksum.or(zk_legacy_checksum);
+                Box::new(zk_worker::ZkWorker::new(config.password, checksum))
             };
 
             info!("[{}] Worker ready (permit acquired).", config.name);
@@ -477,6 +489,16 @@ pub fn spawn_worker(
                 drop(_connect_permit);
                 retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                 continue;
+            }
+
+            // Smart checksum memory: persist detected mode for future connects
+            if let Some(detected) = worker_impl.detected_checksum_mode() {
+                if let Err(e) = hybrid_db.store().update_device_checksum(&config.id, detected) {
+                    warn!("[{}] Failed to persist detected checksum: {}", config.name, e);
+                } else {
+                    debug!("[{}] Persisted detected checksum: {}",
+                           config.name, if detected { "legacy" } else { "modern" });
+                }
             }
 
             match worker_impl.get_info(ctx.time_sync.as_ref()).await {
@@ -639,6 +661,15 @@ pub fn spawn_worker(
             if !token.is_cancelled() {
                 warn!("[{}] Sidecar connection lost, restarting...", config.name);
                 retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
+
+                // Reconnect frequency monitoring
+                let now = Instant::now();
+                reconnect_timestamps.retain(|ts| now.duration_since(*ts).as_secs() < RECONNECT_WINDOW_SECS);
+                reconnect_timestamps.push(now);
+                if reconnect_timestamps.len() >= RECONNECT_WARN_THRESHOLD {
+                    warn!("⚠️ [{}] High reconnect frequency: {} reconnects in the last hour — possible firmware or network issue",
+                          config.name, reconnect_timestamps.len());
+                }
             }
         }
 

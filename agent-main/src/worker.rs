@@ -14,4 +14,9 @@ pub trait Worker: Send + Sync {
     /// Implementations should send protocol-level disconnect commands.
     /// Must be idempotent — safe to call multiple times.
     async fn disconnect(&mut self);
+    /// Returns the checksum mode detected/used during the last successful connect.
+    /// `Some(true)` = legacy, `Some(false)` = modern, `None` = unknown (not connected yet).
+    /// Used by the orchestrator to persist the detected mode per device for future connects.
+    fn detected_checksum_mode(&self) -> Option<bool>;
 }
+

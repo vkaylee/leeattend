@@ -7,6 +7,9 @@ pub struct WorkerConfig {
     pub ip: String,
     pub port: u32,
     pub password: Option<u32>,
+    /// If set, skip checksum auto-detect handshake (saves 5-10s per connect).
+    /// `true` = legacy checksum, `false` = modern checksum, `None` = auto-detect.
+    pub use_legacy_checksum: Option<bool>,
 }
 
 impl WorkerConfig {
@@ -15,6 +18,7 @@ impl WorkerConfig {
     pub fn connection_changed(&self, other: &WorkerConfig) -> bool {
         self.ip != other.ip || self.port != other.port
             || self.brand != other.brand || self.password != other.password
+            || self.use_legacy_checksum != other.use_legacy_checksum
     }
 }
 
@@ -27,6 +31,7 @@ mod tests {
         let base = WorkerConfig {
             id: "dev1".into(), name: "Office".into(), brand: "zkteco".into(),
             ip: "192.168.1.1".into(), port: 4370, password: None,
+            use_legacy_checksum: None,
         };
 
         // Same config → no change
@@ -56,5 +61,10 @@ mod tests {
         let mut brand_changed = base.clone();
         brand_changed.brand = "mock".into();
         assert!(base.connection_changed(&brand_changed));
+
+        // Legacy checksum changed → reconnect
+        let mut checksum_changed = base.clone();
+        checksum_changed.use_legacy_checksum = Some(true);
+        assert!(base.connection_changed(&checksum_changed));
     }
 }
