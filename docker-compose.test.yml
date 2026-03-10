@@ -128,12 +128,8 @@ services:
 #     → Shared across host and containers, benefits all Rust projects
 # ==============================================================================
 volumes:
-  target-cache:           # Rust compiled artifacts (~3-4GB). Saves 5-15 min recompilation.
+  target-cache:           # Rust compiled artifacts (~3-4GB). Persistent on disk — survives restarts.
     driver: local
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: "size=8G"
   sccache-cache:          # sccache compilation cache. Shared across apiserver + agent.
     driver: local
   npm-cache:              # NPM download cache. Avoids re-downloading packages.
