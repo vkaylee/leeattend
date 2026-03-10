@@ -7,7 +7,7 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::models::RawAttendanceLog;
-use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::roster::RosterRepository;
 use crate::repositories::TimeEntryRepository;
 use crate::services::pairing_algo::{self, PairingShiftConfig};
 

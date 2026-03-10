@@ -1,4 +1,5 @@
 //! Integration test modules organized by domain.
+//! Updated: 2026-03-10 — roster repository_direct tests added
 #![allow(clippy::unwrap_used)]
 
 pub mod common;

@@ -14,7 +14,7 @@ use crate::domain::policy::defaults::DEFAULT_OT_MULTIPLIER;
 use crate::domain::policy::overtime::OvertimeEngine;
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::repositories::overtime_policy_repository::OvertimePolicyRepository;
-use crate::repositories::roster_repository;
+use crate::repositories::roster;
 use crate::services::AttendanceCalculator;
 
 use super::financial_calculator::FinancialCalculator;
@@ -62,7 +62,7 @@ impl AttendanceMatcher {
         let mut current_date = seg_start;
         while current_date <= seg_end {
             // Resolve shift from pre-loaded roster data (in-memory, zero DB queries)
-            let (shift_ids, _, _) = roster_repository::resolve_effective_shift_from_data(
+            let (shift_ids, _, _) = roster::resolve_effective_shift_from_data(
                 &ctx.roster_data,
                 &ctx.payroll_roster_map,
                 employee_id,

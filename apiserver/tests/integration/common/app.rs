@@ -32,7 +32,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(employee_repo.clone(), pool.clone()));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let roster_repo: Arc<dyn apiserver::repositories::roster_repository::RosterRepository> = Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone()));
+    let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone()));
     let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
     let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
     let report_service = Arc::new(apiserver::services::ReportService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
@@ -166,7 +166,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(employee_repo.clone(), pool.clone()));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let roster_repo: Arc<dyn apiserver::repositories::roster_repository::RosterRepository> = Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone()));
+    let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone()));
     let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
     let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
     let report_service = Arc::new(apiserver::services::ReportService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
@@ -312,7 +312,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(employee_repo.clone(), pool.clone()));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let roster_repo: Arc<dyn apiserver::repositories::roster_repository::RosterRepository> = Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone()));
+    let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone()));
     let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
     let attendance_summary_service = Arc::new(apiserver::services::AttendanceSummaryService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));
     let report_service = Arc::new(apiserver::services::ReportService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));

@@ -15,7 +15,7 @@ use crate::repositories::holiday_repository::HolidayRepositoryTrait;
 use crate::repositories::payroll_repository::PayrollRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
-    roster_repository::RosterRepository, time_entry_repository,
+    roster::RosterRepository, time_entry_repository,
 };
 
 use super::attendance_matcher::AttendanceMatcher;

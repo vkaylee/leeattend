@@ -12,7 +12,7 @@ use crate::repositories::employee;
 use crate::repositories::shift_repository;
 use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 use crate::repositories::TimeEntryRepository;
-use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::roster::RosterRepository;
 
 pub struct TimeTrackingService {
     repo: Arc<dyn TimeEntryRepository>,

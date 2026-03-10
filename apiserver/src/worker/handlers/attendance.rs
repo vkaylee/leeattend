@@ -16,7 +16,7 @@ use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
 use crate::queue::{Job, JobPayload, RedisPool, ReportPublisher, JobQueue, ReportType};
 use crate::repositories::time_entry_repository;
-use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::roster::RosterRepository;
 use crate::services::AttendanceCalculator;
 
 /// Handler for attendance report jobs.
@@ -69,7 +69,7 @@ impl AttendanceHandler {
         .ok_or("Invalid or ambiguous date range")?;
 
         // 3. Fetch schedules AND time entries in parallel (biggest latency win)
-        let roster_repo = crate::repositories::roster_repository::SqlxRosterRepository::new(pool.clone());
+        let roster_repo = crate::repositories::roster::SqlxRosterRepository::new(pool.clone());
         let (schedules_result, entries_result) = tokio::join!(
             roster_repo.get_workspace_schedules(
                 roster_cache,

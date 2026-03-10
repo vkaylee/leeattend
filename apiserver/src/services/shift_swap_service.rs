@@ -12,7 +12,7 @@ use crate::models::shift_swap::{
 use crate::models::ShiftRoster;
 
 use crate::repositories::shift_swap_repository::ShiftSwapRepository;
-use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::roster::RosterRepository;
 
 pub struct ShiftSwapService {
     swap_repo: Arc<dyn ShiftSwapRepository>,

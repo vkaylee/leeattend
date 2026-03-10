@@ -142,7 +142,7 @@ impl EmployeeService {
         // Auto-claim any staged logs for this employee_id_number
         if let Err(e) = {
             let te_repo = std::sync::Arc::new(crate::repositories::SqlxTimeEntryRepository::new(self.pool.clone()));
-            let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, std::sync::Arc::new(crate::repositories::roster_repository::SqlxRosterRepository::new(self.pool.clone())), self.pool.clone()));
+            let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(self.pool.clone())), self.pool.clone()));
             let emp_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> = std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(self.pool.clone()));
             let rl_repo: std::sync::Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(self.pool.clone()));
             let st_repo: std::sync::Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(self.pool.clone()));
@@ -314,7 +314,7 @@ impl EmployeeService {
             let normalized = normalize_employee_id(&new_id_number);
             if let Err(e) = {
                 let te_repo = std::sync::Arc::new(crate::repositories::SqlxTimeEntryRepository::new(self.pool.clone()));
-                let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, std::sync::Arc::new(crate::repositories::roster_repository::SqlxRosterRepository::new(self.pool.clone())), self.pool.clone()));
+                let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(self.pool.clone())), self.pool.clone()));
                 let emp_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> = std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(self.pool.clone()));
                 let rl_repo: std::sync::Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(self.pool.clone()));
                 let st_repo: std::sync::Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(self.pool.clone()));

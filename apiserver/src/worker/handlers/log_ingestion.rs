@@ -33,7 +33,7 @@ impl LogIngestionHandler {
         );
         let pairing_svc = std::sync::Arc::new(
             crate::services::pairing_service::PairingService::new(
-                time_entry_repo, std::sync::Arc::new(crate::repositories::roster_repository::SqlxRosterRepository::new(db.clone())), db.clone(),
+                time_entry_repo, std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(db.clone())), db.clone(),
             ),
         );
         let (log_svc, _handle) = {

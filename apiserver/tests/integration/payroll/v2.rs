@@ -97,7 +97,7 @@ async fn test_calculate_payroll_multi_segment() {
             let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
             let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
             let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
-            PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster_repository::SqlxRosterRepository::new(pool.clone())), pool.clone())
+            PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone())
         }.calculate_monthly_payslip( employee_id, workspace_id, 2026, 1)
             .await
             .unwrap();

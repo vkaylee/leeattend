@@ -15,7 +15,7 @@ use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
     employee, SqlxWorkspaceRepository, TimeEntryRepository,
 };
-use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::roster::RosterRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
 use crate::services::AttendanceCalculator;
 

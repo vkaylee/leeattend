@@ -10,7 +10,7 @@ use crate::repositories::leave_policy_repository::LeavePolicyRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::payroll_repository::PayrollRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
-use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::roster::RosterRepository;
 use crate::repositories::shift_swap_repository::ShiftSwapRepository;
 use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::time_entry_repository::TimeEntryRepository;
@@ -124,3 +124,5 @@ pub struct AppState {
     pub agents: AgentState,
     pub infra: InfraState,
 }
+
+

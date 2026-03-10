@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::models::{Holiday, LeaveRequest, LeaveStatus, ShiftRoster};
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
-use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::roster::RosterRepository;
 
 use crate::repositories::EmployeeRepository;
 use crate::repositories::holiday_repository::HolidayLeaveResult;

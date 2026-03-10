@@ -51,8 +51,8 @@ impl AppState {
         ));
         let time_entry_repo =
             Arc::new(crate::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-        let roster_repo: Arc<dyn crate::repositories::roster_repository::RosterRepository> =
-            Arc::new(crate::repositories::roster_repository::SqlxRosterRepository::new(pool.clone()));
+        let roster_repo: Arc<dyn crate::repositories::roster::RosterRepository> =
+            Arc::new(crate::repositories::roster::SqlxRosterRepository::new(pool.clone()));
         let time_tracking_service = Arc::new(crate::services::TimeTrackingService::new(
             time_entry_repo.clone(),
             roster_repo.clone(),

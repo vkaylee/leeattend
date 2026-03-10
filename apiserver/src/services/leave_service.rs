@@ -12,7 +12,7 @@ use crate::models::{
 };
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
-use crate::repositories::roster_repository::RosterRepository;
+use crate::repositories::roster::RosterRepository;
 use crate::repositories::EmployeeRepository;
 use rust_decimal::prelude::ToPrimitive;
 
