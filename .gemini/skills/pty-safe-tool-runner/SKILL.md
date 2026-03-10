@@ -28,6 +28,13 @@ Root causes phổ biến:
 - Pipe `| tee` trong automated scripts (pipe FD leak sang container children)
 - Podman/Docker exec không có `-T` flag (allocate TTY không cần thiết)
 - `wait` không có PID cụ thể (block mãi nếu có background daemon)
+- **Terminate git commit khi hook đang chạy** → tạo zombie processes giữ PTY,
+  block tất cả git commands sau đó. Recovery: `pkill -9 -f 'git commit'` + `rm -f .git/index.lock`
+
+**⛔ HARD CONSTRAINT: NEVER terminate/kill a running `git commit`.**
+If a commit hangs, wait for timeout or ask the user to kill it manually.
+Terminating mid-hook creates zombie processes that hold PTY file descriptors
+and block ALL subsequent git operations in the same terminal session.
 
 ---
 
@@ -47,6 +54,7 @@ Before creating or running any script, check this risk table:
 | `wait` without specific PID | 🟡 MEDIUM | Use `wait $PID` with explicit PID |
 | Interactive commands (fzf, vim, less) | 🔴 HIGH | Never run in agentic context |
 | Long-running script (>30s) | 🟡 MEDIUM | Add heartbeat logging |
+| Terminate `git commit` mid-hook | 🔴 CRITICAL | NEVER kill — creates zombies holding PTY |
 
 ## Step 2: Apply PTY-safe patterns
 
@@ -193,6 +201,52 @@ timeout 300 ./my-script.sh </dev/null
 # To also capture output:
 timeout 300 ./my-script.sh </dev/null 2>&1
 ```
+
+## Step 7: Detect PTY hang vs normal execution
+
+AI agents cannot distinguish a long-running command from a PTY hang.
+Use this **PTY-safe heartbeat loop** to auto-update a marker file:
+
+```bash
+# 1. Start heartbeat (PTY-safe + self-killing when parent dies)
+HB="/tmp/.pty-heartbeat-$$"
+PARENT_PID=$$
+( while kill -0 $PARENT_PID 2>/dev/null; do date +%s > "$HB"; sleep 2; done; rm -f "$HB" ) </dev/null >/dev/null 2>&1 &
+HB_PID=$!
+
+# 2. Run the actual command
+git -c commit.gpgsign=false commit --no-verify -m "msg" </dev/null
+CMD_EXIT=$?
+
+# 3. Cleanup heartbeat (explicit PID, no orphans)
+kill $HB_PID 2>/dev/null; wait $HB_PID 2>/dev/null; rm -f "$HB"
+exit $CMD_EXIT
+```
+
+Why this is safe:
+- `</dev/null >/dev/null 2>&1 &` — all 3 FDs detached, no PTY inheritance
+- `kill -0 $PARENT_PID` — loop self-exits when parent process dies (crash, disconnect)
+- `rm -f "$HB"` in loop — auto-cleanup even without explicit kill
+- `kill $HB_PID` + `wait $HB_PID` — belt-and-suspenders cleanup on normal exit
+
+**AI agent detection** — check heartbeat file from a separate command:
+
+```bash
+# Read heartbeat timestamp:
+cat /tmp/.pty-heartbeat-*
+# Compare with current time:
+echo $(( $(date +%s) - $(cat /tmp/.pty-heartbeat-*) ))
+```
+
+| Heartbeat age | `PTY_DONE` in file? | Diagnosis | Action |
+|---|---|---|---|
+| < 5 seconds | — | Running normally | Keep waiting |
+| > 10 seconds | No | **PTY hang likely** | Ask user to intervene |
+| File gone | — | Command finished | Check exit code normally |
+
+**⛔ CRITICAL: When you suspect a hang, NEVER terminate the process.**
+Ask the user to investigate or kill it manually. Terminating may create
+zombie processes that cascade into more hangs.
 
 ---
 
