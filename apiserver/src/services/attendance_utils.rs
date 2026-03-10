@@ -286,6 +286,7 @@ pub fn group_entries_by_date(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Timelike;
 
     // ===== AttendanceStatus enum tests =====
 
@@ -633,5 +634,109 @@ mod tests {
         let mar1 = NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date");
         assert_eq!(grouped.len(), 1);
         assert_eq!(grouped.get(&mar1).map(|v| v.len()).unwrap_or(0), 3);
+    }
+
+    // -----------------------------------------------------------------------
+    // extract_punch_status tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_extract_punch_status_both_present() {
+        let data = serde_json::json!({"punch": 1, "status": 2});
+        let (punch, status) = extract_punch_status(Some(&data));
+        assert_eq!(punch, 1);
+        assert_eq!(status, 2);
+    }
+
+    #[test]
+    fn test_extract_punch_status_none() {
+        let (punch, status) = extract_punch_status(None);
+        assert_eq!(punch, -1);
+        assert_eq!(status, -1);
+    }
+
+    #[test]
+    fn test_extract_punch_status_missing_fields() {
+        let data = serde_json::json!({"other": "value"});
+        let (punch, status) = extract_punch_status(Some(&data));
+        assert_eq!(punch, -1);
+        assert_eq!(status, -1);
+    }
+
+    #[test]
+    fn test_extract_punch_status_zero_values() {
+        let data = serde_json::json!({"punch": 0, "status": 0});
+        let (punch, status) = extract_punch_status(Some(&data));
+        assert_eq!(punch, 0);
+        assert_eq!(status, 0);
+    }
+
+    #[test]
+    fn test_extract_punch_status_string_values_ignored() {
+        // String values for punch/status should not parse as i64
+        let data = serde_json::json!({"punch": "1", "status": "2"});
+        let (punch, status) = extract_punch_status(Some(&data));
+        assert_eq!(punch, -1);
+        assert_eq!(status, -1);
+    }
+
+    #[test]
+    fn test_extract_punch_status_partial_fields() {
+        let data = serde_json::json!({"punch": 3});
+        let (punch, status) = extract_punch_status(Some(&data));
+        assert_eq!(punch, 3);
+        assert_eq!(status, -1);
+    }
+
+    // -----------------------------------------------------------------------
+    // date_range_to_utc tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_date_range_to_utc_basic_utc() {
+        let tz: Tz = "UTC".parse().expect("valid tz");
+        let start = NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid");
+        let end = NaiveDate::from_ymd_opt(2026, 3, 31).expect("valid");
+        let (s, e) = date_range_to_utc(tz, start, end);
+        assert_eq!(s.date_naive(), start);
+        assert!(e > s);
+    }
+
+    #[test]
+    fn test_date_range_to_utc_with_timezone_offset() {
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz"); // UTC+7
+        let start = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid");
+        let end = NaiveDate::from_ymd_opt(2026, 1, 31).expect("valid");
+        let (s, _e) = date_range_to_utc(tz, start, end);
+        // Midnight VN time = 17:00 previous day UTC
+        assert_eq!(s.hour(), 17); // 00:00 VN = 17:00 UTC (prev day)
+    }
+
+    #[test]
+    fn test_date_range_to_utc_single_day() {
+        let tz: Tz = "UTC".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid");
+        let (s, e) = date_range_to_utc(tz, date, date);
+        assert_eq!(s.date_naive(), date);
+        assert_eq!(e.date_naive(), date);
+        assert!(e > s);
+    }
+
+    #[test]
+    fn test_date_range_to_utc_checked_valid() {
+        let tz: Tz = "UTC".parse().expect("valid tz");
+        let start = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid");
+        let end = NaiveDate::from_ymd_opt(2026, 1, 31).expect("valid");
+        assert!(date_range_to_utc_checked(tz, start, end).is_some());
+    }
+
+    #[test]
+    fn test_date_range_to_utc_checked_same_day() {
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().expect("valid tz");
+        let date = NaiveDate::from_ymd_opt(2026, 3, 15).expect("valid");
+        let result = date_range_to_utc_checked(tz, date, date);
+        assert!(result.is_some());
+        let (s, e) = result.unwrap();
+        assert!(e > s);
     }
 }

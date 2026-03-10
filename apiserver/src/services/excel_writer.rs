@@ -498,6 +498,42 @@ mod tests {
         Ok(())
     }
 
+    // --- units_to_hours / ceil_units_to_hours tests ---
+
+    #[test]
+    fn test_units_to_hours_basic() {
+        // 16 units × 30 min = 480 min = 8.0 hours
+        assert_eq!(units_to_hours(16, 30), 8.0);
+    }
+
+    #[test]
+    fn test_units_to_hours_zero_units() {
+        assert_eq!(units_to_hours(0, 30), 0.0);
+    }
+
+    #[test]
+    fn test_units_to_hours_15min_unit() {
+        // 32 units × 15 min = 480 min = 8.0 hours
+        assert_eq!(units_to_hours(32, 15), 8.0);
+    }
+
+    #[test]
+    fn test_ceil_units_to_hours_exact() {
+        // 480 min / 30 = 16 units → 16 × 30 / 60 = 8.0
+        assert_eq!(ceil_units_to_hours(480, 30), 8.0);
+    }
+
+    #[test]
+    fn test_ceil_units_to_hours_rounds_up() {
+        // 475 min / 30 = 15.83 → ceil = 16 → 16 × 30 / 60 = 8.0
+        assert_eq!(ceil_units_to_hours(475, 30), 8.0);
+    }
+
+    #[test]
+    fn test_ceil_units_to_hours_zero() {
+        assert_eq!(ceil_units_to_hours(0, 30), 0.0);
+    }
+
     #[test]
     fn test_write_summary_with_data() -> Result<(), Box<dyn std::error::Error>> {
         let summaries = vec![
