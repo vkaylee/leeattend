@@ -220,6 +220,7 @@ impl FinancialCalculator {
 
     #[allow(clippy::too_many_arguments)]
     pub fn assemble_payslip(
+        workspace_id: Uuid,
         employee_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -234,6 +235,7 @@ impl FinancialCalculator {
         Payslip {
             id: Uuid::new_v4(),
             employee_id,
+            workspace_id,
             period_start: start_date,
             period_end: end_date,
             base_pay_amount: total_base_pay,
@@ -326,6 +328,7 @@ mod tests {
         let end = NaiveDate::from_ymd_opt(2026, 1, 31).expect("valid date");
 
         let slip = FinancialCalculator::assemble_payslip(
+            Uuid::new_v4(),
             emp,
             start,
             end,
@@ -359,6 +362,7 @@ mod tests {
         let end = NaiveDate::from_ymd_opt(2026, 3, 31).expect("valid date");
 
         let slip = FinancialCalculator::assemble_payslip(
+            Uuid::new_v4(),
             emp, start, end,
             Decimal::ZERO, Decimal::ZERO, Decimal::ZERO,
             Decimal::ZERO, Decimal::ZERO, 0, 0,
@@ -457,6 +461,7 @@ mod tests {
         let end = NaiveDate::from_ymd_opt(2026, 2, 28).expect("valid date");
 
         let slip = FinancialCalculator::assemble_payslip(
+            Uuid::new_v4(),
             emp, start, end,
             Decimal::from(1000),   // base
             Decimal::ZERO,         // OT
@@ -477,6 +482,7 @@ mod tests {
         let end = NaiveDate::from_ymd_opt(2026, 3, 31).expect("valid date");
 
         let slip = FinancialCalculator::assemble_payslip(
+            Uuid::new_v4(),
             emp, start, end,
             Decimal::from(20000),  // base
             Decimal::from(5000),   // OT

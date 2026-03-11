@@ -23,6 +23,7 @@ pub struct PayslipSegment {
 pub struct Payslip {
     pub id: Uuid,
     pub employee_id: Uuid,
+    pub workspace_id: Uuid,
     pub period_start: NaiveDate,
     pub period_end: NaiveDate,
     pub base_pay_amount: rust_decimal::Decimal,

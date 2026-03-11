@@ -359,7 +359,7 @@ impl PayrollService {
 
         // Phase 7: Assemble Payslip — delegated to FinancialCalculator
         let payslip = FinancialCalculator::assemble_payslip(
-            employee_id, ctx.start_date, ctx.end_date,
+            workspace_id, employee_id, ctx.start_date, ctx.end_date,
             total_base_pay, total_overtime_pay, total_holiday_work_premium,
             incentives.total_amount, deductions.amount,
             total_std_units, total_ot_units,
