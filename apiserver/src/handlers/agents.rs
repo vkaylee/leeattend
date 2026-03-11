@@ -253,11 +253,15 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
         (status = 200, description = "List all agents status", body = [AgentStatus])
     )
 )]
-pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Vec<AgentStatus>>> {
-    // 1. Fetch all authorized agents from DB
+pub async fn get_agents(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> AppResult<Json<Vec<AgentStatus>>> {
+    // 1. Fetch workspace-scoped authorized agents from DB
     let db_agents = sqlx::query_as::<_, AuthorizedAgent>(
-        "SELECT * FROM authorized_agents WHERE is_active = true",
+        "SELECT * FROM authorized_agents WHERE workspace_id = $1 AND is_active = true",
     )
+    .bind(workspace_id)
     .fetch_all(state.infra.db.api())
     .await?;
 
@@ -271,9 +275,10 @@ pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Ve
     // 3. Batch fetch all devices for these agents to avoid N+1
     let agent_ids: Vec<String> = agents_status.iter().map(|a| a.agent_id.clone()).collect();
     let devices = sqlx::query_as::<_, crate::models::Device>(
-        "SELECT * FROM devices WHERE agent_id = ANY($1) ORDER BY created_at DESC",
+        "SELECT * FROM devices WHERE agent_id = ANY($1) AND workspace_id = $2 ORDER BY created_at DESC",
     )
     .bind(&agent_ids)
+    .bind(workspace_id)
     .fetch_all(state.infra.db.api())
     .await?;
 

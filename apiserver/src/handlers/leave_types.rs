@@ -117,8 +117,9 @@ pub async fn delete_leave_type(
     ctx.require_permission(Permission::LeaveTypesManage)?;
 
     let in_balances = sqlx::query!(
-        "SELECT 1 as has_data FROM leave_balances WHERE leave_type_id = $1 LIMIT 1",
-        id
+        "SELECT 1 as has_data FROM leave_balances lb JOIN employees e ON e.id = lb.employee_id WHERE lb.leave_type_id = $1 AND e.workspace_id = $2 LIMIT 1",
+        id,
+        ctx.workspace_id
     )
     .fetch_optional(state.infra.db.api())
     .await

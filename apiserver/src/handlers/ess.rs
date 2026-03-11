@@ -45,17 +45,19 @@ pub async fn get_my_profile(
 
     // Get profile (may not exist yet)
     let profile = sqlx::query_as::<_, EmployeeProfile>(
-        "SELECT * FROM employee_profiles WHERE employee_id = $1",
+        "SELECT ep.* FROM employee_profiles ep JOIN employees e ON e.id = ep.employee_id WHERE ep.employee_id = $1 AND e.workspace_id = $2",
     )
     .bind(employee.employee_id)
+    .bind(employee.workspace_id)
     .fetch_optional(state.infra.db.reader())
     .await?;
 
     // Get emergency contacts
     let contacts = sqlx::query_as::<_, EmployeeEmergencyContact>(
-        "SELECT * FROM employee_emergency_contacts WHERE employee_id = $1 ORDER BY is_primary DESC, created_at",
+        "SELECT ec.* FROM employee_emergency_contacts ec JOIN employees e ON e.id = ec.employee_id WHERE ec.employee_id = $1 AND e.workspace_id = $2 ORDER BY ec.is_primary DESC, ec.created_at",
     )
     .bind(employee.employee_id)
+    .bind(employee.workspace_id)
     .fetch_all(state.infra.db.reader())
     .await?;
 
@@ -113,9 +115,10 @@ pub async fn get_my_emergency_contacts(
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<EmployeeEmergencyContact>>> {
     let contacts = sqlx::query_as::<_, EmployeeEmergencyContact>(
-        "SELECT * FROM employee_emergency_contacts WHERE employee_id = $1 ORDER BY is_primary DESC, created_at",
+        "SELECT ec.* FROM employee_emergency_contacts ec JOIN employees e ON e.id = ec.employee_id WHERE ec.employee_id = $1 AND e.workspace_id = $2 ORDER BY ec.is_primary DESC, ec.created_at",
     )
     .bind(employee.employee_id)
+    .bind(employee.workspace_id)
     .fetch_all(state.infra.db.reader())
     .await?;
 
@@ -187,9 +190,10 @@ pub async fn get_my_documents(
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<EmployeeDocument>>> {
     let docs = sqlx::query_as::<_, EmployeeDocument>(
-        "SELECT * FROM employee_documents WHERE employee_id = $1 AND is_active = true ORDER BY created_at DESC",
+        "SELECT ed.* FROM employee_documents ed JOIN employees e ON e.id = ed.employee_id WHERE ed.employee_id = $1 AND e.workspace_id = $2 AND ed.is_active = true ORDER BY ed.created_at DESC",
     )
     .bind(employee.employee_id)
+    .bind(employee.workspace_id)
     .fetch_all(state.infra.db.reader())
     .await?;
 
