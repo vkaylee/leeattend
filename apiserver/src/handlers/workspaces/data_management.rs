@@ -1,12 +1,13 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Query, State},
     http::StatusCode,
 };
 use serde::Deserialize;
 use std::sync::Arc;
-use uuid::Uuid;
+
 
 use crate::errors::{AppError, AppResult};
+use crate::handlers::common::MemberContext;
 use crate::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -15,10 +16,11 @@ pub struct ClearWorkspaceDataQuery {
 }
 
 pub async fn clear_workspace_data(
-    Path(ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
     Query(query): Query<ClearWorkspaceDataQuery>,
 ) -> AppResult<StatusCode> {
+    let ws_id = ctx.workspace_id;
     let mut tx = state.infra.db.api().begin().await?;
 
     match query.group.as_str() {

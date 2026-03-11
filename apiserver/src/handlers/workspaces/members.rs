@@ -20,7 +20,6 @@ pub struct UpdateMemberRoleRequest {
 }
 
 pub async fn get_workspace_members(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<WorkspaceMemberDetail>>> {
@@ -38,7 +37,6 @@ pub async fn get_workspace_members(
 }
 
 pub async fn add_workspace_member(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     ctx: MemberContext,

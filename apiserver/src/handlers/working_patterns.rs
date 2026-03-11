@@ -21,7 +21,6 @@ use crate::{
 
 pub async fn create_pattern(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<CreateWorkingPatternRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -37,7 +36,6 @@ pub async fn create_pattern(
 
 pub async fn list_patterns(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkingPattern>>> {
     let patterns = service::list_patterns(state.infra.db.api(), ctx.workspace_id).await?;
@@ -71,7 +69,6 @@ pub async fn assign_pattern(
 
 pub async fn bulk_assign_pattern(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<BulkAssignPatternRequest>,
 ) -> AppResult<Json<BulkAssignResponse>> {

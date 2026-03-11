@@ -30,8 +30,7 @@ pub struct UpdateLeaveTypeConfigRequest {
 
 pub async fn list_leave_types(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
-    _ctx: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<LeaveType>>> {
     let types = sqlx::query_as!(
         LeaveType,
@@ -53,7 +52,6 @@ pub async fn list_leave_types(
 
 pub async fn create_leave_type(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<CreateLeaveTypeRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -70,7 +68,7 @@ pub async fn create_leave_type(
                   policy_config as "policy_config: sqlx::types::Json<LeaveTypeConfig>", 
                   created_at
         "#,
-        workspace_id,
+        ctx.workspace_id,
         req.code,
         req.name,
         req.is_paid,
@@ -84,7 +82,7 @@ pub async fn create_leave_type(
 
 pub async fn update_leave_type_config(
     State(state): State<Arc<AppState>>,
-    Path((workspace_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<UpdateLeaveTypeConfigRequest>,
 ) -> AppResult<Json<LeaveType>> {
@@ -102,7 +100,7 @@ pub async fn update_leave_type_config(
         "#,
         sqlx::types::Json(req.policy_config) as _,
         id,
-        workspace_id
+        ctx.workspace_id
     )
     .fetch_optional(state.infra.db.api())
     .await?
@@ -113,7 +111,7 @@ pub async fn update_leave_type_config(
 
 pub async fn delete_leave_type(
     State(state): State<Arc<AppState>>,
-    Path((workspace_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::LeaveTypesManage)?;
@@ -135,7 +133,7 @@ pub async fn delete_leave_type(
     let res = sqlx::query!(
         "DELETE FROM leave_types WHERE id = $1 AND workspace_id = $2",
         id,
-        workspace_id
+        ctx.workspace_id
     )
     .execute(state.infra.db.api())
     .await?;

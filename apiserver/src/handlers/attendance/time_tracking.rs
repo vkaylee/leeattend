@@ -21,8 +21,7 @@ pub struct HistoryQuery {
 
 pub async fn punch_in(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<PunchInRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
     let entry = state

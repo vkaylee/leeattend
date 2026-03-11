@@ -15,9 +15,8 @@ use crate::models::{
 use crate::AppState;
 
 pub async fn get_salary_components(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<SalaryComponentDefinition>>> {
     let components = state.payroll.repo.get_salary_component_definitions(workspace_id,
     )
@@ -27,9 +26,8 @@ pub async fn get_salary_components(
 }
 
 pub async fn create_salary_component(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<CreateSalaryComponentRequest>,
 ) -> AppResult<(StatusCode, Json<SalaryComponentDefinition>)> {
     let component = state.payroll.repo.create_salary_component_definition(workspace_id,

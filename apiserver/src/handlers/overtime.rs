@@ -34,20 +34,19 @@ pub struct CreateRuleRequest {
 
 pub async fn list_policies(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
-    _ctx: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimePolicy>>> {
     let policies =
-        OvertimePolicyRepository::get_policy_definitions(state.infra.db.api(), workspace_id).await?;
+        OvertimePolicyRepository::get_policy_definitions(state.infra.db.api(), ctx.workspace_id).await?;
     Ok(Json(policies))
 }
 
 pub async fn get_policy(
     State(state): State<Arc<AppState>>,
-    Path((workspace_id, policy_id)): Path<(Uuid, Uuid)>,
-    _ctx: MemberContext,
+    Path((_, policy_id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
 ) -> AppResult<Json<(OvertimePolicy, Vec<OvertimeRule>)>> {
-    let result = OvertimePolicyRepository::get_policy_with_rules(state.infra.db.api(), workspace_id, policy_id)
+    let result = OvertimePolicyRepository::get_policy_with_rules(state.infra.db.api(), ctx.workspace_id, policy_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Policy not found".to_string()))?;
     Ok(Json(result))
@@ -55,14 +54,13 @@ pub async fn get_policy(
 
 pub async fn create_policy(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<CreatePolicyRequest>,
 ) -> AppResult<Json<OvertimePolicy>> {
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
     let policy = OvertimePolicyRepository::create_policy_definition(
         state.infra.db.api(),
-        workspace_id,
+        ctx.workspace_id,
         &req.name,
         req.description.as_deref(),
     )
@@ -104,14 +102,13 @@ pub struct AssignPolicyRequest {
 
 pub async fn assign_policy(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<AssignPolicyRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
     OvertimePolicyRepository::create_policy_assignment(
         state.infra.db.api(),
-        workspace_id,
+        ctx.workspace_id,
         &req.assignee_type,
         req.assignee_id,
         req.policy_id,

@@ -23,13 +23,13 @@ pub struct ClaimOtRequest {
 
 pub async fn claim_ot(
     State(state): State<Arc<AppState>>,
-    Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<ClaimOtRequest>,
 ) -> AppResult<StatusCode> {
     // 1. Verify ownership (Employee can only claim for themselves) or has OvertimeClaim permission
     let employee =
-        state.employees.repo.get_employee_by_id(employee_id, ws_id)
+        state.employees.repo.get_employee_by_id(employee_id, ctx.workspace_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -105,7 +105,6 @@ pub struct SummaryQuery {
 
 pub async fn get_attendance_summaries(
     State(state): State<Arc<AppState>>,
-    Path(ws_id): Path<Uuid>,
     ctx: MemberContext,
     Query(query): Query<SummaryQuery>,
 ) -> AppResult<Json<Vec<AttendanceDailySummary>>> {
@@ -118,7 +117,7 @@ pub async fn get_attendance_summaries(
     } else {
         let emp_record = sqlx::query!(
             "SELECT id FROM employees WHERE workspace_id = $1 AND user_id = $2",
-            ws_id,
+            ctx.workspace_id,
             ctx.user_id
         )
         .fetch_optional(state.infra.db.api())
@@ -140,7 +139,7 @@ pub async fn get_attendance_summaries(
         sqlx::query_as!(
             crate::models::AttendanceDailySummary,
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: crate::models::OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE workspace_id = $1 AND employee_id = $2 AND date >= $3 AND date <= $4 ORDER BY date ASC",
-            ws_id, emp_id, query.start_date, query.end_date
+            ctx.workspace_id, emp_id, query.start_date, query.end_date
         )
         .fetch_all(state.infra.db.api())
         .await?
@@ -148,7 +147,7 @@ pub async fn get_attendance_summaries(
         sqlx::query_as!(
             crate::models::AttendanceDailySummary,
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: crate::models::OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE workspace_id = $1 AND date >= $2 AND date <= $3 ORDER BY date ASC, employee_id ASC",
-            ws_id, query.start_date, query.end_date
+            ctx.workspace_id, query.start_date, query.end_date
         )
         .fetch_all(state.infra.db.api())
         .await?

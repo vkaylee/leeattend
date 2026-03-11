@@ -28,7 +28,7 @@ pub struct EnterPaperOtRequest {
 
 pub async fn enter_paper_ot(
     State(state): State<Arc<AppState>>,
-    Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<EnterPaperOtRequest>,
 ) -> AppResult<Json<AttendanceDailySummary>> {
@@ -37,7 +37,7 @@ pub async fn enter_paper_ot(
 
     // 2. Validate employee exists in workspace
     let _employee =
-        state.employees.repo.get_employee_by_id(employee_id, ws_id)
+        state.employees.repo.get_employee_by_id(employee_id, ctx.workspace_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -68,7 +68,6 @@ pub async fn enter_paper_ot(
 
 pub async fn bulk_upload_paper_ot(
     State(state): State<Arc<AppState>>,
-    Path(ws_id): Path<Uuid>,
     ctx: MemberContext,
     mut multipart: Multipart,
 ) -> AppResult<Json<BulkOtUploadResult>> {
@@ -219,7 +218,7 @@ pub async fn bulk_upload_paper_ot(
 
         // Find employee by employee_id_number
         let employee = match state.employees.repo.get_employee_by_id_number(&employee_id_str,
-            ws_id,
+            ctx.workspace_id,
         )
         .await
         {
@@ -247,7 +246,7 @@ pub async fn bulk_upload_paper_ot(
             "SELECT system_detected_ot_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2 AND workspace_id = $3",
             employee.id,
             date,
-            ws_id
+            ctx.workspace_id
         )
         .fetch_optional(state.infra.db.api())
         .await;

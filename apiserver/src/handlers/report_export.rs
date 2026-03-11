@@ -139,7 +139,6 @@ fn get_coordinator(state: &AppState) -> AppResult<&ReportCoordinator> {
 /// Returns 202 Accepted with job_id and status_url for polling.
 pub async fn create_export_job(
     State(state): State<Arc<AppState>>,
-    Path(ws_id): Path<Uuid>,
     ctx: MemberContext,
     Json(request): Json<ExportReportRequest>,
 ) -> AppResult<(StatusCode, Json<ExportJobResponse>)> {
@@ -195,12 +194,12 @@ pub async fn create_export_job(
 
     // Create async job
     let result = coordinator
-        .create_report_job(ws_id, ctx.user_id, create_request)
+        .create_report_job(ctx.workspace_id, ctx.user_id, create_request)
         .await?;
 
     tracing::info!(
         job_id = %result.job_id,
-        workspace_id = %ws_id,
+        workspace_id = %ctx.workspace_id,
         user_id = %ctx.user_id,
         total_batches = result.total_batches,
         "Export job created"
@@ -223,7 +222,7 @@ pub async fn create_export_job(
 /// Poll job status. Returns current progress and status.
 pub async fn get_job_status(
     State(state): State<Arc<AppState>>,
-    Path((ws_id, job_id)): Path<(Uuid, Uuid)>,
+    Path((_, job_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {
     // RBAC: Require Admin or Owner
@@ -244,7 +243,7 @@ pub async fn get_job_status(
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
-    if metadata.workspace_id != ws_id {
+    if metadata.workspace_id != ctx.workspace_id {
         return Err(AppError::Forbidden(
             "Job does not belong to this workspace".to_string(),
         ));
@@ -266,7 +265,7 @@ pub async fn get_job_status(
 /// Returns 202 if job not yet complete, 410 if failed.
 pub async fn download_report(
     State(state): State<Arc<AppState>>,
-    Path((ws_id, job_id)): Path<(Uuid, Uuid)>,
+    Path((_, job_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<impl IntoResponse> {
     // RBAC: Require Admin or Owner
@@ -287,7 +286,7 @@ pub async fn download_report(
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
-    if metadata.workspace_id != ws_id {
+    if metadata.workspace_id != ctx.workspace_id {
         return Err(AppError::Forbidden(
             "Job does not belong to this workspace".to_string(),
         ));
@@ -345,7 +344,7 @@ pub async fn download_report(
 /// Returns 404 if job not found, 409 if already completed.
 pub async fn cancel_job(
     State(state): State<Arc<AppState>>,
-    Path((ws_id, job_id)): Path<(Uuid, Uuid)>,
+    Path((_, job_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     // RBAC: Require Admin or Owner
@@ -366,7 +365,7 @@ pub async fn cancel_job(
         .await?
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
-    if metadata.workspace_id != ws_id {
+    if metadata.workspace_id != ctx.workspace_id {
         return Err(AppError::Forbidden(
             "Job does not belong to this workspace".to_string(),
         ));

@@ -1061,13 +1061,12 @@ pub async fn create_workspace(
 
 pub async fn update_workspace(
     State(state): State<Arc<AppState>>,
-    Path(ws_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<UpdateWorkspaceRequest>,
 ) -> AppResult<Json<Workspace>> {
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
     state.core.workspace_service.update_workspace(
-        ws_id,
+        ctx.workspace_id,
         req.name,
         req.work_unit_minutes,
         req.rounding_policy,

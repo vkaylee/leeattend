@@ -1,10 +1,10 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Query, State},
     response::Json,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use uuid::Uuid;
+
 
 use crate::domain::audit::AuditLog;
 use crate::domain::permissions::Permission;
@@ -30,7 +30,6 @@ pub struct AuditLogQueryParams {
 }
 
 pub async fn get_audit_logs(
-    Path(ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(params): Query<AuditLogQueryParams>,
@@ -45,7 +44,7 @@ pub async fn get_audit_logs(
 
     let (logs, total) = state
         .core.audit_repo
-        .find_by_workspace(ws_id, limit, offset, params.action, params.start_date, params.end_date)
+        .find_by_workspace(ctx.workspace_id, limit, offset, params.action, params.start_date, params.end_date)
         .await?;
 
     Ok(Json(PaginatedAuditLogs {

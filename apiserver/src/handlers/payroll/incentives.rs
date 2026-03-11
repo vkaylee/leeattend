@@ -15,9 +15,8 @@ use crate::models::{
 use crate::AppState;
 
 pub async fn get_incentive_policies(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<PayrollIncentivePolicyResponse>>> {
     let policies = state.payroll.repo.get_active_incentive_policies(workspace_id,
     )
@@ -34,7 +33,7 @@ pub async fn get_incentive_policies(
 
 pub async fn create_incentive_policy(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
+    ctx: MemberContext,
     Json(req): Json<CreatePayrollIncentivePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<PayrollIncentivePolicy>)> {
     let policy_id = Uuid::new_v4();
@@ -44,7 +43,7 @@ pub async fn create_incentive_policy(
            RETURNING id, workspace_id, name, base_amount, payout_type, is_active, created_at"#,
     )
     .bind(policy_id)
-    .bind(workspace_id)
+    .bind(ctx.workspace_id)
     .bind(&req.name)
     .bind(req.base_amount)
     .bind(&req.payout_type)
@@ -85,11 +84,12 @@ pub async fn create_incentive_policy(
 
 pub async fn delete_incentive_policy(
     State(state): State<Arc<AppState>>,
-    Path((ws_id, policy_id)): Path<(Uuid, Uuid)>,
+    Path((_, policy_id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     sqlx::query("DELETE FROM payroll_incentive_policies WHERE id = $1 AND workspace_id = $2")
         .bind(policy_id)
-        .bind(ws_id)
+        .bind(ctx.workspace_id)
         .execute(state.infra.db.api())
         .await?;
     Ok(StatusCode::NO_CONTENT)

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Query, State},
     response::Json,
 };
 use chrono::NaiveDate;
@@ -13,8 +13,7 @@ use crate::AppState;
 
 pub async fn get_attendance_report(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<Json<serde_json::Value>> {
     let start_date_str = params

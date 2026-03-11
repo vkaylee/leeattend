@@ -58,7 +58,6 @@ pub struct StagingLogsResponse {
 /// GET /workspaces/:ws_id/attendance/staging-logs
 /// List pending staging logs (unknown users)
 pub async fn get_staging_logs(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<StagingLogsQuery>,

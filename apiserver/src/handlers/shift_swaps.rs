@@ -22,7 +22,6 @@ use crate::UserId;
 // ---------------------------------------------------------------------------
 
 pub async fn create_shift_swap(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     ctx: MemberContext,
@@ -47,7 +46,6 @@ pub struct ShiftSwapQuery {
 }
 
 pub async fn list_shift_swaps(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<ShiftSwapQuery>,
@@ -86,7 +84,6 @@ pub async fn approve_shift_swap(
 // ---------------------------------------------------------------------------
 
 pub async fn get_shift_swap_stats(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<crate::repositories::shift_swap_repository::SwapStats>> {

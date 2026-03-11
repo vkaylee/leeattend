@@ -38,9 +38,8 @@ pub struct FullPayslipResponse {
 }
 
 pub async fn calculate_batch_payroll(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<BatchCalculatePayrollRequest>,
 ) -> AppResult<Json<BatchCalculatePayrollResponse>> {
     let response = state
@@ -51,9 +50,8 @@ pub async fn calculate_batch_payroll(
 }
 
 pub async fn get_workspace_payslips(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<PayrollQuery>,
 ) -> AppResult<Json<Vec<Payslip>>> {
     let start_date = chrono::NaiveDate::from_ymd_opt(query.year, query.month, 1)

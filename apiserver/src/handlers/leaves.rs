@@ -24,7 +24,6 @@ use crate::{AppState, UserId};
 // --- Leave Handlers ---
 
 pub async fn submit_leave_request(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     MemberContext { workspace_id, .. }: MemberContext,
@@ -86,7 +85,6 @@ pub async fn get_my_leave_requests(
 }
 
 pub async fn get_workspace_leave_balances(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(params): Query<PaginationParams>,
@@ -105,12 +103,13 @@ pub async fn get_workspace_leave_balances(
 }
 
 pub async fn get_employee_leave_balances(
-    Path((ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    Path((_, emp_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeLeaveBalance>>> {
     let year = Utc::now().year();
     let balances = state.leaves.service.get_employee_balances(
-        ws_id, emp_id, year,
+        ctx.workspace_id, emp_id, year,
     )
     .await
     ?;
@@ -124,7 +123,6 @@ pub struct LeaveStatusQuery {
 }
 
 pub async fn get_workspace_leave_requests(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<LeaveStatusQuery>,
@@ -167,13 +165,13 @@ pub async fn get_employee_leave_history(
 }
 
 pub async fn adjust_leave_balance(
-    Path((ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    Path((_, emp_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<AdjustBalanceRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::LeaveBalancesAdjust)?;
-    state.leaves.service.adjust_balance(ws_id, emp_id, req)
+    state.leaves.service.adjust_balance(ctx.workspace_id, emp_id, req)
         .await
         ?;
 
@@ -181,14 +179,13 @@ pub async fn adjust_leave_balance(
 }
 
 pub async fn create_leave_policy(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateLeavePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<LeavePolicyDefinition>)> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let policy = state.leaves.policy_repo.create_policy_definition(workspace_id,
+    let policy = state.leaves.policy_repo.create_policy_definition(ctx.workspace_id,
         &req.name,
         req.description.as_deref(),
         req.leave_type_id,
@@ -201,14 +198,14 @@ pub async fn create_leave_policy(
 
 pub async fn update_leave_policy(
     State(state): State<Arc<AppState>>,
-    Path((workspace_id, policy_id)): Path<(Uuid, Uuid)>,
+    Path((_, policy_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<UpdateLeavePolicyRequest>,
 ) -> AppResult<Json<LeavePolicyDefinition>> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let policy = state.leaves.policy_repo.update_policy_definition(policy_id,
-        workspace_id,
+        ctx.workspace_id,
         req.name.as_deref(),
         req.description.as_deref(),
         req.leave_type_id,
@@ -221,13 +218,13 @@ pub async fn update_leave_policy(
 
 pub async fn delete_leave_policy(
     State(state): State<Arc<AppState>>,
-    Path((workspace_id, policy_id)): Path<(Uuid, Uuid)>,
+    Path((_, policy_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let rows =
-        state.leaves.policy_repo.delete_policy_definition(policy_id, workspace_id)
+        state.leaves.policy_repo.delete_policy_definition(policy_id, ctx.workspace_id)
             .await?;
 
     if rows > 0 {
@@ -238,16 +235,14 @@ pub async fn delete_leave_policy(
 }
 
 pub async fn get_leave_policies(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    _ctx: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeavePolicyDefinition>>> {
-    let policies = state.leaves.policy_repo.get_policy_definitions(workspace_id).await?;
+    let policies = state.leaves.policy_repo.get_policy_definitions(ctx.workspace_id).await?;
     Ok(Json(policies))
 }
 
 pub async fn assign_leave_policy(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<AssignLeavePolicyRequest>,
@@ -256,7 +251,7 @@ pub async fn assign_leave_policy(
 
     let assignment = LeavePolicyAssignment {
         id: Uuid::new_v4(),
-        workspace_id,
+        workspace_id: ctx.workspace_id,
         assignee_type: req.assignee_type,
         assignee_id: req.assignee_id,
         policy_id: req.policy_id,
@@ -282,7 +277,6 @@ pub struct AccrualJobResponse {
 }
 
 pub async fn trigger_accrual_run(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(payload): Json<TriggerAccrualRequest>,
@@ -303,7 +297,7 @@ pub async fn trigger_accrual_run(
             parent_id,
             0,
             TaskType::LeaveAccrual,
-            workspace_id,
+            ctx.workspace_id,
             JobPayload::LeaveAccrual(AccrualPayload { date, force: true }),
         );
 
@@ -311,7 +305,7 @@ pub async fn trigger_accrual_run(
         let meta = JobMetadata::new(
             parent_id,
             1, // Single job (not batched)
-            workspace_id,
+            ctx.workspace_id,
             ctx.user_id,
             ReportType::Summary, // Metadata requires a report type; using Summary as placeholder
         );
@@ -334,7 +328,7 @@ pub async fn trigger_accrual_run(
         ))
     } else {
         // Fallback: synchronous processing (no Redis)
-        let logs = state.leaves.accrual_service.process_workspace_accruals(workspace_id, date, true)
+        let logs = state.leaves.accrual_service.process_workspace_accruals(ctx.workspace_id, date, true)
                 .await?;
 
         Ok((
@@ -389,7 +383,6 @@ pub async fn get_job_status(
 }
 
 pub async fn get_leave_policy_assignments(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<crate::models::LeavePolicyAssignmentDetail>>> {

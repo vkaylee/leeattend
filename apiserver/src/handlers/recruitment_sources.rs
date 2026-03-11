@@ -15,7 +15,6 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 pub async fn get_recruitment_sources(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSource>>> {
@@ -28,7 +27,6 @@ pub async fn get_recruitment_sources(
 }
 
 pub async fn create_recruitment_source(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateRecruitmentSourceRequest>,

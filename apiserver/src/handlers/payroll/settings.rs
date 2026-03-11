@@ -1,10 +1,10 @@
 use axum::{
-    extract::{Path, State},
+    extract::State,
     response::Json,
 };
 use chrono::Utc;
 use std::sync::Arc;
-use uuid::Uuid;
+
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
@@ -12,9 +12,8 @@ use crate::models::{PayrollSettings, UpdatePayrollSettingsRequest};
 use crate::AppState;
 
 pub async fn get_payroll_settings(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<PayrollSettings>> {
     let settings =
         state.payroll.repo.get_payroll_settings(workspace_id)
@@ -25,9 +24,8 @@ pub async fn get_payroll_settings(
 }
 
 pub async fn get_payroll_settings_history(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<PayrollSettings>>> {
     let history = sqlx::query_as!(
         crate::models::PayrollSettings,
@@ -44,9 +42,8 @@ pub async fn get_payroll_settings_history(
 }
 
 pub async fn update_payroll_settings(
-    Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
+    MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<UpdatePayrollSettingsRequest>,
 ) -> AppResult<Json<PayrollSettings>> {
     // Get current settings first to fill in missing fields if needed

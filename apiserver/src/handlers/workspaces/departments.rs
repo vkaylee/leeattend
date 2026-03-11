@@ -13,7 +13,6 @@ use crate::models::{CreateDepartmentRequest, Department, UpdateDepartmentRequest
 use crate::AppState;
 
 pub async fn get_departments(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<Department>>> {
@@ -24,7 +23,6 @@ pub async fn get_departments(
 }
 
 pub async fn create_department(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateDepartmentRequest>,

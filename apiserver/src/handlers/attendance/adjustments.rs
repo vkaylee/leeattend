@@ -18,7 +18,6 @@ use crate::UserId;
 use serde::Deserialize;
 
 pub async fn submit_attendance_adjustment(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     MemberContext { workspace_id, .. }: MemberContext,
@@ -71,7 +70,6 @@ pub struct AdjustmentStatusQuery {
 }
 
 pub async fn get_workspace_attendance_adjustments(
-    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AdjustmentStatusQuery>,

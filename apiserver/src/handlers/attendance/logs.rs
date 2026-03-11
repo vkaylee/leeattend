@@ -25,7 +25,6 @@ pub struct AttendanceLogQuery {
 
 pub async fn get_attendance_logs(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
@@ -59,7 +58,6 @@ pub async fn get_attendance_logs(
 
 pub async fn get_raw_attendance_logs(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
 ) -> AppResult<Json<serde_json::Value>> {

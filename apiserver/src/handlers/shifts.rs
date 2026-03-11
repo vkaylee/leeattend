@@ -21,7 +21,6 @@ use crate::AppState;
 
 pub async fn get_shifts(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<Shift>>> {
     let shifts =
@@ -34,7 +33,6 @@ pub async fn get_shifts(
 
 pub async fn create_shift(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<CreateShiftRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -86,7 +84,6 @@ pub async fn update_shift(
 
 pub async fn assign_shift(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<AssignShiftRequest>,
 ) -> AppResult<StatusCode> {
@@ -110,7 +107,7 @@ pub async fn assign_shift(
 
 pub async fn get_workspace_schedules(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
+    MemberContext { workspace_id, .. }: MemberContext,
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResult<Json<Vec<EmployeeSchedule>>> {
     let start_date = params
@@ -137,7 +134,7 @@ pub async fn get_workspace_schedules(
 
 pub async fn get_assignment_history(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
+    MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<AssignmentHistory>>> {
     let history = state.shifts.roster_repo.get_assignment_history(
         workspace_id,

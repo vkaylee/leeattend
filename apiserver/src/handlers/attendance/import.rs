@@ -13,15 +13,11 @@ use crate::AppState;
 
 pub async fn upload_attendance_excel(
     State(state): State<Arc<AppState>>,
-    Path(ws_id): Path<Uuid>,
     ctx: MemberContext,
     mut multipart: Multipart,
 ) -> AppResult<Json<serde_json::Value>> {
     // RBAC: Only Admin/Owner
     ctx.require_permission(Permission::AttendanceLogsImport)?;
-    if ctx.workspace_id != ws_id {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
 
     const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 
@@ -57,7 +53,7 @@ pub async fn upload_attendance_excel(
 
     let job_id = state
         .attendance.import_service
-        .batch_import_from_file(ws_id, ctx.user_id, path, "adjustment".to_string())
+        .batch_import_from_file(ctx.workspace_id, ctx.user_id, path, "adjustment".to_string())
         .await
         ?;
 
@@ -66,15 +62,11 @@ pub async fn upload_attendance_excel(
 
 pub async fn upload_attendance_logs(
     State(state): State<Arc<AppState>>,
-    Path(ws_id): Path<Uuid>,
     ctx: MemberContext,
     mut multipart: Multipart,
 ) -> AppResult<Json<serde_json::Value>> {
     // RBAC: Only Admin/Owner
     ctx.require_permission(Permission::AttendanceLogsImport)?;
-    if ctx.workspace_id != ws_id {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
 
     const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 
@@ -110,7 +102,7 @@ pub async fn upload_attendance_logs(
 
     let job_id = state
         .attendance.import_service
-        .batch_import_from_file(ws_id, ctx.user_id, path, "log".to_string())
+        .batch_import_from_file(ctx.workspace_id, ctx.user_id, path, "log".to_string())
         .await
         ?;
 
@@ -119,15 +111,11 @@ pub async fn upload_attendance_logs(
 
 pub async fn upload_employee_excel(
     State(state): State<Arc<AppState>>,
-    Path(ws_id): Path<Uuid>,
     ctx: MemberContext,
     mut multipart: Multipart,
 ) -> AppResult<Json<serde_json::Value>> {
     // RBAC: Only Admin/Owner
     ctx.require_permission(Permission::EmployeesUpload)?;
-    if ctx.workspace_id != ws_id {
-        return Err(AppError::Forbidden("Forbidden".to_string()));
-    }
 
     const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 
@@ -162,7 +150,7 @@ pub async fn upload_employee_excel(
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
     let job_id = state
         .attendance.import_service
-        .batch_import_from_file(ws_id, ctx.user_id, path, "employee".to_string())
+        .batch_import_from_file(ctx.workspace_id, ctx.user_id, path, "employee".to_string())
         .await
         ?;
 
@@ -176,7 +164,6 @@ pub struct ImportJobQuery {
 
 pub async fn get_latest_import_job(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
     axum::extract::Query(query): axum::extract::Query<ImportJobQuery>,
 ) -> AppResult<Json<Option<AttendanceImportJob>>> {
