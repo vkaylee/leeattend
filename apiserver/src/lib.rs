@@ -19,6 +19,8 @@ pub mod utils;
 pub mod worker;
 pub mod mw;
 pub mod app_builder;
+#[cfg(test)]
+mod workspace_id_guard;
 
 use axum::{
     routing::{get, post},
