@@ -710,6 +710,41 @@ To eliminate redundant queue traffic and reduce database operations by up to 99.
 - **Implementation**: `agent-main/src/memory_store.rs` in `InMemoryStore::insert()`.
 - **Tests**: `tests/duplicate_detection_test.rs` + `test_concurrent_inserts_no_duplicates` validating thread-safe dedup under 10 concurrent threads.
 
+#### 18.8. Adaptive Polling & Proactive Disconnect (Refactored 2026-03-11)
+The Edge Agent dynamically adjusts polling frequency based on data availability and proactively manages device connections:
+
+**Behavior:**
+```
+New data found → interval = SUCCESS_COOLDOWN_SECS (300s)
+               → Disconnect device (free connection slot)
+               → Sleep cooldown → Reconnect via outer loop
+
+No new data    → interval doubles (5→10→20→40→45s cap)
+               → Stay connected (within UDP session timeout)
+               → Continue polling inner loop
+```
+
+**Key Parameters:**
+- `SUCCESS_COOLDOWN_SECS` (env, default: 300): Cooldown interval after successful fetch with new data.
+- `MAX_POLL_INTERVAL_SECS` = 45: Hard cap on escalation interval, keeps below ZKTeco UDP session timeout (~60s).
+- `BASE_POLL_INTERVAL_SECS` = 5: Starting interval after reconnect.
+- `ESCALATION_THRESHOLD` = 3: Number of consecutive no-new-data polls before interval starts doubling.
+
+**Proactive Disconnect:**
+- When `needs_disconnect()` returns true (interval > `MAX_POLL_INTERVAL_SECS`), the worker:
+  1. Disconnects the device to free connection slots for other workers.
+  2. Sleeps the cooldown interval (cancel-aware via `tokio::select!`).
+  3. Resets interval to base and breaks to the outer reconnect loop.
+- A `proactive_cooldown` flag ensures the outer loop does NOT treat this as an error disconnect:
+  - Skips "connection lost" warning.
+  - Does not increment retry count or reconnect frequency tracker.
+  - Logs clean `[OFFICE] Cooldown complete, reconnecting...` message.
+
+**Implementation:**
+- `agent-main/src/adaptive_polling.rs`: `AdaptivePollingState` with `with_cooldown()`, `update()`, `needs_disconnect()`.
+- `agent-main/src/orchestrator.rs`: Worker loop with proactive disconnect path and `proactive_cooldown` flag.
+- `agent-main/src/config.rs`: `success_cooldown_secs` field loaded from `SUCCESS_COOLDOWN_SECS` env var.
+
 ## Overtime Management
 
 Overtime is managed through a "3-Way Match" workflow:

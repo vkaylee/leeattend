@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Changed
+- **Adaptive Polling Refactor (agent-main):**
+    - Replaced skip counter mechanism (`SUCCESS_SKIP_POLLS`, `should_skip()`, `skip_remaining`) with direct interval + proactive disconnect approach.
+    - New env var `SUCCESS_COOLDOWN_SECS` (default: 300s) replaces `SUCCESS_SKIP_POLLS`.
+    - When new data is fetched, device is proactively disconnected before cooldown sleep to free connection slots.
+    - When no new data, interval escalates gradually (5→10→20→40→45s cap) to stay within device UDP session timeout.
+    - Added `proactive_cooldown` flag to prevent false "connection lost" warnings after planned disconnects.
+
+### Fixed
+- **ESLint Warning**: Fixed `react-hooks/exhaustive-deps` warning in `DashboardPage.tsx` for `chartWidgetIds` in `useMemo`.
+
+
 ### Added
 - **Device Management Enhancements:**
     - **Device Capacity**: Agent now reports User and Log capacity (used/total) from ZK devices.

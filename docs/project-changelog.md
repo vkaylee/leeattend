@@ -4,6 +4,43 @@ Detailed record of significant changes, features, and fixes in LeeAttend.
 
 ---
 
+## 2026-03-11
+
+### Enhancement
+
+#### Adaptive Polling Simplification (agent-main)
+**Component:** Edge Agent - Orchestrator & Adaptive Polling
+**Status:** Complete
+
+**Problem:**
+- Adaptive polling used two overlapping mechanisms: a skip counter (cooldown after new data) and interval escalation (when no new data).
+- After fetching new data, the logged interval showed `5s` but actual wait was ~300s via 60 skip cycles, creating confusing logs.
+- Proactive disconnect after cooldown caused false "connection lost" warnings and inflated reconnect frequency counters.
+
+**Solution:**
+- Removed skip counter mechanism entirely (`skip_remaining`, `should_skip()`, `with_skip_polls()`).
+- Implemented direct interval approach with `with_cooldown()` and `needs_disconnect()`.
+- When new data found: interval = `SUCCESS_COOLDOWN_SECS` (300s), disconnect device, sleep, reconnect.
+- When no new data: interval doubles (5→10→20→40→45s cap), stay connected within UDP session timeout.
+- Added `proactive_cooldown` flag to distinguish planned vs error disconnects in outer reconnect loop.
+
+**Files Changed:**
+- `agent-main/src/adaptive_polling.rs` — Removed skip fields/methods, added `with_cooldown()`, `needs_disconnect()`
+- `agent-main/src/config.rs` — Renamed `success_skip_polls` → `success_cooldown_secs`, env var `SUCCESS_COOLDOWN_SECS`
+- `agent-main/src/orchestrator.rs` — Removed `should_skip()` branch, added proactive disconnect + cooldown flag
+- `.env.example` — Updated env var reference
+- `docker-compose.dev.yml` — Updated env var reference
+
+**Breaking Changes:**
+- Env var `SUCCESS_SKIP_POLLS` renamed to `SUCCESS_COOLDOWN_SECS` (default: 300)
+
+**Tests:**
+- All adaptive_polling unit tests updated and passing (100% line coverage)
+- All config tests updated and passing (100% line coverage)
+- Full smoke test suite: agent-main + apiserver (clippy + unit) all pass
+
+---
+
 ## 2026-02-14
 
 ### Features
