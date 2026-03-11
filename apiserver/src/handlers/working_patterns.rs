@@ -44,7 +44,7 @@ pub async fn list_patterns(
 
 pub async fn get_pattern_details(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, pattern_id)): Path<(Uuid, Uuid)>,
+    Path((_, pattern_id)): Path<(Uuid, Uuid)>,
     _ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkingPatternDetail>>> {
     let details = service::get_pattern_details(state.infra.db.api(), pattern_id).await?;
@@ -53,7 +53,7 @@ pub async fn get_pattern_details(
 
 pub async fn assign_pattern(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<AssignPatternRequest>,
 ) -> AppResult<Json<EmployeeWorkingPattern>> {
@@ -84,7 +84,7 @@ pub async fn bulk_assign_pattern(
 
 pub async fn get_employee_pattern_history(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeWorkingPattern>>> {
     let history = service::get_employee_pattern_history(state.infra.db.api(), ctx.workspace_id, employee_id).await?;
@@ -93,7 +93,7 @@ pub async fn get_employee_pattern_history(
 
 pub async fn delete_pattern(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, pattern_id)): Path<(Uuid, Uuid)>,
+    Path((_, pattern_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::PatternsDelete)?;

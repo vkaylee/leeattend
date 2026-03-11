@@ -41,7 +41,7 @@ pub async fn create_recruitment_source(
 }
 
 pub async fn update_recruitment_source(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateRecruitmentSourceRequest>,
@@ -55,7 +55,7 @@ pub async fn update_recruitment_source(
 }
 
 pub async fn delete_recruitment_source(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {

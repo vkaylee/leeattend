@@ -76,7 +76,7 @@ pub async fn add_workspace_member(
 }
 
 pub async fn update_workspace_member_role(
-    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    Path((_, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     ctx: MemberContext,
@@ -106,7 +106,7 @@ pub async fn update_workspace_member_role(
 }
 
 pub async fn remove_workspace_member(
-    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    Path((_, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     ctx: MemberContext,

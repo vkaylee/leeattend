@@ -16,7 +16,7 @@ use crate::AppState;
 /// GET /workspaces/:ws_id/members/:user_id/permissions
 /// List all extra permissions for a member.
 pub async fn get_member_extra_permissions(
-    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    Path((_, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<MemberExtraPermission>>> {
@@ -36,7 +36,7 @@ pub async fn get_member_extra_permissions(
 /// POST /workspaces/:ws_id/members/:user_id/permissions
 /// Grant an extra permission to a member.
 pub async fn assign_extra_permission(
-    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    Path((_, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
     ctx: MemberContext,
@@ -87,7 +87,7 @@ pub async fn assign_extra_permission(
 /// DELETE /workspaces/:ws_id/members/:user_id/permissions/:perm_id
 /// Revoke an extra permission from a member.
 pub async fn revoke_extra_permission(
-    Path((_ws_id, user_id, perm_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path((_, user_id, perm_id)): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
     ctx: MemberContext,

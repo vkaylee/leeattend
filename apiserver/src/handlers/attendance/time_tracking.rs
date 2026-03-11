@@ -34,7 +34,7 @@ pub async fn punch_in(
 }
 
 pub async fn punch_out(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<PunchOutRequest>,
@@ -49,7 +49,7 @@ pub async fn punch_out(
 }
 
 pub async fn get_time_history(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<HistoryQuery>,
@@ -64,7 +64,7 @@ pub async fn get_time_history(
 }
 
 pub async fn update_time_entry(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<UpdateTimeEntryRequest>,
@@ -79,7 +79,7 @@ pub async fn update_time_entry(
 }
 
 pub async fn delete_time_entry(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<StatusCode> {

@@ -33,7 +33,7 @@ pub async fn submit_attendance_adjustment(
 }
 
 pub async fn approve_attendance_adjustment(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     ctx: MemberContext,

@@ -41,7 +41,7 @@ pub async fn submit_leave_request(
 }
 
 pub async fn approve_leave_request(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     ctx: MemberContext,
@@ -144,7 +144,7 @@ pub struct LeaveHistoryQuery {
 }
 
 pub async fn get_employee_leave_history(
-    Path((_ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    Path((_, emp_id)): Path<(Uuid, Uuid)>,
     Query(query): Query<LeaveHistoryQuery>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
@@ -353,7 +353,7 @@ pub struct JobStatusResponse {
 }
 
 pub async fn get_job_status(
-    Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
+    Path((_, job_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     _ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {

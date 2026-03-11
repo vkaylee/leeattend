@@ -15,7 +15,7 @@ use crate::models::{
 use crate::AppState;
 
 pub async fn set_department_payroll_config(
-    Path((_ws_id, department_id)): Path<(Uuid, Uuid)>,
+    Path((_, department_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
     Json(req): Json<SetDepartmentPayrollConfigRequest>,
@@ -31,7 +31,7 @@ pub async fn set_department_payroll_config(
 }
 
 pub async fn set_employee_payroll_config(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
     Json(req): Json<SetEmployeePayrollConfigRequest>,
@@ -47,7 +47,7 @@ pub async fn set_employee_payroll_config(
 }
 
 pub async fn get_department_payroll_configs(
-    Path((_ws_id, department_id)): Path<(Uuid, Uuid)>,
+    Path((_, department_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> AppResult<Json<Vec<DepartmentPayrollConfig>>> {
@@ -66,7 +66,7 @@ pub async fn get_department_payroll_configs(
 }
 
 pub async fn get_employee_payroll_configs(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> AppResult<Json<Vec<EmployeePayrollConfig>>> {

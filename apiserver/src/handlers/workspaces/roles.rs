@@ -15,7 +15,7 @@ use crate::services::WorkspaceService;
 use crate::AppState;
 
 pub async fn get_member_roles(
-    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    Path((_, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<serde_json::Value>> {
@@ -36,7 +36,7 @@ pub async fn get_member_roles(
 }
 
 pub async fn assign_extra_role(
-    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    Path((_, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     ctx: MemberContext,
@@ -76,7 +76,7 @@ pub async fn assign_extra_role(
 }
 
 pub async fn revoke_extra_role(
-    Path((_ws_id, user_id, role_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path((_, user_id, role_id)): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     ctx: MemberContext,

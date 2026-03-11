@@ -64,7 +64,7 @@ pub async fn list_shift_swaps(
 // ---------------------------------------------------------------------------
 
 pub async fn approve_shift_swap(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     ctx: MemberContext,

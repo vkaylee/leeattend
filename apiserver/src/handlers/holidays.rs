@@ -37,7 +37,7 @@ pub async fn list_holidays(
 /// GET /workspaces/:ws_id/holidays/:id
 pub async fn get_holiday(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Holiday>> {
     let holiday = HolidayRepository::get_by_id(state.infra.db.api(), ctx.workspace_id, id)
@@ -84,7 +84,7 @@ pub async fn create_holiday(
 /// PUT /workspaces/:ws_id/holidays/:id
 pub async fn update_holiday(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<UpdateHolidayRequest>,
 ) -> AppResult<Json<Holiday>> {
@@ -114,7 +114,7 @@ pub async fn update_holiday(
 /// DELETE /workspaces/:ws_id/holidays/:id
 pub async fn delete_holiday(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<axum::http::StatusCode> {
     ctx.require_permission(Permission::HolidaysManage)?;
@@ -134,7 +134,7 @@ pub async fn delete_holiday(
 /// Triggers automatic leave deduction for employees on an unpaid holiday.
 pub async fn process_holiday_leave(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<HolidayLeaveResult>>> {
     ctx.require_permission(Permission::HolidaysManage)?;

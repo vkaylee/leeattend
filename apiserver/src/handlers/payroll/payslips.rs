@@ -77,7 +77,7 @@ pub async fn get_workspace_payslips(
 }
 
 pub async fn calculate_payroll(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     crate::utils::debug::DebugContext {
@@ -136,7 +136,7 @@ pub async fn calculate_payroll(
 }
 
 pub async fn get_employee_payslips(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<FullPayslipResponse>>> {

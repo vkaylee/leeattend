@@ -92,7 +92,7 @@ pub struct ResolveStagingLogRequest {
 /// Manually assign a staging log to an employee.
 /// Uses FOR UPDATE NOWAIT to prevent double-resolve race conditions.
 pub async fn resolve_staging_log(
-    Path((_ws_id, log_id)): Path<(Uuid, Uuid)>,
+    Path((_, log_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<ResolveStagingLogRequest>,
@@ -181,7 +181,7 @@ pub async fn resolve_staging_log(
 /// DELETE /workspaces/:ws_id/attendance/staging-logs/:id
 /// Dismiss a staging log (mark as dismissed without processing)
 pub async fn dismiss_staging_log(
-    Path((_ws_id, log_id)): Path<(Uuid, Uuid)>,
+    Path((_, log_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {

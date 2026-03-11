@@ -42,7 +42,7 @@ pub async fn create_department(
 pub async fn update_department(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     Json(req): Json<UpdateDepartmentRequest>,
 ) -> AppResult<Json<Department>> {
     ctx.require_permission(Permission::DepartmentsUpdate)?;
@@ -61,7 +61,7 @@ pub async fn update_department(
 pub async fn delete_department(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::DepartmentsDelete)?;
     state.payroll.department_repo.delete_department(ctx.workspace_id, id)

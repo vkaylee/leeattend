@@ -42,7 +42,7 @@ pub async fn create_salary_component(
 }
 
 pub async fn get_employee_salary_components(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<serde_json::Value>>> {
@@ -75,7 +75,7 @@ pub async fn get_employee_salary_components(
 }
 
 pub async fn assign_employee_salary_component(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
     Json(req): Json<AssignSalaryComponentRequest>,

@@ -97,7 +97,7 @@ pub struct ReprocessQuery {
 
 pub async fn force_reprocess_attendance(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Query(query): Query<ReprocessQuery>,
 ) -> AppResult<StatusCode> {

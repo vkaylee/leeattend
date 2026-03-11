@@ -66,7 +66,7 @@ pub struct ApproveOtRequest {
 
 pub async fn approve_ot(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<ApproveOtRequest>,
 ) -> AppResult<StatusCode> {

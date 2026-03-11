@@ -177,7 +177,7 @@ pub async fn get_latest_import_job(
 pub async fn get_import_job_status(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
-    Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
+    Path((_, job_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<AttendanceImportJob>> {
     let job = state.attendance.import_repo.get_job_by_id(job_id)
         .await?

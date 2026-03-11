@@ -65,7 +65,7 @@ pub async fn create_shift(
 
 pub async fn update_shift(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, shift_id)): Path<(Uuid, Uuid)>,
+    Path((_, shift_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<UpdateShiftRequest>,
 ) -> AppResult<Json<Shift>> {
@@ -147,7 +147,7 @@ pub async fn get_assignment_history(
 
 pub async fn get_employee_rosters(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> AppResult<Json<Vec<ShiftRoster>>> {
     let start_date = params
@@ -172,7 +172,7 @@ pub async fn get_employee_rosters(
 
 pub async fn upsert_roster(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<CreateRosterRequest>,
 ) -> AppResult<Json<ShiftRoster>> {
@@ -199,7 +199,7 @@ pub async fn upsert_roster(
 
 pub async fn bulk_upsert_roster(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<BulkRosterRequest>,
 ) -> AppResult<StatusCode> {
@@ -216,7 +216,7 @@ pub async fn bulk_upsert_roster(
 
 pub async fn delete_roster(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, employee_id, date)): Path<(Uuid, Uuid, NaiveDate)>,
+    Path((_, employee_id, date)): Path<(Uuid, Uuid, NaiveDate)>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::RostersManage)?;

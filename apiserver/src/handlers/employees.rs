@@ -16,7 +16,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 pub async fn get_working_conditions(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<WorkingCondition>>> {
@@ -29,7 +29,7 @@ pub async fn get_working_conditions(
 }
 
 pub async fn create_working_condition(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateWorkingConditionRequest>,
@@ -45,7 +45,7 @@ pub async fn create_working_condition(
 }
 
 pub async fn delete_working_condition(
-    Path((_ws_id, id, cond_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path((_, id, cond_id)): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
@@ -83,7 +83,7 @@ pub async fn get_employees(
 }
 
 pub async fn get_employee(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Employee>> {
@@ -111,7 +111,7 @@ pub async fn create_employee(
 }
 
 pub async fn update_employee(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateEmployeeRequest>,
@@ -127,7 +127,7 @@ pub async fn update_employee(
 }
 
 pub async fn delete_employee(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
@@ -143,7 +143,7 @@ pub async fn delete_employee(
 }
 
 pub async fn get_employee_history(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<EmploymentPeriod>>> {
@@ -156,7 +156,7 @@ pub async fn get_employee_history(
 }
 
 pub async fn rehire_employee(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<RehireEmployeeRequest>,
@@ -172,7 +172,7 @@ pub async fn rehire_employee(
 }
 
 pub async fn get_employee_department_history(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeDepartmentHistory>>> {
@@ -185,7 +185,7 @@ pub async fn get_employee_department_history(
 }
 
 pub async fn transfer_employee(
-    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Path((_, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<TransferEmployeeRequest>,
