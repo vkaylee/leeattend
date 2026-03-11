@@ -52,6 +52,7 @@ pub async fn enter_paper_ot(
     let result = state
         .attendance.summary_service
         .enter_paper_ot(
+            ctx.workspace_id,
             employee_id,
             req.date,
             req.claimed_minutes,
@@ -269,6 +270,7 @@ pub async fn bulk_upload_paper_ot(
         match state
             .attendance.summary_service
             .enter_paper_ot(
+                ctx.workspace_id,
                 employee.id,
                 date,
                 minutes,

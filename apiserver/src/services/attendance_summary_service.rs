@@ -166,7 +166,9 @@ impl AttendanceSummaryService {
                     r#"SELECT lr.id, lr.leave_type_id, lt.code
                        FROM leave_requests lr
                        JOIN leave_types lt ON lt.id = lr.leave_type_id
+                       JOIN employees e ON e.id = lr.employee_id
                        WHERE lr.employee_id = $1
+                         AND e.workspace_id = $3
                          AND lr.status = 'approved'::leave_status_type
                          AND lr.start_date <= $2
                          AND lr.end_date >= $2
@@ -174,6 +176,7 @@ impl AttendanceSummaryService {
                 )
                 .bind(employee_id)
                 .bind(date)
+                .bind(workspace_id)
                 .fetch_optional(&self.pool)
                 .await
                 .unwrap_or(None);
@@ -227,8 +230,8 @@ impl AttendanceSummaryService {
         // 5. Upsert into DB
         let existing: Option<AttendanceDailySummary> = sqlx::query_as!(
             AttendanceDailySummary,
-            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
-            employee_id, date
+            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND workspace_id = $2 AND date = $3",
+            employee_id, workspace_id, date
         )
         .fetch_optional(&self.pool)
         .await
@@ -289,6 +292,7 @@ impl AttendanceSummaryService {
     #[tracing::instrument(skip_all, err)]
     pub async fn claim_ot(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
@@ -302,11 +306,12 @@ impl AttendanceSummaryService {
                 ot_reason = $2,
                 ot_status = 'pending_manager',
                 updated_at = CURRENT_TIMESTAMP
-            WHERE employee_id = $3 AND date = $4
+            WHERE employee_id = $3 AND workspace_id = $4 AND date = $5
             "#,
             claimed_minutes,
             reason,
             employee_id,
+            workspace_id,
             date
         )
         .execute(&self.pool)
@@ -322,6 +327,7 @@ impl AttendanceSummaryService {
     #[tracing::instrument(skip_all, err)]
     pub async fn approve_ot(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
         approved_minutes: i32,
@@ -336,12 +342,13 @@ impl AttendanceSummaryService {
                 manager_note = $2,
                 ot_status = $3,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE employee_id = $4 AND date = $5
+            WHERE employee_id = $4 AND workspace_id = $5 AND date = $6
             "#,
             approved_minutes,
             manager_note,
             status as OtStatus,
             employee_id,
+            workspace_id,
             date
         )
         .execute(&self.pool)
@@ -358,6 +365,7 @@ impl AttendanceSummaryService {
     #[tracing::instrument(skip_all, err)]
     pub async fn enter_paper_ot(
         &self,
+        workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
         claimed_minutes: i32,
@@ -369,8 +377,8 @@ impl AttendanceSummaryService {
         // 1. Check existing summary
         let existing: Option<AttendanceDailySummary> = sqlx::query_as!(
             AttendanceDailySummary,
-            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
-            employee_id, date
+            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND workspace_id = $2 AND date = $3",
+            employee_id, workspace_id, date
         )
         .fetch_optional(&self.pool)
         .await

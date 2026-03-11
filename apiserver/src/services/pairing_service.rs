@@ -206,7 +206,7 @@ impl PairingService {
         }
 
         if filtered_log_events.is_empty() {
-            Self::clear_auto_entries(&self.pool, employee_id, start_of_day_utc, next_day_utc).await?;
+            Self::clear_auto_entries(&self.pool, employee_id, workspace_id, start_of_day_utc, next_day_utc).await?;
 
             let summary_svc = crate::services::AttendanceSummaryService::new(
                 self.time_entry_repo.clone(),
@@ -226,8 +226,9 @@ impl PairingService {
         let mut tx = self.pool.begin().await?;
 
         sqlx::query!(
-            "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time < $3",
+            "DELETE FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_in_time >= $3 AND punch_in_time < $4",
             employee_id,
+            workspace_id,
             start_of_day_utc,
             next_day_utc
         )
@@ -295,12 +296,13 @@ impl PairingService {
     async fn clear_auto_entries(
         pool: &PgPool,
         employee_id: Uuid,
+        workspace_id: Uuid,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time < $3",
-            employee_id, start, end
+            "DELETE FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 AND punch_in_time >= $3 AND punch_in_time < $4",
+            employee_id, workspace_id, start, end
         )
         .execute(pool)
         .await?;
