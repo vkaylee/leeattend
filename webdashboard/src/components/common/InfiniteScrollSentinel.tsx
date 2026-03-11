@@ -15,7 +15,7 @@ interface InfiniteScrollSentinelProps {
  * Sentinel table row that triggers loading the next page
  * when it becomes visible via IntersectionObserver.
  */
-export default function InfiniteScrollSentinel({
+const InfiniteScrollSentinel = React.memo(function InfiniteScrollSentinel({
     sentinelRef,
     isFetchingNextPage,
     colSpan = 5,
@@ -36,4 +36,6 @@ export default function InfiniteScrollSentinel({
             </td>
         </tr>
     );
-}
+});
+
+export default InfiniteScrollSentinel;

@@ -31,6 +31,9 @@ import {
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { LABEL_BASE } from "@/components/ui/FormField";
 
 type TabType = "pending_target" | "pending_admin" | "approved" | "rejected" | "cancelled";
 
@@ -130,12 +133,12 @@ export default function ShiftSwapsPage() {
                         {t("shift_swaps.subtitle")}
                     </p>
                 </div>
-                <button
+                <Button
                     onClick={() => setShowCreateForm(!showCreateForm)}
-                    className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl hover:bg-primary-700 transition-all font-bold text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"
+                    icon={<Plus size={18} />}
                 >
-                    <Plus size={18} /> {t("shift_swaps.create_btn")}
-                </button>
+                    {t("shift_swaps.create_btn")}
+                </Button>
             </div>
 
             {/* Usage Guide */}
@@ -215,7 +218,7 @@ export default function ShiftSwapsPage() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
-                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+                            <label className={cn(LABEL_BASE, "block mb-2")}>
                                 {t("shift_swaps.requester")}
                             </label>
                             <select
@@ -232,7 +235,7 @@ export default function ShiftSwapsPage() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+                            <label className={cn(LABEL_BASE, "block mb-2")}>
                                 {t("shift_swaps.target")}
                             </label>
                             <select
@@ -251,7 +254,7 @@ export default function ShiftSwapsPage() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+                            <label className={cn(LABEL_BASE, "block mb-2")}>
                                 {t("shift_swaps.swap_date")}
                             </label>
                             <input
@@ -262,7 +265,7 @@ export default function ShiftSwapsPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+                            <label className={cn(LABEL_BASE, "block mb-2")}>
                                 {t("shift_swaps.reason")}
                             </label>
                             <input
@@ -275,26 +278,16 @@ export default function ShiftSwapsPage() {
                         </div>
                     </div>
                     <div className="flex justify-end gap-3 mt-6">
-                        <button
-                            onClick={() => setShowCreateForm(false)}
-                            className="px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-                        >
+                        <Button variant="ghost" onClick={() => setShowCreateForm(false)}>
                             {t("common.cancel")}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={handleCreate}
-                            disabled={
-                                !requesterId ||
-                                !targetId ||
-                                !swapDate ||
-                                createMutation.isPending
-                            }
-                            className="px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest bg-primary-600 text-white hover:bg-primary-700 shadow-lg disabled:opacity-50 transition-all active:scale-95"
+                            disabled={!requesterId || !targetId || !swapDate || createMutation.isPending}
+                            loading={createMutation.isPending}
                         >
-                            {createMutation.isPending
-                                ? t("common.loading")
-                                : t("common.submit")}
-                        </button>
+                            {createMutation.isPending ? t("common.loading") : t("common.submit")}
+                        </Button>
                     </div>
                 </div>
             )}
@@ -492,18 +485,12 @@ export default function ShiftSwapsPage() {
 
                                         {/* Status */}
                                         <td className="px-8 py-6 text-center">
-                                            <span
-                                                className={cn(
-                                                    "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
-                                                    swap.status === "pending_admin"
-                                                        ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800"
-                                                        : swap.status === "approved"
-                                                            ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
-                                                            : "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800",
-                                                )}
-                                            >
+                                            <StatusBadge variant={
+                                                swap.status === "pending_admin" ? "warning" :
+                                                swap.status === "approved" ? "success" : "danger"
+                                            }>
                                                 {t(`shift_swaps.status.${swap.status}`)}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
 
                                         {/* Actions */}

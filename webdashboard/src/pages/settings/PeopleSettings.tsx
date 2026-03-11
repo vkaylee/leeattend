@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import { useToast } from "@/components/ui/Toast";
 import { Combobox } from "@/components/ui/Combobox";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { LABEL_BASE } from "@/components/ui/FormField";
 import RoleManagementModal from "@/components/features/settings/RoleManagementModal";
 import DepartmentsPage from "@/pages/DepartmentsPage";
 
@@ -96,7 +99,7 @@ export default function PeopleSettings() {
 
                 <div className="flex-1 min-w-[280px] space-y-3">
 
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.email")}</label>
+                  <label className={LABEL_BASE}>{t("common.email")}</label>
 
                   <div className="relative group">
 
@@ -110,13 +113,13 @@ export default function PeopleSettings() {
 
                 <div className="w-64 space-y-3">
 
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.role")}</label>
+                  <label className={LABEL_BASE}>{t("common.role")}</label>
 
                   <Combobox options={[{ value: "member", label: t("common.members.roles.member").toUpperCase(), description: t("common.members.roles.member_desc") }, { value: "admin", label: t("common.members.roles.admin").toUpperCase(), description: t("common.members.roles.admin_desc") }]} value={newMemberRole} onChange={(val) => setNewMemberRole(val as any)} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
 
                 </div>
 
-                <button data-testid="invite-member-submit-btn" type="submit" disabled={isAdding} className="bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 h-[56px]">{isAdding ? t("common.inviting").toUpperCase() : t("common.workspace_settings.invite_member").toUpperCase()}</button>
+                <Button data-testid="invite-member-submit-btn" type="submit" loading={isAdding} className="h-[56px]">{isAdding ? t("common.inviting").toUpperCase() : t("common.workspace_settings.invite_member").toUpperCase()}</Button>
 
               </form>
 
@@ -162,7 +165,7 @@ export default function PeopleSettings() {
 
                             {member.full_name || member.email}
 
-                            {member.role === "owner" && <span className="text-[9px] bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 shadow-sm">{t("common.workspace_settings.founder")}</span>}
+                            {member.role === "owner" && <StatusBadge variant="warning">{t("common.workspace_settings.founder")}</StatusBadge>}
 
                           </div>
 

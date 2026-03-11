@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import NavigableList from "@/components/common/NavigableList";
 import type { NavigableListColumn } from "@/components/common/NavigableList";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import FormField from "@/components/ui/FormField";
+import PageHeader from "@/components/ui/PageHeader";
 
 import {
   searchEmployees,
@@ -123,7 +127,7 @@ export default function EmployeesPage() {
       header: t("employees.table.status"),
       headerClassName: "text-center",
       cell: (emp) => (
-        <span className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", emp.is_active ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>{emp.is_active ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}</span>
+        <StatusBadge variant={emp.is_active ? "success" : "neutral"}>{emp.is_active ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}</StatusBadge>
       ),
       cellClassName: "py-6 text-center",
     },
@@ -189,20 +193,21 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-10 pb-20 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-        <div className="space-y-1">
-          <h1 data-testid="employees-title" className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">{t("employees.title")}</h1>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("employees.subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <PermissionGate permission="employees:create">
-            <button data-testid="import-employee-btn" onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm active:scale-95"><Upload size={18} /> {t("employees.bulk_import_btn").toUpperCase()}</button>
-          </PermissionGate>
-          <PermissionGate permission="employees:create">
-            <button data-testid="add-employee-btn" onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><UserPlus size={18} /> {t("employees.add_btn").toUpperCase()}</button>
-          </PermissionGate>
-        </div>
-      </div>
+      <PageHeader
+        title={t("employees.title")}
+        subtitle={t("employees.subtitle")}
+        data-testid="employees-title"
+        actions={
+          <>
+            <PermissionGate permission="employees:create">
+              <Button variant="outline" data-testid="import-employee-btn" onClick={() => setIsImportDialogOpen(true)} icon={<Upload size={18} />}>{t("employees.bulk_import_btn").toUpperCase()}</Button>
+            </PermissionGate>
+            <PermissionGate permission="employees:create">
+              <Button data-testid="add-employee-btn" onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }} icon={<UserPlus size={18} />}>{t("employees.add_btn").toUpperCase()}</Button>
+            </PermissionGate>
+          </>
+        }
+      />
 
       <NavigableList<Employee>
         columns={employeeColumns}
@@ -251,19 +256,16 @@ export default function EmployeesPage() {
       {/* Main Employee Form Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingEmployee ? t("employees.form.edit_title") : t("employees.form.add_title")} subtitle={t("employees.form.subtitle")} icon={<UserCircle size={24} />} maxWidth="lg">
         <form onSubmit={handleSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
-          <div className="space-y-3 px-1">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.full_name")}</label>
-            <input name="full_name" data-testid="employees-form-name-input" required defaultValue={editingEmployee?.full_name} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" />
-          </div>
-          <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.employee_id")}</label><input name="employee_id_number" data-testid="employees-form-id-input" required defaultValue={editingEmployee?.employee_id_number || prefillEnrollmentId} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-widest uppercase shadow-sm" /></div>
-          <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.hire_date")}</label><input type="date" name="hire_date" data-testid="employees-form-hire-date-input" required defaultValue={editingEmployee?.hire_date} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm shadow-sm" /></div>
+          <FormField label={t("employees.form.full_name")} name="full_name" data-testid="employees-form-name-input" required defaultValue={editingEmployee?.full_name} />
+          <FormField label={t("employees.form.employee_id")} name="employee_id_number" data-testid="employees-form-id-input" required defaultValue={editingEmployee?.employee_id_number || prefillEnrollmentId} inputClassName="font-mono tracking-widest" />
+          <FormField label={t("employees.form.hire_date")} name="hire_date" type="date" data-testid="employees-form-hire-date-input" required defaultValue={editingEmployee?.hire_date} />
           <div className="flex items-center gap-4 py-2 px-2 group cursor-pointer">
             <input type="checkbox" name="is_active" id="is_active" data-testid="employees-form-active-checkbox" defaultChecked={editingEmployee ? editingEmployee.is_active : true} className="w-7 h-7 text-primary-600 dark:text-primary-400 rounded-xl border-slate-200 dark:border-slate-700 focus:ring-primary-500 transition-all cursor-pointer shadow-inner" />
             <label htmlFor="is_active" className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest cursor-pointer group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{t("employees.form.is_active")}</label>
           </div>
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("employees.form.cancel").toUpperCase()}</button>
-            <button type="submit" data-testid="save-employee-btn" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95">{editingEmployee ? t("employees.form.update").toUpperCase() : t("employees.form.save").toUpperCase()}</button>
+            <Button variant="outline" size="lg" onClick={() => setIsModalOpen(false)}>{t("employees.form.cancel").toUpperCase()}</Button>
+            <Button variant="secondary" size="lg" type="submit" data-testid="save-employee-btn">{editingEmployee ? t("employees.form.update").toUpperCase() : t("employees.form.save").toUpperCase()}</Button>
           </div>
         </form>
       </Modal>
@@ -272,11 +274,11 @@ export default function EmployeesPage() {
       <Modal isOpen={isTransferModalOpen} onClose={() => { setIsTransferModalOpen(false); setSelectedDeptId(""); }} title={t("employees.transfer.title")} subtitle={t("employees.transfer.subtitle")} icon={<Building2 size={24} />} maxWidth="md">
         <form onSubmit={handleTransferSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
           <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.transfer.new_dept")}</label><Combobox options={departments?.map(d => ({ value: d.id, label: d.name.toUpperCase(), icon: <Building2 size={14} /> })) || []} value={selectedDeptId} onChange={setSelectedDeptId} placeholder={t("employees.transfer.select_dept")} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 h-14" /></div>
-          <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.transfer.effective_date")}</label><input type="date" name="effective_date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" /></div>
-          <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.transfer.notes")}</label><textarea name="notes" className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium text-sm h-32 resize-none shadow-sm" placeholder={t("employees.transfer.notes_placeholder")} /></div>
+          <FormField label={t("employees.transfer.effective_date")} name="effective_date" type="date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} />
+          <FormField label={t("employees.transfer.notes")} name="notes" type="textarea" placeholder={t("employees.transfer.notes_placeholder")} rows={4} />
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-            <button type="button" onClick={() => setIsTransferModalOpen(false)} className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("common.cancel").toUpperCase()}</button>
-            <button type="submit" data-testid="submit-transfer-btn" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95">{t("employees.transfer.submit").toUpperCase()}</button>
+            <Button variant="outline" size="lg" onClick={() => setIsTransferModalOpen(false)}>{t("common.cancel").toUpperCase()}</Button>
+            <Button variant="secondary" size="lg" type="submit" data-testid="submit-transfer-btn">{t("employees.transfer.submit").toUpperCase()}</Button>
           </div>
         </form>
       </Modal>
@@ -290,7 +292,7 @@ export default function EmployeesPage() {
                 <div>
                   <div className="font-bold text-slate-700 dark:text-slate-200 text-lg uppercase tracking-tight flex items-center gap-4">
                     {period.is_rehire ? t("employees.history.rehire_period") : t("employees.history.first_period")}
-                    {!period.termination_date && (<span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 text-[9px] font-bold rounded-full uppercase tracking-widest border border-emerald-100 dark:border-emerald-800 shadow-sm">{t("employees.history.currently_working")}</span>)}
+                    {!period.termination_date && (<StatusBadge variant="success">{t("employees.history.currently_working")}</StatusBadge>)}
                   </div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.25em] mt-3 flex items-center gap-3 opacity-70">
                     <CalendarIcon size={14} className="text-primary-400" /> {t("employees.history.period_range", { start: formatDate(period.hire_date), end: period.termination_date ? formatDate(period.termination_date) : t("employees.history.present").toUpperCase() })}
@@ -301,7 +303,7 @@ export default function EmployeesPage() {
             </div>
           ))}
         </div>
-        <div className="mt-10 pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><button onClick={() => setIsHistoryModalOpen(false)} className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95">{t("common.close").toUpperCase()}</button></div>
+        <div className="mt-10 pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button variant="secondary" size="lg" onClick={() => setIsHistoryModalOpen(false)}>{t("common.close").toUpperCase()}</Button></div>
       </Modal>
 
       {/* Rehire Modal */}
@@ -309,10 +311,10 @@ export default function EmployeesPage() {
         <div className="space-y-10 pt-4 animate-in fade-in duration-500">
           <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner text-center italic"><p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tight leading-relaxed">"{t("employees.rehire.confirm_msg")}"</p></div>
           <form onSubmit={handleRehireSubmit} className="space-y-8">
-            <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.rehire.rehire_date")}</label><input type="date" name="hire_date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" /></div>
+            <FormField label={t("employees.rehire.rehire_date")} name="hire_date" type="date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} />
             <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-              <button type="button" onClick={() => setIsRehireModalOpen(false)} className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("common.cancel").toUpperCase()}</button>
-              <button type="submit" data-testid="confirm-rehire-btn" disabled={rehireMutation.isPending} className="px-8 py-4 bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50">{rehireMutation.isPending ? t("employees.rehire.processing").toUpperCase() : t("employees.rehire.confirm").toUpperCase()}</button>
+              <Button variant="outline" size="lg" onClick={() => setIsRehireModalOpen(false)}>{t("common.cancel").toUpperCase()}</Button>
+              <Button size="lg" type="submit" data-testid="confirm-rehire-btn" loading={rehireMutation.isPending}>{rehireMutation.isPending ? t("employees.rehire.processing").toUpperCase() : t("employees.rehire.confirm").toUpperCase()}</Button>
             </div>
           </form>
         </div>

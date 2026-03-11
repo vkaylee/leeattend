@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Calculator, Save, ShieldAlert, Settings2, LayoutGrid, List, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
+import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "@/lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import { useTranslation } from "react-i18next";
@@ -119,7 +121,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
         {activeTab === "general" && (
 
-          <button onClick={handleSaveConfig} disabled={updateWsMutation.isPending} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50"><Save size={18} /> {t("common.workspace_settings.save_config").toUpperCase()}</button>
+          <Button onClick={handleSaveConfig} loading={updateWsMutation.isPending} icon={<Save size={18} />}>{t("common.workspace_settings.save_config").toUpperCase()}</Button>
 
         )}
 
@@ -151,7 +153,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
               <div className="space-y-3">
 
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.work_unit")}</label>
+                <label className={LABEL_BASE}>{t("common.workspace_settings.work_unit")}</label>
 
                 <Combobox options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnit.toString()} onChange={(v) => setWorkUnit(parseInt(v))} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
 
@@ -159,7 +161,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
               <div className="space-y-3">
 
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.rounding_policy")}</label>
+                <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
 
                 <Combobox options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy} onChange={setRoundingPolicy} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
 
@@ -173,7 +175,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
 
 
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.early_arrival_strategy")}</label>
+                <label className={LABEL_BASE}>{t("common.workspace_settings.early_arrival_strategy")}</label>
 
 
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import React, { lazy, Suspense } from "react";
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
 // ── Lazy-loaded chart components ───────────────────────────────────
@@ -31,6 +31,20 @@ const UnexcusedAbsencesChart = lazy(
     () => import("@/components/features/dashboard/UnexcusedAbsencesChart")
 );
 
+// ── Static chart map (hoisted to module scope — never re-created) ──
+
+const chartMap: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
+    attendance_trend: AttendanceTrendChart,
+    department_chart: DepartmentAttendanceChart,
+    overtime_trend: OvertimeTrendChart,
+    peak_times: PeakTimesChart,
+    leave_types: LeaveTypesChart,
+    lateness_by_day: LatenessByDayChart,
+    recruitment_sources: RecruitmentSourceChart,
+    turnover_analytics: TurnoverAnalyticsChart,
+    unexcused_absences: UnexcusedAbsencesChart,
+};
+
 // ── Loading skeleton ───────────────────────────────────────────────
 
 function ChartSkeleton() {
@@ -54,19 +68,7 @@ interface WidgetRendererProps {
  * directly in DashboardPage because they require data from the page scope.
  * This renderer handles chart-type widgets with lazy loading.
  */
-export default function WidgetRenderer({ widgetId }: WidgetRendererProps) {
-    const chartMap: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
-        attendance_trend: AttendanceTrendChart,
-        department_chart: DepartmentAttendanceChart,
-        overtime_trend: OvertimeTrendChart,
-        peak_times: PeakTimesChart,
-        leave_types: LeaveTypesChart,
-        lateness_by_day: LatenessByDayChart,
-        recruitment_sources: RecruitmentSourceChart,
-        turnover_analytics: TurnoverAnalyticsChart,
-        unexcused_absences: UnexcusedAbsencesChart,
-    };
-
+const WidgetRenderer = React.memo(function WidgetRenderer({ widgetId }: WidgetRendererProps) {
     const ChartComponent = chartMap[widgetId];
 
     if (!ChartComponent) {
@@ -80,4 +82,7 @@ export default function WidgetRenderer({ widgetId }: WidgetRendererProps) {
             <ChartComponent />
         </Suspense>
     );
-}
+});
+
+export default WidgetRenderer;
+

@@ -4,6 +4,7 @@ import { Users, UserPlus } from "lucide-react";
 import MemberTable from "@/components/members/MemberTable";
 import InviteMemberDialog from "@/components/members/InviteMemberDialog";
 import PermissionGate from "@/components/common/PermissionGate";
+import Button from "@/components/ui/Button";
 
 export default function MembersPage() {
   const { t } = useTranslation();
@@ -27,14 +28,13 @@ export default function MembersPage() {
         </div>
 
         <PermissionGate permission="members:manage">
-          <button
+          <Button
             onClick={() => setIsInviteOpen(true)}
             data-testid="invite-member-trigger"
-            className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"
+            icon={<UserPlus size={18} />}
           >
-            <UserPlus size={18} />
             {t("members.invite.title").toUpperCase()}
-          </button>
+          </Button>
         </PermissionGate>
       </div>
 

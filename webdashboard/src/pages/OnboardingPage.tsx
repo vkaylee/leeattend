@@ -4,6 +4,8 @@ import { LayoutDashboard, Plus, Loader2 } from "lucide-react";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { setCurrentWorkspaceId } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
 
 export default function OnboardingPage() {
   const { t } = useTranslation();
@@ -44,7 +46,7 @@ export default function OnboardingPage() {
 
         <form onSubmit={handleSubmit} className="space-y-10">
           <div className="space-y-3 px-1">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 opacity-70">
+            <label className={LABEL_BASE}>
               {t("onboarding.org_name_label")}
             </label>
             <input
@@ -58,18 +60,17 @@ export default function OnboardingPage() {
             />
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting || !name.trim()}
-            className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-primary-700 transition-all shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4"
+            loading={isSubmitting}
+            icon={isSubmitting ? undefined : <Plus size={18} />}
+            size="lg"
+            variant="secondary"
+            className="w-full"
           >
-            {isSubmitting ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <Plus size={18} />
-            )}
             {t("onboarding.start_now_btn").toUpperCase()}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-12 p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">

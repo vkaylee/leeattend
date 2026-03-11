@@ -33,6 +33,8 @@ import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { DeviceStatus } from "@/lib/api";
+import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
 import DeviceListItem from "@/components/features/connectivity/DeviceListItem";
 
 export default function DevicesPage() {
@@ -128,7 +130,7 @@ export default function DevicesPage() {
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("devices.form.infrastructure")}</p>
           </div>
         </div>
-        <button onClick={() => setShowAddForm(true)} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Plus size={18} /> {t("devices.add_btn").toUpperCase()}</button>
+        <Button onClick={() => setShowAddForm(true)} icon={<Plus size={18} />}>{t("devices.add_btn").toUpperCase()}</Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -142,7 +144,7 @@ export default function DevicesPage() {
               <HardDrive size={32} className="text-slate-200 dark:text-slate-700" />
             </div>
             <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px] opacity-60 mb-8">{t("devices.messages.empty_desc")}</p>
-            <button onClick={() => setShowAddForm(true)} className="px-10 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:border-primary-200 dark:border-primary-800 hover:text-primary-600 dark:text-primary-400 transition-all shadow-sm active:scale-95">{t("devices.add_btn")}</button>
+            <Button variant="outline" size="sm" onClick={() => setShowAddForm(true)}>{t("devices.add_btn")}</Button>
           </div>
         ) : devices.map((device) => (
           <DeviceListItem
@@ -161,38 +163,37 @@ export default function DevicesPage() {
       <Modal isOpen={showAddForm || !!editingDevice} onClose={() => { setShowAddForm(false); setEditingDevice(null); }} title={editingDevice ? t("devices.form.edit_device") : t("devices.form.new_device")} subtitle={t("devices.form.infrastructure")} icon={<Cpu size={24} />} maxWidth="lg">
         <form onSubmit={editingDevice ? handleUpdate : handleAdd} className="space-y-8 pt-4 animate-in fade-in duration-500">
           <div className="space-y-3 px-1">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.clock_name")}</label>
+            <label className={LABEL_BASE}>{t("devices.form.clock_name")}</label>
             <input required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" placeholder={t("devices.form.clock_name_placeholder")} value={editingDevice ? editingDevice.name : newDevice.name} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, name: e.target.value }) : setNewDevice({ ...newDevice, name: e.target.value })} />
           </div>
 
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.managed_by")}</label>
+              <label className={LABEL_BASE}>{t("devices.form.managed_by")}</label>
               <Combobox options={authorizedAgents.map((a) => ({ value: a.id, label: `${a.name} (${a.id})`, icon: <Server size={14} /> }))} value={editingDevice ? editingDevice.agent_id : newDevice.agent_id} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, agent_id: val }) : setNewDevice({ ...newDevice, agent_id: val })} placeholder={t("devices.form.select_agent")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
             </div>
             <div className="space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.brand")}</label>
+              <label className={LABEL_BASE}>{t("devices.form.brand")}</label>
               <Combobox options={brandOptions} value={editingDevice ? editingDevice.brand : newDevice.brand} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, brand: val }) : setNewDevice({ ...newDevice, brand: val })} placeholder={t("devices.form.brand_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-8">
             <div className="col-span-2 space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.ip_local")}</label>
+              <label className={LABEL_BASE}>{t("devices.form.ip_local")}</label>
               <input required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-tight" placeholder="192.168.1.100" value={editingDevice ? editingDevice.ip : newDevice.ip} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, ip: e.target.value }) : setNewDevice({ ...newDevice, ip: e.target.value })} />
             </div>
             <div className="space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.port")}</label>
+              <label className={LABEL_BASE}>{t("devices.form.port")}</label>
               <input type="number" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm text-center tracking-tighter" value={editingDevice ? editingDevice.port : newDevice.port} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, port: parseInt(e.target.value) }) : setNewDevice({ ...newDevice, port: parseInt(e.target.value) })} />
             </div>
           </div>
 
           <div className="flex gap-4 pt-6">
-            <button type="button" onClick={() => { setShowAddForm(false); setEditingDevice(null); }} className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("devices.form.cancel").toUpperCase()}</button>
-            <button type="submit" className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 flex items-center justify-center gap-3">
-              {editingDevice ? <Edit2 size={18} /> : <Plus size={18} />}
+            <Button variant="outline" size="lg" className="flex-1" onClick={() => { setShowAddForm(false); setEditingDevice(null); }}>{t("devices.form.cancel").toUpperCase()}</Button>
+            <Button size="lg" type="submit" className="flex-1" icon={editingDevice ? <Edit2 size={18} /> : <Plus size={18} />}>
               {editingDevice ? t("devices.form.update_device").toUpperCase() : t("devices.form.save_device").toUpperCase()}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

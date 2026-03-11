@@ -5,6 +5,8 @@ import { Plus, Search, Edit2, Trash2, Building2, UserCircle, Users, LayoutGrid, 
 import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "../lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
+import FormField, { LABEL_BASE } from "@/components/ui/FormField";
 import TemporalConfigTable from "@/components/common/TemporalConfigTable";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
@@ -78,7 +80,7 @@ export default function DepartmentsPage() {
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("departments.subtitle")}</p>
           </div>
         </div>
-        <button data-testid="add-dept-btn" onClick={() => { setEditingDept(null); setIsModalOpen(true); }} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Plus size={18} /> {t("departments.add_btn").toUpperCase()}</button>
+        <Button data-testid="add-dept-btn" onClick={() => { setEditingDept(null); setIsModalOpen(true); }} icon={<Plus size={18} />}>{t("departments.add_btn").toUpperCase()}</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -131,21 +133,21 @@ export default function DepartmentsPage() {
       <Modal isOpen={isConfigModalOpen && !!editingDept} onClose={() => setIsConfigModalOpen(false)} title={t("payroll.settings.dept_title")} subtitle={editingDept?.name?.toUpperCase()} icon={<Calculator size={24} />} maxWidth="3xl">
         <div className="space-y-10 pt-4 animate-in fade-in duration-500">
           <TemporalConfigTable title={t("payroll.settings.std_days_history")} records={deptConfigs} isLoading={isConfigsLoading} onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }} />
-          <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><button onClick={() => setIsConfigModalOpen(false)} className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95">{t("common.close").toUpperCase()}</button></div>
+          <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button variant="secondary" size="lg" onClick={() => setIsConfigModalOpen(false)}>{t("common.close").toUpperCase()}</Button></div>
         </div>
       </Modal>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")} subtitle={t("departments.modal.subtitle")} icon={<LayoutGrid size={24} />} maxWidth="lg">
         <form onSubmit={handleSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
-          <div className="space-y-3 px-1"><label htmlFor="dept-name" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("departments.form.name_label")}</label><input id="dept-name" name="name" required defaultValue={editingDept?.name} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" placeholder={t("departments.form.name_placeholder")} /></div>
-          <div className="space-y-3 px-1"><label htmlFor="dept-desc" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.description")}</label><textarea id="dept-desc" name="description" defaultValue={editingDept?.description} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium text-sm h-32 resize-none shadow-sm" placeholder={t("departments.form.desc_placeholder")} /></div>
+          <FormField label={t("departments.form.name_label")} id="dept-name" name="name" required defaultValue={editingDept?.name} placeholder={t("departments.form.name_placeholder")} />
+          <FormField label={t("common.description")} id="dept-desc" name="description" type="textarea" defaultValue={editingDept?.description} placeholder={t("departments.form.desc_placeholder")} rows={4} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3 px-1"><label htmlFor="dept-manager" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("departments.manager_label")}</label><Combobox id="dept-manager" options={users.map(u => ({ value: u.id, label: (u.full_name || u.email).toUpperCase(), icon: <UserCircle size={14} /> }))} value={selectedManagerId} onChange={setSelectedManagerId} placeholder={t("departments.form.manager_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" /></div>
-            <div className="space-y-3 px-1"><label htmlFor="dept-pattern" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("departments.default_pattern_label")}</label><Combobox id="dept-pattern" data-testid="dept-pattern" options={patterns.map(p => ({ value: p.id, label: p.name.toUpperCase(), icon: <CalendarDays size={14} /> }))} value={selectedPatternId} onChange={setSelectedPatternId} placeholder={t("departments.form.pattern_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" /></div>
+            <div className="space-y-3 px-1"><label htmlFor="dept-manager" className={LABEL_BASE}>{t("departments.manager_label")}</label><Combobox id="dept-manager" options={users.map(u => ({ value: u.id, label: (u.full_name || u.email).toUpperCase(), icon: <UserCircle size={14} /> }))} value={selectedManagerId} onChange={setSelectedManagerId} placeholder={t("departments.form.manager_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" /></div>
+            <div className="space-y-3 px-1"><label htmlFor="dept-pattern" className={LABEL_BASE}>{t("departments.default_pattern_label")}</label><Combobox id="dept-pattern" data-testid="dept-pattern" options={patterns.map(p => ({ value: p.id, label: p.name.toUpperCase(), icon: <CalendarDays size={14} /> }))} value={selectedPatternId} onChange={setSelectedPatternId} placeholder={t("departments.form.pattern_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" /></div>
           </div>
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("common.cancel").toUpperCase()}</button>
-            <button type="submit" data-testid="save-dept-btn" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95">{editingDept ? t("common.update").toUpperCase() : t("departments.modal.submit_btn").toUpperCase()}</button>
+            <Button variant="outline" size="lg" onClick={() => setIsModalOpen(false)}>{t("common.cancel").toUpperCase()}</Button>
+            <Button variant="secondary" size="lg" type="submit" data-testid="save-dept-btn">{editingDept ? t("common.update").toUpperCase() : t("departments.modal.submit_btn").toUpperCase()}</Button>
           </div>
         </form>
       </Modal>

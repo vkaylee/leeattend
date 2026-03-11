@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Monitor,
@@ -68,19 +68,21 @@ export default function DashboardPage() {
   const onlineAgents = agents.filter((a) => a.is_online).length;
   const activeDevices = devices.filter((d) => d.is_enabled).length;
 
-  const formatCurrency = (value: string | number) => {
+  const formatCurrency = useCallback((value: string | number) => {
     const locale = i18n.language === "vi" ? "vi-VN" : i18n.language === "zh" ? "zh-CN" : "en-US";
     return new Intl.NumberFormat(locale, { style: "currency", currency: i18n.language === "vi" ? "VND" : i18n.language === "zh" ? "CNY" : "USD", maximumFractionDigits: 0 }).format(Number(value));
-  };
+  }, [i18n.language]);
 
-  // Compute donut data from hrStats
-  const onTimeCount = Math.max(0, (hrStats?.present_today ?? 0) - (hrStats?.late_today ?? 0));
-  const donutData = [
-    { name: t("dashboard.hr.on_time"), value: onTimeCount, color: DONUT_COLORS.on_time },
-    { name: t("dashboard.hr.late_today"), value: hrStats?.late_today ?? 0, color: DONUT_COLORS.late },
-    { name: t("dashboard.hr.absent_today"), value: hrStats?.absent_today ?? 0, color: DONUT_COLORS.absent },
-    { name: t("dashboard.hr.on_leave_today"), value: hrStats?.on_leave_today ?? 0, color: DONUT_COLORS.on_leave },
-  ];
+  // Memoize donut data — recompute only when hrStats change
+  const donutData = useMemo(() => {
+    const onTimeCount = Math.max(0, (hrStats?.present_today ?? 0) - (hrStats?.late_today ?? 0));
+    return [
+      { name: t("dashboard.hr.on_time"), value: onTimeCount, color: DONUT_COLORS.on_time },
+      { name: t("dashboard.hr.late_today"), value: hrStats?.late_today ?? 0, color: DONUT_COLORS.late },
+      { name: t("dashboard.hr.absent_today"), value: hrStats?.absent_today ?? 0, color: DONUT_COLORS.absent },
+      { name: t("dashboard.hr.on_leave_today"), value: hrStats?.on_leave_today ?? 0, color: DONUT_COLORS.on_leave },
+    ];
+  }, [hrStats, t]);
   const hasDonutData = donutData.some((d) => d.value > 0);
 
   // ── Chart-type widgets (rendered via WidgetRenderer) ─────────────
@@ -96,16 +98,20 @@ export default function DashboardPage() {
     "unexcused_absences",
   ];
 
-  // Filter and order visible chart widgets
-  const visibleCharts = widgetOrder
-    .filter((id) => chartWidgetIds.includes(id) && visibleWidgets[id]);
+  // Memoize visible charts and paired charts
+  const visibleCharts = useMemo(() =>
+    widgetOrder.filter((id) => chartWidgetIds.includes(id) && visibleWidgets[id]),
+    [widgetOrder, visibleWidgets]
+  );
 
-  // Pair leave_types + lateness_by_day side by side if both visible
-  const pairedCharts = new Set<WidgetId>();
-  if (visibleWidgets.leave_types && visibleWidgets.lateness_by_day) {
-    pairedCharts.add("leave_types");
-    pairedCharts.add("lateness_by_day");
-  }
+  const pairedCharts = useMemo(() => {
+    const set = new Set<WidgetId>();
+    if (visibleWidgets.leave_types && visibleWidgets.lateness_by_day) {
+      set.add("leave_types");
+      set.add("lateness_by_day");
+    }
+    return set;
+  }, [visibleWidgets.leave_types, visibleWidgets.lateness_by_day]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">

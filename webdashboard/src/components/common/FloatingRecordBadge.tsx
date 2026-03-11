@@ -9,7 +9,7 @@ interface FloatingRecordBadgeProps {
     variant?: "default" | "amber";
 }
 
-export default function FloatingRecordBadge({
+const FloatingRecordBadge = React.memo(function FloatingRecordBadge({
     loaded,
     total,
     label = "records",
@@ -84,4 +84,6 @@ export default function FloatingRecordBadge({
             </div>
         </div>
     );
-}
+});
+
+export default FloatingRecordBadge;

@@ -27,6 +27,8 @@ import {
 import { useToast } from "../components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import { Combobox } from "@/components/ui/Combobox";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
 
 export default function AssignmentRulesPage() {
   const { t } = useTranslation();
@@ -79,7 +81,7 @@ export default function AssignmentRulesPage() {
           <h1 data-testid="assignment-rules-title" className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">{t("rules.title")}</h1>
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("rules.subtitle")}</p>
         </div>
-        <button onClick={openCreateModal} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Plus size={18} /> {t("rules.create_btn").toUpperCase()}</button>
+        <Button onClick={openCreateModal} icon={<Plus size={18} />}>{t("rules.create_btn").toUpperCase()}</Button>
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm dark:shadow-black/10 animate-in slide-in-from-bottom-8 duration-700">
@@ -99,7 +101,7 @@ export default function AssignmentRulesPage() {
                 <td className="px-10 py-6"><span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-xl text-[10px] font-bold tracking-tight border border-slate-200 dark:border-slate-700 shadow-inner font-mono uppercase">P{rule.priority}</span></td>
                 <td className="px-8 py-6">
                   <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{rule.name}</div>
-                  {!rule.is_active && <span className="text-[8px] font-bold uppercase text-rose-600 dark:text-rose-300 tracking-widest bg-rose-50 dark:bg-rose-950 px-2 py-0.5 rounded-full border border-rose-100 dark:border-rose-800">{t("common.inactive").toUpperCase()}</span>}
+                  {!rule.is_active && <StatusBadge variant="danger">{t("common.inactive").toUpperCase()}</StatusBadge>}
                 </td>
                 <td className="px-8 py-6"><span className="bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-primary-100 dark:border-primary-800 shadow-sm dark:shadow-black/10">{patterns?.find(p => p.id === rule.pattern_id)?.name.toUpperCase() || "UNKNOWN"}</span></td>
                 <td className="px-8 py-6">
@@ -223,19 +225,12 @@ export default function AssignmentRulesPage() {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
-              onClick={closeModal}
-              className="flex-1 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-            >
+            <Button variant="ghost" size="lg" className="flex-1" onClick={closeModal}>
               {t("common.cancel")}
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95 disabled:opacity-50 text-xs uppercase tracking-widest"
-            >
-              <Check className="w-4 h-4" /> {editingRule ? t("common.save_changes") : t("common.create")}
-            </button>
+            </Button>
+            <Button className="flex-1" size="lg" onClick={handleSubmit} loading={createMutation.isPending || updateMutation.isPending} icon={<Check className="w-4 h-4" />}>
+              {editingRule ? t("common.save_changes") : t("common.create")}
+            </Button>
           </div>
         </div>
       </Modal>

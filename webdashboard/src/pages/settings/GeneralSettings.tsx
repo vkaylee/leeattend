@@ -7,6 +7,8 @@ import { Combobox } from "@/components/ui/Combobox";
 import { useTheme } from "@/hooks/use-theme";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import type { ThemeMode } from "@/hooks/use-dark-mode";
 
@@ -76,7 +78,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
             <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("common.workspace_settings.description")}</p>
           </div>
         </div>
-        <button onClick={handleSaveConfig} disabled={updateWsMutation.isPending} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50"><Save size={18} /> {t("common.workspace_settings.save_config").toUpperCase()}</button>
+        <Button onClick={handleSaveConfig} loading={updateWsMutation.isPending} icon={<Save size={18} />}>{t("common.workspace_settings.save_config").toUpperCase()}</Button>
       </div>
 
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
@@ -90,19 +92,19 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
             <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Globe className="w-6 h-6 text-indigo-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.general_config")}</h2></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.date_format")}</label>
+                <label className={LABEL_BASE}>{t("common.workspace_settings.date_format")}</label>
                 <Combobox options={[{ value: "DD/MM/YYYY", label: "DD/MM/YYYY", description: t("common.workspace_settings.date_format_options.vn"), icon: <Calendar size={14} /> }, { value: "MM/DD/YYYY", label: "MM/DD/YYYY", description: t("common.workspace_settings.date_format_options.us"), icon: <Calendar size={14} /> }, { value: "YYYY-MM-DD", label: "YYYY-MM-DD", description: t("common.workspace_settings.date_format_options.iso"), icon: <Calendar size={14} /> }]} value={dateFormat} onChange={setDateFormat} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.time_format")}</label>
+                <label className={LABEL_BASE}>{t("common.workspace_settings.time_format")}</label>
                 <Combobox options={[{ value: "24h", label: t("common.workspace_settings.time_format_options.24h"), description: t("common.workspace_settings.time_format_options.example_24h"), icon: <Clock size={14} /> }, { value: "12h", label: t("common.workspace_settings.time_format_options.12h"), description: t("common.workspace_settings.time_format_options.example_12h"), icon: <Clock size={14} /> }]} value={timeFormat} onChange={setTimeFormat} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.timezone")}</label>
+                <label className={LABEL_BASE}>{t("common.workspace_settings.timezone")}</label>
                 <Combobox options={[{ value: "Asia/Ho_Chi_Minh", label: "Asia/Ho_Chi_Minh", description: t("common.workspace_settings.timezone_options.vn"), icon: <Globe size={14} /> }, { value: "Asia/Bangkok", label: "Asia/Bangkok", description: t("common.workspace_settings.timezone_options.th"), icon: <Globe size={14} /> }, { value: "UTC", label: t("common.workspace_settings.timezone_options.utc"), icon: <Globe size={14} /> }]} value={timezone} onChange={setTimezone} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.default_language")}</label>
+                <label className={LABEL_BASE}>{t("common.workspace_settings.default_language")}</label>
                 <Combobox options={[{ value: "vi", label: t("common.languages.vi"), icon: <Languages size={14} /> }, { value: "en", label: t("common.languages.en"), icon: <Languages size={14} /> }, { value: "zh", label: t("common.languages.zh"), icon: <Languages size={14} /> }]} value={defaultLanguage} onChange={setDefaultLanguage} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
               </div>
             </div>
@@ -114,7 +116,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
             <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Palette className="w-6 h-6 text-pink-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.theme_config")}</h2></div>
             <div className="space-y-10">
               <div className="space-y-6">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.primary_color")}</label>
+                <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
                 <div className="flex flex-wrap gap-5 items-center">
                   {[
                     { name: t("common.colors.violet"), color: '#7c3aed' }, { name: t("common.colors.indigo"), color: '#4f46e5' }, { name: t("common.colors.blue"), color: '#2563eb' },
@@ -156,7 +158,7 @@ function DarkModeSelector() {
 
   return (
     <div className="space-y-6">
-      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t('common.theme.mode', 'Dark Mode')}</label>
+      <label className={LABEL_BASE}>{t('common.theme.mode', 'Dark Mode')}</label>
       <div className="grid grid-cols-3 gap-4" data-testid="dark-mode-selector">
         {options.map((opt) => (
           <button

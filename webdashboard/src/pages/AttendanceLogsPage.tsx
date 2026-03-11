@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { fetchRawAttendanceLogs, fetchEmployees, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
@@ -24,6 +25,9 @@ import {
   Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { LABEL_BASE } from "@/components/ui/FormField";
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 import PermissionGate from "@/components/common/PermissionGate";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
@@ -31,43 +35,6 @@ import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { BarChart3 } from "lucide-react";
 
-// Simplified UI Components inline
-const Badge = ({ children, variant = "default", className }: { children: React.ReactNode, variant?: "default" | "secondary" | "outline" | "destructive", className?: string }) => {
-  const variants = {
-    default: "bg-slate-900 text-slate-50 hover:bg-slate-900/80",
-    secondary: "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/80",
-    outline: "text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700",
-    destructive: "bg-red-50 dark:bg-red-950 text-slate-50 hover:bg-red-50 dark:bg-red-950/80"
-  };
-  return (
-    <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2", variants[variant], className)}>
-      {children}
-    </div>
-  );
-};
-
-const Button = ({ children, variant = "default", className, disabled, onClick, type = "button" }: { children: React.ReactNode, variant?: string, className?: string, disabled?: boolean, onClick?: () => void, type?: "button" | "submit" }) => {
-  const variants: Record<string, string> = {
-    default: "bg-primary-600 text-white hover:bg-primary-700 shadow-sm",
-    outline: "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200",
-    ghost: "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300",
-    destructive: "bg-rose-600 text-white hover:bg-rose-700 shadow-sm",
-  };
-  return (
-    <button
-      type={type}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
-        variants[variant || "default"],
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
-};
 
 type TabType = "recorded" | "unknown";
 
@@ -113,18 +80,18 @@ export default function AttendanceLogsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom" | "specific_month") => {
+  const handleFilterModeChange = useCallback((mode: "this_month" | "last_month" | "custom" | "specific_month") => {
     setFilterMode(mode);
     if (mode === "this_month") setDateRange(getMonthRange(0));
     else if (mode === "last_month") setDateRange(getMonthRange(-1));
-  };
+  }, []);
 
-  const handleSpecificMonthChange = (m: number, y: number) => {
+  const handleSpecificMonthChange = useCallback((m: number, y: number) => {
     setSpecificMonth({ month: m, year: y }); setFilterMode("specific_month");
     const start = format(new Date(y, m - 1, 1), 'yyyy-MM-dd');
     const end = format(endOfMonth(new Date(y, m - 1, 1)), 'yyyy-MM-dd');
     setDateRange({ start, end });
-  };
+  }, []);
 
   const { data: employeesData } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: !!wsId });
   const employees = employeesData?.data || [];
@@ -238,11 +205,19 @@ export default function AttendanceLogsPage() {
     return emp ? emp.employee_id_number : "";
   };
 
-  const getDeviceName = (deviceId?: string | null) => {
+  // O(1) device lookup map (same pattern as employeeMap)
+  const deviceMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (devicesData) {
+      devicesData.forEach(d => map.set(d.id, d.name));
+    }
+    return map;
+  }, [devicesData]);
+
+  const getDeviceName = useCallback((deviceId?: string | null): string => {
     if (!deviceId) return "";
-    const device = devicesData?.find(d => d.id === deviceId);
-    return device ? device.name : "";
-  };
+    return deviceMap.get(deviceId) ?? "";
+  }, [deviceMap]);
 
   const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
     hasNextPage,
@@ -274,9 +249,9 @@ export default function AttendanceLogsPage() {
           >
             <BarChart3 size={14} /> {t("attendance_logs.view_reports")}
           </Link>
-          <button onClick={() => window.print()} className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"><Download size={14} /> {t("attendance_logs.export_btn")}</button>
+          <Button variant="outline" size="sm" onClick={() => window.print()} icon={<Download size={14} />}>{t("attendance_logs.export_btn")}</Button>
           <PermissionGate permission="attendance_staging:manage">
-            <button onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 font-bold text-[10px] uppercase tracking-widest active:scale-95"><Upload size={14} /> {t("attendance_logs.import_btn")}</button>
+            <Button size="sm" onClick={() => setIsImportDialogOpen(true)} icon={<Upload size={14} />}>{t("attendance_logs.import_btn")}</Button>
           </PermissionGate>
         </div>
       </div>
@@ -340,11 +315,11 @@ export default function AttendanceLogsPage() {
           {filterMode === "custom" && (
             <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-2 duration-300 max-w-2xl">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Calendar size={12} /> {t("common.from_date")}</label>
+                <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.from_date")}</label>
                 <input type="date" value={dateRange.start} onChange={(e) => { setDateRange(prev => ({ ...prev, start: e.target.value })); }} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Calendar size={12} /> {t("common.to_date")}</label>
+                <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.to_date")}</label>
                 <input type="date" value={dateRange.end} onChange={(e) => { setDateRange(prev => ({ ...prev, end: e.target.value })); }} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" />
               </div>
             </div>
@@ -435,7 +410,7 @@ export default function AttendanceLogsPage() {
                             </div>
                           </td>
                           <td className="px-8 py-5 text-right">
-                            <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 rounded-full text-[9px] font-bold uppercase tracking-widest border border-emerald-100 dark:border-emerald-800 shadow-sm">{t("attendance_logs.status.recorded")}</span>
+                            <StatusBadge variant="success">{t("attendance_logs.status.recorded")}</StatusBadge>
                           </td>
                         </tr>
                       ))}

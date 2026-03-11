@@ -9,6 +9,8 @@ import {
   getCurrentUserId,
   AuthResponse,
 } from "@/lib/api";
+import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
 
 export default function RegisterPage() {
   const { t } = useTranslation();
@@ -67,16 +69,16 @@ export default function RegisterPage() {
               { id: "confirm_password", label: "confirm_password", type: "password", placeholder: "••••••••", auto: "new-password" }
             ].map((field) => (
               <div key={field.id} className="space-y-2 px-1">
-                <label htmlFor={field.id} className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 opacity-70">{t(`auth.${field.label}`)}</label>
+                <label htmlFor={field.id} className={LABEL_BASE}>{t(`auth.${field.label}`)}</label>
                 <input id={field.id} name={field.id} type={field.type} autoComplete={field.auto} required className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm uppercase tracking-tight shadow-inner" placeholder={field.placeholder} value={(formData as any)[field.id]} onChange={handleChange} />
               </div>
             ))}
           </div>
 
           <div className="pt-2">
-            <button type="submit" disabled={isLoading} className="w-full flex justify-center py-5 px-4 border border-transparent text-xs font-bold rounded-2xl text-white bg-slate-900 hover:bg-primary-700 transition-all disabled:opacity-50 uppercase tracking-[0.2em] shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95">
+            <Button type="submit" disabled={isLoading} loading={isLoading} variant="secondary" size="lg" className="w-full">
               {isLoading ? t("auth.creating_account").toUpperCase() : t("auth.register_btn").toUpperCase()}
-            </button>
+            </Button>
           </div>
 
           <div className="text-center pt-2">

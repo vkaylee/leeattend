@@ -20,6 +20,8 @@ import { useTranslation } from "react-i18next";
 import { Combobox } from "@/components/ui/Combobox";
 import { changePassword, clearAuthSession } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
 
 type TabType = "profile" | "personalization" | "security";
 
@@ -91,14 +93,14 @@ export default function ProfilePage() {
               <form onSubmit={handleSubmit} className="space-y-10 pt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-3 px-1">
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.email")}</label>
+                    <label className={LABEL_BASE}>{t("common.email")}</label>
                     <div className="flex items-center gap-4 px-6 py-4 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-500 dark:text-slate-400 font-bold text-sm shadow-inner uppercase tracking-tight opacity-70 cursor-not-allowed">
                       <Mail size={18} className="opacity-50" /> {user?.email}
                     </div>
                   </div>
 
                   <div className="space-y-3 px-1">
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.table.name")}</label>
+                    <label className={LABEL_BASE}>{t("employees.table.name")}</label>
                     <div className="relative group">
                       <input required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all pr-14 font-bold text-sm uppercase tracking-tight shadow-sm" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} />
                       <UserIcon className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" size={20} />
@@ -106,18 +108,18 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="space-y-3 px-1">
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("profile.preferred_language")}</label>
+                    <label className={LABEL_BASE}>{t("profile.preferred_language")}</label>
                     <Combobox options={[{ value: "", label: t("profile.follow_workspace").toUpperCase(), icon: <Globe size={14} /> }, { value: "vi", label: t("common.languages.vi").toUpperCase(), icon: <Globe size={14} /> }, { value: "en", label: t("common.languages.en").toUpperCase(), icon: <Globe size={14} /> }, { value: "zh", label: t("common.languages.zh").toUpperCase(), icon: <Globe size={14} /> }]} value={formData.preferred_language} onChange={(val) => setFormData({ ...formData, preferred_language: val })} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
                   </div>
                 </div>
 
                 <div className="space-y-3 px-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("profile.bio")}</label>
+                  <label className={LABEL_BASE}>{t("profile.bio")}</label>
                   <textarea className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium text-sm min-h-[140px] resize-none shadow-sm" rows={3} value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} placeholder={t("profile.bio_placeholder")} />
                 </div>
 
                 <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end">
-                  <button type="submit" disabled={isUpdating} className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 flex items-center gap-4"><Save size={18} /> {isUpdating ? t("common.loading").toUpperCase() : t("common.save").toUpperCase()}</button>
+                  <Button size="lg" type="submit" loading={isUpdating} icon={<Save size={18} />}>{isUpdating ? t("common.loading").toUpperCase() : t("common.save").toUpperCase()}</Button>
                 </div>
               </form>
             </div>
@@ -141,7 +143,7 @@ export default function ProfilePage() {
 
             <div className="space-y-10">
               <div className="space-y-6">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.primary_color")}</label>
+                <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
                 <div className="flex flex-wrap gap-5 items-center">
                   {[
                     { name: t("common.colors.violet"), color: '#7c3aed' }, { name: t("common.colors.indigo"), color: '#4f46e5' }, { name: t("common.colors.blue"), color: '#2563eb' },
@@ -211,7 +213,7 @@ function ChangePasswordForm() {
         { id: "confirm", label: "confirm_password", key: "confirm_password" }
       ].map((field) => (
         <div key={field.id} className="space-y-3 px-1">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t(`profile.security.${field.label}`)}</label>
+          <label className={LABEL_BASE}>{t(`profile.security.${field.label}`)}</label>
           <div className="relative group">
             <input type="password" required data-testid={`${field.id}-password-input`} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-300 outline-none transition-all pr-14 font-bold text-sm tracking-tight shadow-sm" value={(formData as any)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} />
             <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-orange-500 transition-colors" size={20} />
@@ -219,10 +221,9 @@ function ChangePasswordForm() {
         </div>
       ))}
       <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-        <button type="submit" disabled={isSubmitting} data-testid="update-password-btn" className="bg-slate-900 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all flex items-center gap-4 active:scale-95 disabled:opacity-50 shadow-2xl shadow-slate-400 dark:shadow-black/40">
-          {isSubmitting ? <RefreshCw className="animate-spin" size={18} /> : null}
+        <Button variant="secondary" size="lg" type="submit" loading={isSubmitting} data-testid="update-password-btn">
           {t("profile.security.submit_btn").toUpperCase()}
-        </button>
+        </Button>
       </div>
     </form>
   );

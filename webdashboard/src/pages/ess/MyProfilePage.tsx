@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { LABEL_BASE } from "@/components/ui/FormField";
 
 type TabType = "personal" | "banking" | "emergency";
 
@@ -133,12 +136,12 @@ export default function MyProfilePage() {
                 { label: "national_id", key: "national_id", icon: ShieldCheck, placeholder: "xxx xxx xxx xxx" }
               ].map(field => (
                 <div key={field.key} className="space-y-3 px-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1"><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
+                  <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
                   <input type={field.type} value={(formData as any)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" placeholder={field.placeholder} />
                 </div>
               ))}
               <div className="space-y-3 px-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("ess.gender")}</label>
+                <label className={LABEL_BASE}>{t("ess.gender")}</label>
                 <select value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm appearance-none cursor-pointer">
                   <option value="">{t("common.select").toUpperCase()}</option>
                   <option value="male">{t("ess.gender_male").toUpperCase()}</option>
@@ -147,12 +150,12 @@ export default function MyProfilePage() {
                 </select>
               </div>
               <div className="space-y-3 md:col-span-2 px-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1"><MapPin size={12} className="inline mr-2" /> {t("ess.address")}</label>
+                <label className={LABEL_BASE}><MapPin size={12} className="inline mr-2" /> {t("ess.address")}</label>
                 <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} rows={2} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium text-sm resize-none shadow-sm" placeholder={t("ess.address_placeholder")} />
               </div>
             </div>
             <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end">
-              <button type="submit" disabled={isUpdating} className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 flex items-center gap-4"><Save size={18} /> {isUpdating ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
+              <Button type="submit" disabled={isUpdating} loading={isUpdating} icon={<Save size={18} />}>{isUpdating ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</Button>
             </div>
           </form>
         )}
@@ -166,13 +169,13 @@ export default function MyProfilePage() {
                 { label: "bank_branch", key: "bank_branch", icon: MapPin, placeholder: t("ess.branch_placeholder") }
               ].map(field => (
                 <div key={field.key} className="space-y-3 px-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1"><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
+                  <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
                   <input type="text" value={(formData as any)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm font-mono" placeholder={field.placeholder} />
                 </div>
               ))}
             </div>
             <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end">
-              <button type="submit" disabled={isUpdating} className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 flex items-center gap-4"><Save size={18} /> {isUpdating ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
+              <Button type="submit" disabled={isUpdating} loading={isUpdating} icon={<Save size={18} />}>{isUpdating ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</Button>
             </div>
           </form>
         )}
@@ -187,7 +190,7 @@ export default function MyProfilePage() {
                   <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-70">{t("ess.emergency_contact.subtitle")}</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setIsContactModalOpen(true)} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Plus size={18} /> {t("ess.add_contact").toUpperCase()}</button>
+              <Button onClick={() => setIsContactModalOpen(true)} icon={<Plus size={18} />}>{t("ess.add_contact").toUpperCase()}</Button>
             </div>
 
             {contacts.length === 0 ? (
@@ -204,7 +207,7 @@ export default function MyProfilePage() {
                       <div>
                         <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight flex items-center gap-3 uppercase leading-none mb-2">
                           {contact.contact_name}
-                          {contact.is_primary && <span className="text-[9px] bg-primary-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-widest shadow-lg shadow-primary-500/20">{t("ess.primary")}</span>}
+                          {contact.is_primary && <StatusBadge variant="primary">{t("ess.primary")}</StatusBadge>}
                         </div>
                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] opacity-70">{contact.relationship} • <span className="font-mono text-slate-500 dark:text-slate-400 font-bold">{contact.phone}</span></div>
                       </div>
@@ -221,12 +224,12 @@ export default function MyProfilePage() {
       <Modal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} title={t("ess.add_emergency_contact")} icon={<Users size={24} />} maxWidth="md">
         <form onSubmit={handleAddContact} className="space-y-8 pt-4 animate-in fade-in duration-500">
           <div className="space-y-3 px-1">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("ess.contact_name")}</label>
+            <label className={LABEL_BASE}>{t("ess.contact_name")}</label>
             <input type="text" required value={newContact.contact_name} onChange={(e) => setNewContact({ ...newContact, contact_name: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" />
           </div>
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("ess.relationship")}</label>
+              <label className={LABEL_BASE}>{t("ess.relationship")}</label>
               <select required value={newContact.relationship} onChange={(e) => setNewContact({ ...newContact, relationship: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm appearance-none cursor-pointer">
                 <option value="">{t("common.select").toUpperCase()}</option>
                 <option value="spouse">{t("ess.relationship_spouse").toUpperCase()}</option>
@@ -238,7 +241,7 @@ export default function MyProfilePage() {
               </select>
             </div>
             <div className="space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("ess.phone")}</label>
+              <label className={LABEL_BASE}>{t("ess.phone")}</label>
               <input type="tel" required value={newContact.phone} onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-tighter shadow-sm" />
             </div>
           </div>
@@ -247,8 +250,8 @@ export default function MyProfilePage() {
             <label htmlFor="is_primary" className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest cursor-pointer group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{t("ess.set_as_primary")}</label>
           </div>
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-            <button type="button" onClick={() => setIsContactModalOpen(false)} className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("common.cancel").toUpperCase()}</button>
-            <button type="submit" disabled={isAdding} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50">{isAdding ? t("common.adding").toUpperCase() : t("common.add").toUpperCase()}</button>
+            <Button variant="outline" size="lg" onClick={() => setIsContactModalOpen(false)}>{t("common.cancel").toUpperCase()}</Button>
+            <Button variant="secondary" size="lg" type="submit" disabled={isAdding} loading={isAdding}>{isAdding ? t("common.adding").toUpperCase() : t("common.add").toUpperCase()}</Button>
           </div>
         </form>
       </Modal>

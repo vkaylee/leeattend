@@ -16,6 +16,9 @@ import { Link } from "react-router-dom";
 import { useAuthorizedAgents } from "@/hooks/use-agents";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { LABEL_BASE } from "@/components/ui/FormField";
 import AgentEditModal from "@/components/features/agents/AgentEditModal";
 import { AuthorizedAgent } from "@/lib/api";
 
@@ -81,7 +84,7 @@ export default function AgentsPage() {
         </div>
         <div className="flex items-center gap-4">
           <button onClick={() => setIncludeInactive(!includeInactive)} className={cn("flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all border shadow-sm active:scale-95", includeInactive ? "bg-slate-900 text-white border-transparent" : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800")}>{includeInactive ? t("common.status_inactive").toUpperCase() : t("common.status_active").toUpperCase()}</button>
-          <button onClick={() => setShowAddForm(true)} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Plus size={18} /> {t("agents.add_btn").toUpperCase()}</button>
+          <Button onClick={() => setShowAddForm(true)} icon={<Plus size={18} />}>{t("agents.add_btn").toUpperCase()}</Button>
         </div>
       </div>
 
@@ -92,13 +95,13 @@ export default function AgentsPage() {
             <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">{t("agents.add_form_title")}</h4>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("agents.id_label")}</label><input required placeholder="agent-001" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm uppercase tracking-tight" value={newAgent.id} onChange={(e) => setNewAgent({ ...newAgent, id: e.target.value })} /></div>
-            <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("agents.name_label")}</label><input required placeholder="Văn phòng chính" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight" value={newAgent.name} onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })} /></div>
-            <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("agents.token_label")}</label><input required placeholder="Mật mã kết nối" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm" value={newAgent.token} onChange={(e) => setNewAgent({ ...newAgent, token: e.target.value })} /></div>
+            <div className="space-y-3 px-1"><label className={LABEL_BASE}>{t("agents.id_label")}</label><input required placeholder="agent-001" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm uppercase tracking-tight" value={newAgent.id} onChange={(e) => setNewAgent({ ...newAgent, id: e.target.value })} /></div>
+            <div className="space-y-3 px-1"><label className={LABEL_BASE}>{t("agents.name_label")}</label><input required placeholder="Văn phòng chính" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight" value={newAgent.name} onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })} /></div>
+            <div className="space-y-3 px-1"><label className={LABEL_BASE}>{t("agents.token_label")}</label><input required placeholder="Mật mã kết nối" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm" value={newAgent.token} onChange={(e) => setNewAgent({ ...newAgent, token: e.target.value })} /></div>
           </div>
           <div className="mt-10 flex justify-end gap-4">
-            <button type="button" onClick={() => setShowAddForm(false)} className="px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">{t("common.cancel")}</button>
-            <button type="submit" className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95">{t("agents.save_btn")}</button>
+            <Button variant="ghost" size="lg" onClick={() => setShowAddForm(false)}>{t("common.cancel")}</Button>
+            <Button size="lg" type="submit">{t("agents.save_btn")}</Button>
           </div>
         </form>
       )}
@@ -136,8 +139,8 @@ export default function AgentsPage() {
                 </td>
                 <td className="px-8 py-6">
                   <div className="flex flex-col gap-2">
-                    <span className={cn("px-3 py-1 w-fit rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", agent.is_trusted ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800")}>{agent.is_trusted ? t("common.agents.status.trusted").toUpperCase() : t("common.agents.status.pending").toUpperCase()}</span>
-                    {!agent.is_active && <span className="px-3 py-1 w-fit rounded-full text-[9px] font-bold uppercase tracking-widest border bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700">{t("common.status_inactive").toUpperCase()}</span>}
+                    <StatusBadge variant={agent.is_trusted ? "success" : "warning"}>{agent.is_trusted ? t("common.agents.status.trusted").toUpperCase() : t("common.agents.status.pending").toUpperCase()}</StatusBadge>
+                    {!agent.is_active && <StatusBadge variant="neutral">{t("common.status_inactive").toUpperCase()}</StatusBadge>}
                   </div>
                 </td>
                 <td className="px-8 py-6">

@@ -10,6 +10,8 @@ import {
 } from "@/lib/api";
 import { useState } from "react";
 import { debugProps } from "@/lib/utils";
+import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -77,27 +79,30 @@ export default function LoginPage() {
           <form className="space-y-8" onSubmit={handleLogin}>
             <div className="space-y-6">
               <div className="space-y-3 px-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 opacity-70">{t("auth.email")}</label>
+                <label className={LABEL_BASE}>{t("auth.email")}</label>
                 <div className="relative group">
                   <input id="email-address" data-testid="login-email-input" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm uppercase tracking-tight shadow-inner" placeholder="admin@leeattend.com" />
                 </div>
               </div>
               <div className="space-y-3 px-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 opacity-70">{t("auth.password")}</label>
+                <label className={LABEL_BASE}>{t("auth.password")}</label>
                 <div className="relative group">
                   <input id="password" data-testid="login-password-input" name="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="block w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm tracking-[0.3em] shadow-inner" placeholder="••••••••" />
                 </div>
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting}
+              loading={isSubmitting}
               data-testid="login-submit-btn"
-              className="w-full flex justify-center py-5 px-4 border border-transparent text-xs font-bold rounded-2xl text-white bg-slate-900 hover:bg-primary-700 transition-all disabled:opacity-50 uppercase tracking-[0.2em] shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95"
+              variant="secondary"
+              size="lg"
+              className="w-full"
             >
               {isSubmitting ? t("auth.processing").toUpperCase() : t("auth.login_btn").toUpperCase()}
-            </button>
+            </Button>
 
             <div className="text-center pt-2">
               <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-60">{t("auth.no_account")} </span>

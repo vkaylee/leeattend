@@ -22,6 +22,8 @@ import {
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 
 type TabType = "pending" | "approved" | "rejected";
@@ -75,8 +77,8 @@ export default function AttendanceAdjustmentsPage() {
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("attendance_confirm.subtitle")}</p>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={downloadTemplate} className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"><FileDown size={18} /> {t("attendance_confirm.excel_template").toUpperCase()}</button>
-          <button onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl hover:bg-primary-700 transition-all font-bold text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Upload size={18} /> {t("attendance_confirm.import_excel").toUpperCase()}</button>
+          <Button variant="outline" onClick={downloadTemplate} icon={<FileDown size={18} />}>{t("attendance_confirm.excel_template").toUpperCase()}</Button>
+          <Button onClick={() => setIsImportDialogOpen(true)} icon={<Upload size={18} />}>{t("attendance_confirm.import_excel").toUpperCase()}</Button>
         </div>
       </div>
 
@@ -129,13 +131,9 @@ export default function AttendanceAdjustmentsPage() {
                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed">{req.reason || t("common.no_notes")}</p>
                   </td>
                   <td className="px-8 py-6 text-center">
-                    <span className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", 
-                      req.status === "pending" ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800" : 
-                      req.status === "approved" ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : 
-                      "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800"
-                    )}>
+                    <StatusBadge variant={req.status === "pending" ? "warning" : req.status === "approved" ? "success" : "danger"}>
                       {t(`common.status_${req.status}`).toUpperCase()}
-                    </span>
+                    </StatusBadge>
                   </td>
                   <td className="px-10 py-6 text-right">
                     {req.status === "pending" && (
