@@ -29,7 +29,7 @@ pub struct WorkerContext {
     pub log_tx: mpsc::Sender<(Arc<String>, models::AttendanceData)>,
     pub hybrid_db: HybridDatabase,
     pub semaphore: Arc<Semaphore>,
-    pub success_skip_polls: u32,
+    pub success_cooldown_secs: u64,
     pub device_locks: DeviceLocks,
     pub time_sync: Arc<crate::time_sync::TimeSync>,
     pub connection_max_lifetime_secs: u64,
@@ -108,7 +108,7 @@ impl Orchestrator {
             log_tx: log_tx.clone(),
             hybrid_db: self.hybrid_db.clone(),
             semaphore: semaphore.clone(),
-            success_skip_polls: self.config.success_skip_polls,
+            success_cooldown_secs: self.config.success_cooldown_secs,
             device_locks: device_locks.clone(),
             time_sync: time_sync.clone(),
             connection_max_lifetime_secs: self.config.connection_max_lifetime_secs,
@@ -443,7 +443,7 @@ pub fn spawn_worker(
     let log_tx = ctx.log_tx;
     let hybrid_db = ctx.hybrid_db;
     let sem = ctx.semaphore;
-    let success_skip_polls = ctx.success_skip_polls;
+    let success_cooldown_secs = ctx.success_cooldown_secs;
     let device_locks = ctx.device_locks;
     let connection_max_lifetime = ctx.connection_max_lifetime_secs;
     let zk_legacy_checksum = ctx.zk_legacy_checksum;
@@ -539,8 +539,9 @@ pub fn spawn_worker(
             let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
             const SEEN_LOGS_CAP: usize = 50_000;
 
-            let mut polling_state = AdaptivePollingState::with_skip_polls(success_skip_polls);
+            let mut polling_state = AdaptivePollingState::with_cooldown(success_cooldown_secs);
             let mut poll_count = 0;
+            let mut proactive_cooldown = false;
 
             while !token.is_cancelled() {
                 // Check connection lifetime — force reconnect if exceeded
@@ -582,18 +583,7 @@ pub fn spawn_worker(
                     }
                 }
 
-                // TTL skip: if cooldown is active after a successful fetch, skip this poll cycle
-                if polling_state.should_skip() {
-                    let capped_interval = std::cmp::min(polling_state.interval(), SESSION_SAFE_INTERVAL_SECS);
-                    debug!("[{}] Skipping poll (cooldown: {} remaining) [interval: {}s]",
-                          config.name, polling_state.skip_remaining, capped_interval);
-                    drop(_permit);
-                    tokio::select! {
-                        _ = token.cancelled() => { break; }
-                        _ = sleep(Duration::from_secs(capped_interval)) => {}
-                    }
-                    continue;
-                }
+
 
                 // Heartbeat: lightweight ping before heavy fetch to detect silent UDP loss
                 if !worker_impl.ping().await {
@@ -662,6 +652,26 @@ pub fn spawn_worker(
                             debug!("[{}] No new data for {} polls, increasing interval: {}s",
                                   config.name, polling_state.consecutive_no_new_data, new_interval);
                         }
+
+                        // Proactive disconnect: if cooldown interval exceeds session-safe
+                        // limit, disconnect device to free connection slot, sleep, then
+                        // reconnect via outer loop.
+                        if polling_state.needs_disconnect() {
+                            info!("[{}] Cooldown {}s, disconnecting to free device slot...",
+                                  config.name, new_interval);
+                            drop(_device_guard);
+                            drop(_permit);
+                            worker_impl.disconnect().await;
+                            tokio::select! {
+                                _ = token.cancelled() => { return; }
+                                _ = sleep(Duration::from_secs(new_interval)) => {}
+                            }
+                            // Reset interval to base for fresh reconnect
+                            polling_state.current_interval_secs = crate::adaptive_polling::BASE_POLL_INTERVAL_SECS;
+                            polling_state.consecutive_no_new_data = 0;
+                            proactive_cooldown = true;
+                            break; // → outer loop reconnects cleanly
+                        }
                     }
                     Err(e) => {
                         error!("[{}] Polling error: {}, disconnecting...", config.name, e);
@@ -669,6 +679,7 @@ pub fn spawn_worker(
                     }
                 }
 
+                drop(_device_guard);
                 drop(_permit);
                 let capped_interval = std::cmp::min(polling_state.interval(), SESSION_SAFE_INTERVAL_SECS);
                 // Cancel-aware sleep: respond to shutdown immediately instead of
@@ -679,10 +690,12 @@ pub fn spawn_worker(
                 }
             }
 
-            // Graceful disconnect — always, whether error or cancellation
-            worker_impl.disconnect().await;
+            // Graceful disconnect — skip if proactive cooldown already disconnected
+            if !proactive_cooldown {
+                worker_impl.disconnect().await;
+            }
 
-            if !token.is_cancelled() {
+            if !token.is_cancelled() && !proactive_cooldown {
                 warn!("[{}] Sidecar connection lost, restarting...", config.name);
                 retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
 
@@ -694,6 +707,8 @@ pub fn spawn_worker(
                     warn!("⚠️ [{}] High reconnect frequency: {} reconnects in the last hour — possible firmware or network issue",
                           config.name, reconnect_timestamps.len());
                 }
+            } else if proactive_cooldown {
+                info!("[{}] Cooldown complete, reconnecting...", config.name);
             }
         }
 

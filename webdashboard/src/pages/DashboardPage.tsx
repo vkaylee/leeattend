@@ -85,7 +85,7 @@ export default function DashboardPage() {
   }, [hrStats, t]);
   const hasDonutData = donutData.some((d) => d.value > 0);
 
-  // ── Chart-type widgets (rendered via WidgetRenderer) ─────────────
+  // Chart-type widgets (rendered via WidgetRenderer)
   const chartWidgetIds: WidgetId[] = [
     "attendance_trend",
     "department_chart",
@@ -101,6 +101,7 @@ export default function DashboardPage() {
   // Memoize visible charts and paired charts
   const visibleCharts = useMemo(() =>
     widgetOrder.filter((id) => chartWidgetIds.includes(id) && visibleWidgets[id]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [widgetOrder, visibleWidgets]
   );
 

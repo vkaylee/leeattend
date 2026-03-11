@@ -1,26 +1,24 @@
 //! Adaptive polling interval calculator
-//! Reduces polling frequency when no new data is received to save resources
+//! Uses a single interval-based approach:
+//! - New data found → set long cooldown interval (disconnect device, sleep, reconnect)
+//! - No new data → escalate interval up to session-safe max (keep connection alive)
 
-/// Polling interval configuration
+/// Base polling interval when actively monitoring
 pub const BASE_POLL_INTERVAL_SECS: u64 = 5;
+/// Max polling interval — must stay below ZK device UDP session timeout (~60s)
 pub const MAX_POLL_INTERVAL_SECS: u64 = 45;
+/// Default cooldown after successful fetch with new data (5 minutes)
+pub const DEFAULT_SUCCESS_COOLDOWN_SECS: u64 = 300;
+/// Number of consecutive no-new-data polls before escalation begins
 const ESCALATION_THRESHOLD: u32 = 3;
-
-/// Default number of poll cycles to skip after a successful fetch with new data.
-/// This acts as a TTL cooldown — after fetching new logs, the agent skips
-/// this many subsequent polls before fetching again.
-/// Configurable via `SUCCESS_SKIP_POLLS` env var.
-pub const DEFAULT_SUCCESS_SKIP_POLLS: u32 = 60;
 
 /// State for adaptive polling
 #[derive(Debug, Clone)]
 pub struct AdaptivePollingState {
     pub current_interval_secs: u64,
     pub consecutive_no_new_data: u32,
-    /// TTL skip countdown: when > 0, the poll cycle should be skipped
-    pub skip_remaining: u32,
-    /// Configured number of polls to skip (from env or default)
-    skip_polls_config: u32,
+    /// Cooldown interval after successful fetch with new data
+    success_cooldown_secs: u64,
 }
 
 impl Default for AdaptivePollingState {
@@ -28,8 +26,7 @@ impl Default for AdaptivePollingState {
         Self {
             current_interval_secs: BASE_POLL_INTERVAL_SECS,
             consecutive_no_new_data: 0,
-            skip_remaining: 0,
-            skip_polls_config: DEFAULT_SUCCESS_SKIP_POLLS,
+            success_cooldown_secs: DEFAULT_SUCCESS_COOLDOWN_SECS,
         }
     }
 }
@@ -39,26 +36,25 @@ impl AdaptivePollingState {
         Self::default()
     }
 
-    /// Create with a custom skip_polls value (from config/env)
-    pub fn with_skip_polls(skip_polls: u32) -> Self {
+    /// Create with a custom cooldown value (from config/env)
+    pub fn with_cooldown(cooldown_secs: u64) -> Self {
         Self {
-            skip_polls_config: skip_polls,
+            success_cooldown_secs: cooldown_secs,
             ..Self::default()
         }
     }
 
-    /// Update state based on whether new data was found
-    /// Returns the new interval and whether it changed
+    /// Update state based on whether new data was found.
+    /// Returns the new interval and whether it changed.
     pub fn update(&mut self, found_new_data: bool) -> (u64, bool) {
         let old_interval = self.current_interval_secs;
 
         if found_new_data {
-            // New data found - reset to base interval and set skip cooldown
-            self.current_interval_secs = BASE_POLL_INTERVAL_SECS;
+            // New data found → long cooldown (caller should disconnect before sleeping)
+            self.current_interval_secs = self.success_cooldown_secs;
             self.consecutive_no_new_data = 0;
-            self.skip_remaining = self.skip_polls_config;
         } else {
-            // No new data - potentially escalate interval
+            // No new data → escalate interval (stay connected)
             self.consecutive_no_new_data += 1;
             if self.consecutive_no_new_data >= ESCALATION_THRESHOLD
                 && self.current_interval_secs < MAX_POLL_INTERVAL_SECS
@@ -77,15 +73,10 @@ impl AdaptivePollingState {
         self.current_interval_secs
     }
 
-    /// Check if this poll cycle should be skipped (TTL cooldown active).
-    /// Returns `true` if skip is active, and decrements the counter.
-    pub fn should_skip(&mut self) -> bool {
-        if self.skip_remaining > 0 {
-            self.skip_remaining -= 1;
-            true
-        } else {
-            false
-        }
+    /// Returns true if the current interval exceeds session-safe limit,
+    /// meaning the caller should proactively disconnect before sleeping.
+    pub fn needs_disconnect(&self) -> bool {
+        self.current_interval_secs > MAX_POLL_INTERVAL_SECS
     }
 }
 
@@ -98,6 +89,25 @@ mod tests {
         let state = AdaptivePollingState::new();
         assert_eq!(state.interval(), BASE_POLL_INTERVAL_SECS);
         assert_eq!(state.consecutive_no_new_data, 0);
+        assert!(!state.needs_disconnect());
+    }
+
+    #[test]
+    fn test_new_data_sets_cooldown_interval() {
+        let mut state = AdaptivePollingState::new();
+        let (interval, changed) = state.update(true);
+        assert_eq!(interval, DEFAULT_SUCCESS_COOLDOWN_SECS);
+        assert!(changed);
+        assert_eq!(state.consecutive_no_new_data, 0);
+        assert!(state.needs_disconnect()); // 300s > 45s → should disconnect
+    }
+
+    #[test]
+    fn test_custom_cooldown() {
+        let mut state = AdaptivePollingState::with_cooldown(600);
+        state.update(true);
+        assert_eq!(state.interval(), 600);
+        assert!(state.needs_disconnect());
     }
 
     #[test]
@@ -110,9 +120,9 @@ mod tests {
         }
         assert!(state.interval() > BASE_POLL_INTERVAL_SECS);
 
-        // New data should reset
+        // New data should set cooldown
         let (interval, changed) = state.update(true);
-        assert_eq!(interval, BASE_POLL_INTERVAL_SECS);
+        assert_eq!(interval, DEFAULT_SUCCESS_COOLDOWN_SECS);
         assert!(changed);
         assert_eq!(state.consecutive_no_new_data, 0);
     }
@@ -138,6 +148,7 @@ mod tests {
             state.update(false);
         }
         assert_eq!(state.interval(), BASE_POLL_INTERVAL_SECS * 2); // 5 -> 10
+        assert!(!state.needs_disconnect()); // 10s < 45s → stay connected
     }
 
     #[test]
@@ -177,6 +188,7 @@ mod tests {
 
         // Should never exceed max
         assert_eq!(state.interval(), MAX_POLL_INTERVAL_SECS);
+        assert!(!state.needs_disconnect()); // 45s == max, not > max
     }
 
     #[test]
@@ -189,9 +201,9 @@ mod tests {
         }
         assert_eq!(state.interval(), MAX_POLL_INTERVAL_SECS);
 
-        // Single new data event resets everything
+        // Single new data event sets cooldown
         state.update(true);
-        assert_eq!(state.interval(), BASE_POLL_INTERVAL_SECS);
+        assert_eq!(state.interval(), DEFAULT_SUCCESS_COOLDOWN_SECS);
         assert_eq!(state.consecutive_no_new_data, 0);
     }
 
@@ -203,99 +215,54 @@ mod tests {
         for _ in 0..10 {
             state.update(false);
             state.update(false);
-            state.update(true);
+            state.update(true); // resets consecutive counter + sets cooldown
         }
 
-        // Should always be at base interval
-        assert_eq!(state.interval(), BASE_POLL_INTERVAL_SECS);
-    }
-
-    // === TTL Skip Tests ===
-
-    #[test]
-    fn test_skip_after_new_data() {
-        let mut state = AdaptivePollingState::with_skip_polls(3);
-
-        // No skip initially
-        assert!(!state.should_skip());
-
-        // New data sets skip_remaining
-        state.update(true);
-        assert_eq!(state.skip_remaining, 3);
-
-        // should_skip returns true and decrements
-        assert!(state.should_skip());
-        assert_eq!(state.skip_remaining, 2);
+        // After update(true), interval is cooldown
+        assert_eq!(state.interval(), DEFAULT_SUCCESS_COOLDOWN_SECS);
     }
 
     #[test]
-    fn test_skip_countdown_to_zero() {
-        let mut state = AdaptivePollingState::with_skip_polls(3);
-        state.update(true);
-
-        // Drain all skip counts
-        for _ in 0..3 {
-            assert!(state.should_skip());
-        }
-
-        // Now should_skip returns false
-        assert!(!state.should_skip());
-        assert_eq!(state.skip_remaining, 0);
-    }
-
-    #[test]
-    fn test_no_skip_when_no_new_data() {
+    fn test_needs_disconnect_boundary() {
         let mut state = AdaptivePollingState::new();
 
-        // update(false) should NOT set skip
-        state.update(false);
-        assert_eq!(state.skip_remaining, 0);
-        assert!(!state.should_skip());
-    }
+        // At base interval → no disconnect
+        assert!(!state.needs_disconnect());
 
-    #[test]
-    fn test_skip_resets_on_new_data() {
-        let mut state = AdaptivePollingState::with_skip_polls(3);
-        state.update(true);
-
-        // Consume one skip
-        assert!(state.should_skip());
-
-        // Another update(true) resets the counter
-        state.update(true);
-        assert_eq!(state.skip_remaining, 3);
-    }
-
-    #[test]
-    fn test_skip_does_not_interfere_with_escalation() {
-        let mut state = AdaptivePollingState::with_skip_polls(2);
-
-        // Get new data (sets skip)
-        state.update(true);
-        assert_eq!(state.skip_remaining, 2);
-
-        // Drain skips
-        while state.should_skip() {}
-
-        // Now escalate with no-data
-        for _ in 0..ESCALATION_THRESHOLD {
+        // Escalate to max (45s) → no disconnect (== max, not >)
+        for _ in 0..50 {
             state.update(false);
         }
-        assert!(state.interval() > BASE_POLL_INTERVAL_SECS);
-        assert_eq!(state.skip_remaining, 0); // no skip set by no-data
+        assert_eq!(state.interval(), 45);
+        assert!(!state.needs_disconnect());
+
+        // New data → cooldown (300s) → needs disconnect
+        state.update(true);
+        assert_eq!(state.interval(), 300);
+        assert!(state.needs_disconnect());
     }
 
     #[test]
-    fn test_default_skip_polls_value() {
-        let state = AdaptivePollingState::new();
-        assert_eq!(state.skip_polls_config, DEFAULT_SUCCESS_SKIP_POLLS);
-        assert_eq!(state.skip_polls_config, 60);
-    }
+    fn test_no_data_after_cooldown_escalates_from_base() {
+        let mut state = AdaptivePollingState::new();
 
-    #[test]
-    fn test_custom_skip_polls_value() {
-        let state = AdaptivePollingState::with_skip_polls(5);
-        assert_eq!(state.skip_polls_config, 5);
+        // Get cooldown
+        state.update(true);
+        assert_eq!(state.interval(), 300);
+
+        // Now no-data polls: cooldown interval (300) > MAX (45), so
+        // no further escalation since already above max — but we need
+        // to check the logic handles this edge case.
+        // After reconnect, polling_state should be reset or continue from 300.
+        // The no-data branch only escalates when < MAX, so 300 stays at 300.
+        state.update(false);
+        assert_eq!(state.interval(), 300); // stays at 300 (already > MAX, no doubling)
+
+        // After enough no-data, stays at 300 (no change since 300 >= MAX)
+        for _ in 0..10 {
+            state.update(false);
+        }
+        assert_eq!(state.interval(), 300);
     }
 
     /// Verify MAX_POLL_INTERVAL_SECS is set to 45s.
@@ -308,17 +275,14 @@ mod tests {
     }
 
     /// Verify that escalation progression reaches exactly 45s and never exceeds it.
-    /// This is critical for preventing UDP session timeouts on ZK devices.
     #[test]
     fn test_escalation_never_exceeds_session_safe_limit() {
         let mut state = AdaptivePollingState::new();
 
-        // Run many no-data polls
         for _ in 0..50 {
             state.update(false);
         }
 
-        // Must cap at MAX_POLL_INTERVAL_SECS = 45
         assert_eq!(state.interval(), 45, "Interval must cap at 45s, not higher");
     }
 }

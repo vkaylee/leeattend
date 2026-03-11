@@ -15,8 +15,9 @@ pub struct Config {
     pub signature_ttl_days: i64,
     pub signature_cleanup_hours: u64,
     pub inflight_timeout_secs: u64,
-    /// Number of poll cycles to skip after successful log fetch (TTL cooldown)
-    pub success_skip_polls: u32,
+    /// Cooldown interval (seconds) after successful fetch with new data.
+    /// Device is disconnected during cooldown to free connection slots.
+    pub success_cooldown_secs: u64,
     /// Max seconds a device connection stays open before forced reconnect
     pub connection_max_lifetime_secs: u64,
     /// If set, skip ZK checksum auto-detect handshake (saves 5-10s per connect).
@@ -78,10 +79,10 @@ impl Config {
             .parse()
             .unwrap_or(100_000);
 
-        let success_skip_polls = env::var("SUCCESS_SKIP_POLLS")
+        let success_cooldown_secs = env::var("SUCCESS_COOLDOWN_SECS")
             .unwrap_or_default()
             .parse()
-            .unwrap_or(60);
+            .unwrap_or(300);
 
         let connection_max_lifetime_secs = env::var("CONNECTION_MAX_LIFETIME_SECS")
             .unwrap_or_default()
@@ -113,7 +114,7 @@ impl Config {
             signature_ttl_days,
             signature_cleanup_hours,
             inflight_timeout_secs,
-            success_skip_polls,
+            success_cooldown_secs,
             connection_max_lifetime_secs,
             zk_legacy_checksum,
         }
@@ -138,7 +139,7 @@ impl Config {
         info!("Signature TTL      : {} days", self.signature_ttl_days);
         info!("Signature Cleanup  : every {}h", self.signature_cleanup_hours);
         info!("Inflight Timeout   : {}s", self.inflight_timeout_secs);
-        info!("Success Skip Polls : {} cycles", self.success_skip_polls);
+        info!("Success Cooldown   : {}s ({} min)", self.success_cooldown_secs, self.success_cooldown_secs / 60);
         info!("Connection Lifetime: {}s ({} min)", self.connection_max_lifetime_secs, self.connection_max_lifetime_secs / 60);
         info!("ZK Legacy Checksum : {}", match self.zk_legacy_checksum {
             Some(true) => "forced legacy",
@@ -178,7 +179,7 @@ mod tests {
             signature_ttl_days: 90,
             signature_cleanup_hours: 24,
             inflight_timeout_secs: 300,
-            success_skip_polls: 60,
+            success_cooldown_secs: 300,
             connection_max_lifetime_secs: 1800,
             zk_legacy_checksum: None,
         };
@@ -193,7 +194,7 @@ mod tests {
         assert_eq!(config.signature_ttl_days, 90);
         assert_eq!(config.signature_cleanup_hours, 24);
         assert_eq!(config.inflight_timeout_secs, 300);
-        assert_eq!(config.success_skip_polls, 60);
+        assert_eq!(config.success_cooldown_secs, 300);
         assert_eq!(config.connection_max_lifetime_secs, 1800);
         assert_eq!(config.zk_legacy_checksum, None);
     }
@@ -214,7 +215,7 @@ mod tests {
             std::env::set_var("SIGNATURE_TTL_DAYS", "30");
             std::env::set_var("SIGNATURE_CLEANUP_HOURS", "12");
             std::env::set_var("INFLIGHT_TIMEOUT_SECS", "600");
-            std::env::set_var("SUCCESS_SKIP_POLLS", "5");
+            std::env::set_var("SUCCESS_COOLDOWN_SECS", "120");
             std::env::set_var("CONNECTION_MAX_LIFETIME_SECS", "900");
             std::env::set_var("ZK_LEGACY_CHECKSUM", "true");
         }
@@ -231,7 +232,7 @@ mod tests {
         assert_eq!(config.signature_ttl_days, 30);
         assert_eq!(config.signature_cleanup_hours, 12);
         assert_eq!(config.inflight_timeout_secs, 600);
-        assert_eq!(config.success_skip_polls, 5);
+        assert_eq!(config.success_cooldown_secs, 120);
         assert_eq!(config.connection_max_lifetime_secs, 900);
         assert_eq!(config.zk_legacy_checksum, Some(true));
 
@@ -247,7 +248,7 @@ mod tests {
             std::env::remove_var("SIGNATURE_TTL_DAYS");
             std::env::remove_var("SIGNATURE_CLEANUP_HOURS");
             std::env::remove_var("INFLIGHT_TIMEOUT_SECS");
-            std::env::remove_var("SUCCESS_SKIP_POLLS");
+            std::env::remove_var("SUCCESS_COOLDOWN_SECS");
             std::env::remove_var("CONNECTION_MAX_LIFETIME_SECS");
             std::env::remove_var("ZK_LEGACY_CHECKSUM");
         }
@@ -276,7 +277,7 @@ mod tests {
             std::env::set_var("SIGNATURE_TTL_DAYS", "abc");
             std::env::set_var("SIGNATURE_CLEANUP_HOURS", "");
             std::env::set_var("INFLIGHT_TIMEOUT_SECS", "-1");
-            std::env::set_var("SUCCESS_SKIP_POLLS", "abc");
+            std::env::set_var("SUCCESS_COOLDOWN_SECS", "abc");
         }
 
         let config = Config::load();
@@ -288,7 +289,7 @@ mod tests {
         assert_eq!(config.signature_ttl_days, 90);
         assert_eq!(config.signature_cleanup_hours, 24);
         assert_eq!(config.inflight_timeout_secs, 300);
-        assert_eq!(config.success_skip_polls, 60);
+        assert_eq!(config.success_cooldown_secs, 300);
 
         // Cleanup
         unsafe {
@@ -298,7 +299,7 @@ mod tests {
             std::env::remove_var("SIGNATURE_TTL_DAYS");
             std::env::remove_var("SIGNATURE_CLEANUP_HOURS");
             std::env::remove_var("INFLIGHT_TIMEOUT_SECS");
-            std::env::remove_var("SUCCESS_SKIP_POLLS");
+            std::env::remove_var("SUCCESS_COOLDOWN_SECS");
         }
     }
 
@@ -315,7 +316,7 @@ mod tests {
             signature_ttl_days: 90,
             signature_cleanup_hours: 24,
             inflight_timeout_secs: 300,
-            success_skip_polls: 60,
+            success_cooldown_secs: 300,
             connection_max_lifetime_secs: 1800,
             zk_legacy_checksum: None,
         };
