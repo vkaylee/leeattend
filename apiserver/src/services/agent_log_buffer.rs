@@ -386,4 +386,90 @@ mod tests {
         assert_eq!(data["user_id"], "emp001");
         assert_eq!(data["punch"], 0);
     }
+
+    // =====================================================================
+    // Additional edge case tests
+    // =====================================================================
+
+    #[test]
+    fn test_sanitize_json_value_null_and_bool() {
+        let raw = serde_json::json!({
+            "flag": true,
+            "nothing": null,
+            "count": 42
+        });
+        let sanitized = AgentLogEntry::sanitize_json_value(raw);
+        assert_eq!(sanitized["flag"], true);
+        assert!(sanitized["nothing"].is_null());
+        assert_eq!(sanitized["count"], 42);
+    }
+
+    #[test]
+    fn test_sanitize_json_value_deeply_nested() {
+        let raw = serde_json::json!({
+            "level1": {
+                "level2": {
+                    "level3": "deep\u{0000}value"
+                }
+            }
+        });
+        let sanitized = AgentLogEntry::sanitize_json_value(raw);
+        assert_eq!(sanitized["level1"]["level2"]["level3"], "deepvalue");
+    }
+
+    #[test]
+    fn test_sanitize_json_value_empty_string() {
+        let raw = serde_json::json!({"key": ""});
+        let sanitized = AgentLogEntry::sanitize_json_value(raw);
+        assert_eq!(sanitized["key"], "");
+    }
+
+    #[test]
+    fn test_sanitize_string_only_null_bytes() {
+        let entry = AgentLogEntry::new(
+            Uuid::new_v4(),
+            "\0\0\0".to_string(),
+            "\0".to_string(),
+            None,
+            None,
+            "UTC".to_string(),
+            "YYYY-MM-DD".to_string(),
+            "24h".to_string(),
+        );
+        assert_eq!(entry.employee_id_number, "");
+        assert_eq!(entry.punch_time_raw, "");
+    }
+
+    #[tokio::test]
+    async fn test_buffer_capacity_one() {
+        let (buffer, mut receiver) = AgentLogBuffer::new(1);
+
+        let entry = AgentLogEntry {
+            workspace_id: Uuid::new_v4(),
+            employee_id_number: "EMP001".to_string(),
+            punch_time_raw: "2026-01-26 09:00:00".to_string(),
+            device_id: None,
+            raw_data: None,
+            timezone: "UTC".to_string(),
+            date_fmt: "YYYY-MM-DD".to_string(),
+            time_fmt: "24h".to_string(),
+        };
+
+        buffer.send(entry.clone()).await.unwrap();
+        // Buffer is full now (capacity=1)
+
+        let received = receiver.recv().await.unwrap();
+        assert_eq!(received.employee_id_number, "EMP001");
+    }
+
+    #[test]
+    fn test_buffer_is_closed_after_drop() {
+        let (buffer, _receiver) = AgentLogBuffer::new(10);
+        assert!(!buffer.is_closed());
+        // Drop receiver → sender still works technically
+        // But is_closed checks if receiver is gone
+        drop(_receiver);
+        assert!(buffer.is_closed());
+    }
 }
+

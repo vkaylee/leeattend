@@ -220,4 +220,72 @@ mod tests {
         assert!(dt.is_ok());
         assert_eq!(dt.expect("parsing failed").hour(), 8);
     }
+
+    // =====================================================================
+    // Additional parse_datetime edge cases
+    // =====================================================================
+
+    #[test]
+    fn test_parse_datetime_invalid_string() {
+        let dt = AttendanceAdjustmentService::parse_datetime(
+            "not-a-date",
+            "Asia/Ho_Chi_Minh",
+            Some("DD/MM/YYYY"),
+            Some("24h"),
+        );
+        assert!(dt.is_err());
+    }
+
+    #[test]
+    fn test_parse_datetime_empty_string() {
+        let dt = AttendanceAdjustmentService::parse_datetime(
+            "",
+            "Asia/Ho_Chi_Minh",
+            Some("DD/MM/YYYY"),
+            Some("24h"),
+        );
+        assert!(dt.is_err());
+    }
+
+    #[test]
+    fn test_parse_datetime_iso_with_offset() {
+        let dt = AttendanceAdjustmentService::parse_datetime(
+            "2026-06-15T14:30:00+07:00",
+            "UTC",
+            None,
+            None,
+        );
+        assert!(dt.is_ok());
+        let dt = dt.unwrap();
+        // 14:30 +07:00 = 07:30 UTC
+        assert_eq!(dt.hour(), 7);
+        assert_eq!(dt.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_datetime_utc_timezone() {
+        let dt = AttendanceAdjustmentService::parse_datetime(
+            "2026-01-14 08:30",
+            "UTC",
+            None,
+            Some("24h"),
+        );
+        assert!(dt.is_ok());
+        assert_eq!(dt.unwrap().hour(), 8);
+    }
+
+    #[test]
+    fn test_parse_datetime_mm_dd_yyyy_format() {
+        let dt = AttendanceAdjustmentService::parse_datetime(
+            "05/01/2026 14:00",
+            "Asia/Ho_Chi_Minh",
+            Some("MM/DD/YYYY"),
+            Some("24h"),
+        );
+        assert!(dt.is_ok());
+        let dt = dt.unwrap();
+        // May 1st, 14:00 VN = 07:00 UTC
+        assert_eq!(dt.hour(), 7);
+    }
 }
+

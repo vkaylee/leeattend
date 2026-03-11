@@ -554,4 +554,74 @@ mod tests {
         assert_eq!(punch, -1);
         assert_eq!(status, -1);
     }
+
+    // =====================================================================
+    // Additional fingerprint edge cases
+    // =====================================================================
+
+    #[test]
+    fn test_fingerprint_empty_strings() {
+        let fp = AttendanceLogService::calculate_fingerprint(
+            Some(""), "", "", None,
+        );
+        assert_eq!(fp.len(), 64);
+        // Should be deterministic
+        let fp2 = AttendanceLogService::calculate_fingerprint(
+            Some(""), "", "", None,
+        );
+        assert_eq!(fp, fp2);
+    }
+
+    #[test]
+    fn test_fingerprint_raw_data_with_only_status() {
+        let raw = serde_json::json!({"status": 5});
+        let fp = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw),
+        );
+        assert_eq!(fp.len(), 64);
+    }
+
+    #[test]
+    fn test_fingerprint_raw_data_with_negative_values() {
+        let raw = serde_json::json!({"punch": -1, "status": -1});
+        let fp = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw),
+        );
+        assert_eq!(fp.len(), 64);
+    }
+
+    #[test]
+    fn test_fingerprint_unicode_user_id() {
+        let fp = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "員工001", "2026-01-01 08:00:00", None,
+        );
+        assert_eq!(fp.len(), 64);
+    }
+
+    #[test]
+    fn test_fingerprint_different_raw_status_changes_hash() {
+        let raw1 = serde_json::json!({"punch": 1, "status": 0});
+        let raw2 = serde_json::json!({"punch": 1, "status": 1});
+        let fp1 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw1),
+        );
+        let fp2 = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw2),
+        );
+        assert_ne!(fp1, fp2);
+    }
+
+    #[test]
+    fn test_fingerprint_none_vs_empty_raw_data() {
+        let raw_empty = serde_json::json!({});
+        let fp_none = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+        );
+        let fp_empty = AttendanceLogService::calculate_fingerprint(
+            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw_empty),
+        );
+        // None and {} both contribute empty string to the hash, so fingerprints are equal
+        assert_eq!(fp_none, fp_empty);
+    }
 }
+

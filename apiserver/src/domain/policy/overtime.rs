@@ -447,4 +447,97 @@ mod tests {
         );
         assert_eq!(pay, Decimal::ZERO);
     }
+
+    // =====================================================================
+    // Additional OT engine edge cases
+    // =====================================================================
+
+    #[test]
+    fn test_empty_ot_intervals_returns_zero() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date");
+        let rules = vec![mock_rule(1, Decimal::new(15, 1), None, None, 127)];
+        let pay = OvertimeEngine::calculate_overtime_pay_from_times(
+            &rules, date, false, &[], Decimal::new(100, 0),
+        );
+        assert_eq!(pay, Decimal::ZERO);
+    }
+
+    #[test]
+    fn test_ot_interval_outside_all_segments() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date");
+        // Rule only covers 17:00-22:00
+        let rules = vec![mock_rule(1, Decimal::new(15, 1), Some("17:00:00"), Some("22:00:00"), 127)];
+        // OT interval is 08:00-09:00 — outside rule coverage
+        let intervals = vec![(
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+        )];
+        let pay = OvertimeEngine::calculate_overtime_pay_from_times(
+            &rules, date, false, &intervals, Decimal::new(100, 0),
+        );
+        assert_eq!(pay, Decimal::ZERO);
+    }
+
+    #[test]
+    fn test_split_interval_start_equals_end() {
+        use chrono::TimeZone;
+        use chrono_tz::UTC;
+        let start = UTC.with_ymd_and_hms(2026, 1, 26, 10, 0, 0).single().unwrap();
+        let days = OvertimeEngine::split_interval_by_day(start, start, &UTC);
+        assert!(days.is_empty(), "start == end should yield empty result");
+    }
+
+    #[test]
+    fn test_split_interval_start_after_end() {
+        use chrono::TimeZone;
+        use chrono_tz::UTC;
+        let start = UTC.with_ymd_and_hms(2026, 1, 27, 10, 0, 0).single().unwrap();
+        let end = UTC.with_ymd_and_hms(2026, 1, 26, 10, 0, 0).single().unwrap();
+        let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
+        assert!(days.is_empty(), "start > end should yield empty result");
+    }
+
+    #[test]
+    fn test_split_interval_same_day() {
+        use chrono::TimeZone;
+        use chrono_tz::UTC;
+        let start = UTC.with_ymd_and_hms(2026, 1, 26, 10, 0, 0).single().unwrap();
+        let end = UTC.with_ymd_and_hms(2026, 1, 26, 15, 0, 0).single().unwrap();
+        let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
+        assert_eq!(days.len(), 1);
+        assert_eq!(days[0].1.len(), 1);
+        assert_eq!(days[0].1[0].0, NaiveTime::from_hms_opt(10, 0, 0).unwrap());
+        assert_eq!(days[0].1[0].1, NaiveTime::from_hms_opt(15, 0, 0).unwrap());
+    }
+
+    #[test]
+    fn test_split_interval_three_days() {
+        use chrono::TimeZone;
+        use chrono_tz::UTC;
+        let start = UTC.with_ymd_and_hms(2026, 1, 25, 20, 0, 0).single().unwrap();
+        let end = UTC.with_ymd_and_hms(2026, 1, 27, 4, 0, 0).single().unwrap();
+        let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
+        assert_eq!(days.len(), 3);
+        // Day 1: Jan 25, 20:00 → 23:59:59
+        assert_eq!(days[0].0, NaiveDate::from_ymd_opt(2026, 1, 25).unwrap());
+        // Day 2: Jan 26, 00:00 → 23:59:59
+        assert_eq!(days[1].0, NaiveDate::from_ymd_opt(2026, 1, 26).unwrap());
+        // Day 3: Jan 27, 00:00 → 04:00
+        assert_eq!(days[2].0, NaiveDate::from_ymd_opt(2026, 1, 27).unwrap());
+    }
+
+    #[test]
+    fn test_segment_merging() {
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date");
+        // Two rules with same multiplier covering adjacent times should merge
+        let rules = vec![
+            mock_rule(1, Decimal::new(15, 1), Some("06:00:00"), Some("12:00:00"), 127),
+            mock_rule(1, Decimal::new(15, 1), Some("12:00:00"), Some("18:00:00"), 127),
+        ];
+        let segments = OvertimeEngine::calculate_segments(&rules, date, false);
+        // Should merge into one segment since multiplier is the same
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].multiplier, Decimal::new(15, 1));
+    }
 }
+

@@ -386,4 +386,135 @@ mod tests {
         };
         assert_eq!(result.amount, Decimal::from(500));
     }
+
+    // =====================================================================
+    // calculate_hourly_rate edge cases
+    // =====================================================================
+
+    #[test]
+    fn test_hourly_rate_fractional() {
+        // 10000 / 22 days / 8 hours = 56.818...
+        let rate = FinancialCalculator::calculate_hourly_rate(
+            Decimal::from(10000), Decimal::from(22), Decimal::from(8),
+        );
+        // Just verify it's > 0 and reasonable
+        assert!(rate > Decimal::ZERO);
+        assert!(rate < Decimal::from(100));
+    }
+
+    #[test]
+    fn test_hourly_rate_both_zero() {
+        let rate = FinancialCalculator::calculate_hourly_rate(
+            Decimal::ZERO, Decimal::ZERO, Decimal::ZERO,
+        );
+        assert_eq!(rate, Decimal::ZERO);
+    }
+
+    // =====================================================================
+    // apply_ot_cap edge cases
+    // =====================================================================
+
+    #[test]
+    fn test_apply_ot_cap_exact_boundary() {
+        // 4 units at 30min = 120min = 2h; cap at exactly 2h → no reduction
+        let (units, pay) = FinancialCalculator::apply_ot_cap(
+            4, Decimal::from(2000), Decimal::from(2), 30,
+        );
+        assert_eq!(units, 4);
+        assert_eq!(pay, Decimal::from(2000));
+    }
+
+    #[test]
+    fn test_apply_ot_cap_one_over() {
+        // 5 units at 30min = 150min = 2.5h; cap at 2h = 120min = 4 units
+        let (units, pay) = FinancialCalculator::apply_ot_cap(
+            5, Decimal::from(5000), Decimal::from(2), 30,
+        );
+        assert_eq!(units, 4);
+        // pay proportional: 5000 * 4/5 = 4000
+        assert_eq!(pay, Decimal::from(4000));
+    }
+
+    #[test]
+    fn test_apply_ot_cap_15min_units() {
+        // 20 units at 15min = 300min = 5h; cap at 3h = 180min = 12 units
+        let (units, pay) = FinancialCalculator::apply_ot_cap(
+            20, Decimal::from(10000), Decimal::from(3), 15,
+        );
+        assert_eq!(units, 12);
+        // pay: 10000 * 12/20 = 6000
+        assert_eq!(pay, Decimal::from(6000));
+    }
+
+    // =====================================================================
+    // assemble_payslip edge cases
+    // =====================================================================
+
+    #[test]
+    fn test_assemble_payslip_deductions_exceed_income() {
+        let emp = Uuid::new_v4();
+        let start = NaiveDate::from_ymd_opt(2026, 2, 1).expect("valid date");
+        let end = NaiveDate::from_ymd_opt(2026, 2, 28).expect("valid date");
+
+        let slip = FinancialCalculator::assemble_payslip(
+            emp, start, end,
+            Decimal::from(1000),   // base
+            Decimal::ZERO,         // OT
+            Decimal::ZERO,         // holiday premium
+            Decimal::ZERO,         // incentive
+            Decimal::from(3000),   // deductions > income
+            10, 0,
+        );
+
+        // net = 1000 + 0 + 0 + 0 - 3000 = -2000
+        assert_eq!(slip.net_pay_amount, Decimal::from(-2000));
+    }
+
+    #[test]
+    fn test_assemble_payslip_all_components() {
+        let emp = Uuid::new_v4();
+        let start = NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date");
+        let end = NaiveDate::from_ymd_opt(2026, 3, 31).expect("valid date");
+
+        let slip = FinancialCalculator::assemble_payslip(
+            emp, start, end,
+            Decimal::from(20000),  // base
+            Decimal::from(5000),   // OT
+            Decimal::from(2000),   // holiday
+            Decimal::from(3000),   // incentive
+            Decimal::from(1000),   // deductions
+            160, 40,
+        );
+
+        // net = 20000 + 5000 + 3000 + 2000 - 1000 = 29000
+        assert_eq!(slip.net_pay_amount, Decimal::from(29000));
+        assert_eq!(slip.standard_units, 160);
+        assert_eq!(slip.overtime_units, 40);
+        assert_eq!(slip.period_start, start);
+        assert_eq!(slip.period_end, end);
+    }
+
+    // =====================================================================
+    // calculate_daily_rate edge cases
+    // =====================================================================
+
+    #[test]
+    fn test_daily_rate_fractional_result() {
+        // 10000 / 22 = 454.545...
+        let rate = FinancialCalculator::calculate_daily_rate(
+            Decimal::from(10000), Decimal::from(22),
+        );
+        assert!(rate > Decimal::from(454));
+        assert!(rate < Decimal::from(455));
+    }
+
+    #[test]
+    fn test_daily_rate_large_values() {
+        // Very large salary
+        let rate = FinancialCalculator::calculate_daily_rate(
+            Decimal::from(100_000_000), Decimal::from(26),
+        );
+        assert!(rate > Decimal::ZERO);
+    }
 }
+

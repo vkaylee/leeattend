@@ -942,5 +942,124 @@ mod tests {
         );
         assert!(dates.is_empty());
     }
+
+    // =====================================================================
+    // Additional edge case tests
+    // =====================================================================
+
+    #[test]
+    fn test_carry_over_negative_remaining() {
+        assert_eq!(
+            LeaveAccrualService::calculate_carry_over_amount(-5.0, 10),
+            0.0
+        );
+    }
+
+    #[test]
+    fn test_carry_over_zero_limit() {
+        assert_eq!(
+            LeaveAccrualService::calculate_carry_over_amount(10.0, 0),
+            0.0
+        );
+    }
+
+    #[test]
+    fn test_carry_over_exact_limit() {
+        assert_eq!(
+            LeaveAccrualService::calculate_carry_over_amount(5.0, 5),
+            5.0
+        );
+    }
+
+    #[test]
+    fn test_seniority_empty_periods() {
+        let months = LeaveAccrualService::calculate_total_months_seniority(
+            &[],
+            nd(2026, 1, 1),
+        );
+        assert_eq!(months, 0);
+    }
+
+    #[test]
+    fn test_seniority_same_day_hire_and_as_of() {
+        // Hired today, as_of today → 1 day / 30 = 0 months
+        let periods = vec![mock_period(nd(2026, 1, 1), None)];
+        let months = LeaveAccrualService::calculate_total_months_seniority(
+            &periods,
+            nd(2026, 1, 1),
+        );
+        assert_eq!(months, 0); // 1 day / 30 = 0
+    }
+
+    #[test]
+    fn test_accrual_amount_no_threshold() {
+        let config = LeavePolicyConfig {
+            frequency: AccrualFrequency::Monthly,
+            accrual_amount: 1.5,
+            accrual_timing: "start_of_period".to_string(),
+            seniority_bonus: vec![],
+            carry_over_limit: None,
+            max_balance: None,
+            reset_month: None,
+            min_work_days_threshold: None,
+        };
+
+        // No threshold → work_days_in_period doesn't matter
+        assert_eq!(
+            LeaveAccrualService::calculate_accrual_amount(&config, 0, 0.0),
+            1.5
+        );
+    }
+
+    #[test]
+    fn test_accrual_amount_highest_seniority_wins() {
+        let config = LeavePolicyConfig {
+            frequency: AccrualFrequency::Monthly,
+            accrual_amount: 1.0,
+            accrual_timing: "start_of_period".to_string(),
+            seniority_bonus: vec![
+                SeniorityBonus { months: 6, bonus_amount: 0.25 },
+                SeniorityBonus { months: 12, bonus_amount: 0.5 },
+                SeniorityBonus { months: 24, bonus_amount: 1.0 },
+            ],
+            carry_over_limit: None,
+            max_balance: None,
+            reset_month: None,
+            min_work_days_threshold: None,
+        };
+
+        // 36 months > all milestones → highest (24 months → 1.0 bonus)
+        assert_eq!(
+            LeaveAccrualService::calculate_accrual_amount(&config, 36, 20.0),
+            2.0 // 1.0 base + 1.0 bonus
+        );
+
+        // 18 months → 12 months milestone (0.5 bonus)
+        assert_eq!(
+            LeaveAccrualService::calculate_accrual_amount(&config, 18, 20.0),
+            1.5
+        );
+
+        // 3 months → no milestone
+        assert_eq!(
+            LeaveAccrualService::calculate_accrual_amount(&config, 3, 20.0),
+            1.0
+        );
+    }
+
+    #[test]
+    fn test_get_accrual_dates_quarterly_end() {
+        let dates = LeaveAccrualService::get_accrual_dates(
+            &AccrualFrequency::Quarterly,
+            "end_of_period",
+            nd(2026, 1, 1),
+            nd(2026, 12, 31),
+        );
+        assert_eq!(dates.len(), 4);
+        assert_eq!(dates[0], nd(2026, 3, 31));
+        assert_eq!(dates[1], nd(2026, 6, 30));
+        assert_eq!(dates[2], nd(2026, 9, 30));
+        assert_eq!(dates[3], nd(2026, 12, 31));
+    }
 }
 

@@ -590,4 +590,127 @@ mod tests {
         );
         assert_eq!(Permission::from_str_permission("invalid"), None);
     }
+
+    // =====================================================================
+    // Additional RBAC tests
+    // =====================================================================
+
+    #[test]
+    fn all_permission_strings_are_parseable() {
+        // Every string returned by all_permission_strings() must roundtrip
+        for perm_str in Permission::all_permission_strings() {
+            assert!(
+                Permission::from_str_permission(perm_str).is_some(),
+                "Permission string '{}' could not be parsed",
+                perm_str
+            );
+        }
+    }
+
+    #[test]
+    fn all_permissions_have_str_roundtrip() {
+        // Every variant must roundtrip: to_str_permission → from_str_permission
+        for perm_str in Permission::all_permission_strings() {
+            let perm = Permission::from_str_permission(perm_str).unwrap();
+            let back = perm.to_str_permission();
+            assert_eq!(back, perm_str, "Roundtrip failed for {perm_str}");
+        }
+    }
+
+    #[test]
+    fn higher_roles_have_more_permissions() {
+        let employee_count = role_permissions(MemberRole::Employee).len();
+        let team_lead_count = role_permissions(MemberRole::TeamLead).len();
+        let hr_count = role_permissions(MemberRole::HrManager).len();
+        let admin_count = role_permissions(MemberRole::Admin).len();
+        let owner_count = role_permissions(MemberRole::Owner).len();
+
+        assert!(team_lead_count > employee_count, "TeamLead should have more perms than Employee");
+        assert!(hr_count > team_lead_count, "HrManager should have more perms than TeamLead");
+        assert!(admin_count > hr_count, "Admin should have more perms than HrManager");
+        assert!(owner_count > admin_count, "Owner should have more perms than Admin");
+    }
+
+    #[test]
+    fn owner_is_superset_of_all_roles() {
+        let owner_perms = role_permissions(MemberRole::Owner);
+        for role in [
+            MemberRole::Admin, MemberRole::HrManager,
+            MemberRole::ShiftManager, MemberRole::TeamLead,
+            MemberRole::Employee, MemberRole::Member,
+        ] {
+            let role_perms = role_permissions(role);
+            assert!(
+                role_perms.is_subset(&owner_perms),
+                "{:?} permissions should be subset of Owner",
+                role
+            );
+        }
+    }
+
+    #[test]
+    fn effective_permissions_combines_multiple_roles() {
+        let roles = vec![MemberRole::HrManager, MemberRole::ShiftManager];
+        let combined = effective_permissions(&roles);
+        let hr_perms = role_permissions(MemberRole::HrManager);
+        let shift_perms = role_permissions(MemberRole::ShiftManager);
+
+        assert!(hr_perms.is_subset(&combined));
+        assert!(shift_perms.is_subset(&combined));
+    }
+
+    #[test]
+    fn has_permission_with_empty_roles() {
+        assert!(!has_permission(&[], Permission::EssProfile));
+        assert!(!has_permission(&[], Permission::WorkspaceDelete));
+    }
+
+    #[test]
+    fn shift_manager_inherits_team_lead() {
+        let sm_perms = role_permissions(MemberRole::ShiftManager);
+        // ShiftManager → TeamLead → Employee
+        assert!(sm_perms.contains(&Permission::OvertimeApprove)); // from TeamLead
+        assert!(sm_perms.contains(&Permission::EssProfile)); // from Employee
+        assert!(sm_perms.contains(&Permission::ShiftsCreate)); // own
+    }
+
+    #[test]
+    fn hr_manager_inherits_team_lead() {
+        let hr_perms = role_permissions(MemberRole::HrManager);
+        assert!(hr_perms.contains(&Permission::LeaveRequestsApprove)); // from TeamLead
+        assert!(hr_perms.contains(&Permission::EssProfile)); // from Employee
+        assert!(hr_perms.contains(&Permission::PayrollCalculate)); // own
+    }
+
+    #[test]
+    fn admin_inherits_both_managers() {
+        let admin_perms = role_permissions(MemberRole::Admin);
+        // From HrManager
+        assert!(admin_perms.contains(&Permission::PayrollCalculate));
+        assert!(admin_perms.contains(&Permission::EmployeesCreate));
+        // From ShiftManager
+        assert!(admin_perms.contains(&Permission::ShiftsCreate));
+        assert!(admin_perms.contains(&Permission::RostersManage));
+        // Own
+        assert!(admin_perms.contains(&Permission::AgentsManage));
+        assert!(admin_perms.contains(&Permission::InfraMonitor));
+    }
+
+    #[test]
+    fn employee_cannot_approve_or_manage() {
+        let perms = role_permissions(MemberRole::Employee);
+        assert!(!perms.contains(&Permission::AttendanceAdjustmentsApprove));
+        assert!(!perms.contains(&Permission::LeaveRequestsApprove));
+        assert!(!perms.contains(&Permission::PayrollCalculate));
+        assert!(!perms.contains(&Permission::AgentsManage));
+        assert!(!perms.contains(&Permission::WorkspaceDelete));
+    }
+
+    #[test]
+    fn from_str_permission_unknown_returns_none() {
+        assert_eq!(Permission::from_str_permission(""), None);
+        assert_eq!(Permission::from_str_permission("workspace:fly"), None);
+        assert_eq!(Permission::from_str_permission("unknown:permission:string"), None);
+    }
 }
+

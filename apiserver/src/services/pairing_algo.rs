@@ -389,4 +389,161 @@ mod tests {
         let meta = sessions[0].metadata.as_ref().unwrap();
         assert_eq!(meta["tier"], "punch_type"); // Punch type wins
     }
+
+    // =====================================================================
+    // Overnight shift windows
+    // =====================================================================
+
+    #[test]
+    fn test_shift_window_overnight_shift() {
+        let strategy = get_strategy();
+        let shift = PairingShiftConfig {
+            start_minutes: 1320, // 22:00
+            end_minutes: 1800,   // 06:00 next day (30h from midnight)
+            break_start_minutes: None,
+            break_end_minutes: None,
+        };
+
+        let logs = vec![
+            make_log(1310, None), // 21:50 — within check-in window
+            make_log(1810, None), // 06:10 next day — within check-out window
+        ];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 1310);
+        assert_eq!(sessions[0].end_minutes, Some(1810));
+
+        let meta = sessions[0].metadata.as_ref().unwrap();
+        assert_eq!(meta["tier"], "shift_window");
+    }
+
+    // =====================================================================
+    // Single log edge cases
+    // =====================================================================
+
+    #[test]
+    fn test_single_log_no_config() {
+        let strategy = get_strategy();
+        let logs = vec![make_log(480, None)];
+
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 480);
+        assert!(sessions[0].end_minutes.is_none());
+        assert_eq!(sessions[0].note.as_deref(), Some("Missing Punch Out"));
+    }
+
+    #[test]
+    fn test_single_log_with_shift_config() {
+        let strategy = get_strategy();
+        let shift = standard_shift();
+        let logs = vec![make_log(480, None)];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 1);
+        // Only one log in check-in window, no check-out → Missing Punch Out
+        assert!(sessions[0].end_minutes.is_none());
+    }
+
+    // =====================================================================
+    // Anchor-first boundary (exactly at 16h gap)
+    // =====================================================================
+
+    #[test]
+    fn test_anchor_first_exactly_at_16h_gap() {
+        let strategy = get_strategy();
+        // First log at 480 (08:00), second at 1440 (24:00) = 960 min gap (=16h)
+        let logs = vec![
+            make_log(480, None),
+            make_log(1440, None), // exactly MAX_SESSION_GAP_MINUTES away
+        ];
+
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 1);
+        // 960 min gap = MAX, should still pair
+        assert_eq!(sessions[0].end_minutes, Some(1440));
+    }
+
+    #[test]
+    fn test_anchor_first_one_minute_over_16h_gap() {
+        let strategy = get_strategy();
+        let logs = vec![
+            make_log(480, None),
+            make_log(1441, None), // 961 min gap > MAX_SESSION_GAP_MINUTES (960)
+        ];
+
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 1);
+        // Over 16h gap → should NOT pair
+        assert!(sessions[0].end_minutes.is_none());
+    }
+
+    // =====================================================================
+    // Multiple logs in check-in window picks earliest
+    // =====================================================================
+
+    #[test]
+    fn test_shift_window_earliest_checkin() {
+        let strategy = get_strategy();
+        let shift = standard_shift();
+        // Multiple logs near shift start — should pick the earliest
+        let logs = vec![
+            make_log(470, None),  // 07:50
+            make_log(485, None),  // 08:05 — also in window
+            make_log(1020, None), // 17:00 — check-out
+        ];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 470); // earliest in window
+        assert_eq!(sessions[0].end_minutes, Some(1020));
+    }
+
+    // =====================================================================
+    // Punch type: checkout before checkin is invalid
+    // =====================================================================
+
+    #[test]
+    fn test_punch_type_checkout_before_checkin() {
+        let strategy = get_strategy();
+        let logs = vec![
+            make_log(480, Some(0)),   // Check-In at 08:00
+            make_log(400, Some(1)),   // Check-Out at 06:40 (before check-in!)
+        ];
+
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 1);
+        // Check-out time < start → should be treated as no valid checkout
+        assert!(sessions[0].end_minutes.is_none());
+    }
+
+    // =====================================================================
+    // Algorithm name
+    // =====================================================================
+
+    #[test]
+    fn test_algorithm_name() {
+        let strategy = get_strategy();
+        assert_eq!(strategy.algorithm_name(), "shift_aware");
+    }
+
+    // =====================================================================
+    // PairedSession serialization
+    // =====================================================================
+
+    #[test]
+    fn test_paired_session_serde_roundtrip() {
+        let session = PairedSession {
+            start_minutes: 480,
+            end_minutes: Some(1020),
+            entry_type: "work".to_string(),
+            note: None,
+            metadata: Some(serde_json::json!({"tier": "test"})),
+        };
+        let json = serde_json::to_string(&session).unwrap();
+        let parsed: PairedSession = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, session);
+    }
 }
+
