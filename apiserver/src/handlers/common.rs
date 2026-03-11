@@ -275,3 +275,117 @@ pub async fn current_department_id(
         .flatten()
         .map(|h| h.department_id)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    fn make_ctx(roles: Vec<MemberRole>, perms: HashSet<Permission>, managed: Option<HashSet<Uuid>>) -> MemberContext {
+        MemberContext {
+            user_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            roles,
+            permissions: perms,
+            managed_department_ids: managed,
+        }
+    }
+
+    #[test]
+    fn test_has_role_present() {
+        let ctx = make_ctx(vec![MemberRole::Admin], HashSet::new(), None);
+        assert!(ctx.has_role(MemberRole::Admin));
+    }
+
+    #[test]
+    fn test_has_role_absent() {
+        let ctx = make_ctx(vec![MemberRole::Member], HashSet::new(), None);
+        assert!(!ctx.has_role(MemberRole::Admin));
+    }
+
+    #[test]
+    fn test_has_permission_present() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::EmployeesRead);
+        let ctx = make_ctx(vec![MemberRole::Member], perms, None);
+        assert!(ctx.has_permission(Permission::EmployeesRead));
+    }
+
+    #[test]
+    fn test_has_permission_absent() {
+        let ctx = make_ctx(vec![MemberRole::Member], HashSet::new(), None);
+        assert!(!ctx.has_permission(Permission::PayrollCalculate));
+    }
+
+    #[test]
+    fn test_require_permission_ok() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::EmployeesRead);
+        let ctx = make_ctx(vec![], perms, None);
+        assert!(ctx.require_permission(Permission::EmployeesRead).is_ok());
+    }
+
+    #[test]
+    fn test_require_permission_err() {
+        let ctx = make_ctx(vec![], HashSet::new(), None);
+        let result = ctx.require_permission(Permission::PayrollCalculate);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_require_scoped_permission_global_scope() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::EmployeesRead);
+        // managed_department_ids = None means global scope
+        let ctx = make_ctx(vec![], perms, None);
+        let dept_id = Uuid::new_v4();
+        assert!(ctx.require_scoped_permission(Permission::EmployeesRead, Some(dept_id)).is_ok());
+    }
+
+    #[test]
+    fn test_require_scoped_permission_in_scope() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::EmployeesRead);
+        let dept_id = Uuid::new_v4();
+        let mut managed = HashSet::new();
+        managed.insert(dept_id);
+        let ctx = make_ctx(vec![], perms, Some(managed));
+        assert!(ctx.require_scoped_permission(Permission::EmployeesRead, Some(dept_id)).is_ok());
+    }
+
+    #[test]
+    fn test_require_scoped_permission_out_of_scope() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::EmployeesRead);
+        let managed = HashSet::from([Uuid::new_v4()]);
+        let ctx = make_ctx(vec![], perms, Some(managed));
+        let other_dept = Uuid::new_v4();
+        assert!(ctx.require_scoped_permission(Permission::EmployeesRead, Some(other_dept)).is_err());
+    }
+
+    #[test]
+    fn test_require_scoped_permission_no_target_dept() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::EmployeesRead);
+        let managed = HashSet::from([Uuid::new_v4()]);
+        let ctx = make_ctx(vec![], perms, Some(managed));
+        // target_department_id = None with scoped permissions → Forbidden
+        assert!(ctx.require_scoped_permission(Permission::EmployeesRead, None).is_err());
+    }
+
+    #[test]
+    fn test_is_admin_or_owner_true() {
+        let ctx_admin = make_ctx(vec![MemberRole::Admin], HashSet::new(), None);
+        assert!(ctx_admin.is_admin_or_owner());
+        let ctx_owner = make_ctx(vec![MemberRole::Owner], HashSet::new(), None);
+        assert!(ctx_owner.is_admin_or_owner());
+    }
+
+    #[test]
+    fn test_is_admin_or_owner_false() {
+        for role in [MemberRole::HrManager, MemberRole::ShiftManager, MemberRole::TeamLead, MemberRole::Member, MemberRole::Employee] {
+            let ctx = make_ctx(vec![role], HashSet::new(), None);
+            assert!(!ctx.is_admin_or_owner(), "Expected false for role {:?}", role);
+        }
+    }
+}

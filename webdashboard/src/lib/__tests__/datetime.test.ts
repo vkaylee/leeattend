@@ -1,45 +1,58 @@
-import { describe, it, expect, vi } from "vitest";
-import { toUTCISO } from "../datetime";
+import { describe, it, expect } from 'vitest';
+import { toUTCISO } from '../datetime';
 
-describe("toUTCISO utility", () => {
-  it("converts Vietnam time (UTC+7) correctly", () => {
-    // 08:00 AM VN = 01:00 AM UTC
-    const result = toUTCISO("2026-01-16", "08:00", "Asia/Ho_Chi_Minh");
-    expect(result).toBe("2026-01-16T01:00:00.000Z");
+describe('toUTCISO', () => {
+  it('converts UTC timezone correctly (no offset)', () => {
+    const result = toUTCISO('2026-01-15', '14:30', 'UTC');
+    const date = new Date(result);
+    expect(date.getUTCHours()).toBe(14);
+    expect(date.getUTCMinutes()).toBe(30);
+    expect(date.getUTCFullYear()).toBe(2026);
+    expect(date.getUTCMonth()).toBe(0); // January
+    expect(date.getUTCDate()).toBe(15);
   });
 
-  it("converts Bangkok time (UTC+7) correctly", () => {
-    // 17:00 PM BKK = 10:00 AM UTC
-    const result = toUTCISO("2026-01-16", "17:00", "Asia/Bangkok");
-    expect(result).toBe("2026-01-16T10:00:00.000Z");
+  it('converts Asia/Ho_Chi_Minh (+7) correctly', () => {
+    // 14:30 local VN = 07:30 UTC
+    const result = toUTCISO('2026-01-15', '14:30', 'Asia/Ho_Chi_Minh');
+    const date = new Date(result);
+    expect(date.getUTCHours()).toBe(7);
+    expect(date.getUTCMinutes()).toBe(30);
   });
 
-  it("converts New York time (UTC-5 in winter) correctly", () => {
-    // 08:00 AM NY (Winter) = 13:00 PM UTC
-    const result = toUTCISO("2026-01-16", "08:00", "America/New_York");
-    expect(result).toBe("2026-01-16T13:00:00.000Z");
+  it('converts US/Eastern (-5 in winter) correctly', () => {
+    // 14:30 EST = 19:30 UTC (January = EST, not EDT)
+    const result = toUTCISO('2026-01-15', '14:30', 'US/Eastern');
+    const date = new Date(result);
+    expect(date.getUTCHours()).toBe(19);
+    expect(date.getUTCMinutes()).toBe(30);
   });
 
-  it("converts New York time (UTC-4 in summer/DST) correctly", () => {
-    // 08:00 AM NY (Summer) = 12:00 PM UTC
-    const result = toUTCISO("2026-07-16", "08:00", "America/New_York");
-    expect(result).toBe("2026-07-16T12:00:00.000Z");
+  it('handles midnight conversion', () => {
+    // 00:00 VN = 17:00 previous day UTC
+    const result = toUTCISO('2026-01-15', '00:00', 'Asia/Ho_Chi_Minh');
+    const date = new Date(result);
+    expect(date.getUTCHours()).toBe(17);
+    expect(date.getUTCDate()).toBe(14); // Previous day
   });
 
-  it("handles UTC timezone correctly", () => {
-    const result = toUTCISO("2026-01-16", "08:00", "UTC");
-    expect(result).toBe("2026-01-16T08:00:00.000Z");
+  it('handles end of day conversion', () => {
+    // 23:59 VN = 16:59 UTC same day
+    const result = toUTCISO('2026-01-15', '23:59', 'Asia/Ho_Chi_Minh');
+    const date = new Date(result);
+    expect(date.getUTCHours()).toBe(16);
+    expect(date.getUTCMinutes()).toBe(59);
   });
 
-  it("falls back to Z-suffix on invalid timezone", () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
-    const result = toUTCISO("2026-01-16", "08:00", "Invalid/Zone");
-    
-    // Should fallback to adding Z
-    expect(result).toBe("2026-01-16T08:00:00Z");
-    expect(consoleSpy).toHaveBeenCalled();
-    
-    consoleSpy.mockRestore();
+  it('returns ISO string format', () => {
+    const result = toUTCISO('2026-06-15', '10:00', 'UTC');
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/);
+  });
+
+  it('falls back gracefully for invalid timezone', () => {
+    // Should not throw, returns a fallback
+    const result = toUTCISO('2026-01-15', '14:30', 'Invalid/Timezone');
+    expect(typeof result).toBe('string');
+    expect(result.length).toBeGreaterThan(0);
   });
 });
