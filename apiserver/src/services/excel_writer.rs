@@ -610,6 +610,7 @@ mod tests {
                 ot_claim_status: Some("approved".to_string()),
                 status: crate::services::attendance_utils::AttendanceStatus::Present,
                 is_holiday: false,
+                is_unscheduled: false,
                 holiday_name: None,
                 generation_metadata: None,
             },
@@ -632,6 +633,7 @@ mod tests {
                 ot_claim_status: None,
                 status: crate::services::attendance_utils::AttendanceStatus::Present,
                 is_holiday: false,
+                is_unscheduled: false,
                 holiday_name: None,
                 generation_metadata: None,
             },
@@ -654,6 +656,7 @@ mod tests {
                 ot_claim_status: Some("pending".to_string()),
                 status: crate::services::attendance_utils::AttendanceStatus::Present,
                 is_holiday: false,
+                is_unscheduled: false,
                 holiday_name: None,
                 generation_metadata: None,
             },
@@ -757,6 +760,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         }];
@@ -882,6 +886,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Late,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         }];
@@ -929,6 +934,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         };
@@ -966,6 +972,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Absent,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         };
@@ -997,6 +1004,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         };

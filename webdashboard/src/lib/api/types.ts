@@ -288,6 +288,7 @@ export interface DailyAttendanceReport {
   ot_claim_status?: string | null;
   status: string;
   is_holiday: boolean;
+  is_unscheduled?: boolean;
   holiday_name?: string | null;
   generation_metadata?: any;
 }

@@ -579,6 +579,73 @@ mod tests {
         assert_eq!(b.standard_minutes, 15);
     }
 
+    /// Proves that the calculator produces non-zero standard hours even without
+    /// shift boundaries.  `report_service::calculate_day_units()` guards against
+    /// this by returning `(0, 0)` when `shift_id` is `None`.
+    ///
+    /// Without that guard, a roster day-off with stale time entries would still
+    /// generate work-unit counts in the attendance report.
+    #[test]
+    fn test_daily_units_no_shift_returns_nonzero_proving_guard_needed() {
+        let rules = mock_rules();
+
+        // Simulate an employee who punched 08:00→17:00 but has NO shift
+        let (std, ot) = AttendanceCalculator::calculate_daily_units(
+            dt(8, 0), dt(17, 0),
+            None, None, // no shift boundaries
+            0, 0,       // no break
+            30, "floor",
+            &rules, None,
+        );
+
+        // Without the report guard, the calculator happily returns 18 standard units
+        // (540 min / 30 = 18) and 0 OT.  The report_service guard prevents this
+        // from reaching final reports when the day is a roster day-off.
+        assert_eq!(std, 18, "calculator gives 18 std units without shift — report guard needed");
+        assert_eq!(ot, 0, "no shift boundaries means no OT");
+    }
+
+    /// Same as above but with break auto-deduction enabled.
+    /// Break deduction only applies when shift boundaries exist, so no-shift
+    /// still produces the full raw duration as standard hours.
+    #[test]
+    fn test_daily_units_no_shift_with_auto_break() {
+        let mut rules = mock_rules();
+        rules.is_break_auto_deduct = true;
+
+        let (std, ot) = AttendanceCalculator::calculate_daily_units(
+            dt(8, 0), dt(17, 0),
+            None, None,
+            60, 0,  // 60-min scheduled break, no actual break logged
+            30, "floor",
+            &rules, None,
+        );
+
+        // Break deduction is only applied inside the shift-boundary branch.
+        // Without shift boundaries → raw 540 min → 18 units (no break deducted).
+        assert_eq!(std, 18);
+        assert_eq!(ot, 0);
+    }
+
+    /// Edge case: very short accidental session (face recognition walk-by).
+    /// Without a shift, even 5 minutes of "work" generates 0 units (floor rounding).
+    #[test]
+    fn test_daily_units_no_shift_accidental_face_recognition() {
+        let rules = mock_rules();
+
+        // Walk past device at 07:55, walk again at 08:00 → 5-min session
+        let (std, ot) = AttendanceCalculator::calculate_daily_units(
+            dt(7, 55), dt(8, 0),
+            None, None,
+            0, 0,
+            30, "floor", // 5 / 30 = 0.17 → floor = 0
+            &rules, None,
+        );
+
+        assert_eq!(std, 0, "5-min accidental session rounds to 0 units");
+        assert_eq!(ot, 0);
+    }
+
     // =====================================================================
     // Overnight shift: end_time < start_time
     // =====================================================================

@@ -25,6 +25,8 @@ pub enum AttendanceStatus {
     Absent,
     /// Employee had no shift assigned (day off / unscheduled).
     Off,
+    /// Employee punched in but had no shift assigned (ad-hoc / emergency work).
+    Unscheduled,
     /// Holiday where employee actually worked.
     HolidayWork,
     /// Paid holiday — employee not expected to work.
@@ -42,6 +44,7 @@ impl fmt::Display for AttendanceStatus {
             Self::Late => write!(f, "late"),
             Self::Absent => write!(f, "absent"),
             Self::Off => write!(f, "off"),
+            Self::Unscheduled => write!(f, "unscheduled"),
             Self::HolidayWork => write!(f, "holiday_work"),
             Self::HolidayPaid => write!(f, "holiday_paid"),
             Self::HolidayUnpaid => write!(f, "holiday_unpaid"),
@@ -58,6 +61,7 @@ impl AttendanceStatus {
             "late" => Some(Self::Late),
             "absent" => Some(Self::Absent),
             "off" => Some(Self::Off),
+            "unscheduled" => Some(Self::Unscheduled),
             "holiday_work" => Some(Self::HolidayWork),
             "holiday_paid" => Some(Self::HolidayPaid),
             "holiday_unpaid" => Some(Self::HolidayUnpaid),
@@ -81,6 +85,7 @@ impl AttendanceStatus {
             Self::Late => "late",
             Self::Absent => "absent",
             Self::Off => "off",
+            Self::Unscheduled => "unscheduled",
             Self::HolidayWork => "holiday_work",
             Self::HolidayPaid => "holiday_paid",
             Self::HolidayUnpaid => "holiday_unpaid",
@@ -127,6 +132,9 @@ pub fn determine_daily_status(input: &DailyStatusInput) -> AttendanceStatus {
     if input.has_punch_in {
         if input.is_holiday {
             return AttendanceStatus::HolidayWork;
+        }
+        if !input.has_shift {
+            return AttendanceStatus::Unscheduled;
         }
         if let (Some(punch_in), Some(sched_start)) = (input.punch_in_time, input.scheduled_start) {
             if punch_in > sched_start + chrono::Duration::minutes(5) {
@@ -297,6 +305,7 @@ mod tests {
             (AttendanceStatus::Late, "late"),
             (AttendanceStatus::Absent, "absent"),
             (AttendanceStatus::Off, "off"),
+            (AttendanceStatus::Unscheduled, "unscheduled"),
             (AttendanceStatus::HolidayWork, "holiday_work"),
             (AttendanceStatus::HolidayPaid, "holiday_paid"),
             (AttendanceStatus::HolidayUnpaid, "holiday_unpaid"),
@@ -344,7 +353,7 @@ mod tests {
     }
 
     #[test]
-    fn test_present_no_schedule() {
+    fn test_unscheduled_no_shift() {
         let input = DailyStatusInput {
             has_punch_in: true,
             punch_in_time: Some(NaiveTime::from_hms_opt(9, 0, 0).expect("valid time")),
@@ -354,7 +363,7 @@ mod tests {
             has_shift: false,
             is_on_leave: false,
         };
-        assert_eq!(determine_daily_status(&input), AttendanceStatus::Present);
+        assert_eq!(determine_daily_status(&input), AttendanceStatus::Unscheduled);
     }
 
     #[test]

@@ -24,6 +24,8 @@ vi.mock("@/lib/api", async (importOriginal) => {
         adminConfirmAttendance: vi.fn(),
         approveOt: vi.fn(),
         fetchRawAttendanceLogs: vi.fn(),
+        fetchShifts: vi.fn(),
+        upsertRoster: vi.fn(),
     };
 });
 
@@ -90,6 +92,19 @@ describe("EmployeeDailyDrawer", () => {
             page: 1,
             limit: 100
         });
+        (api.fetchShifts as any).mockResolvedValue([
+            {
+                id: "shift-morning",
+                workspace_id: "ws-1",
+                name: "Ca sáng",
+                start_time: "08:00:00",
+                end_time: "17:00:00",
+                break_duration_minutes: 60,
+                created_at: "2026-01-01T00:00:00Z",
+                updated_at: "2026-01-01T00:00:00Z",
+            },
+        ]);
+        (api.upsertRoster as any).mockResolvedValue({});
     });
 
     const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {
@@ -448,5 +463,89 @@ describe("EmployeeDailyDrawer", () => {
         fireEvent.keyDown(window, { key: "ArrowUp" });
 
         expect(scrollBySpy).toHaveBeenCalledWith({ top: -100, behavior: "smooth" });
+    });
+
+    it("opens resolve modal when unscheduled badge is clicked", async () => {
+        const user = userEvent.setup();
+        const unscheduledRow = {
+            ...mockDailyRow,
+            status: "unscheduled",
+            scheduled_start: null,
+            scheduled_end: null,
+        };
+        (api.fetchAttendanceReport as any).mockResolvedValue({
+            data: [unscheduledRow],
+            total: 1,
+        });
+
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        // Wait for data to load
+        await screen.findByText("John Doe");
+
+        // Find and click the unscheduled badge
+        const badge = await screen.findByTitle("reports.status.unscheduled_tooltip");
+        await user.click(badge);
+
+        // The resolve modal should open
+        expect(await screen.findByText("reports.unscheduled.resolve_title")).toBeInTheDocument();
+
+        // Shift selector should be present
+        expect(screen.getByText("reports.unscheduled.select_shift")).toBeInTheDocument();
+
+        // The mock shift should appear in the dropdown
+        const select = screen.getByRole("combobox");
+        expect(select).toBeInTheDocument();
+    });
+
+    it("submits resolve modal: calls upsertRoster then reprocessAttendance", async () => {
+        const user = userEvent.setup();
+        const unscheduledRow = {
+            ...mockDailyRow,
+            status: "unscheduled",
+            scheduled_start: null,
+            scheduled_end: null,
+        };
+        (api.fetchAttendanceReport as any).mockResolvedValue({
+            data: [unscheduledRow],
+            total: 1,
+        });
+
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        // Wait for data + click badge
+        await screen.findByText("John Doe");
+        const badge = await screen.findByTitle("reports.status.unscheduled_tooltip");
+        await user.click(badge);
+
+        // Wait for modal
+        await screen.findByText("reports.unscheduled.resolve_title");
+
+        // Select a shift from the dropdown
+        const select = screen.getByRole("combobox");
+        await user.selectOptions(select, "shift-morning");
+
+        // Click submit button
+        const submitBtn = screen.getByRole("button", { name: /reports.unscheduled.submit/i });
+        await user.click(submitBtn);
+
+        // Verify upsertRoster was called first
+        await waitFor(() => {
+            expect(api.upsertRoster).toHaveBeenCalledWith(
+                "ws-1",
+                "emp-1",
+                { date: "2026-01-15", shift_id: "shift-morning" }
+            );
+        });
+
+        // Then reprocessAttendance
+        await waitFor(() => {
+            expect(api.reprocessAttendance).toHaveBeenCalledWith(
+                "ws-1",
+                "emp-1",
+                "2026-01-15",
+                "2026-01-15"
+            );
+        });
     });
 });

@@ -2212,7 +2212,9 @@
       "present": "Đúng giờ",
       "late": "Đi muộn",
       "absent": "Vắng mặt",
-      "off": "Ngày nghỉ"
+      "off": "Ngày nghỉ",
+      "unscheduled": "Ngoài lịch",
+      "unscheduled_tooltip": "Nhân viên chấm công khi không có ca được sắp xếp"
     },
     "table": {
       "total_hours": "Tổng giờ công",
@@ -2273,6 +2275,14 @@
       "success_approved": "Đã duyệt OT thành công",
       "success_rejected": "Đã từ chối OT",
       "error": "Lỗi khi xử lý OT"
+    },
+    "unscheduled": {
+      "resolve_title": "Xử lý chấm công ngoài lịch",
+      "resolve_subtitle": "Hệ thống sẽ gán ca đã chọn cho ngày này và tự động tính lại giờ công.",
+      "select_shift": "Chọn ca làm việc",
+      "submit": "Gán ca & Tính lại",
+      "success": "Đã gán ca và tính lại giờ công.",
+      "error": "Lỗi khi xử lý chấm công ngoài lịch."
     },
     "label": "Reports"
   },

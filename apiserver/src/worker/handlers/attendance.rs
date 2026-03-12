@@ -400,62 +400,67 @@ impl AttendanceHandler {
                 let mut std_work_units = 0;
                 let mut ot_work_units = 0;
 
-                if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
-                    let actual_break_minutes: i32 = day_entries
-                        .iter()
-                        .filter(|e| e.entry_type == "break")
-                        .map(|e| e.duration_minutes.unwrap_or(0))
-                        .sum();
+                // Only calculate hours when a shift exists.
+                // Without shift boundaries the calculator treats all punch time
+                // as "standard" minutes, inflating the report for unscheduled days.
+                if daily.shift_id.is_some() {
+                    if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
+                        let actual_break_minutes: i32 = day_entries
+                            .iter()
+                            .filter(|e| e.entry_type == "break")
+                            .map(|e| e.duration_minutes.unwrap_or(0))
+                            .sum();
 
-                    let shift_start_dt = daily
-                        .start_time
-                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-                    let shift_end_dt = daily
-                        .end_time
-                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                        let shift_start_dt = daily
+                            .start_time
+                            .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                        let shift_end_dt = daily
+                            .end_time
+                            .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
 
-                    // Build rules from pre-fetched conditions (no DB call)
-                    let mut rules = PolicyResolver::build_rules_from_conditions(
-                        emp_conditions,
-                        date,
-                        workspace_config.early_arrival_strategy,
-                    );
+                        // Build rules from pre-fetched conditions (no DB call)
+                        let mut rules = PolicyResolver::build_rules_from_conditions(
+                            emp_conditions,
+                            date,
+                            workspace_config.early_arrival_strategy,
+                        );
 
-                    if let Some(gp) = daily.early_punch_in_grace_period_minutes {
-                        rules.grace_period_minutes = gp;
+                        if let Some(gp) = daily.early_punch_in_grace_period_minutes {
+                            rules.grace_period_minutes = gp;
+                        }
+                        if let Some(bad) = daily.is_break_auto_deduct {
+                            rules.is_break_auto_deduct = bad;
+                        }
+                        if let Some(aeo) = daily.allow_early_ot {
+                            rules.allow_early_ot = aeo;
+                        }
+
+                        let (shift_start, shift_end) =
+                            if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
+                                if daily.end_time < daily.start_time {
+                                    end += Duration::days(1);
+                                }
+                                (Some(start), Some(end))
+                            } else {
+                                (None, None)
+                            };
+
+                        let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
+                            punch_in,
+                            punch_out,
+                            shift_start,
+                            shift_end,
+                            daily.break_duration_minutes.unwrap_or(0),
+                            actual_break_minutes,
+                            workspace_config.work_unit_minutes,
+                            &workspace_config.rounding_policy,
+                            &rules,
+                            None,
+                        );
+
+                        std_work_units = std_units;
+                        ot_work_units = ot_units;
                     }
-                    if let Some(bad) = daily.is_break_auto_deduct {
-                        rules.is_break_auto_deduct = bad;
-                    }
-                    if let Some(aeo) = daily.allow_early_ot {
-                        rules.allow_early_ot = aeo;
-                    }
-
-                    let (shift_start, shift_end) =
-                        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                            if daily.end_time < daily.start_time {
-                                end += Duration::days(1);
-                            }
-                            (Some(start), Some(end))
-                        } else {
-                            (None, None)
-                        };
-
-                    let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
-                        punch_in,
-                        punch_out,
-                        shift_start,
-                        shift_end,
-                        daily.break_duration_minutes.unwrap_or(0),
-                        actual_break_minutes,
-                        workspace_config.work_unit_minutes,
-                        &workspace_config.rounding_policy,
-                        &rules,
-                        None,
-                    );
-
-                    std_work_units = std_units;
-                    ot_work_units = ot_units;
                 }
 
                 let status = crate::services::attendance_utils::determine_daily_status(
@@ -514,6 +519,7 @@ impl AttendanceHandler {
                     ot_claim_status: None,
                     status,
                     is_holiday: false,
+                    is_unscheduled: status == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
                     holiday_name: None,
                     generation_metadata: combined_metadata,
                 });
@@ -676,6 +682,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Absent,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         }];

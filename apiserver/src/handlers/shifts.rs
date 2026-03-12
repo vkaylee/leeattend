@@ -17,6 +17,37 @@ use crate::models::{
 };
 use crate::AppState;
 
+/// Reprocess attendance for a single (employee, date) after a roster change.
+///
+/// Fetches the workspace timezone from DB and delegates to `PairingService`.
+/// Errors are logged but not propagated — the roster mutation itself already
+/// succeeded, so we don't want to roll it back.
+async fn reprocess_after_roster_change(
+    state: &AppState,
+    workspace_id: Uuid,
+    employee_id: Uuid,
+    date: NaiveDate,
+) {
+    let tz_str = match state.core.workspace_repo.get_workspace_by_id(workspace_id).await {
+        Ok(Some(ws)) => ws.timezone,
+        _ => "UTC".to_string(),
+    };
+    let tz = crate::utils::tz::parse_workspace_tz(&tz_str);
+
+    if let Err(e) = state
+        .attendance
+        .pairing_service
+        .reprocess_daily_attendance(workspace_id, employee_id, date, tz)
+        .await
+    {
+        tracing::error!(
+            employee_id = %employee_id,
+            date = %date,
+            "Failed to reprocess attendance after roster change: {e}"
+        );
+    }
+}
+
 // --- Shift Handlers ---
 
 pub async fn get_shifts(
@@ -194,6 +225,8 @@ pub async fn upsert_roster(
         cache.invalidate(ctx.workspace_id).await;
     }
 
+    reprocess_after_roster_change(&state, ctx.workspace_id, employee_id, req.date).await;
+
     Ok(Json(saved))
 }
 
@@ -204,11 +237,16 @@ pub async fn bulk_upsert_roster(
     Json(req): Json<BulkRosterRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::RostersManage)?;
+    let dates: Vec<NaiveDate> = req.items.iter().map(|i| i.date).collect();
     state.shifts.roster_repo.bulk_upsert_roster( employee_id, req.items)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
+    }
+
+    for date in dates {
+        reprocess_after_roster_change(&state, ctx.workspace_id, employee_id, date).await;
     }
 
     Ok(StatusCode::OK)
@@ -225,6 +263,8 @@ pub async fn delete_roster(
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
     }
+
+    reprocess_after_roster_change(&state, ctx.workspace_id, employee_id, date).await;
 
     Ok(StatusCode::NO_CONTENT)
 }

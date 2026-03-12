@@ -78,6 +78,8 @@ pub struct DailyAttendanceReport {
     pub status: AttendanceStatus,
     #[serde(default)]
     pub is_holiday: bool,
+    #[serde(default)]
+    pub is_unscheduled: bool,
     pub holiday_name: Option<String>,
     pub generation_metadata: Option<serde_json::Value>,
 }

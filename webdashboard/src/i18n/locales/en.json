@@ -2212,7 +2212,9 @@
       "present": "On-time",
       "late": "Late",
       "absent": "Absent",
-      "off": "Off-day"
+      "off": "Off-day",
+      "unscheduled": "Unscheduled",
+      "unscheduled_tooltip": "Employee punched in without a scheduled shift"
     },
     "table": {
       "total_hours": "Total Hours",
@@ -2273,6 +2275,14 @@
       "success_approved": "OT approved successfully",
       "success_rejected": "OT rejected",
       "error": "Failed to process OT"
+    },
+    "unscheduled": {
+      "resolve_title": "Resolve Unscheduled Attendance",
+      "resolve_subtitle": "This will assign the selected shift to this day and recalculate attendance hours automatically.",
+      "select_shift": "Select Shift",
+      "submit": "Assign & Reprocess",
+      "success": "Shift assigned and attendance recalculated.",
+      "error": "Failed to resolve unscheduled attendance."
     },
     "label": "Reports"
   },

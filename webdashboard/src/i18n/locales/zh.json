@@ -2212,7 +2212,9 @@
       "present": "准时",
       "late": "迟到",
       "absent": "缺勤",
-      "off": "休息日"
+      "off": "休息日",
+      "unscheduled": "未排班",
+      "unscheduled_tooltip": "员工在无排班的情况下打卡"
     },
     "table": {
       "total_hours": "总工时",
@@ -2274,6 +2276,14 @@
     },
     "debug_mode_on": "调试：开启",
     "debug_mode_off": "调试：关闭",
+    "unscheduled": {
+      "resolve_title": "处理未排班考勤",
+      "resolve_subtitle": "系统将为该日分配所选班次并自动重新计算考勤工时。",
+      "select_shift": "选择班次",
+      "submit": "分配并重新计算",
+      "success": "班次已分配，考勤已重新计算。",
+      "error": "处理未排班考勤失败。"
+    },
     "label": "Reports"
   },
   "patterns": {

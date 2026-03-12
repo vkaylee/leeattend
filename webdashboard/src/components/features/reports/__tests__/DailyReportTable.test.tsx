@@ -167,4 +167,49 @@ describe("DailyReportTable", () => {
         // Should NOT have hardcoded max-h
         expect(outerDiv!.className).not.toContain("max-h-[calc");
     });
+
+    it("shows unscheduled badge when status is unscheduled", () => {
+        const dataWithUnscheduled: DailyAttendanceReport[] = [
+            {
+                ...mockData[0],
+                status: "unscheduled",
+                scheduled_start: null,
+                scheduled_end: null,
+            } as DailyAttendanceReport,
+        ];
+        render(<DailyReportTable {...defaultProps} data={dataWithUnscheduled} />);
+
+        const badge = screen.getByTitle("reports.status.unscheduled_tooltip");
+        expect(badge).toBeInTheDocument();
+        expect(badge.textContent).toContain("reports.status.unscheduled");
+    });
+
+    it("calls onResolveUnscheduled when unscheduled badge is clicked", () => {
+        const onResolve = vi.fn();
+        const dataWithUnscheduled: DailyAttendanceReport[] = [
+            {
+                ...mockData[0],
+                status: "unscheduled",
+            } as DailyAttendanceReport,
+        ];
+        render(
+            <DailyReportTable
+                {...defaultProps}
+                data={dataWithUnscheduled}
+                onResolveUnscheduled={onResolve}
+            />
+        );
+
+        const badge = screen.getByTitle("reports.status.unscheduled_tooltip");
+        fireEvent.click(badge);
+        expect(onResolve).toHaveBeenCalledWith(dataWithUnscheduled[0]);
+    });
+
+    it("does not show unscheduled badge when status is not unscheduled", () => {
+        render(<DailyReportTable {...defaultProps} />);
+
+        // Default mockData has status "present" → should not render unscheduled badge
+        const badge = screen.queryByTitle("reports.status.unscheduled_tooltip");
+        expect(badge).not.toBeInTheDocument();
+    });
 });

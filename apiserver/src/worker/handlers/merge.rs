@@ -378,6 +378,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         };
@@ -400,6 +401,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         };
@@ -518,6 +520,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         };
@@ -580,6 +583,7 @@ mod tests {
             ot_claim_status: None,
             status: crate::services::attendance_utils::AttendanceStatus::Present,
             is_holiday: false,
+            is_unscheduled: false,
             holiday_name: None,
             generation_metadata: None,
         };
