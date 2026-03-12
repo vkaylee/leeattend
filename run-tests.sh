@@ -766,7 +766,30 @@ cleanup() {
         echo "✅ Environment cleaned up (cache preserved)."
     fi
 
-    # ── Final PTY sweep ──────────────────────────────────────────────
+    # ── Layer 3a: Process group kill (catch grandchildren) ──────────
+    # `kill -$$` sends signal to the entire process group, including
+    # grandchildren that `pkill -P $$` misses.
+    kill -TERM -$$ 2>/dev/null || true
+    sleep 0.3
+    kill -KILL -$$ 2>/dev/null || true
+
+    # ── Layer 3b: /proc FD sweep (catch reparented orphans) ──────────
+    # Find processes still attached to our PTY that escaped the process
+    # group kill (e.g. reparented to PID 1). Verify they actually hold
+    # a PTY FD via /proc before killing — avoids false positives.
+    _our_tty=$(ps -o tty= -p $$ 2>/dev/null | tr -d ' ')
+    if [[ -n "$_our_tty" && "$_our_tty" != "?" ]]; then
+        while IFS= read -r _pid; do
+            _pid=$(echo "$_pid" | tr -d ' ')
+            [[ -z "$_pid" || "$_pid" == "$$" || "$_pid" == "$PPID" || "$_pid" == "1" ]] && continue
+            # Only kill if process actually holds a PTY file descriptor
+            if ls -la /proc/"$_pid"/fd 2>/dev/null | grep -q "/dev/pts/"; then
+                kill -KILL "$_pid" 2>/dev/null || true
+            fi
+        done < <(ps -t "$_our_tty" -o pid= 2>/dev/null)
+    fi
+
+    # ── Final sweep ──────────────────────────────────────────────────
     pkill -KILL -P $$ 2>/dev/null || true
 
     exit "$exit_code"

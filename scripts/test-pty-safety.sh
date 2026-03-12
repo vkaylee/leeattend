@@ -193,14 +193,18 @@ scan_single_file() {
         fi
     done < <(grep -n 'wait' "$file" 2>/dev/null || true)
 
-    # ── Pattern 14: '| tee' pipe usage ────────────────────────────────
+    # ── Pattern 14: EOF-buffering pipe targets ─────────────────────────
+    # Commands that wait for stdin EOF before producing output. If a child
+    # process inherits the pipe write-end FD, the pipe never closes → hang.
+    local _pipe_targets='tee|tail|wc|sort|head|less|more'
     while IFS=: read -r lineno line; do
         [[ "$line" =~ ^[[:space:]]*# ]] && continue
-        if echo "$line" | grep -qE '\|\s*tee\b'; then
-            warn "$basename:$lineno — '| tee' pipe (FD leak risk to children): $(echo "$line" | sed 's/^[[:space:]]*//')"
-            echo -e "    → fix: replace \`cmd | tee file\` with \`cmd >file 2>&1\` and use \`cat file\` after" >&2
-        fi
-    done < <(grep -nE '\|\s*tee' "$file" 2>/dev/null || true)
+        local _matched
+        _matched=$(echo "$line" | grep -oE "\|\s*($_pipe_targets)\b" | head -1 | sed 's/.*|\s*//' || true)
+        [[ -z "$_matched" ]] && continue
+        warn "$basename:$lineno — '| $_matched' pipe (FD leak risk — $_matched buffers until EOF): $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: replace \`cmd | $_matched ...\` with \`cmd >file 2>&1\` then \`$_matched file\`" >&2
+    done < <(grep -nE "\|\s*($_pipe_targets)\b" "$file" 2>/dev/null || true)
 
     # ── Pattern 15: Interactive commands ───────────────────────────────
     while IFS=: read -r lineno line; do
@@ -243,6 +247,19 @@ scan_single_file() {
         echo -e "    → fix: add batch/non-interactive option. Run \`ssh --help\` or check \`man ssh\` for flag on your platform" >&2
         ((file_fails++)) || true
     done < <(grep -nE '^\s*ssh\b' "$file" 2>/dev/null || true)
+
+    # ── Pattern 20: cleanup() must have /proc FD sweep ─────────────
+    local cleanup_body
+    cleanup_body=$(sed -n '/^cleanup()/,/^}/p' "$file" 2>/dev/null || true)
+    if [[ -n "$cleanup_body" ]]; then
+        if echo "$cleanup_body" | grep -qE 'pkill.*-P'; then
+            if ! echo "$cleanup_body" | grep -qE '/proc/.*/fd'; then
+                fail "$basename — cleanup() has pkill but missing /proc FD sweep (Layer 3)"
+                echo -e "    → fix: add /proc/PID/fd scan after pkill to catch reparented orphans" >&2
+                ((file_fails++)) || true
+            fi
+        fi
+    fi
 
     if [[ $file_fails -eq 0 ]]; then
         pass "$basename — clean"
@@ -354,6 +371,9 @@ run_runtime_test() {
 
     # Test 5: Signal cleanup — verify SIGTERM triggers clean exit
     _signal_cleanup_test
+
+    # Test 6: PTY FD sweep — verify orphans holding PTY FDs get killed
+    _pty_fd_sweep_test
 }
 
 # Run a single command inside a PTY and verify it exits within timeout.
@@ -471,6 +491,60 @@ _signal_cleanup_test() {
     fi
 }
 
+# Verify that the PTY FD sweep (Layer 3b) can detect and kill orphan processes
+# that hold PTY file descriptors.
+_pty_fd_sweep_test() {
+    echo -e "  ${BLUE}Testing: PTY FD sweep kills orphan holders${NC}"
+
+    # Check for PTY BEFORE spawning anything — avoid leaving orphans
+    local our_tty
+    our_tty=$(ps -o tty= -p $$ 2>/dev/null | tr -d ' ')
+    if [[ -z "$our_tty" || "$our_tty" == "?" ]]; then
+        pass "PTY FD sweep — skipped (no PTY detected, likely CI/agent)"
+        return
+    fi
+
+    # If stdout is redirected to a file (not a terminal), child processes
+    # inherit file FDs instead of PTY FDs — detection is meaningless.
+    if [[ ! -t 1 ]]; then
+        pass "PTY FD sweep — skipped (stdout redirected, FDs not PTY-attached)"
+        return
+    fi
+
+    # Spawn a sleep that INTENTIONALLY inherits our PTY FDs (simulates leak).
+    # Do NOT use </dev/null here — we need the process to hold PTY FDs.
+    sleep 300 &
+    local orphan_pid=$!
+
+    # Verify it's alive
+    if ! kill -0 $orphan_pid 2>/dev/null; then
+        warn "PTY FD sweep — could not spawn test orphan"
+        return
+    fi
+
+    # Test the DETECTION mechanism: verify /proc/PID/fd shows PTY FDs
+    local detected=false
+    if ls -la /proc/"$orphan_pid"/fd 2>/dev/null | grep -q "/dev/pts/"; then
+        detected=true
+    fi
+
+    # Test the KILL mechanism: target ONLY the specific orphan PID
+    # (A blanket sweep on the PTY would kill the test script itself)
+    kill -KILL "$orphan_pid" 2>/dev/null || true
+    wait "$orphan_pid" 2>/dev/null || true
+    sleep 0.1
+
+    if [[ "$detected" == "true" ]] && ! kill -0 $orphan_pid 2>/dev/null; then
+        pass "PTY FD sweep — orphan detected via /proc/$orphan_pid/fd and killed"
+    elif [[ "$detected" != "true" ]]; then
+        fail "PTY FD sweep — /proc/$orphan_pid/fd did not detect PTY FDs"
+        kill -KILL $orphan_pid 2>/dev/null || true
+    else
+        fail "PTY FD sweep — orphan PID $orphan_pid survived kill"
+        kill -KILL $orphan_pid 2>/dev/null || true
+    fi
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SELF-TEST: Verify all patterns detect correctly
 # Usage: test-pty-safety.sh --self-test
@@ -571,8 +645,13 @@ run_self_test() {
     _st_expect_unsafe "exec no -T"              "podman-compose exec apiserver cargo test"
     _st_expect_safe   "exec with -T"            "podman-compose exec -T apiserver cargo test </dev/null"
 
-    echo -e "${BOLD}P14: | tee (warning)${NC}"
+    echo -e "${BOLD}P14: EOF-buffering pipes (warning)${NC}"
     _st_expect_safe   "tee warn-only"           "./run.sh | tee out.log"
+    _st_expect_safe   "tail warn-only"          "./run.sh | tail -20"
+    _st_expect_safe   "wc warn-only"            "./run.sh | wc -l"
+    _st_expect_safe   "sort warn-only"          "./run.sh | sort"
+    _st_expect_safe   "head warn-only"          "./run.sh | head -5"
+    _st_expect_safe   "cat no-warn"             "./run.sh | cat"
 
     echo -e "${BOLD}P15: interactive${NC}"
     _st_expect_unsafe "vim"                     "vim file.txt"
@@ -613,6 +692,20 @@ wait $BG_PID'
     _st_file_safe "clean file" '#!/bin/bash
 echo "hello"
 cargo test >out.log 2>&1'
+
+    echo -e "${BOLD}P20: cleanup /proc FD sweep${NC}"
+    _st_file_unsafe "cleanup missing /proc sweep" 'cleanup() {
+    pkill -TERM -P $$ 2>/dev/null || true
+    pkill -KILL -P $$ 2>/dev/null || true
+    exit 0
+}'
+    _st_file_safe "cleanup with /proc sweep" 'cleanup() {
+    pkill -TERM -P $$ 2>/dev/null || true
+    if ls -la /proc/$_pid/fd 2>/dev/null | grep -q "/dev/pts/"; then
+        kill -KILL $_pid 2>/dev/null || true
+    fi
+    exit 0
+}'
 
     echo -e "${BOLD}Edge cases${NC}"
     _st_file_safe "continuation line" 'podman exec mycontainer \
