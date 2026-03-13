@@ -28,7 +28,9 @@ leeattend_debug_list() {
 
 leeattend_debug_last() {
     local dir="${1:-$DEBUG_LOG_DIR}"
-    local last_log=$(ls -t "$dir"/*.log 2>/dev/null | head -n 1)
+    local last_log
+    last_log=$(printf '%s\n' "$dir"/*.log | head -n 1)  # pty-safe: local file glob
+    [[ "$last_log" == "$dir/*.log" ]] && last_log=""
     if [ -n "$last_log" ]; then
         echo -e "${BLUE}📄 Content of last log: $last_log${NC}"
         cat "$last_log"
@@ -40,7 +42,9 @@ leeattend_debug_last() {
 leeattend_debug_cat() {
     local pattern="$1"
     local dir="${2:-$DEBUG_LOG_DIR}"
-    local file=$(ls "$dir"/*"$pattern"* 2>/dev/null | head -n 1)
+    local file
+    file=$(printf '%s\n' "$dir"/*"$pattern"* | head -n 1)  # pty-safe: local file glob
+    [[ "$file" == *'*'* ]] && file=""
     if [ -n "$file" ] && [ -f "$file" ]; then
         echo -e "${BLUE}📄 Content of log: $file${NC}"
         cat "$file"
@@ -54,7 +58,7 @@ leeattend_debug_file() {
     if [ -f "$file" ]; then
         echo -e "${BLUE}📄 Analyzing file: $file${NC}"
         # Search for errors in this specific log
-        grep -Ei "error|panic|failed|exception|backtrace" "$file" || tail -n 20 "$file"
+        grep -Ei "error|panic|failed|exception|backtrace" "$file" || tail -n 20 "$file"  # not-a-pipe: || is fallback, not |
     else
         echo -e "${RED}File not found: $file${NC}"
     fi
@@ -70,7 +74,9 @@ leeattend_debug_errors() {
 leeattend_debug_tail() {
     local n="${1:-20}"
     local dir="${2:-$DEBUG_LOG_DIR}"
-    local last_log=$(ls -t "$dir"/*.log 2>/dev/null | head -n 1)
+    local last_log
+    last_log=$(printf '%s\n' "$dir"/*.log | head -n 1)  # pty-safe: local file glob
+    [[ "$last_log" == "$dir/*.log" ]] && last_log=""
     if [ -n "$last_log" ]; then
         echo -e "${BLUE}📄 Last $n lines of $last_log:${NC}"
         tail -n "$n" "$last_log"

@@ -69,7 +69,7 @@ leeattend_run_integration() {
                 fi
                 if [[ $i -eq 120 ]]; then
                     echo -e "\n  ${RED}❌ API Server failed to start! Logs:${NC}"
-                    podman exec "$_apiserver_ctr" cat /workspace/apiserver/apiserver.log </dev/null 2>&1 | tail -20
+                    podman exec "$_apiserver_ctr" tail -20 /workspace/apiserver/apiserver.log </dev/null 2>&1
                 fi
                 echo -n "."
                 sleep 1
@@ -95,7 +95,7 @@ leeattend_run_integration() {
             echo -e "  ${RED}❌ Pre-compilation FAILED (exit code: $prebuild_exit)${NC}"
             echo -e "  ${RED}── Build Error Log ──${NC}"
             # Show only the error lines, not the full compile output
-            grep -E '(^error|^\s+-->|could not compile)' "$LOG_DIR/prebuild.log" | tail -30
+            tail -30 <<< "$(grep -E '(^error|^\s+-->|could not compile)' "$LOG_DIR/prebuild.log" 2>/dev/null || true)"
             return $prebuild_exit
         fi
     fi

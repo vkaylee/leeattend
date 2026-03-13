@@ -199,6 +199,13 @@ scan_single_file() {
     local _pipe_targets='tee|tail|wc|sort|head|less|more'
     while IFS=: read -r lineno line; do
         [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        # Skip lines annotated with pty-safe or not-a-pipe comments
+        [[ "$line" =~ \#.*pty-safe ]] && continue
+        [[ "$line" =~ \#.*not-a-pipe ]] && continue
+        # Skip pipes inside bash -c "..." strings (container-internal, no host PTY risk)
+        [[ "$line" =~ bash[[:space:]]+-c[[:space:]]+\" ]] && continue
+        # Skip printf|head for glob array indexing (local, no child process FD leak)
+        [[ "$line" =~ printf.*\|.*head ]] && continue
         local _matched
         _matched=$(echo "$line" | grep -oE "\|\s*($_pipe_targets)\b" | head -1 | sed 's/.*|\s*//' || true)
         [[ -z "$_matched" ]] && continue

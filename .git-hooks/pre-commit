@@ -45,15 +45,15 @@ else
     PREBUILD_LOG="$REPO_ROOT/.test_logs/prebuild.log"
     if [ -f "$FAILURE_LOG" ]; then
         echo "──── Failure Details ────"
-        grep -E '(FAIL|panicked|assertion|left:|right:|error:|stderr)' "$FAILURE_LOG" 2>/dev/null | head -20
+        head -20 <<< "$(grep -E '(FAIL|panicked|assertion|left:|right:|error:|stderr)' "$FAILURE_LOG" 2>/dev/null || true)"
         echo ""
         echo "──── Full Failure Context ────"
-        grep -n 'FAIL' "$FAILURE_LOG" 2>/dev/null | head -1 | while IFS=: read -r line_num _rest; do
-            sed -n "${line_num},\$p" "$FAILURE_LOG" | head -40
+        grep -m1 -n 'FAIL' "$FAILURE_LOG" 2>/dev/null | while IFS=: read -r line_num _rest; do
+            head -40 <<< "$(sed -n "${line_num},\$p" "$FAILURE_LOG")"
         done
     elif [ -f "$PREBUILD_LOG" ]; then
         echo "──── Build Error Details ────"
-        grep -E '(^error|^\s+-->|could not compile)' "$PREBUILD_LOG" 2>/dev/null | tail -20
+        tail -20 <<< "$(grep -E '(^error|^\s+-->|could not compile)' "$PREBUILD_LOG" 2>/dev/null || true)"
     else
         echo "──── Last 30 lines of test output ────"
         tail -30 "$LOG" 2>/dev/null || true

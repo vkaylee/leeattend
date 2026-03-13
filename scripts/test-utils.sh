@@ -188,7 +188,7 @@ on_task_failure() {
         errors=$(grep -nE '^error\[|^error:|panicked at|FAIL \[|thread .* panicked' "$log_file" 2>/dev/null || true)
         if [ -n "$errors" ]; then
             echo -e "${RED}${BOLD}── KEY ERRORS ──${NC}"
-            echo "$errors" | head -30
+            head -30 <<< "$errors"
             echo -e "${RED}${BOLD}────────────────${NC}"
         fi
 

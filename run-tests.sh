@@ -572,12 +572,12 @@ if [[ "$CACHE_STATS" == "true" ]]; then
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         echo -e "${YELLOW}=== Cargo (apiserver) ===${NC}"
         dc exec -T apiserver_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
-        dc exec -T apiserver_test bash -c "sccache --show-stats 2>/dev/null | head -10 || echo 'sccache not available'" || true
+        dc exec -T apiserver_test bash -c "sccache --show-stats 2>/dev/null | head -n 10 || echo 'sccache not available'" </dev/null || true
         
         echo ""
         echo -e "${YELLOW}=== Cargo (agent-main) ===${NC}"
         dc exec -T agent_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
-        dc exec -T agent_test bash -c "sccache --show-stats 2>/dev/null | head -10 || echo 'sccache not available'" || true
+        dc exec -T agent_test bash -c "sccache --show-stats 2>/dev/null | head -n 10 || echo 'sccache not available'" </dev/null || true
         
         echo ""
         echo -e "${YELLOW}=== NPM ===${NC}"
