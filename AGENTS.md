@@ -19,8 +19,8 @@
 | Any script with `&` (background jobs) | Background process inherits PTY |
 
 ```bash
-# ✅ Correct
-git commit -m "message" </dev/null
+# ✅ Correct — AGENT_MODE skips Podman tests in pre-commit hook
+AGENT_MODE=1 git commit --no-gpg-sign -m "message" </dev/null
 podman-compose down </dev/null
 ./run-tests.sh --api --smoke </dev/null
 
