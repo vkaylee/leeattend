@@ -4,27 +4,36 @@
 # Pre-commit hook: Run smoke tests before commit.
 # ==============================================================================
 # Uses run-tests.sh (Podman-compatible, PTY-safe).
-# With Podman (daemonless), containers are direct children of this process.
-# No setsid needed — just redirect output to file so test logs don't pollute
-# git commit output, then print failure details.
+#
+# PTY FD ISOLATION:
+# Background processes (tail -f, podman) inherit the PTY file descriptors
+# from this hook's parent (git → bash → hook). If ANY child process holds
+# stdout/stderr fds open after the hook exits, agentic tools (Antigravity,
+# Claude Code) report the command as still RUNNING — a "phantom hang."
+#
+# Fix: ALL background processes must have stdout/stderr redirected away
+# from inherited PTY fds. Use >/dev/null, >logfile, or >&2 explicitly.
 # ==============================================================================
 
 set -euo pipefail
+
+# ── Close extra inherited fds ───────────────────────────────────────
+# Parent processes may pass fds 3-9 (e.g. git's internal lock fds).
+# Close them so no child can accidentally inherit them.
+for _fd in $(seq 3 9); do
+    eval "exec ${_fd}>&- 2>/dev/null" || true
+done
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 LOG="/tmp/pre-commit-$$.log"
 
 # ── Agent-safe mode ──────────────────────────────────────────────────
-# Agentic terminals (Claude, Gemini, etc.) hang on ANY subprocess that
-# inherits PTY file descriptors — even the static scanner uses process
-# substitution that holds fds open.
-#
-# When AGENT_MODE=1:
-#   - Skip all hook checks (they must be run standalone BEFORE commit)
-#   - Exit immediately so git commit completes without PTY hang
+# When AGENT_MODE=1: skip all checks (run standalone BEFORE commit).
+# This is belt-and-suspenders — the fd fixes below prevent hangs too,
+# but AGENT_MODE guarantees zero subprocess spawning for agents.
 #
 # Safe workflow for agents:
-#   1. Run checks:  bash scripts/test-pty-safety.sh --static 2>&1 | cat
+#   1. Run checks:  ./run-tests.sh --api --smoke </dev/null
 #   2. Commit:      AGENT_MODE=1 git commit --no-gpg-sign -m "msg" </dev/null
 # ─────────────────────────────────────────────────────────────────────
 if [[ "${AGENT_MODE:-}" == "1" ]]; then
@@ -37,11 +46,13 @@ echo "🤖 [AI AGENT NOTICE]: A git pre-commit hook is now running an integratio
 echo "🤖 [AI AGENT NOTICE]: This process can take UP TO 5 MINUTES to complete depending on cache."
 echo "🤖 [AI AGENT NOTICE]: DO NOT interrupt, terminate, or assume this is a PTY hang. Wait patiently for the exit code."
 
-# Run tests and stream output safely (avoiding pipe FD leaks)
-# We redirect directly to file, and `tail -f` the file in the background so the user can see progress
-# without the PTY holding the pipe open and hanging git.
+# ── Run tests with PTY-safe log streaming ────────────────────────────
+# tail -f streams progress to stderr (fd2) which git displays directly.
+# CRITICAL: stdout/stderr of tail are explicitly redirected so they do
+# NOT inherit the PTY fd — preventing the "phantom hang" where the
+# agentic tool sees the fd still open after git commit finishes.
 touch "$LOG"
-tail -f "$LOG" </dev/null &
+tail -f "$LOG" </dev/null >&2 2>/dev/null &
 TAIL_PID=$!
 
 set +e
@@ -49,7 +60,7 @@ set +e
 EXIT_CODE=$?
 set -e
 
-# Kill the background tail process immediately when tests finish
+# Kill the background tail immediately when tests finish
 kill $TAIL_PID 2>/dev/null || true
 wait $TAIL_PID 2>/dev/null || true
 

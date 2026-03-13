@@ -340,7 +340,7 @@ run_parallel_ordered() {
                 # Start a background tail to show progress (PASS/FAIL/TIMEOUT + compile errors)
                 # It will automatically exit when test_pid exits
                 touch "$log_file"
-                tail -f "$log_file" --pid=$test_pid 2>/dev/null | grep --line-buffered -E "^(    PASS|    FAIL|    TIMEOUT|panicked|test result:|error\[|error:|   -->|could not compile)" </dev/null &
+                tail -f "$log_file" --pid=$test_pid 2>/dev/null | grep --line-buffered -E "^(    PASS|    FAIL|    TIMEOUT|panicked|test result:|error\[|error:|   -->|could not compile)" </dev/null >&2 &
             fi
         done
 

@@ -779,14 +779,16 @@ cleanup() {
     # a PTY FD via /proc before killing — avoids false positives.
     _our_tty=$(ps -o tty= -p $$ 2>/dev/null | tr -d ' ')
     if [[ -n "$_our_tty" && "$_our_tty" != "?" ]]; then
-        while IFS= read -r _pid; do
+        # Use pipe instead of process substitution to avoid spawning a
+        # subshell that inherits PTY fds (< <(cmd) creates a subshell).
+        ps -t "$_our_tty" -o pid= 2>/dev/null | while IFS= read -r _pid; do
             _pid=$(echo "$_pid" | tr -d ' ')
             [[ -z "$_pid" || "$_pid" == "$$" || "$_pid" == "$PPID" || "$_pid" == "1" ]] && continue
             # Only kill if process actually holds a PTY file descriptor
             if ls -la /proc/"$_pid"/fd 2>/dev/null | grep -q "/dev/pts/"; then
                 kill -KILL "$_pid" 2>/dev/null || true
             fi
-        done < <(ps -t "$_our_tty" -o pid= 2>/dev/null)
+        done
     fi
 
     # ── Final sweep ──────────────────────────────────────────────────
