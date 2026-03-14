@@ -11,6 +11,7 @@ import Navbar from "./Navbar";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 import Modal from "../ui/Modal";
 import { cn } from "@/lib/utils";
+import { ROUTES } from "@/lib/routes";
 
 export default function MainLayout() {
   const { t } = useTranslation();
@@ -25,13 +26,17 @@ export default function MainLayout() {
     return saved === "true";
   });
 
+  const ORG_PATHS: string[] = [ROUTES.MEMBERS, ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS];
+  const TIME_PATHS: string[] = [ROUTES.ATTENDANCE_LOGS, ROUTES.LEAVE_REQUESTS, ROUTES.ATTENDANCE_ADJUSTMENTS, ROUTES.REPORTS, ROUTES.LEAVE_BALANCES, ROUTES.SHIFT_SWAPS];
+  const PAYROLL_PATHS: string[] = [ROUTES.SHIFTS, ROUTES.PAYROLL];
+
   const getInitialOpenSections = () => {
     const path = location.pathname;
     return {
-      org: ["/members", "/employees", "/departments"].includes(path),
-      time: ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances", "/shift-swaps"].includes(path) || path === "/",
-      payroll: ["/shifts", "/payroll"].includes(path),
-      system: path.startsWith("/workspace/settings"),
+      org: ORG_PATHS.includes(path),
+      time: TIME_PATHS.includes(path) || path === ROUTES.HOME,
+      payroll: PAYROLL_PATHS.includes(path),
+      system: path.startsWith(ROUTES.SETTINGS.ROOT),
       ess: path.startsWith("/ess/"),
     };
   };
@@ -63,10 +68,10 @@ export default function MainLayout() {
 
   useEffect(() => {
     const path = location.pathname;
-    const isOrg = ["/members", "/employees", "/departments"].includes(path);
-    const isTime = ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances", "/shift-swaps"].includes(path);
-    const isPayroll = ["/shifts", "/payroll"].includes(path);
-    const isSystem = path.startsWith("/workspace/settings");
+    const isOrg = ORG_PATHS.includes(path);
+    const isTime = TIME_PATHS.includes(path);
+    const isPayroll = PAYROLL_PATHS.includes(path);
+    const isSystem = path.startsWith(ROUTES.SETTINGS.ROOT);
     const isEss = path.startsWith("/ess/");
 
     const timer = setTimeout(() => {

@@ -47,6 +47,7 @@ import {
   Palmtree
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ROUTES } from "@/lib/routes";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -61,52 +62,52 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
   const { t } = useTranslation();
   const location = useLocation();
 
-  const handleLogout = () => { localStorage.clear(); window.location.href = "/login"; };
+  const handleLogout = () => { localStorage.clear(); window.location.href = ROUTES.LOGIN; };
 
   const menuItems = [
-    { to: "/", icon: LayoutDashboard, label: t("common.dashboard"), exact: true, testId: "sidebar-link-dashboard" },
+    { to: ROUTES.HOME, icon: LayoutDashboard, label: t("common.dashboard"), exact: true, testId: "sidebar-link-dashboard" },
     {
       section: "org", sectionIcon: Folder, label: t("common.sections.organization"), testId: "sidebar-section-org", items: [
-        { to: "/employees", icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees" },
-        { to: "/departments", icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments" },
-        { to: "/members", icon: Users, label: t("members.title"), testId: "sidebar-link-members" }
+        { to: ROUTES.EMPLOYEES, icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees" },
+        { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments" },
+        { to: ROUTES.MEMBERS, icon: Users, label: t("members.title"), testId: "sidebar-link-members" }
       ]
     },
     {
       section: "time", sectionIcon: Timer, label: t("common.sections.time_leave"), testId: "sidebar-section-time", items: [
-        { to: "/attendance-logs", icon: CalendarCheck, label: t("attendance_logs.title"), testId: "sidebar-link-attendance-logs" },
-        { to: "/leave-requests", icon: Plane, label: t("leave_requests.title"), testId: "sidebar-link-leave-requests" },
-        { to: "/leave-balances", icon: Scale, label: t("common.leave_balances"), testId: "sidebar-link-leave-balances" },
-        { to: "/attendance-adjustments", icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments" },
-        { to: "/shift-swaps", icon: ArrowLeftRight, label: t("shift_swaps.title"), testId: "sidebar-link-shift-swaps" },
-        { to: "/reports", icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports" },
-        { to: "/approvals/ot", icon: CheckCircle, label: "OT Approvals", testId: "sidebar-link-approvals-ot" }
+        { to: ROUTES.ATTENDANCE_LOGS, icon: CalendarCheck, label: t("attendance_logs.title"), testId: "sidebar-link-attendance-logs" },
+        { to: ROUTES.LEAVE_REQUESTS, icon: Plane, label: t("leave_requests.title"), testId: "sidebar-link-leave-requests" },
+        { to: ROUTES.LEAVE_BALANCES, icon: Scale, label: t("common.leave_balances"), testId: "sidebar-link-leave-balances" },
+        { to: ROUTES.ATTENDANCE_ADJUSTMENTS, icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments" },
+        { to: ROUTES.SHIFT_SWAPS, icon: ArrowLeftRight, label: t("shift_swaps.title"), testId: "sidebar-link-shift-swaps" },
+        { to: ROUTES.REPORTS, icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports" },
+        { to: ROUTES.APPROVALS_OT, icon: CheckCircle, label: "OT Approvals", testId: "sidebar-link-approvals-ot" }
       ]
     },
     {
       section: "payroll", sectionIcon: Wallet, label: t("common.sections.payroll_shifts"), testId: "sidebar-section-payroll", items: [
-        { to: "/shifts", icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts" },
-        { to: "/payroll", icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll" }
+        { to: ROUTES.SHIFTS, icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts" },
+        { to: ROUTES.PAYROLL, icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll" }
       ]
     },
     {
       section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
-        { to: "/infra/monitor", icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor" },
-        { to: "/workspace/settings/general", icon: Globe, label: t("settings.categories.general"), testId: "sidebar-link-settings-general" },
-        { to: "/workspace/settings/people", icon: UserCog, label: t("settings.categories.people"), testId: "sidebar-link-settings-people" },
-        { to: "/workspace/settings/time", icon: TimerIcon, label: t("settings.categories.time"), testId: "sidebar-link-settings-time" },
-        { to: "/workspace/settings/payroll", icon: Banknote, label: t("settings.categories.payroll"), testId: "sidebar-link-settings-payroll" },
-        { to: "/workspace/settings/leave", icon: CalendarDays, label: t("settings.categories.leave"), testId: "sidebar-link-settings-leave" },
-        { to: "/workspace/settings/holidays", icon: Palmtree, label: "Holidays", testId: "sidebar-link-settings-holidays" },
-        { to: "/workspace/settings/connectivity", icon: Share2, label: t("settings.categories.connectivity"), testId: "sidebar-link-settings-connectivity" },
-        { to: "/workspace/settings/audit-logs", icon: ShieldCheck, label: "Audit Logs", testId: "sidebar-link-settings-audit-logs" }
+        { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor" },
+        { to: ROUTES.SETTINGS.GENERAL, icon: Globe, label: t("settings.categories.general"), testId: "sidebar-link-settings-general" },
+        { to: ROUTES.SETTINGS.PEOPLE, icon: UserCog, label: t("settings.categories.people"), testId: "sidebar-link-settings-people" },
+        { to: ROUTES.SETTINGS.TIME, icon: TimerIcon, label: t("settings.categories.time"), testId: "sidebar-link-settings-time" },
+        { to: ROUTES.SETTINGS.PAYROLL, icon: Banknote, label: t("settings.categories.payroll"), testId: "sidebar-link-settings-payroll" },
+        { to: ROUTES.SETTINGS.LEAVE, icon: CalendarDays, label: t("settings.categories.leave"), testId: "sidebar-link-settings-leave" },
+        { to: ROUTES.SETTINGS.HOLIDAYS, icon: Palmtree, label: "Holidays", testId: "sidebar-link-settings-holidays" },
+        { to: ROUTES.SETTINGS.CONNECTIVITY, icon: Share2, label: t("settings.categories.connectivity"), testId: "sidebar-link-settings-connectivity" },
+        { to: ROUTES.SETTINGS.AUDIT_LOGS, icon: ShieldCheck, label: "Audit Logs", testId: "sidebar-link-settings-audit-logs" }
       ]
     },
     {
       section: "ess", sectionIcon: User, label: t("common.sections.self_service"), testId: "sidebar-section-ess", items: [
-        { to: "/ess/profile", icon: UserCircle, label: t("ess.profile.title"), testId: "sidebar-link-ess-profile" },
-        { to: "/ess/attendance", icon: History, label: t("ess.attendance.title"), testId: "sidebar-link-ess-attendance" },
-        { to: "/ess/clock", icon: Clock, label: t("ess.clock.title"), testId: "sidebar-link-ess-clock" }
+        { to: ROUTES.ESS_PROFILE, icon: UserCircle, label: t("ess.profile.title"), testId: "sidebar-link-ess-profile" },
+        { to: ROUTES.ESS_ATTENDANCE, icon: History, label: t("ess.attendance.title"), testId: "sidebar-link-ess-attendance" },
+        { to: ROUTES.ESS_CLOCK, icon: Clock, label: t("ess.clock.title"), testId: "sidebar-link-ess-clock" }
       ]
     }
   ];

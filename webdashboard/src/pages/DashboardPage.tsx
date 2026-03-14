@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { ROUTES } from "@/lib/routes";
 import {
   Monitor,
   ShieldCheck,
@@ -294,7 +295,7 @@ export default function DashboardPage() {
                       <span className="text-primary-400 text-xs font-bold uppercase tracking-[0.3em] mb-6">{t("dashboard.hr.hr_management")}</span>
                       <h3 className="text-3xl sm:text-5xl font-bold mb-6 sm:mb-8 tracking-tighter leading-[1.1] uppercase">{t("dashboard.hr.hr_management_title")}</h3>
                       <p className="text-slate-500 dark:text-slate-400 mb-8 sm:mb-12 text-base sm:text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80">{t("dashboard.hr.hr_management_desc")}</p>
-                      <Link to="/employees" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-8 sm:px-10 py-3 sm:py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl hover:shadow-primary-500/20 active:scale-95">
+                      <Link to={ROUTES.EMPLOYEES} className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-8 sm:px-10 py-3 sm:py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl hover:shadow-primary-500/20 active:scale-95">
                         {t("dashboard.hr.hr_management_btn").toUpperCase()} <ArrowRight size={20} />
                       </Link>
                     </div>
@@ -306,7 +307,7 @@ export default function DashboardPage() {
                       <span className="text-primary-200 text-xs font-bold uppercase tracking-[0.3em] mb-6">{t("dashboard.hr.payroll")}</span>
                       <h3 className="text-3xl sm:text-5xl font-bold mb-6 sm:mb-8 tracking-tighter leading-[1.1] uppercase">{t("dashboard.hr.payroll_title")}</h3>
                       <p className="text-primary-100 mb-8 sm:mb-12 text-base sm:text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80">{t("dashboard.hr.payroll_desc")}</p>
-                      <Link to="/attendance-logs" className="bg-slate-900 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl shadow-black/20 active:scale-95">
+                      <Link to={ROUTES.ATTENDANCE_LOGS} className="bg-slate-900 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl shadow-black/20 active:scale-95">
                         {t("dashboard.hr.payroll_btn").toUpperCase()} <ArrowRight size={20} />
                       </Link>
                     </div>
@@ -368,7 +369,7 @@ export default function DashboardPage() {
                   <div className="relative z-10">
                     <h3 className="text-3xl sm:text-4xl font-bold mb-6 tracking-tighter uppercase leading-[1.1]">{t("dashboard.system.device_management")}</h3>
                     <p className="text-slate-500 dark:text-slate-400 mb-8 sm:mb-12 text-base sm:text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80">{t("dashboard.system.device_management_desc")}</p>
-                    <Link to="/devices" className="bg-primary-600 hover:bg-primary-50 dark:bg-primary-950 text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-block shadow-2xl shadow-primary-900/40 active:scale-95">
+                    <Link to={ROUTES.SETTINGS.CONNECTIVITY} className="bg-primary-600 hover:bg-primary-50 dark:bg-primary-950 text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-block shadow-2xl shadow-primary-900/40 active:scale-95">
                       {t("dashboard.system.device_management_btn").toUpperCase()}
                     </Link>
                   </div>

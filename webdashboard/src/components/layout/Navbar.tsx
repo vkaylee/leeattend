@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { Menu, ChevronRight as BreadcrumbSeparator, Bell, ChevronLeft, ChevronRight, Sun, Moon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ROUTES } from "@/lib/routes";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import type { ThemeMode } from "@/hooks/use-dark-mode";
@@ -22,15 +23,15 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
 
   const getPageName = (path: string) => {
     const map: Record<string, string> = {
-      "/": t("common.dashboard"), "/members": t("members.title"), "/employees": t("common.employees"), "/departments": t("common.departments"),
-      "/attendance-logs": t("common.logs"), "/leave-requests": t("leave_requests.title"),
-      "/leave-balances": t("common.leave_balances"), "/attendance-adjustments": t("common.attendance_confirm"), "/reports": t("common.reports"),
-      "/shifts": t("common.shifts"), "/payroll": t("payroll.title"),
-      "/agents": t("agents.title"), "/devices": t("common.devices"), "/workspace/settings": t("settings.title"), "/workspace/settings/general": t("settings.categories.general"),
-      "/workspace/settings/people": t("settings.categories.people"), "/workspace/settings/time": t("settings.categories.time"),
-      "/workspace/settings/payroll": t("settings.categories.payroll"), "/workspace/settings/connectivity": t("settings.categories.connectivity"),
-      "/profile": t("common.profile"), "/ess/profile": t("common.my_profile"), "/ess/attendance": t("ess.attendance.title"),
-      "/ess/clock": t("ess.clock.title"),
+      [ROUTES.HOME]: t("common.dashboard"), [ROUTES.MEMBERS]: t("members.title"), [ROUTES.EMPLOYEES]: t("common.employees"), [ROUTES.DEPARTMENTS]: t("common.departments"),
+      [ROUTES.ATTENDANCE_LOGS]: t("common.logs"), [ROUTES.LEAVE_REQUESTS]: t("leave_requests.title"),
+      [ROUTES.LEAVE_BALANCES]: t("common.leave_balances"), [ROUTES.ATTENDANCE_ADJUSTMENTS]: t("common.attendance_confirm"), [ROUTES.REPORTS]: t("common.reports"),
+      [ROUTES.SHIFTS]: t("common.shifts"), [ROUTES.PAYROLL]: t("payroll.title"),
+      [ROUTES.AGENTS]: t("agents.title"), [ROUTES.DEVICES]: t("common.devices"), [ROUTES.SETTINGS.ROOT]: t("settings.title"), [ROUTES.SETTINGS.GENERAL]: t("settings.categories.general"),
+      [ROUTES.SETTINGS.PEOPLE]: t("settings.categories.people"), [ROUTES.SETTINGS.TIME]: t("settings.categories.time"),
+      [ROUTES.SETTINGS.PAYROLL]: t("settings.categories.payroll"), [ROUTES.SETTINGS.CONNECTIVITY]: t("settings.categories.connectivity"),
+      [ROUTES.PROFILE]: t("common.profile"), [ROUTES.ESS_PROFILE]: t("common.my_profile"), [ROUTES.ESS_ATTENDANCE]: t("ess.attendance.title"),
+      [ROUTES.ESS_CLOCK]: t("ess.clock.title"),
     };
     return map[path] || path.split('/').pop()?.replace(/-/g, ' ') || "";
   };

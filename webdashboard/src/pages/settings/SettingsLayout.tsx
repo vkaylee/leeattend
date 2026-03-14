@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useTranslation } from "react-i18next";
 import {
   Settings2,
@@ -18,49 +19,49 @@ export default function SettingsLayout() {
 
   const navItems = [
     {
-      path: "/workspace/settings/general",
+      path: ROUTES.SETTINGS.GENERAL,
       label: t("settings.categories.general"),
       icon: <Settings2 className="w-4 h-4" />,
       description: t("settings.categories.general_desc")
     },
     {
-      path: "/workspace/settings/people",
+      path: ROUTES.SETTINGS.PEOPLE,
       label: t("settings.categories.people"),
       icon: <Users className="w-4 h-4" />,
       description: t("settings.categories.people_desc")
     },
     {
-      path: "/workspace/settings/time",
+      path: ROUTES.SETTINGS.TIME,
       label: t("settings.categories.time"),
       icon: <Clock className="w-4 h-4" />,
       description: t("settings.categories.time_desc")
     },
     {
-      path: "/workspace/settings/payroll",
+      path: ROUTES.SETTINGS.PAYROLL,
       label: t("settings.categories.payroll"),
       icon: <Banknote className="w-4 h-4" />,
       description: t("settings.categories.payroll_desc")
     },
     {
-      path: "/workspace/settings/leave",
+      path: ROUTES.SETTINGS.LEAVE,
       label: "Leave Management",
       icon: <CalendarDays className="w-4 h-4" />,
       description: "Manage leave types and policies"
     },
     {
-      path: "/workspace/settings/holidays",
+      path: ROUTES.SETTINGS.HOLIDAYS,
       label: "Holidays",
       icon: <Palmtree className="w-4 h-4" />,
       description: "Manage public holidays"
     },
     {
-      path: "/workspace/settings/connectivity",
+      path: ROUTES.SETTINGS.CONNECTIVITY,
       label: t("settings.categories.connectivity"),
       icon: <Cpu className="w-4 h-4" />,
       description: t("settings.categories.connectivity_desc")
     },
     {
-      path: "/workspace/settings/audit-logs",
+      path: ROUTES.SETTINGS.AUDIT_LOGS,
       label: "Audit Logs",
       icon: <ShieldCheck className="w-4 h-4" />,
       description: "View application security audit logs"
@@ -68,7 +69,7 @@ export default function SettingsLayout() {
   ];
 
   const isActive = (path: string) => {
-    if (path === "/workspace/settings/general" && location.pathname === "/workspace/settings") return true;
+    if (path === ROUTES.SETTINGS.GENERAL && location.pathname === ROUTES.SETTINGS.ROOT) return true;
     return location.pathname.startsWith(path);
   };
 
