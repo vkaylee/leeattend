@@ -27,6 +27,7 @@ async fn test_payroll_payslips() {
     let payslip = Payslip {
         id: Uuid::new_v4(),
         employee_id,
+        workspace_id: ws_id,
         period_start: Utc::now().date_naive(),
         period_end: Utc::now().date_naive(),
         base_pay_amount: Decimal::from_i32(4500).unwrap(),
@@ -66,6 +67,7 @@ async fn test_get_employee_payslips_api() {
     let payslip = Payslip {
         id: Uuid::new_v4(),
         employee_id: emp_id,
+        workspace_id: ws_id,
         period_start: Utc::now().date_naive(),
         period_end: Utc::now().date_naive(),
         base_pay_amount: Decimal::from_i32(1000).unwrap(),

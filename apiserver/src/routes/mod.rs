@@ -1,6 +1,7 @@
 pub mod dashboard;
 pub mod auth;
 pub mod employees;
+pub mod feature_flags;
 pub mod time_tracking;
 pub mod leaves;
 pub mod attendance;

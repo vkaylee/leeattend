@@ -27,6 +27,7 @@ pub use shifts::*;
 pub use workspaces::*;
 pub mod overtime;
 pub use overtime::*;
+pub mod feature_flags;
 pub mod holidays;
 pub mod leave_types;
 pub mod shift_swaps;

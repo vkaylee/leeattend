@@ -167,7 +167,8 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .merge(routes::reports::router(&state))
         .merge(routes::payroll::router())
         .merge(routes::shifts::router())
-        .merge(routes::ess::router());
+        .merge(routes::ess::router())
+        .merge(routes::feature_flags::router());
 
     #[cfg(debug_assertions)]
     {

@@ -113,6 +113,10 @@ pub enum Permission {
     RecruitmentRead,
     RecruitmentManage,
 
+    // ── Feature Flags ─────────────────────────────────
+    FeatureFlagsRead,
+    FeatureFlagsManage,
+
     // ── Infrastructure ─────────────────────────────────
     InfraMonitor,
 
@@ -196,6 +200,8 @@ impl Permission {
             "devices:manage" => Some(Self::DevicesManage),
             "recruitment:read" => Some(Self::RecruitmentRead),
             "recruitment:manage" => Some(Self::RecruitmentManage),
+            "feature_flags:read" => Some(Self::FeatureFlagsRead),
+            "feature_flags:manage" => Some(Self::FeatureFlagsManage),
             "infra:monitor" => Some(Self::InfraMonitor),
             "ess:profile" => Some(Self::EssProfile),
             "ess:attendance" => Some(Self::EssAttendance),
@@ -277,6 +283,8 @@ impl Permission {
             Self::DevicesManage => "devices:manage",
             Self::RecruitmentRead => "recruitment:read",
             Self::RecruitmentManage => "recruitment:manage",
+            Self::FeatureFlagsRead => "feature_flags:read",
+            Self::FeatureFlagsManage => "feature_flags:manage",
             Self::InfraMonitor => "infra:monitor",
             Self::EssProfile => "ess:profile",
             Self::EssAttendance => "ess:attendance",
@@ -398,6 +406,7 @@ fn base_permissions(role: MemberRole) -> HashSet<Permission> {
             PayrollComponentsManage,
             PayrollIncentivesManage,
             HolidaysManage,
+            FeatureFlagsRead,
             ReportsExport,
             RecruitmentRead,
             RecruitmentManage,
@@ -416,6 +425,7 @@ fn base_permissions(role: MemberRole) -> HashSet<Permission> {
             AgentsRead,
             AgentsManage,
             DevicesManage,
+            FeatureFlagsManage,
             InfraMonitor,
         ]),
 

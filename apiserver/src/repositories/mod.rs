@@ -26,6 +26,7 @@ pub mod attendance_adjustment_repository;
 pub mod department_repository;
 pub mod employee;
 pub use employee::{EmployeeRepository, SqlxEmployeeRepository};
+pub mod feature_flag_repository;
 pub mod holiday_repository;
 pub mod import_job_repository;
 pub mod leave_balance_repository;
