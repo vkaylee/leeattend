@@ -1,4 +1,5 @@
 import { Outlet, Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useTranslation } from "react-i18next";
 import { Activity, LogOut, ArrowLeft } from "lucide-react";
 
@@ -11,7 +12,7 @@ export default function InfraLayout() {
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = "/login";
+    window.location.href = ROUTES.LOGIN;
   };
 
   return (
@@ -20,7 +21,7 @@ export default function InfraLayout() {
       <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
-            to="/"
+            to={ROUTES.HOME}
             className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 transition-colors"
           >
             <ArrowLeft size={18} />

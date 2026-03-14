@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Navigate, Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import {
   register,
   setAccessToken,
@@ -20,7 +21,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ email: "", full_name: "", password: "", confirm_password: "" });
 
-  if (userId) return <Navigate to="/" replace />;
+  if (userId) return <Navigate to={ROUTES.HOME} replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(null);
@@ -30,7 +31,7 @@ export default function RegisterPage() {
     try {
       const response: AuthResponse = await register({ email: formData.email, password: formData.password, full_name: formData.full_name });
       setCurrentUserId(response.user.id); setAccessToken(response.access_token); setRefreshToken(response.refresh_token);
-      window.location.href = "/onboarding";
+      window.location.href = ROUTES.ONBOARDING;
     } catch (err: any) {
       setError(err.message || t("auth.registration_failed"));
     } finally { setIsLoading(false); }
@@ -83,7 +84,7 @@ export default function RegisterPage() {
 
           <div className="text-center pt-2">
             <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-60">{t("auth.already_have_account")} </span>
-            <Link to="/login" className="font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 text-[10px] uppercase tracking-widest transition-colors ml-1">{t("auth.login").toUpperCase()}</Link>
+            <Link to={ROUTES.LOGIN} className="font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 text-[10px] uppercase tracking-widest transition-colors ml-1">{t("auth.login").toUpperCase()}</Link>
           </div>
         </form>
       </div>

@@ -13,6 +13,11 @@ import Modal from "../ui/Modal";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/routes";
 
+// Stable module-level arrays for sidebar section matching
+const ORG_PATHS: string[] = [ROUTES.MEMBERS, ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS];
+const TIME_PATHS: string[] = [ROUTES.ATTENDANCE_LOGS, ROUTES.LEAVE_REQUESTS, ROUTES.ATTENDANCE_ADJUSTMENTS, ROUTES.REPORTS, ROUTES.LEAVE_BALANCES, ROUTES.SHIFT_SWAPS];
+const PAYROLL_PATHS: string[] = [ROUTES.SHIFTS, ROUTES.PAYROLL];
+
 export default function MainLayout() {
   const { t } = useTranslation();
   useTheme();
@@ -25,10 +30,6 @@ export default function MainLayout() {
     const saved = localStorage.getItem("sidebar-collapsed");
     return saved === "true";
   });
-
-  const ORG_PATHS: string[] = [ROUTES.MEMBERS, ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS];
-  const TIME_PATHS: string[] = [ROUTES.ATTENDANCE_LOGS, ROUTES.LEAVE_REQUESTS, ROUTES.ATTENDANCE_ADJUSTMENTS, ROUTES.REPORTS, ROUTES.LEAVE_BALANCES, ROUTES.SHIFT_SWAPS];
-  const PAYROLL_PATHS: string[] = [ROUTES.SHIFTS, ROUTES.PAYROLL];
 
   const getInitialOpenSections = () => {
     const path = location.pathname;

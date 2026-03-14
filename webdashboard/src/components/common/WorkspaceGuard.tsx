@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
 
@@ -64,7 +65,7 @@ export default function WorkspaceGuard() {
   }
 
   if (workspaces.length === 0) {
-    return <Navigate to="/onboarding" replace />;
+    return <Navigate to={ROUTES.ONBOARDING} replace />;
   }
 
   // Nếu chưa có activeWsId nhưng có workspaces, ta render Outlet kèm theo giá trị vừa set
@@ -73,7 +74,7 @@ export default function WorkspaceGuard() {
     activeWsId || (workspaces.length > 0 ? workspaces[0].id : null);
 
   if (!currentWsId) {
-    return <Navigate to="/onboarding" replace />;
+    return <Navigate to={ROUTES.ONBOARDING} replace />;
   }
 
   return <Outlet />;

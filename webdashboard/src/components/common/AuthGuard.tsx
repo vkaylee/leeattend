@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { getCurrentUserId, clearAuthSession } from "@/lib/api";
 import { useProfile } from "@/hooks/use-profile";
 
@@ -25,7 +26,7 @@ export default function AuthGuard() {
     if (isError) {
       console.log("[AuthGuard] Error detected, redirecting to login...");
       clearAuthSession();
-      window.location.href = "/login";
+      window.location.href = ROUTES.LOGIN;
     }
   }, [isError]);
 

@@ -60,11 +60,12 @@ export default function Modal({
           maxWidthMap[maxWidth],
           className
         )} 
+        style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header — fixed at top, never shrinks */}
         {(title || icon) && (
-          <div className="flex items-center justify-between p-8 border-b border-slate-50 dark:border-slate-800">
+          <div className="flex items-center justify-between p-8 border-b border-slate-50 dark:border-slate-800" style={{ flexShrink: 0 }}>
             <div className="flex items-center gap-4">
               {icon && (
                 <div className="bg-primary-50 dark:bg-primary-900/30 p-3 rounded-2xl text-primary-600 dark:text-primary-400">
@@ -93,7 +94,8 @@ export default function Modal({
           </div>
         )}
 
-        <div className="p-8">
+        {/* Body — scrollable area */}
+        <div className="p-8" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
           {children}
         </div>
       </div>

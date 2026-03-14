@@ -15,8 +15,7 @@ const DashboardPage = React.lazy(() => import("./pages/DashboardPage"));
 const EmployeesPage = React.lazy(() => import("./pages/EmployeesPage"));
 const DepartmentsPage = React.lazy(() => import("./pages/DepartmentsPage"));
 const MembersPage = React.lazy(() => import("./pages/MembersPage"));
-const AgentsPage = React.lazy(() => import("./pages/AgentsPage"));
-const DevicesPage = React.lazy(() => import("./pages/DevicesPage"));
+
 const AttendanceLogsPage = React.lazy(() => import("./pages/AttendanceLogsPage"));
 const LeaveRequestsPage = React.lazy(() => import("./pages/LeaveRequestsPage"));
 const LeaveBalancesPage = React.lazy(() => import("./pages/LeaveBalancesPage"));
@@ -75,8 +74,7 @@ export function AppRoutes() {
               <Route path="employees" element={<EmployeesPage />} />
               <Route path="departments" element={<DepartmentsPage />} />
               <Route path="members" element={<MembersPage />} />
-              <Route path="agents" element={<AgentsPage />} />
-              <Route path="devices" element={<DevicesPage />} />
+
               <Route path="attendance-logs" element={<AttendanceLogsPage />} />
               <Route path="leave-requests" element={<LeaveRequestsPage />} />
               <Route path="leave-balances" element={<LeaveBalancesPage />} />

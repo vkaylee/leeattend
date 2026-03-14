@@ -131,7 +131,7 @@
   }
   
   .modal-content {
-    @apply bg-white dark:bg-slate-900 w-full max-w-md rounded-[3rem] shadow-premium-2xl border border-white/60 dark:border-slate-700/60 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 overflow-hidden;
+    @apply bg-white dark:bg-slate-900 w-full max-w-md rounded-[3rem] shadow-premium-2xl border border-white/60 dark:border-slate-700/60 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500;
   }
 }
 

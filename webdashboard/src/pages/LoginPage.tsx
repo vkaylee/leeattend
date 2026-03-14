@@ -1,4 +1,5 @@
 import { useNavigate, Navigate, Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import { useTranslation } from "react-i18next";
 import { useProfile } from "@/hooks/use-profile";
 import {
@@ -23,13 +24,13 @@ export default function LoginPage() {
 
   const userId = getCurrentUserId();
 
-  if (userId) return <Navigate to="/" replace />;
+  if (userId) return <Navigate to={ROUTES.HOME} replace />;
 
   const performLogin = async (loginEmail: string, loginPass: string) => {
     setIsSubmitting(true); setError(null);
     try {
       await apiLogin(loginEmail, loginPass);
-      navigate("/", { replace: true });
+      navigate(ROUTES.HOME, { replace: true });
       window.location.reload();
     } catch (err: any) {
       setError(err.message || t("auth.login_error"));
@@ -106,7 +107,7 @@ export default function LoginPage() {
 
             <div className="text-center pt-2">
               <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-60">{t("auth.no_account")} </span>
-              <Link to="/register" className="font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 text-[10px] uppercase tracking-widest transition-colors ml-1">{t("auth.register_now").toUpperCase()}</Link>
+              <Link to={ROUTES.REGISTER} className="font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 text-[10px] uppercase tracking-widest transition-colors ml-1">{t("auth.register_now").toUpperCase()}</Link>
             </div>
           </form>
         </div>

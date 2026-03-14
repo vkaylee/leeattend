@@ -1,9 +1,12 @@
-import path from "path";
+import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, ConfigEnv } from "vite";
-import fs from "fs";
+import fs from "node:fs";
 import net from "node:net";
-import { IncomingMessage, ServerResponse } from "http"; // Correct types for proxy handlers
+import { fileURLToPath } from "node:url";
+import { IncomingMessage, ServerResponse } from "node:http";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function findAvailablePort(
   startPort: number,

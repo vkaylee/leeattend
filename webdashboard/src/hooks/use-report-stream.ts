@@ -14,6 +14,7 @@ import {
   clearAuthSession,
 } from "@/lib/api/helpers";
 import { API_BASE_URL } from "@/lib/api/config";
+import { ROUTES } from "@/lib/routes";
 
 interface UseReportStreamOptions {
   jobId: string | null;
@@ -222,8 +223,8 @@ export function useReportStream({
               // Refresh failed — session expired, redirect to login
               console.warn("[ReportStream] Session expired, redirecting to login");
               clearAuthSession();
-              if (window.location.pathname !== "/login") {
-                window.location.href = "/login";
+              if (window.location.pathname !== ROUTES.LOGIN) {
+                window.location.href = ROUTES.LOGIN;
               }
             }
           });

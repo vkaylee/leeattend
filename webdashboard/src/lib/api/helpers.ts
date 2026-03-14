@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./config";
+import { ROUTES } from "@/lib/routes";
 
 export function getAccessToken(): string | null {
   return localStorage.getItem("access_token");
@@ -169,8 +170,8 @@ export async function apiFetch(
       
       console.warn("Session expired (401). Redirecting to login...");
       clearAuthSession();
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+      if (window.location.pathname !== ROUTES.LOGIN) {
+        window.location.href = ROUTES.LOGIN;
       }
       throw new Error("Session expired");
     }
