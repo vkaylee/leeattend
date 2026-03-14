@@ -18,6 +18,9 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 if let Some(mw) = data.max_concurrent_workers {
                     let _ = hybrid_db.store().upsert_agent_config("max_concurrent_workers", &mw.to_string());
                 }
+                if let Some(sc) = data.success_cooldown_secs {
+                    let _ = hybrid_db.store().upsert_agent_config("success_cooldown_secs", &sc.to_string());
+                }
 
                 // 1. Capture current active state
                 let old_active_ids: std::collections::HashSet<String> = hybrid_db.store()
@@ -298,5 +301,55 @@ mod tests {
         let devices = hybrid_db.store().get_active_devices().unwrap();
         let dev = devices.iter().find(|d| d.id == "dev_pwd_push").unwrap();
         assert_eq!(dev.password.as_deref(), Some("98765"));
+    }
+
+    #[tokio::test]
+    async fn test_handle_config_push_with_success_cooldown_secs() {
+        let hybrid_db = setup_db();
+        let locks = setup_locks();
+        let (reload_tx, mut reload_rx) = mpsc::channel(1);
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        let time_sync = Arc::new(TimeSync::new());
+
+        // Config push includes success_cooldown_secs = 600
+        let config_json = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_cooldown", "name": "Cooldown Device", "ip": "10.0.0.1", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 3, "success_cooldown_secs": 600}}"#;
+        handle_incoming_text(config_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        // Verify the device was saved
+        let devices = hybrid_db.store().get_active_devices().unwrap();
+        let dev = devices.iter().find(|d| d.id == "dev_cooldown").unwrap();
+        assert_eq!(dev.name, "Cooldown Device");
+
+        // Verify reload signal was sent (config_push triggers a reload)
+        let reload = tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            reload_rx.recv(),
+        ).await;
+        assert!(reload.is_ok(), "Expected reload signal after config_push");
+    }
+
+    #[tokio::test]
+    async fn test_handle_config_push_without_success_cooldown_secs() {
+        let hybrid_db = setup_db();
+        let locks = setup_locks();
+        let (reload_tx, mut reload_rx) = mpsc::channel(1);
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        let time_sync = Arc::new(TimeSync::new());
+
+        // Config push without success_cooldown_secs (agent should use its local default)
+        let config_json = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_no_cd", "name": "No Cooldown Device", "ip": "10.0.0.2", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 2}}"#;
+        handle_incoming_text(config_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        // Device should still be saved even without cooldown field
+        let devices = hybrid_db.store().get_active_devices().unwrap();
+        let dev = devices.iter().find(|d| d.id == "dev_no_cd").unwrap();
+        assert_eq!(dev.name, "No Cooldown Device");
+
+        // Reload signal should still be sent
+        let reload = tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            reload_rx.recv(),
+        ).await;
+        assert!(reload.is_ok(), "Expected reload signal after config_push");
     }
 }

@@ -17,7 +17,8 @@ impl AgentService {
     pub async fn notify_config_update(&self, agent_id: &str) -> Result<(), String> {
         let devices = self.repo.find_devices_by_agent_id(agent_id).await?;
         let agent = self.repo.find_by_id(agent_id).await?;
-        let max_workers = agent.map(|a| a.max_concurrent_workers);
+        let max_workers = agent.as_ref().map(|a| a.max_concurrent_workers);
+        let cooldown = agent.as_ref().map(|a| a.success_cooldown_secs);
 
         let config_data = ConfigData {
             devices: devices
@@ -34,6 +35,7 @@ impl AgentService {
                 })
                 .collect(),
             max_concurrent_workers: max_workers,
+            success_cooldown_secs: cooldown,
         };
 
         self.manager
@@ -103,6 +105,7 @@ mod tests {
                     is_active: true,
                     workspace_id: Uuid::new_v4(),
                     max_concurrent_workers: 5,
+                    success_cooldown_secs: 300,
                 }))
             } else if id == "untrusted_agent" {
                 Ok(Some(AuthorizedAgent {
@@ -116,6 +119,7 @@ mod tests {
                     is_active: true,
                     workspace_id: Uuid::new_v4(),
                     max_concurrent_workers: 5,
+                    success_cooldown_secs: 300,
                 }))
             } else {
                 Ok(None)

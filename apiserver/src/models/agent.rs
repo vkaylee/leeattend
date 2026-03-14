@@ -33,6 +33,8 @@ pub struct AuthorizedAgent {
     pub workspace_id: Uuid,
     #[sqlx(default)]
     pub max_concurrent_workers: i32,
+    #[sqlx(default)]
+    pub success_cooldown_secs: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
@@ -42,6 +44,7 @@ pub struct UpdateAuthorizedAgentRequest {
     pub is_trusted: Option<bool>,
     pub is_active: Option<bool>,
     pub max_concurrent_workers: Option<i32>,
+    pub success_cooldown_secs: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
@@ -51,6 +54,7 @@ pub struct CreateAuthorizedAgentRequest {
     pub token: String,
     pub workspace_id: Option<Uuid>,
     pub max_concurrent_workers: Option<i32>,
+    pub success_cooldown_secs: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

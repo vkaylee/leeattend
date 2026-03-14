@@ -523,13 +523,14 @@ pub async fn create_authorized_agent(
     Json(req): Json<CreateAuthorizedAgentRequest>,
 ) -> AppResult<impl IntoResponse> {
     sqlx::query(
-        "INSERT INTO authorized_agents (id, name, token, workspace_id, max_concurrent_workers) VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO authorized_agents (id, name, token, workspace_id, max_concurrent_workers, success_cooldown_secs) VALUES ($1, $2, $3, $4, $5, $6)",
     )
     .bind(&req.id)
     .bind(&req.name)
     .bind(&req.token)
     .bind(workspace_id)
     .bind(req.max_concurrent_workers.unwrap_or(2))
+    .bind(req.success_cooldown_secs.unwrap_or(300))
     .execute(state.infra.db.api())
     .await?;
 
@@ -626,6 +627,14 @@ pub async fn update_authorized_agent(
         }
         query_builder.push("max_concurrent_workers = ");
         query_builder.push_bind(max_concurrent_workers);
+        has_fields_to_update = true;
+    }
+    if let Some(success_cooldown_secs) = req.success_cooldown_secs {
+        if has_fields_to_update {
+            query_builder.push(", ");
+        }
+        query_builder.push("success_cooldown_secs = ");
+        query_builder.push_bind(success_cooldown_secs);
         has_fields_to_update = true;
     }
 

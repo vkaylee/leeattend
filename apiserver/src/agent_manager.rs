@@ -24,6 +24,7 @@ pub struct DeviceConfigPush {
 pub struct ConfigData {
     pub devices: Vec<DeviceConfigPush>,
     pub max_concurrent_workers: Option<i32>,
+    pub success_cooldown_secs: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -404,6 +405,7 @@ mod tests {
             last_ip: None,
             created_at: Utc::now(),
             max_concurrent_workers: 5,
+            success_cooldown_secs: 300,
         }];
 
         let statuses = manager.get_all_agents_status(db_agents.clone()).await;
@@ -461,6 +463,7 @@ mod tests {
             last_ip: None,
             created_at: Utc::now(),
             max_concurrent_workers: 5,
+            success_cooldown_secs: 300,
         }];
 
         // The inner 500ms timeout in fetch_presence logic should trigger
@@ -540,5 +543,74 @@ mod tests {
             "Heartbeat with slow store took too long: {:?}",
             elapsed
         );
+    }
+
+    #[tokio::test]
+    async fn test_config_push_includes_success_cooldown_secs() {
+        let manager = AgentManager::new(None);
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let agent_id = "cooldown_agent".to_string();
+
+        manager.add_agent(agent_id.clone(), tx).await;
+
+        // Push config with default cooldown (300s)
+        let config_data = ConfigData {
+            devices: vec![],
+            max_concurrent_workers: Some(4),
+            success_cooldown_secs: Some(300),
+        };
+        manager
+            .push_message(&agent_id, CentralMessage::ConfigPush { data: config_data })
+            .await
+            .unwrap();
+
+        let msg = rx.recv().await.unwrap();
+        if let Message::Text(text) = msg {
+            let parsed: serde_json::Value = serde_json::from_str(&text).unwrap();
+            assert_eq!(parsed["type"], "config_push");
+            assert_eq!(parsed["data"]["success_cooldown_secs"], 300);
+            assert_eq!(parsed["data"]["max_concurrent_workers"], 4);
+        } else {
+            panic!("Expected text message");
+        }
+
+        // Push config with custom cooldown (600s)
+        let config_data2 = ConfigData {
+            devices: vec![],
+            max_concurrent_workers: None,
+            success_cooldown_secs: Some(600),
+        };
+        manager
+            .push_message(&agent_id, CentralMessage::ConfigPush { data: config_data2 })
+            .await
+            .unwrap();
+
+        let msg2 = rx.recv().await.unwrap();
+        if let Message::Text(text) = msg2 {
+            let parsed: serde_json::Value = serde_json::from_str(&text).unwrap();
+            assert_eq!(parsed["data"]["success_cooldown_secs"], 600);
+            assert!(parsed["data"]["max_concurrent_workers"].is_null());
+        } else {
+            panic!("Expected text message");
+        }
+
+        // Push config with no cooldown (None → omitted in JSON)
+        let config_data3 = ConfigData {
+            devices: vec![],
+            max_concurrent_workers: None,
+            success_cooldown_secs: None,
+        };
+        manager
+            .push_message(&agent_id, CentralMessage::ConfigPush { data: config_data3 })
+            .await
+            .unwrap();
+
+        let msg3 = rx.recv().await.unwrap();
+        if let Message::Text(text) = msg3 {
+            let parsed: serde_json::Value = serde_json::from_str(&text).unwrap();
+            assert!(parsed["data"]["success_cooldown_secs"].is_null());
+        } else {
+            panic!("Expected text message");
+        }
     }
 }
