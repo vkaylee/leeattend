@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
 use tokio::task::JoinHandle;
 use std::time::Instant;
 use std::collections::{HashMap, HashSet};
@@ -29,7 +29,7 @@ pub struct WorkerContext {
     pub log_tx: mpsc::Sender<(Arc<String>, models::AttendanceData)>,
     pub hybrid_db: HybridDatabase,
     pub semaphore: Arc<Semaphore>,
-    pub success_cooldown_secs: u64,
+    pub success_cooldown_secs: Arc<AtomicU64>,
     pub device_locks: DeviceLocks,
     pub time_sync: Arc<crate::time_sync::TimeSync>,
     pub connection_max_lifetime_secs: u64,
@@ -110,7 +110,7 @@ impl Orchestrator {
             log_tx: log_tx.clone(),
             hybrid_db: self.hybrid_db.clone(),
             semaphore: semaphore.clone(),
-            success_cooldown_secs: self.config.success_cooldown_secs,
+            success_cooldown_secs: Arc::new(AtomicU64::new(self.config.success_cooldown_secs)),
             device_locks: device_locks.clone(),
             time_sync: time_sync.clone(),
             connection_max_lifetime_secs: self.config.connection_max_lifetime_secs,
@@ -354,6 +354,14 @@ impl Orchestrator {
             *semaphore = Arc::new(Semaphore::new(*current_max_workers));
             worker_ctx.semaphore = semaphore.clone();
         }
+        // Check if success_cooldown_secs changed
+        if let Ok(Some(s)) = self.hybrid_db.store().get_agent_config("success_cooldown_secs")
+            && let Ok(new_val) = s.parse::<u64>()
+            && new_val != worker_ctx.success_cooldown_secs.load(Ordering::Relaxed)
+        {
+            let old_val = worker_ctx.success_cooldown_secs.swap(new_val, Ordering::Relaxed);
+            info!("⚡ Success Cooldown changed: {old_val}s -> {new_val}s (live-applied to all workers)");
+        }
 
         // Load new device list
         let new_devices = match self.hybrid_db.store().get_active_devices() {
@@ -446,7 +454,7 @@ pub fn spawn_worker(
     let log_tx = ctx.log_tx;
     let hybrid_db = ctx.hybrid_db;
     let sem = ctx.semaphore;
-    let success_cooldown_secs = ctx.success_cooldown_secs;
+    let success_cooldown = ctx.success_cooldown_secs;
     let device_locks = ctx.device_locks;
     let connection_max_lifetime = ctx.connection_max_lifetime_secs;
     let zk_legacy_checksum = ctx.zk_legacy_checksum;
@@ -543,11 +551,14 @@ pub fn spawn_worker(
             let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
             const SEEN_LOGS_CAP: usize = 50_000;
 
-            let mut polling_state = AdaptivePollingState::with_cooldown(success_cooldown_secs);
+            let mut polling_state = AdaptivePollingState::with_cooldown(success_cooldown.load(Ordering::Relaxed));
             let mut poll_count = 0;
             let mut proactive_cooldown = false;
 
             while !token.is_cancelled() {
+                // Sync live cooldown value (config pushes update the AtomicU64)
+                polling_state.set_cooldown(success_cooldown.load(Ordering::Relaxed));
+
                 // Check connection lifetime — force reconnect if exceeded
                 if connected_at.elapsed() >= Duration::from_secs(connection_max_lifetime) {
                     info!("[{}] Connection lifetime exceeded ({}s), reconnecting...",

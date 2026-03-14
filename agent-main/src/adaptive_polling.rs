@@ -73,6 +73,11 @@ impl AdaptivePollingState {
         self.current_interval_secs
     }
 
+    /// Update the cooldown value (e.g. from a live config change)
+    pub fn set_cooldown(&mut self, cooldown_secs: u64) {
+        self.success_cooldown_secs = cooldown_secs;
+    }
+
     /// Returns true if the current interval exceeds session-safe limit,
     /// meaning the caller should proactively disconnect before sleeping.
     pub fn needs_disconnect(&self) -> bool {
@@ -284,5 +289,115 @@ mod tests {
         }
 
         assert_eq!(state.interval(), 45, "Interval must cap at 45s, not higher");
+    }
+
+    // ── set_cooldown tests (live config propagation) ──
+
+    #[test]
+    fn test_set_cooldown_changes_next_success_interval() {
+        let mut state = AdaptivePollingState::with_cooldown(300);
+
+        // New data → uses original cooldown
+        state.update(true);
+        assert_eq!(state.interval(), 300);
+
+        // Change cooldown mid-flight
+        state.set_cooldown(120);
+
+        // Reset to base first (simulate reconnect)
+        state.current_interval_secs = BASE_POLL_INTERVAL_SECS;
+        state.consecutive_no_new_data = 0;
+
+        // Next new data → uses updated cooldown
+        state.update(true);
+        assert_eq!(state.interval(), 120);
+    }
+
+    #[test]
+    fn test_set_cooldown_takes_effect_immediately_on_next_update() {
+        let mut state = AdaptivePollingState::with_cooldown(300);
+
+        // Start polling — no data for a few polls
+        for _ in 0..5 {
+            state.update(false);
+        }
+        // Interval escalated: 5 → 10 → 20 → 40 → 40 (capped logic)
+        assert!(state.interval() > BASE_POLL_INTERVAL_SECS);
+
+        // Config push arrives: cooldown changes to 60s
+        state.set_cooldown(60);
+
+        // New data arrives — should use 60s, not 300s
+        let (interval, _) = state.update(true);
+        assert_eq!(interval, 60);
+        assert!(state.needs_disconnect()); // 60 > 45 (MAX_POLL_INTERVAL_SECS)
+    }
+
+    #[test]
+    fn test_set_cooldown_below_session_max_skips_disconnect() {
+        let mut state = AdaptivePollingState::with_cooldown(300);
+
+        // Shrink cooldown below session-safe limit
+        state.set_cooldown(30);
+        state.update(true);
+
+        // 30s < 45s → no disconnect needed
+        assert_eq!(state.interval(), 30);
+        assert!(!state.needs_disconnect());
+    }
+
+    #[test]
+    fn test_set_cooldown_does_not_affect_no_data_escalation() {
+        let mut state = AdaptivePollingState::with_cooldown(300);
+
+        // Change cooldown
+        state.set_cooldown(60);
+
+        // No-data escalation should still follow base → 2x progression,
+        // unaffected by cooldown value
+        state.update(false); // consecutive=1, interval=5
+        state.update(false); // consecutive=2, interval=5
+        state.update(false); // consecutive=3, interval=10
+        assert_eq!(state.interval(), 10);
+    }
+
+    /// Simulates the actual orchestrator→worker pattern:
+    /// Arc<AtomicU64> is shared, orchestrator writes, worker reads + set_cooldown
+    #[test]
+    fn test_atomic_shared_cooldown_pattern() {
+        use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
+
+        let shared_cooldown = Arc::new(AtomicU64::new(300));
+
+        // Worker creates polling state from the shared value
+        let mut polling_state = AdaptivePollingState::with_cooldown(
+            shared_cooldown.load(Ordering::Relaxed)
+        );
+
+        // Worker polls — new data uses 300s cooldown
+        polling_state.update(true);
+        assert_eq!(polling_state.interval(), 300);
+
+        // ── Orchestrator receives ConfigPush: cooldown → 120s ──
+        shared_cooldown.store(120, Ordering::Relaxed);
+
+        // Worker syncs at top of next poll iteration (simulates the loop)
+        polling_state.set_cooldown(shared_cooldown.load(Ordering::Relaxed));
+
+        // Reset to base (simulate reconnect after cooldown disconnect)
+        polling_state.current_interval_secs = BASE_POLL_INTERVAL_SECS;
+        polling_state.consecutive_no_new_data = 0;
+
+        // Next new-data event uses the updated 120s cooldown
+        polling_state.update(true);
+        assert_eq!(polling_state.interval(), 120);
+
+        // ── Orchestrator changes again: cooldown → 30s ──
+        shared_cooldown.store(30, Ordering::Relaxed);
+        polling_state.set_cooldown(shared_cooldown.load(Ordering::Relaxed));
+        polling_state.current_interval_secs = BASE_POLL_INTERVAL_SECS;
+        polling_state.update(true);
+        assert_eq!(polling_state.interval(), 30);
+        assert!(!polling_state.needs_disconnect()); // 30 < 45
     }
 }
