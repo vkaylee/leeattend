@@ -66,12 +66,21 @@ pub struct Device {
     pub ip: String,
     pub port: i32,
     pub brand: String,
+    #[sqlx(default)]
+    pub password: Option<String>,
+    #[sqlx(default)]
+    #[serde(default = "default_timezone")]
+    pub timezone: String,
     pub is_enabled: bool,
     pub last_status: String,
     pub created_at: DateTime<Utc>,
     pub workspace_id: Uuid,
     #[sqlx(default)]
     pub max_concurrent_workers: i32,
+}
+
+fn default_timezone() -> String {
+    "UTC".to_string()
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -81,6 +90,8 @@ pub struct CreateDeviceRequest {
     pub ip: String,
     pub port: Option<i32>,
     pub brand: Option<String>,
+    pub password: Option<String>,
+    pub timezone: Option<String>,
     pub workspace_id: Option<Uuid>,
     pub max_concurrent_workers: Option<i32>,
 }
@@ -91,5 +102,7 @@ pub struct UpdateDeviceRequest {
     pub ip: Option<String>,
     pub port: Option<i32>,
     pub brand: Option<String>,
+    pub password: Option<String>,
+    pub timezone: Option<String>,
     pub is_enabled: Option<bool>,
 }

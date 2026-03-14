@@ -1868,7 +1868,11 @@
       "ip_local": "Địa chỉ IP (Local)",
       "cancel": "Hủy bỏ",
       "save_device": "Lưu thiết bị",
-      "update_device": "Cập nhật"
+      "update_device": "Cập nhật",
+      "password": "Mật khẩu thiết bị",
+      "password_placeholder": "Để trống nếu không có",
+      "timezone": "Múi giờ",
+      "timezone_placeholder": "Chọn múi giờ..."
     },
     "table": {
       "device": "Thiết bị",

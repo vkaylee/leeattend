@@ -35,6 +35,8 @@ pub struct WorkerContext {
     pub connection_max_lifetime_secs: u64,
     /// Global legacy checksum override for ZK devices
     pub zk_legacy_checksum: Option<bool>,
+    /// Timeout (seconds) for ZK device connect + initial info fetch
+    pub zk_connect_timeout_secs: u64,
 }
 
 pub struct Orchestrator {
@@ -113,6 +115,7 @@ impl Orchestrator {
             time_sync: time_sync.clone(),
             connection_max_lifetime_secs: self.config.connection_max_lifetime_secs,
             zk_legacy_checksum: self.config.zk_legacy_checksum,
+            zk_connect_timeout_secs: self.config.zk_connect_timeout_secs,
         };
 
         // Initial device load
@@ -447,6 +450,7 @@ pub fn spawn_worker(
     let device_locks = ctx.device_locks;
     let connection_max_lifetime = ctx.connection_max_lifetime_secs;
     let zk_legacy_checksum = ctx.zk_legacy_checksum;
+    let zk_connect_timeout_secs = ctx.zk_connect_timeout_secs;
 
     tokio::spawn(async move {
         info!("[{}] Device Polling Loop started ({})", config.name, config.ip);
@@ -493,7 +497,7 @@ pub fn spawn_worker(
             } else {
                 // Apply global legacy checksum if set, otherwise use per-device config
                 let checksum = config.use_legacy_checksum.or(zk_legacy_checksum);
-                Box::new(zk_worker::ZkWorker::new(config.password, checksum))
+                Box::new(zk_worker::ZkWorker::new(config.password, checksum, zk_connect_timeout_secs))
             };
 
             info!("[{}] Worker ready (permit acquired).", config.name);

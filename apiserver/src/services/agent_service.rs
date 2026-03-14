@@ -28,6 +28,8 @@ impl AgentService {
                     ip: d.ip,
                     port: d.port,
                     brand: d.brand,
+                    password: d.password,
+                    timezone: Some(d.timezone),
                     is_enabled: d.is_enabled,
                 })
                 .collect(),

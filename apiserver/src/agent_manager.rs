@@ -15,6 +15,8 @@ pub struct DeviceConfigPush {
     pub ip: String,
     pub port: i32,
     pub brand: String,
+    pub password: Option<String>,
+    pub timezone: Option<String>,
     pub is_enabled: bool,
 }
 

@@ -1868,7 +1868,11 @@
       "ip_local": "本地 IP 地址",
       "cancel": "取消",
       "save_device": "保存设备",
-      "update_device": "更新"
+      "update_device": "更新",
+      "password": "设备密码",
+      "password_placeholder": "留空则无密码",
+      "timezone": "时区",
+      "timezone_placeholder": "选择时区..."
     },
     "table": {
       "device": "设备",

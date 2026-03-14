@@ -392,7 +392,7 @@ pub async fn create_device(
     let port = req.port.unwrap_or(4370);
 
     sqlx::query(
-        "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id, brand) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id, brand, password, timezone) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
     )
     .bind(id)
     .bind(&req.agent_id)
@@ -401,6 +401,8 @@ pub async fn create_device(
     .bind(port)
     .bind(workspace_id)
     .bind(req.brand.unwrap_or_else(|| "zkteco".to_string()))
+    .bind(&req.password)
+    .bind(req.timezone.unwrap_or_else(|| "UTC".to_string()))
     .execute(state.infra.db.api())
     .await?;
 
@@ -431,15 +433,19 @@ pub async fn update_device(
     let port = req.port.unwrap_or(current_device.port);
     let is_enabled = req.is_enabled.unwrap_or(current_device.is_enabled);
     let brand = req.brand.unwrap_or(current_device.brand);
+    let password = if req.password.is_some() { req.password } else { current_device.password };
+    let timezone = req.timezone.unwrap_or(current_device.timezone);
 
     sqlx::query(
-        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4, brand = $5 WHERE id = $6 AND workspace_id = $7",
+        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4, brand = $5, password = $6, timezone = $7 WHERE id = $8 AND workspace_id = $9",
     )
     .bind(name)
     .bind(ip)
     .bind(port)
     .bind(is_enabled)
     .bind(brand)
+    .bind(&password)
+    .bind(&timezone)
     .bind(id)
     .bind(workspace_id)
     .execute(state.infra.db.api())

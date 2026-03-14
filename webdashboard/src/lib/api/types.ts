@@ -36,6 +36,8 @@ export interface Device {
   port: number;
   is_enabled: boolean;
   brand: string;
+  password?: string;
+  timezone: string;
   last_status: string;
   created_at: string;
   workspace_id: string;

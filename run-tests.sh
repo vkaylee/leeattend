@@ -68,6 +68,8 @@ show_help() {
     echo -e "${BOLD}📜 LOG ACCESS:${NC}"
     echo -e "    ${GREEN}--logs${NC}             Dump all test logs from the persistent volume"
     echo -e "    ${GREEN}--tail-logs${NC}        Live-tail test logs from the volume"
+    echo -e "    ${GREEN}--dev-logs${NC}         Dump service logs (apiserver, agent-main, webdashboard)"
+    echo -e "    ${GREEN}--dev-logs=follow${NC}  Live-tail service logs"
     echo ""
     echo -e "${BOLD}════════════════════════════════════════ EXAMPLES ════════════════════════════════════════${NC}"
     echo ""
@@ -445,6 +447,7 @@ CACHE_STATS=false
 NO_CACHE=false
 SHOW_LOGS=false
 TAIL_LOGS=false
+DEV_LOGS=""
 SHARD_N=""
 SHARD_M=""
 
@@ -487,6 +490,8 @@ for arg in "$@"; do
             --no-cache) NO_CACHE=true;;
             --logs) SHOW_LOGS=true;;
             --tail-logs) TAIL_LOGS=true;;
+            --dev-logs) DEV_LOGS=dump;;
+            --dev-logs=follow) DEV_LOGS=follow;;
             --clean)
                 echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
                 dc down --volumes --remove-orphans
@@ -523,6 +528,27 @@ if [[ "$SHOW_LOGS" == "true" || "$TAIL_LOGS" == "true" ]]; then
         tail -f "$PROJECT_ROOT/.test_logs"/*.log </dev/null 2>/dev/null || echo "No logs found."
     else
         cat "$PROJECT_ROOT/.test_logs"/*.log </dev/null 2>/dev/null || echo "No logs found."
+    fi
+    exit 0
+fi
+
+# Handle dev service logs
+if [[ -n "$DEV_LOGS" ]]; then
+    _log_dir="$PROJECT_ROOT/logs"
+    if [[ ! -d "$_log_dir" ]] || ! ls "$_log_dir"/*.log &>/dev/null; then
+        echo -e "${YELLOW}No service logs found in ./logs/ — start the dev env first:${NC}"
+        echo "  ./run-tests.sh --docker=dev up -d"
+        exit 1
+    fi
+    if [[ "$DEV_LOGS" == "follow" ]]; then
+        echo -e "${BLUE}${BOLD}📜 Live-tailing service logs from ./logs/...${NC}"
+        tail -f "$_log_dir"/*.log </dev/null
+    else
+        echo -e "${BLUE}${BOLD}📜 Service logs from ./logs/:${NC}"
+        for f in "$_log_dir"/*.log; do
+            echo -e "\n${YELLOW}═══ $(basename "$f") ═══${NC}"
+            cat "$f"
+        done
     fi
     exit 0
 fi

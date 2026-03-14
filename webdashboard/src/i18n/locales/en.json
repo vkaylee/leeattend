@@ -1868,7 +1868,11 @@
       "ip_local": "Local IP Address",
       "cancel": "Cancel",
       "save_device": "Save Device",
-      "update_device": "Update"
+      "update_device": "Update",
+      "password": "Device Password",
+      "password_placeholder": "Leave blank if none",
+      "timezone": "Timezone",
+      "timezone_placeholder": "Select timezone..."
     },
     "table": {
       "device": "Device",

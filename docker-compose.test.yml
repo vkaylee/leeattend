@@ -112,6 +112,9 @@ services:
     environment:
       - CI=true                             # Tells tools to run in non-interactive mode
       - npm_config_cache=/workspace/.npm-cache
+    tmpfs:
+      - /workspace/webdashboard/test-results:size=128M   # Playwright output — disposable
+      - /workspace/webdashboard/playwright-report:size=64M
     volumes:
       - .:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules  # Persistent npm packages

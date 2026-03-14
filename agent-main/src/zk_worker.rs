@@ -36,10 +36,12 @@ pub struct ZkWorker {
     use_legacy_checksum: Option<bool>,
     /// Checksum mode detected/used during last successful connect.
     detected_checksum: Option<bool>,
+    /// Timeout (seconds) for connect + initial info fetch
+    connect_timeout_secs: u64,
 }
 
 impl ZkWorker {
-    pub fn new(password: Option<u32>, use_legacy_checksum: Option<bool>) -> Self {
+    pub fn new(password: Option<u32>, use_legacy_checksum: Option<bool>, connect_timeout_secs: u64) -> Self {
         Self {
             zk: Arc::new(Mutex::new(None)),
             ip: String::new(),
@@ -53,6 +55,7 @@ impl ZkWorker {
             password,
             use_legacy_checksum,
             detected_checksum: None,
+            connect_timeout_secs,
         }
     }
 }
@@ -101,7 +104,7 @@ impl Worker for ZkWorker {
             (zk, res, static_info)
         });
 
-        match tokio::time::timeout(Duration::from_secs(20), join_handle).await {
+        match tokio::time::timeout(Duration::from_secs(self.connect_timeout_secs), join_handle).await {
             Ok(Ok((zk_instance, Ok(_), static_info))) => {
                  // Capture detected checksum mode BEFORE moving ZK into mutex
                  let detected = zk_instance.use_legacy_checksum();
@@ -389,7 +392,7 @@ impl Worker for ZkWorker {
 
 impl Default for ZkWorker {
     fn default() -> Self {
-        Self::new(None, None)
+        Self::new(None, None, 60)
     }
 }
 
@@ -419,26 +422,26 @@ mod tests {
 
     #[test]
     fn test_zk_worker_new_no_password() {
-        let worker = ZkWorker::new(None, None);
+        let worker = ZkWorker::new(None, None, 60);
         assert!(worker.zk.lock().unwrap().is_none());
     }
 
     #[test]
     fn test_zk_worker_new_with_password() {
-        let worker = ZkWorker::new(Some(12345), None);
+        let worker = ZkWorker::new(Some(12345), None, 60);
         assert!(worker.zk.lock().unwrap().is_none()); // Not connected yet
     }
 
     #[test]
     fn test_zk_worker_new_with_legacy_checksum() {
-        let worker = ZkWorker::new(None, Some(true));
+        let worker = ZkWorker::new(None, Some(true), 60);
         assert!(worker.use_legacy_checksum == Some(true));
         assert!(worker.zk.lock().unwrap().is_none());
     }
 
     #[test]
     fn test_zk_worker_new_with_modern_checksum() {
-        let worker = ZkWorker::new(None, Some(false));
+        let worker = ZkWorker::new(None, Some(false), 60);
         assert!(worker.use_legacy_checksum == Some(false));
     }
 

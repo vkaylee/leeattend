@@ -86,7 +86,7 @@ export class ConnectivityPage extends BasePage {
     await this.page.getByTestId(`device-delete-${deviceId}`).click();
   }
 
-  async fillDeviceForm(data: { name?: string; ip?: string; port?: string }) {
+  async fillDeviceForm(data: { name?: string; ip?: string; port?: string; password?: string; timezone?: string }) {
     if (data.name) {
       await this.page.getByTestId('device-name-input').fill(data.name);
     }
@@ -95,6 +95,14 @@ export class ConnectivityPage extends BasePage {
     }
     if (data.port) {
       await this.page.getByTestId('device-port-input').fill(data.port);
+    }
+    if (data.password !== undefined) {
+      await this.page.getByTestId('device-password-input').fill(data.password);
+    }
+    if (data.timezone) {
+      // Timezone is a Combobox — click to open, then select the option
+      await this.page.getByTestId('device-timezone-select').click();
+      await this.page.getByRole('option', { name: data.timezone }).click();
     }
   }
 

@@ -23,6 +23,8 @@ pub struct Config {
     /// If set, skip ZK checksum auto-detect handshake (saves 5-10s per connect).
     /// `true` = legacy checksum, `false` = modern checksum, `None` = auto-detect.
     pub zk_legacy_checksum: Option<bool>,
+    /// Timeout (seconds) for ZK device connect + initial info fetch
+    pub zk_connect_timeout_secs: u64,
 }
 
 impl Config {
@@ -95,6 +97,11 @@ impl Config {
             _ => None, // Auto-detect (default)
         };
 
+        let zk_connect_timeout_secs = env::var("ZK_CONNECT_TIMEOUT_SECS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(60);
+
         if !fallbacks.is_empty() {
             warn!("⚠️  PHÁT HIỆN THIẾU CẤU HÌNH .ENV - SỬ DỤNG GIÁ TRỊ MẶC ĐỊNH:");
             for f in fallbacks {
@@ -117,6 +124,7 @@ impl Config {
             success_cooldown_secs,
             connection_max_lifetime_secs,
             zk_legacy_checksum,
+            zk_connect_timeout_secs,
         }
     }
 
@@ -146,6 +154,7 @@ impl Config {
             Some(false) => "forced modern",
             None => "auto-detect",
         });
+        info!("ZK Connect Timeout : {}s", self.zk_connect_timeout_secs);
         info!("------------------------------------------------------------");
         info!("🔄 RETRY & BACKOFF CONSTANTS");
         info!("------------------------------------------------------------");
@@ -182,6 +191,7 @@ mod tests {
             success_cooldown_secs: 300,
             connection_max_lifetime_secs: 1800,
             zk_legacy_checksum: None,
+            zk_connect_timeout_secs: 60,
         };
 
         assert_eq!(config.agent_id, "test-agent");
@@ -197,6 +207,7 @@ mod tests {
         assert_eq!(config.success_cooldown_secs, 300);
         assert_eq!(config.connection_max_lifetime_secs, 1800);
         assert_eq!(config.zk_legacy_checksum, None);
+        assert_eq!(config.zk_connect_timeout_secs, 60);
     }
 
     #[test]
@@ -218,6 +229,7 @@ mod tests {
             std::env::set_var("SUCCESS_COOLDOWN_SECS", "120");
             std::env::set_var("CONNECTION_MAX_LIFETIME_SECS", "900");
             std::env::set_var("ZK_LEGACY_CHECKSUM", "true");
+            std::env::set_var("ZK_CONNECT_TIMEOUT_SECS", "30");
         }
 
         let config = Config::load();
@@ -235,6 +247,7 @@ mod tests {
         assert_eq!(config.success_cooldown_secs, 120);
         assert_eq!(config.connection_max_lifetime_secs, 900);
         assert_eq!(config.zk_legacy_checksum, Some(true));
+        assert_eq!(config.zk_connect_timeout_secs, 30);
 
         // Cleanup
         unsafe {
@@ -251,6 +264,7 @@ mod tests {
             std::env::remove_var("SUCCESS_COOLDOWN_SECS");
             std::env::remove_var("CONNECTION_MAX_LIFETIME_SECS");
             std::env::remove_var("ZK_LEGACY_CHECKSUM");
+            std::env::remove_var("ZK_CONNECT_TIMEOUT_SECS");
         }
     }
 
@@ -319,6 +333,7 @@ mod tests {
             success_cooldown_secs: 300,
             connection_max_lifetime_secs: 1800,
             zk_legacy_checksum: None,
+            zk_connect_timeout_secs: 60,
         };
 
         // Should not panic

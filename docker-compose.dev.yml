@@ -47,7 +47,9 @@ services:
     image: localhost/leeattend_dev_apiserver
     build:
       target: dev
-    command: cargo watch -w src -w migrations -x 'sqlx migrate run' -x run
+    command: >-
+      sh -c 'mkdir -p /var/log/app &&
+      cargo watch -w src -w migrations -x "sqlx migrate run" -x run 2>&1 | tee -a /var/log/app/apiserver.log'
     environment:
       # --- Core ---
       - RUST_BACKTRACE=1
@@ -77,12 +79,15 @@ services:
       - cargo-registry:/usr/local/cargo/registry
       - target-cache:/app/target
       - ./apiserver/storage:/app/storage
+      - ./logs:/var/log/app
 
   agent-main:
     image: localhost/leeattend_dev_agent-main
     build:
       target: dev
-    command: cargo watch -w src -x run
+    command: >-
+      sh -c 'mkdir -p /var/log/app &&
+      cargo watch -w src -x run 2>&1 | tee -a /var/log/app/agent-main.log'
     depends_on:
       nginx:
         condition: service_started
@@ -106,16 +111,21 @@ services:
       - cargo-registry:/usr/local/cargo/registry
       - target-cache:/app/target
       - agent_dev_data:/app/data
+      - ./logs:/var/log/app
 
   webdashboard:
     image: localhost/leeattend_dev_webdashboard
     build:
       target: dev
+    command: >-
+      sh -c 'mkdir -p /var/log/app &&
+      npm run dev -- --host 0.0.0.0 2>&1 | tee -a /var/log/app/webdashboard.log'
     environment:
       - VITE_API_URL=http://apiserver:3000/api
     volumes:
       - ./webdashboard:/app
       - webdashboard-node-modules:/app/node_modules
+      - ./logs:/var/log/app
 
   nginx:
     image: docker.io/library/nginx:alpine

@@ -4,6 +4,7 @@ import { LoginPage } from './pom/LoginPage';
 import { Sidebar } from './pom/Sidebar';
 import { EmployeesPage } from './pom/EmployeesPage';
 import { ConnectivityPage } from './pom/ConnectivityPage';
+import { DevicesPage } from './pom/DevicesPage';
 import { setupApiMocks } from './mocks/api-intercept';
 
 export { expect };
@@ -14,6 +15,7 @@ type TestFixtures = {
   sidebar: Sidebar;
   employeesPage: EmployeesPage;
   connectivityPage: ConnectivityPage;
+  devicesPage: DevicesPage;
   authPage: LoginPage; 
   workerWebUrl: string; // Giữ lại property này để không gãy các test cũ đang import nó
 };
@@ -36,11 +38,22 @@ export const test = base.extend<TestFixtures>({
   connectivityPage: async ({ page }, use) => {
     await use(new ConnectivityPage(page));
   },
+  devicesPage: async ({ page }, use) => {
+    await use(new DevicesPage(page));
+  },
 
   // Fixture that automatically logs in
   authPage: async ({ page, loginPage }, use) => {
     await loginPage.goto();
-    await loginPage.fastLogin();
+    // fastLogin triggers window.location.reload() after the API call.
+    // We must wait for the reload to complete before the test proceeds,
+    // otherwise subsequent page.goto() calls race against the reload → net::ERR_ABORTED.
+    await Promise.all([
+      page.waitForEvent('load'),
+      loginPage.fastLogin(),
+    ]);
+    // Extra guard: wait for the app to settle after reload
+    await page.waitForLoadState('networkidle');
     await use(loginPage);
   },
   

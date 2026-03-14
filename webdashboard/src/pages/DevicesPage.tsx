@@ -16,7 +16,9 @@ import {
   Edit2,
   X,
   HardDrive,
-  Cpu as BrandIcon
+  Cpu as BrandIcon,
+  Lock,
+  Clock
 } from "lucide-react";
 import { useDevices } from "@/hooks/use-devices";
 import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
@@ -84,7 +86,7 @@ export default function DevicesPage() {
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any>(null);
-  const [newDevice, setNewDevice] = useState({ name: "", agent_id: "", ip: "", port: 4370, brand: "zkteco" });
+  const [newDevice, setNewDevice] = useState({ name: "", agent_id: "", ip: "", port: 4370, brand: "zkteco", password: "", timezone: "UTC" });
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   async function handleAdd(e: React.FormEvent) {
@@ -92,14 +94,14 @@ export default function DevicesPage() {
     try {
       await createDevice(newDevice);
       toast.success(t("devices.toast.add_success", { name: newDevice.name }));
-      setShowAddForm(false); setNewDevice({ name: "", agent_id: "", ip: "", port: 4370, brand: "zkteco" });
+      setShowAddForm(false); setNewDevice({ name: "", agent_id: "", ip: "", port: 4370, brand: "zkteco", password: "", timezone: "UTC" });
     } catch (e) { console.error(e); }
   }
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await updateDevice(editingDevice.id, { name: editingDevice.name, agent_id: editingDevice.agent_id, ip: editingDevice.ip, port: editingDevice.port, brand: editingDevice.brand, is_enabled: editingDevice.is_enabled });
+      await updateDevice(editingDevice.id, { name: editingDevice.name, agent_id: editingDevice.agent_id, ip: editingDevice.ip, port: editingDevice.port, brand: editingDevice.brand, is_enabled: editingDevice.is_enabled, password: editingDevice.password || undefined, timezone: editingDevice.timezone });
       toast.success(t("devices.toast.update_success", { name: editingDevice.name }));
       setEditingDevice(null);
     } catch (e) { console.error(e); }
@@ -130,7 +132,7 @@ export default function DevicesPage() {
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("devices.form.infrastructure")}</p>
           </div>
         </div>
-        <Button onClick={() => setShowAddForm(true)} icon={<Plus size={18} />}>{t("devices.add_btn").toUpperCase()}</Button>
+        <Button data-testid="add-device-btn" onClick={() => setShowAddForm(true)} icon={<Plus size={18} />}>{t("devices.add_btn").toUpperCase()}</Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -160,38 +162,65 @@ export default function DevicesPage() {
         ))}
       </div>
 
-      <Modal isOpen={showAddForm || !!editingDevice} onClose={() => { setShowAddForm(false); setEditingDevice(null); }} title={editingDevice ? t("devices.form.edit_device") : t("devices.form.new_device")} subtitle={t("devices.form.infrastructure")} icon={<Cpu size={24} />} maxWidth="lg">
+      <Modal isOpen={showAddForm || !!editingDevice} onClose={() => { setShowAddForm(false); setEditingDevice(null); }} title={editingDevice ? t("devices.form.edit_device") : t("devices.form.new_device")} subtitle={t("devices.form.infrastructure")} icon={<Cpu size={24} />} maxWidth="lg" testId={editingDevice ? "edit-device-form" : "add-device-form"}>
         <form onSubmit={editingDevice ? handleUpdate : handleAdd} className="space-y-8 pt-4 animate-in fade-in duration-500">
           <div className="space-y-3 px-1">
             <label className={LABEL_BASE}>{t("devices.form.clock_name")}</label>
-            <input required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" placeholder={t("devices.form.clock_name_placeholder")} value={editingDevice ? editingDevice.name : newDevice.name} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, name: e.target.value }) : setNewDevice({ ...newDevice, name: e.target.value })} />
+            <input data-testid="device-name-input" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" placeholder={t("devices.form.clock_name_placeholder")} value={editingDevice ? editingDevice.name : newDevice.name} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, name: e.target.value }) : setNewDevice({ ...newDevice, name: e.target.value })} />
           </div>
 
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
               <label className={LABEL_BASE}>{t("devices.form.managed_by")}</label>
-              <Combobox options={authorizedAgents.map((a) => ({ value: a.id, label: `${a.name} (${a.id})`, icon: <Server size={14} /> }))} value={editingDevice ? editingDevice.agent_id : newDevice.agent_id} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, agent_id: val }) : setNewDevice({ ...newDevice, agent_id: val })} placeholder={t("devices.form.select_agent")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
+              <Combobox data-testid="device-agent-select" options={authorizedAgents.map((a) => ({ value: a.id, label: `${a.name} (${a.id})`, icon: <Server size={14} /> }))} value={editingDevice ? editingDevice.agent_id : newDevice.agent_id} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, agent_id: val }) : setNewDevice({ ...newDevice, agent_id: val })} placeholder={t("devices.form.select_agent")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
             </div>
             <div className="space-y-3 px-1">
               <label className={LABEL_BASE}>{t("devices.form.brand")}</label>
-              <Combobox options={brandOptions} value={editingDevice ? editingDevice.brand : newDevice.brand} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, brand: val }) : setNewDevice({ ...newDevice, brand: val })} placeholder={t("devices.form.brand_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
+              <Combobox data-testid="device-brand-select" options={brandOptions} value={editingDevice ? editingDevice.brand : newDevice.brand} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, brand: val }) : setNewDevice({ ...newDevice, brand: val })} placeholder={t("devices.form.brand_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-8">
             <div className="col-span-2 space-y-3 px-1">
               <label className={LABEL_BASE}>{t("devices.form.ip_local")}</label>
-              <input required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-tight" placeholder="192.168.1.100" value={editingDevice ? editingDevice.ip : newDevice.ip} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, ip: e.target.value }) : setNewDevice({ ...newDevice, ip: e.target.value })} />
+              <input data-testid="device-ip-input" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-tight" placeholder="192.168.1.100" value={editingDevice ? editingDevice.ip : newDevice.ip} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, ip: e.target.value }) : setNewDevice({ ...newDevice, ip: e.target.value })} />
             </div>
             <div className="space-y-3 px-1">
               <label className={LABEL_BASE}>{t("devices.form.port")}</label>
-              <input type="number" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm text-center tracking-tighter" value={editingDevice ? editingDevice.port : newDevice.port} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, port: parseInt(e.target.value) }) : setNewDevice({ ...newDevice, port: parseInt(e.target.value) })} />
+              <input data-testid="device-port-input" type="number" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm text-center tracking-tighter" value={editingDevice ? editingDevice.port : newDevice.port} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, port: parseInt(e.target.value) }) : setNewDevice({ ...newDevice, port: parseInt(e.target.value) })} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-3 px-1">
+              <label className={LABEL_BASE}>{t("devices.form.password")}</label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input data-testid="device-password-input" type="password" className="w-full pl-11 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-tight" placeholder={t("devices.form.password_placeholder")} value={editingDevice ? (editingDevice.password || "") : newDevice.password} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, password: e.target.value }) : setNewDevice({ ...newDevice, password: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-3 px-1">
+              <label className={LABEL_BASE}>{t("devices.form.timezone")}</label>
+              <Combobox options={[
+                { value: "UTC", label: "UTC", icon: <Clock size={14} /> },
+                { value: "America/New_York", label: "America/New_York (EST)", icon: <Clock size={14} /> },
+                { value: "America/Chicago", label: "America/Chicago (CST)", icon: <Clock size={14} /> },
+                { value: "America/Denver", label: "America/Denver (MST)", icon: <Clock size={14} /> },
+                { value: "America/Los_Angeles", label: "America/Los_Angeles (PST)", icon: <Clock size={14} /> },
+                { value: "America/Sao_Paulo", label: "America/Sao_Paulo (BRT)", icon: <Clock size={14} /> },
+                { value: "Europe/London", label: "Europe/London (GMT)", icon: <Clock size={14} /> },
+                { value: "Europe/Berlin", label: "Europe/Berlin (CET)", icon: <Clock size={14} /> },
+                { value: "Asia/Tokyo", label: "Asia/Tokyo (JST)", icon: <Clock size={14} /> },
+                { value: "Asia/Shanghai", label: "Asia/Shanghai (CST)", icon: <Clock size={14} /> },
+                { value: "Asia/Ho_Chi_Minh", label: "Asia/Ho_Chi_Minh (ICT)", icon: <Clock size={14} /> },
+                { value: "Australia/Sydney", label: "Australia/Sydney (AEST)", icon: <Clock size={14} /> }
+              ]} value={editingDevice ? (editingDevice.timezone || "UTC") : newDevice.timezone} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, timezone: val }) : setNewDevice({ ...newDevice, timezone: val })} placeholder={t("devices.form.timezone_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" data-testid="device-timezone-select" />
             </div>
           </div>
 
           <div className="flex gap-4 pt-6">
-            <Button variant="outline" size="lg" className="flex-1" onClick={() => { setShowAddForm(false); setEditingDevice(null); }}>{t("devices.form.cancel").toUpperCase()}</Button>
-            <Button size="lg" type="submit" className="flex-1" icon={editingDevice ? <Edit2 size={18} /> : <Plus size={18} />}>
+            <Button data-testid="device-form-cancel" variant="outline" size="lg" className="flex-1" onClick={() => { setShowAddForm(false); setEditingDevice(null); }}>{t("devices.form.cancel").toUpperCase()}</Button>
+            <Button data-testid="device-form-submit" size="lg" type="submit" className="flex-1" icon={editingDevice ? <Edit2 size={18} /> : <Plus size={18} />}>
               {editingDevice ? t("devices.form.update_device").toUpperCase() : t("devices.form.save_device").toUpperCase()}
             </Button>
           </div>

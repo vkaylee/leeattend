@@ -26,6 +26,7 @@ const mockDevice: Device = {
   port: 4370,
   brand: "zkteco",
   is_enabled: true,
+  timezone: "UTC",
   last_status: "online",
   created_at: new Date().toISOString(),
   workspace_id: "ws-1",

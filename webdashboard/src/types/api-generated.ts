@@ -72,8 +72,10 @@ export interface components {
             /** Format: int32 */
             max_concurrent_workers?: number | null;
             name: string;
+            password?: string | null;
             /** Format: int32 */
             port?: number | null;
+            timezone?: string | null;
             /** Format: uuid */
             workspace_id?: string | null;
         };
@@ -90,8 +92,10 @@ export interface components {
             /** Format: int32 */
             max_concurrent_workers: number;
             name: string;
+            password?: string | null;
             /** Format: int32 */
             port: number;
+            timezone?: string;
             /** Format: uuid */
             workspace_id: string;
         };
@@ -123,8 +127,10 @@ export interface components {
             ip?: string | null;
             is_enabled?: boolean | null;
             name?: string | null;
+            password?: string | null;
             /** Format: int32 */
             port?: number | null;
+            timezone?: string | null;
         };
         WorkspaceStats: {
             /** Format: int64 */
