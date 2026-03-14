@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Share2, Server, HardDrive, AlertCircle, Cpu, Edit2, Lock, Clock } from "lucide-react";
+import { Plus, Share2, Server, HardDrive, AlertCircle, Cpu, Edit2, Lock } from "lucide-react";
 import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { cn } from "@/lib/utils";
@@ -463,30 +463,8 @@ export default function ConnectivityTopology() {
                 />
               </div>
             </div>
-            <div className="space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.timezone")}</label>
-              <Combobox
-                options={[
-                  { value: "UTC", label: "UTC", icon: <Clock size={14} /> },
-                  { value: "America/New_York", label: "America/New_York (EST)", icon: <Clock size={14} /> },
-                  { value: "America/Chicago", label: "America/Chicago (CST)", icon: <Clock size={14} /> },
-                  { value: "America/Denver", label: "America/Denver (MST)", icon: <Clock size={14} /> },
-                  { value: "America/Los_Angeles", label: "America/Los_Angeles (PST)", icon: <Clock size={14} /> },
-                  { value: "America/Sao_Paulo", label: "America/Sao_Paulo (BRT)", icon: <Clock size={14} /> },
-                  { value: "Europe/London", label: "Europe/London (GMT)", icon: <Clock size={14} /> },
-                  { value: "Europe/Berlin", label: "Europe/Berlin (CET)", icon: <Clock size={14} /> },
-                  { value: "Asia/Tokyo", label: "Asia/Tokyo (JST)", icon: <Clock size={14} /> },
-                  { value: "Asia/Shanghai", label: "Asia/Shanghai (CST)", icon: <Clock size={14} /> },
-                  { value: "Asia/Ho_Chi_Minh", label: "Asia/Ho_Chi_Minh (ICT)", icon: <Clock size={14} /> },
-                  { value: "Australia/Sydney", label: "Australia/Sydney (AEST)", icon: <Clock size={14} /> }
-                ]}
-                value={editingDevice ? (editingDevice.timezone || "UTC") : newDevice.timezone}
-                onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, timezone: val }) : setNewDevice({ ...newDevice, timezone: val })}
-                placeholder={t("devices.form.timezone_placeholder")}
-                className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
-                data-testid="device-timezone-select"
-              />
-            </div>
+            {/* Timezone field hidden from UI — workspace timezone is used for all log processing.
+               The timezone value defaults to "UTC" in the data model for backward compatibility. */}
           </div>
 
           <div className="flex gap-4 pt-6">
