@@ -443,6 +443,8 @@
         "name_placeholder": "Ex: Hanoi Office",
         "token_label": "Security Token",
         "token_placeholder": "Connection password",
+        "cooldown_label": "Cooldown (seconds)",
+        "cooldown_hint": "Wait time before the next attendance pull after a successful one",
         "messages": {
           "update_error": "Error updating Agent."
         }

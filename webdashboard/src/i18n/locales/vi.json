@@ -416,7 +416,9 @@
         "name_label": "Tên Chi nhánh / Vị trí",
         "name_placeholder": "Ví dụ: Văn phòng Hà Nội",
         "token_label": "Mã Token bảo mật",
-        "token_placeholder": "Mật mã kết nối"
+        "token_placeholder": "Mật mã kết nối",
+        "cooldown_label": "Thời gian chờ (giây)",
+        "cooldown_hint": "Thời gian chờ trước khi pull chấm công lần tiếp theo sau khi thành công"
       },
       "status": {
         "trusted": "Đã duyệt",

@@ -43,6 +43,7 @@ export const agentFactory = (
     is_trusted: true,
     is_active: true,
     max_concurrent_workers: 2,
+    success_cooldown_secs: 300,
     last_ip: "127.0.0.1",
     last_seen_at: new Date().toISOString(),
     created_at: new Date().toISOString(),

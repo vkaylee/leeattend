@@ -416,7 +416,9 @@
         "name_label": "分支机构/位置名称",
         "name_placeholder": "例：河内办公室",
         "token_label": "安全令牌",
-        "token_placeholder": "连接密码"
+        "token_placeholder": "连接密码",
+        "cooldown_label": "冷却时间（秒）",
+        "cooldown_hint": "成功拉取考勤后，等待多久再进行下一次拉取"
       },
       "status": {
         "trusted": "已批准",

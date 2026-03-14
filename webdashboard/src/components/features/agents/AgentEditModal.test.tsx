@@ -25,6 +25,7 @@ const mockAgent = agentFactory({
   name: "Test Agent",
   token: "secret123",
   max_concurrent_workers: 3,
+  success_cooldown_secs: 300,
 });
 
 describe("AgentEditModal", () => {
@@ -62,6 +63,7 @@ describe("AgentEditModal", () => {
     expect(await screen.findByDisplayValue("Test Agent")).toBeInTheDocument();
     expect(screen.getByDisplayValue("secret123")).toBeInTheDocument();
     expect(screen.getByDisplayValue("3")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("300")).toBeInTheDocument();
     expect(screen.getByText("TEST_001")).toBeInTheDocument();
   });
 
@@ -117,6 +119,7 @@ describe("AgentEditModal", () => {
           agent: expect.objectContaining({
             name: "New Name",
             max_concurrent_workers: 10,
+            success_cooldown_secs: 300,
           }),
         }),
       );
