@@ -30,6 +30,8 @@ async fn test_agent_commands_api() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri("/api/agents")
+                .header("X-User-Id", user_id.to_string())
+                .header("X-Workspace-Id", ws_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
         )
@@ -146,6 +148,8 @@ async fn test_get_agents_device_status() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri("/api/agents")
+                .header("X-User-Id", user_id.to_string())
+                .header("X-Workspace-Id", ws_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
         )
@@ -176,6 +180,8 @@ async fn test_get_agents_device_status() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri("/api/agents")
+                .header("X-User-Id", user_id.to_string())
+                .header("X-Workspace-Id", ws_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
         )

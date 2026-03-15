@@ -20,6 +20,8 @@ fn test_handle_config_push_with_brand() {
                 },
             ],
             max_concurrent_workers: None,
+            success_cooldown_secs: None,
+            retention_days: None,
         },
     };
 

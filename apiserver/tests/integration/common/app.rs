@@ -116,7 +116,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         },
         infra: apiserver::InfraState {
             db: apiserver::db_pool::DbPools::for_test(pool.clone()),
-            redis: None,
+            redis: if let Ok(url) = std::env::var("REDIS_URL") {
+                Some(apiserver::queue::RedisPool::new(&url).await.expect("Failed to create Redis pool for test"))
+            } else {
+                None
+            },
             roster_cache: None,
         },
     });
@@ -250,7 +254,11 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         },
         infra: apiserver::InfraState {
             db: apiserver::db_pool::DbPools::for_test(db_pool.clone()),
-            redis: None,
+            redis: if let Ok(url) = std::env::var("REDIS_URL") {
+                Some(apiserver::queue::RedisPool::new(&url).await.expect("Failed to create Redis pool for test factory"))
+            } else {
+                None
+            },
             roster_cache: None,
         },
     });

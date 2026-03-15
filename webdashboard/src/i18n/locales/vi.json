@@ -1752,6 +1752,13 @@
     "created_at": "Ngày tạo",
     "batches": "Lô",
     "no_jobs": "Không có tác vụ gần đây",
+    "job_distribution": "Phân bổ trạng thái công việc",
+    "no_data": "Không có dữ liệu",
+    "queue_empty": "Hàng đợi trống",
+    "queue_pressure": "Áp lực hàng đợi",
+    "total_pending": "Tổng số đang chờ",
+    "active_short": "Đang chạy",
+    "idle_short": "Rảnh",
     "charts": {
       "utilization": "Tỷ lệ sử dụng Worker",
       "utilization_desc": "Worker hoạt động vs nhàn rỗi",

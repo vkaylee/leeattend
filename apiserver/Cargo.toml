@@ -28,6 +28,7 @@ strum = "0.26"
 strum_macros = "0.26"
 sha2 = "0.10"
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+tokio-stream = { version = "0.1", features = ["time"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 rust_xlsxwriter = "0.79"
 base64 = "0.22.1"
@@ -46,7 +47,7 @@ unwrap_used = "deny"
 [dev-dependencies]
 http = "1.4.0"
 http-body-util = "0.1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 serial_test = "3.3.1"
 tempfile = "3.24.0"
 tokio-test = "0.4.5"

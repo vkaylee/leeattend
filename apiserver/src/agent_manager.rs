@@ -25,6 +25,7 @@ pub struct ConfigData {
     pub devices: Vec<DeviceConfigPush>,
     pub max_concurrent_workers: Option<i32>,
     pub success_cooldown_secs: Option<i32>,
+    pub retention_days: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -406,6 +407,7 @@ mod tests {
             created_at: Utc::now(),
             max_concurrent_workers: 5,
             success_cooldown_secs: 300,
+            retention_days: 365,
         }];
 
         let statuses = manager.get_all_agents_status(db_agents.clone()).await;
@@ -464,6 +466,7 @@ mod tests {
             created_at: Utc::now(),
             max_concurrent_workers: 5,
             success_cooldown_secs: 300,
+            retention_days: 365,
         }];
 
         // The inner 500ms timeout in fetch_presence logic should trigger
@@ -558,6 +561,7 @@ mod tests {
             devices: vec![],
             max_concurrent_workers: Some(4),
             success_cooldown_secs: Some(300),
+            retention_days: None,
         };
         manager
             .push_message(&agent_id, CentralMessage::ConfigPush { data: config_data })
@@ -579,6 +583,7 @@ mod tests {
             devices: vec![],
             max_concurrent_workers: None,
             success_cooldown_secs: Some(600),
+            retention_days: None,
         };
         manager
             .push_message(&agent_id, CentralMessage::ConfigPush { data: config_data2 })
@@ -599,6 +604,7 @@ mod tests {
             devices: vec![],
             max_concurrent_workers: None,
             success_cooldown_secs: None,
+            retention_days: None,
         };
         manager
             .push_message(&agent_id, CentralMessage::ConfigPush { data: config_data3 })

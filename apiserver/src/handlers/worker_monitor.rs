@@ -1,12 +1,21 @@
 //! Worker Monitoring API Handlers
 //!
 //! Provides real-time monitoring endpoints for distributed worker system.
+//! Includes both a one-shot REST endpoint and an SSE streaming endpoint.
 
-use axum::{extract::State, Json};
+use axum::{
+    extract::State,
+    response::sse::{Event, KeepAlive, Sse},
+    Json,
+};
 use chrono::{DateTime, TimeDelta, Utc};
+use futures_util::stream::Stream;
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 use std::sync::Arc;
+use std::time::Duration;
+use tokio_stream::StreamExt;
 use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
@@ -21,6 +30,9 @@ const QUEUE_LOW: &str = "worker:jobs:low";
 
 /// Workers not seen within this duration are considered stale and excluded.
 const STALE_THRESHOLD_SECS: i64 = 60;
+
+/// SSE push interval in seconds.
+const SSE_INTERVAL_SECS: u64 = 2;
 
 /// Worker status enum
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -55,12 +67,8 @@ pub struct MonitorOverviewResponse {
     pub recent_jobs: Vec<crate::queue::JobMetadata>,
 }
 
-/// Get combined monitor overview: stats + worker list in a single call.
-///
-/// Route: GET /monitor/overview
-pub async fn get_monitor_overview(
-    State(state): State<Arc<AppState>>,
-) -> AppResult<Json<MonitorOverviewResponse>> {
+/// Shared logic: fetch the full monitor overview from Redis.
+async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverviewResponse> {
     let redis = state
         .infra.redis
         .as_ref()
@@ -102,7 +110,7 @@ pub async fn get_monitor_overview(
     let queue = crate::queue::JobQueue::new(redis.clone());
     let recent_jobs = queue.list_recent_jobs(50).await.unwrap_or_else(|e| { tracing::warn!(error = %e, "Failed to list recent jobs"); vec![] });
 
-    Ok(Json(MonitorOverviewResponse {
+    Ok(MonitorOverviewResponse {
         pending_tasks,
         pending_high,
         pending_low,
@@ -113,7 +121,44 @@ pub async fn get_monitor_overview(
         failed_today,
         workers,
         recent_jobs,
-    }))
+    })
+}
+
+/// Get combined monitor overview: stats + worker list in a single call.
+///
+/// Route: GET /monitor/overview
+pub async fn get_monitor_overview(
+    State(state): State<Arc<AppState>>,
+) -> AppResult<Json<MonitorOverviewResponse>> {
+    Ok(Json(fetch_overview_data(&state).await?))
+}
+
+/// SSE stream: push monitor overview data every 2 seconds.
+///
+/// Route: GET /monitor/stream
+pub async fn monitor_stream_sse(
+    State(state): State<Arc<AppState>>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let interval = tokio::time::interval(Duration::from_secs(SSE_INTERVAL_SECS));
+    let stream = tokio_stream::wrappers::IntervalStream::new(interval);
+
+    let event_stream = stream
+        .map(move |_| state.clone())
+        .then(|state| async move {
+        match fetch_overview_data(&state).await {
+            Ok(data) => {
+                let json = serde_json::to_string(&data).unwrap_or_default();
+                Ok(Event::default().event("monitor-update").data(json))
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "SSE: failed to fetch monitor data");
+                let msg = format!("{{\"error\":\"{e}\"}}");
+                Ok(Event::default().event("monitor-error").data(msg))
+            }
+        }
+    });
+
+    Sse::new(event_stream).keep_alive(KeepAlive::default())
 }
 
 /// Helper to parse worker heartbeats from Redis strings and filter out stale ones.

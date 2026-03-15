@@ -125,7 +125,7 @@ describe("MembersPage", () => {
     if (!adminRow) throw new Error("Could not find Admin User row");
 
     // "Manage Roles" should be the button with the UserCog icon / role management title
-    const manageBtn = adminRow.querySelector('button[title*="Manage Roles"], button[title*="Quản lý quyền"') as HTMLButtonElement;
+    const manageBtn = adminRow.querySelector('button[title*="Manage Roles"], button[title*="Quản lý quyền"]') as HTMLButtonElement;
     if (!manageBtn) throw new Error("Could not find Manage Roles button in Admin User row");
 
     await user.click(manageBtn);

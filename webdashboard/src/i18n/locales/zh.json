@@ -1752,6 +1752,13 @@
     "created_at": "创建于",
     "batches": "批次",
     "no_jobs": "没有近期工作",
+    "job_distribution": "作业状态分布",
+    "no_data": "无可用数据",
+    "queue_empty": "队列为空",
+    "queue_pressure": "队列压力",
+    "total_pending": "待处理总数",
+    "active_short": "活跃",
+    "idle_short": "空闲",
     "charts": {
       "utilization": "Worker 利用率",
       "utilization_desc": "活跃与空闲工作进程",

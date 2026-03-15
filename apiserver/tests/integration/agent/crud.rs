@@ -34,7 +34,7 @@ async fn test_agent_crud_operations() {
 
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    // 2. Lấy Agent theo ID
+    // 2. Check initial retention_days (default 365)
     let response = client
         .get(format!("{address}/api/authorized-agents/{agent_id}"))
         .header(ws_header.0, ws_header.1.clone())
@@ -45,11 +45,12 @@ async fn test_agent_crud_operations() {
 
     assert_eq!(response.status(), StatusCode::OK);
     let fetched_agent: serde_json::Value = response.json().await.unwrap();
-    assert_eq!(fetched_agent["id"], agent_id);
+    assert_eq!(fetched_agent["retention_days"], 365);
 
-    // 3. Cập nhật Agent
+    // 3. Update Agent (including retention_days)
     let update_body = serde_json::json!({
-        "name": "Updated Name"
+        "name": "Updated Name",
+        "retention_days": 180
     });
 
     let response = client
@@ -63,7 +64,20 @@ async fn test_agent_crud_operations() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    // 4. Soft Delete
+    // 4. Verify updated retention_days
+    let response = client
+        .get(format!("{address}/api/authorized-agents/{agent_id}"))
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
+        .send()
+        .await
+        .unwrap();
+
+    let fetched_agent: serde_json::Value = response.json().await.unwrap();
+    assert_eq!(fetched_agent["name"], "Updated Name");
+    assert_eq!(fetched_agent["retention_days"], 180);
+
+    // 5. Soft Delete
     let response = client
         .delete(format!("{address}/api/authorized-agents/{agent_id}"))
         .header(ws_header.0, ws_header.1.clone())

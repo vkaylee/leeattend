@@ -38,6 +38,15 @@ services:
     tmpfs:
       - /var/lib/postgresql/data:size=3072M  # 3GB RAM disk for DB data
 
+  # --- Test Redis ---
+  test_redis:
+    image: docker.io/library/redis:7-alpine
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # --- API Server Test Container ---
   # Builds from Dockerfile "test" stage (includes cargo-chef pre-cooked deps, sqlx-cli, nextest).
   # Stays idle; run-tests.sh exec's cargo clippy / cargo nextest into it.
@@ -54,6 +63,7 @@ services:
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
+      - REDIS_URL=redis://test_redis:6379
       - CARGO_TARGET_DIR=/workspace/target  # Shared target across apiserver + agent
       - CARGO_BUILD_JOBS=4
       - SCCACHE_DIR=/workspace/.sccache     # Compile cache to avoid redundant recompilation

@@ -35,6 +35,38 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
+// Mock EventSource for SSE
+class MockEventSource {
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSED = 2;
+  readonly CONNECTING = 0;
+  readonly OPEN = 1;
+  readonly CLOSED = 2;
+
+  url: string;
+  readyState: number = 0;
+  onopen = null;
+  onmessage = null;
+  onerror = null;
+
+  constructor(url: string) {
+    this.url = url;
+  }
+
+  addEventListener = vi.fn();
+  removeEventListener = vi.fn();
+  close = vi.fn();
+  dispatchEvent = vi.fn();
+}
+
+global.EventSource = MockEventSource as any;
+
+// Mock window.confirm which is missing in happy-dom
+if (typeof window !== "undefined" && !window.confirm) {
+  window.confirm = vi.fn();
+}
+
 // Mock Combobox to be a simple select for existing tests to work
 
 vi.mock("@/components/ui/Combobox", () => ({

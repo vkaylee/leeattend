@@ -62,9 +62,9 @@ export interface components {
             max_concurrent_workers: number;
             name: string;
             /** Format: int32 */
-            success_cooldown_secs: number;
-            /** Format: int32 */
             retention_days: number;
+            /** Format: int32 */
+            success_cooldown_secs: number;
             token: string;
             /** Format: uuid */
             workspace_id: string;

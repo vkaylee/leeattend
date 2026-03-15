@@ -1752,6 +1752,13 @@
     "created_at": "Created",
     "batches": "Batches",
     "no_jobs": "No recent jobs",
+    "job_distribution": "Job Status Distribution",
+    "no_data": "No data available",
+    "queue_empty": "Queue is empty",
+    "queue_pressure": "Queue Pressure",
+    "total_pending": "Total Pending",
+    "active_short": "Active",
+    "idle_short": "Idle",
     "charts": {
       "utilization": "Worker Utilization",
       "utilization_desc": "Active vs idle workers",

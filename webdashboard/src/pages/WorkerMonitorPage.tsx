@@ -16,6 +16,7 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { useWorkerMonitor, MONITOR_REFETCH_INTERVAL_S } from "@/hooks/use-worker-monitor";
+import { useMonitorStream } from "@/hooks/use-monitor-stream";
 import { useWorkerUtilization, useQueuePressure, useJobStatusDistribution } from "@/hooks/use-monitor-charts";
 import WorkerUtilizationGauge from "@/components/features/monitor/WorkerUtilizationGauge";
 import QueuePressureChart from "@/components/features/monitor/QueuePressureChart";
@@ -26,6 +27,7 @@ import { formatDistanceToNow } from "date-fns";
 export default function WorkerMonitorPage() {
   const { t } = useTranslation();
   const { stats, workers, recentJobs, isLoading, isFetching, error, refetch } = useWorkerMonitor();
+  const { connected: sseConnected } = useMonitorStream();
   const utilization = useWorkerUtilization(stats);
   const queuePressure = useQueuePressure(stats);
   const jobDistribution = useJobStatusDistribution(recentJobs);

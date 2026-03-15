@@ -19,6 +19,7 @@ impl AgentService {
         let agent = self.repo.find_by_id(agent_id).await?;
         let max_workers = agent.as_ref().map(|a| a.max_concurrent_workers);
         let cooldown = agent.as_ref().map(|a| a.success_cooldown_secs);
+        let retention = agent.as_ref().map(|a| a.retention_days);
 
         let config_data = ConfigData {
             devices: devices
@@ -36,6 +37,7 @@ impl AgentService {
                 .collect(),
             max_concurrent_workers: max_workers,
             success_cooldown_secs: cooldown,
+            retention_days: retention,
         };
 
         self.manager
@@ -106,6 +108,7 @@ mod tests {
                     workspace_id: Uuid::new_v4(),
                     max_concurrent_workers: 5,
                     success_cooldown_secs: 300,
+                    retention_days: 365,
                 }))
             } else if id == "untrusted_agent" {
                 Ok(Some(AuthorizedAgent {
@@ -120,6 +123,7 @@ mod tests {
                     workspace_id: Uuid::new_v4(),
                     max_concurrent_workers: 5,
                     success_cooldown_secs: 300,
+                    retention_days: 365,
                 }))
             } else {
                 Ok(None)

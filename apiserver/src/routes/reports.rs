@@ -39,4 +39,9 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             "/monitor/overview",
             get(handlers::worker_monitor::get_monitor_overview),
         )
+        // Worker monitoring SSE stream
+        .route(
+            "/monitor/stream",
+            get(handlers::worker_monitor::monitor_stream_sse),
+        )
 }

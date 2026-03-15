@@ -398,7 +398,7 @@ run_integration() {
             need_web=true
         else
             # Integration tests cho API bắt buộc cần DB thật
-            services="test_db apiserver_test agent_test"
+            services="test_db test_redis apiserver_test agent_test"
             if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then 
                 services="$services web_test"
                 need_web=true

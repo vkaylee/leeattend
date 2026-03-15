@@ -1,0 +1,43 @@
+# ==============================================================================
+# LeeAttend Test Orchestration Policies
+# ==============================================================================
+
+[[rule]]
+toolName = "run_shell_command"
+commandPrefix = ["./run-tests.sh", "run-tests.sh", "/bin/bash ./run-tests.sh"]
+decision = "allow"
+priority = 100
+reason = "Allow executing the unified test orchestrator."
+
+[[rule]]
+toolName = "run_shell_command"
+commandRegex = ".*run-tests\\.sh.*"
+decision = "allow"
+priority = 100
+
+[[rule]]
+toolName = "run_shell_command"
+commandPrefix = ["rm -rf .test_logs/*.log"]
+decision = "allow"
+priority = 100
+reason = "Allow cleaning up stale logs to avoid ghost failures during summary."
+
+# ==============================================================================
+# Workflow Best Practices (Derived from Mar 15, 2026 Session)
+# ==============================================================================
+
+[metadata]
+last_updated = "2026-03-15"
+session_findings = """
+1. Test Management:
+   - Use `./run-tests.sh --all` for full suite.
+   - Run `rm -rf .test_logs/*.log` before tests if the summary shows outdated errors.
+
+2. Frontend (Webdashboard) Guidelines:
+   - ESLint: Always use `function` declarations for recursive calls within `useCallback` to support hoisting.
+   - Vitest: Ensure `EventSource` and `window.confirm` are mocked in `setup.tsx` for `happy-dom`.
+   - CSS: Verify brackets `[]` in query selectors to prevent `SyntaxError`.
+
+3. Backend Integration:
+   - Error 401 in `apiserver-int` Agent Management APIs usually relates to RBAC or missing session tokens in the integration suite.
+"""
