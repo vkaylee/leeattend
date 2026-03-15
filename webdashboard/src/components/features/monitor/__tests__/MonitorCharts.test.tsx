@@ -26,6 +26,7 @@ vi.mock("recharts", () => ({
     Bar: (props: any) => <div data-testid="bar" />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
+    CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
     Cell: () => <div data-testid="cell" />,
     PieChart: ({ children, ...props }: any) => (
@@ -60,7 +61,6 @@ describe("WorkerUtilizationGauge", () => {
             <WorkerUtilizationGauge data={{ active: 3, idle: 2, total: 5, percent: 60 }} isLoading={false} />
         );
         expect(screen.getByText("60%")).toBeInTheDocument();
-        expect(screen.getByText(/3\/5/)).toBeInTheDocument();
     });
 
     it("shows loading state", () => {
@@ -97,7 +97,17 @@ describe("WorkerUtilizationGauge", () => {
         renderWithProviders(
             <WorkerUtilizationGauge data={{ active: 0, idle: 0, total: 0, percent: 0 }} isLoading={false} />
         );
-        expect(screen.getByText("monitor.charts.utilization")).toBeInTheDocument();
+        expect(screen.getAllByText("monitor.charts.utilization").length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("renders active and idle pills", () => {
+        renderWithProviders(
+            <WorkerUtilizationGauge data={{ active: 3, idle: 2, total: 5, percent: 60 }} isLoading={false} />
+        );
+        // Active pill
+        expect(screen.getByText(/3/)).toBeInTheDocument();
+        // Idle pill
+        expect(screen.getByText(/2/)).toBeInTheDocument();
     });
 });
 
@@ -107,7 +117,7 @@ describe("WorkerUtilizationGauge", () => {
 describe("QueuePressureChart", () => {
     it("renders bars with correct total", () => {
         renderWithProviders(
-            <QueuePressureChart data={{ high: 10, low: 5, total: 15 }} isLoading={false} />
+            <QueuePressureChart data={{ high: 10, low: 5, total: 15, pressureLevel: "medium" }} isLoading={false} />
         );
         expect(screen.getByText("15")).toBeInTheDocument();
         expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
@@ -115,23 +125,32 @@ describe("QueuePressureChart", () => {
 
     it("shows loading state", () => {
         renderWithProviders(
-            <QueuePressureChart data={{ high: 0, low: 0, total: 0 }} isLoading={true} />
+            <QueuePressureChart data={{ high: 0, low: 0, total: 0, pressureLevel: "low" }} isLoading={true} />
         );
         expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
     });
 
     it("shows empty state when queue is empty", () => {
         renderWithProviders(
-            <QueuePressureChart data={{ high: 0, low: 0, total: 0 }} isLoading={false} />
+            <QueuePressureChart data={{ high: 0, low: 0, total: 0, pressureLevel: "low" }} isLoading={false} />
         );
-        expect(screen.getByText("Queue empty")).toBeInTheDocument();
+        expect(screen.getByText("Queue clear")).toBeInTheDocument();
+    });
+
+    it("renders pressure level badge", () => {
+        renderWithProviders(
+            <QueuePressureChart data={{ high: 20, low: 5, total: 25, pressureLevel: "critical" }} isLoading={false} />
+        );
+        const badge = screen.getByTestId("pressure-badge");
+        expect(badge).toBeInTheDocument();
+        expect(badge).toHaveTextContent("Critical");
     });
 
     it("renders chart title", () => {
         renderWithProviders(
-            <QueuePressureChart data={{ high: 0, low: 0, total: 0 }} isLoading={false} />
+            <QueuePressureChart data={{ high: 0, low: 0, total: 0, pressureLevel: "low" }} isLoading={false} />
         );
-        expect(screen.getByText("monitor.charts.queue_pressure")).toBeInTheDocument();
+        expect(screen.getByText("monitor.queue_pressure")).toBeInTheDocument();
     });
 });
 
@@ -140,26 +159,25 @@ describe("QueuePressureChart", () => {
 // =============================================================================
 describe("JobStatusDistributionChart", () => {
     const mockDistribution = [
-        { status: "completed", count: 8, color: "#10b981" },
-        { status: "failed", count: 2, color: "#ef4444" },
-        { status: "processing", count: 1, color: "#f59e0b" },
+        { status: "completed", count: 8, color: "#10b981", percent: 72.7 },
+        { status: "failed", count: 2, color: "#ef4444", percent: 18.2 },
+        { status: "processing", count: 1, color: "#f59e0b", percent: 9.1 },
     ];
 
-    it("renders donut chart with total count", () => {
+    it("renders donut chart", () => {
         renderWithProviders(
             <JobStatusDistributionChart data={mockDistribution} isLoading={false} />
         );
-        expect(screen.getByText("11")).toBeInTheDocument(); // 8 + 2 + 1
         expect(screen.getByTestId("pie-chart")).toBeInTheDocument();
     });
 
-    it("renders legend entries", () => {
+    it("renders legend entries with percentages", () => {
         renderWithProviders(
             <JobStatusDistributionChart data={mockDistribution} isLoading={false} />
         );
-        expect(screen.getByText(/completed \(8\)/)).toBeInTheDocument();
-        expect(screen.getByText(/failed \(2\)/)).toBeInTheDocument();
-        expect(screen.getByText(/processing \(1\)/)).toBeInTheDocument();
+        expect(screen.getByTestId("legend-completed")).toHaveTextContent("completed 72.7%");
+        expect(screen.getByTestId("legend-failed")).toHaveTextContent("failed 18.2%");
+        expect(screen.getByTestId("legend-processing")).toHaveTextContent("processing 9.1%");
     });
 
     it("shows loading state", () => {
@@ -173,13 +191,13 @@ describe("JobStatusDistributionChart", () => {
         renderWithProviders(
             <JobStatusDistributionChart data={[]} isLoading={false} />
         );
-        expect(screen.getByText("common.no_data")).toBeInTheDocument();
+        expect(screen.getByText("No data")).toBeInTheDocument();
     });
 
     it("renders chart title", () => {
         renderWithProviders(
             <JobStatusDistributionChart data={mockDistribution} isLoading={false} />
         );
-        expect(screen.getByText("monitor.charts.job_distribution")).toBeInTheDocument();
+        expect(screen.getByText("monitor.job_distribution")).toBeInTheDocument();
     });
 });

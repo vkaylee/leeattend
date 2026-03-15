@@ -8,16 +8,20 @@ export interface UtilizationData {
     percent: number;
 }
 
+export type PressureLevel = "low" | "medium" | "high" | "critical";
+
 export interface QueuePressureData {
     high: number;
     low: number;
     total: number;
+    pressureLevel: PressureLevel;
 }
 
 export interface JobStatusCount {
     status: string;
     count: number;
     color: string;
+    percent: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -36,10 +40,18 @@ export const useWorkerUtilization = (stats: WorkerMonitorStats | undefined): Uti
     }, [stats]);
 };
 
+function derivePressureLevel(total: number): PressureLevel {
+    if (total === 0) return "low";
+    if (total <= 5) return "medium";
+    if (total <= 15) return "high";
+    return "critical";
+}
+
 export const useQueuePressure = (stats: WorkerMonitorStats | undefined): QueuePressureData => {
     return useMemo(() => {
-        if (!stats) return { high: 0, low: 0, total: 0 };
-        return { high: stats.pending_high, low: stats.pending_low, total: stats.pending_high + stats.pending_low };
+        if (!stats) return { high: 0, low: 0, total: 0, pressureLevel: "low" as PressureLevel };
+        const total = stats.pending_high + stats.pending_low;
+        return { high: stats.pending_high, low: stats.pending_low, total, pressureLevel: derivePressureLevel(total) };
     }, [stats]);
 };
 
@@ -49,10 +61,12 @@ export const useJobStatusDistribution = (recentJobs: RecentJob[]): JobStatusCoun
         for (const job of recentJobs) {
             counts[job.status] = (counts[job.status] ?? 0) + 1;
         }
+        const totalJobs = recentJobs.length || 1;
         return Object.entries(counts).map(([status, count]) => ({
             status,
             count,
             color: STATUS_COLORS[status] ?? "#94a3b8",
+            percent: Math.round((count / totalJobs) * 100),
         }));
     }, [recentJobs]);
 };
