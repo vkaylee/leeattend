@@ -418,7 +418,9 @@
         "token_label": "Mã Token bảo mật",
         "token_placeholder": "Mật mã kết nối",
         "cooldown_label": "Thời gian chờ (giây)",
-        "cooldown_hint": "Thời gian chờ trước khi pull chấm công lần tiếp theo sau khi thành công"
+        "cooldown_hint": "Thời gian chờ trước khi pull chấm công lần tiếp theo sau khi thành công",
+        "retention_label": "Lưu trữ (ngày)",
+        "retention_hint": "Số ngày giữ lại bản ghi chấm công đã đồng bộ trước khi dọn dẹp"
       },
       "status": {
         "trusted": "Đã duyệt",

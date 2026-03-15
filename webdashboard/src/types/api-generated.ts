@@ -63,6 +63,8 @@ export interface components {
             name: string;
             /** Format: int32 */
             success_cooldown_secs: number;
+            /** Format: int32 */
+            retention_days: number;
             token: string;
             /** Format: uuid */
             workspace_id: string;

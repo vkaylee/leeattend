@@ -445,6 +445,8 @@
         "token_placeholder": "Connection password",
         "cooldown_label": "Cooldown (seconds)",
         "cooldown_hint": "Wait time before the next attendance pull after a successful one",
+        "retention_label": "Retention (days)",
+        "retention_hint": "How many days to keep synced attendance logs before cleanup",
         "messages": {
           "update_error": "Error updating Agent."
         }

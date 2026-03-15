@@ -418,7 +418,9 @@
         "token_label": "安全令牌",
         "token_placeholder": "连接密码",
         "cooldown_label": "冷却时间（秒）",
-        "cooldown_hint": "成功拉取考勤后，等待多久再进行下一次拉取"
+        "cooldown_hint": "成功拉取考勤后，等待多久再进行下一次拉取",
+        "retention_label": "保留天数",
+        "retention_hint": "同步考勤记录保留多少天后自动清理"
       },
       "status": {
         "trusted": "已批准",

@@ -25,6 +25,7 @@ pub struct ConfigData {
     pub devices: Vec<DeviceConfigPush>,
     pub max_concurrent_workers: Option<i32>,
     pub success_cooldown_secs: Option<i32>,
+    pub retention_days: Option<i32>,
 }
 
 // WebSocket / API Models

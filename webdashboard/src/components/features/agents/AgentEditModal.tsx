@@ -10,7 +10,8 @@ import {
   Power,
   Loader2,
   Cpu,
-  Timer
+  Timer,
+  Calendar
 } from "lucide-react";
 import { AuthorizedAgent } from "@/lib/api";
 import { useAuthorizedAgents } from "@/hooks/use-agents";
@@ -34,6 +35,7 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
   const [isActive, setIsActive] = useState(agent?.is_active ?? true);
   const [maxConcurrentWorkers, setMaxConcurrentWorkers] = useState(agent?.max_concurrent_workers || 2);
   const [successCooldownSecs, setSuccessCooldownSecs] = useState(agent?.success_cooldown_secs || 300);
+  const [retentionDays, setRetentionDays] = useState(agent?.retention_days || 365);
 
   if (!isOpen || !agent) return null;
 
@@ -48,7 +50,8 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
           is_trusted: isTrusted, 
           is_active: isActive,
           max_concurrent_workers: maxConcurrentWorkers,
-          success_cooldown_secs: successCooldownSecs
+          success_cooldown_secs: successCooldownSecs,
+          retention_days: retentionDays
         } 
       });
       onSave(updated || agent!); onClose();
@@ -111,7 +114,14 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
                   <Timer className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" />
                 </div>
               </div>
-              <div />
+              <div className="space-y-2 px-1">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.agents.edit_modal.retention_label")}</label>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 -mt-1">{t("common.agents.edit_modal.retention_hint")}</p>
+                <div className="relative group">
+                  <input type="number" min="1" max="3650" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all pr-12 font-mono font-bold text-sm text-slate-700 dark:text-slate-200" value={retentionDays} onChange={(e) => setRetentionDays(parseInt(e.target.value))} />
+                  <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" />
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6 pt-2">

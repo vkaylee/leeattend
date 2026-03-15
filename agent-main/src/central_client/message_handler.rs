@@ -14,12 +14,41 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
     if let Ok(msg) = serde_json::from_str::<CentralMessage>(text) {
         match msg {
             CentralMessage::ConfigPush { data } => {
-                info!("Received ConfigPush with {} devices", data.devices.len());
-                if let Some(mw) = data.max_concurrent_workers {
-                    let _ = hybrid_db.store().upsert_agent_config("max_concurrent_workers", &mw.to_string());
+                info!("📥 Received ConfigPush with {} devices", data.devices.len());
+
+                // Compare and log config changes
+                let store = hybrid_db.store();
+                let mut changes: Vec<String> = Vec::new();
+
+                if let Some(new_val) = data.max_concurrent_workers {
+                    let old = store.get_agent_config("max_concurrent_workers").unwrap_or(None);
+                    let new_str = new_val.to_string();
+                    if old.as_deref() != Some(&new_str) {
+                        let _ = store.upsert_agent_config("max_concurrent_workers", &new_str);
+                        changes.push(format!("max_concurrent_workers: {} → {}", old.as_deref().unwrap_or("(unset)"), new_str));
+                    }
                 }
-                if let Some(sc) = data.success_cooldown_secs {
-                    let _ = hybrid_db.store().upsert_agent_config("success_cooldown_secs", &sc.to_string());
+                if let Some(new_val) = data.success_cooldown_secs {
+                    let old = store.get_agent_config("success_cooldown_secs").unwrap_or(None);
+                    let new_str = new_val.to_string();
+                    if old.as_deref() != Some(&new_str) {
+                        let _ = store.upsert_agent_config("success_cooldown_secs", &new_str);
+                        changes.push(format!("success_cooldown_secs: {} → {}", old.as_deref().unwrap_or("(unset)"), new_str));
+                    }
+                }
+                if let Some(new_val) = data.retention_days {
+                    let old = store.get_agent_config("retention_days").unwrap_or(None);
+                    let new_str = new_val.to_string();
+                    if old.as_deref() != Some(&new_str) {
+                        let _ = store.upsert_agent_config("retention_days", &new_str);
+                        changes.push(format!("retention_days: {} → {}", old.as_deref().unwrap_or("(unset)"), new_str));
+                    }
+                }
+
+                if changes.is_empty() {
+                    info!("⚙️ Config received — no value changes detected");
+                } else {
+                    info!("⚙️ Config updated: {}", changes.join(", "));
                 }
 
                 // 1. Capture current active state
@@ -351,5 +380,148 @@ mod tests {
             reload_rx.recv(),
         ).await;
         assert!(reload.is_ok(), "Expected reload signal after config_push");
+    }
+
+    #[tokio::test]
+    async fn test_handle_config_push_with_retention_days() {
+        let hybrid_db = setup_db();
+        let locks = setup_locks();
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        let time_sync = Arc::new(TimeSync::new());
+
+        // Config push includes retention_days = 90
+        let config_json = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_ret", "name": "Retention Device", "ip": "10.0.0.3", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 2, "retention_days": 90}}"#;
+        handle_incoming_text(config_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        // Verify device was saved
+        let devices = hybrid_db.store().get_active_devices().unwrap();
+        let dev = devices.iter().find(|d| d.id == "dev_ret").unwrap();
+        assert_eq!(dev.name, "Retention Device");
+
+        // Verify retention_days was persisted to agent_config KV store
+        let stored = hybrid_db.store().get_agent_config("retention_days").unwrap();
+        assert_eq!(stored, Some("90".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_handle_config_push_without_retention_days() {
+        let hybrid_db = setup_db();
+        let locks = setup_locks();
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        let time_sync = Arc::new(TimeSync::new());
+
+        // Config push without retention_days field
+        let config_json = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_no_ret", "name": "No Retention Device", "ip": "10.0.0.4", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 2}}"#;
+        handle_incoming_text(config_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        // Device should still be saved
+        let devices = hybrid_db.store().get_active_devices().unwrap();
+        let dev = devices.iter().find(|d| d.id == "dev_no_ret").unwrap();
+        assert_eq!(dev.name, "No Retention Device");
+
+        // retention_days should NOT be in KV store (None sent = no write)
+        let stored = hybrid_db.store().get_agent_config("retention_days").unwrap();
+        assert_eq!(stored, None);
+    }
+
+    #[tokio::test]
+    async fn test_handle_config_push_retention_days_overwrite() {
+        let hybrid_db = setup_db();
+        let locks = setup_locks();
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        let time_sync = Arc::new(TimeSync::new());
+
+        // First push: retention_days = 180
+        let config_json_1 = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_ow", "name": "OW Device", "ip": "10.0.0.5", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 2, "retention_days": 180}}"#;
+        handle_incoming_text(config_json_1, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        let stored = hybrid_db.store().get_agent_config("retention_days").unwrap();
+        assert_eq!(stored, Some("180".to_string()));
+
+        // Second push: retention_days = 30 (should overwrite)
+        let config_json_2 = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_ow", "name": "OW Device", "ip": "10.0.0.5", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 2, "retention_days": 30}}"#;
+        handle_incoming_text(config_json_2, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        let stored = hybrid_db.store().get_agent_config("retention_days").unwrap();
+        assert_eq!(stored, Some("30".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_config_push_skips_unchanged_values() {
+        let hybrid_db = setup_db();
+        let locks = setup_locks();
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        let time_sync = Arc::new(TimeSync::new());
+
+        // First push: sets all three config values
+        let config_json = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_skip", "name": "Skip Device", "ip": "10.0.0.10", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 4, "success_cooldown_secs": 300, "retention_days": 60}}"#;
+        handle_incoming_text(config_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        // Verify all values were stored
+        assert_eq!(hybrid_db.store().get_agent_config("max_concurrent_workers").unwrap(), Some("4".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("success_cooldown_secs").unwrap(), Some("300".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("retention_days").unwrap(), Some("60".to_string()));
+
+        // Second push: exact same values — should not error, values stay the same
+        let config_json_2 = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_skip", "name": "Skip Device", "ip": "10.0.0.10", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 4, "success_cooldown_secs": 300, "retention_days": 60}}"#;
+        handle_incoming_text(config_json_2, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        // Values should remain unchanged
+        assert_eq!(hybrid_db.store().get_agent_config("max_concurrent_workers").unwrap(), Some("4".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("success_cooldown_secs").unwrap(), Some("300".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("retention_days").unwrap(), Some("60".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_config_push_partial_change() {
+        let hybrid_db = setup_db();
+        let locks = setup_locks();
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        let time_sync = Arc::new(TimeSync::new());
+
+        // First push: sets all three
+        let config_json_1 = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_partial", "name": "Partial Device", "ip": "10.0.0.11", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 3, "success_cooldown_secs": 120, "retention_days": 90}}"#;
+        handle_incoming_text(config_json_1, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        assert_eq!(hybrid_db.store().get_agent_config("max_concurrent_workers").unwrap(), Some("3".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("success_cooldown_secs").unwrap(), Some("120".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("retention_days").unwrap(), Some("90".to_string()));
+
+        // Second push: only retention_days changed (90 → 30), others same
+        let config_json_2 = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_partial", "name": "Partial Device", "ip": "10.0.0.11", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 3, "success_cooldown_secs": 120, "retention_days": 30}}"#;
+        handle_incoming_text(config_json_2, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        // Only retention_days should have changed
+        assert_eq!(hybrid_db.store().get_agent_config("max_concurrent_workers").unwrap(), Some("3".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("success_cooldown_secs").unwrap(), Some("120".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("retention_days").unwrap(), Some("30".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_config_push_first_time_sets_from_unset() {
+        let hybrid_db = setup_db();
+        let locks = setup_locks();
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        let time_sync = Arc::new(TimeSync::new());
+
+        // Verify nothing is set initially
+        assert_eq!(hybrid_db.store().get_agent_config("max_concurrent_workers").unwrap(), None);
+        assert_eq!(hybrid_db.store().get_agent_config("success_cooldown_secs").unwrap(), None);
+        assert_eq!(hybrid_db.store().get_agent_config("retention_days").unwrap(), None);
+
+        // First push: all values go from (unset) → set
+        let config_json = r#"{"type": "config_push", "data": {"devices": [{"device_id": "dev_first", "name": "First Device", "ip": "10.0.0.12", "port": 4370, "brand": "zkteco", "timezone": "UTC", "is_enabled": true}], "max_concurrent_workers": 8, "success_cooldown_secs": 600, "retention_days": 365}}"#;
+        handle_incoming_text(config_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+
+        // All values should now be set
+        assert_eq!(hybrid_db.store().get_agent_config("max_concurrent_workers").unwrap(), Some("8".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("success_cooldown_secs").unwrap(), Some("600".to_string()));
+        assert_eq!(hybrid_db.store().get_agent_config("retention_days").unwrap(), Some("365".to_string()));
     }
 }

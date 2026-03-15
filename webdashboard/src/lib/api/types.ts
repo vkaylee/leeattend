@@ -54,6 +54,7 @@ export interface AuthorizedAgent {
   is_active: boolean;
   max_concurrent_workers: number;
   success_cooldown_secs: number;
+  retention_days: number;
   workspace_id: string;
 }
 

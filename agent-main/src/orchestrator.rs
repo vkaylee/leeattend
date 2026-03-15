@@ -240,8 +240,6 @@ impl Orchestrator {
         let cleanup_hybrid = self.hybrid_db.clone();
         let cleanup_cancel = self.cancel_token.clone();
         tokio::spawn(async move {
-            info!("🧹 Disk Cleanup Worker started (365-day retention)");
-
             let disk_cleanup_interval = Duration::from_secs(86400);
             let mut disk_cleanup_timer = tokio::time::interval(disk_cleanup_interval);
 
@@ -250,11 +248,20 @@ impl Orchestrator {
             loop {
                 tokio::select! {
                     _ = disk_cleanup_timer.tick() => {
+                        let retention_days = cleanup_hybrid.store()
+                            .get_agent_config("retention_days")
+                            .ok()
+                            .flatten()
+                            .and_then(|s| s.parse::<i64>().ok())
+                            .unwrap_or(365);
+
+                        info!("🧹 Disk Cleanup running ({retention_days}-day retention)");
+
                         let cleanup_hybrid_clone = cleanup_hybrid.clone();
-                        match tokio::task::spawn_blocking(move || cleanup_hybrid_clone.store().cleanup_old_synced_logs(365)).await.unwrap_or(Err(crate::redb_store::StoreError::Internal("Task paniced".into()))) {
+                        match tokio::task::spawn_blocking(move || cleanup_hybrid_clone.store().cleanup_old_synced_logs(retention_days)).await.unwrap_or(Err(crate::redb_store::StoreError::Internal("Task paniced".into()))) {
                             Ok(deleted) => {
                                 if deleted > 0 {
-                                    info!("🧹 Disk cleanup: removed {deleted} old synced logs (>365 days)");
+                                    info!("🧹 Disk cleanup: removed {deleted} old synced logs (>{retention_days} days)");
                                 }
                             }
                             Err(e) => {
