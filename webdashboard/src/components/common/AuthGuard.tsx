@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
 import { getCurrentUserId, clearAuthSession } from "@/lib/api";
 import { useProfile } from "@/hooks/use-profile";
@@ -12,6 +12,7 @@ import { useProfile } from "@/hooks/use-profile";
  */
 export default function AuthGuard() {
   const { t } = useTranslation();
+  const location = useLocation();
   const userId = getCurrentUserId();
   const { user, isLoading, isError } = useProfile();
 
@@ -20,13 +21,13 @@ export default function AuthGuard() {
     hasUser: !!user,
     isLoading,
     isError,
+    path: location.pathname
   });
 
   useEffect(() => {
     if (isError) {
-      console.log("[AuthGuard] Error detected, redirecting to login...");
+      console.log("[AuthGuard] Error detected, cleaning session...");
       clearAuthSession();
-      window.location.href = ROUTES.LOGIN;
     }
   }, [isError]);
 
@@ -42,19 +43,10 @@ export default function AuthGuard() {
   }
 
   if (isError || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm animate-pulse">
-            {isError
-              ? t("auth.session_expired")
-              : t("auth.user_not_found")}
-          </p>
-        </div>
-      </div>
-    );
+    // Chuyển hướng sang login kèm theo state "from" để quay lại sau
+    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
   }
 
   return <Outlet />;
 }
+

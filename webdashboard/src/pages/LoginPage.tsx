@@ -1,4 +1,4 @@
-import { useNavigate, Navigate, Link } from "react-router-dom";
+import { useNavigate, Navigate, Link, useLocation } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
 import { useTranslation } from "react-i18next";
 import { useProfile } from "@/hooks/use-profile";
@@ -17,21 +17,25 @@ import { LABEL_BASE } from "@/components/ui/FormField";
 export default function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Lấy trang trước đó từ location state, mặc định là Home
+  const from = location.state?.from?.pathname || ROUTES.HOME;
+
   const userId = getCurrentUserId();
 
-  if (userId) return <Navigate to={ROUTES.HOME} replace />;
+  if (userId) return <Navigate to={from} replace />;
 
   const performLogin = async (loginEmail: string, loginPass: string) => {
     setIsSubmitting(true); setError(null);
     try {
       await apiLogin(loginEmail, loginPass);
-      navigate(ROUTES.HOME, { replace: true });
-      window.location.reload();
+      // Điều hướng về trang trước đó hoặc Dashboard
+      navigate(from, { replace: true });
     } catch (err: any) {
       setError(err.message || t("auth.login_error"));
     } finally { setIsSubmitting(false); }

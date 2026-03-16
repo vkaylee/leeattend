@@ -7,10 +7,13 @@ export class ConnectivityPage extends BasePage {
   }
 
   async goto() {
-    await super.goto('/workspace/settings/connectivity');
+    await this.page.goto('/workspace/settings/connectivity');
+    await this.page.waitForURL('**/settings/connectivity', { timeout: 30000 });
+    await this.waitForLoad();
   }
 
   async waitForLoad() {
+    console.log(`[ConnectivityPage] Waiting for load at: ${this.page.url()}`);
     await expect(this.page.getByTestId('connectivity-topology')).toBeVisible({ timeout: 30000 });
   }
 

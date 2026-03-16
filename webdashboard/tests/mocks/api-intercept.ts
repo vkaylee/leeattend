@@ -11,7 +11,7 @@ export async function setupApiMocks(page: Page) {
   devices = structuredClone(MOCK_DEVICES_INITIAL);
   nextDeviceId = 100;
 
-  // Chỉ chặn các request thực sự gọi đến Backend API
+  // Chặn các request gọi đến Backend API (/api/...)
   // Loại trừ các file tĩnh (.ts, .js, .css, .jsx, .tsx) của Vite
   await page.route(url => url.pathname.startsWith('/api/') && !url.pathname.match(/\.(ts|js|css|jsx|tsx)$/), async (route) => {
     const url = route.request().url();
@@ -20,106 +20,204 @@ export async function setupApiMocks(page: Page) {
 
     console.log(`[MOCK API] Intercepted API Call: ${method} ${pathname}`);
 
-    // 1. Auth & Profile
-    if (pathname.match(/\/api\/auth\/profile/) || pathname.match(/\/api\/me/)) {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_USER) });
-    }
-
-    if (pathname.match(/\/api\/debug\/login/) || pathname.match(/\/api\/auth\/login/)) {
+    const fulfill = async (data: any, status = 200) => {
+      console.log(`[MOCK API] Fulfilling ${method} ${pathname} with status ${status}`);
       return route.fulfill({
-        status: 200, contentType: 'application/json', body: JSON.stringify({
-          access_token: "mock-access-token",
-          refresh_token: "mock-refresh-token",
-          user: MOCK_USER
-        })
+        status,
+        contentType: 'application/json',
+        body: JSON.stringify(data)
       });
+    };
+
+    // 1. Health check
+    if (pathname === '/api/health') {
+      return fulfill({ status: "ok" });
     }
 
-    // 2. Workspaces
-    if (pathname.match(/\/api\/workspaces/)) {
-      if (method === 'GET' && (pathname === '/api/workspaces' || pathname === '/api/workspaces/')) {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([MOCK_WORKSPACE]) });
+    // 2. Auth & Profile
+    if (pathname.match(/\/api\/me(\/|$)/) || pathname.match(/\/api\/auth\/profile/)) {
+      if (pathname.includes('/permissions')) {
+        return fulfill({
+          permissions: ["workspace.admin", "devices.manage", "agents.manage"],
+          roles: ["Admin"],
+          managed_department_ids: null
+        });
       }
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_WORKSPACE) });
+      return fulfill(MOCK_USER);
     }
 
-    // 3. Employees
-    if (pathname.match(/\/api\/employees/)) {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          data: MOCK_EMPLOYEES,
-          pagination: { total_count: MOCK_EMPLOYEES.length, page: 1, page_size: 50, total_pages: 1 }
-        })
+    if (pathname.match(/\/api\/auth\/login/) || pathname.match(/\/api\/debug\/login/)) {
+      return fulfill({
+        access_token: "mock-access-token",
+        refresh_token: "mock-refresh-token",
+        user: MOCK_USER
       });
     }
 
-    // 4. Departments
-    if (pathname.match(/\/api\/departments/)) {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_DEPARTMENTS) });
-    }
-
-    // 5. Attendance Logs
-    if (pathname.match(/\/api\/attendance\/logs/)) {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          data: [
-            { id: "log-1", employee_id: "emp-mock-1", punch_time: "2026-01-15T08:00:00Z", punch_type: "in", source: "device", device_name: "Main Door" }
-          ],
-          pagination: { total_count: 1, page: 1, page_size: 50, total_pages: 1 }
-        })
+    if (pathname.match(/\/api\/auth\/refresh/)) {
+      return fulfill({
+        access_token: "mock-access-token-refreshed",
+        refresh_token: "mock-refresh-token-new"
       });
     }
 
-    // 6. Dashboard Stats
-    if (pathname.match(/\/api\/dashboard\/workspace-stats/)) {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ employee_count: 2, present_today: 1, on_leave: 0, pending_requests: 0 })
-      });
-    }
+    // 3. Workspaces
+    if (pathname.match(/\/api\/workspaces/)) {
+      // Handle GET /api/workspaces/{id}/preferences
+      if (pathname.includes('/preferences')) {
+         return fulfill({
+            dashboard_layout: {},
+            theme: "light",
+            notifications_enabled: true
+          });
+      }
 
-    // 7. Authorized Agents (READ)
-    if (pathname.match(/\/api\/agents/) && !pathname.match(/\/api\/agents\/status/)) {
+      // Handle Workspace members
+      if (pathname.includes('/members')) {
+        return fulfill([
+          { id: "member-1", user_id: MOCK_USER.id, role: "admin", user: MOCK_USER }
+        ]);
+      }
+
       if (method === 'GET') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_AGENTS) });
+        if (pathname === '/api/workspaces' || pathname === '/api/workspaces/') {
+          return fulfill([MOCK_WORKSPACE]);
+        }
+        // Explicitly handle GET /api/workspaces/{id}
+        const wsIdMatch = pathname.match(/\/api\/workspaces\/([^/]+)/);
+        if (wsIdMatch) {
+          return fulfill(MOCK_WORKSPACE);
+        }
+      }
+      
+      if (method === 'POST') {
+        return fulfill(MOCK_WORKSPACE, 201);
+      }
+
+      return fulfill(MOCK_WORKSPACE);
+    }
+
+    // 4. Employees
+    if (pathname.match(/\/api\/employees/)) {
+      return fulfill({
+        data: MOCK_EMPLOYEES,
+        pagination: { total_count: MOCK_EMPLOYEES.length, page: 1, page_size: 50, total_pages: 1 }
+      });
+    }
+
+    // 5. Departments
+    if (pathname.match(/\/api\/departments/)) {
+      return fulfill(MOCK_DEPARTMENTS);
+    }
+
+    // 6. Attendance Logs
+    if (pathname.match(/\/api\/attendance\/logs/)) {
+      return fulfill({
+        data: [
+          { id: "log-1", employee_id: "emp-mock-1", punch_time: "2026-01-15T08:00:00Z", punch_type: "in", source: "device", device_name: "Main Door" }
+        ],
+        pagination: { total_count: 1, page: 1, page_size: 50, total_pages: 1 }
+      });
+    }
+
+    // 7. Dashboard Stats & Trends
+    if (pathname.match(/\/api\/dashboard\/workspace-stats/)) {
+      return fulfill({ employee_count: 2, present_today: 1, on_leave: 0, pending_requests: 0 });
+    }
+
+    if (pathname.match(/\/api\/dashboard\/attendance-trend/)) {
+      return fulfill([
+        { date: "2026-01-10", present: 20, absent: 2, late: 1 },
+        { date: "2026-01-11", present: 22, absent: 0, late: 0 }
+      ]);
+    }
+
+    if (pathname.match(/\/api\/dashboard\/unexcused-absences/)) {
+      return fulfill({
+        data: [],
+        pagination: { total_count: 0, page: 1, page_size: 50, total_pages: 0 }
+      });
+    }
+
+    if (pathname.match(/\/api\/dashboard\/overtime-trend/)) {
+      return fulfill([
+        { date: "2026-01-10", hours: 5.5 },
+        { date: "2026-01-11", hours: 3.2 }
+      ]);
+    }
+
+    if (pathname.match(/\/api\/dashboard\/peak-times/)) {
+      return fulfill([
+        { hour: 8, count: 15 },
+        { hour: 9, count: 5 }
+      ]);
+    }
+
+    if (pathname.match(/\/api\/dashboard\/leave-types/)) {
+      return fulfill([
+        { type: "SICK", count: 2 },
+        { type: "ANNUAL", count: 5 }
+      ]);
+    }
+
+    if (pathname.match(/\/api\/dashboard\/lateness-by-day/)) {
+      return fulfill([
+        { day: "Mon", count: 3 },
+        { day: "Tue", count: 1 }
+      ]);
+    }
+
+    if (pathname.match(/\/api\/dashboard\/preferences/)) {
+      return fulfill({
+        dashboard_layout: {},
+        theme: "light",
+        notifications_enabled: true
+      });
+    }
+
+    if (pathname.match(/\/api\/health/)) {
+      return fulfill({ status: "ok" });
+    }
+
+    // 8. Authorized Agents (READ)
+    if (pathname.match(/\/api\/(authorized-)?agents(\/|$)/) && !pathname.match(/\/api\/agents\/status/)) {
+      if (method === 'GET') {
+        const mockAgents = MOCK_AGENTS.map(a => ({
+          ...a,
+          is_trusted: true,
+          last_seen: new Date().toISOString()
+        }));
+        console.log(`[MOCK API] Fulfilling agents list with ${mockAgents.length} items`);
+        return fulfill(mockAgents);
       }
       // POST agent command
       if (method === 'POST') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+        return fulfill({ success: true });
       }
     }
 
-    // 8. Agent Status (realtime polling)
+    // 9. Agent Status (realtime polling)
     if (pathname.match(/\/api\/agents\/status/)) {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            agent_id: "agent-mock-1",
-            is_online: true,
-            last_seen: new Date().toISOString(),
-            devices: devices.map(d => ({
-              device_id: d.id,
-              is_connected: d.is_enabled,
-              employee_count: 0,
-              last_sync: new Date().toISOString()
-            }))
-          }
-        ])
-      });
+      return fulfill([
+        {
+          agent_id: "agent-mock-1",
+          is_online: true,
+          last_seen: new Date().toISOString(),
+          devices: devices.map(d => ({
+            device_id: d.id,
+            is_connected: d.is_enabled,
+            employee_count: 0,
+            last_sync: new Date().toISOString()
+          }))
+        }
+      ]);
     }
 
-    // 9. Devices — STATEFUL CRUD
-    if (pathname.match(/\/api\/devices/)) {
+    // 10. Devices — STATEFUL CRUD
+    if (pathname.match(/\/api\/devices(\/|$)/)) {
       // GET /api/devices
       if (method === 'GET' && (pathname === '/api/devices' || pathname === '/api/devices/')) {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(devices) });
+        return fulfill(devices);
       }
 
       // POST /api/devices (create)
@@ -140,7 +238,7 @@ export async function setupApiMocks(page: Page) {
           workspace_id: MOCK_WORKSPACE.id,
         };
         devices.push(newDevice);
-        return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(newDevice) });
+        return fulfill(newDevice, 201);
       }
 
       // Extract device ID from URL pattern /api/devices/{id}
@@ -154,30 +252,54 @@ export async function setupApiMocks(page: Page) {
           const idx = devices.findIndex(d => d.id === deviceId);
           if (idx >= 0) {
             devices[idx] = { ...devices[idx], ...body };
-            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(devices[idx]) });
+            return fulfill(devices[idx]);
           }
-          return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: "not found" }) });
+          return fulfill({ error: "not found" }, 404);
         }
 
         // DELETE /api/devices/:id
         if (method === 'DELETE') {
           devices = devices.filter(d => d.id !== deviceId);
-          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+          return fulfill({ success: true });
         }
       }
 
       // Fallback for unhandled device routes
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(devices) });
+      return fulfill(devices);
+    }
+
+    // 11. Working Patterns, Shifts, Schedules, Holidays, Leaves (Common workspace resources)
+    if (pathname.includes('/working-patterns')) {
+      return fulfill([]);
+    }
+    if (pathname.includes('/shifts')) {
+      return fulfill([]);
+    }
+    if (pathname.includes('/schedules')) {
+      return fulfill({ data: [], pagination: { total_count: 0, page: 1, page_size: 50, total_pages: 0 } });
+    }
+    if (pathname.includes('/holidays')) {
+      return fulfill([]);
+    }
+    if (pathname.includes('/leave/')) {
+      if (pathname.endsWith('/submit')) return fulfill({ success: true }, 201);
+      return fulfill({ data: [], pagination: { total_count: 0, page: 1, page_size: 50, total_pages: 0 } });
+    }
+    if (pathname.includes('/payroll') || pathname.includes('/salary-components')) {
+      return fulfill([]);
+    }
+    if (pathname.includes('/assignment-rules')) {
+      return fulfill([]);
     }
 
     // Mặc định trả về success cho các POST/PUT/DELETE khác để không gãy flow UI
     if (['POST', 'PUT', 'DELETE'].includes(method)) {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, id: "new-id" }) });
+      return fulfill({ success: true, id: "new-id" });
     }
 
     // Fallback cho các API khác - Luôn trả về Array rỗng nếu không biết, 
     // vì hầu hết logic UI của bạn duyệt qua list (employees, logs, agents...)
     console.warn(`[MOCK API] UNHANDLED ENDPOINT: ${pathname}. Returning fallback [].`);
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+    return fulfill([]);
   });
 }

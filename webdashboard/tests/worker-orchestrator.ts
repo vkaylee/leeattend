@@ -6,6 +6,7 @@ import { EmployeesPage } from './pom/EmployeesPage';
 import { ConnectivityPage } from './pom/ConnectivityPage';
 import { DevicesPage } from './pom/DevicesPage';
 import { setupApiMocks } from './mocks/api-intercept';
+import { MOCK_USER, MOCK_WORKSPACE } from './mocks/mock-data';
 
 export { expect };
 
@@ -41,23 +42,16 @@ export const test = base.extend<TestFixtures>({
   devicesPage: async ({ page }, use) => {
     await use(new DevicesPage(page));
   },
+// Fixture that automatically logs in
+authPage: async ({ page, loginPage }, use) => {
+  await loginPage.goto();
+  await loginPage.login(MOCK_USER.email, 'password123');
 
-  // Fixture that automatically logs in
-  authPage: async ({ page, loginPage }, use) => {
-    await loginPage.goto();
-    // fastLogin triggers window.location.reload() after the API call.
-    // We must wait for the reload to complete before the test proceeds,
-    // otherwise subsequent page.goto() calls race against the reload → net::ERR_ABORTED.
-    await Promise.all([
-      page.waitForEvent('load'),
-      loginPage.fastLogin(),
-    ]);
-    // Extra guard: wait for the app to settle after reload
-    await page.waitForLoadState('networkidle');
-    await use(loginPage);
-  },
+  // Chờ cho đến khi thoát khỏi trang login
+  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 30000 });
   
-  storageState: async ({}, use) => { // eslint-disable-line no-empty-pattern
+  await use(loginPage);
+},  storageState: async ({}, use) => { // eslint-disable-line no-empty-pattern
     await use({
       cookies: [],
       origins: [

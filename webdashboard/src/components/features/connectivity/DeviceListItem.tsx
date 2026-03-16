@@ -162,7 +162,7 @@ export default function DeviceListItem({
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+              <button data-testid={`device-menu-${device.id}`} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                 <MoreVertical size={16} />
               </button>
             </DropdownMenuTrigger>

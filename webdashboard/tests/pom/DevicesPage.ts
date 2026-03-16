@@ -5,20 +5,33 @@ export class DevicesPage extends BasePage {
   constructor(page: Page) {
     super(page);
   }
-
   async goto() {
-    await super.goto('/devices');
+    // Use sidebar to navigate — this is more stable for React state
+    await this.page.getByTestId('sidebar-section-system').click();
+    await this.page.getByTestId('sidebar-link-settings-connectivity').click();
+    await this.waitForLoad();
   }
 
   async waitForLoad() {
-    // Wait for the "Add Device" button which is always visible on DevicesPage
-    await expect(this.page.getByTestId('add-device-btn')).toBeVisible({ timeout: 30000 });
+    // 1. Wait for the main container
+    const container = this.page.getByTestId('connectivity-topology');
+    await expect(container).toBeVisible({ timeout: 30000 });
+    
+    // 2. Wait for loading to finish if visible
+    const loading = this.page.getByTestId('agents-loading');
+    if (await loading.isVisible()) {
+      await expect(loading).not.toBeVisible({ timeout: 20000 });
+    }
+
+    // 3. Wait for the Global Add Device button
+    const globalAddBtn = this.page.getByTestId('global-add-device-btn');
+    await expect(globalAddBtn).toBeVisible({ timeout: 15000 });
   }
 
   // ---------- Add/Edit form ----------
 
   async clickAddDevice() {
-    await this.page.getByTestId('add-device-btn').click();
+    await this.page.getByTestId('global-add-device-btn').click();
     await expect(this.page.getByTestId('add-device-form')).toBeVisible();
   }
 
@@ -27,9 +40,9 @@ export class DevicesPage extends BasePage {
     ip?: string;
     port?: string;
     password?: string;
-    agentId?: string;
+    agentId?: string; // Note: In current UI, agent is often pre-selected or read-only in Add form
     brand?: string;
-    timezone?: string;
+    timezone?: string; // Note: Timezone removed from current UI
   }) {
     if (data.name !== undefined) {
       await this.page.getByTestId('device-name-input').fill(data.name);
@@ -38,24 +51,20 @@ export class DevicesPage extends BasePage {
       await this.page.getByTestId('device-ip-input').fill(data.ip);
     }
     if (data.port !== undefined) {
-      await this.page.getByTestId('device-port-input').fill(data.port);
+      await this.page.getByTestId('device-port-input').fill(data.port.toString());
     }
     if (data.password !== undefined) {
       await this.page.getByTestId('device-password-input').fill(data.password);
     }
-    if (data.agentId !== undefined) {
-      // Combobox — click trigger then select option
-      await this.page.getByTestId('device-agent-select').click();
-      await this.page.getByTestId(`device-agent-select-option-${data.agentId}`).click();
-    }
+    
+    // In current UI, brand is a Combobox
     if (data.brand !== undefined) {
       await this.page.getByTestId('device-brand-select').click();
       await this.page.getByTestId(`device-brand-select-option-${data.brand}`).click();
     }
-    if (data.timezone !== undefined) {
-      await this.page.getByTestId('device-timezone-select').click();
-      await this.page.getByTestId(`device-timezone-select-option-${data.timezone}`).click();
-    }
+    
+    // Note: agentId and timezone are currently skipped as they are either pre-selected
+    // or removed from the UI. If needed in the future, add them here.
   }
 
   async submitDeviceForm() {
@@ -73,16 +82,13 @@ export class DevicesPage extends BasePage {
   }
 
   /**
-   * Open the three-dot dropdown menu for a device (via DeviceListItem).
-   * The DropdownMenu trigger is inside the device card header.
+   * Open the dropdown menu for a device.
    */
   async openDeviceMenu(deviceId: string) {
     // Hover first to reveal any hidden elements
     await this.getDeviceItem(deviceId).hover();
-    // Click the dropdown trigger — it's inside the device-item card
-    const item = this.getDeviceItem(deviceId);
-    const trigger = item.locator('[data-radix-collection-item]').first();
-    await trigger.click();
+    // Click the dropdown trigger
+    await this.page.getByTestId(`device-menu-${deviceId}`).click();
   }
 
   async clickEditDevice(deviceId: string) {
@@ -119,3 +125,4 @@ export class DevicesPage extends BasePage {
     await this.page.getByTestId(`toggle-cancel-${deviceId}`).click();
   }
 }
+

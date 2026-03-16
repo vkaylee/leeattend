@@ -455,6 +455,11 @@ SHARD_M=""
 for arg in "$@"; do
     if [[ "$arg" == --timeout=* ]]; then
         GLOBAL_TIMEOUT="${arg#*=}"
+        # Cap all phase timeouts by global timeout to ensure it's respected
+        TIMEOUT_LINT=$GLOBAL_TIMEOUT
+        TIMEOUT_UNIT=$GLOBAL_TIMEOUT
+        TIMEOUT_INTEGRATION=$GLOBAL_TIMEOUT
+        TIMEOUT_GLOBAL=$GLOBAL_TIMEOUT
     elif [[ "$arg" == --test=* ]]; then
         PATTERN="${arg#*=}"
     elif [[ "$arg" == --component=* ]]; then
@@ -784,8 +789,11 @@ cleanup() {
     fi
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        # Stop containers (Podman is daemonless — no setsid needed)
+        # Stop containers with short timeout, then KILL
         dc_detached down --remove-orphans --timeout 5 || true
+        # Force kill any remaining containers for this project
+        podman ps -q --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" | xargs -r podman kill >/dev/null 2>&1 || true
+        
         # Remove ephemeral volumes
         podman volume rm "leeattend-test_shared-data" \
             </dev/null >/dev/null 2>&1 || true
@@ -820,11 +828,35 @@ cleanup() {
     # ── Final sweep ──────────────────────────────────────────────────
     pkill -KILL -P $$ 2>/dev/null || true
 
+    # Kill watchdog if it's still running
+    if [[ -n "${WATCHDOG_PID:-}" ]]; then
+        kill "$WATCHDOG_PID" 2>/dev/null || true
+    fi
+
     exit "$exit_code"
 }
 trap cleanup EXIT INT TERM
 
 # Run specific test phases
+# Use system timeout command for each phase to ensure reliability
+# --- Watchdog (Safety Net) ---
+start_watchdog() {
+    local timeout_sec=$1
+    (
+        sleep "$timeout_sec"
+        # If we reach here, kill the parent script directly. 
+        # The trap 'cleanup' in the parent will then handle container cleanup.
+        echo -e "\n\n${RED}${BOLD}🚨 WATCHDOG: GLOBAL TIMEOUT REACHED (${timeout_sec}s)! Force-killing main script...${NC}" >&2
+        kill -9 $$ 2>/dev/null || true
+    ) </dev/null >/dev/null 2>&1 &
+    WATCHDOG_PID=$!
+}
+
+# Run specific test phases
+if [[ "${GLOBAL_TIMEOUT:-0}" -gt 0 ]]; then
+    start_watchdog "$GLOBAL_TIMEOUT"
+fi
+
 if [[ "$PHASE_LINT" == "true" ]]; then
     run_lint "$FILTER"
 fi

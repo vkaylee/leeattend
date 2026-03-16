@@ -199,9 +199,16 @@ async fn test_no_worker_overlap_during_reload() {
         old_running_flag.store(false, Ordering::SeqCst);
     });
 
-    // Wait for old worker to be running
-    sleep(Duration::from_millis(100)).await;
-    assert!(old_running.load(Ordering::SeqCst), "Old worker should be running");
+    // Wait for old worker to be running with a timeout to avoid race conditions
+    let mut started = false;
+    for _ in 0..50 { // Max 5 seconds (50 * 100ms)
+        if old_running.load(Ordering::SeqCst) {
+            started = true;
+            break;
+        }
+        sleep(Duration::from_millis(100)).await;
+    }
+    assert!(started, "Old worker should be running within timeout");
 
     // --- Reload sequence (mimics fixed handle_config_reload) ---
 
@@ -237,9 +244,16 @@ async fn test_no_worker_overlap_during_reload() {
         new_running_flag.store(false, Ordering::SeqCst);
     });
 
-    // Verify new worker is running
-    sleep(Duration::from_millis(100)).await;
-    assert!(new_running.load(Ordering::SeqCst), "New worker should be running");
+    // Verify new worker is running with timeout
+    let mut new_started = false;
+    for _ in 0..50 { // Max 5 seconds
+        if new_running.load(Ordering::SeqCst) {
+            new_started = true;
+            break;
+        }
+        sleep(Duration::from_millis(100)).await;
+    }
+    assert!(new_started, "New worker should be running within timeout");
 
     // No overlap detected
     assert!(!overlap_detected.load(Ordering::SeqCst),

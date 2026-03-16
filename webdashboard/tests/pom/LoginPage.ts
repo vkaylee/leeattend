@@ -1,5 +1,6 @@
 import { Page, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { MOCK_USER, MOCK_WORKSPACE } from '../mocks/mock-data';
 
 export class LoginPage extends BasePage {
   constructor(page: Page) {
@@ -17,7 +18,17 @@ export class LoginPage extends BasePage {
   }
 
   async fastLogin() {
-    await this.page.getByTestId('fast-login-btn').click();
+    // We inject keys directly into localStorage to bypass API calls.
+    // Use correct snake_case keys used by the application.
+    await this.page.evaluate(({ user, workspace }) => {
+      console.log("[E2E] Injecting localStorage keys...");
+      localStorage.setItem('access_token', 'mock-access-token');
+      localStorage.setItem('refresh_token', 'mock-refresh-token');
+      localStorage.setItem('active_user_id', user.id);
+      localStorage.setItem('active_workspace_id', workspace.id);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      localStorage.setItem('e2e_test_mode', 'true');
+    }, { user: MOCK_USER, workspace: MOCK_WORKSPACE });
   }
 
   async verifyLoginError() {

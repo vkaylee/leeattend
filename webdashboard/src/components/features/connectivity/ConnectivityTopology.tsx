@@ -295,7 +295,7 @@ export default function ConnectivityTopology() {
 
       {/* Agent Topology */}
       {isLoading ? (
-        <div className="space-y-4">
+        <div data-testid="agents-loading" className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-sm animate-pulse h-28" />
           ))}
