@@ -51,7 +51,7 @@ vi.mock("@/components/employees/WorkingConditionConfig", () => ({
     default: () => <div data-testid="working-condition">WorkingCondition</div>,
 }));
 
-const mockEmployee = (id: string, name: string, active = true): api.Employee => ({
+const mockEmployee = (id: string, name: string, active = true, department?: string): api.Employee => ({
     id,
     full_name: name,
     employee_id_number: `EMP-${id}`,
@@ -60,6 +60,7 @@ const mockEmployee = (id: string, name: string, active = true): api.Employee => 
     hire_date: "2025-01-01",
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
+    ...(department ? { department_name: department } : {}),
 });
 
 describe("EmployeesPage", () => {
@@ -115,6 +116,52 @@ describe("EmployeesPage", () => {
         });
         renderPage();
         expect(await screen.findByText(/employees.table.no_data/i)).toBeDefined();
+    });
+
+    // ────────────────────────────────────────────────────────────
+    // Department column
+    // ────────────────────────────────────────────────────────────
+
+    it("renders department column header", async () => {
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+        expect(screen.getByText("common.department")).toBeDefined();
+    });
+
+    it("displays department name when employee has a department", async () => {
+        (api.searchEmployees as any).mockResolvedValue({
+            data: [mockEmployee("1", "Alice Nguyen", true, "Engineering"), mockEmployee("2", "Bob Tran", true, "Sales")],
+            total: 2,
+            page: 1,
+            limit: 20,
+        });
+        renderPage();
+        expect(await screen.findByText("Engineering")).toBeDefined();
+        expect(screen.getByText("Sales")).toBeDefined();
+    });
+
+    it("displays dash when employee has no department", async () => {
+        (api.searchEmployees as any).mockResolvedValue({
+            data: [mockEmployee("1", "Alice Nguyen")],
+            total: 1,
+            page: 1,
+            limit: 20,
+        });
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+        expect(screen.getByText("—")).toBeDefined();
+    });
+
+    it("handles mixed employees with and without departments", async () => {
+        (api.searchEmployees as any).mockResolvedValue({
+            data: [mockEmployee("1", "Alice Nguyen", true, "HR"), mockEmployee("2", "Bob Tran")],
+            total: 2,
+            page: 1,
+            limit: 20,
+        });
+        renderPage();
+        expect(await screen.findByText("HR")).toBeDefined();
+        expect(screen.getByText("—")).toBeDefined();
     });
 
     // ────────────────────────────────────────────────────────────
@@ -212,5 +259,108 @@ describe("EmployeesPage", () => {
         // Form inputs should be visible
         expect(screen.getByTestId("employees-form-name-input")).toBeDefined();
         expect(screen.getByTestId("employees-form-id-input")).toBeDefined();
+    });
+
+    // ────────────────────────────────────────────────────────────
+    // Column sorting
+    // ────────────────────────────────────────────────────────────
+
+    const findHeaderByText = (text: string) => {
+        const ths = document.querySelectorAll("th");
+        for (const th of ths) {
+            if (th.textContent?.includes(text)) return th;
+        }
+        throw new Error(`Header containing "${text}" not found`);
+    };
+
+    it("sends sort_by=name and sort_dir=asc when clicking Name header", async () => {
+        const user = userEvent.setup();
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        (api.searchEmployees as any).mockClear();
+        const nameHeader = findHeaderByText("employees.table.name");
+        await user.click(nameHeader);
+
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            const sortCall = calls.find((c: any[]) => c[4] === "name");
+            expect(sortCall).toBeDefined();
+            expect(sortCall[5]).toBe("asc");
+        });
+    });
+
+    it("toggles sort_dir to desc when clicking the same header twice", async () => {
+        const user = userEvent.setup();
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        const nameHeader = findHeaderByText("employees.table.name");
+        await user.click(nameHeader);
+
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            expect(calls.some((c: any[]) => c[4] === "name" && c[5] === "asc")).toBe(true);
+        });
+
+        (api.searchEmployees as any).mockClear();
+        await user.click(nameHeader);
+
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            const descCall = calls.find((c: any[]) => c[4] === "name" && c[5] === "desc");
+            expect(descCall).toBeDefined();
+        });
+    });
+
+    it("sends sort_by=status when clicking Status header", async () => {
+        const user = userEvent.setup();
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        (api.searchEmployees as any).mockClear();
+        const statusHeader = findHeaderByText("employees.table.status");
+        await user.click(statusHeader);
+
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            const sortCall = calls.find((c: any[]) => c[4] === "status");
+            expect(sortCall).toBeDefined();
+            expect(sortCall[5]).toBe("asc");
+        });
+    });
+
+    it("sends sort_by=employee_id_number when clicking ID header", async () => {
+        const user = userEvent.setup();
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        (api.searchEmployees as any).mockClear();
+        const idHeader = findHeaderByText("employees.table.id");
+        await user.click(idHeader);
+
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            const sortCall = calls.find((c: any[]) => c[4] === "employee_id_number");
+            expect(sortCall).toBeDefined();
+            expect(sortCall[5]).toBe("asc");
+        });
+    });
+
+    it("sends sort_by=department when clicking Department header", async () => {
+        const user = userEvent.setup();
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        (api.searchEmployees as any).mockClear();
+        const deptHeader = findHeaderByText("common.department");
+        await user.click(deptHeader);
+
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            const sortCall = calls.find((c: any[]) => c[4] === "department");
+            expect(sortCall).toBeDefined();
+            expect(sortCall[5]).toBe("asc");
+        });
     });
 });

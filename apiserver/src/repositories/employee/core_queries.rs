@@ -74,10 +74,32 @@ pub async fn get_employee_by_id(
         .await
 }
 
+/// Extra LEFT JOIN fragment needed when sorting by department.
+pub(crate) const EMPLOYEE_DEPT_JOIN: &str = r#"
+    LEFT JOIN (
+        SELECT DISTINCT ON (employee_id) employee_id, department_id
+        FROM employee_department_history
+        ORDER BY employee_id, effective_date DESC
+    ) edh_sort ON e.id = edh_sort.employee_id
+    LEFT JOIN departments d_sort ON edh_sort.department_id = d_sort.id AND d_sort.workspace_id = e.workspace_id
+"#;
+
+/// Result of building the employee search SQL components.
+pub(crate) struct EmployeeSearchSql {
+    pub where_clause: String,
+    pub order_clause: String,
+    pub has_search: bool,
+    /// Whether the department join is needed for sorting.
+    pub needs_dept_join: bool,
+}
+
 /// Build the SQL components for employee search.
-/// Returns (where_clause, order_clause, has_search).
 /// Extracted for testability.
-pub(crate) fn build_employee_search_sql(search_query: &Option<String>) -> (String, &'static str, bool) {
+pub(crate) fn build_employee_search_sql(
+    search_query: &Option<String>,
+    sort_by: Option<&str>,
+    sort_dir: Option<&str>,
+) -> EmployeeSearchSql {
     let has_search = search_query
         .as_ref()
         .is_some_and(|q| !q.trim().is_empty());
@@ -87,7 +109,7 @@ pub(crate) fn build_employee_search_sql(search_query: &Option<String>) -> (Strin
         where_clause.push_str(" AND (e.full_name ILIKE $2 OR e.employee_id_number ILIKE $2)");
     }
 
-    // When searching, rank results: exact id > prefix id > exact name > prefix name > alpha
+    // When searching, rank results regardless of sort_by
     let order_clause = if has_search {
         "ORDER BY \
             (e.employee_id_number = $5) DESC, \
@@ -95,11 +117,33 @@ pub(crate) fn build_employee_search_sql(search_query: &Option<String>) -> (Strin
             (e.full_name ILIKE $5) DESC, \
             (e.full_name ILIKE $5 || '%') DESC, \
             e.full_name ASC"
+            .to_string()
     } else {
-        "ORDER BY e.full_name ASC"
+        // SAFETY: dir is always "ASC" or "DESC" — never user input.
+        let dir = match sort_dir {
+            Some(d) if d.eq_ignore_ascii_case("desc") => "DESC",
+            _ => "ASC",
+        };
+        match sort_by {
+            Some("employee_id_number") => format!(
+                "ORDER BY (CASE WHEN e.employee_id_number ~ '^[0-9]+$' \
+                THEN CAST(e.employee_id_number AS NUMERIC) END) {dir} NULLS LAST, \
+                e.employee_id_number {dir}"
+            ),
+            Some("department") => format!("ORDER BY COALESCE(d_sort.name, '') {dir}, e.full_name ASC"),
+            Some("status") => format!("ORDER BY e.is_active {dir}, e.full_name ASC"),
+            _ => format!("ORDER BY e.full_name {dir}"),
+        }
     };
 
-    (where_clause, order_clause, has_search)
+    let needs_dept_join = !has_search && sort_by == Some("department");
+
+    EmployeeSearchSql {
+        where_clause,
+        order_clause,
+        has_search,
+        needs_dept_join,
+    }
 }
 
 pub async fn get_all_employees(
@@ -108,18 +152,26 @@ pub async fn get_all_employees(
     search_query: Option<String>,
     page: i64,
     limit: i64,
+    sort_by: Option<String>,
+    sort_dir: Option<String>,
 ) -> Result<(Vec<Employee>, i64), sqlx::Error> {
-    let (where_clause, order_clause, has_search) = build_employee_search_sql(&search_query);
+    let search_sql = build_employee_search_sql(
+        &search_query,
+        sort_by.as_deref(),
+        sort_dir.as_deref(),
+    );
 
-    let count_sql = format!("SELECT COUNT(*) FROM employees e {where_clause}");
+    let count_sql = format!("SELECT COUNT(*) FROM employees e {}", search_sql.where_clause);
     let mut count_query = query_scalar::<_, i64>(&count_sql).bind(workspace_id);
 
+    let dept_join = if search_sql.needs_dept_join { EMPLOYEE_DEPT_JOIN } else { "" };
     let sql = format!(
-        "{EMPLOYEE_SELECT_QUERY} {where_clause} {order_clause} LIMIT $3 OFFSET $4"
+        "{EMPLOYEE_SELECT_QUERY} {dept_join} {} {} LIMIT $3 OFFSET $4",
+        search_sql.where_clause, search_sql.order_clause
     );
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
-    if has_search {
+    if search_sql.has_search {
         let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
         let bound_q = format!("%{raw_q}%");
         count_query = count_query.bind(bound_q.clone());
@@ -134,7 +186,7 @@ pub async fn get_all_employees(
     db_query = db_query.bind(limit).bind(offset);
 
     // Bind $5 (raw search term for ranking) only when searching
-    if has_search {
+    if search_sql.has_search {
         let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
         db_query = db_query.bind(raw_q);
     }
@@ -564,56 +616,91 @@ mod tests {
 
     #[test]
     fn test_search_sql_without_query_uses_alpha_order() {
-        let (where_clause, order_clause, has_search) = build_employee_search_sql(&None);
+        let s = build_employee_search_sql(&None, None, None);
 
-        assert!(!has_search);
-        assert_eq!(where_clause, "WHERE e.workspace_id = $1");
-        assert!(order_clause.contains("ORDER BY e.full_name ASC"));
-        assert!(!order_clause.contains("$5"));
+        assert!(!s.has_search);
+        assert_eq!(s.where_clause, "WHERE e.workspace_id = $1");
+        assert!(s.order_clause.contains("ORDER BY e.full_name ASC"));
+        assert!(!s.order_clause.contains("$5"));
     }
 
     #[test]
     fn test_search_sql_with_empty_query_uses_alpha_order() {
         let q = Some("   ".to_string());
-        let (where_clause, order_clause, has_search) = build_employee_search_sql(&q);
+        let s = build_employee_search_sql(&q, None, None);
 
-        assert!(!has_search);
-        assert_eq!(where_clause, "WHERE e.workspace_id = $1");
-        assert!(order_clause.contains("ORDER BY e.full_name ASC"));
-        assert!(!order_clause.contains("$5"));
+        assert!(!s.has_search);
+        assert_eq!(s.where_clause, "WHERE e.workspace_id = $1");
+        assert!(s.order_clause.contains("ORDER BY e.full_name ASC"));
+        assert!(!s.order_clause.contains("$5"));
     }
 
     #[test]
     fn test_search_sql_with_query_adds_relevance_ranking() {
         let q = Some("16".to_string());
-        let (where_clause, order_clause, has_search) = build_employee_search_sql(&q);
+        let s = build_employee_search_sql(&q, None, None);
 
-        assert!(has_search);
-        // WHERE should include ILIKE filter
-        assert!(where_clause.contains("ILIKE $2"));
-        // ORDER should include exact match ranking ($5)
-        assert!(order_clause.contains("employee_id_number = $5"));
-        assert!(order_clause.contains("employee_id_number ILIKE $5"));
-        assert!(order_clause.contains("full_name ILIKE $5"));
-        assert!(order_clause.contains("e.full_name ASC"));
+        assert!(s.has_search);
+        assert!(s.where_clause.contains("ILIKE $2"));
+        assert!(s.order_clause.contains("employee_id_number = $5"));
+        assert!(s.order_clause.contains("employee_id_number ILIKE $5"));
+        assert!(s.order_clause.contains("full_name ILIKE $5"));
+        assert!(s.order_clause.contains("e.full_name ASC"));
     }
 
     #[test]
     fn test_search_sql_ranking_order_exact_before_prefix_before_alpha() {
         let q = Some("test".to_string());
-        let (_, order_clause, _) = build_employee_search_sql(&q);
+        let s = build_employee_search_sql(&q, None, None);
 
-        // Verify the ranking tiers appear in correct order:
-        // 1. exact id match, 2. prefix id match, 3. exact name match, 4. prefix name, 5. alpha
-        let exact_id_pos = order_clause.find("employee_id_number = $5").unwrap();
-        let prefix_id_pos = order_clause.find("employee_id_number ILIKE $5 || '%'").unwrap();
-        let exact_name_pos = order_clause.find("full_name ILIKE $5) DESC").unwrap();
-        let prefix_name_pos = order_clause.find("full_name ILIKE $5 || '%'").unwrap();
-        let alpha_pos = order_clause.find("e.full_name ASC").unwrap();
+        let exact_id_pos = s.order_clause.find("employee_id_number = $5").unwrap();
+        let prefix_id_pos = s.order_clause.find("employee_id_number ILIKE $5 || '%'").unwrap();
+        let exact_name_pos = s.order_clause.find("full_name ILIKE $5) DESC").unwrap();
+        let prefix_name_pos = s.order_clause.find("full_name ILIKE $5 || '%'").unwrap();
+        let alpha_pos = s.order_clause.find("e.full_name ASC").unwrap();
 
         assert!(exact_id_pos < prefix_id_pos, "Exact ID should come before prefix ID");
         assert!(prefix_id_pos < exact_name_pos, "Prefix ID should come before exact name");
         assert!(exact_name_pos < prefix_name_pos, "Exact name should come before prefix name");
         assert!(prefix_name_pos < alpha_pos, "Prefix name should come before alphabetical");
+    }
+
+    #[test]
+    fn test_sort_by_name_desc() {
+        let s = build_employee_search_sql(&None, Some("name"), Some("desc"));
+        assert!(s.order_clause.contains("e.full_name DESC"));
+        assert!(!s.needs_dept_join);
+    }
+
+    #[test]
+    fn test_sort_by_employee_id_number_uses_numeric_cast() {
+        let s = build_employee_search_sql(&None, Some("employee_id_number"), Some("asc"));
+        assert!(s.order_clause.contains("CAST(e.employee_id_number AS NUMERIC)"));
+        assert!(s.order_clause.contains("ASC"));
+        assert!(!s.needs_dept_join);
+    }
+
+    #[test]
+    fn test_sort_by_department_needs_join() {
+        let s = build_employee_search_sql(&None, Some("department"), Some("asc"));
+        assert!(s.needs_dept_join);
+        assert!(s.order_clause.contains("d_sort.name"));
+    }
+
+    #[test]
+    fn test_sort_by_status() {
+        let s = build_employee_search_sql(&None, Some("status"), Some("desc"));
+        assert!(s.order_clause.contains("e.is_active DESC"));
+        assert!(!s.needs_dept_join);
+    }
+
+    #[test]
+    fn test_search_overrides_sort_params() {
+        // When searching, sort_by should be ignored — relevance ranking takes precedence
+        let q = Some("alice".to_string());
+        let s = build_employee_search_sql(&q, Some("status"), Some("desc"));
+        assert!(s.has_search);
+        assert!(s.order_clause.contains("employee_id_number = $5"));
+        assert!(!s.order_clause.contains("is_active"));
     }
 }

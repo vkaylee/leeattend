@@ -1600,7 +1600,8 @@
     "import_req": {
       "col_a": "Column A: Employee ID (Required)",
       "col_b": "Column B: Full Name (Required)",
-      "col_c": "Column C: Hire Date (Optional, YYYY-MM-DD)"
+      "col_c": "Column C: Hire Date (Optional, YYYY-MM-DD)",
+      "col_d": "Column D: Department Name (Optional)"
     },
     "label": "Employees"
   },

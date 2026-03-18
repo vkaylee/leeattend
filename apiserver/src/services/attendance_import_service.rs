@@ -19,6 +19,7 @@ use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::{employee, EmployeeRepository, TimeEntryRepository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::utils::normalize_employee_id;
+use std::collections::HashMap;
 
 struct PendingRow {
     emp_id_number: String,
@@ -30,6 +31,7 @@ struct PendingEmployee {
     id_number: String,
     full_name: String,
     hire_date: NaiveDate,
+    department_name: Option<String>,
     line_number: usize,
 }
 
@@ -433,10 +435,15 @@ impl AttendanceImportService {
                         })
                 };
 
+                let department_name = record.get(3)
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty());
+
                 pending_employees.push(PendingEmployee {
                     id_number,
                     full_name,
                     hire_date,
+                    department_name,
                     line_number: current_line,
                 });
             }
@@ -464,6 +471,15 @@ impl AttendanceImportService {
         let mut processed_rows = 0;
         let mut skipped_rows = 0;
 
+        // Cache department lookups by name (lowercased) -> department_id
+        let mut dept_cache: HashMap<String, Uuid> = HashMap::new();
+        // Pre-load existing departments
+        if let Ok(existing_depts) = crate::repositories::department_repository::get_departments(&pool, job.workspace_id).await {
+            for dept in existing_depts {
+                dept_cache.insert(dept.name.to_lowercase(), dept.id);
+            }
+        }
+
         for emp in pending_employees {
             match Self::process_employee_import_row(&pool, job, &emp).await {
                 Ok(maybe_id) => {
@@ -483,6 +499,35 @@ impl AttendanceImportService {
                             _ => continue,
                         }
                     };
+
+                    // Auto-assign to department if column D was provided
+                    if let Some(ref dept_name) = emp.department_name {
+                        let dept_key = dept_name.to_lowercase();
+                        let dept_id = if let Some(&cached_id) = dept_cache.get(&dept_key) {
+                            cached_id
+                        } else {
+                            // Create the department
+                            match crate::repositories::department_repository::create_department(
+                                &pool, job.workspace_id, dept_name.clone(), None, None, None,
+                            ).await {
+                                Ok(new_dept) => {
+                                    dept_cache.insert(dept_key, new_dept.id);
+                                    new_dept.id
+                                }
+                                Err(e) => {
+                                    error!("Failed to create department '{}': {}", dept_name, e);
+                                    // Skip department assignment but continue with employee
+                                    Uuid::nil()
+                                }
+                            }
+                        };
+                        if !dept_id.is_nil() {
+                            let _ = crate::repositories::department_repository::transfer_employee(
+                                &pool, employee_id, dept_id, emp.hire_date,
+                                Some("Auto-assigned via bulk import".to_string()),
+                            ).await;
+                        }
+                    }
 
                     // Auto-claim any staged logs for this employee
                     if let Err(e) = {
@@ -594,10 +639,16 @@ impl AttendanceImportService {
                     .date_naive(),
             };
 
+            let department_name = match row.get(3) {
+                Some(Data::String(s)) if !s.trim().is_empty() => Some(s.trim().to_string()),
+                _ => None,
+            };
+
             pending.push(PendingEmployee {
                 id_number,
                 full_name,
                 hire_date,
+                department_name,
                 line_number: current_line,
             });
         }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Edit2, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays, Calculator, Loader2, Calendar } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays, Calculator, Loader2, Calendar } from "lucide-react";
 import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "../lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
@@ -98,7 +98,7 @@ export default function DepartmentsPage() {
           <div key={dept.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-8 flex gap-3 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
               <button onClick={() => { setEditingDept(dept); setIsConfigModalOpen(true); }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:text-emerald-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("payroll.settings.title")}><Calculator size={18} /></button>
-              <button onClick={() => { setEditingDept(dept); setIsModalOpen(true); }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}><Edit2 size={18} /></button>
+              <button onClick={() => { setEditingDept(dept); setIsModalOpen(true); }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}><Pencil size={18} /></button>
               <button onClick={() => { if(confirm(t("departments.messages.confirm_delete"))) deleteMutation.mutate(dept.id); }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
             </div>
 

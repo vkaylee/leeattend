@@ -3,7 +3,7 @@ import {
   ChevronDown,
   ChevronRight,
   Server,
-  Edit2,
+  Pencil,
   Trash2,
   RefreshCw,
   HardDrive,
@@ -146,7 +146,7 @@ export default function AgentAccordionCard({
         {/* Action buttons - show on hover */}
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0" onClick={e => e.stopPropagation()}>
           <button data-testid={`agent-edit-${agent.id}`} onClick={() => onEdit(agent)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}>
-            <Edit2 size={18} />
+            <Pencil size={18} />
           </button>
           <button
             data-testid={`agent-trust-toggle-${agent.id}`}

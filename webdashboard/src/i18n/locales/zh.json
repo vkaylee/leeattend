@@ -1600,7 +1600,8 @@
     "import_req": {
       "col_a": "A列：员工ID（必填）",
       "col_b": "B列：全名（必填）",
-      "col_c": "C列：入职日期（可选，YYYY-MM-DD）"
+      "col_c": "C列：入职日期（可选，YYYY-MM-DD）",
+      "col_d": "D列：部门名称（可选）"
     },
     "label": "Employees"
   },

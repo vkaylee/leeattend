@@ -1,4 +1,4 @@
-import React, { RefObject, useEffect } from "react";
+import React, { RefObject, useEffect, useRef, useState, useCallback } from "react";
 import { SearchX, Loader2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useKeyboardListNav } from "@/hooks/use-keyboard-list-nav";
@@ -146,13 +146,42 @@ export default function NavigableList<T>({
     const visibleColumns = columns.filter((c) => !c.hidden);
     const colSpan = visibleColumns.length + (showChevron ? 1 : 0);
 
+    // Measure sticky search bar height for thead offset in full-page mode
+    const isFullPage = !maxHeightClass;
+    const stickySearchRef = useRef<HTMLDivElement>(null);
+    const [stickyOffset, setStickyOffset] = useState(0);
+
+    useEffect(() => {
+        if (!isFullPage || !stickySearchRef.current) return;
+        const el = stickySearchRef.current;
+        const update = () => setStickyOffset(el.offsetHeight);
+        update();
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [isFullPage]);
+
     return (
         <div className={cn("flex flex-col gap-6", className)}>
             {/* Optional header slot (filters, stats) */}
             {headerSlot}
 
-            {/* Search box */}
-            {onSearchChange && (
+            {/* In full-page mode, search + header stick together as one group */}
+            {isFullPage && onSearchChange && (
+                <div ref={stickySearchRef} className="sticky top-0 z-20 backdrop-blur-md pt-1 pb-2 -mt-1">
+                    <SearchBox
+                        value={searchValue ?? ""}
+                        onChange={onSearchChange}
+                        onKeyDown={listNav.onKeyDown}
+                        inputRef={searchInputRef}
+                        placeholder={searchPlaceholder}
+                        data-testid={searchTestId ?? "navigable-list-search"}
+                    />
+                </div>
+            )}
+
+            {/* In constrained mode, search renders normally */}
+            {!isFullPage && onSearchChange && (
                 <SearchBox
                     value={searchValue ?? ""}
                     onChange={onSearchChange}
@@ -164,12 +193,15 @@ export default function NavigableList<T>({
             )}
 
             {/* Table container */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
-                <div className={cn("overflow-auto", maxHeightClass)}>
+            <div className={cn("bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm", isFullPage ? "overflow-x-clip" : "overflow-hidden")}>
+                <div className={cn(isFullPage ? "" : "overflow-auto", maxHeightClass)}>
                     <table className="w-full text-left border-collapse">
                         {/* Header */}
                         <thead>
-                            <tr className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
+                            <tr
+                                className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky z-10"
+                                style={{ top: isFullPage ? stickyOffset : 0 }}
+                            >
                                 {visibleColumns.map((col) => (
                                     <th
                                         key={col.key}

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLeaveTypes, updateLeaveTypeConfig, createLeaveType, deleteLeaveType } from "@/lib/api/leaves";
 import { LeaveType, LeaveTypeConfig } from "@/lib/api/types";
-import { Wallet, AlertTriangle, Edit2, Plus, Trash2 } from "lucide-react";
+import { Wallet, AlertTriangle, Pencil, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
@@ -77,7 +77,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
                   {type.is_paid ? <Wallet size={20} /> : <AlertTriangle size={20} />}
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setEditingType(type)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Edit2 size={16} /></button>
+                  <button onClick={() => setEditingType(type)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Pencil size={16} /></button>
                   <button onClick={() => setDeletingType(type)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Trash2 size={16} /></button>
                 </div>
               </div>

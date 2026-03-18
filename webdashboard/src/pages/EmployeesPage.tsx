@@ -9,6 +9,9 @@ import {
   Upload,
   History as HistoryIcon,
   Calendar as CalendarIcon,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import NavigableList from "@/components/common/NavigableList";
 import type { NavigableListColumn } from "@/components/common/NavigableList";
@@ -78,6 +81,26 @@ export default function EmployeesPage() {
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
+  // Sorting state
+  type SortKey = "name" | "id" | "department" | "status";
+  type SortDir = "asc" | "desc";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const renderSortIcon = (col: SortKey) => {
+    if (sortKey !== col) return <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-50 transition-opacity ml-1" />;
+    return sortDir === "asc" ? <ChevronUp size={10} className="text-primary-600 dark:text-primary-400 ml-1" /> : <ChevronDown size={10} className="text-primary-600 dark:text-primary-400 ml-1" />;
+  };
+
   const {
     data: employeesPages,
     isLoading,
@@ -85,8 +108,11 @@ export default function EmployeesPage() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["employees", wsId, debouncedSearch],
-    queryFn: ({ pageParam }) => searchEmployees(wsId, debouncedSearch, pageParam as number, PAGE_SIZE),
+    queryKey: ["employees", wsId, debouncedSearch, sortKey, sortDir],
+    queryFn: ({ pageParam }) => {
+      const apiSortKey = sortKey ? ({ name: "name", id: "employee_id_number", department: "department", status: "status" } as const)[sortKey] : undefined;
+      return searchEmployees(wsId, debouncedSearch, pageParam as number, PAGE_SIZE, apiSortKey, sortDir);
+    },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
       if (totalLoaded >= (lastPage.total || 0)) return undefined;
@@ -107,7 +133,8 @@ export default function EmployeesPage() {
   const employeeColumns: NavigableListColumn<Employee>[] = [
     {
       key: "name",
-      header: t("employees.table.name"),
+      header: <span className="inline-flex items-center">{t("employees.table.name")}{renderSortIcon("name")}</span>,
+      onHeaderClick: () => toggleSort("name"),
       cell: (emp) => (
         <div className="flex items-center gap-5">
           <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm shadow-inner border transition-all uppercase", selectedEmployee?.id === emp.id ? "bg-primary-600 text-white border-primary-500" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800")}>{emp.full_name[0]}</div>
@@ -118,13 +145,26 @@ export default function EmployeesPage() {
     },
     {
       key: "id",
-      header: t("employees.table.id"),
+      header: <span className="inline-flex items-center">{t("employees.table.id")}{renderSortIcon("id")}</span>,
+      onHeaderClick: () => toggleSort("id"),
       cell: (emp) => <span className="font-mono font-bold text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-tighter">{emp.employee_id_number}</span>,
       cellClassName: "py-6",
     },
     {
+      key: "department",
+      header: <span className="inline-flex items-center">{t("common.department")}{renderSortIcon("department")}</span>,
+      onHeaderClick: () => toggleSort("department"),
+      cell: (emp) => emp.department_name ? (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800">
+          <Building2 size={12} className="opacity-60" />{emp.department_name}
+        </span>
+      ) : <span className="text-slate-300 dark:text-slate-600">—</span>,
+      cellClassName: "py-6",
+    },
+    {
       key: "status",
-      header: t("employees.table.status"),
+      header: <span className="inline-flex items-center">{t("employees.table.status")}{renderSortIcon("status")}</span>,
+      onHeaderClick: () => toggleSort("status"),
       headerClassName: "text-center",
       cell: (emp) => (
         <StatusBadge variant={emp.is_active ? "success" : "neutral"}>{emp.is_active ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}</StatusBadge>
@@ -229,6 +269,7 @@ export default function EmployeesPage() {
         hasNextPage={hasNextPage}
         isFetchingNextPage={isFetchingNextPage}
         fetchNextPage={fetchNextPage}
+        maxHeightClass=""
         className="animate-in slide-in-from-bottom-8 duration-700"
       />
 
@@ -332,6 +373,7 @@ export default function EmployeesPage() {
           t("employees.import_req.col_a"),
           t("employees.import_req.col_b"),
           t("employees.import_req.col_c"),
+          t("employees.import_req.col_d"),
         ]}
       />
     </div>

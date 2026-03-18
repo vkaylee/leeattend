@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Share2, Server, HardDrive, AlertCircle, Cpu, Edit2, Lock } from "lucide-react";
+import { Plus, Share2, Server, HardDrive, AlertCircle, Cpu, Pencil, Lock, Save } from "lucide-react";
 import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { cn } from "@/lib/utils";
@@ -407,7 +407,7 @@ export default function ConnectivityTopology() {
               {/* Show agent name as read-only (device always belongs to an agent) */}
               <div className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm uppercase tracking-tight text-slate-600 dark:text-slate-300 flex items-center gap-2">
                 <Server size={14} className="text-slate-400 dark:text-slate-500" />
-                {agents.find(a => a.id === (editingDevice ? editingDevice.agent_id : newDevice.agent_id))?.name || (editingDevice ? editingDevice.agent_id : newDevice.agent_id)}
+                {agents.find(a => a.id === (editingDevice ? editingDevice.agent_id : newDevice.agent_id))?.name || "—"}
               </div>
             </div>
             <div className="space-y-3 px-1">
@@ -481,7 +481,7 @@ export default function ConnectivityTopology() {
               type="submit"
               className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 flex items-center justify-center gap-3"
             >
-              {editingDevice ? <Edit2 size={18} /> : <Plus size={18} />}
+              {editingDevice ? <Save size={18} /> : <Plus size={18} />}
               {editingDevice ? t("devices.form.update_device") : t("devices.form.save_device")}
             </button>
           </div>

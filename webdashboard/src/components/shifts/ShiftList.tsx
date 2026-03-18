@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, Clock, Zap, Save, Trash2 } from "lucide-react";
+import { ChevronRight, Clock, Zap, Pencil, Trash2 } from "lucide-react";
 import { Shift } from "../../lib/api";
 import { useDateTimeFormatter } from "../../hooks/use-datetime";
 
@@ -70,7 +70,7 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
               </td>
               <td className="px-8 py-6 text-right">
                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <button onClick={() => onEdit(shift)} className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}><Save size={18} /></button>
+                  <button onClick={() => onEdit(shift)} className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}><Pencil size={18} /></button>
                   {onDelete && (
                     <button onClick={() => onDelete(shift)} className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
                   )}

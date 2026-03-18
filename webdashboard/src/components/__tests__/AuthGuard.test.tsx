@@ -42,9 +42,9 @@ describe("AuthGuard", () => {
       </MemoryRouter>,
     );
 
-    expect(
-      screen.getByText(/Không tìm thấy thông tin người dùng/i),
-    ).toBeInTheDocument();
+    // AuthGuard redirects to /login when no user
+    expect(screen.getByText("Login Page")).toBeInTheDocument();
+    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
   });
 
   it("shows loading spinner when fetching profile", () => {

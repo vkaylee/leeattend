@@ -14,7 +14,7 @@ import {
   Calendar,
   Upload,
   Clock,
-  HardDrive,
+
   Users,
   CalendarRange,
   AlertTriangle,
@@ -282,7 +282,7 @@ export default function AttendanceLogsPage() {
           <AlertTriangle size={14} />
           {t("attendance_logs.tabs.unknown", "Unidentified")}
           {(stagingCount ?? 0) > 0 && (
-            <span className="ml-1 px-2 py-0.5 bg-amber-50 dark:bg-amber-950 text-white rounded-full text-[9px] font-bold">
+            <span className="ml-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-200 rounded-full text-[9px] font-bold">
               {stagingCount}
             </span>
           )}
@@ -402,11 +402,6 @@ export default function AttendanceLogsPage() {
                                   <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase">{log.device_name || getDeviceName(log.device_id)}</span>
                                 )}
                               </div>
-                              {log.device_id && (
-                                <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter flex items-center gap-1 ml-0.5">
-                                  <HardDrive size={10} /> {log.device_id}
-                                </div>
-                              )}
                             </div>
                           </td>
                           <td className="px-8 py-5 text-right">

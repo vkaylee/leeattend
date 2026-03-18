@@ -26,7 +26,7 @@ import { useToast } from "@/components/ui/Toast";
 import Sheet from "@/components/ui/Sheet";
 import Modal from "@/components/ui/Modal";
 import DailyReportTable from "./DailyReportTable";
-import { Clock, HardDrive } from "lucide-react";
+import { Clock } from "lucide-react";
 
 interface EmployeeDailyDrawerProps {
     isOpen: boolean;
@@ -468,15 +468,10 @@ export default function EmployeeDailyDrawer({
                                                     <div className="flex flex-col gap-1">
                                                         <div className="flex items-center gap-2">
                                                             <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">{log.source}</span>
-                                                            {(log.device_name || log.device_id) && (
-                                                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase">{log.device_name || log.device_id}</span>
+                                                            {log.device_name && (
+                                                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase">{log.device_name}</span>
                                                             )}
                                                         </div>
-                                                        {log.device_id && (
-                                                            <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter flex items-center gap-1 ml-0.5">
-                                                                <HardDrive size={10} /> {log.device_id}
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5 text-right">

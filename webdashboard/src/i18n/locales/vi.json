@@ -1600,7 +1600,8 @@
     "import_req": {
       "col_a": "Cột A: Mã nhân viên (Bắt buộc)",
       "col_b": "Cột B: Họ và tên (Bắt buộc)",
-      "col_c": "Cột C: Ngày vào làm (Tùy chọn, DD/MM/YYYY)"
+      "col_c": "Cột C: Ngày vào làm (Tùy chọn, DD/MM/YYYY)",
+      "col_d": "Cột D: Tên bộ phận (Tùy chọn)"
     },
     "label": "Employees"
   },

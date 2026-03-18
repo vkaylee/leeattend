@@ -70,7 +70,7 @@ pub async fn get_employees(
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
     let (data, total) = state
         .employees.service
-        .get_all_employees(workspace_id, query.q, page, limit)
+        .get_all_employees(workspace_id, query.q, page, limit, query.sort_by, query.sort_dir)
         .await
         ?;
 

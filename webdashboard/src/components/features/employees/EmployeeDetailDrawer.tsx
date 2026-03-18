@@ -6,7 +6,7 @@ import {
     Calendar,
     UserPlus,
     X,
-    Edit2,
+    Pencil,
     Calendar as CalendarIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -120,7 +120,7 @@ export default function EmployeeDetailDrawer({
                 {activeDetailTab === "profile" && (
                     <div className="space-y-10">
                         <div className="grid grid-cols-2 gap-6">
-                            <button data-testid="employees-btn-edit" onClick={() => onEdit(employee)} className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95"><Edit2 size={18} /> {t("employees.details.edit_profile").toUpperCase()}</button>
+                            <button data-testid="employees-btn-edit" onClick={() => onEdit(employee)} className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95"><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</button>
                             {employee.is_active ? (
                                 <button data-testid="employees-btn-terminate" onClick={() => onTerminate(employee)} className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</button>
                             ) : (

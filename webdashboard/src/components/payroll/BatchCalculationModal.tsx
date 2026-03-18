@@ -140,7 +140,7 @@ export default function BatchCalculationModal({
                       {res.status === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">{employeeNames[res.employee_id] || res.employee_id}</p>
+                      <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">{employeeNames[res.employee_id] || "—"}</p>
                       {res.error_message && <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mt-0.5 opacity-80">{res.error_message}</p>}
                     </div>
                   </div>

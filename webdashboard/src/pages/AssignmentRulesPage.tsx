@@ -5,9 +5,9 @@ import {
   Plus, 
   Trash2, 
   GripVertical,
-  Settings2,
+  Pencil,
   Filter,
-  Check,
+  Save,
   X,
   AlertCircle,
   Building2,
@@ -117,7 +117,7 @@ export default function AssignmentRulesPage() {
                 </td>
                 <td className="px-10 py-6 text-right">
                   <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                    <button onClick={() => openEditModal(rule)} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.edit")}><Settings2 size={18} /></button>
+                    <button onClick={() => openEditModal(rule)} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.edit")}><Pencil size={18} /></button>
                     <button onClick={() => { if(confirm(t("common.confirm_delete"))) deleteMutation.mutate(rule.id); }} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
                   </div>
                 </td>
@@ -228,7 +228,7 @@ export default function AssignmentRulesPage() {
             <Button variant="ghost" size="lg" className="flex-1" onClick={closeModal}>
               {t("common.cancel")}
             </Button>
-            <Button className="flex-1" size="lg" onClick={handleSubmit} loading={createMutation.isPending || updateMutation.isPending} icon={<Check className="w-4 h-4" />}>
+            <Button className="flex-1" size="lg" onClick={handleSubmit} loading={createMutation.isPending || updateMutation.isPending} icon={<Save className="w-4 h-4" />}>
               {editingRule ? t("common.save_changes") : t("common.create")}
             </Button>
           </div>

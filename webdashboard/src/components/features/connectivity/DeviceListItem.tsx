@@ -6,7 +6,7 @@ import {
   Globe,
   Hash,
   MoreVertical,
-  Edit2,
+  Pencil,
   Trash2,
   RefreshCw,
   Power,
@@ -173,7 +173,7 @@ export default function DeviceListItem({
               </DropdownMenuItem>
               {onEdit && (
                 <DropdownMenuItem data-testid={`device-edit-${device.id}`} className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" onSelect={() => onEdit(device)}>
-                  <Edit2 size={14} /> {t("devices.table.edit")}
+                  <Pencil size={14} /> {t("devices.table.edit")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem data-testid={`device-delete-${device.id}`} className="gap-3 p-3 rounded-lg font-bold text-xs uppercase text-rose-600 focus:text-rose-600" onSelect={() => setShowDeleteModal(true)}>
