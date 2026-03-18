@@ -595,4 +595,23 @@ describe("ReportsPage", () => {
       expect(sortedCall).toBeDefined();
     });
   });
+
+  it("renders department chips with wrapping layout", async () => {
+    (api.fetchDepartments as any).mockResolvedValue([
+      { id: "dept-1", name: "Engineering", managers: [] },
+      { id: "dept-2", name: "HR", managers: [] },
+      { id: "dept-3", name: "Design", managers: [] }
+    ]);
+
+    renderWithProviders(<ReportsPage />);
+
+    const chipsContainer = await screen.findByTestId("department-chips");
+    
+    // Verify wrap class is present
+    expect(chipsContainer.className).toContain("flex-wrap");
+    
+    // Verify overflow-x-auto is removed
+    expect(chipsContainer.className).not.toContain("overflow-x-auto");
+    expect(chipsContainer.className).not.toContain("scrollbar-thin");
+  });
 });

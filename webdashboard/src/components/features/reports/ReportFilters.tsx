@@ -122,12 +122,12 @@ export default function ReportFilters({
 
       {/* Department chips */}
       {departments && departments.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin" data-testid="department-chips">
+        <div className="flex flex-wrap items-center gap-2 pb-1" data-testid="department-chips">
           <Building2 size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
           <button
             onClick={() => onDepartmentChange(null)}
             className={cn(
-              "shrink-0 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border",
+              "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border",
               selectedDepartmentId === null
                 ? "bg-primary-600 dark:bg-primary-500 text-white border-primary-600 dark:border-primary-500 shadow-lg shadow-primary-500/20"
                 : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-700 hover:text-primary-600 dark:hover:text-primary-400"
@@ -140,7 +140,7 @@ export default function ReportFilters({
               key={dept.id}
               onClick={() => onDepartmentChange(dept.id)}
               className={cn(
-                "shrink-0 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border",
+                "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border",
                 selectedDepartmentId === dept.id
                   ? "bg-primary-600 dark:bg-primary-500 text-white border-primary-600 dark:border-primary-500 shadow-lg shadow-primary-500/20"
                   : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-700 hover:text-primary-600 dark:hover:text-primary-400"
