@@ -60,6 +60,10 @@ pub fn router() -> Router<Arc<AppState>> {
             get(handlers::get_attendance_summaries),
         )
         .route(
+            "/workspaces/:ws_id/attendance/reprocess-all",
+            post(handlers::force_reprocess_all_attendance),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/reprocess/:employee_id",
             post(handlers::force_reprocess_attendance),
         )

@@ -288,7 +288,7 @@ pub async fn trigger_accrual_run(
 
     // Try to enqueue as background job if Redis is available
     if let Some(ref redis) = state.infra.redis {
-        use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType, ReportType};
+        use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
         use crate::queue::JobQueue;
 
         let queue = JobQueue::new(redis.clone());
@@ -307,7 +307,7 @@ pub async fn trigger_accrual_run(
             1, // Single job (not batched)
             ctx.workspace_id,
             ctx.user_id,
-            ReportType::Summary, // Metadata requires a report type; using Summary as placeholder
+            None, // No report type for leave accrual
         );
 
         queue.create_job_metadata(&meta).await.map_err(|e| {

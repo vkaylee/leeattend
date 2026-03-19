@@ -2,6 +2,8 @@
   "common": {
     "search": "搜索...",
     "dashboard": "仪表板",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
     "workspace_settings": {
       "title": "工作空间设置",
       "description": "管理工作空间配置、人员和外观。",
@@ -2253,10 +2255,13 @@
     },
     "reprocess": {
       "button": "重新计算",
-      "processing": "正在处理...",
+      "processing": "处理中...",
       "tooltip": "重新计算当天的考勤",
       "confirm_title": "重新计算考勤？",
       "confirm_message": "系统将使用最新的匹配算法和班次设置重新计算员工 {{employee}} 在 {{date}} 的考勤。",
+      "bulk_tooltip": "批量重新计算考勤",
+      "bulk_confirm_title": "批量重新计算考勤？",
+      "bulk_confirm_message": "系统将使用最新的匹配算法和班次设置重新计算所选时间段内所有员工的考勤。",
       "confirm": "重新计算",
       "error": "无法重新计算考勤。请再试一次。"
     },

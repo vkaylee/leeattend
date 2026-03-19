@@ -186,7 +186,7 @@ impl ReportCoordinator {
             total_batches,
             workspace_id,
             requester_id,
-            request.report_type.clone(),
+            Some(request.report_type.clone()),
             DateRange {
                 start: request.start_date,
                 end: request.end_date,
@@ -366,7 +366,7 @@ impl ReportCoordinator {
                     JobPayload::MergeResults(MergePayload {
                         date_range,
                         config: ReportConfig {
-                            report_type: meta.report_type.clone(),
+                            report_type: meta.report_type.clone().expect("Missing report type on report job"),
                             timezone: "UTC".to_string(),
                             rounding_policy: "floor".to_string(),
                             work_unit_minutes: 30,

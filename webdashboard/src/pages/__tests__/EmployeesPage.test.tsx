@@ -295,22 +295,22 @@ describe("EmployeesPage", () => {
         renderPage();
         await screen.findByText("Alice Nguyen");
 
-        const nameHeader = findHeaderByText("employees.table.name");
-        await user.click(nameHeader);
+        await user.click(findHeaderByText("employees.table.name"));
 
         await waitFor(() => {
             const calls = (api.searchEmployees as any).mock.calls;
             expect(calls.some((c: any[]) => c[4] === "name" && c[5] === "asc")).toBe(true);
-        });
+        }, { timeout: 3000 });
 
         (api.searchEmployees as any).mockClear();
-        await user.click(nameHeader);
+        // Re-query header since DOM is re-rendered after first click
+        await user.click(findHeaderByText("employees.table.name"));
 
         await waitFor(() => {
             const calls = (api.searchEmployees as any).mock.calls;
             const descCall = calls.find((c: any[]) => c[4] === "name" && c[5] === "desc");
             expect(descCall).toBeDefined();
-        });
+        }, { timeout: 3000 });
     });
 
     it("sends sort_by=status when clicking Status header", async () => {

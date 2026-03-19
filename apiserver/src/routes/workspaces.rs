@@ -83,4 +83,9 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/audit-logs",
             get(handlers::workspaces::audit::get_audit_logs),
         )
+        // Jobs
+        .route(
+            "/workspaces/:ws_id/jobs/:job_id",
+            get(handlers::get_generic_job_status),
+        )
 }

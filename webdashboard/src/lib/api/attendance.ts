@@ -266,9 +266,50 @@ export async function reprocessAttendance(
     `${API_BASE_URL}/workspaces/${wsId}/attendance/reprocess/${employeeId}?start_date=${startDate}&end_date=${endDate}`,
     {
       method: "POST",
+      timeout: TIMEOUT.REPORT_OPERATION,
     }
   );
   if (!response.ok) throw new Error("Failed to reprocess attendance");
+}
+
+export async function reprocessAllAttendance(
+  wsId: string,
+  startDate: string,
+  endDate: string
+): Promise<{ message: string; job_id: string }> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/attendance/reprocess-all?start_date=${startDate}&end_date=${endDate}`,
+    {
+      method: "POST",
+    }
+  );
+  if (!response.ok) throw new Error("Failed to queue reprocess all attendance job");
+  return response.json();
+}
+
+export interface GenericJobProgress {
+  total_batches: number;
+  completed_batches: number;
+  failed_batches: number;
+  percentage: number;
+}
+
+export interface GenericJobStatus {
+  job_id: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  progress: GenericJobProgress;
+  error?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
+export async function fetchGenericJobStatus(
+  wsId: string,
+  jobId: string
+): Promise<GenericJobStatus> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/jobs/${jobId}`);
+  if (!response.ok) throw new Error("Failed to fetch job status");
+  return response.json();
 }
 
 // --- Admin Confirm Attendance ---

@@ -2,6 +2,8 @@
   "common": {
     "search": "Search...",
     "dashboard": "Dashboard",
+    "startDate": "Start Date",
+    "endDate": "End Date",
     "workspace_settings": {
       "title": "Workspace Settings",
       "description": "Manage workspace configuration, personnel, and appearance.",
@@ -2224,6 +2226,15 @@
       "summary": "Monthly Summary",
       "daily": "Daily Details"
     },
+    "reprocess": {
+      "bulk_tooltip": "Reprocess Data",
+      "bulk_confirm_title": "Confirm Bulk Reprocess",
+      "bulk_confirm_message": "This action will recalculate work hours, overtime, and late/early statuses for ALL employees in the selected date range. This process cannot be undone. Are you sure?",
+      "confirm": "Confirm",
+      "tooltip": "Reprocess Employee Day",
+      "confirm_title": "Reprocess Employee Record",
+      "confirm_message": "Recalculate attendance for this employee on {{date}}. Are you sure?"
+    },
     "status": {
       "present": "On-time",
       "late": "Late",
@@ -2257,6 +2268,9 @@
       "tooltip": "Recalculate attendance for this day",
       "confirm_title": "Recalculate attendance?",
       "confirm_message": "System will recalculate attendance for {{employee}} on {{date}} using latest pairing algorithms and shift settings.",
+      "bulk_tooltip": "Bulk Recalculate Attendance",
+      "bulk_confirm_title": "Bulk Recalculate Attendance?",
+      "bulk_confirm_message": "System will recalculate attendance for ALL employees in the selected date range using the latest pairing algorithms and shift settings.",
       "confirm": "Recalculate",
       "error": "Could not recalculate attendance. Please try again."
     },

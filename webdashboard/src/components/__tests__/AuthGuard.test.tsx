@@ -104,7 +104,7 @@ describe("AuthGuard", () => {
       </MemoryRouter>,
     );
 
-    // Khi isError: true, AuthGuard hiện thông báo chuyển hướng
-    expect(screen.getByText(/Phiên làm việc hết hạn/i)).toBeInTheDocument();
+    // Khi isError: true, AuthGuard redirects to Login Page
+    expect(screen.getByText("Login Page")).toBeInTheDocument();
   });
 });

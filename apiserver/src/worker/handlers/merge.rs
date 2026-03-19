@@ -89,13 +89,13 @@ impl MergeHandler {
 
         // 5. Merge results and generate Excel
         let (excel_data, file_name, total_records) = match meta.report_type {
-            ReportType::Summary => Self::merge_summary_results(
+            Some(ReportType::Summary) => Self::merge_summary_results(
                 &batch_results,
                 &workspace_name,
                 date_range,
                 parent_job_id,
             )?,
-            ReportType::Detail => {
+            Some(ReportType::Detail) => {
                 let work_unit_minutes = job
                     .merge_payload()
                     .map(|p| p.config.work_unit_minutes)
@@ -107,7 +107,11 @@ impl MergeHandler {
                     parent_job_id,
                     &workspace_tz,
                     work_unit_minutes,
-                )?}
+                )?
+            }
+            None => {
+                return Err("Merge job missing report type".to_string());
+            }
         };
 
         info!(

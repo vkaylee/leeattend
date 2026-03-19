@@ -17,7 +17,7 @@ use uuid::Uuid;
 use crate::cache::{CacheManager, RosterCache};
 use crate::queue::{Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
-use crate::worker::handlers::{AccrualHandler, AttendanceHandler, LogIngestionHandler, MergeHandler};
+use crate::worker::handlers::{AccrualHandler, AttendanceHandler, LogIngestionHandler, MergeHandler, ReprocessAttendanceHandler};
 
 // Redis key patterns for monitoring
 const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
@@ -402,6 +402,9 @@ impl JobWorker {
             }
             TaskType::LogIngestion => {
                 LogIngestionHandler::handle(&self.db, &job).await
+            }
+            TaskType::ReprocessAttendance => {
+                ReprocessAttendanceHandler::handle(&self.db, &job, &self.redis).await
             }
         };
 

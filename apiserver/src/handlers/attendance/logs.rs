@@ -152,3 +152,117 @@ pub async fn force_reprocess_attendance(
 
     Ok(StatusCode::OK)
 }
+
+pub async fn force_reprocess_all_attendance(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Query(query): Query<ReprocessQuery>,
+) -> AppResult<Json<serde_json::Value>> {
+    ctx.require_permission(Permission::AttendanceReprocess)?;
+
+    const MAX_REPROCESS_DAYS: i64 = 90;
+
+    let date_range = (query.end_date - query.start_date).num_days();
+    if date_range < 0 {
+        return Err(AppError::Validation(
+            "end_date must be after start_date".to_string(),
+        ));
+    }
+    if date_range > MAX_REPROCESS_DAYS {
+        return Err(AppError::Validation(format!(
+            "Max reprocess range is {MAX_REPROCESS_DAYS} days"
+        )));
+    }
+
+    let redis = state.infra.redis.as_ref().ok_or_else(|| {
+        AppError::Internal("Redis is required for background processing".to_string())
+    })?;
+
+    tracing::info!("Using Redis for enqueuing jobs");
+
+    let queue = crate::queue::JobQueue::new(redis.clone());
+
+    // Fetch all active employees
+    let employees = sqlx::query!(
+        "SELECT id FROM employees WHERE workspace_id = $1 AND is_active = true",
+        ctx.workspace_id
+    )
+    .fetch_all(state.infra.db.api())
+    .await
+    .map_err(AppError::from)?;
+
+    tracing::info!(
+        employee_count = employees.len(),
+        workspace_id = %ctx.workspace_id,
+        employee_ids = ?employees.iter().map(|e| e.id).collect::<Vec<_>>(),
+        "Found employees for bulk reprocess"
+    );
+
+    if employees.is_empty() {
+        return Err(AppError::Validation("No active employees found".to_string()));
+    }
+
+    let parent_job_id = uuid::Uuid::new_v4();
+    let total_batches = employees.len() as u32;
+
+    tracing::info!(
+        workspace_id = %ctx.workspace_id,
+        employee_count = total_batches,
+        job_id = %parent_job_id,
+        "Enqueuing bulk reprocess jobs"
+    );
+
+    let meta = crate::queue::JobMetadata::with_date_range(
+        parent_job_id,
+        total_batches,
+        ctx.workspace_id,
+        ctx.user_id,
+        None, // No report type
+        crate::queue::DateRange {
+            start: query.start_date,
+            end: query.end_date,
+        },
+    );
+
+    queue
+        .create_job_metadata(&meta)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to create job metadata: {e}")))?;
+
+    let jobs: Vec<crate::queue::Job> = employees
+        .into_iter()
+        .enumerate()
+        .map(|(idx, emp)| {
+            crate::queue::Job::with_priority(
+                parent_job_id,
+                idx as u32,
+                crate::queue::TaskType::ReprocessAttendance,
+                ctx.workspace_id,
+                crate::queue::JobPayload::ReprocessAttendance(
+                    crate::queue::ReprocessPayload {
+                        employee_id: emp.id,
+                        date_range: crate::queue::DateRange {
+                            start: query.start_date,
+                            end: query.end_date,
+                        },
+                    },
+                ),
+                crate::queue::JobPriority::Normal,
+            )
+        })
+        .collect();
+
+    tracing::debug!(job_count = jobs.len(), "Enqueuing jobs to Redis");
+
+    queue
+        .enqueue_jobs(jobs)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to enqueue jobs: {e}")))?;
+
+    tracing::info!(job_id = %parent_job_id, "Bulk reprocess jobs enqueued successfully");
+
+    Ok(Json(serde_json::json!({
+        "message": "Reprocess jobs queued successfully",
+        "job_id": parent_job_id
+    })))
+}

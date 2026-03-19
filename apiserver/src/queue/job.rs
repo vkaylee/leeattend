@@ -21,6 +21,7 @@ pub enum TaskType {
     MergeResults,
     LeaveAccrual,
     LogIngestion,
+    ReprocessAttendance,
 }
 
 /// Job priority level. Controls which Redis queue the job is routed to.
@@ -97,6 +98,13 @@ pub struct LogIngestionPayload {
     pub time_fmt: String,
 }
 
+/// Payload for bulk attendance reprocessing jobs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReprocessPayload {
+    pub employee_id: Uuid,
+    pub date_range: DateRange,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -106,6 +114,7 @@ pub enum JobPayload {
     PayrollReport(ReportPayload),
     LeaveAccrual(AccrualPayload),
     LogIngestion(LogIngestionPayload),
+    ReprocessAttendance(ReprocessPayload),
 }
 
 /// A single worker job.
@@ -209,6 +218,14 @@ impl Job {
             _ => None,
         }
     }
+
+    /// Helper: extract reprocess payload.
+    pub fn reprocess_payload(&self) -> Option<&ReprocessPayload> {
+        match &self.payload {
+            JobPayload::ReprocessAttendance(p) => Some(p),
+            _ => None,
+        }
+    }
 }
 
 /// Status of a job in the processing pipeline.
@@ -239,8 +256,9 @@ pub struct JobMetadata {
     pub workspace_id: Uuid,
     /// User who requested the report
     pub requester_id: Uuid,
-    /// Type of report
-    pub report_type: ReportType,
+    /// Type of report (None if not a report job)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub report_type: Option<ReportType>,
     /// Date range for the report
     #[serde(default)]
     pub date_range: Option<DateRange>,
@@ -259,7 +277,7 @@ impl JobMetadata {
         total_batches: u32,
         workspace_id: Uuid,
         requester_id: Uuid,
-        report_type: ReportType,
+        report_type: Option<ReportType>,
     ) -> Self {
         Self {
             job_id,
@@ -283,7 +301,7 @@ impl JobMetadata {
         total_batches: u32,
         workspace_id: Uuid,
         requester_id: Uuid,
-        report_type: ReportType,
+        report_type: Option<ReportType>,
         date_range: DateRange,
     ) -> Self {
         Self {
@@ -357,7 +375,7 @@ mod tests {
             10,
             Uuid::new_v4(),
             Uuid::new_v4(),
-            ReportType::Summary,
+            Some(ReportType::Summary),
         );
 
         assert!(!meta.is_complete());
@@ -624,7 +642,7 @@ mod tests {
             5,
             Uuid::new_v4(),
             Uuid::new_v4(),
-            ReportType::Detail,
+            Some(ReportType::Detail),
             dr,
         );
 
@@ -642,7 +660,7 @@ mod tests {
             0, // No batches
             Uuid::new_v4(),
             Uuid::new_v4(),
-            ReportType::Summary,
+            Some(ReportType::Summary),
         );
 
         assert_eq!(meta.progress_percent(), 100.0);

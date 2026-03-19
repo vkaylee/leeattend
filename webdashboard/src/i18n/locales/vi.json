@@ -2,6 +2,8 @@
   "common": {
     "search": "Tìm kiếm...",
     "dashboard": "Bảng điều khiển",
+    "startDate": "Ngày bắt đầu",
+    "endDate": "Ngày kết thúc",
     "workspace_settings": {
       "title": "Cài đặt Workspace",
       "description": "Quản lý cấu hình, nhân sự và giao diện không gian làm việc.",
@@ -2224,6 +2226,15 @@
       "summary": "Tổng hợp tháng",
       "daily": "Chi tiết hàng ngày"
     },
+    "reprocess": {
+      "bulk_tooltip": "Tính Lại Dữ Liệu",
+      "bulk_confirm_title": "Xác nhận tính lại toàn bộ",
+      "bulk_confirm_message": "Hành động này sẽ tính toán lại giờ làm việc, tăng ca và đi muộn/về sớm của TẤT CẢ nhân viên trong khoảng thời gian đã chọn. Không thể hoàn tác tiến trình này. Bạn có chắc không?",
+      "confirm": "Xác nhận",
+      "tooltip": "Tính lại ngày làm việc",
+      "confirm_title": "Xác nhận tính lại",
+      "confirm_message": "Tính toán lại dữ liệu chấm công cho nhân viên này vào ngày {{date}}. Bạn có chắc không?"
+    },
     "status": {
       "present": "Đúng giờ",
       "late": "Đi muộn",
@@ -2257,6 +2268,9 @@
       "tooltip": "Tính lại dữ liệu chấm công cho ngày này",
       "confirm_title": "Tính lại dữ liệu chấm công?",
       "confirm_message": "Hệ thống sẽ tính lại dữ liệu chấm công cho {{employee}} vào ngày {{date}} sử dụng thuật toán ghép cặp và cài đặt ca làm việc mới nhất.",
+      "bulk_tooltip": "Tính lại dữ liệu chấm công toàn hệ thống",
+      "bulk_confirm_title": "Tính lại dữ liệu chấm công toàn hệ thống?",
+      "bulk_confirm_message": "Hệ thống sẽ tính lại dữ liệu chấm công cho TẤT CẢ nhân viên trong khoảng thời gian đã chọn sử dụng thuật toán ghép cặp và cài đặt ca làm việc mới.",
       "confirm": "Tính lại",
       "error": "Không thể tính lại dữ liệu chấm công. Vui lòng thử lại."
     },
