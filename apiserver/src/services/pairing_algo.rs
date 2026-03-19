@@ -25,7 +25,6 @@ pub struct PairedSession {
 pub struct LogEvent {
     pub id: uuid::Uuid,
     pub minutes: i32,
-    pub punch_type: Option<i32>, // 0: Check-In, 1: Check-Out, 2: Break-In, 3: Break-Out, 4: Overtime-In, 5: Overtime-Out
 }
 
 const ALGORITHM_NAME: &str = "shift_aware";
@@ -40,9 +39,8 @@ const SHIFT_WINDOW_BUFFER: i32 = 120;
 /// Returns the single shift-aware pairing strategy.
 ///
 /// This strategy auto-adapts based on available context:
-/// 1. If logs have explicit punch_type (device supports IN/OUT) → use directly
-/// 2. If a shift config is provided → pair using shift time windows (industry standard)
-/// 3. Fallback → anchor-first (first log = IN, last within 16h = OUT)
+/// 1. If a shift config is provided → pair using shift time windows (industry standard)
+/// 2. Fallback → anchor-first (first log = IN, last within 16h = OUT)
 pub fn get_strategy() -> ShiftAwareStrategy {
     ShiftAwareStrategy
 }
@@ -59,67 +57,16 @@ impl ShiftAwareStrategy {
             return vec![];
         }
 
-        // Tier 1: If logs have explicit punch_type, use punch-type-based pairing
-        if self.has_valid_punch_types(logs) {
-            return self.pair_by_punch_type(logs);
-        }
-
-        // Tier 2: If shift config available, use shift-window-based pairing
+        // Tier 1: If shift config available, use shift-window-based pairing
         if let Some(shift) = config {
             return self.pair_by_shift_window(logs, shift);
         }
 
-        // Tier 3: Fallback to anchor-first (original behavior)
+        // Tier 2: Fallback to anchor-first (original behavior)
         self.pair_anchor_first(logs)
     }
 
-    /// Check if logs have meaningful punch_type data (at least one IN and optionally OUT).
-    fn has_valid_punch_types(&self, logs: &[LogEvent]) -> bool {
-        let has_check_in = logs.iter().any(|l| l.punch_type == Some(0));
-        let has_check_out = logs.iter().any(|l| l.punch_type == Some(1));
-        // Need at least a check-in; having both IN and OUT is ideal
-        has_check_in && has_check_out
-    }
-
-    /// Tier 1: Pair using explicit punch_type from device.
-    /// Finds the earliest Check-In (type=0) and latest Check-Out (type=1).
-    fn pair_by_punch_type(&self, logs: &[LogEvent]) -> Vec<PairedSession> {
-        let first_in = logs.iter().find(|l| l.punch_type == Some(0));
-        let last_out = logs.iter().rev().find(|l| l.punch_type == Some(1));
-
-        let (start, start_id) = match first_in {
-            Some(log) => (log.minutes, log.id),
-            None => return self.pair_anchor_first(logs), // fallback
-        };
-
-        let (end, end_id) = match last_out {
-            Some(log) if log.minutes > start => (Some(log.minutes), Some(log.id)),
-            _ => (None, None),
-        };
-
-        let mut log_ids = vec![start_id];
-        if let Some(eid) = end_id {
-            log_ids.push(eid);
-        }
-
-        vec![PairedSession {
-            start_minutes: start,
-            end_minutes: end,
-            entry_type: "work".to_string(),
-            note: if end.is_none() {
-                Some("Missing Punch Out".to_string())
-            } else {
-                None
-            },
-            metadata: Some(serde_json::json!({
-                "algorithm": ALGORITHM_NAME,
-                "tier": "punch_type",
-                "log_ids": log_ids
-            })),
-        }]
-    }
-
-    /// Tier 2: Pair using shift time windows (industry standard, like ZKBioTime).
+    /// Tier 1: Pair using shift time windows (industry standard, like ZKBioTime).
     /// Earliest log near shift start = IN, latest log near shift end = OUT.
     fn pair_by_shift_window(&self, logs: &[LogEvent], shift: &PairingShiftConfig) -> Vec<PairedSession> {
         let check_in_window_start = shift.start_minutes - SHIFT_WINDOW_BUFFER;
@@ -172,7 +119,7 @@ impl ShiftAwareStrategy {
         }]
     }
 
-    /// Tier 3: Anchor-first fallback (original behavior).
+    /// Tier 2: Anchor-first fallback (original behavior).
     /// First log = IN, furthest log within 16h = OUT.
     fn pair_anchor_first(&self, logs: &[LogEvent]) -> Vec<PairedSession> {
         let first = &logs[0];
@@ -221,11 +168,10 @@ mod tests {
     use super::*;
     use uuid::Uuid;
 
-    fn make_log(minutes: i32, punch_type: Option<i32>) -> LogEvent {
+    fn make_log(minutes: i32) -> LogEvent {
         LogEvent {
             id: Uuid::new_v4(),
             minutes,
-            punch_type,
         }
     }
 
@@ -238,57 +184,17 @@ mod tests {
         }
     }
 
-    // --- Tier 1: Punch Type tests ---
-
-    #[test]
-    fn test_punch_type_perfect_day() {
-        let strategy = get_strategy();
-        let logs = vec![
-            make_log(480, Some(0)),  // 08:00 Check-In
-            make_log(720, Some(2)),  // 12:00 Break-In
-            make_log(780, Some(3)),  // 13:00 Break-Out
-            make_log(1020, Some(1)), // 17:00 Check-Out
-        ];
-
-        let sessions = strategy.pair(&logs, None);
-        assert_eq!(sessions.len(), 1);
-        assert_eq!(sessions[0].start_minutes, 480);
-        assert_eq!(sessions[0].end_minutes, Some(1020));
-        assert!(sessions[0].note.is_none());
-
-        let meta = sessions[0].metadata.as_ref().unwrap();
-        assert_eq!(meta["tier"], "punch_type");
-    }
-
-    #[test]
-    fn test_punch_type_missing_checkout() {
-        let strategy = get_strategy();
-        // Only Check-In, no Check-Out — should fallback to anchor_first
-        let logs = vec![
-            make_log(480, Some(0)),
-        ];
-
-        let sessions = strategy.pair(&logs, None);
-        assert_eq!(sessions.len(), 1);
-        assert_eq!(sessions[0].start_minutes, 480);
-        assert!(sessions[0].end_minutes.is_none());
-
-        let meta = sessions[0].metadata.as_ref().unwrap();
-        assert_eq!(meta["tier"], "anchor_first"); // Fell back
-    }
-
-    // --- Tier 2: Shift Window tests ---
+    // --- Tier 1: Shift Window tests ---
 
     #[test]
     fn test_shift_window_normal_day() {
         let strategy = get_strategy();
         let shift = standard_shift();
-        // Logs without punch_type, but within shift windows
         let logs = vec![
-            make_log(475, None),  // 07:55 — within check-in window (480 ± 120)
-            make_log(725, None),  // 12:05 — break area
-            make_log(775, None),  // 12:55 — break area
-            make_log(1025, None), // 17:05 — within check-out window (1020 ± 120)
+            make_log(475),  // 07:55 — within check-in window (480 ± 120)
+            make_log(725),  // 12:05 — break area
+            make_log(775),  // 12:55 — break area
+            make_log(1025), // 17:05 — within check-out window (1020 ± 120)
         ];
 
         let sessions = strategy.pair(&logs, Some(&shift));
@@ -306,8 +212,8 @@ mod tests {
         let shift = standard_shift();
         // All logs far from shift windows — should fallback to anchor_first
         let logs = vec![
-            make_log(200, None),  // 03:20 — way before shift
-            make_log(300, None),  // 05:00 — still before window
+            make_log(200),  // 03:20 — way before shift
+            make_log(300),  // 05:00 — still before window
         ];
 
         let sessions = strategy.pair(&logs, Some(&shift));
@@ -317,14 +223,14 @@ mod tests {
         assert_eq!(meta["tier"], "anchor_first"); // Fell back
     }
 
-    // --- Tier 3: Anchor First tests ---
+    // --- Tier 2: Anchor First tests ---
 
     #[test]
     fn test_anchor_first_perfect_day() {
         let strategy = get_strategy();
         let logs = vec![
-            make_log(480, None),
-            make_log(1020, None),
+            make_log(480),
+            make_log(1020),
         ];
 
         let sessions = strategy.pair(&logs, None);
@@ -339,7 +245,7 @@ mod tests {
     #[test]
     fn test_anchor_first_missing_out() {
         let strategy = get_strategy();
-        let logs = vec![make_log(480, None)];
+        let logs = vec![make_log(480)];
 
         let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
@@ -353,8 +259,8 @@ mod tests {
         let strategy = get_strategy();
         // Log 2: 01:00 next day (1500) -> 17h gap (1020 mins). Should NOT pair.
         let logs = vec![
-            make_log(480, None),
-            make_log(1500, None),
+            make_log(480),
+            make_log(1500),
         ];
 
         let sessions = strategy.pair(&logs, None);
@@ -369,30 +275,7 @@ mod tests {
         assert!(sessions.is_empty());
     }
 
-    // --- Priority tests ---
-
-    #[test]
-    fn test_punch_type_takes_priority_over_shift() {
-        let strategy = get_strategy();
-        let shift = standard_shift();
-        // Logs WITH punch_type AND shift config — punch_type should win
-        let logs = vec![
-            make_log(490, Some(0)),  // Check-In slightly late
-            make_log(1010, Some(1)), // Check-Out slightly early
-        ];
-
-        let sessions = strategy.pair(&logs, Some(&shift));
-        assert_eq!(sessions.len(), 1);
-        assert_eq!(sessions[0].start_minutes, 490);
-        assert_eq!(sessions[0].end_minutes, Some(1010));
-
-        let meta = sessions[0].metadata.as_ref().unwrap();
-        assert_eq!(meta["tier"], "punch_type"); // Punch type wins
-    }
-
-    // =====================================================================
-    // Overnight shift windows
-    // =====================================================================
+    // --- Overnight shift windows ---
 
     #[test]
     fn test_shift_window_overnight_shift() {
@@ -405,8 +288,8 @@ mod tests {
         };
 
         let logs = vec![
-            make_log(1310, None), // 21:50 — within check-in window
-            make_log(1810, None), // 06:10 next day — within check-out window
+            make_log(1310), // 21:50 — within check-in window
+            make_log(1810), // 06:10 next day — within check-out window
         ];
 
         let sessions = strategy.pair(&logs, Some(&shift));
@@ -418,14 +301,12 @@ mod tests {
         assert_eq!(meta["tier"], "shift_window");
     }
 
-    // =====================================================================
-    // Single log edge cases
-    // =====================================================================
+    // --- Single log edge cases ---
 
     #[test]
     fn test_single_log_no_config() {
         let strategy = get_strategy();
-        let logs = vec![make_log(480, None)];
+        let logs = vec![make_log(480)];
 
         let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
@@ -438,30 +319,25 @@ mod tests {
     fn test_single_log_with_shift_config() {
         let strategy = get_strategy();
         let shift = standard_shift();
-        let logs = vec![make_log(480, None)];
+        let logs = vec![make_log(480)];
 
         let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
-        // Only one log in check-in window, no check-out → Missing Punch Out
         assert!(sessions[0].end_minutes.is_none());
     }
 
-    // =====================================================================
-    // Anchor-first boundary (exactly at 16h gap)
-    // =====================================================================
+    // --- Anchor-first boundary (exactly at 16h gap) ---
 
     #[test]
     fn test_anchor_first_exactly_at_16h_gap() {
         let strategy = get_strategy();
-        // First log at 480 (08:00), second at 1440 (24:00) = 960 min gap (=16h)
         let logs = vec![
-            make_log(480, None),
-            make_log(1440, None), // exactly MAX_SESSION_GAP_MINUTES away
+            make_log(480),
+            make_log(1440), // exactly MAX_SESSION_GAP_MINUTES away
         ];
 
         let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
-        // 960 min gap = MAX, should still pair
         assert_eq!(sessions[0].end_minutes, Some(1440));
     }
 
@@ -469,29 +345,25 @@ mod tests {
     fn test_anchor_first_one_minute_over_16h_gap() {
         let strategy = get_strategy();
         let logs = vec![
-            make_log(480, None),
-            make_log(1441, None), // 961 min gap > MAX_SESSION_GAP_MINUTES (960)
+            make_log(480),
+            make_log(1441), // 961 min gap > MAX_SESSION_GAP_MINUTES (960)
         ];
 
         let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
-        // Over 16h gap → should NOT pair
         assert!(sessions[0].end_minutes.is_none());
     }
 
-    // =====================================================================
-    // Multiple logs in check-in window picks earliest
-    // =====================================================================
+    // --- Multiple logs in check-in window picks earliest ---
 
     #[test]
     fn test_shift_window_earliest_checkin() {
         let strategy = get_strategy();
         let shift = standard_shift();
-        // Multiple logs near shift start — should pick the earliest
         let logs = vec![
-            make_log(470, None),  // 07:50
-            make_log(485, None),  // 08:05 — also in window
-            make_log(1020, None), // 17:00 — check-out
+            make_log(470),  // 07:50
+            make_log(485),  // 08:05 — also in window
+            make_log(1020), // 17:00 — check-out
         ];
 
         let sessions = strategy.pair(&logs, Some(&shift));
@@ -500,27 +372,7 @@ mod tests {
         assert_eq!(sessions[0].end_minutes, Some(1020));
     }
 
-    // =====================================================================
-    // Punch type: checkout before checkin is invalid
-    // =====================================================================
-
-    #[test]
-    fn test_punch_type_checkout_before_checkin() {
-        let strategy = get_strategy();
-        let logs = vec![
-            make_log(480, Some(0)),   // Check-In at 08:00
-            make_log(400, Some(1)),   // Check-Out at 06:40 (before check-in!)
-        ];
-
-        let sessions = strategy.pair(&logs, None);
-        assert_eq!(sessions.len(), 1);
-        // Check-out time < start → should be treated as no valid checkout
-        assert!(sessions[0].end_minutes.is_none());
-    }
-
-    // =====================================================================
-    // Algorithm name
-    // =====================================================================
+    // --- Algorithm name ---
 
     #[test]
     fn test_algorithm_name() {
@@ -528,9 +380,7 @@ mod tests {
         assert_eq!(strategy.algorithm_name(), "shift_aware");
     }
 
-    // =====================================================================
-    // PairedSession serialization
-    // =====================================================================
+    // --- PairedSession serialization ---
 
     #[test]
     fn test_paired_session_serde_roundtrip() {
@@ -546,4 +396,3 @@ mod tests {
         assert_eq!(parsed, session);
     }
 }
-

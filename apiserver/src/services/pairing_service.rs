@@ -168,7 +168,7 @@ impl PairingService {
         let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
 
         let logs: Vec<_> = sqlx::query!(
-            "SELECT id, punch_time, (raw_data->'punch')::text as punch_str FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
+            "SELECT id, punch_time FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
             employee_id,
             window_start_utc,
             window_end_utc
@@ -179,17 +179,12 @@ impl PairingService {
         // 3. Filter and Linearize Logs
         let mut filtered_log_events = Vec::new();
         if !logs.is_empty() {
-            let mut last_key: Option<(i64, Option<i32>)> = None;
+            let mut last_minute: Option<i64> = None;
 
             for log in logs {
-                let punch_type = log.punch_str.and_then(|s: String| s.parse::<i32>().ok());
-
                 let current_minute = log.punch_time.timestamp() / 60;
-                let current_key = (current_minute, punch_type);
-                if let Some(lk) = last_key {
-                    if current_key == lk {
-                        continue;
-                    }
+                if last_minute == Some(current_minute) {
+                    continue;
                 }
 
                 let log_local = log.punch_time.with_timezone(&tz);
@@ -198,10 +193,9 @@ impl PairingService {
                 filtered_log_events.push(pairing_algo::LogEvent {
                     id: log.id,
                     minutes: duration_since_start.num_minutes() as i32,
-                    punch_type,
                 });
 
-                last_key = Some(current_key);
+                last_minute = Some(current_minute);
             }
         }
 
