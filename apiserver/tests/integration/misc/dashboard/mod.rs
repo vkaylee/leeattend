@@ -647,6 +647,68 @@ async fn test_attendance_trend_includes_present_and_late() {
     assert_eq!(today_point["late"].as_i64().unwrap(), 1, "Expected 1 late (uses shift_rosters join)");
 }
 
+#[tokio::test]
+async fn test_attendance_trend_late_via_employee_shifts() {
+    let (address, ws_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .create()
+        .await;
+
+    let today = Utc::now().date_naive();
+
+    // Create shift 08:00-17:00 and assign via employee_shifts (NOT shift_rosters)
+    // This uses the factory's assign_to_employee which inserts into employee_shifts
+    factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_times(
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+        )
+        .assign_to_employee(emp_id, today - Duration::days(30))
+        .await;
+
+    // Create a LATE punch-in (08:30, past 5-min grace)
+    let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
+    let punch_out = today.and_hms_opt(17, 0, 0).unwrap().and_utc();
+
+    factory
+        .time_entry()
+        .with_employee(emp_id)
+        .with_punch_in(punch_in)
+        .with_punch_out(punch_out)
+        .create()
+        .await;
+
+    let res = client
+        .get(format!("{address}/api/dashboard/attendance-trend"))
+        .header("X-User-Id", user_id.to_string())
+        .header("X-Workspace-Id", ws_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    let body: Vec<serde_json::Value> = res.json().await.unwrap();
+    assert_eq!(body.len(), 30);
+
+    // Find today's entry — should have present=1 and late=1
+    let today_str = today.format("%Y-%m-%d").to_string();
+    let today_point = body.iter().find(|p| p["date"].as_str().unwrap() == today_str);
+    assert!(today_point.is_some(), "Expected today in trend data");
+    let today_point = today_point.unwrap();
+    assert_eq!(today_point["present"].as_i64().unwrap(), 1, "Expected 1 present");
+    assert_eq!(
+        today_point["late"].as_i64().unwrap(), 1,
+        "Expected 1 late via employee_shifts (6-priority chain)"
+    );
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  6. Department Attendance
 // ═══════════════════════════════════════════════════════════════════

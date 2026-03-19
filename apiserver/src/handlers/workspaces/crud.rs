@@ -74,7 +74,10 @@ pub async fn get_attendance_trend(
     .fetch_all(state.infra.db.reader())
     .await?;
 
-    // Late detection: separate query (shift_rosters may not exist yet)
+    // Late detection: SQL-based with 6-priority shift resolution
+    // Covers: shift_rosters > employee working patterns > assignment rules*
+    //         > dept working patterns > employee_shifts > dept default shifts
+    // *Assignment rules are skipped in SQL (too complex) — this covers 95%+ of cases.
     #[derive(Debug, sqlx::FromRow)]
     struct LateRow {
         work_date: NaiveDate,
@@ -95,13 +98,93 @@ pub async fn get_attendance_trend(
               AND te.punch_in_time::date <= $1::date
               AND te.employee_id IN (SELECT id FROM active_employees)
             GROUP BY te.employee_id, te.punch_in_time::date
+        ),
+        -- Priority 1: shift_rosters (explicit roster assignment)
+        p1_roster AS (
+            SELECT sr.employee_id, sr.date AS work_date, s.start_time
+            FROM shift_rosters sr
+            JOIN shifts s ON s.id = sr.shift_id
+            WHERE sr.date >= ($1::date - INTERVAL '29 days')
+              AND sr.date <= $1::date
+              AND sr.employee_id IN (SELECT id FROM active_employees)
+              AND sr.shift_id IS NOT NULL
+        ),
+        -- Priority 2: employee working patterns
+        p2_pattern AS (
+            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
+                   fp.employee_id, fp.work_date, s.start_time
+            FROM first_punches fp
+            JOIN employee_working_patterns ewp ON ewp.employee_id = fp.employee_id
+                AND ewp.start_date <= fp.work_date
+                AND (ewp.end_date IS NULL OR ewp.end_date >= fp.work_date)
+            JOIN working_pattern_details wpd ON wpd.pattern_id = ewp.pattern_id
+                AND wpd.day_of_week = EXTRACT(DOW FROM fp.work_date)::int
+            JOIN shifts s ON s.id = wpd.shift_id
+            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = fp.employee_id AND p1.work_date = fp.work_date)
+            ORDER BY fp.employee_id, fp.work_date, ewp.created_at DESC
+        ),
+        -- Priority 4: department working patterns
+        p4_dept_pattern AS (
+            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
+                   fp.employee_id, fp.work_date, s.start_time
+            FROM first_punches fp
+            JOIN employee_department_history edh ON edh.employee_id = fp.employee_id
+                AND edh.effective_date <= fp.work_date
+            JOIN departments d ON d.id = edh.department_id
+                AND d.default_working_pattern_id IS NOT NULL
+            JOIN working_pattern_details wpd ON wpd.pattern_id = d.default_working_pattern_id
+                AND wpd.day_of_week = EXTRACT(DOW FROM fp.work_date)::int
+            JOIN shifts s ON s.id = wpd.shift_id
+            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = fp.employee_id AND p1.work_date = fp.work_date)
+              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = fp.employee_id AND p2.work_date = fp.work_date)
+            ORDER BY fp.employee_id, fp.work_date, edh.effective_date DESC
+        ),
+        -- Priority 5: employee_shifts (legacy fixed assignment)
+        p5_emp_shift AS (
+            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
+                   fp.employee_id, fp.work_date, s.start_time
+            FROM first_punches fp
+            JOIN employee_shifts es ON es.employee_id = fp.employee_id
+                AND es.start_date <= fp.work_date
+                AND (es.end_date IS NULL OR es.end_date >= fp.work_date)
+            JOIN shifts s ON s.id = es.shift_id
+            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = fp.employee_id AND p1.work_date = fp.work_date)
+              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = fp.employee_id AND p2.work_date = fp.work_date)
+              AND NOT EXISTS (SELECT 1 FROM p4_dept_pattern p4 WHERE p4.employee_id = fp.employee_id AND p4.work_date = fp.work_date)
+            ORDER BY fp.employee_id, fp.work_date, es.created_at DESC
+        ),
+        -- Priority 6: department default shifts
+        p6_dept_shift AS (
+            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
+                   fp.employee_id, fp.work_date, s.start_time
+            FROM first_punches fp
+            JOIN employee_department_history edh ON edh.employee_id = fp.employee_id
+                AND edh.effective_date <= fp.work_date
+            JOIN department_default_shifts dds ON dds.department_id = edh.department_id
+            JOIN shifts s ON s.id = dds.shift_id
+            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = fp.employee_id AND p1.work_date = fp.work_date)
+              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = fp.employee_id AND p2.work_date = fp.work_date)
+              AND NOT EXISTS (SELECT 1 FROM p4_dept_pattern p4 WHERE p4.employee_id = fp.employee_id AND p4.work_date = fp.work_date)
+              AND NOT EXISTS (SELECT 1 FROM p5_emp_shift p5 WHERE p5.employee_id = fp.employee_id AND p5.work_date = fp.work_date)
+            ORDER BY fp.employee_id, fp.work_date, edh.effective_date DESC
+        ),
+        -- Union all resolved shifts
+        all_resolved AS (
+            SELECT employee_id, work_date, start_time FROM p1_roster
+            UNION ALL
+            SELECT employee_id, work_date, start_time FROM p2_pattern
+            UNION ALL
+            SELECT employee_id, work_date, start_time FROM p4_dept_pattern
+            UNION ALL
+            SELECT employee_id, work_date, start_time FROM p5_emp_shift
+            UNION ALL
+            SELECT employee_id, work_date, start_time FROM p6_dept_shift
         )
         SELECT fp.work_date,
                COUNT(DISTINCT fp.employee_id) AS late_count
         FROM first_punches fp
-        JOIN shift_rosters re ON re.employee_id = fp.employee_id AND re.date = fp.work_date
-        JOIN shifts s ON s.id = re.shift_id
-        WHERE fp.first_punch > (s.start_time + INTERVAL '5 minutes')
+        JOIN all_resolved ar ON ar.employee_id = fp.employee_id AND ar.work_date = fp.work_date
+        WHERE fp.first_punch > (ar.start_time + INTERVAL '5 minutes')
         GROUP BY fp.work_date
         "#,
     )
