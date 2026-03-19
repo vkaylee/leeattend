@@ -349,43 +349,47 @@ impl ReportCoordinator {
                     parent_job_id = %parent_job_id,
                     completed = completed_count,
                     total = meta.total_batches,
-                    "All batches complete, triggering merge (first worker)"
+                    "All batches complete"
                 );
 
-                // Enqueue merge job with date range from metadata
-                let date_range = meta.date_range.clone().unwrap_or(DateRange {
-                    start: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
-                    end: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
-                });
+                if let Some(ref report_type) = meta.report_type {
+                    // It's a report job, trigger merge
+                    tracing::info!(parent_job_id = %parent_job_id, "Triggering merge job");
 
-                let merge_job = Job::with_priority(
-                    parent_job_id,
-                    0, // batch_index 0 for merge
-                    TaskType::MergeResults,
-                    meta.workspace_id,
-                    JobPayload::MergeResults(MergePayload {
-                        date_range,
-                        config: ReportConfig {
-                            report_type: meta.report_type.clone().expect("Missing report type on report job"),
-                            timezone: "UTC".to_string(),
-                            rounding_policy: "floor".to_string(),
-                            work_unit_minutes: 30,
-                        },
-                    }),
-                    JobPriority::High,
-                );
+                    let date_range = meta.date_range.clone().unwrap_or(DateRange {
+                        start: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
+                        end: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
+                    });
 
-                self.queue
-                    .enqueue_jobs(vec![merge_job])
-                    .await
-                    .map_err(|e| ReportError::QueueError(e.to_string()))?;
-            } else {
-                tracing::debug!(
-                    parent_job_id = %parent_job_id,
-                    completed = completed_count,
-                    total = meta.total_batches,
-                    "All batches complete, but merge already triggered by another worker (race prevented)"
-                );
+                    let merge_job = Job::with_priority(
+                        parent_job_id,
+                        0, // batch_index 0 for merge
+                        TaskType::MergeResults,
+                        meta.workspace_id,
+                        JobPayload::MergeResults(MergePayload {
+                            date_range,
+                            config: ReportConfig {
+                                report_type: report_type.clone(),
+                                timezone: "UTC".to_string(),
+                                rounding_policy: "floor".to_string(),
+                                work_unit_minutes: 30,
+                            },
+                        }),
+                        JobPriority::High,
+                    );
+
+                    self.queue
+                        .enqueue_jobs(vec![merge_job])
+                        .await
+                        .map_err(|e| ReportError::QueueError(e.to_string()))?;
+                } else {
+                    // Not a report job (e.g. ReprocessAttendance), update status directly
+                    tracing::info!(parent_job_id = %parent_job_id, "Updating status to Completed (no merge needed)");
+                    self.queue
+                        .update_job_status(parent_job_id, JobStatus::Completed)
+                        .await
+                        .map_err(|e| ReportError::QueueError(e.to_string()))?;
+                }
             }
         }
 

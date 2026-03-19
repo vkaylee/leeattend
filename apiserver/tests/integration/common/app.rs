@@ -404,7 +404,11 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         },
         infra: apiserver::InfraState {
             db: apiserver::db_pool::DbPools::for_test(pool.clone()),
-            redis: None,
+            redis: if let Ok(url) = std::env::var("REDIS_URL") {
+                Some(apiserver::queue::RedisPool::new(&url).await.expect("Failed to create Redis pool for tower test"))
+            } else {
+                None
+            },
             roster_cache: None,
         },
     });

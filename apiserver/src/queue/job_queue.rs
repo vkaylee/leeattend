@@ -60,24 +60,14 @@ impl JobQueue {
 
         let mut conn = self.pool.conn();
 
-        // Split jobs by priority
-        let mut high: Vec<String> = Vec::new();
-        let mut low: Vec<String> = Vec::new();
-
-        for job in &jobs {
-            let json = serde_json::to_string(job).expect("Job serialization should not fail");
-            match job.priority {
-                JobPriority::Low => low.push(json),
-                _ => high.push(json), // High and Normal go to high-priority queue
-            }
-        }
-
-        // RPUSH to respective queues
-        if !high.is_empty() {
-            let _: () = conn.rpush(QUEUE_HIGH, &high).await?;
-        }
-        if !low.is_empty() {
-            let _: () = conn.rpush(QUEUE_LOW, &low).await?;
+        for job in jobs {
+            let json = serde_json::to_string(&job).expect("Job serialization should not fail");
+            let key = match job.priority {
+                JobPriority::Low => QUEUE_LOW,
+                _ => QUEUE_HIGH,
+            };
+            tracing::debug!(job_id = %job.job_id, queue = key, "Pushing job to queue");
+            let _: () = conn.rpush(key, json).await?;
         }
 
         Ok(())
