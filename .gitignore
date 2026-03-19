@@ -66,5 +66,8 @@ webdashboard/repomix-output.xml
 
 gha-creds-*.json
 
+# Database Backups
+backups/
+
 # Docker Test Cache
 docker-test-cache/

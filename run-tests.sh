@@ -58,6 +58,10 @@ show_help() {
     echo -e "    ${GREEN}--shard=N/M${NC}        CI parallelization: run shard N of M (e.g., --shard=1/3)"
     echo -e "    ${GREEN}--timeout=SECONDS${NC}  Override global timeout (default: 1800 = 30 min)"
     echo ""
+    echo -e "${BOLD}🗄️ DATABASE MANAGEMENT:${NC}"
+    echo -e "    ${GREEN}--db-backup${NC}        Backup PostgreSQL (dev) → ./backups/leeattend_YYYYMMDD_HHMMSS.dump"
+    echo -e "    ${GREEN}--db-restore=FILE${NC}  Restore PostgreSQL (dev) from a .dump or .sql file"
+    echo ""
     echo -e "${BOLD}🔧 CACHE MANAGEMENT:${NC}"
     echo -e "    ${GREEN}--warm-cache${NC}       Pre-compile all dependencies (run once on fresh machine / CI)"
     echo -e "    ${GREEN}--cache-stats${NC}      Show size and status of Cargo/NPM caches"
@@ -109,16 +113,21 @@ show_help() {
     echo "    ./run-tests.sh --docker=test build               # Rebuild test environment"
     echo "    ./run-tests.sh --docker=prod ps                  # Check prod service status"
     echo ""
-    echo -e "${YELLOW}# 7. First time setup / fresh machine:${NC}"
+    echo -e "${YELLOW}# 7. Database backup & restore:${NC}"
+    echo "    ./run-tests.sh --db-backup                                # Create backup"
+    echo "    ./run-tests.sh --db-restore=./backups/leeattend_*.dump   # Restore from file"
+    echo ""
+    echo -e "${YELLOW}# 8. First time setup / fresh machine:${NC}"
     echo "    ./run-tests.sh --all --warm-cache    # Pre-compile all deps first"
     echo "    ./run-tests.sh --all                 # Then run tests (much faster)"
     echo ""
-    echo -e "${YELLOW}# 8. CI/CD parallel sharding:${NC}"
+    echo -e "${YELLOW}# 9. CI/CD parallel sharding:${NC}"
     echo "    ./run-tests.sh --api --shard=1/3     # Job 1 of 3"
     echo "    ./run-tests.sh --api --shard=2/3     # Job 2 of 3"
     echo "    ./run-tests.sh --api --shard=3/3     # Job 3 of 3"
     echo ""
-    echo -e "${YELLOW}# 9. Troubleshooting & maintenance:${NC}"
+    echo -e "${YELLOW}# 10. Troubleshooting & maintenance:${NC}"
+
     echo "    ./run-tests.sh --cache-stats         # Check cache size"
     echo "    ./run-tests.sh --clean-cache         # Clear cache, keep containers"
     echo "    ./run-tests.sh --clean               # Full reset"
@@ -150,6 +159,128 @@ show_help() {
     echo "    4. Use --docker=dev exec SERVICE bash to run ad-hoc commands in containers"
     echo "    5. Test logs are stored in a volume. Use --logs or --tail-logs to read them"
     echo "    6. Cache persists across runs. Use --clean only when something is truly broken"
+}
+
+# --- Database backup/restore functions ---
+_DEV_COMPOSE_CMD="podman-compose -p leeattend-dev -f $SCRIPT_DIR/docker-compose.yml -f $SCRIPT_DIR/docker-compose.dev.yml"
+
+db_backup() {
+    local backup_dir="$SCRIPT_DIR/backups"
+    local timestamp
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    local filename="leeattend_${timestamp}.dump"
+    local filepath="$backup_dir/$filename"
+
+    # Load .env for DB credentials
+    set -a
+    # shellcheck disable=SC1091
+    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/.env"
+    set +a
+    local db_user="${DB_USER:-postgres}"
+    local db_name="${DB_NAME:-leeattend}"
+
+    echo -e "${BLUE}${BOLD}🗄️ PostgreSQL Backup${NC}"
+    echo -e "${BLUE}  Database: ${db_name}  User: ${db_user}${NC}"
+
+    # Check that db container is running and ready
+    if ! $_DEV_COMPOSE_CMD exec -T db pg_isready -U "$db_user" -d "$db_name" </dev/null >/dev/null 2>&1; then
+        echo -e "${RED}❌ Database container is not running or not ready.${NC}"
+        echo -e "${YELLOW}Start it first: ./run-tests.sh --docker=dev up -d db${NC}"
+        exit 1
+    fi
+
+    mkdir -p "$backup_dir"
+
+    echo -e "${BLUE}  Dumping to: ${YELLOW}./backups/$filename${NC}"
+    if $_DEV_COMPOSE_CMD exec -T db \
+        pg_dump -U "$db_user" -d "$db_name" -Fc --no-owner --no-acl \
+        </dev/null > "$filepath" 2>/dev/null; then
+        local size
+        size=$(du -h "$filepath" | cut -f1)
+        echo -e "${GREEN}✅ Backup complete: ./backups/$filename ($size)${NC}"
+    else
+        rm -f "$filepath"
+        echo -e "${RED}❌ Backup failed!${NC}"
+        exit 1
+    fi
+}
+
+db_restore() {
+    local file="$1"
+
+    # Resolve path: bare filename → look in ./backups/, relative → resolve from project root
+    if [[ "$file" != /* ]]; then
+        if [[ "$file" != */* && -f "$SCRIPT_DIR/backups/$file" ]]; then
+            file="$SCRIPT_DIR/backups/$file"
+        else
+            file="$SCRIPT_DIR/$file"
+        fi
+    fi
+
+    if [[ ! -f "$file" ]]; then
+        echo -e "${RED}❌ File not found: $file${NC}"
+        echo -e "${YELLOW}Available backups:${NC}"
+        ls -1 "$SCRIPT_DIR/backups/"*.dump "$SCRIPT_DIR/backups/"*.sql 2>/dev/null || echo "  (none)"
+        exit 1
+    fi
+
+    # Load .env for DB credentials
+    set -a
+    # shellcheck disable=SC1091
+    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/.env"
+    set +a
+    local db_user="${DB_USER:-postgres}"
+    local db_name="${DB_NAME:-leeattend}"
+
+    echo -e "${BLUE}${BOLD}🗄️ PostgreSQL Restore${NC}"
+    echo -e "${BLUE}  Database: ${db_name}  From: ${file}${NC}"
+
+    # Safety prompt (skip in non-interactive / CI)
+    if [[ -t 0 && -z "${CI:-}" ]]; then
+        echo -e "${YELLOW}⚠️  WARNING: This will OVERWRITE all data in '${db_name}'.${NC}"
+        read -t 10 -r -p "Continue? [y/N] " confirm || confirm="N"
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 0
+        fi
+    fi
+
+    # Check that db container is running and ready
+    if ! $_DEV_COMPOSE_CMD exec -T db pg_isready -U "$db_user" -d "$db_name" </dev/null >/dev/null 2>&1; then
+        echo -e "${RED}❌ Database container is not running or not ready.${NC}"
+        echo -e "${YELLOW}Start it first: ./run-tests.sh --docker=dev up -d db${NC}"
+        exit 1
+    fi
+
+    local ext="${file##*.}"
+    case "$ext" in
+        dump)
+            echo -e "${BLUE}  Restoring (pg_restore --clean)...${NC}"
+            if cat "$file" | $_DEV_COMPOSE_CMD exec -T db \
+                pg_restore -U "$db_user" -d "$db_name" --clean --no-owner --no-acl \
+                </dev/stdin 2>/dev/null; then
+                echo -e "${GREEN}✅ Restore complete!${NC}"
+            else
+                # pg_restore returns non-zero for warnings (e.g. "relation does not exist" on --clean)
+                echo -e "${YELLOW}⚠️  Restore finished with warnings (usually harmless with --clean).${NC}"
+            fi
+            ;;
+        sql)
+            echo -e "${BLUE}  Restoring (psql)...${NC}"
+            if cat "$file" | $_DEV_COMPOSE_CMD exec -T db \
+                psql -U "$db_user" -d "$db_name" --quiet \
+                </dev/stdin 2>/dev/null; then
+                echo -e "${GREEN}✅ Restore complete!${NC}"
+            else
+                echo -e "${RED}❌ Restore failed!${NC}"
+                exit 1
+            fi
+            ;;
+        *)
+            echo -e "${RED}❌ Unsupported file format: .$ext (use .dump or .sql)${NC}"
+            exit 1
+            ;;
+    esac
 }
 
 # --- Docker env command handler (must run before sourcing modules) ---
@@ -184,6 +315,11 @@ for _arg in "$@"; do
         podman-compose $_files "${_docker_args[@]}" </dev/null
         exit $?
     fi
+done
+
+# ── Skip PTY check for utility commands ──────────────────────────────
+for _arg in "$@"; do
+    case "$_arg" in --db-backup|--db-restore=*|--help) _PTY_CHECK_DONE=1; break;; esac
 done
 
 # ── PTY Safety Gate ──────────────────────────────────────────────────
@@ -497,6 +633,8 @@ for arg in "$@"; do
             --tail-logs) TAIL_LOGS=true;;
             --dev-logs) DEV_LOGS=dump;;
             --dev-logs=follow) DEV_LOGS=follow;;
+            --db-backup) db_backup; exit 0;;
+            --db-restore=*) db_restore "${arg#*=}"; exit 0;;
             --clean)
                 echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
                 dc down --volumes --remove-orphans
