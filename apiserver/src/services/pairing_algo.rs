@@ -39,7 +39,7 @@ const SHIFT_WINDOW_BUFFER: i32 = 120;
 /// Returns the single shift-aware pairing strategy.
 ///
 /// This strategy auto-adapts based on available context:
-/// 1. If a shift config is provided → pair using shift time windows (industry standard)
+/// 1. If a shift config is provided → "First In near shift start, Last Out of day"
 /// 2. Fallback → anchor-first (first log = IN, last within 16h = OUT)
 pub fn get_strategy() -> ShiftAwareStrategy {
     ShiftAwareStrategy
@@ -66,22 +66,17 @@ impl ShiftAwareStrategy {
         self.pair_anchor_first(logs)
     }
 
-    /// Tier 1: Pair using shift time windows (industry standard, like ZKBioTime).
-    /// Earliest log near shift start = IN, latest log near shift end = OUT.
+    /// Tier 1: "First In near shift start, Last Out of day" (industry standard).
+    /// Earliest log near shift start = IN, last log of the day = OUT.
+    /// Check-in uses a buffer window to avoid picking up logs from previous day.
+    /// Check-out has no buffer — captures any amount of overtime.
     fn pair_by_shift_window(&self, logs: &[LogEvent], shift: &PairingShiftConfig) -> Vec<PairedSession> {
         let check_in_window_start = shift.start_minutes - SHIFT_WINDOW_BUFFER;
         let check_in_window_end = shift.start_minutes + SHIFT_WINDOW_BUFFER;
-        let check_out_window_start = shift.end_minutes - SHIFT_WINDOW_BUFFER;
-        let check_out_window_end = shift.end_minutes + SHIFT_WINDOW_BUFFER;
 
         // Find earliest log in check-in window
         let first_in = logs.iter().find(|l| {
             l.minutes >= check_in_window_start && l.minutes <= check_in_window_end
-        });
-
-        // Find latest log in check-out window
-        let last_out = logs.iter().rev().find(|l| {
-            l.minutes >= check_out_window_start && l.minutes <= check_out_window_end
         });
 
         // If we can't find logs in shift windows, fall back to anchor-first
@@ -90,8 +85,11 @@ impl ShiftAwareStrategy {
             None => return self.pair_anchor_first(logs),
         };
 
+        // Last Out: take the last log of the day (after check-in)
+        let last_out = logs.iter().rev().find(|l| l.id != start_id && l.minutes > start);
+
         let (end, end_id) = match last_out {
-            Some(log) if log.id != start_id => (Some(log.minutes), Some(log.id)),
+            Some(log) => (Some(log.minutes), Some(log.id)),
             _ => (None, None),
         };
 
@@ -194,13 +192,32 @@ mod tests {
             make_log(475),  // 07:55 — within check-in window (480 ± 120)
             make_log(725),  // 12:05 — break area
             make_log(775),  // 12:55 — break area
-            make_log(1025), // 17:05 — within check-out window (1020 ± 120)
+            make_log(1025), // 17:05 — last log of day
         ];
 
         let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].start_minutes, 475);
         assert_eq!(sessions[0].end_minutes, Some(1025));
+
+        let meta = sessions[0].metadata.as_ref().unwrap();
+        assert_eq!(meta["tier"], "shift_window");
+    }
+
+    #[test]
+    fn test_shift_window_long_overtime() {
+        let strategy = get_strategy();
+        let shift = standard_shift(); // 08:00-17:00
+        // Employee works until 23:00 (6h overtime)
+        let logs = vec![
+            make_log(475),  // 07:55 — check-in
+            make_log(1380), // 23:00 — check-out (6h after shift end)
+        ];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 475);
+        assert_eq!(sessions[0].end_minutes, Some(1380)); // 23:00 captured!
 
         let meta = sessions[0].metadata.as_ref().unwrap();
         assert_eq!(meta["tier"], "shift_window");
@@ -394,5 +411,101 @@ mod tests {
         let json = serde_json::to_string(&session).unwrap();
         let parsed: PairedSession = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, session);
+    }
+
+    // --- Edge case: Overnight shift + overtime ---
+
+    #[test]
+    fn test_overnight_shift_with_overtime() {
+        let strategy = get_strategy();
+        let shift = PairingShiftConfig {
+            start_minutes: 1320, // 22:00
+            end_minutes: 1800,   // 06:00 next day
+            break_start_minutes: None,
+            break_end_minutes: None,
+        };
+
+        // Employee works overtime until 08:00 (2h OT after 06:00 shift end)
+        let logs = vec![
+            make_log(1310), // 21:50 — check-in
+            make_log(1920), // 08:00 next day — check-out (2h OT)
+        ];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 1310);
+        assert_eq!(sessions[0].end_minutes, Some(1920)); // 08:00 captured!
+
+        let meta = sessions[0].metadata.as_ref().unwrap();
+        assert_eq!(meta["tier"], "shift_window");
+    }
+
+    // --- Edge case: Single log in check-in window (forgot to clock out) ---
+
+    #[test]
+    fn test_single_log_in_checkin_window_missing_checkout() {
+        let strategy = get_strategy();
+        let shift = standard_shift(); // 08:00-17:00
+        let logs = vec![
+            make_log(478), // 07:58 — within check-in window, no other logs
+        ];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 478);
+        assert!(sessions[0].end_minutes.is_none());
+        assert_eq!(sessions[0].note.as_deref(), Some("Missing Punch Out"));
+
+        let meta = sessions[0].metadata.as_ref().unwrap();
+        assert_eq!(meta["tier"], "shift_window");
+    }
+
+    // --- Edge case: Rapid multiple punches (like employee 1541) ---
+
+    #[test]
+    fn test_rapid_multiple_punches() {
+        let strategy = get_strategy();
+        let shift = PairingShiftConfig {
+            start_minutes: 450, // 07:30
+            end_minutes: 990,   // 16:30
+            break_start_minutes: Some(690), // 11:30
+            break_end_minutes: Some(750),   // 12:30
+        };
+
+        // Simulating employee 1541: multiple rapid punches at start, then checkout at 17:00
+        let logs = vec![
+            make_log(446),  // 07:26 — first log, within check-in window
+            make_log(455),  // 07:35
+            make_log(461),  // 07:41
+            make_log(464),  // 07:44
+            make_log(466),  // 07:46
+            make_log(1020), // 17:00 — last log of day
+        ];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 446);  // earliest in window
+        assert_eq!(sessions[0].end_minutes, Some(1020)); // last log
+    }
+
+    // --- Edge case: Log far before shift window (should fallback) ---
+
+    #[test]
+    fn test_log_before_shift_window_falls_back() {
+        let strategy = get_strategy();
+        let shift = standard_shift(); // 08:00-17:00, window starts at 06:00
+        // All logs at 03:00-04:00 — way before check-in window (480-120=360=06:00)
+        let logs = vec![
+            make_log(180), // 03:00
+            make_log(240), // 04:00
+        ];
+
+        let sessions = strategy.pair(&logs, Some(&shift));
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 180);
+        assert_eq!(sessions[0].end_minutes, Some(240));
+
+        let meta = sessions[0].metadata.as_ref().unwrap();
+        assert_eq!(meta["tier"], "anchor_first"); // Fell back because no logs in check-in window
     }
 }

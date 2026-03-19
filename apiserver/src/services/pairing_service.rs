@@ -154,7 +154,10 @@ impl PairingService {
         let (window_start_utc, window_end_utc) = if let Some(s) = &shift_config {
             const LOG_SEARCH_BUFFER_MINUTES: i64 = 360;
             let start_mins = s.start_minutes as i64 - LOG_SEARCH_BUFFER_MINUTES;
-            let end_mins = s.end_minutes as i64 + LOG_SEARCH_BUFFER_MINUTES;
+            // End of local day OR shift end (whichever is later) to handle:
+            //   - Normal shifts: capture all overtime until midnight
+            //   - Overnight shifts: capture logs past midnight (e.g. 22:00-06:00)
+            let end_mins = std::cmp::max(1440, s.end_minutes as i64 + LOG_SEARCH_BUFFER_MINUTES);
 
             let s_utc = (start_of_day_local + Duration::minutes(start_mins)).with_timezone(&Utc);
             let e_utc = (start_of_day_local + Duration::minutes(end_mins)).with_timezone(&Utc);
