@@ -22,13 +22,20 @@ pub(crate) const EMPLOYEE_SELECT_QUERY: &str = r#"
     SELECT 
         e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, 
         COALESCE(ep.hire_date, CURRENT_DATE) as hire_date, ep.termination_date, 
-        e.tags, e.is_active, e.created_at, e.updated_at
+        e.tags, e.is_active, e.created_at, e.updated_at,
+        d_cur.name as department_name
     FROM employees e
     LEFT JOIN (
         SELECT DISTINCT ON (employee_id) employee_id, hire_date, termination_date
         FROM employment_periods
         ORDER BY employee_id, hire_date DESC
     ) ep ON e.id = ep.employee_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (employee_id) employee_id, department_id
+        FROM employee_department_history
+        ORDER BY employee_id, effective_date DESC
+    ) edh_cur ON e.id = edh_cur.employee_id
+    LEFT JOIN departments d_cur ON edh_cur.department_id = d_cur.id
 "#;
 
 pub async fn find_by_number(

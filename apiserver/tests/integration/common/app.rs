@@ -318,7 +318,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     ));
     
     let employee_repo = Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
-    let employee_service = Arc::new(apiserver::services::EmployeeService::new(employee_repo.clone(), pool.clone()));
+    let employee_service = Arc::new(apiserver::services::EmployeeService::new(employee_repo.clone(), pool.clone(), None));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
     let roster_repo: Arc<dyn apiserver::repositories::roster::RosterRepository> = Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone()));
     let time_tracking_service = Arc::new(apiserver::services::TimeTrackingService::new(time_entry_repo.clone(), roster_repo.clone(), pool.clone()));

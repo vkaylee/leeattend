@@ -123,6 +123,7 @@ impl EmployeeService {
             is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            department_name: None,
         };
 
         // Transaction-based creation still uses pool directly

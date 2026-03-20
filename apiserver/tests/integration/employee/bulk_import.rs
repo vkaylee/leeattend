@@ -446,7 +446,7 @@ fn create_multipart_body_binary(filename: &str, content: &[u8]) -> (String, Vec<
 /// Generate a real .xlsx file with employee data including department column
 fn generate_employee_xlsx(rows: &[(&str, &str, &str, &str)]) -> Vec<u8> {
     let mut workbook = Workbook::new();
-    let worksheet = workbook.add_worksheet().unwrap();
+    let worksheet = workbook.add_worksheet();
 
     // Header row
     worksheet.write_string(0, 0, "ID").unwrap();
