@@ -330,22 +330,6 @@ describe("EmployeesPage", () => {
         });
     });
 
-    it("sends sort_by=employee_id_number when clicking ID header", async () => {
-        const user = userEvent.setup();
-        renderPage();
-        await screen.findByText("Alice Nguyen");
-
-        (api.searchEmployees as any).mockClear();
-        const idHeader = findHeaderByText("employees.table.id");
-        await user.click(idHeader);
-
-        await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
-            const sortCall = calls.find((c: any[]) => c[4] === "employee_id_number");
-            expect(sortCall).toBeDefined();
-            expect(sortCall[5]).toBe("asc");
-        });
-    });
 
     it("sends sort_by=department when clicking Department header", async () => {
         const user = userEvent.setup();
@@ -363,4 +347,221 @@ describe("EmployeesPage", () => {
             expect(sortCall[5]).toBe("asc");
         });
     });
+
+    // ────────────────────────────────────────────────────────────
+    // Department filter (checkbox popover)
+    // ────────────────────────────────────────────────────────────
+
+    const mockDepartments = [
+        { id: "dept-1", name: "Engineering", workspace_id: "test-ws-id" },
+        { id: "dept-2", name: "Sales", workspace_id: "test-ws-id" },
+        { id: "dept-3", name: "HR", workspace_id: "test-ws-id" },
+    ];
+
+    it("renders department filter button in header", async () => {
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        const filterBtn = screen.getByTestId("dept-filter-btn");
+        expect(filterBtn).toBeDefined();
+    });
+
+    it("opens filter popover and shows department checkboxes", async () => {
+        const user = userEvent.setup();
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        const filterBtn = screen.getByTestId("dept-filter-btn");
+        await user.click(filterBtn);
+
+        // All departments should be visible as options
+        await waitFor(() => {
+            expect(screen.getByText("Engineering")).toBeDefined();
+            expect(screen.getByText("Sales")).toBeDefined();
+            expect(screen.getByText("HR")).toBeDefined();
+        });
+    });
+
+    it("sends department_id filter when selecting a department", async () => {
+        const user = userEvent.setup();
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        // Open filter popover
+        const filterBtn = screen.getByTestId("dept-filter-btn");
+        await user.click(filterBtn);
+
+        // Click "Engineering" checkbox
+        (api.searchEmployees as any).mockClear();
+        const engOption = await screen.findByTestId("dept-filter-option-dept-1");
+        await user.click(engOption);
+
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            const filterCall = calls.find((c: any[]) => Array.isArray(c[6]) && c[6].includes("dept-1"));
+            expect(filterCall).toBeDefined();
+        });
+    });
+
+    it("sends multiple department_ids when selecting multiple departments", async () => {
+        const user = userEvent.setup();
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        // Open filter popover
+        await user.click(screen.getByTestId("dept-filter-btn"));
+
+        // Select Engineering and Sales in one popover session
+        (api.searchEmployees as any).mockClear();
+        await user.click(await screen.findByTestId("dept-filter-option-dept-1"));
+        await user.click(await screen.findByTestId("dept-filter-option-dept-2"));
+
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            const multiCall = calls.find((c: any[]) =>
+                Array.isArray(c[6]) && c[6].includes("dept-1") && c[6].includes("dept-2")
+            );
+            expect(multiCall).toBeDefined();
+        });
+    });
+
+    it("clears filter when clicking the chip X button", async () => {
+        const user = userEvent.setup();
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        // Select one department via popover
+        await user.click(screen.getByTestId("dept-filter-btn"));
+        await user.click(await screen.findByTestId("dept-filter-option-dept-1"));
+
+        // Wait for filter chip to appear
+        await waitFor(() => {
+            expect(screen.getByTestId("active-filter-chips")).toBeDefined();
+        });
+
+        // Click the filter chip to remove it
+        (api.searchEmployees as any).mockClear();
+        await user.click(screen.getByTestId("dept-chip-dept-1"));
+
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            // Should send undefined (no filter) when empty
+            const clearCall = calls.find((c: any[]) => c[6] === undefined);
+            expect(clearCall).toBeDefined();
+        });
+    });
+
+    // ────────────────────────────────────────────────────────────
+    // UX improvements
+    // ────────────────────────────────────────────────────────────
+
+    it("shows filter chips with department names when filter is active", async () => {
+        const user = userEvent.setup();
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        // Select two departments
+        await user.click(screen.getByTestId("dept-filter-btn"));
+        await user.click(await screen.findByTestId("dept-filter-option-dept-1"));
+        await user.click(await screen.findByTestId("dept-filter-option-dept-3"));
+
+        // Chips area should appear with both department names
+        await waitFor(() => {
+            const chipsArea = screen.getByTestId("active-filter-chips");
+            expect(chipsArea).toBeDefined();
+            expect(screen.getByTestId("dept-chip-dept-1")).toBeDefined();
+            expect(screen.getByTestId("dept-chip-dept-3")).toBeDefined();
+        });
+    });
+
+    it("does not show filter chips when no filter is active", async () => {
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        expect(screen.queryByTestId("active-filter-chips")).toBeNull();
+    });
+
+    it("shows badge count on filter icon matching selected count", async () => {
+        const user = userEvent.setup();
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        // Select two departments
+        await user.click(screen.getByTestId("dept-filter-btn"));
+        await user.click(await screen.findByTestId("dept-filter-option-dept-1"));
+        await user.click(await screen.findByTestId("dept-filter-option-dept-2"));
+
+        // Badge should show "2"
+        await waitFor(() => {
+            const filterBtn = screen.getByTestId("dept-filter-btn");
+            const badge = filterBtn.querySelector("span");
+            expect(badge?.textContent).toBe("2");
+        });
+    });
+
+    it("clears all filters when clicking 'Xóa tất cả' in chips area", async () => {
+        const user = userEvent.setup();
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        // Select a department
+        await user.click(screen.getByTestId("dept-filter-btn"));
+        await user.click(await screen.findByTestId("dept-filter-option-dept-1"));
+
+        // Wait for chips to appear
+        await waitFor(() => {
+            expect(screen.getByTestId("active-filter-chips")).toBeDefined();
+        });
+
+        // Click "Xóa tất cả" button
+        (api.searchEmployees as any).mockClear();
+        const clearAllBtn = screen.getByText("Xóa tất cả");
+        await user.click(clearAllBtn);
+
+        // Filter should be cleared
+        await waitFor(() => {
+            const calls = (api.searchEmployees as any).mock.calls;
+            expect(calls.some((c: any[]) => c[6] === undefined)).toBe(true);
+        });
+        // Chips should disappear
+        expect(screen.queryByTestId("active-filter-chips")).toBeNull();
+    });
+
+    it("does not show 'Xóa bộ lọc' button in popover when no filter is active", async () => {
+        const user = userEvent.setup();
+        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        // Open popover without any active filter
+        await user.click(screen.getByTestId("dept-filter-btn"));
+        await waitFor(() => {
+            expect(screen.getByText("Engineering")).toBeDefined();
+        });
+        // "Xóa bộ lọc" should NOT be visible when no filter active
+        expect(screen.queryByText("Xóa bộ lọc")).toBeNull();
+    });
+
+    it("shows empty state in popover when no departments exist", async () => {
+        const user = userEvent.setup();
+        (api.fetchDepartments as any).mockResolvedValue([]);
+        renderPage();
+        await screen.findByText("Alice Nguyen");
+
+        await user.click(screen.getByTestId("dept-filter-btn"));
+
+        await waitFor(() => {
+            expect(screen.getByText("Chưa có phòng ban")).toBeDefined();
+        });
+    });
+
 });

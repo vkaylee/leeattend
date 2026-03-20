@@ -88,6 +88,7 @@ pub struct PaginationParams {
     pub year: Option<i32>,
     pub sort_by: Option<String>,
     pub sort_dir: Option<String>,
+    pub department_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

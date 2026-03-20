@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
   UserCircle,
@@ -12,7 +12,11 @@ import {
   ArrowUpDown,
   ChevronUp,
   ChevronDown,
+  ListFilter,
+  Check,
+  X,
 } from "lucide-react";
+import * as Popover from "@radix-ui/react-popover";
 import NavigableList from "@/components/common/NavigableList";
 import type { NavigableListColumn } from "@/components/common/NavigableList";
 import Button from "@/components/ui/Button";
@@ -57,6 +61,7 @@ export default function EmployeesPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterDeptIds, setFilterDeptIds] = useState<string[]>([]);
   const PAGE_SIZE = 20;
   const [prefillEnrollmentId, setPrefillEnrollmentId] = useState<string>("");
 
@@ -104,14 +109,16 @@ export default function EmployeesPage() {
   const {
     data: employeesPages,
     isLoading,
+    isFetching,
+    isPlaceholderData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["employees", wsId, debouncedSearch, sortKey, sortDir],
+    queryKey: ["employees", wsId, debouncedSearch, sortKey, sortDir, filterDeptIds],
     queryFn: ({ pageParam }) => {
       const apiSortKey = sortKey ? ({ name: "name", id: "employee_id_number", department: "department", status: "status" } as const)[sortKey] : undefined;
-      return searchEmployees(wsId, debouncedSearch, pageParam as number, PAGE_SIZE, apiSortKey, sortDir);
+      return searchEmployees(wsId, debouncedSearch, pageParam as number, PAGE_SIZE, apiSortKey, sortDir, filterDeptIds.length > 0 ? filterDeptIds : undefined);
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
@@ -119,7 +126,8 @@ export default function EmployeesPage() {
       return allPages.length + 1;
     },
     initialPageParam: 1,
-    enabled: !!wsId
+    enabled: !!wsId,
+    placeholderData: keepPreviousData,
   });
 
   const employees = useMemo(() => {
@@ -128,6 +136,14 @@ export default function EmployeesPage() {
   }, [employeesPages]);
 
   const totalItems = employeesPages?.pages[0]?.total || 0;
+
+  const { data: departments } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
+
+  const toggleDeptFilter = (deptId: string) => {
+    setFilterDeptIds(prev =>
+      prev.includes(deptId) ? prev.filter(id => id !== deptId) : [...prev, deptId]
+    );
+  };
 
   // Column definitions for NavigableList
   const employeeColumns: NavigableListColumn<Employee>[] = [
@@ -138,21 +154,107 @@ export default function EmployeesPage() {
       cell: (emp) => (
         <div className="flex items-center gap-5">
           <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm shadow-inner border transition-all uppercase", selectedEmployee?.id === emp.id ? "bg-primary-600 text-white border-primary-500" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800")}>{emp.full_name[0]}</div>
-          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{emp.full_name}</div>
+          <div>
+            <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{emp.full_name}</div>
+            <div className="font-mono font-bold text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-tighter mt-1.5">{emp.employee_id_number}</div>
+          </div>
         </div>
       ),
       cellClassName: "py-6",
     },
     {
-      key: "id",
-      header: <span className="inline-flex items-center">{t("employees.table.id")}{renderSortIcon("id")}</span>,
-      onHeaderClick: () => toggleSort("id"),
-      cell: (emp) => <span className="font-mono font-bold text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-tighter">{emp.employee_id_number}</span>,
-      cellClassName: "py-6",
-    },
-    {
       key: "department",
-      header: <span className="inline-flex items-center">{t("common.department")}{renderSortIcon("department")}</span>,
+      header: (
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-flex items-center">
+            {t("common.department")}{renderSortIcon("department")}
+          </span>
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button
+                type="button"
+                data-testid="dept-filter-btn"
+                onClick={(e) => e.stopPropagation()}
+                className={cn(
+                  "relative inline-flex items-center justify-center w-5 h-5 rounded transition-colors",
+                  filterDeptIds.length > 0
+                    ? "text-primary-600 dark:text-primary-400"
+                    : "text-slate-400 dark:text-slate-500 opacity-60 hover:opacity-100 hover:text-primary-600 dark:hover:text-primary-400"
+                )}
+                title={t("employees.filter_department", "Filter by department")}
+              >
+                <ListFilter size={12} />
+                {filterDeptIds.length > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center bg-primary-500 text-white text-[8px] font-bold rounded-full leading-none animate-in zoom-in">
+                    {filterDeptIds.length}
+                  </span>
+                )}
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                className="z-[10000] w-56 overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 shadow-2xl dark:shadow-black/30 animate-in fade-in zoom-in-95 duration-200"
+                sideOffset={8}
+                align="start"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-3 pt-2 pb-1.5">
+                  <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+                    {t("employees.filter_department", "Filter by department")}
+                  </div>
+                </div>
+                <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                  {/* Clear filter button — only shown when filter is active */}
+                  {filterDeptIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterDeptIds([])}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors mb-1"
+                    >
+                      <X size={12} className="shrink-0" />
+                      {t("employees.clear_filter", "Xóa bộ lọc")}
+                    </button>
+                  )}
+
+                  {departments && departments.length > 0 ? (
+                    departments.map(d => {
+                      const isChecked = filterDeptIds.includes(d.id);
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          data-testid={`dept-filter-option-${d.id}`}
+                          onClick={() => toggleDeptFilter(d.id)}
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide transition-colors",
+                            isChecked
+                              ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400"
+                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          )}
+                        >
+                          <div className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                            isChecked
+                              ? "bg-primary-600 border-primary-600 text-white"
+                              : "border-slate-300 dark:border-slate-600"
+                          )}>
+                            {isChecked && <Check size={10} strokeWidth={3} />}
+                          </div>
+                          <Building2 size={12} className="opacity-50 shrink-0" />
+                          <span className="truncate">{d.name}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="px-3 py-6 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest opacity-60">
+                      {t("employees.no_departments", "Chưa có phòng ban")}
+                    </div>
+                  )}
+                </div>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+        </span>
+      ),
       onHeaderClick: () => toggleSort("department"),
       cell: (emp) => emp.department_name ? (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800">
@@ -173,7 +275,6 @@ export default function EmployeesPage() {
     },
   ];
 
-  const { data: departments } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
   const { data: deptHistory } = useQuery({ queryKey: ["deptHistory", selectedEmployee?.id], queryFn: () => fetchEmployeeDepartmentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
   const { data: employmentHistory } = useQuery({ queryKey: ["employmentHistory", selectedEmployee?.id], queryFn: () => fetchEmploymentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
 
@@ -249,6 +350,40 @@ export default function EmployeesPage() {
         }
       />
 
+      {/* Active filter chips */}
+      {filterDeptIds.length > 0 && departments && (
+        <div className="flex items-center gap-2 flex-wrap animate-in slide-in-from-top-4 duration-300" data-testid="active-filter-chips">
+          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mr-1">
+            {t("employees.filtering_by", "Đang lọc")}
+          </span>
+          {filterDeptIds.map(id => {
+            const dept = departments.find(d => d.id === id);
+            if (!dept) return null;
+            return (
+              <button
+                key={id}
+                type="button"
+                data-testid={`dept-chip-${id}`}
+                onClick={() => toggleDeptFilter(id)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-full text-[10px] font-bold uppercase tracking-wide border border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900 transition-colors group"
+              >
+                <Building2 size={10} className="opacity-60" />
+                {dept.name}
+                <X size={10} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setFilterDeptIds([])}
+            className="text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 uppercase tracking-wide transition-colors ml-1"
+          >
+            {t("employees.clear_all", "Xóa tất cả")}
+          </button>
+        </div>
+      )}
+
+      <div className={cn("transition-opacity duration-300", isPlaceholderData && isFetching && "opacity-50")}>
       <NavigableList<Employee>
         columns={employeeColumns}
         items={employees}
@@ -272,6 +407,7 @@ export default function EmployeesPage() {
         maxHeightClass=""
         className="animate-in slide-in-from-bottom-8 duration-700"
       />
+      </div>
 
       {/* Employee Detail Drawer */}
       <EmployeeDetailDrawer

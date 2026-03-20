@@ -267,9 +267,10 @@ impl EmployeeService {
         limit: i64,
         sort_by: Option<String>,
         sort_dir: Option<String>,
+        department_id: Option<Vec<Uuid>>,
     ) -> Result<(Vec<Employee>, i64), AppError> {
         self.repo
-            .get_all_employees(workspace_id, search_query, page, limit, sort_by, sort_dir)
+            .get_all_employees(workspace_id, search_query, page, limit, sort_by, sort_dir, department_id)
             .await
             .map_err(AppError::Sqlx)
     }

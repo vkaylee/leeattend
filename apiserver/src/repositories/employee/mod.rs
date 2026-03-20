@@ -66,6 +66,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         limit: i64,
         sort_by: Option<String>,
         sort_dir: Option<String>,
+        department_id: Option<Vec<Uuid>>,
     ) -> Result<(Vec<Employee>, i64), sqlx::Error>;
 
     async fn get_active_employees(
@@ -269,8 +270,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         limit: i64,
         sort_by: Option<String>,
         sort_dir: Option<String>,
+        department_id: Option<Vec<Uuid>>,
     ) -> Result<(Vec<Employee>, i64), sqlx::Error> {
-        core_queries::get_all_employees(&self.pool, workspace_id, search_query, page, limit, sort_by, sort_dir).await
+        core_queries::get_all_employees(&self.pool, workspace_id, search_query, page, limit, sort_by, sort_dir, department_id).await
     }
 
     async fn get_active_employees(

@@ -47,6 +47,7 @@ export async function searchEmployees(
   limit = 50,
   sortBy?: string,
   sortDir?: string,
+  departmentIds?: string[],
 ): Promise<PaginatedResponse<Employee>> {
   const queryParams = new URLSearchParams();
   if (query) {
@@ -59,6 +60,9 @@ export async function searchEmployees(
   }
   if (sortDir) {
     queryParams.append("sort_dir", sortDir);
+  }
+  if (departmentIds && departmentIds.length > 0) {
+    queryParams.append("department_id", departmentIds.join(","));
   }
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees?${queryParams.toString()}`);
   if (!response.ok) throw new Error("Failed to search employees");

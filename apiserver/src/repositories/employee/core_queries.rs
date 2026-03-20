@@ -161,6 +161,7 @@ pub async fn get_all_employees(
     limit: i64,
     sort_by: Option<String>,
     sort_dir: Option<String>,
+    department_ids: Option<Vec<Uuid>>,
 ) -> Result<(Vec<Employee>, i64), sqlx::Error> {
     let search_sql = build_employee_search_sql(
         &search_query,
@@ -168,35 +169,62 @@ pub async fn get_all_employees(
         sort_dir.as_deref(),
     );
 
-    let count_sql = format!("SELECT COUNT(*) FROM employees e {}", search_sql.where_clause);
+    // Department filter clause — uses next available bind position.
+    // Count query: $1=ws, optionally $2=search, then dept_ids.
+    // Data query: $1=ws, $2=search_or_none, $3=limit, $4=offset, $5=raw_search_or_none, $6=dept_ids.
+    let count_dept_param = if search_sql.has_search { "$3" } else { "$2" };
+    let dept_filter = format!(
+        " AND ({count_dept_param}::uuid[] IS NULL OR EXISTS (\
+            SELECT 1 FROM employee_department_history edh \
+            WHERE edh.employee_id = e.id AND edh.department_id = ANY({count_dept_param})\
+        ))"
+    );
+
+    let count_sql = format!(
+        "SELECT COUNT(*) FROM employees e {}{}",
+        search_sql.where_clause, dept_filter
+    );
     let mut count_query = query_scalar::<_, i64>(&count_sql).bind(workspace_id);
+    if search_sql.has_search {
+        let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
+        count_query = count_query.bind(format!("%{raw_q}%"));
+    }
+    count_query = count_query.bind(department_ids.as_deref());
+    let total = count_query.fetch_one(pool).await?;
+
+    // Data query — always bind $5 (raw search or None) so $6 is always department_ids.
+    let data_dept_filter = " AND ($6::uuid[] IS NULL OR EXISTS (\
+        SELECT 1 FROM employee_department_history edh \
+        WHERE edh.employee_id = e.id AND edh.department_id = ANY($6)\
+    ))";
 
     let dept_join = if search_sql.needs_dept_join { EMPLOYEE_DEPT_JOIN } else { "" };
     let sql = format!(
-        "{EMPLOYEE_SELECT_QUERY} {dept_join} {} {} LIMIT $3 OFFSET $4",
+        "{EMPLOYEE_SELECT_QUERY} {dept_join} {}{data_dept_filter} {} LIMIT $3 OFFSET $4",
         search_sql.where_clause, search_sql.order_clause
     );
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
     if search_sql.has_search {
         let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
-        let bound_q = format!("%{raw_q}%");
-        count_query = count_query.bind(bound_q.clone());
-        db_query = db_query.bind(bound_q);
+        db_query = db_query.bind(format!("%{raw_q}%"));
     } else {
         db_query = db_query.bind(Option::<String>::None);
     }
 
-    let total = count_query.fetch_one(pool).await?;
-
     let offset = (page - 1) * limit;
     db_query = db_query.bind(limit).bind(offset);
 
-    // Bind $5 (raw search term for ranking) only when searching
+    // $5 — raw search term for ranking, or None when not searching
     if search_sql.has_search {
         let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
         db_query = db_query.bind(raw_q);
+    } else {
+        db_query = db_query.bind(Option::<String>::None);
     }
+
+    // $6 — department_ids filter (uuid array)
+    db_query = db_query.bind(department_ids.as_deref());
 
     let employees = db_query.fetch_all(pool).await?;
 

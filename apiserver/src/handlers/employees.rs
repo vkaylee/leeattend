@@ -68,9 +68,14 @@ pub async fn get_employees(
 ) -> AppResult<Json<PaginatedResponse<Employee>>> {
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
+    let department_ids: Option<Vec<Uuid>> = query.department_id
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|s| s.split(',').filter_map(|id| id.trim().parse::<Uuid>().ok()).collect())
+        .filter(|v: &Vec<Uuid>| !v.is_empty());
     let (data, total) = state
         .employees.service
-        .get_all_employees(workspace_id, query.q, page, limit, query.sort_by, query.sort_dir)
+        .get_all_employees(workspace_id, query.q, page, limit, query.sort_by, query.sort_dir, department_ids)
         .await
         ?;
 

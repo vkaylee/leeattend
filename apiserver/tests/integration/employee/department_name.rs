@@ -112,7 +112,7 @@ async fn test_get_all_employees_includes_department_name() {
     // emp2 has no department
 
     let (employees, total) =
-        employee::get_all_employees(&pool, ws_id, None, 1, 50, None, None)
+        employee::get_all_employees(&pool, ws_id, None, 1, 50, None, None, None)
             .await
             .unwrap();
 
