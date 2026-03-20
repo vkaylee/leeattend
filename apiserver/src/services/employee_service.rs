@@ -16,11 +16,12 @@ pub struct EmployeeService {
     repo: Arc<dyn EmployeeRepository>,
     /// Kept for operations not yet abstracted (transactions, user_repository, etc.)
     pool: PgPool,
+    redis: Option<crate::queue::RedisPool>,
 }
 
 impl EmployeeService {
-    pub fn new(repo: Arc<dyn EmployeeRepository>, pool: PgPool) -> Self {
-        Self { repo, pool }
+    pub fn new(repo: Arc<dyn EmployeeRepository>, pool: PgPool, redis: Option<crate::queue::RedisPool>) -> Self {
+        Self { repo, pool, redis }
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -139,22 +140,23 @@ impl EmployeeService {
                 .map_err(AppError::Sqlx)?;
         }
 
-        // Auto-claim any staged logs for this employee_id_number
-        if let Err(e) = {
-            let te_repo = std::sync::Arc::new(crate::repositories::SqlxTimeEntryRepository::new(self.pool.clone()));
-            let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(self.pool.clone())), self.pool.clone()));
-            let emp_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> = std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(self.pool.clone()));
-            let rl_repo: std::sync::Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(self.pool.clone()));
-            let st_repo: std::sync::Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(self.pool.clone()));
-            let er_repo: std::sync::Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(crate::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(self.pool.clone()));
-            let (log_svc, _h) = crate::services::AttendanceLogService::new(self.pool.clone(), ps, 1, 1, 1000, emp_repo, rl_repo, st_repo, er_repo);
-            log_svc.claim_staged_logs(workspace_id, employee.id, &employee.employee_id_number).await
-        } {
-            tracing::warn!(
-                "Failed to claim staged logs for new employee {}: {}",
-                employee.id,
-                e
+        // Enqueue claim-staged-logs job via queue runner
+        if let Some(ref redis) = self.redis {
+            let queue = crate::queue::JobQueue::new(redis.clone());
+            let claim_job = crate::queue::Job::new(
+                Uuid::new_v4(),
+                0,
+                crate::queue::TaskType::ClaimStagedLogs,
+                workspace_id,
+                crate::queue::JobPayload::ClaimStagedLogs(crate::queue::ClaimStagedLogsPayload {
+                    workspace_id,
+                    employee_id: employee.id,
+                    employee_id_number: employee.employee_id_number.clone(),
+                }),
             );
+            if let Err(e) = queue.enqueue_jobs(vec![claim_job]).await {
+                tracing::warn!("Failed to enqueue claim-staged-logs for new employee {}: {}", employee.id, e);
+            }
         }
 
         Ok(employee)
@@ -311,24 +313,25 @@ impl EmployeeService {
                 .map_err(AppError::Sqlx)?;
         }
 
-        // If employee_id_number was updated, try to claim staged logs
+        // If employee_id_number was updated, enqueue claim-staged-logs
         if let Some(new_id_number) = req.employee_id_number {
             let normalized = normalize_employee_id(&new_id_number);
-            if let Err(e) = {
-                let te_repo = std::sync::Arc::new(crate::repositories::SqlxTimeEntryRepository::new(self.pool.clone()));
-                let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(self.pool.clone())), self.pool.clone()));
-                let emp_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> = std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(self.pool.clone()));
-                let rl_repo: std::sync::Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(self.pool.clone()));
-                let st_repo: std::sync::Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(self.pool.clone()));
-                let er_repo: std::sync::Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(crate::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(self.pool.clone()));
-                let (log_svc, _h) = crate::services::AttendanceLogService::new(self.pool.clone(), ps, 1, 1, 1000, emp_repo, rl_repo, st_repo, er_repo);
-                log_svc.claim_staged_logs(workspace_id, id, &normalized).await
-            } {
-                tracing::warn!(
-                    "Failed to claim staged logs for updated employee {}: {}",
-                    id,
-                    e
+            if let Some(ref redis) = self.redis {
+                let queue = crate::queue::JobQueue::new(redis.clone());
+                let claim_job = crate::queue::Job::new(
+                    Uuid::new_v4(),
+                    0,
+                    crate::queue::TaskType::ClaimStagedLogs,
+                    workspace_id,
+                    crate::queue::JobPayload::ClaimStagedLogs(crate::queue::ClaimStagedLogsPayload {
+                        workspace_id,
+                        employee_id: id,
+                        employee_id_number: normalized,
+                    }),
                 );
+                if let Err(e) = queue.enqueue_jobs(vec![claim_job]).await {
+                    tracing::warn!("Failed to enqueue claim-staged-logs for updated employee {}: {}", id, e);
+                }
             }
         }
 

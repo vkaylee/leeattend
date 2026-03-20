@@ -48,6 +48,7 @@ impl AppState {
         let employee_service = Arc::new(crate::services::EmployeeService::new(
             employee_repo.clone(),
             pool.clone(),
+            redis_pool.clone(),
         ));
         let time_entry_repo =
             Arc::new(crate::repositories::SqlxTimeEntryRepository::new(pool.clone()));
@@ -97,6 +98,7 @@ impl AppState {
                 employee_repo.clone(),
                 time_entry_repo.clone(),
                 worker_pool.clone(),
+                redis_pool.clone(),
             ),
         );
         import_service.resume_all_pending_jobs().await;

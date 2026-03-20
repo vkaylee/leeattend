@@ -41,6 +41,7 @@ pub struct AttendanceImportService {
     employee_repo: Arc<dyn EmployeeRepository>,
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     pool: PgPool,
+    redis: Option<crate::queue::RedisPool>,
 }
 
 impl AttendanceImportService {
@@ -50,8 +51,9 @@ impl AttendanceImportService {
         employee_repo: Arc<dyn EmployeeRepository>,
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         pool: PgPool,
+        redis: Option<crate::queue::RedisPool>,
     ) -> Self {
-        Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool }
+        Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool, redis }
     }
     #[tracing::instrument(skip_all, err)]
     pub async fn batch_import_from_file(
@@ -89,8 +91,9 @@ impl AttendanceImportService {
         let adj_repo = self.adj_repo.clone();
         let employee_repo = self.employee_repo.clone();
         let time_entry_repo = self.time_entry_repo.clone();
+        let redis = self.redis.clone();
         tokio::spawn(async move {
-            let svc = Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool: pool_clone };
+            let svc = Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool: pool_clone, redis };
             let _ = svc.process_job(job_id).await;
         });
 
@@ -110,8 +113,9 @@ impl AttendanceImportService {
                 let adj_repo = self.adj_repo.clone();
                 let employee_repo = self.employee_repo.clone();
                 let time_entry_repo = self.time_entry_repo.clone();
+                let redis = self.redis.clone();
                 tokio::spawn(async move {
-                    let svc = Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool: pool_clone };
+                    let svc = Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool: pool_clone, redis };
                     let _ = svc.process_job(job.id).await;
                 });
             }
@@ -531,18 +535,23 @@ impl AttendanceImportService {
                         }
                     }
 
-                    // Auto-claim any staged logs for this employee
-                    if let Err(e) = {
-                        let te_repo = self.time_entry_repo.clone();
-                        let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone()));
-                        let emp_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> = std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(pool.clone()));
-                        let rl_repo: std::sync::Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
-                        let st_repo: std::sync::Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(pool.clone()));
-                        let er_repo: std::sync::Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(crate::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
-                        let (log_svc, _h) = crate::services::AttendanceLogService::new(pool.clone(), ps, 1, 1, 1000, emp_repo, rl_repo, st_repo, er_repo);
-                        log_svc.claim_staged_logs(job.workspace_id, employee_id, &emp.id_number).await
-                    } {
-                        error!("Failed to auto-claim logs for employee {}: {}", emp.id_number, e);
+                    // Enqueue claim-staged-logs job via queue runner
+                    if let Some(ref redis) = self.redis {
+                        let queue = crate::queue::JobQueue::new(redis.clone());
+                        let claim_job = crate::queue::Job::new(
+                            Uuid::new_v4(),
+                            0,
+                            crate::queue::TaskType::ClaimStagedLogs,
+                            job.workspace_id,
+                            crate::queue::JobPayload::ClaimStagedLogs(crate::queue::ClaimStagedLogsPayload {
+                                workspace_id: job.workspace_id,
+                                employee_id,
+                                employee_id_number: emp.id_number.clone(),
+                            }),
+                        );
+                        if let Err(e) = queue.enqueue_jobs(vec![claim_job]).await {
+                            error!("Failed to enqueue claim-staged-logs for {}: {}", emp.id_number, e);
+                        }
                     }
 
                     if (processed_rows + skipped_rows) % 10 == 0 {

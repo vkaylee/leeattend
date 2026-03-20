@@ -51,7 +51,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let import_repo: std::sync::Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> = std::sync::Arc::new(apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> = std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
-    let job_id = AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone()).batch_import_from_file(
+    let job_id = AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone(), None).batch_import_from_file(
         ws_id,
         user_id,
         file_path,
@@ -156,7 +156,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     let import_repo: std::sync::Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> = std::sync::Arc::new(apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
     let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> = std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
-    let job_id = AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone()).batch_import_from_file(
+    let job_id = AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone(), None).batch_import_from_file(
         ws_id,
         user_id,
         file_path,

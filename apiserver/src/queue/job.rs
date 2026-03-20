@@ -22,6 +22,7 @@ pub enum TaskType {
     LeaveAccrual,
     LogIngestion,
     ReprocessAttendance,
+    ClaimStagedLogs,
 }
 
 /// Job priority level. Controls which Redis queue the job is routed to.
@@ -105,6 +106,14 @@ pub struct ReprocessPayload {
     pub date_range: DateRange,
 }
 
+/// Payload for claiming orphan staged attendance logs after employee creation/import.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClaimStagedLogsPayload {
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub employee_id_number: String,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -115,6 +124,7 @@ pub enum JobPayload {
     LeaveAccrual(AccrualPayload),
     LogIngestion(LogIngestionPayload),
     ReprocessAttendance(ReprocessPayload),
+    ClaimStagedLogs(ClaimStagedLogsPayload),
 }
 
 /// A single worker job.
@@ -223,6 +233,14 @@ impl Job {
     pub fn reprocess_payload(&self) -> Option<&ReprocessPayload> {
         match &self.payload {
             JobPayload::ReprocessAttendance(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Helper: extract claim staged logs payload.
+    pub fn claim_staged_logs_payload(&self) -> Option<&ClaimStagedLogsPayload> {
+        match &self.payload {
+            JobPayload::ClaimStagedLogs(p) => Some(p),
             _ => None,
         }
     }

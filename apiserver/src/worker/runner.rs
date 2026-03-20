@@ -17,7 +17,7 @@ use uuid::Uuid;
 use crate::cache::{CacheManager, RosterCache};
 use crate::queue::{Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
-use crate::worker::handlers::{AccrualHandler, AttendanceHandler, LogIngestionHandler, MergeHandler, ReprocessAttendanceHandler};
+use crate::worker::handlers::{AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, LogIngestionHandler, MergeHandler, ReprocessAttendanceHandler};
 
 // Redis key patterns for monitoring
 const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
@@ -406,6 +406,9 @@ impl JobWorker {
             TaskType::ReprocessAttendance => {
                 ReprocessAttendanceHandler::handle(&self.db, &job, &self.redis).await
             }
+            TaskType::ClaimStagedLogs => {
+                ClaimStagedLogsHandler::handle(&self.db, &job).await
+            }
         };
 
         let elapsed = start.elapsed();
@@ -423,7 +426,7 @@ impl JobWorker {
 
         // Report completion to coordinator (for batch-based jobs only)
         // LogIngestion jobs are standalone and don't participate in batch coordination
-        if !matches!(job.task_type, TaskType::LogIngestion) {
+        if !matches!(job.task_type, TaskType::LogIngestion | TaskType::ClaimStagedLogs) {
             let success = result.is_ok();
             if let Err(e) = self
                 .coordinator
@@ -576,12 +579,14 @@ mod tests {
             TaskType::PayrollReport,
             TaskType::LeaveAccrual,
             TaskType::LogIngestion,
+            TaskType::ReprocessAttendance,
+            TaskType::ClaimStagedLogs,
         ];
 
         for task_type in task_types {
             let is_implemented = matches!(
                 task_type,
-                TaskType::AttendanceReport | TaskType::MergeResults | TaskType::LeaveAccrual | TaskType::LogIngestion
+                TaskType::AttendanceReport | TaskType::MergeResults | TaskType::LeaveAccrual | TaskType::LogIngestion | TaskType::ReprocessAttendance | TaskType::ClaimStagedLogs
             );
 
             // PayrollReport should be not implemented yet
