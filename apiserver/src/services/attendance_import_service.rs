@@ -522,10 +522,12 @@ impl AttendanceImportService {
                             }
                         };
                         if !dept_id.is_nil() {
-                            let _ = crate::repositories::department_repository::transfer_employee(
+                            if let Err(e) = crate::repositories::department_repository::transfer_employee(
                                 &pool, employee_id, dept_id, emp.hire_date,
                                 Some("Auto-assigned via bulk import".to_string()),
-                            ).await;
+                            ).await {
+                                error!("Failed to assign employee {} to department '{}': {}", emp.id_number, dept_name, e);
+                            }
                         }
                     }
 
@@ -639,10 +641,15 @@ impl AttendanceImportService {
                     .date_naive(),
             };
 
-            let department_name = match row.get(3) {
-                Some(Data::String(s)) if !s.trim().is_empty() => Some(s.trim().to_string()),
-                _ => None,
-            };
+            let department_name = row.get(3).and_then(|cell| {
+                match cell {
+                    Data::Empty => None,
+                    _ => {
+                        let s = cell.to_string();
+                        if s.trim().is_empty() { None } else { Some(s.trim().to_string()) }
+                    }
+                }
+            });
 
             pending.push(PendingEmployee {
                 id_number,
