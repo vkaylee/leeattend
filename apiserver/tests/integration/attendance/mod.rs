@@ -4,6 +4,7 @@ mod api_log_details;
 mod api_upload;
 mod import;
 mod import_claim_logs;
+mod claim_staged_logs;
 mod ot;
 mod pairing;
 mod reprocess;
