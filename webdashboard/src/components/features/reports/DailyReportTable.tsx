@@ -242,24 +242,18 @@ export default function DailyReportTable({
                       </div>
                     </td>
 
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="px-4 py-2.5 text-right" title={`${row.std_work_units} units`}>
                       <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter leading-none">
                         {formatUnitsToHours(row.std_work_units, workUnitMinutes)}h
                       </div>
-                      <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-60">
-                        {row.std_work_units}U
-                      </span>
                     </td>
 
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="px-4 py-2.5 text-right" title={row.ot_work_units > 0 ? `${row.ot_work_units} units` : undefined}>
                       {row.ot_work_units > 0 ? (
                         <div className="flex flex-col items-end gap-1">
                           <div>
                             <span className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter leading-none">
                               {formatUnitsToHours(row.ot_work_units, workUnitMinutes)}h
-                            </span>
-                            <span className="text-[9px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-widest opacity-60 ml-1">
-                              {row.ot_work_units}U
                             </span>
                           </div>
                           {getOtStatusBadge(row.ot_claim_status)}
