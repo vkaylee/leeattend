@@ -469,6 +469,7 @@ export interface Department {
   default_working_pattern_id?: string;
   created_at: string;
   updated_at: string;
+  active_employee_count: number;
 }
 
 export interface EmployeeDepartmentHistory {

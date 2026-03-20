@@ -12,6 +12,8 @@ pub struct Department {
     pub default_working_pattern_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    #[sqlx(default)]
+    pub active_employee_count: i64,
 }
 
 #[derive(Debug, Deserialize)]

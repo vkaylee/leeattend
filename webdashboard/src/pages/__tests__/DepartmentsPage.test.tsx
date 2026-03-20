@@ -48,7 +48,7 @@ describe("DepartmentsPage", () => {
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchDepartments as any).mockResolvedValue([
-      { id: "dept-1", name: "Engineering", description: "Tech stuff", manager_id: "user-1" }
+      { id: "dept-1", name: "Engineering", description: "Tech stuff", manager_id: "user-1", active_employee_count: 5 }
     ]);
     (api.fetchUsers as any).mockResolvedValue([
       { id: "user-1", full_name: "Manager One", email: "manager1@example.com" }

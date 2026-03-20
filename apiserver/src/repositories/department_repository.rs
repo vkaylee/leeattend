@@ -99,8 +99,11 @@ pub async fn get_department_by_id(
     id: Uuid,
 ) -> Result<Option<Department>, sqlx::Error> {
     sqlx::query_as::<_, Department>(
-        r#"SELECT id, workspace_id, name, description, manager_id, default_working_pattern_id, created_at, updated_at 
-           FROM departments WHERE id = $1 AND workspace_id = $2"#,
+        r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
+           COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+             JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
+             WHERE edh.department_id = d.id AND e.is_active = true), 0) as active_employee_count
+           FROM departments d WHERE d.id = $1 AND d.workspace_id = $2"#,
     )
     .bind(id)
     .bind(workspace_id)
@@ -194,8 +197,11 @@ pub async fn get_departments(
     workspace_id: Uuid,
 ) -> Result<Vec<Department>, sqlx::Error> {
     sqlx::query_as::<_, Department>(
-        r#"SELECT id, workspace_id, name, description, manager_id, default_working_pattern_id, created_at, updated_at 
-           FROM departments WHERE workspace_id = $1 ORDER BY name"#,
+        r#"SELECT d.id, d.workspace_id, d.name, d.description, d.manager_id, d.default_working_pattern_id, d.created_at, d.updated_at,
+           COALESCE((SELECT COUNT(DISTINCT e.id) FROM employees e
+             JOIN (SELECT DISTINCT ON (employee_id) employee_id, department_id FROM employee_department_history ORDER BY employee_id, effective_date DESC) edh ON e.id = edh.employee_id
+             WHERE edh.department_id = d.id AND e.is_active = true), 0) as active_employee_count
+           FROM departments d WHERE d.workspace_id = $1 ORDER BY d.name"#,
     )
     .bind(workspace_id)
     .fetch_all(pool)

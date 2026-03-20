@@ -1612,6 +1612,7 @@
     "subtitle": "Manage organizational structure and management hierarchy",
     "add_btn": "Add Department",
     "manager_label": "Manager",
+    "active_employees_label": "Active Employees",
     "not_assigned": "Not assigned",
     "default_pattern_label": "Default Working Pattern",
     "messages": {

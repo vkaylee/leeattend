@@ -1612,6 +1612,7 @@
     "subtitle": "Quản lý cơ cấu tổ chức và sơ đồ quản lý",
     "add_btn": "Thêm phòng ban",
     "manager_label": "Trưởng phòng",
+    "active_employees_label": "Nhân viên đang hoạt động",
     "not_assigned": "Chưa gán",
     "default_pattern_label": "Lịch làm việc mặc định",
     "messages": {

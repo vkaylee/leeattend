@@ -1612,6 +1612,7 @@
     "subtitle": "管理组织结构和管理层级",
     "add_btn": "添加部门",
     "manager_label": "经理",
+    "active_employees_label": "在职员工",
     "not_assigned": "未分配",
     "default_pattern_label": "默认工作模式",
     "messages": {

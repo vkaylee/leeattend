@@ -111,6 +111,14 @@ export default function DepartmentsPage() {
             
             <div className="mt-auto pt-8 border-t border-slate-50 dark:border-slate-800 flex flex-col gap-6">
               <div className="flex items-center gap-5 group/info">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-inner group-hover/info:text-primary-600 dark:text-primary-400 group-hover/info:bg-primary-50 dark:bg-primary-950 group-hover/info:border-primary-100 dark:border-primary-800 transition-all"><Users size={20} /></div>
+                <div>
+                  <span className="block text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] text-[9px] mb-1">{t("departments.active_employees_label")}</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 text-xs uppercase tracking-tight">{dept.active_employee_count}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-5 group/info">
                 <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-inner group-hover/info:text-primary-600 dark:text-primary-400 group-hover/info:bg-primary-50 dark:bg-primary-950 group-hover/info:border-primary-100 dark:border-primary-800 transition-all"><UserCircle size={20} /></div>
                 <div>
                   <span className="block text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] text-[9px] mb-1">{t("departments.manager_label")}</span>
