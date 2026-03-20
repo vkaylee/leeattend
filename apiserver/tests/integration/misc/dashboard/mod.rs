@@ -248,7 +248,7 @@ async fn test_lateness_by_day_returns_data_with_late_entries() {
         .assign_to_employee(emp_id, today - Duration::days(30))
         .await;
 
-    // Create a LATE time entry (punch in at 08:30, well past 08:05 grace)
+    // Create a LATE time entry (punch in at 08:30, after shift start 08:00)
     let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
     let punch_out = today.and_hms_opt(17, 0, 0).unwrap().and_utc();
 
@@ -614,7 +614,7 @@ async fn test_attendance_trend_includes_present_and_late() {
     .await
     .unwrap();
 
-    // Create a LATE punch-in (08:30, past 5-min grace)
+    // Create a LATE punch-in (08:30, after shift start 08:00)
     let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
     let punch_out = today.and_hms_opt(17, 0, 0).unwrap().and_utc();
 
@@ -673,7 +673,7 @@ async fn test_attendance_trend_late_via_employee_shifts() {
         .assign_to_employee(emp_id, today - Duration::days(30))
         .await;
 
-    // Create a LATE punch-in (08:30, past 5-min grace)
+    // Create a LATE punch-in (08:30, after shift start 08:00)
     let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
     let punch_out = today.and_hms_opt(17, 0, 0).unwrap().and_utc();
 
@@ -911,7 +911,7 @@ async fn test_workspace_stats_detects_late_today() {
     .await
     .unwrap();
 
-    // Late punch-in at 08:30 (past 5-min grace)
+    // Late punch-in at 08:30 (after shift start 08:00)
     let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
     factory
         .time_entry()

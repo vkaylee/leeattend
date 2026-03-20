@@ -32,7 +32,7 @@ export default function AttendanceTrendChart() {
         }),
     }));
 
-    const hasData = chartData.length > 0 && chartData.some((d) => d.present > 0 || d.absent > 0 || d.on_leave > 0);
+    const hasData = chartData.length > 0 && chartData.some((d) => d.present > 0 || d.late > 0 || d.absent > 0 || d.on_leave > 0);
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
