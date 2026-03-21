@@ -552,6 +552,16 @@ impl AttendanceImportService {
                         if let Err(e) = queue.enqueue_jobs(vec![claim_job]).await {
                             error!("Failed to enqueue claim-staged-logs for {}: {}", emp.id_number, e);
                         }
+                    } else {
+                        // Fallback: claim staged logs directly when no queue runner is available
+                        if let Err(e) = crate::repositories::staging_log_repository::claim_staged_logs_direct(
+                            &self.pool,
+                            job.workspace_id,
+                            employee_id,
+                            &emp.id_number,
+                        ).await {
+                            error!("Failed to claim staged logs directly for {}: {}", emp.id_number, e);
+                        }
                     }
 
                     if (processed_rows + skipped_rows) % 10 == 0 {

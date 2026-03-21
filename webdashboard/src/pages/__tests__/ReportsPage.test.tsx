@@ -453,11 +453,11 @@ describe("ReportsPage", () => {
     expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "nearest" });
 
     // Press ArrowUp to go back to the first row (index 0)
+    (window.HTMLElement.prototype.scrollIntoView as any).mockClear();
     await user.type(searchInput, "{ArrowUp}");
 
-    // Verify scrollTo({top: 0}) was called on the container instead of scrollIntoView 
-    // We mock window.HTMLElement.prototype.scrollTo which is what closest('.overflow-auto') would fall back to if mocked globally
-    expect(window.HTMLElement.prototype.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+    // In full-page mode, scrollIntoView is used (no .overflow-auto container)
+    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
 
     // Put it back to index 1 and press Enter
     await user.type(searchInput, "{ArrowDown}{Enter}");

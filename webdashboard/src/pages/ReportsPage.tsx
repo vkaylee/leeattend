@@ -326,6 +326,12 @@ export default function ReportsPage() {
         hasNextPage={hasNextPage}
         isFetchingNextPage={isFetchingNextPage}
         fetchNextPage={fetchNextPage}
+        maxHeightClass=""
+        searchValue={searchQuery}
+        onSearchChange={handleSearchQueryChange}
+        searchPlaceholder={t("reports.search_placeholder")}
+        searchInputRef={searchInputRef}
+        searchTestId="report-search"
         className="animate-in slide-in-from-bottom-8 duration-700"
         onKeyDownRef={keyDownRef}
         headerSlot={

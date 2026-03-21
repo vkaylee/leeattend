@@ -258,6 +258,7 @@ impl EmployeeService {
             .ok_or(AppError::NotFound("Employee not found".into()))
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
     pub async fn get_all_employees(
         &self,

@@ -1491,6 +1491,11 @@
     "subtitle": "Quản lý hồ sơ và lịch sử công tác toàn hệ thống",
     "add_btn": "Thêm nhân viên",
     "search_placeholder": "Tìm theo tên hoặc mã nhân viên...",
+    "filter_department": "Lọc theo phòng ban",
+    "clear_filter": "Xóa bộ lọc",
+    "no_departments": "Chưa có phòng ban",
+    "filtering_by": "Đang lọc",
+    "clear_all": "Xóa tất cả",
     "search": {
       "placeholder": "Chọn nhân viên...",
       "input_placeholder": "Tìm theo tên hoặc mã...",

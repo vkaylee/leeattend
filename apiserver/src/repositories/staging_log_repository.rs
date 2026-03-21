@@ -164,3 +164,56 @@ impl super::PoolBacked for SqlxStagingLogRepository {
     fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
     fn pool(&self) -> &sqlx::PgPool { &self.pool }
 }
+
+/// Lightweight direct claim of staged logs for an employee (no queue/Redis needed).
+/// Finds all pending staging logs matching `employee_id_number`, inserts them into
+/// `raw_attendance_logs`, and marks them as processed.
+pub async fn claim_staged_logs_direct(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    employee_id: Uuid,
+    employee_id_number: &str,
+) -> Result<u32, sqlx::Error> {
+    let staged_logs = sqlx::query_as::<_, StagingLog>(
+        r#"
+        SELECT id, workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at
+        FROM attendance_staging_logs
+        WHERE workspace_id = $1 AND raw_user_id = $2 AND status = 'pending'
+        ORDER BY punch_time ASC
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(employee_id_number)
+    .fetch_all(pool)
+    .await?;
+
+    let mut claimed = 0u32;
+    for staged in &staged_logs {
+        // Insert into raw_attendance_logs
+        let result = sqlx::query(
+            r#"
+            INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, punch, status, created_at)
+            VALUES ($1, $2, $3, $4, 'device', $5, $6, -1, -1, $7)
+            ON CONFLICT DO NOTHING
+            "#,
+        )
+        .bind(Uuid::new_v4())
+        .bind(workspace_id)
+        .bind(employee_id)
+        .bind(staged.punch_time)
+        .bind(&staged.device_id)
+        .bind(&staged.raw_data)
+        .bind(Utc::now())
+        .execute(pool)
+        .await?;
+
+        if result.rows_affected() > 0 {
+            claimed += 1;
+        }
+
+        // Mark as processed
+        update_staging_status(pool, staged.id, workspace_id, "processed").await?;
+    }
+
+    Ok(claimed)
+}

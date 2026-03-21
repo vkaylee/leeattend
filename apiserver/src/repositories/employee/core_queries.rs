@@ -153,6 +153,7 @@ pub(crate) fn build_employee_search_sql(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn get_all_employees(
     pool: &PgPool,
     workspace_id: Uuid,

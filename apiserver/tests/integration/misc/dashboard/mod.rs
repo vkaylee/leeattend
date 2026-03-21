@@ -248,9 +248,10 @@ async fn test_lateness_by_day_returns_data_with_late_entries() {
         .assign_to_employee(emp_id, today - Duration::days(30))
         .await;
 
-    // Create a LATE time entry (punch in at 08:30, after shift start 08:00)
-    let punch_in = today.and_hms_opt(8, 30, 0).unwrap().and_utc();
-    let punch_out = today.and_hms_opt(17, 0, 0).unwrap().and_utc();
+    // Create a LATE time entry (punch in at 08:30 ICT, after shift start 08:00 ICT)
+    // Workspace is Asia/Ho_Chi_Minh (UTC+7), so 08:30 ICT = 01:30 UTC, 17:00 ICT = 10:00 UTC
+    let punch_in = today.and_hms_opt(1, 30, 0).unwrap().and_utc();
+    let punch_out = today.and_hms_opt(10, 0, 0).unwrap().and_utc();
 
     factory
         .time_entry()

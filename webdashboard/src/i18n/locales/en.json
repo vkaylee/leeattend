@@ -1491,6 +1491,11 @@
     "subtitle": "Manage profiles and work history across the system",
     "add_btn": "Add Employee",
     "search_placeholder": "Search by name or ID...",
+    "filter_department": "Filter by department",
+    "clear_filter": "Clear filter",
+    "no_departments": "No departments yet",
+    "filtering_by": "Filtering by",
+    "clear_all": "Clear all",
     "search": {
       "placeholder": "Select employee...",
       "input_placeholder": "Search by name or ID...",

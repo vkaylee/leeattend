@@ -152,15 +152,6 @@ export default function ReportFilters({
         </div>
       )}
 
-      {/* Search input — standalone row for prominence */}
-      <SearchBox
-        value={searchQuery}
-        onChange={onSearchQueryChange}
-        inputRef={searchInputRef}
-        onKeyDown={onSearchKeyDown}
-        placeholder={t("reports.search_placeholder")}
-        data-testid="report-search"
-      />
 
       {filterMode === "custom" && (
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-primary-900/5 grid grid-cols-1 md:grid-cols-2 gap-10 animate-in slide-in-from-top-4 duration-500 max-w-2xl">

@@ -3,6 +3,7 @@ import { SearchX, Loader2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useKeyboardListNav } from "@/hooks/use-keyboard-list-nav";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useStickyHeader } from "@/hooks/use-sticky-header";
 import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
 import SearchBox from "@/components/common/SearchBox";
 import { useTranslation } from "react-i18next";
@@ -86,6 +87,8 @@ export interface NavigableListProps<T> {
     headerSlot?: React.ReactNode;
     /** Ref callback to get the internal keyboard handler (for external search inputs) */
     onKeyDownRef?: React.MutableRefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
+    /** Enable smart header: auto-hide on scroll down, reveal on scroll up (full-page mode only) */
+    smartHeader?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -118,6 +121,7 @@ export default function NavigableList<T>({
     maxHeightClass = "max-h-[60vh]",
     headerSlot,
     onKeyDownRef,
+    smartHeader = false,
 }: NavigableListProps<T>) {
     const { t } = useTranslation();
 
@@ -148,36 +152,75 @@ export default function NavigableList<T>({
 
     // Measure sticky search bar height for thead offset in full-page mode
     const isFullPage = !maxHeightClass;
+    const smartHeaderEnabled = isFullPage && smartHeader;
     const stickySearchRef = useRef<HTMLDivElement>(null);
-    const [stickyOffset, setStickyOffset] = useState(0);
+    const [measuredSearchHeight, setMeasuredSearchHeight] = useState(0);
 
+    // Smart header (auto-hide / reveal on scroll)
+    const { headerRef: smartHeaderRef, isVisible: smartHeaderVisible, headerHeight: smartHeaderHeight } = useStickyHeader({
+        enabled: smartHeaderEnabled,
+    });
+
+    // For non-smart-header full-page mode: measure search bar height via ResizeObserver
     useEffect(() => {
-        if (!isFullPage || !stickySearchRef.current) return;
+        if (!isFullPage || smartHeaderEnabled || !stickySearchRef.current) return;
         const el = stickySearchRef.current;
-        const update = () => setStickyOffset(el.offsetHeight);
+        const update = () => setMeasuredSearchHeight(el.offsetHeight);
         update();
         const ro = new ResizeObserver(update);
         ro.observe(el);
         return () => ro.disconnect();
-    }, [isFullPage]);
+    }, [isFullPage, smartHeaderEnabled]);
+
+    // Compute offset: smart header mode derives from hook state, otherwise from measured search height
+    const stickyOffset = smartHeaderEnabled
+        ? (smartHeaderVisible ? smartHeaderHeight : 0)
+        : (isFullPage ? measuredSearchHeight : 0);
 
     return (
         <div className={cn("flex flex-col gap-6", className)}>
-            {/* Optional header slot (filters, stats) */}
-            {headerSlot}
-
-            {/* In full-page mode, search + header stick together as one group */}
-            {isFullPage && onSearchChange && (
-                <div ref={stickySearchRef} className="sticky top-0 z-20 backdrop-blur-md pt-1 pb-2 -mt-1">
-                    <SearchBox
-                        value={searchValue ?? ""}
-                        onChange={onSearchChange}
-                        onKeyDown={listNav.onKeyDown}
-                        inputRef={searchInputRef}
-                        placeholder={searchPlaceholder}
-                        data-testid={searchTestId ?? "navigable-list-search"}
-                    />
+            {/* Smart header wrapper — auto-hide on scroll down, reveal on scroll up */}
+            {smartHeaderEnabled ? (
+                <div
+                    ref={smartHeaderRef}
+                    className={cn(
+                        "sticky top-0 z-20 backdrop-blur-md transition-transform duration-300 ease-out",
+                        smartHeaderVisible ? "translate-y-0" : "-translate-y-full"
+                    )}
+                >
+                    <div className="flex flex-col gap-6 pb-2">
+                        {headerSlot}
+                        {onSearchChange && (
+                            <SearchBox
+                                value={searchValue ?? ""}
+                                onChange={onSearchChange}
+                                onKeyDown={listNav.onKeyDown}
+                                inputRef={searchInputRef}
+                                placeholder={searchPlaceholder}
+                                data-testid={searchTestId ?? "navigable-list-search"}
+                            />
+                        )}
+                    </div>
                 </div>
+            ) : (
+                <>
+                    {/* Optional header slot (filters, stats) */}
+                    {headerSlot}
+
+                    {/* In full-page mode, search + header stick together as one group */}
+                    {isFullPage && onSearchChange && (
+                        <div ref={stickySearchRef} className="sticky top-0 z-20 backdrop-blur-md pt-1 pb-2 -mt-1">
+                            <SearchBox
+                                value={searchValue ?? ""}
+                                onChange={onSearchChange}
+                                onKeyDown={listNav.onKeyDown}
+                                inputRef={searchInputRef}
+                                placeholder={searchPlaceholder}
+                                data-testid={searchTestId ?? "navigable-list-search"}
+                            />
+                        </div>
+                    )}
+                </>
             )}
 
             {/* In constrained mode, search renders normally */}

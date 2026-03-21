@@ -53,6 +53,9 @@ export function useKeyboardListNav<T>({
             const container = row?.closest(".overflow-auto");
             if (container) {
                 container.scrollTo({ top: 0, behavior: "smooth" });
+            } else {
+                // Full-page mode: scroll the window to the row
+                row?.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }
         } else {
             const row = document.getElementById(`${rowIdPrefix}-${focusedIndex}`);

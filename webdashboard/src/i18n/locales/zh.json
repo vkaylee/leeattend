@@ -1491,6 +1491,11 @@
     "subtitle": "跨系统管理个人档案和工作历史",
     "add_btn": "添加员工",
     "search_placeholder": "按名称或 ID 搜索...",
+    "filter_department": "按部门筛选",
+    "clear_filter": "清除筛选",
+    "no_departments": "暂无部门",
+    "filtering_by": "正在筛选",
+    "clear_all": "清除全部",
     "search": {
       "placeholder": "选择员工...",
       "input_placeholder": "按名称或 ID 搜索...",

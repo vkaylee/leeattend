@@ -46,7 +46,7 @@ const terminatedEmployee: Employee = {
 };
 
 const mockDepartments = [
-    { id: "dept-1", name: "Engineering", workspace_id: "ws-1", created_at: "2024-01-01T00:00:00Z", updated_at: "2024-01-01T00:00:00Z" },
+    { id: "dept-1", name: "Engineering", workspace_id: "ws-1", created_at: "2024-01-01T00:00:00Z", updated_at: "2024-01-01T00:00:00Z", active_employee_count: 5 },
 ];
 
 const mockDeptHistory = [
