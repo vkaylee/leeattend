@@ -631,6 +631,7 @@
     "all": "Tất cả",
     "status_pending": "Chờ duyệt",
     "status_approved": "Đã duyệt",
+    "status_pre_approved": "Tự động duyệt",
     "status_rejected": "Từ chối",
     "select_employee": "Chọn nhân viên",
     "select_department": "Chọn phòng ban",

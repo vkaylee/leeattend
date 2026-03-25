@@ -239,7 +239,7 @@ pub async fn build_leave_date_set(
            JOIN employees e ON lr.employee_id = e.id
            WHERE e.workspace_id = $1
              AND lr.employee_id = ANY($2)
-             AND lr.status = 'approved'
+             AND lr.status IN ('approved', 'pre_approved')
              AND lr.start_date <= $4
              AND lr.end_date >= $3"#,
         workspace_id,

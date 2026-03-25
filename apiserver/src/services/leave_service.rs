@@ -112,7 +112,7 @@ impl LeaveService {
             JOIN employees e ON lr.employee_id = e.id
             WHERE lr.employee_id = $1
               AND e.workspace_id = $4
-              AND lr.status = 'approved'
+              AND lr.status IN ('approved', 'pre_approved')
               AND EXTRACT(YEAR FROM lr.start_date) = $2
               AND (lt.id = $3 OR $3 IS NULL)
             "#,
@@ -225,6 +225,7 @@ impl LeaveService {
         workspace_id: Uuid,
         user_id: Uuid,
         req: SubmitLeaveRequest,
+        auto_approve: bool,
     ) -> Result<LeaveRequest, AppError> {
         let pool = &self.pool;
         // Verify employee belongs to workspace
@@ -244,6 +245,12 @@ impl LeaveService {
         .map_err(AppError::Sqlx)?
         .ok_or(AppError::Validation("Invalid request".into()))?;
 
+        let (status, approved_by) = if auto_approve {
+            (LeaveStatus::PreApproved, Some(user_id))
+        } else {
+            (LeaveStatus::Pending, None)
+        };
+
         let request = LeaveRequest {
             id: Uuid::new_v4(),
             employee_id: req.employee_id,
@@ -251,9 +258,9 @@ impl LeaveService {
             start_date: req.start_date,
             end_date: req.end_date,
             reason: req.reason,
-            status: LeaveStatus::Pending,
+            status,
             requested_by_user_id: Some(user_id),
-            approved_by_user_id: None,
+            approved_by_user_id: approved_by,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
@@ -261,11 +268,63 @@ impl LeaveService {
         self.leave_request_repo.create_leave_request(&request)
             .await
             .map_err(|e| {
-                eprintln!("SQLx Error in get_workspace_balances: {e:?}");
+                eprintln!("SQLx Error in submit_leave_request: {e:?}");
                 AppError::Internal("Internal error".into())
             })?;
 
+        // If auto-approved, apply roster side effects immediately
+        if auto_approve {
+            self.apply_leave_to_roster(workspace_id, &request).await?;
+        }
+
         Ok(request)
+    }
+
+    /// Apply leave-to-roster side effects (create roster entries with "on_leave" status).
+    /// Shared between auto-approve (submit) and manual approve flows.
+    async fn apply_leave_to_roster(
+        &self,
+        workspace_id: Uuid,
+        request: &LeaveRequest,
+    ) -> Result<(), AppError> {
+        let pool = &self.pool;
+        let leave_type_name = sqlx::query_scalar!(
+            "SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2",
+            request.leave_type_id,
+            workspace_id
+        )
+        .fetch_optional(pool)
+        .await
+        .map_err(AppError::Sqlx)?
+        .unwrap_or_else(|| "Leave".to_string());
+
+        let mut current_date = request.start_date;
+        while current_date <= request.end_date {
+            let roster = ShiftRoster {
+                id: Uuid::new_v4(),
+                employee_id: request.employee_id,
+                shift_id: None,
+                date: current_date,
+                status: "on_leave".to_string(),
+                notes: Some(format!("Nghỉ phép: {leave_type_name}")),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+
+            let _ = self.roster_repo.upsert_roster(&roster).await
+                .map_err(|e| {
+                    eprintln!("SQLx Error in apply_leave_to_roster: {e:?}");
+                    AppError::Internal("Internal error".into())
+                })?;
+
+            if let Some(next_date) = current_date.succ_opt() {
+                current_date = next_date;
+            } else {
+                break;
+            }
+        }
+
+        Ok(())
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -276,7 +335,6 @@ impl LeaveService {
         request_id: Uuid,
         req: ApproveLeaveRequest,
     ) -> Result<(), AppError> {
-        let pool = &self.pool;
         let request = self.leave_request_repo.get_leave_request_by_id(workspace_id, request_id)
             .await
             .map_err(AppError::Sqlx)?
@@ -296,48 +354,13 @@ impl LeaveService {
         )
         .await
         .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {e:?}");
+            eprintln!("SQLx Error in approve_leave_request: {e:?}");
             AppError::Internal("Internal error".into())
         })?;
 
         // If approved, update roster
         if req.status == LeaveStatus::Approved {
-            // Get leave type name for roster notes
-            let leave_type_name = sqlx::query_scalar!(
-                "SELECT name FROM leave_types WHERE id = $1 AND workspace_id = $2",
-                request.leave_type_id,
-                workspace_id
-            )
-            .fetch_optional(pool)
-            .await
-            .map_err(AppError::Sqlx)?
-            .unwrap_or_else(|| "Leave".to_string());
-
-            let mut current_date = request.start_date;
-            while current_date <= request.end_date {
-                let roster = ShiftRoster {
-                    id: Uuid::new_v4(),
-                    employee_id: request.employee_id,
-                    shift_id: None,
-                    date: current_date,
-                    status: "on_leave".to_string(),
-                    notes: Some(format!("Nghỉ phép: {leave_type_name}")),
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
-                };
-
-                let _ = self.roster_repo.upsert_roster(&roster).await
-                    .map_err(|e| {
-                        eprintln!("SQLx Error in get_workspace_balances: {e:?}");
-                        AppError::Internal("Internal error".into())
-                    })?;
-
-                if let Some(next_date) = current_date.succ_opt() {
-                    current_date = next_date;
-                } else {
-                    break;
-                }
-            }
+            self.apply_leave_to_roster(workspace_id, &request).await?;
         }
 
         Ok(())

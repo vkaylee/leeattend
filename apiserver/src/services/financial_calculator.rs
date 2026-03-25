@@ -188,7 +188,7 @@ impl FinancialCalculator {
                  AND NOT EXISTS (
                      SELECT 1 FROM leave_requests lr
                      WHERE lr.employee_id = $4
-                       AND lr.status = 'approved'
+                       AND lr.status IN ('approved', 'pre_approved')
                        AND lr.start_date <= h.date
                        AND lr.end_date >= h.date
                  )"#,

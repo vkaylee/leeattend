@@ -169,7 +169,7 @@ impl AttendanceSummaryService {
                        JOIN employees e ON e.id = lr.employee_id
                        WHERE lr.employee_id = $1
                          AND e.workspace_id = $3
-                         AND lr.status = 'approved'::leave_status_type
+                         AND lr.status IN ('approved'::leave_status_type, 'pre_approved'::leave_status_type)
                          AND lr.start_date <= $2
                          AND lr.end_date >= $2
                          AND lr.requested_by_user_id IS NULL"#,

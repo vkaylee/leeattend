@@ -119,7 +119,7 @@ impl LeaveAccrualService {
             JOIN employees e ON lr.employee_id = e.id
             WHERE lr.employee_id = $1
               AND e.workspace_id = $4
-              AND lr.status = 'approved'
+              AND lr.status IN ('approved', 'pre_approved')
               AND lr.start_date <= $3
               AND lr.end_date >= $2
             "#,
@@ -346,7 +346,7 @@ impl LeaveAccrualService {
             JOIN employees e ON lr.employee_id = e.id
             WHERE lr.employee_id = $1
               AND e.workspace_id = $4
-              AND lr.status = 'approved'
+              AND lr.status IN ('approved', 'pre_approved')
               AND lr.start_date <= $3
               AND lr.end_date >= $2
             "#,

@@ -44,6 +44,7 @@ pub enum LeaveStatus {
     Approved,
     Rejected,
     Cancelled,
+    PreApproved,
 }
 
 #[derive(
@@ -259,6 +260,7 @@ mod tests {
         let statuses = vec![
             LeaveStatus::Pending, LeaveStatus::Approved,
             LeaveStatus::Rejected, LeaveStatus::Cancelled,
+            LeaveStatus::PreApproved,
         ];
         for status in statuses {
             let json = serde_json::to_string(&status).unwrap();
@@ -271,6 +273,7 @@ mod tests {
     fn test_leave_status_display() {
         assert_eq!(LeaveStatus::Pending.to_string(), "Pending");
         assert_eq!(LeaveStatus::Approved.to_string(), "Approved");
+        assert_eq!(LeaveStatus::PreApproved.to_string(), "PreApproved");
     }
 
     #[test]
@@ -413,5 +416,7 @@ mod tests {
         assert_eq!(json, "\"pending\"");
         let json = serde_json::to_string(&LeaveStatus::Approved).unwrap();
         assert_eq!(json, "\"approved\"");
+        let json = serde_json::to_string(&LeaveStatus::PreApproved).unwrap();
+        assert_eq!(json, "\"pre_approved\"");
     }
 }

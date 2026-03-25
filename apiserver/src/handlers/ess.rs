@@ -296,7 +296,7 @@ pub async fn get_my_leave_balances(
                 (SELECT COUNT(*) FROM leave_requests lr
                  WHERE lr.employee_id = $1
                    AND lr.leave_type_id = lb.leave_type_id
-                   AND lr.status = 'approved'
+                   AND lr.status IN ('approved', 'pre_approved')
                    AND CAST(EXTRACT(YEAR FROM lr.start_date) AS INTEGER) = $2),
                 0
             ) as used,
@@ -304,7 +304,7 @@ pub async fn get_my_leave_balances(
                 (SELECT COUNT(*) FROM leave_requests lr
                  WHERE lr.employee_id = $1
                    AND lr.leave_type_id = lb.leave_type_id
-                   AND lr.status = 'approved'
+                   AND lr.status IN ('approved', 'pre_approved')
                    AND CAST(EXTRACT(YEAR FROM lr.start_date) AS INTEGER) = $2),
                 0
             ) as remaining

@@ -465,7 +465,7 @@ impl ReportService {
                 SUM(lr.end_date - lr.start_date + 1)::bigint as leave_days
             FROM leave_requests lr
             WHERE lr.employee_id = ANY($1)
-              AND lr.status = 'approved'
+              AND lr.status IN ('approved', 'pre_approved')
               AND lr.start_date >= $2::date
               AND lr.end_date <= $3::date
             GROUP BY lr.employee_id

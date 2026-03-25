@@ -64,7 +64,7 @@ pub async fn get_attendance_trend(
                    COUNT(DISTINCT lr.employee_id) AS on_leave
             FROM days d
             LEFT JOIN leave_requests lr
-                ON lr.status = 'approved'
+                ON lr.status IN ('approved', 'pre_approved')
                 AND lr.start_date <= d.date
                 AND lr.end_date >= d.date
                 AND lr.employee_id IN (SELECT id FROM active_employees)
@@ -404,7 +404,7 @@ pub async fn get_department_attendance(
                COUNT(DISTINCT lr.employee_id) AS leave_count
         FROM leave_requests lr
         JOIN latest_dept ld ON ld.employee_id = lr.employee_id
-        WHERE lr.status = 'approved'
+        WHERE lr.status IN ('approved', 'pre_approved')
           AND lr.start_date <= $3 AND lr.end_date >= $2
         GROUP BY ld.department_id
         "#,
@@ -809,7 +809,7 @@ pub async fn get_workspace_stats(
     // 5. On Leave Today (approved leave requests spanning today)
     let on_leave_today: i64 = sqlx::query_scalar(
         "SELECT COUNT(DISTINCT lr.employee_id) FROM leave_requests lr
-         WHERE lr.status = 'approved'
+         WHERE lr.status IN ('approved', 'pre_approved')
          AND lr.start_date <= $1 AND lr.end_date >= $1
          AND lr.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)",
     )
@@ -1163,7 +1163,7 @@ pub async fn get_leave_types_breakdown(
                COUNT(*) AS count
         FROM leave_requests lr
         LEFT JOIN leave_types lt ON lt.id = lr.leave_type_id
-        WHERE lr.status = 'approved'
+        WHERE lr.status IN ('approved', 'pre_approved')
           AND lr.start_date <= $2
           AND lr.end_date >= $1
           AND lr.employee_id IN (

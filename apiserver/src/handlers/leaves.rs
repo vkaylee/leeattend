@@ -26,13 +26,27 @@ use crate::{AppState, UserId};
 pub async fn submit_leave_request(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<SubmitLeaveRequest>,
 ) -> AppResult<(StatusCode, Json<LeaveRequest>)> {
+    // Look up employee's department for scoped permission check
+    let target_dept_id = crate::handlers::common::current_department_id(
+        &state, ctx.workspace_id, req.employee_id,
+    ).await;
+
+    // Require submit permission scoped to the employee's department
+    ctx.require_scoped_permission(Permission::LeaveRequestsSubmit, target_dept_id)?;
+
+    // Auto-approve if submitter also has approve permission for this department
+    let can_auto_approve = ctx
+        .require_scoped_permission(Permission::LeaveRequestsApprove, target_dept_id)
+        .is_ok();
+
     let request = state.leaves.service.submit_leave_request(
-        workspace_id,
+        ctx.workspace_id,
         user_id,
         req,
+        can_auto_approve,
     )
     .await
     ?;
@@ -128,12 +142,24 @@ pub async fn get_workspace_leave_requests(
     Query(query): Query<LeaveStatusQuery>,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     ctx.require_permission(Permission::LeaveRequestsRead)?;
-    let requests = state.leaves.service.get_workspace_leave_requests(
+    let mut requests = state.leaves.service.get_workspace_leave_requests(
         ctx.workspace_id,
         query.status,
     )
     .await
     ?;
+
+    // When filtering by Approved, also include PreApproved requests
+    if query.status == Some(LeaveStatus::Approved) {
+        let pre_approved = state.leaves.service.get_workspace_leave_requests(
+            ctx.workspace_id,
+            Some(LeaveStatus::PreApproved),
+        )
+        .await
+        ?;
+        requests.extend(pre_approved);
+        requests.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    }
 
     Ok(Json(requests))
 }

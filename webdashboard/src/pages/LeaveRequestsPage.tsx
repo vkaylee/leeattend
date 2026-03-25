@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays, Calendar, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Info, PlayCircle, FileText
+  CalendarDays, Calendar, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Info, PlayCircle, FileText, ShieldCheck
 } from "lucide-react";
 import {
   fetchEmployees,
@@ -129,10 +129,11 @@ export default function LeaveRequestsPage() {
                   <td className="px-8 py-6 text-center">
                     <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm inline-block", 
                       req.status === "pending" ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800" : 
-                      req.status === "approved" ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : 
+                      req.status === "approved" ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" :
+                      req.status === "pre_approved" ? "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100 dark:border-teal-800" :
                       "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800"
                     )}>
-                      {req.status === "pending" ? t("common.status_pending").toUpperCase() : req.status === "approved" ? t("common.status_approved").toUpperCase() : t("common.status_rejected").toUpperCase()}
+                      {req.status === "pending" ? t("common.status_pending").toUpperCase() : req.status === "approved" ? t("common.status_approved").toUpperCase() : req.status === "pre_approved" ? <span className="flex items-center gap-1"><ShieldCheck size={10} />{t("common.status_pre_approved").toUpperCase()}</span> : t("common.status_rejected").toUpperCase()}
                     </span>
                   </td>
                   <td className="px-10 py-6 text-right">

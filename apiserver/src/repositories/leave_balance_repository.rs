@@ -63,7 +63,7 @@ pub async fn get_employee_balances(
             JOIN employees e_usage ON lr.employee_id = e_usage.id
             WHERE lr.employee_id = $1
               AND e_usage.workspace_id = $3
-              AND lr.status = 'approved'
+              AND lr.status IN ('approved', 'pre_approved')
               AND EXTRACT(YEAR FROM lr.start_date)::INT = $2
             GROUP BY lr.leave_type_id
         )
@@ -154,7 +154,7 @@ pub async fn get_workspace_balances(
                      WHERE EXTRACT(DOW FROM d) NOT IN (0, 6))
                 )::INT as used_days
             FROM leave_requests lr
-            WHERE lr.status = 'approved'
+            WHERE lr.status IN ('approved', 'pre_approved')
               AND EXTRACT(YEAR FROM lr.start_date)::INT = $2
             GROUP BY lr.employee_id, lr.leave_type_id
         ),

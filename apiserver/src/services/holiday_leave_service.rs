@@ -193,7 +193,7 @@ impl HolidayLeaveService {
             r#"SELECT EXISTS(
                 SELECT 1 FROM leave_requests
                 WHERE employee_id = $1
-                  AND status = 'approved'
+                  AND status IN ('approved', 'pre_approved')
                   AND start_date <= $2
                   AND end_date >= $2
             ) as "exists!""#,

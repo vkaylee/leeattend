@@ -631,6 +631,7 @@
     "all": "All",
     "status_pending": "Pending",
     "status_approved": "Approved",
+    "status_pre_approved": "Auto-Approved",
     "status_rejected": "Rejected",
     "select_employee": "Select Employee",
     "select_department": "Select Department",

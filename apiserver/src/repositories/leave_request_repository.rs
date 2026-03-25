@@ -195,7 +195,7 @@ pub async fn get_approved_leave_breakdown(
         JOIN employees e ON lr.employee_id = e.id
         WHERE lr.employee_id = $1
           AND e.workspace_id = $4
-          AND lr.status = 'approved'
+          AND lr.status IN ('approved', 'pre_approved')
           AND lr.start_date <= $3
           AND lr.end_date >= $2
         GROUP BY lt.code
@@ -218,7 +218,7 @@ pub async fn get_approved_leave_breakdown(
              AND EXISTS (
                  SELECT 1 FROM leave_requests lr
                  WHERE lr.employee_id = $4
-                   AND lr.status = 'approved'
+                   AND lr.status IN ('approved', 'pre_approved')
                    AND lr.start_date <= h.date
                    AND lr.end_date >= h.date
              )"#,
