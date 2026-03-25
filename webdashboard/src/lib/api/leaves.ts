@@ -1,10 +1,19 @@
 import { API_BASE_URL } from './config';
 import { apiFetch } from "./helpers";
-import { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse } from './types';
+import { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, LeaveDurationType, PaginatedResponse } from './types';
 
 export async function submitLeaveRequest(
   wsId: string,
-  data: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string },
+  data: {
+    employee_id: string;
+    leave_type_id: string;
+    start_date: string;
+    end_date: string;
+    reason?: string;
+    duration_type?: LeaveDurationType;
+    start_time?: string;
+    end_time?: string;
+  },
 ): Promise<LeaveRequest> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/submit`, {
     method: 'POST',

@@ -11,7 +11,7 @@ use chrono::{Datelike, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{Holiday, LeaveRequest, LeaveStatus, ShiftRoster};
+use crate::models::{Holiday, LeaveDurationType, LeaveRequest, LeaveStatus, ShiftRoster};
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::roster::RosterRepository;
@@ -115,6 +115,9 @@ impl HolidayLeaveService {
                     end_date: holiday.date,
                     reason: Some(format!("Nghỉ lễ (trừ phép): {}", holiday.name)),
                     status: LeaveStatus::Approved,
+                    duration_type: LeaveDurationType::FullDay,
+                    start_time: None,
+                    end_time: None,
                     requested_by_user_id: None, // System-generated
                     approved_by_user_id: None,  // Auto-approved
                     created_at: Utc::now(),

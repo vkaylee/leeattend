@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import LeaveRequestsPage from "../LeaveRequestsPage";
@@ -38,6 +38,17 @@ vi.mock("@/components/common/EmployeeSearch", () => ({
   )
 }));
 
+const renderPage = (queryClient: QueryClient) =>
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <BrowserRouter>
+          <LeaveRequestsPage />
+        </BrowserRouter>
+      </ToastProvider>
+    </QueryClientProvider>
+  );
+
 describe("LeaveRequestsPage", () => {
   let queryClient: QueryClient;
 
@@ -71,33 +82,17 @@ describe("LeaveRequestsPage", () => {
 
   it("renders without workspace selected", () => {
     (api.getCurrentWorkspaceId as any).mockReturnValue(null);
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <LeaveRequestsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
+    renderPage(queryClient);
 
     expect(screen.getByText("Chọn Workspace")).toBeDefined();
   });
 
   it("renders pending requests by default", async () => {
     (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
-      { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", reason: "Test reason" }
+      { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", reason: "Test reason", duration_type: "full_day" }
     ]);
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <LeaveRequestsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
+    renderPage(queryClient);
 
     expect(await screen.findByText("John Doe")).toBeDefined();
     expect(screen.getByText(/vacation/i)).toBeDefined();
@@ -116,15 +111,7 @@ describe("LeaveRequestsPage", () => {
       return Promise.resolve([]);
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <LeaveRequestsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
+    renderPage(queryClient);
 
     await user.click(screen.getByText(/Tạo yêu cầu/i));
 
@@ -153,7 +140,8 @@ describe("LeaveRequestsPage", () => {
       expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
         employee_id: "emp-1",
         leave_type_id: "lt-vacation",
-        reason: "Vacation time"
+        reason: "Vacation time",
+        duration_type: "full_day",
       }));
     }, { timeout: 20000 });
   }, 30000);
@@ -161,19 +149,11 @@ describe("LeaveRequestsPage", () => {
   it("handles approve/reject actions", async () => {
     const user = userEvent.setup();
     (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
-      { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending" }
+      { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", duration_type: "full_day" }
     ]);
     (api.approveLeaveRequest as any).mockResolvedValue({});
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <LeaveRequestsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
+    renderPage(queryClient);
 
     const approveBtn = await screen.findByTitle(/phê duyệt/i);
     await user.click(approveBtn);
@@ -190,8 +170,273 @@ describe("LeaveRequestsPage", () => {
     });
   });
 
+  // ═══════════════════════════════════════════════════════════════════
+  // Partial Day / Duration Type Tests
+  // ═══════════════════════════════════════════════════════════════════
 
+  describe("Duration Type - Segmented Buttons", () => {
+    it("renders all 4 duration type buttons in the modal", async () => {
+      const user = userEvent.setup();
+      renderPage(queryClient);
 
+      await user.click(screen.getByText(/Tạo yêu cầu/i));
 
+      // Wait for modal to be open and check all 4 buttons exist
+      expect(await screen.findByText(/Cả ngày/i)).toBeDefined();
+      expect(screen.getByText(/Sáng/i)).toBeDefined();
+      expect(screen.getByText(/Chiều/i)).toBeDefined();
+      expect(screen.getByText(/Tùy chỉnh/i)).toBeDefined();
+    });
 
+    it("disables end_date when half-day is selected", async () => {
+      const user = userEvent.setup();
+      renderPage(queryClient);
+
+      await user.click(screen.getByText(/Tạo yêu cầu/i));
+      await screen.findByText(/Cả ngày/i);
+
+      // Initially end_date should be enabled
+      const endDateInput = screen.getByLabelText(/Đến ngày/i);
+      expect(endDateInput).not.toBeDisabled();
+
+      // Click "Sáng" (first_half)
+      await user.click(screen.getByText(/Sáng/i));
+
+      // end_date should now be disabled
+      expect(endDateInput).toBeDisabled();
+    });
+
+    it("shows time pickers only when custom_hours is selected", async () => {
+      const user = userEvent.setup();
+      renderPage(queryClient);
+
+      await user.click(screen.getByText(/Tạo yêu cầu/i));
+      await screen.findByText(/Cả ngày/i);
+
+      // Time pickers should NOT be visible initially
+      expect(screen.queryByLabelText(/Từ giờ/i)).toBeNull();
+      expect(screen.queryByLabelText(/Đến giờ/i)).toBeNull();
+
+      // Click "Tùy chỉnh" (custom_hours)
+      await user.click(screen.getByText(/Tùy chỉnh/i));
+
+      // Time pickers SHOULD be visible now
+      expect(screen.getByLabelText(/Từ giờ/i)).toBeDefined();
+      expect(screen.getByLabelText(/Đến giờ/i)).toBeDefined();
+
+      // Switch back to "Cả ngày" and time pickers should hide
+      await user.click(screen.getByText(/Cả ngày/i));
+      expect(screen.queryByLabelText(/Từ giờ/i)).toBeNull();
+    });
+
+    it("shows half-day info note when first_half is selected", async () => {
+      const user = userEvent.setup();
+      renderPage(queryClient);
+
+      await user.click(screen.getByText(/Tạo yêu cầu/i));
+      await screen.findByText(/Cả ngày/i);
+
+      // Info note should NOT be visible initially
+      expect(screen.queryByText(/tự động bằng ngày bắt đầu/i)).toBeNull();
+
+      // Click "Sáng"
+      await user.click(screen.getByText(/Sáng/i));
+
+      // Info note SHOULD be visible
+      expect(screen.getByText(/tự động bằng ngày bắt đầu/i)).toBeDefined();
+    });
+  });
+
+  describe("Duration Type - Submit Behavior", () => {
+    const setupSubmitTest = async () => {
+      const user = userEvent.setup();
+      (api.submitLeaveRequest as any).mockResolvedValue({});
+      (api.fetchEmployeeLeaveBalances as any).mockImplementation((_wsId: string, empId: string) => {
+        if (empId === "emp-1") {
+          return Promise.resolve([
+            { leave_type_id: "lt-1", leave_type_code: "lt-vacation", leave_type_name: "Vacation", is_paid: true, remaining: 10, entitlement: 12, carried_over: 2, accrued_amount: 0, used: 2 }
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+      renderPage(queryClient);
+
+      await user.click(screen.getByText(/Tạo yêu cầu/i));
+      const empSelect = await screen.findByLabelText(/Nhân viên/i);
+      fireEvent.change(empSelect, { target: { value: "emp-1" } });
+      await screen.findByText(/Còn/i);
+
+      await user.selectOptions(screen.getByLabelText(/Loại/i), "lt-vacation");
+      const startDate = screen.getByLabelText(/Từ ngày/i);
+      fireEvent.change(startDate, { target: { value: "2026-03-15" } });
+
+      return user;
+    };
+
+    it("submits with first_half duration_type", async () => {
+      const user = await setupSubmitTest();
+
+      // Set end_date before switching (it gets disabled after)
+      const endDate = screen.getByLabelText(/Đến ngày/i);
+      fireEvent.change(endDate, { target: { value: "2026-03-15" } });
+
+      // Select "Sáng" (first_half)
+      await user.click(screen.getByText(/Sáng/i));
+
+      const reasonInput = screen.getByPlaceholderText(/Nhập lý do nghỉ/i);
+      await user.type(reasonInput, "Morning doctor visit");
+
+      await user.click(screen.getByRole("button", { name: /Gửi yêu cầu/i }));
+
+      await waitFor(() => {
+        expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+          employee_id: "emp-1",
+          leave_type_id: "lt-vacation",
+          start_date: "2026-03-15",
+          duration_type: "first_half",
+          reason: "Morning doctor visit",
+        }));
+      }, { timeout: 20000 });
+
+      // Verify no start_time/end_time sent for half-day
+      const callArgs = (api.submitLeaveRequest as any).mock.calls[0][1];
+      expect(callArgs.start_time).toBeUndefined();
+      expect(callArgs.end_time).toBeUndefined();
+    }, 30000);
+
+    it("submits with custom_hours and time values", async () => {
+      const user = await setupSubmitTest();
+
+      // Set end_date before switching
+      const endDate = screen.getByLabelText(/Đến ngày/i);
+      fireEvent.change(endDate, { target: { value: "2026-03-15" } });
+
+      // Select "Tùy chỉnh" (custom_hours)
+      await user.click(screen.getByText(/Tùy chỉnh/i));
+
+      // Fill time pickers
+      const startTimeInput = screen.getByLabelText(/Từ giờ/i);
+      fireEvent.change(startTimeInput, { target: { value: "09:00" } });
+      const endTimeInput = screen.getByLabelText(/Đến giờ/i);
+      fireEvent.change(endTimeInput, { target: { value: "12:00" } });
+
+      const reasonInput = screen.getByPlaceholderText(/Nhập lý do nghỉ/i);
+      await user.type(reasonInput, "Personal errand");
+
+      await user.click(screen.getByRole("button", { name: /Gửi yêu cầu/i }));
+
+      await waitFor(() => {
+        expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+          employee_id: "emp-1",
+          leave_type_id: "lt-vacation",
+          start_date: "2026-03-15",
+          duration_type: "custom_hours",
+          start_time: "09:00",
+          end_time: "12:00",
+          reason: "Personal errand",
+        }));
+      }, { timeout: 20000 });
+    }, 30000);
+
+    it("submits with second_half duration_type", async () => {
+      const user = await setupSubmitTest();
+
+      const endDate = screen.getByLabelText(/Đến ngày/i);
+      fireEvent.change(endDate, { target: { value: "2026-03-15" } });
+
+      // Select "Chiều" (second_half)
+      await user.click(screen.getByText(/Chiều/i));
+
+      const reasonInput = screen.getByPlaceholderText(/Nhập lý do nghỉ/i);
+      await user.type(reasonInput, "Afternoon off");
+
+      await user.click(screen.getByRole("button", { name: /Gửi yêu cầu/i }));
+
+      await waitFor(() => {
+        expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+          employee_id: "emp-1",
+          duration_type: "second_half",
+          reason: "Afternoon off",
+        }));
+      }, { timeout: 20000 });
+    }, 30000);
+  });
+
+  describe("Duration Type - Table Display", () => {
+    it("shows half-day badge for first_half requests", async () => {
+      (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
+        { id: "req-half", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-03-15", end_date: "2026-03-15", status: "pending", reason: "Morning off", duration_type: "first_half" }
+      ]);
+
+      renderPage(queryClient);
+
+      // Wait for the request to render
+      expect(await screen.findByText("John Doe")).toBeDefined();
+      // The badge should show "Sáng" (i18n key: leave_requests.duration.first_half)
+      expect(screen.getByText(/Sáng/i)).toBeDefined();
+    });
+
+    it("shows custom hours time range badge for custom_hours requests", async () => {
+      (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
+        { id: "req-hours", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-03-15", end_date: "2026-03-15", status: "pending", reason: "Errand", duration_type: "custom_hours", start_time: "09:00:00", end_time: "12:00:00" }
+      ]);
+
+      renderPage(queryClient);
+
+      expect(await screen.findByText("John Doe")).toBeDefined();
+      // The badge should show the time range "09:00–12:00"
+      expect(screen.getByText(/09:00/)).toBeDefined();
+      expect(screen.getByText(/12:00/)).toBeDefined();
+    });
+
+    it("does NOT show duration badge for full_day requests", async () => {
+      (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
+        { id: "req-full", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", reason: "Vacation", duration_type: "full_day" }
+      ]);
+
+      renderPage(queryClient);
+
+      expect(await screen.findByText("John Doe")).toBeDefined();
+      // For full_day, the duration badge (with Sun/Moon/Timer icons) should NOT appear in the table
+      // The time cell only shows date range, no "Sáng"/"Chiều" labels inside a badge span
+      const timeCells = document.querySelectorAll("td");
+      let foundDurationBadge = false;
+      timeCells.forEach(cell => {
+        // Look for the specific badge wrapper that only appears for partial-day types
+        const badges = cell.querySelectorAll('[class*="inline-flex"]');
+        badges.forEach(badge => {
+          const text = badge.textContent || "";
+          if (text.includes("Sáng") || text.includes("Chiều") || text.includes("09:00")) {
+            foundDurationBadge = true;
+          }
+        });
+      });
+      expect(foundDurationBadge).toBe(false);
+    });
+  });
+
+  describe("Duration Type - State Reset", () => {
+    it("resets duration type when modal is reopened", async () => {
+      const user = userEvent.setup();
+      renderPage(queryClient);
+
+      // Open modal
+      await user.click(screen.getByText(/Tạo yêu cầu/i));
+      await screen.findByText(/Cả ngày/i);
+
+      // Select half-day
+      await user.click(screen.getByText(/Chiều/i));
+      expect(screen.getByLabelText(/Đến ngày/i)).toBeDisabled();
+
+      // Close modal
+      await user.click(screen.getByText(/HỦY BỎ/i));
+
+      // Reopen modal
+      await user.click(screen.getByText(/Tạo yêu cầu/i));
+      await screen.findByText(/Cả ngày/i);
+
+      // end_date should be enabled again (reset to full_day)
+      expect(screen.getByLabelText(/Đến ngày/i)).not.toBeDisabled();
+    });
+  });
 });

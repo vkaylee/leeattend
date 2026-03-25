@@ -59,6 +59,33 @@ pub enum LeaveStatus {
     strum_macros::Display,
     ToSchema,
 )]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum LeaveDurationType {
+    FullDay,
+    FirstHalf,
+    SecondHalf,
+    CustomHours,
+}
+
+impl Default for LeaveDurationType {
+    fn default() -> Self {
+        Self::FullDay
+    }
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    ToSchema,
+)]
 #[sqlx(type_name = "adjustment_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AdjustmentStatus {
@@ -418,5 +445,31 @@ mod tests {
         assert_eq!(json, "\"approved\"");
         let json = serde_json::to_string(&LeaveStatus::PreApproved).unwrap();
         assert_eq!(json, "\"pre_approved\"");
+    }
+
+    #[test]
+    fn test_leave_duration_type_serde_roundtrip() {
+        for dt in [
+            LeaveDurationType::FullDay, LeaveDurationType::FirstHalf,
+            LeaveDurationType::SecondHalf, LeaveDurationType::CustomHours,
+        ] {
+            let json = serde_json::to_string(&dt).unwrap();
+            let back: LeaveDurationType = serde_json::from_str(&json).unwrap();
+            assert_eq!(dt, back);
+        }
+    }
+
+    #[test]
+    fn test_leave_duration_type_json_format() {
+        assert_eq!(serde_json::to_string(&LeaveDurationType::FullDay).unwrap(), "\"full_day\"");
+        assert_eq!(serde_json::to_string(&LeaveDurationType::FirstHalf).unwrap(), "\"first_half\"");
+        assert_eq!(serde_json::to_string(&LeaveDurationType::SecondHalf).unwrap(), "\"second_half\"");
+        assert_eq!(serde_json::to_string(&LeaveDurationType::CustomHours).unwrap(), "\"custom_hours\"");
+    }
+
+    #[test]
+    fn test_leave_duration_type_default() {
+        let dt = LeaveDurationType::default();
+        assert_eq!(dt, LeaveDurationType::FullDay);
     }
 }

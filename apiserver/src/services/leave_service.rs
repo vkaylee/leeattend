@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use crate::models::{
     AdjustBalanceRequest, ApproveLeaveRequest, EmployeeLeaveBalance, LeaveHistoryItem,
-    LeaveRequest, LeaveStatus, LeaveTransactionType, ShiftRoster, SubmitLeaveRequest,
-    WorkspaceLeaveBalance,
+    LeaveDurationType, LeaveRequest, LeaveStatus, LeaveTransactionType, ShiftRoster,
+    SubmitLeaveRequest, WorkspaceLeaveBalance,
 };
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
@@ -162,11 +162,21 @@ impl LeaveService {
                     break;
                 }
             }
+
+            // Adjust for partial day leaves
+            let amount = if weekday_count > 0 {
+                // For future: join duration_type into the history query
+                // to support partial-day leave calculation here.
+                -(weekday_count as f64)
+            } else {
+                0.0
+            };
+
             history.push(LeaveHistoryItem {
                 id: Uuid::new_v4(),
                 date: req.start_date,
                 transaction_type: LeaveTransactionType::Usage,
-                amount: -(weekday_count as f64),
+                amount,
                 reason: req.reason,
                 reference_id: Some(req.id),
                 created_at: req.created_at.unwrap_or_else(chrono::Utc::now),
@@ -245,6 +255,37 @@ impl LeaveService {
         .map_err(AppError::Sqlx)?
         .ok_or(AppError::Validation("Invalid request".into()))?;
 
+        // Validate partial day constraints
+        match req.duration_type {
+            LeaveDurationType::FirstHalf | LeaveDurationType::SecondHalf => {
+                if req.start_date != req.end_date {
+                    return Err(AppError::Validation(
+                        "Half-day leave must be a single day (start_date == end_date)".into(),
+                    ));
+                }
+            }
+            LeaveDurationType::CustomHours => {
+                if req.start_time.is_none() || req.end_time.is_none() {
+                    return Err(AppError::Validation(
+                        "Custom hours leave requires both start_time and end_time".into(),
+                    ));
+                }
+                if req.start_date != req.end_date {
+                    return Err(AppError::Validation(
+                        "Custom hours leave must be a single day (start_date == end_date)".into(),
+                    ));
+                }
+                if let (Some(st), Some(et)) = (req.start_time, req.end_time) {
+                    if st >= et {
+                        return Err(AppError::Validation(
+                            "start_time must be before end_time".into(),
+                        ));
+                    }
+                }
+            }
+            LeaveDurationType::FullDay => {}
+        }
+
         let (status, approved_by) = if auto_approve {
             (LeaveStatus::PreApproved, Some(user_id))
         } else {
@@ -259,6 +300,9 @@ impl LeaveService {
             end_date: req.end_date,
             reason: req.reason,
             status,
+            duration_type: req.duration_type,
+            start_time: req.start_time,
+            end_time: req.end_time,
             requested_by_user_id: Some(user_id),
             approved_by_user_id: approved_by,
             created_at: Utc::now(),
@@ -298,6 +342,22 @@ impl LeaveService {
         .map_err(AppError::Sqlx)?
         .unwrap_or_else(|| "Leave".to_string());
 
+        let duration_label = match request.duration_type {
+            LeaveDurationType::FirstHalf => " (Nửa ngày sáng)",
+            LeaveDurationType::SecondHalf => " (Nửa ngày chiều)",
+            LeaveDurationType::CustomHours => {
+                if let (Some(st), Some(et)) = (request.start_time, request.end_time) {
+                    // We'll format inline below
+                    &format!(" ({} - {})", st.format("%H:%M"), et.format("%H:%M"))
+                } else {
+                    ""
+                }
+            }
+            LeaveDurationType::FullDay => "",
+        };
+        // Clone to avoid borrow issues with format above
+        let duration_label = duration_label.to_string();
+
         let mut current_date = request.start_date;
         while current_date <= request.end_date {
             let roster = ShiftRoster {
@@ -306,7 +366,7 @@ impl LeaveService {
                 shift_id: None,
                 date: current_date,
                 status: "on_leave".to_string(),
-                notes: Some(format!("Nghỉ phép: {leave_type_name}")),
+                notes: Some(format!("Nghỉ phép: {leave_type_name}{duration_label}")),
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
             };

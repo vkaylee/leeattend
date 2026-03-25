@@ -1,8 +1,8 @@
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::enums::{AccrualFrequency, LeaveStatus, LeaveTransactionType};
+use crate::models::enums::{AccrualFrequency, LeaveDurationType, LeaveStatus, LeaveTransactionType};
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct LeaveRequest {
@@ -13,6 +13,9 @@ pub struct LeaveRequest {
     pub end_date: NaiveDate,
     pub reason: Option<String>,
     pub status: LeaveStatus,
+    pub duration_type: LeaveDurationType,
+    pub start_time: Option<NaiveTime>,
+    pub end_time: Option<NaiveTime>,
     pub requested_by_user_id: Option<Uuid>,
     pub approved_by_user_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -36,6 +39,12 @@ pub struct SubmitLeaveRequest {
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
     pub reason: Option<String>,
+    #[serde(default)]
+    pub duration_type: LeaveDurationType,
+    #[serde(default)]
+    pub start_time: Option<NaiveTime>,
+    #[serde(default)]
+    pub end_time: Option<NaiveTime>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

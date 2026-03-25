@@ -199,6 +199,16 @@
         "reason_placeholder": "Enter leave reason...",
         "submit_btn": "Submit Request"
       },
+      "duration": {
+        "label": "Loại nghỉ",
+        "full_day": "Cả ngày",
+        "first_half": "Sáng",
+        "second_half": "Chiều",
+        "custom_hours": "Tùy chỉnh",
+        "time_from": "Từ giờ",
+        "time_to": "Đến giờ",
+        "half_day_note": "Ngày kết thúc sẽ tự động bằng ngày bắt đầu"
+      },
       "messages": {
         "accrual_success": "Leave accrual run successfully!",
         "no_requests": "No requests found."
@@ -2036,6 +2046,16 @@
       "submit_subtitle": "Quản lý vắng mặt",
       "reason_placeholder": "Nhập lý do nghỉ...",
       "submit_btn": "Gửi yêu cầu"
+    },
+    "duration": {
+      "label": "Loại nghỉ",
+      "full_day": "Cả ngày",
+      "first_half": "Sáng",
+      "second_half": "Chiều",
+      "custom_hours": "Tùy chỉnh",
+      "time_from": "Từ giờ",
+      "time_to": "Đến giờ",
+      "half_day_note": "Ngày kết thúc sẽ tự động bằng ngày bắt đầu"
     },
     "messages": {
       "accrual_success": "Đã chạy tích lũy phép thành công!",

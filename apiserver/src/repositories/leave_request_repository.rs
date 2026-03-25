@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use crate::models::{LeaveRequest, LeaveStatus};
+use crate::models::{LeaveDurationType, LeaveRequest, LeaveStatus};
 #[allow(unused_imports)] // Utc used in query! macro (L67), not visible under SQLX_OFFLINE
 use chrono::{NaiveDate, Utc};
 use sqlx::{query, query_as, PgPool, Row};
@@ -59,8 +59,9 @@ pub async fn create_leave_request(
         r#"
         INSERT INTO leave_requests
             (id, employee_id, leave_type_id, start_date, end_date, reason, status,
+             duration_type, start_time, end_time,
              requested_by_user_id, approved_by_user_id, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         "#,
         request.id,
         request.employee_id,
@@ -69,6 +70,9 @@ pub async fn create_leave_request(
         request.end_date,
         request.reason,
         request.status as LeaveStatus,
+        request.duration_type as LeaveDurationType,
+        request.start_time,
+        request.end_time,
         request.requested_by_user_id,
         request.approved_by_user_id,
         request.created_at,
@@ -88,7 +92,10 @@ pub async fn get_leave_request_by_id(
         LeaveRequest,
         r#"
         SELECT lr.id, lr.employee_id, lr.leave_type_id, lr.start_date, lr.end_date, lr.reason,
-               lr.status as "status: LeaveStatus", lr.requested_by_user_id, lr.approved_by_user_id,
+               lr.status as "status: LeaveStatus",
+               lr.duration_type as "duration_type: LeaveDurationType",
+               lr.start_time, lr.end_time,
+               lr.requested_by_user_id, lr.approved_by_user_id,
                lr.created_at as "created_at!", lr.updated_at as "updated_at!"
         FROM leave_requests lr
         JOIN employees e ON lr.employee_id = e.id
@@ -130,7 +137,10 @@ pub async fn get_employee_leave_requests(
         LeaveRequest,
         r#"
         SELECT lr.id, lr.employee_id, lr.leave_type_id, lr.start_date, lr.end_date, lr.reason,
-               lr.status as "status: LeaveStatus", lr.requested_by_user_id, lr.approved_by_user_id,
+               lr.status as "status: LeaveStatus",
+               lr.duration_type as "duration_type: LeaveDurationType",
+               lr.start_time, lr.end_time,
+               lr.requested_by_user_id, lr.approved_by_user_id,
                lr.created_at as "created_at!", lr.updated_at as "updated_at!"
         FROM leave_requests lr
         JOIN employees e ON lr.employee_id = e.id
@@ -151,7 +161,9 @@ pub async fn get_workspace_leave_requests(
 ) -> Result<Vec<LeaveRequest>, sqlx::Error> {
     let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new(
         r#"SELECT lr.id, lr.employee_id, lr.leave_type_id, lr.start_date, lr.end_date,
-           lr.reason, lr.status, lr.requested_by_user_id, lr.approved_by_user_id,
+           lr.reason, lr.status,
+           lr.duration_type, lr.start_time, lr.end_time,
+           lr.requested_by_user_id, lr.approved_by_user_id,
            lr.created_at, lr.updated_at
            FROM leave_requests lr
            JOIN employees e ON lr.employee_id = e.id

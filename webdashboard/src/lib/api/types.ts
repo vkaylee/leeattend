@@ -160,6 +160,8 @@ export interface RawAttendanceLog {
   device_name?: string;
 }
 
+export type LeaveDurationType = 'full_day' | 'first_half' | 'second_half' | 'custom_hours';
+
 export interface LeaveRequest {
   id: string;
   employee_id: string;
@@ -168,6 +170,9 @@ export interface LeaveRequest {
   end_date: string;
   reason?: string;
   status: string;
+  duration_type: LeaveDurationType;
+  start_time?: string | null;
+  end_time?: string | null;
   requested_by_user_id?: string;
   approved_by_user_id?: string;
   created_at: string;

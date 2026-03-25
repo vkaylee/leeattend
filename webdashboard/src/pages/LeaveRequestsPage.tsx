@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays, Calendar, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Info, PlayCircle, FileText, ShieldCheck
+  CalendarDays, Calendar, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Info, PlayCircle, FileText, ShieldCheck, Sun, Moon, Timer
 } from "lucide-react";
 import {
   fetchEmployees,
@@ -19,6 +19,7 @@ import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { cn } from "@/lib/utils";
+import type { LeaveDurationType } from "@/lib/api/types";
 
 type TabType = "pending" | "approved" | "rejected";
 
@@ -33,6 +34,9 @@ export default function LeaveRequestsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("pending");
   const [selectedEmpId, setSelectedEmpId] = useState<string>("");
   const [leaveTypeId, setLeaveTypeId] = useState<string>("");
+  const [durationType, setDurationType] = useState<LeaveDurationType>("full_day");
+  const [startTime, setStartTime] = useState<string>("");
+  const [endTime, setEndTime] = useState<string>("");
 
   const { data: employeesData } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: !!wsId });
   const employees = employeesData?.data || [];
@@ -47,8 +51,8 @@ export default function LeaveRequestsPage() {
   }, [leaveTypes, leaveTypeId]);
 
   const submitMutation = useMutation({
-    mutationFn: (data: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string }) => submitLeaveRequest(wsId!, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); setIsModalOpen(false); toast.success(t("common.success")); },
+    mutationFn: (data: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string }) => submitLeaveRequest(wsId!, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); setIsModalOpen(false); setDurationType("full_day"); setStartTime(""); setEndTime(""); toast.success(t("common.success")); },
   });
 
   const approveMutation = useMutation({
@@ -59,7 +63,19 @@ export default function LeaveRequestsPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const formData = new FormData(e.currentTarget);
     if (!leaveTypeId) { toast.error(t("leave_requests.invalid_leave_type")); return; }
-    submitMutation.mutate({ employee_id: selectedEmpId, leave_type_id: leaveTypeId, start_date: formData.get("start_date") as string, end_date: formData.get("end_date") as string, reason: formData.get("reason") as string });
+    const payload: any = {
+      employee_id: selectedEmpId,
+      leave_type_id: leaveTypeId,
+      start_date: formData.get("start_date") as string,
+      end_date: formData.get("end_date") as string,
+      reason: formData.get("reason") as string,
+      duration_type: durationType,
+    };
+    if (durationType === "custom_hours" && startTime && endTime) {
+      payload.start_time = startTime;
+      payload.end_time = endTime;
+    }
+    submitMutation.mutate(payload);
   };
 
   const getLeaveTypeIcon = (code: string) => {
@@ -79,7 +95,7 @@ export default function LeaveRequestsPage() {
           <h1 data-testid="leave-requests-title" className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none">{t("leave_requests.title")}</h1>
           <p className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60">{t("leave_requests.subtitle")}</p>
         </div>
-        <button onClick={() => { setIsModalOpen(true); setSelectedEmpId(""); }} className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-3 rounded-2xl flex items-center gap-3 shadow-xl shadow-primary-100 dark:shadow-black/30 transition-all active:scale-95 text-xs uppercase tracking-widest">
+        <button onClick={() => { setIsModalOpen(true); setSelectedEmpId(""); setDurationType("full_day"); setStartTime(""); setEndTime(""); }} className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-3 rounded-2xl flex items-center gap-3 shadow-xl shadow-primary-100 dark:shadow-black/30 transition-all active:scale-95 text-xs uppercase tracking-widest">
           <Plus size={18} /> {t("leave_requests.create_btn").toUpperCase()}
         </button>
       </div>
@@ -121,7 +137,20 @@ export default function LeaveRequestsPage() {
                   </td>
                   <td className="px-8 py-6"><span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-primary-700 dark:text-primary-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-primary-200 dark:border-primary-800/50 shadow-sm">{(leaveTypes.find(t => t.id === req.leave_type_id)?.name || "Unknown").toUpperCase()}</span></td>
                   <td className="px-8 py-6">
-                    <div className="text-xs font-bold text-primary-700 dark:text-primary-300 uppercase tracking-tight mb-1.5">{formatDate(req.start_date)} — {formatDate(req.end_date)}</div>
+                    <div className="text-xs font-bold text-primary-700 dark:text-primary-300 uppercase tracking-tight mb-1.5">
+                      {formatDate(req.start_date)} — {formatDate(req.end_date)}
+                      {req.duration_type && req.duration_type !== "full_day" && (
+                        <span className={cn("ml-2 px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider inline-flex items-center gap-1 border",
+                          req.duration_type === "first_half" ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-200 dark:border-amber-800" :
+                          req.duration_type === "second_half" ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800" :
+                          "bg-cyan-50 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800"
+                        )}>
+                          {req.duration_type === "first_half" && <><Sun size={8} /> {t("leave_requests.duration.first_half")}</>}
+                          {req.duration_type === "second_half" && <><Moon size={8} /> {t("leave_requests.duration.second_half")}</>}
+                          {req.duration_type === "custom_hours" && <><Timer size={8} /> {req.start_time?.slice(0,5)}–{req.end_time?.slice(0,5)}</>}
+                        </span>
+                      )}
+                    </div>
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-primary-100 dark:border-primary-800/50 shadow-inner group-hover:bg-white dark:hover:bg-slate-900 transition-colors">
                       <p className="text-[10px] text-primary-400 font-bold leading-relaxed line-clamp-1 italic opacity-80 flex gap-2"><MessageSquare size={12} className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0" /> "{req.reason || t("common.no_description")}"</p>
                     </div>
@@ -184,9 +213,64 @@ export default function LeaveRequestsPage() {
             </div>
             <div className="space-y-3 px-1">
               <label htmlFor="end-date" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("common.to_date")}</label>
-              <input id="end-date" type="date" name="end_date" required className="w-full px-5 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none transition-all font-medium text-sm tracking-tight shadow-sm" />
+              <input id="end-date" type="date" name="end_date" required disabled={durationType !== "full_day"} className={cn("w-full px-5 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none transition-all font-medium text-sm tracking-tight shadow-sm", durationType !== "full_day" && "opacity-50 cursor-not-allowed")} />
             </div>
           </div>
+
+          {/* Duration Type Segmented Buttons */}
+          <div className="space-y-3 px-1">
+            <label className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("leave_requests.duration.label")}</label>
+            <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-2xl border border-primary-100 dark:border-primary-800/50 shadow-inner">
+              {([
+                { value: "full_day" as LeaveDurationType, label: t("leave_requests.duration.full_day"), icon: <Calendar size={12} /> },
+                { value: "first_half" as LeaveDurationType, label: t("leave_requests.duration.first_half"), icon: <Sun size={12} /> },
+                { value: "second_half" as LeaveDurationType, label: t("leave_requests.duration.second_half"), icon: <Moon size={12} /> },
+                { value: "custom_hours" as LeaveDurationType, label: t("leave_requests.duration.custom_hours"), icon: <Timer size={12} /> },
+              ]).map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    setDurationType(opt.value);
+                    // Auto-sync end_date when switching to partial day
+                    if (opt.value !== "full_day") {
+                      const startInput = document.getElementById("start-date") as HTMLInputElement;
+                      const endInput = document.getElementById("end-date") as HTMLInputElement;
+                      if (startInput?.value && endInput) {
+                        endInput.value = startInput.value;
+                      }
+                    }
+                  }}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all",
+                    durationType === opt.value
+                      ? "bg-white dark:bg-slate-900 text-primary-700 dark:text-primary-300 shadow-sm border border-primary-100 dark:border-primary-800/50"
+                      : "text-primary-400 hover:text-primary-600 dark:text-primary-500 dark:hover:text-primary-300"
+                  )}
+                >
+                  {opt.icon} {opt.label}
+                </button>
+              ))}
+            </div>
+            {durationType !== "full_day" && durationType !== "custom_hours" && (
+              <p className="text-[10px] text-primary-400 italic ml-1 flex items-center gap-1"><Info size={10} /> {t("leave_requests.duration.half_day_note")}</p>
+            )}
+          </div>
+
+          {/* Time Pickers for Custom Hours */}
+          {durationType === "custom_hours" && (
+            <div className="grid grid-cols-2 gap-8 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="space-y-3 px-1">
+                <label htmlFor="start-time" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("leave_requests.duration.time_from")}</label>
+                <input id="start-time" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} required className="w-full px-5 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none transition-all font-medium text-sm tracking-tight shadow-sm" />
+              </div>
+              <div className="space-y-3 px-1">
+                <label htmlFor="end-time" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("leave_requests.duration.time_to")}</label>
+                <input id="end-time" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} required className="w-full px-5 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none transition-all font-medium text-sm tracking-tight shadow-sm" />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3 px-1">
             <label htmlFor="leave-reason" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("common.reason")}</label>
             <textarea id="leave-reason" name="reason" rows={3} className="w-full px-6 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none font-medium text-sm resize-none shadow-sm" placeholder={t("leave_requests.modal.reason_placeholder")}></textarea>
