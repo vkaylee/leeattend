@@ -212,7 +212,16 @@
       "messages": {
         "accrual_success": "Leave accrual run successfully!",
         "no_requests": "No requests found."
-      }
+      },
+      "upload_btn": "上传Excel",
+      "download_template": "下载模板",
+      "upload_enqueued": "文件已上传，正在处理...",
+      "upload_error": "无法上传文件",
+      "upload_processing": "正在处理 {{processed}}/{{total}} 行...",
+      "upload_success": "成功导入 {{success}} 条请假申请",
+      "upload_partial": "成功 {{success}}/{{total}}。{{errors}} 行失败。",
+      "upload_failed": "导入失败",
+      "download_errors": "下载错误文件"
     },
     "leave_balances": "休假余额",
     "profile": "个人资料",
@@ -2060,6 +2069,41 @@
     "messages": {
       "accrual_success": "休假累计运行成功！",
       "no_requests": "未找到请求。"
+    },
+    "upload_btn": "上传Excel",
+    "upload_processing": "正在处理 {{processed}}/{{total}} 行...",
+    "upload_success": "成功导入 {{success}} 个请假单",
+    "upload_partial": "成功 {{success}}/{{total}}。{{errors}} 行有错误。",
+    "upload_failed": "导入失败",
+    "download_errors": "下载错误文件"
+  },
+  "leave_import": {
+    "title": "导入请假单",
+    "subtitle": "上传Excel文件批量创建请假单",
+    "requirements_title": "文件要求",
+    "req_col_a": "A列：员工编号",
+    "req_col_b": "B列：请假类型代码",
+    "req_col_c": "C-D列：开始/结束日期",
+    "req_col_e": "E列：原因（可选）",
+    "req_col_f": "F列：时长类型",
+    "req_format": "格式：.xlsx, .xls, .csv",
+    "download_template": "下载Excel模板",
+    "drop_prompt": "点击选择Excel文件",
+    "drop_hint": "支持 .xlsx, .xls, .csv",
+    "ready": "准备上传",
+    "select_another": "选择其他文件",
+    "start_import": "开始导入",
+    "uploading": "上传中...",
+    "upload_another": "上传其他文件",
+    "rows_label": "行已处理",
+    "download_errors": "下载错误文件",
+    "error_detail": "错误详情",
+    "partial_detail": "成功 {{success}} 行，失败 {{errors}} 行",
+    "status": {
+      "processing": "处理中...",
+      "completed": "导入成功",
+      "partial": "导入有错误",
+      "failed": "导入失败"
     }
   },
   "payroll": {

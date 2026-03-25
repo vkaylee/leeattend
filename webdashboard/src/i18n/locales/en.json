@@ -212,7 +212,16 @@
       "messages": {
         "accrual_success": "Leave accrual run successfully!",
         "no_requests": "No requests found."
-      }
+      },
+      "upload_btn": "Upload Excel",
+      "download_template": "Download Template",
+      "upload_enqueued": "File uploaded, processing...",
+      "upload_error": "Failed to upload file",
+      "upload_processing": "Processing {{processed}}/{{total}} rows...",
+      "upload_success": "Successfully imported {{success}} leave requests",
+      "upload_partial": "Success {{success}}/{{total}}. {{errors}} rows failed.",
+      "upload_failed": "Import failed",
+      "download_errors": "Download Error File"
     },
     "leave_balances": "Leave Balances",
     "profile": "Profile",
@@ -2060,6 +2069,41 @@
     "messages": {
       "accrual_success": "Leave accrual run successfully!",
       "no_requests": "No requests found."
+    },
+    "upload_btn": "Upload Excel",
+    "upload_processing": "Processing {{processed}}/{{total}} rows...",
+    "upload_success": "Successfully imported {{success}} leave requests",
+    "upload_partial": "Success {{success}}/{{total}}. {{errors}} rows with errors.",
+    "upload_failed": "Import failed",
+    "download_errors": "Download error file"
+  },
+  "leave_import": {
+    "title": "Import Leave Requests",
+    "subtitle": "Upload Excel file to create leave requests in bulk",
+    "requirements_title": "File Requirements",
+    "req_col_a": "Column A: Employee ID",
+    "req_col_b": "Column B: Leave Type Code",
+    "req_col_c": "Column C-D: Start / End Date",
+    "req_col_e": "Column E: Reason (optional)",
+    "req_col_f": "Column F: Duration Type",
+    "req_format": "Format: .xlsx, .xls, .csv",
+    "download_template": "Download Excel Template",
+    "drop_prompt": "Click to select Excel file",
+    "drop_hint": "Supports .xlsx, .xls, .csv",
+    "ready": "READY TO UPLOAD",
+    "select_another": "Select another file",
+    "start_import": "Start Import",
+    "uploading": "UPLOADING...",
+    "upload_another": "Upload another file",
+    "rows_label": "rows processed",
+    "download_errors": "Download error file",
+    "error_detail": "Error details",
+    "partial_detail": "{{success}} rows succeeded, {{errors}} rows failed",
+    "status": {
+      "processing": "Processing...",
+      "completed": "Import completed",
+      "partial": "Import has errors",
+      "failed": "Import failed"
     }
   },
   "payroll": {

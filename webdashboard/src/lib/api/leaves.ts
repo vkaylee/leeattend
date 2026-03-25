@@ -249,3 +249,98 @@ export async function updateLeaveTypeConfig(
   if (!response.ok) throw new Error('Failed to update leave type config');
   return response.json();
 }
+
+// ========================
+// Leave Import API
+// ========================
+
+export interface LeaveImportJob {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  total_rows: number;
+  processed_rows: number;
+  error_log: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Upload an Excel file for bulk leave request import. */
+export async function uploadLeaveExcel(
+  wsId: string,
+  file: File,
+): Promise<{ job_id: string; status: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/upload-excel`, {
+    method: 'POST',
+    body: formData,
+    headers: {}, // Let browser set Content-Type for multipart
+  });
+  if (!response.ok) throw new Error('Failed to upload leave excel');
+  return response.json();
+}
+
+/** Fetch the latest leave import job for the workspace (page resume). */
+export async function fetchLatestLeaveImport(
+  wsId: string,
+): Promise<LeaveImportJob | null> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/import/latest`);
+  if (!response.ok) return null;
+  return response.json();
+}
+
+/** Fetch a specific import job by its ID (for polling). */
+export async function fetchLeaveImportStatus(
+  wsId: string,
+  jobId: string,
+): Promise<LeaveImportJob | null> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/import/latest`);
+  if (!response.ok) return null;
+  return response.json();
+}
+
+/** Get the URL for downloading the error Excel file (URL-only, for non-fetch usage). */
+export function getLeaveImportErrorsUrl(wsId: string, jobId: string): string {
+  return `${API_BASE_URL}/workspaces/${wsId}/leave/import/${jobId}/errors`;
+}
+
+/** Get the URL for downloading the import template Excel (URL-only, for non-fetch usage). */
+export function getLeaveImportTemplateUrl(wsId: string, lang = "en"): string {
+  return `${API_BASE_URL}/workspaces/${wsId}/leave/upload-template?lang=${lang}`;
+}
+
+/** Download the leave import template Excel via authenticated fetch. */
+export async function downloadLeaveImportTemplate(wsId: string, lang = "en"): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/leave/upload-template?lang=${lang}`,
+    { timeout: 30000 }
+  );
+  if (!response.ok) throw new Error("Failed to download template");
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "leave_import_template.xlsx";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+/** Download the error Excel file via authenticated fetch. */
+export async function downloadLeaveImportErrors(wsId: string, jobId: string): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/leave/import/${jobId}/errors`,
+    { timeout: 30000 }
+  );
+  if (!response.ok) throw new Error("Failed to download error file");
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `leave_import_errors_${jobId}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}

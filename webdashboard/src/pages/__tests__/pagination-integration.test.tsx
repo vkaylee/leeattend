@@ -35,6 +35,14 @@ vi.mock("../../lib/api", () => ({
   fetchEmployeeLeaveBalances: vi.fn(),
   fetchLeavePolicies: vi.fn(),
   fetchMyPermissions: vi.fn(),
+  fetchLeaveTypes: vi.fn().mockResolvedValue([]),
+  // LeaveImportDialog mocks
+  uploadLeaveExcel: vi.fn(),
+  fetchLatestLeaveImport: vi.fn().mockResolvedValue(null),
+  getLeaveImportErrorsUrl: vi.fn().mockReturnValue("#"),
+  getLeaveImportTemplateUrl: vi.fn().mockReturnValue("#"),
+  downloadLeaveImportTemplate: vi.fn().mockResolvedValue(undefined),
+  downloadLeaveImportErrors: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Helper to create mock paginated response

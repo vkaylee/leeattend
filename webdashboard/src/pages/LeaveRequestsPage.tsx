@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays, Calendar, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Info, PlayCircle, FileText, ShieldCheck, Sun, Moon, Timer
+  CalendarDays, Calendar, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Info, PlayCircle, FileText, ShieldCheck, Sun, Moon, Timer,
+  Upload, Download, Loader2, AlertTriangle, X
 } from "lucide-react";
 import {
   fetchEmployees,
@@ -11,13 +12,17 @@ import {
   approveLeaveRequest,
   fetchEmployeeLeaveBalances,
   fetchLeaveTypes,
-  getCurrentWorkspaceId
+  getCurrentWorkspaceId,
+  fetchLatestLeaveImport,
+  downloadLeaveImportErrors,
 } from "@/lib/api";
+import type { LeaveImportJob } from "@/lib/api/leaves";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import LeaveImportDialog from "@/components/features/leave/LeaveImportDialog";
 import { cn } from "@/lib/utils";
 import type { LeaveDurationType } from "@/lib/api/types";
 
@@ -31,6 +36,7 @@ export default function LeaveRequestsPage() {
   const { formatDate } = useDateTimeFormatter();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("pending");
   const [selectedEmpId, setSelectedEmpId] = useState<string>("");
   const [leaveTypeId, setLeaveTypeId] = useState<string>("");
@@ -59,6 +65,77 @@ export default function LeaveRequestsPage() {
     mutationFn: (data: { id: string; status: string }) => approveLeaveRequest(wsId!, data.id, { status: data.status }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); toast.success(t("common.success")); },
   });
+
+  // ===== LEAVE IMPORT STATE =====
+  const [importJob, setImportJob] = useState<LeaveImportJob | null>(null);
+  const [importBannerDismissed, setImportBannerDismissed] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // On mount: check for latest import job
+  useEffect(() => {
+    if (!wsId) return;
+    fetchLatestLeaveImport(wsId).then((job) => {
+      if (job) {
+        // Only show if job is less than 24h old
+        const created = new Date(job.created_at);
+        const now = new Date();
+        if (now.getTime() - created.getTime() < 24 * 60 * 60 * 1000) {
+          setImportJob(job);
+          setImportBannerDismissed(false);
+        }
+      }
+    }).catch(() => {});
+  }, [wsId]);
+
+  // Poll when import is processing
+  const startPolling = useCallback((wsIdVal: string) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      try {
+        const job = await fetchLatestLeaveImport(wsIdVal);
+        if (job) {
+          setImportJob(job);
+          if (job.status !== 'processing' && job.status !== 'pending') {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+          }
+        }
+      } catch {
+        // Network error — keep polling, will resume when online
+      }
+    }, 3000);
+  }, [queryClient]);
+
+  // Start polling when job is processing
+  useEffect(() => {
+    if (importJob?.status === 'processing' || importJob?.status === 'pending') {
+      if (wsId) startPolling(wsId);
+    }
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [importJob?.status, wsId, startPolling]);
+
+  const handleImportComplete = useCallback(() => {
+    // Refresh import job status from the dialog
+    if (wsId) {
+      fetchLatestLeaveImport(wsId).then((job) => {
+        if (job) {
+          setImportJob(job);
+          setImportBannerDismissed(false);
+        }
+      }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+    }
+  }, [wsId, queryClient]);
+
+  const getImportErrorInfo = (job: LeaveImportJob) => {
+    if (!job.error_log) return null;
+    try {
+      return JSON.parse(job.error_log) as { success_count?: number; error_count?: number; error_file_path?: string };
+    } catch { return null; }
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const formData = new FormData(e.currentTarget);
@@ -95,10 +172,101 @@ export default function LeaveRequestsPage() {
           <h1 data-testid="leave-requests-title" className="text-5xl font-bold tracking-tighter text-primary-700 dark:text-primary-300 uppercase leading-none">{t("leave_requests.title")}</h1>
           <p className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60">{t("leave_requests.subtitle")}</p>
         </div>
-        <button onClick={() => { setIsModalOpen(true); setSelectedEmpId(""); setDurationType("full_day"); setStartTime(""); setEndTime(""); }} className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-3 rounded-2xl flex items-center gap-3 shadow-xl shadow-primary-100 dark:shadow-black/30 transition-all active:scale-95 text-xs uppercase tracking-widest">
-          <Plus size={18} /> {t("leave_requests.create_btn").toUpperCase()}
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Upload Excel — opens modal */}
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            disabled={importJob?.status === 'processing'}
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-5 py-3 rounded-2xl flex items-center gap-2.5 shadow-xl shadow-emerald-100 dark:shadow-black/30 transition-all active:scale-95 text-[10px] uppercase tracking-widest"
+          >
+            <Upload size={16} />
+            {t("leave_requests.upload_btn", "Upload Excel")}
+          </button>
+          {/* Create Leave Request */}
+          <button onClick={() => { setIsModalOpen(true); setSelectedEmpId(""); setDurationType("full_day"); setStartTime(""); setEndTime(""); }} className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-3 rounded-2xl flex items-center gap-3 shadow-xl shadow-primary-100 dark:shadow-black/30 transition-all active:scale-95 text-xs uppercase tracking-widest">
+            <Plus size={18} /> {t("leave_requests.create_btn").toUpperCase()}
+          </button>
+        </div>
       </div>
+
+      {/* Import Status Banner */}
+      {importJob && !importBannerDismissed && (
+        <div className={cn(
+          "rounded-2xl px-6 py-4 flex items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500 border",
+          importJob.status === 'processing' || importJob.status === 'pending'
+            ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50"
+            : importJob.status === 'completed' && !importJob.error_log
+              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50"
+              : importJob.status === 'completed' && importJob.error_log
+                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50"
+                : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50"
+        )}>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {(importJob.status === 'processing' || importJob.status === 'pending') && (
+              <>
+                <Loader2 size={20} className="animate-spin text-blue-500 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                    {t("leave_requests.upload_processing", "Đang xử lý {{processed}}/{{total}} dòng...").replace('{{processed}}', String(importJob.processed_rows)).replace('{{total}}', String(importJob.total_rows || '?'))}
+                  </p>
+                  {importJob.total_rows > 0 && (
+                    <div className="mt-2 h-2 rounded-full bg-blue-100 dark:bg-blue-900 overflow-hidden w-48">
+                      <div
+                        className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                        style={{ width: `${Math.min(100, (importJob.processed_rows / importJob.total_rows) * 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+            {importJob.status === 'completed' && !importJob.error_log && (
+              <>
+                <CheckCircle2 size={20} className="text-emerald-500 flex-shrink-0" />
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                  {t("leave_requests.upload_success", "Import thành công {{success}} đơn nghỉ").replace('{{success}}', String(importJob.processed_rows))}
+                </p>
+              </>
+            )}
+            {importJob.status === 'completed' && importJob.error_log && (() => {
+              const info = getImportErrorInfo(importJob);
+              return (
+                <>
+                  <AlertTriangle size={20} className="text-amber-500 flex-shrink-0" />
+                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+                    {t("leave_requests.upload_partial", "Thành công {{success}}/{{total}}. {{errors}} dòng lỗi.")
+                      .replace('{{success}}', String(info?.success_count ?? importJob.processed_rows))
+                      .replace('{{total}}', String((info?.success_count ?? 0) + (info?.error_count ?? 0)))
+                      .replace('{{errors}}', String(info?.error_count ?? 0))}
+                  </p>
+                  {info?.error_file_path && wsId && (
+                    <button
+                      onClick={() => downloadLeaveImportErrors(wsId, importJob.id).catch(() => {})}
+                      className="ml-2 flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline underline-offset-2"
+                    >
+                      <Download size={14} /> {t("leave_requests.download_errors", "Tải file lỗi")}
+                    </button>
+                  )}
+                </>
+              );
+            })()}
+            {importJob.status === 'failed' && (
+              <>
+                <XCircle size={20} className="text-red-500 flex-shrink-0" />
+                <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                  {t("leave_requests.upload_failed", "Import thất bại")}
+                  {importJob.error_log && <span className="font-normal ml-2 text-xs opacity-75">— {importJob.error_log.substring(0, 100)}</span>}
+                </p>
+              </>
+            )}
+          </div>
+          {importJob.status !== 'processing' && importJob.status !== 'pending' && (
+            <button onClick={() => setImportBannerDismissed(true)} className="text-primary-400 hover:text-primary-600 transition-colors flex-shrink-0">
+              <X size={18} />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-primary-200 dark:border-primary-800/50/50 shadow-inner">
         <button onClick={() => setActiveTab("pending")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === "pending" ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 shadow-sm border border-primary-100 dark:border-primary-800/50" : "text-primary-400 hover:text-primary-700 dark:text-primary-300")}><Clock size={14} /> {t("common.status_pending")}</button>
@@ -281,6 +449,13 @@ export default function LeaveRequestsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Leave Import Dialog */}
+      <LeaveImportDialog
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportComplete={handleImportComplete}
+      />
     </div>
   );
 }

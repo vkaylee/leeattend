@@ -22,6 +22,13 @@ vi.mock("../../lib/api", () => ({
   assignLeavePolicy: vi.fn(),
   triggerAccrualRun: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
+  // LeaveImportDialog mocks
+  uploadLeaveExcel: vi.fn(),
+  fetchLatestLeaveImport: vi.fn().mockResolvedValue(null),
+  getLeaveImportErrorsUrl: vi.fn().mockReturnValue("#"),
+  getLeaveImportTemplateUrl: vi.fn().mockReturnValue("#"),
+  downloadLeaveImportTemplate: vi.fn().mockResolvedValue(undefined),
+  downloadLeaveImportErrors: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock EmployeeSearch

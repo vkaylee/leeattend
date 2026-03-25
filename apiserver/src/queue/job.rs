@@ -23,6 +23,7 @@ pub enum TaskType {
     LogIngestion,
     ReprocessAttendance,
     ClaimStagedLogs,
+    LeaveImport,
 }
 
 /// Job priority level. Controls which Redis queue the job is routed to.
@@ -114,6 +115,19 @@ pub struct ClaimStagedLogsPayload {
     pub employee_id_number: String,
 }
 
+/// Payload for bulk leave request import from Excel.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LeaveImportPayload {
+    /// Path to the uploaded Excel file on disk
+    pub file_path: String,
+    /// User who initiated the import
+    pub user_id: Uuid,
+    /// Whether to auto-approve imported leave requests
+    pub auto_approve: bool,
+    /// DB tracking job ID (attendance_import_jobs table)
+    pub import_job_id: Uuid,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -125,6 +139,7 @@ pub enum JobPayload {
     LogIngestion(LogIngestionPayload),
     ReprocessAttendance(ReprocessPayload),
     ClaimStagedLogs(ClaimStagedLogsPayload),
+    LeaveImport(LeaveImportPayload),
 }
 
 /// A single worker job.
@@ -241,6 +256,14 @@ impl Job {
     pub fn claim_staged_logs_payload(&self) -> Option<&ClaimStagedLogsPayload> {
         match &self.payload {
             JobPayload::ClaimStagedLogs(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Helper: extract leave import payload.
+    pub fn leave_import_payload(&self) -> Option<&LeaveImportPayload> {
+        match &self.payload {
+            JobPayload::LeaveImport(p) => Some(p),
             _ => None,
         }
     }
@@ -934,5 +957,116 @@ mod tests {
 
         assert!(job.log_ingestion_payload().is_none());
         assert!(job.report_payload().is_some());
+    }
+
+    // ====== LEAVE IMPORT TESTS ======
+
+    /// LeaveImportPayload serde roundtrip.
+    #[test]
+    fn test_leave_import_payload_serde_roundtrip() {
+        let user_id = Uuid::new_v4();
+        let import_job_id = Uuid::new_v4();
+        let payload = LeaveImportPayload {
+            file_path: "/storage/imports/leave_2026-03.xlsx".to_string(),
+            user_id,
+            auto_approve: true,
+            import_job_id,
+        };
+
+        let json = serde_json::to_string(&payload).unwrap();
+        let decoded: LeaveImportPayload = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(decoded.file_path, "/storage/imports/leave_2026-03.xlsx");
+        assert_eq!(decoded.user_id, user_id);
+        assert!(decoded.auto_approve);
+        assert_eq!(decoded.import_job_id, import_job_id);
+    }
+
+    /// LeaveImport tagged enum serde format.
+    #[test]
+    fn test_leave_import_payload_tagged_format() {
+        let payload = JobPayload::LeaveImport(LeaveImportPayload {
+            file_path: "/tmp/test.xlsx".to_string(),
+            user_id: Uuid::new_v4(),
+            auto_approve: false,
+            import_job_id: Uuid::new_v4(),
+        });
+
+        let json = serde_json::to_value(&payload).unwrap();
+        assert_eq!(json["type"], "LeaveImport");
+        assert!(json["data"].is_object());
+        assert_eq!(json["data"]["file_path"], "/tmp/test.xlsx");
+        assert_eq!(json["data"]["auto_approve"], false);
+    }
+
+    /// LeaveImport task type serde.
+    #[test]
+    fn test_leave_import_task_type_serde() {
+        let json = serde_json::to_string(&TaskType::LeaveImport).unwrap();
+        assert_eq!(json, "\"leave_import\"");
+
+        let decoded: TaskType = serde_json::from_str("\"leave_import\"").unwrap();
+        assert_eq!(decoded, TaskType::LeaveImport);
+    }
+
+    /// Full Job with LeaveImport payload roundtrip.
+    #[test]
+    fn test_leave_import_job_full_roundtrip() {
+        let parent_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let import_job_id = Uuid::new_v4();
+
+        let job = Job::new(
+            parent_id,
+            0,
+            TaskType::LeaveImport,
+            ws_id,
+            JobPayload::LeaveImport(LeaveImportPayload {
+                file_path: "/storage/imports/leave.xlsx".to_string(),
+                user_id,
+                auto_approve: true,
+                import_job_id,
+            }),
+        );
+
+        let json = serde_json::to_string(&job).unwrap();
+        assert!(json.contains("\"leave_import\""));
+
+        let decoded: Job = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded.job_id, job.job_id);
+        assert_eq!(decoded.task_type, TaskType::LeaveImport);
+
+        let payload = decoded.leave_import_payload().expect("should extract");
+        assert_eq!(payload.file_path, "/storage/imports/leave.xlsx");
+        assert_eq!(payload.user_id, user_id);
+        assert!(payload.auto_approve);
+        assert_eq!(payload.import_job_id, import_job_id);
+    }
+
+    /// leave_import_payload() returns None for non-LeaveImport jobs.
+    #[test]
+    fn test_leave_import_payload_helper_returns_none_for_other_types() {
+        let job = Job::new(
+            Uuid::new_v4(),
+            0,
+            TaskType::AttendanceReport,
+            Uuid::new_v4(),
+            JobPayload::AttendanceReport(ReportPayload {
+                employee_ids: vec![],
+                date_range: DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                },
+                config: ReportConfig {
+                    report_type: ReportType::Summary,
+                    timezone: "UTC".to_string(),
+                    rounding_policy: "floor".to_string(),
+                    work_unit_minutes: 30,
+                },
+            }),
+        );
+
+        assert!(job.leave_import_payload().is_none());
     }
 }

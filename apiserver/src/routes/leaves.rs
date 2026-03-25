@@ -76,6 +76,23 @@ pub fn router() -> Router<Arc<AppState>> {
             "/employees/:id/leave/requests",
             get(handlers::get_my_leave_requests),
         )
+        // Leave Import
+        .route(
+            "/workspaces/:ws_id/leave/upload-excel",
+            post(handlers::leaves::upload_leave_excel),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/import/latest",
+            get(handlers::leaves::get_latest_leave_import),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/import/:job_id/errors",
+            get(handlers::leaves::download_leave_import_errors),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/upload-template",
+            get(handlers::leaves::download_leave_import_template),
+        )
         // Holidays
         .route(
             "/workspaces/:ws_id/holidays",

@@ -212,7 +212,16 @@
       "messages": {
         "accrual_success": "Leave accrual run successfully!",
         "no_requests": "No requests found."
-      }
+      },
+      "upload_btn": "Upload Excel",
+      "download_template": "Tải file mẫu",
+      "upload_enqueued": "Đã gửi file, đang xử lý...",
+      "upload_error": "Không thể upload file",
+      "upload_processing": "Đang xử lý {{processed}}/{{total}} dòng...",
+      "upload_success": "Import thành công {{success}} đơn nghỉ",
+      "upload_partial": "Thành công {{success}}/{{total}}. {{errors}} dòng lỗi.",
+      "upload_failed": "Import thất bại",
+      "download_errors": "Tải file lỗi"
     },
     "leave_balances": "Số dư nghỉ phép",
     "profile": "Hồ sơ",
@@ -2060,6 +2069,41 @@
     "messages": {
       "accrual_success": "Đã chạy tích lũy phép thành công!",
       "no_requests": "Không có yêu cầu nào."
+    },
+    "upload_btn": "Upload Excel",
+    "upload_processing": "Đang xử lý {{processed}}/{{total}} dòng...",
+    "upload_success": "Import thành công {{success}} đơn nghỉ",
+    "upload_partial": "Thành công {{success}}/{{total}}. {{errors}} dòng lỗi.",
+    "upload_failed": "Import thất bại",
+    "download_errors": "Tải file lỗi"
+  },
+  "leave_import": {
+    "title": "Import đơn nghỉ phép",
+    "subtitle": "Upload file Excel để tạo đơn nghỉ phép hàng loạt",
+    "requirements_title": "Yêu cầu file",
+    "req_col_a": "Cột A: Mã nhân viên",
+    "req_col_b": "Cột B: Mã loại nghỉ",
+    "req_col_c": "Cột C-D: Ngày bắt đầu / kết thúc",
+    "req_col_e": "Cột E: Lý do (tùy chọn)",
+    "req_col_f": "Cột F: Loại thời gian",
+    "req_format": "Định dạng: .xlsx, .xls, .csv",
+    "download_template": "Tải file mẫu Excel",
+    "drop_prompt": "Nhấn để chọn file Excel",
+    "drop_hint": "Hỗ trợ .xlsx, .xls, .csv",
+    "ready": "SẴN SÀNG UPLOAD",
+    "select_another": "Chọn file khác",
+    "start_import": "Bắt đầu import",
+    "uploading": "Đang upload...",
+    "upload_another": "Upload file khác",
+    "rows_label": "dòng đã xử lý",
+    "download_errors": "Tải file lỗi",
+    "error_detail": "Chi tiết lỗi",
+    "partial_detail": "Thành công {{success}} dòng, {{errors}} dòng bị lỗi",
+    "status": {
+      "processing": "Đang xử lý...",
+      "completed": "Import thành công",
+      "partial": "Import có lỗi",
+      "failed": "Import thất bại"
     }
   },
   "payroll": {

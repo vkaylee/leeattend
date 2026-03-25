@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Multipart, Path, Query, State},
     http::StatusCode,
     response::Json,
 };
@@ -417,4 +417,250 @@ pub async fn get_leave_policy_assignments(
     )
     .await?;
     Ok(Json(assignments))
+}
+
+// ========================
+// Leave Import Handlers
+// ========================
+
+/// POST /workspaces/:ws_id/leave/upload-excel
+/// Upload an Excel file for bulk leave request import.
+pub async fn upload_leave_excel(
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+    ctx: MemberContext,
+    mut multipart: Multipart,
+) -> AppResult<Json<serde_json::Value>> {
+    ctx.require_permission(Permission::LeaveRequestsSubmit)?;
+
+    const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
+
+    let mut file_path = None;
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| AppError::Validation(format!("Multipart error: {e}")))?
+    {
+        let name = field.name().unwrap_or("").to_string();
+        if name == "file" {
+            let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
+            let data = field
+                .bytes()
+                .await
+                .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
+
+            if data.len() > MAX_FILE_SIZE {
+                return Err(AppError::Validation("File too large (max 10MB)".to_string()));
+            }
+
+            let dir = "storage/imports";
+            tokio::fs::create_dir_all(dir).await?;
+            let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
+            tokio::fs::write(&path, data).await?;
+            file_path = Some(path);
+        }
+    }
+
+    let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
+
+    // Check auto-approve permission
+    let auto_approve = ctx.has_permission(Permission::LeaveRequestsApprove);
+
+    // Create import job record in DB
+    let import_job_id = Uuid::new_v4();
+    let import_job = crate::models::AttendanceImportJob {
+        id: import_job_id,
+        workspace_id: ctx.workspace_id,
+        user_id,
+        status: crate::models::ImportJobStatus::Pending,
+        total_rows: 0,
+        processed_rows: 0,
+        file_path: Some(path.clone()),
+        error_log: None,
+        target_type: "leave_import".to_string(),
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    };
+
+    {
+        use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+        let import_repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
+        import_repo.create_job(&import_job).await.map_err(|e| {
+            AppError::Internal(format!("Failed to create import job: {e}"))
+        })?;
+    }
+
+    // Try Redis queue, fallback to sync
+    if let Some(redis) = &state.infra.redis {
+        use crate::queue::{Job, JobPayload, LeaveImportPayload, TaskType, JobQueue};
+
+        let payload = LeaveImportPayload {
+            file_path: path,
+            user_id,
+            auto_approve,
+            import_job_id,
+        };
+
+        let job = Job::new(
+            import_job_id,
+            0,
+            TaskType::LeaveImport,
+            ctx.workspace_id,
+            JobPayload::LeaveImport(payload),
+        );
+
+        let queue = JobQueue::new(redis.clone());
+        queue.enqueue_jobs(vec![job]).await.map_err(|e| {
+            AppError::Internal(format!("Failed to enqueue leave import job: {e}"))
+        })?;
+    } else {
+        // Sync fallback: process in background via tokio::spawn
+        let pool = state.infra.db.api().clone();
+        let ws_id = ctx.workspace_id;
+        let file = path;
+        tokio::spawn(async move {
+            let service = crate::services::leave_import_service::LeaveImportService::new(pool.clone());
+            let result = service.process_import(import_job_id, ws_id, user_id, &file, auto_approve).await;
+
+            use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+            let repo = SqlxImportJobRepository::new(pool);
+
+            match result {
+                Ok(r) => {
+                    let error_log = if r.error_count > 0 {
+                        Some(serde_json::json!({
+                            "success_count": r.success_count,
+                            "error_count": r.error_count,
+                            "error_file_path": r.error_file_path,
+                        }).to_string())
+                    } else {
+                        None
+                    };
+                    let _ = repo.update_job_progress(
+                        import_job_id,
+                        r.success_count,
+                        crate::models::ImportJobStatus::Completed,
+                        error_log,
+                    ).await;
+                }
+                Err(msg) => {
+                    let _ = repo.update_job_progress(
+                        import_job_id,
+                        0,
+                        crate::models::ImportJobStatus::Failed,
+                        Some(msg),
+                    ).await;
+                }
+            }
+        });
+    }
+
+    Ok(Json(serde_json::json!({
+        "job_id": import_job_id.to_string(),
+        "status": "enqueued",
+    })))
+}
+
+/// GET /workspaces/:ws_id/leave/import/latest
+/// Get the latest leave import job for the workspace (for page resume).
+pub async fn get_latest_leave_import(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> AppResult<Json<serde_json::Value>> {
+    ctx.require_permission(Permission::LeaveRequestsSubmit)?;
+
+    use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+    let repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
+
+    match repo.get_latest_job(ctx.workspace_id, Some("leave_import".to_string())).await {
+        Ok(Some(job)) => Ok(Json(serde_json::json!({
+            "id": job.id.to_string(),
+            "status": serde_json::to_value(job.status)
+                .ok()
+                .and_then(|v| v.as_str().map(String::from))
+                .unwrap_or_else(|| "unknown".to_string()),
+            "total_rows": job.total_rows,
+            "processed_rows": job.processed_rows,
+            "error_log": job.error_log,
+            "created_at": job.created_at.to_rfc3339(),
+            "updated_at": job.updated_at.to_rfc3339(),
+        }))),
+        Ok(None) => Ok(Json(serde_json::json!(null))),
+        Err(e) => Err(AppError::Internal(format!("Failed to get latest import job: {e}"))),
+    }
+}
+
+/// GET /workspaces/:ws_id/leave/import/:job_id/errors
+/// Download the error Excel file for a completed import job.
+pub async fn download_leave_import_errors(
+    Path((_, job_id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> AppResult<axum::response::Response> {
+    ctx.require_permission(Permission::LeaveRequestsSubmit)?;
+
+    use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+    let repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
+
+    let job = repo.get_job_by_id(job_id).await
+        .map_err(|e| AppError::Internal(format!("DB error: {e}")))?
+        .ok_or_else(|| AppError::NotFound("Import job not found".to_string()))?;
+
+    // Extract error file path from error_log JSON
+    let error_file_path = job.error_log
+        .as_ref()
+        .and_then(|log| serde_json::from_str::<serde_json::Value>(log).ok())
+        .and_then(|v| v.get("error_file_path").and_then(|p| p.as_str().map(String::from)))
+        .ok_or_else(|| AppError::NotFound("No error file available for this import".to_string()))?;
+
+    let bytes = tokio::fs::read(&error_file_path)
+        .await
+        .map_err(|e| AppError::NotFound(format!("Error file not found: {e}")))?;
+
+    use axum::http::header;
+
+    Ok(axum::response::Response::builder()
+        .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"leave_import_{job_id}_errors.xlsx\""))
+        .body(axum::body::Body::from(bytes))
+        .expect("Failed to build response"))
+}
+
+#[derive(serde::Deserialize)]
+pub struct DownloadTemplateQuery {
+    pub lang: Option<String>,
+}
+
+/// GET /workspaces/:ws_id/leave/upload-template
+/// Download a dynamic template Excel with leave type codes for this workspace.
+pub async fn download_leave_import_template(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Query(query): axum::extract::Query<DownloadTemplateQuery>,
+    ctx: MemberContext,
+) -> AppResult<axum::response::Response> {
+    ctx.require_permission(Permission::LeaveRequestsSubmit)?;
+
+    // Query leave types for this workspace
+    let leave_types: Vec<(String, String)> = sqlx::query!(
+        "SELECT code, name FROM leave_types WHERE workspace_id = $1 ORDER BY code",
+        ctx.workspace_id
+    )
+    .fetch_all(state.infra.db.api())
+    .await
+    .map_err(|e| AppError::Internal(format!("Failed to load leave types: {e}")))?
+    .into_iter()
+    .map(|r| (r.code, r.name))
+    .collect();
+
+    let lang = query.lang.as_deref().unwrap_or("en");
+    let bytes = crate::services::leave_import_service::LeaveImportService::generate_template(&leave_types, lang)
+        .map_err(|e| AppError::Internal(format!("Failed to generate template: {e}")))?;
+
+    use axum::http::header;
+
+    Ok(axum::response::Response::builder()
+        .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        .header(header::CONTENT_DISPOSITION, "attachment; filename=\"leave_import_template.xlsx\"")
+        .body(axum::body::Body::from(bytes))
+        .expect("Failed to build response"))
 }
