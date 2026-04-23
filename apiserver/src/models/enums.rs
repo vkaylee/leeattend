@@ -58,21 +58,19 @@ pub enum LeaveStatus {
     sqlx::Type,
     strum_macros::Display,
     ToSchema,
+    Default,
 )]
 #[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum LeaveDurationType {
+    #[default]
     FullDay,
     FirstHalf,
     SecondHalf,
     CustomHours,
 }
 
-impl Default for LeaveDurationType {
-    fn default() -> Self {
-        Self::FullDay
-    }
-}
+
 
 #[derive(
     Debug,

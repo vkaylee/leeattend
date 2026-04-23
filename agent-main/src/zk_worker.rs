@@ -38,10 +38,12 @@ pub struct ZkWorker {
     detected_checksum: Option<bool>,
     /// Timeout (seconds) for connect + initial info fetch
     connect_timeout_secs: u64,
+    /// Timeout (seconds) for pulling attendance logs
+    pub inflight_timeout_secs: u64,
 }
 
 impl ZkWorker {
-    pub fn new(password: Option<u32>, use_legacy_checksum: Option<bool>, connect_timeout_secs: u64) -> Self {
+    pub fn new(password: Option<u32>, use_legacy_checksum: Option<bool>, connect_timeout_secs: u64, inflight_timeout_secs: u64) -> Self {
         Self {
             zk: Arc::new(Mutex::new(None)),
             ip: String::new(),
@@ -56,6 +58,7 @@ impl ZkWorker {
             use_legacy_checksum,
             detected_checksum: None,
             connect_timeout_secs,
+            inflight_timeout_secs,
         }
     }
 }
@@ -179,7 +182,7 @@ impl Worker for ZkWorker {
             Ok::<_, String>(logs)
         });
 
-        match tokio::time::timeout(Duration::from_secs(300), join_handle).await {
+        match tokio::time::timeout(Duration::from_secs(self.inflight_timeout_secs), join_handle).await {
             Ok(Ok(Ok(logs))) => {
                 debug!("[{ip}] Successfully fetched {} logs", logs.len());
 
@@ -215,11 +218,12 @@ impl Worker for ZkWorker {
                 // The blocking thread will eventually finish and release the lock.
                 let cleanup_arc = self.zk.clone();
                 let cleanup_ip = self.ip.clone();
+                let cleanup_timeout = self.inflight_timeout_secs;
                 tokio::task::spawn_blocking(move || {
                     // Wait for blocking thread to release lock, then take & disconnect
                     if let Ok(mut guard) = cleanup_arc.lock()
                         && let Some(mut zk) = guard.take() {
-                            warn!("[{cleanup_ip}] Force-disconnecting after get_logs timeout (300s)");
+                            warn!("[{cleanup_ip}] Force-disconnecting after get_logs timeout ({cleanup_timeout}s)");
                             let _ = zk.disconnect();
                         }
                 });
@@ -227,7 +231,8 @@ impl Worker for ZkWorker {
                 if let Ok(mut guard) = self.zk.try_lock() {
                     let _ = guard.take();
                 }
-                let msg = format!("[{ip}] Getting logs timed out after 300s — force-disconnect scheduled");
+                let timeout_secs = self.inflight_timeout_secs;
+                let msg = format!("[{ip}] Getting logs timed out after {timeout_secs}s — force-disconnect scheduled");
                 warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
             }
@@ -392,7 +397,7 @@ impl Worker for ZkWorker {
 
 impl Default for ZkWorker {
     fn default() -> Self {
-        Self::new(None, None, 60)
+        Self::new(None, None, 60, 300)
     }
 }
 
@@ -422,27 +427,33 @@ mod tests {
 
     #[test]
     fn test_zk_worker_new_no_password() {
-        let worker = ZkWorker::new(None, None, 60);
+        let worker = ZkWorker::new(None, None, 60, 300);
         assert!(worker.zk.lock().unwrap().is_none());
     }
 
     #[test]
     fn test_zk_worker_new_with_password() {
-        let worker = ZkWorker::new(Some(12345), None, 60);
+        let worker = ZkWorker::new(Some(12345), None, 60, 300);
         assert!(worker.zk.lock().unwrap().is_none()); // Not connected yet
     }
 
     #[test]
     fn test_zk_worker_new_with_legacy_checksum() {
-        let worker = ZkWorker::new(None, Some(true), 60);
+        let worker = ZkWorker::new(None, Some(true), 60, 300);
         assert!(worker.use_legacy_checksum == Some(true));
         assert!(worker.zk.lock().unwrap().is_none());
     }
 
     #[test]
     fn test_zk_worker_new_with_modern_checksum() {
-        let worker = ZkWorker::new(None, Some(false), 60);
+        let worker = ZkWorker::new(None, Some(false), 60, 300);
         assert!(worker.use_legacy_checksum == Some(false));
+    }
+
+    #[test]
+    fn test_zk_worker_inflight_timeout_config() {
+        let worker = ZkWorker::new(None, None, 60, 600);
+        assert_eq!(worker.inflight_timeout_secs, 600);
     }
 
     #[test]

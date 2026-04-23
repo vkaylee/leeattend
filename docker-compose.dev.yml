@@ -100,7 +100,7 @@ services:
       - AGENT_TOKEN=${AGENT_TOKEN:-test-token}
       # --- Runtime Tuning (max_concurrent_workers is server-managed via ConfigPush) ---
       # - POLL_INTERVAL_SECONDS=300
-      # - INFLIGHT_TIMEOUT_SECS=300
+      - INFLIGHT_TIMEOUT_SECS=600
       # - SUCCESS_COOLDOWN_SECS=300
       # --- Memory Management ---
       - MAX_MEMORY_LOGS=${MAX_MEMORY_LOGS:-200000}

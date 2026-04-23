@@ -37,6 +37,8 @@ pub struct WorkerContext {
     pub zk_legacy_checksum: Option<bool>,
     /// Timeout (seconds) for ZK device connect + initial info fetch
     pub zk_connect_timeout_secs: u64,
+    /// Timeout (seconds) for pulling attendance logs
+    pub inflight_timeout_secs: u64,
 }
 
 pub struct Orchestrator {
@@ -116,6 +118,7 @@ impl Orchestrator {
             connection_max_lifetime_secs: self.config.connection_max_lifetime_secs,
             zk_legacy_checksum: self.config.zk_legacy_checksum,
             zk_connect_timeout_secs: self.config.zk_connect_timeout_secs,
+            inflight_timeout_secs: self.config.inflight_timeout_secs,
         };
 
         // Initial device load
@@ -512,7 +515,7 @@ pub fn spawn_worker(
             } else {
                 // Apply global legacy checksum if set, otherwise use per-device config
                 let checksum = config.use_legacy_checksum.or(zk_legacy_checksum);
-                Box::new(zk_worker::ZkWorker::new(config.password, checksum, zk_connect_timeout_secs))
+                Box::new(zk_worker::ZkWorker::new(config.password, checksum, zk_connect_timeout_secs, ctx.inflight_timeout_secs))
             };
 
             info!("[{}] Worker ready (permit acquired).", config.name);
@@ -555,8 +558,8 @@ pub fn spawn_worker(
             drop(_connect_device_guard);
             drop(_connect_permit);
 
-            let mut seen_logs: HashSet<u64> = HashSet::with_capacity(16_000);
-            const SEEN_LOGS_CAP: usize = 50_000;
+            let mut seen_logs: HashSet<u64> = HashSet::with_capacity(100_000);
+            const SEEN_LOGS_CAP: usize = 200_000;
 
             let mut polling_state = AdaptivePollingState::with_cooldown(success_cooldown.load(Ordering::Relaxed));
             let mut poll_count = 0;
@@ -656,7 +659,7 @@ pub fn spawn_worker(
 
                                 if seen_logs.len() > SEEN_LOGS_CAP {
                                     seen_logs.clear();
-                                    seen_logs.shrink_to(16_000);
+                                    seen_logs.shrink_to(100_000);
                                     info!("[{}] Cleared seen_logs cache (>{} entries)", config.name, SEEN_LOGS_CAP);
                                 }
 

@@ -101,22 +101,36 @@ async fn test_duplicate_detection_filters_repeated_logs() {
 
 /// Test memory efficiency: HashSet size stays bounded.
 #[tokio::test]
-async fn test_hashset_memory_bounded() {
-    let mut seen_logs: HashSet<String> = HashSet::new();
+async fn test_hashset_memory_bounded_u64() {
+    let mut seen_logs: HashSet<u64> = HashSet::with_capacity(100_000);
 
-    // Simulate large device with 50K logs
-    for i in 0..50_000 {
-        let key = format!("U{}:2026-01-28 08:{}:{}", i % 1000, i / 60, i % 60);
+    // Simulate large device with 250K logs (exceeding cap)
+    for i in 0..250_000 {
+        let mut hasher = rustc_hash::FxHasher::default();
+        use std::hash::{Hash, Hasher};
+        format!("U{}", i % 1000).hash(&mut hasher);
+        format!("2026-01-28 08:{}:{}", i / 60, i % 60).hash(&mut hasher);
+        let key = hasher.finish();
         seen_logs.insert(key);
+        
+        // Simulate clearance logic
+        if seen_logs.len() > 200_000 {
+            seen_logs.clear();
+            seen_logs.shrink_to(100_000);
+        }
     }
 
-    // Each key ~30 bytes: "U123:2026-01-28 08:12:34"
-    // 50K keys × 30 bytes = 1.5MB (acceptable)
-    let mem_estimate = seen_logs.len() * 30;
+    // Since we inserted 250k and cap is 200k, it should have cleared once and have ~50k remaining
+    assert!(seen_logs.capacity() >= 100_000, "Capacity should be at least shrunk size");
+    assert!(seen_logs.len() <= 200_000, "Should not exceed cap");
+
+    // Each key ~8 bytes (u64)
+    let mem_estimate = seen_logs.capacity() * 8;
     assert!(mem_estimate < 2_000_000, "Memory should be under 2MB");
 
     println!("✅ Memory bounded test passed:");
     println!("   {} unique keys", seen_logs.len());
+    println!("   capacity: {}", seen_logs.capacity());
     println!("   ~{} bytes (~{} MB)", mem_estimate, mem_estimate / 1_000_000);
 }
 
