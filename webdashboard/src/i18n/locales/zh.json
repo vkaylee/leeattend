@@ -1,5 +1,8 @@
 {
   "common": {
+    "switching_workspace": "正在切换工作区...",
+    "syncing_data": "正在同步数据...",
+    "preparing_environment": "正在准备环境...",
     "search": "搜索...",
     "dashboard": "仪表板",
     "startDate": "开始日期",

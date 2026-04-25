@@ -1,5 +1,8 @@
 {
   "common": {
+    "switching_workspace": "Switching workspace...",
+    "syncing_data": "Syncing data...",
+    "preparing_environment": "Preparing environment...",
     "search": "Search...",
     "dashboard": "Dashboard",
     "startDate": "Start Date",

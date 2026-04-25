@@ -1,0 +1,126 @@
+# ==============================================================================
+# Podman Compose — Test Environment
+# ==============================================================================
+
+networks:
+  test_net:
+    driver: bridge
+
+x-rust-test-base: &rust-test-base
+  tty: true
+  entrypoint: tail -f /dev/null
+  networks:
+    - test_net
+  environment:
+    - CARGO_TARGET_DIR=/workspace/target
+    - CARGO_BUILD_JOBS=1
+    - SCCACHE_DIR=/workspace/.sccache
+    - RUSTC_WRAPPER=sccache
+  tmpfs:
+    - /workspace/target/nextest
+    - /workspace/target/debug/incremental
+  volumes:
+    - ./:/workspace
+    - target-cache:/workspace/target
+    - ${HOME}/.cargo/registry:/usr/local/cargo/registry
+    - sccache-cache:/workspace/.sccache
+    - shared-data:/workspace/shared
+
+services:
+  test_db:
+    image: public.ecr.aws/docker/library/postgres:16
+    networks:
+      - test_net
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
+    environment:
+      POSTGRES_DB: test_database
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: "pg_isready -U test_user -d test_database"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    tmpfs:
+      - /var/lib/postgresql/data:size=3072M
+
+  test_redis:
+    image: public.ecr.aws/docker/library/redis:7-alpine
+    networks:
+      - test_net
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  apiserver_test:
+    <<: *rust-test-base
+    image: localhost/leeattend-test_apiserver_test
+    build:
+      context: ./apiserver
+      target: test
+    depends_on:
+      test_db:
+        condition: service_healthy
+    working_dir: /workspace/apiserver
+    environment:
+      - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
+      - REDIS_URL=redis://test_redis:6379
+      - CARGO_TARGET_DIR=/workspace/target
+      - CARGO_BUILD_JOBS=1
+      - SCCACHE_DIR=/workspace/.sccache
+      - RUSTC_WRAPPER=sccache
+
+  agent_test:
+    <<: *rust-test-base
+    image: localhost/leeattend-test_agent_test
+    build:
+      context: ./agent-main
+      target: test
+    depends_on:
+      - apiserver_test
+    working_dir: /workspace/agent-main
+    environment:
+      - "DATABASE_URL=:memory:"
+      - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
+      - CARGO_TARGET_DIR=/workspace/target
+      - CARGO_BUILD_JOBS=1
+      - SCCACHE_DIR=/workspace/.sccache
+      - RUSTC_WRAPPER=sccache
+
+  web_test:
+    image: localhost/leeattend-test_web_test
+    build:
+      context: ./webdashboard
+      target: test
+    tty: true
+    networks:
+      - test_net
+    entrypoint: tail -f /dev/null
+    working_dir: /workspace/webdashboard
+    environment:
+      - CI=true
+      - npm_config_cache=/workspace/.npm-cache
+    tmpfs:
+      - /workspace/webdashboard/test-results:size=128M
+      - /workspace/webdashboard/playwright-report:size=64M
+    volumes:
+      - ./:/workspace
+      - web-node-modules:/workspace/webdashboard/node_modules
+      - shared-data:/workspace/shared
+      - npm-cache:/workspace/.npm-cache
+
+volumes:
+  target-cache:
+    driver: local
+  sccache-cache:
+    driver: local
+  npm-cache:
+    driver: local
+  web-node-modules:
+    driver: local
+  shared-data:
+    driver: local
+    driver_opts: { type: tmpfs, device: tmpfs, o: "size=64M" }

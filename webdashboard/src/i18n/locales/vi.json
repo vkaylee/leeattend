@@ -1,5 +1,8 @@
 {
   "common": {
+    "switching_workspace": "Đang chuyển cơ sở...",
+    "syncing_data": "Đang đồng bộ dữ liệu...",
+    "preparing_environment": "Đang chuẩn bị môi trường...",
     "search": "Tìm kiếm...",
     "dashboard": "Bảng điều khiển",
     "startDate": "Ngày bắt đầu",

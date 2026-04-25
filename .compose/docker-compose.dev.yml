@@ -1,31 +1,17 @@
 # ==============================================================================
-# Podman Compose — Development (Hot Reload)
-# ==============================================================================
-# Full development environment with hot-reload for all services.
-# Source code is bind-mounted so changes are reflected immediately.
-#
-# FEATURES:
-#   - cargo watch for Rust services (auto-restart on save)
-#   - Vite dev server for webdashboard (HMR)
-#   - Nginx reverse proxy on port 8080
-#   - Persistent volumes for cargo registry, target dirs, and DB data
-#   - Postgres with fsync=off for faster local development
-#   - RedisInsight UI on port 5540 for Redis debugging
-#
-# USAGE:
-#   podman-compose -f docker-compose.dev.yml up
+# Podman Compose — Development Override
 # ==============================================================================
 services:
   db:
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
-    environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+    env_file:
+      - .env
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
 
   redis:
-    command: redis-server --requirepass ${REDIS_PASSWORD:-dev_password}
+    env_file:
+      - .env
     volumes:
       - redis_dev_data:/data
 
@@ -34,10 +20,12 @@ services:
     profiles: ["manual"]
     ports:
       - "5540:5540"
+    networks:
+      - backend_net
     environment:
       - RI_REDIS_HOST=redis
       - RI_REDIS_PORT=6379
-      - RI_REDIS_PASSWORD=${REDIS_PASSWORD:-dev_password}
+      - RI_REDIS_PASSWORD=${REDIS_PASSWORD}
       - RI_REDIS_ALIAS=LeeAttend-Redis
     depends_on:
       redis:
@@ -50,30 +38,12 @@ services:
     command: >-
       sh -c 'mkdir -p /var/log/app &&
       cargo watch -w src -w migrations -x "sqlx migrate run" -x run 2>&1 | tee -a /var/log/app/apiserver.log'
+    env_file:
+      - .env
     environment:
-      # --- Core ---
       - RUST_BACKTRACE=1
       - RUST_LOG=apiserver=debug,tower_http=debug,sqlx=info
-      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-dev_password}@db:5432/${DB_NAME:-leeattend}
-      # - DATABASE_READER_URL=${DATABASE_READER_URL}
-      - DB_API_MAX_CONN=${DB_API_MAX_CONN:-20}
-      - DB_WORKER_MAX_CONN=${DB_WORKER_MAX_CONN:-5}
-      - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_password}@redis:6379
-      # --- Server ---
-      - API_HOST=0.0.0.0
-      - API_PORT=3000
-      # --- Auth & Security ---
-      - JWT_SECRET=${JWT_SECRET:-dev_secret_key_leeattend_2026}
-      # - ALLOWED_ORIGINS=  # CORS origins, empty = allow all in dev
-      # --- Agent Log Buffer ---
-      # - AGENT_LOG_BUFFER_CAPACITY=5000
-      # - AGENT_LOG_BATCH_SIZE=100
-      # - AGENT_LOG_FLUSH_MS=1000
-      # --- Report Worker ---
       - WORKER_MAX_CONCURRENT=6
-      # - WORKER_POLL_TIMEOUT_SECS=30
-      # - WORKER_MAX_RETRIES=3
-      # - WORKER_JOB_TIMEOUT_SECS=300
     volumes:
       - ./apiserver:/app
       - cargo-registry:/usr/local/cargo/registry
@@ -91,21 +61,12 @@ services:
     depends_on:
       nginx:
         condition: service_started
+    env_file:
+      - .env
     environment:
-      # --- Core ---
       - RUST_LOG=info,sqlx::query=error
       - CENTRAL_SERVER_URL=${AGENT_CENTRAL_SERVER_URL:-ws://nginx:80/api/ws}
-      - DATABASE_URL=${AGENT_DATABASE_URL:-sqlite:///app/data/agent.db?mode=rwc}
-      - AGENT_ID=${AGENT_ID:-test-agent}
-      - AGENT_TOKEN=${AGENT_TOKEN:-test-token}
-      # --- Runtime Tuning (max_concurrent_workers is server-managed via ConfigPush) ---
-      # - POLL_INTERVAL_SECONDS=300
       - INFLIGHT_TIMEOUT_SECS=600
-      # - SUCCESS_COOLDOWN_SECS=300
-      # --- Memory Management ---
-      - MAX_MEMORY_LOGS=${MAX_MEMORY_LOGS:-200000}
-      # - SIGNATURE_TTL_DAYS=90
-      # - SIGNATURE_CLEANUP_HOURS=24
     volumes:
       - ./agent-main:/app
       - cargo-registry:/usr/local/cargo/registry
@@ -130,6 +91,8 @@ services:
   nginx:
     image: docker.io/library/nginx:alpine
     restart: unless-stopped
+    networks:
+      - frontend_net
     depends_on:
       apiserver:
         condition: service_healthy

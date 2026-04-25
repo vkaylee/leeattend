@@ -162,7 +162,7 @@ show_help() {
 }
 
 # --- Database backup/restore functions ---
-_DEV_COMPOSE_CMD="podman-compose -p leeattend-dev -f $SCRIPT_DIR/docker-compose.yml -f $SCRIPT_DIR/docker-compose.dev.yml"
+_DEV_COMPOSE_CMD="podman-compose -p leeattend-dev -f $SCRIPT_DIR/docker-compose.yml -f $SCRIPT_DIR/.compose/docker-compose.dev.yml"
 
 db_backup() {
     local backup_dir="$SCRIPT_DIR/backups"
@@ -291,10 +291,10 @@ for _arg in "$@"; do
         _PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         case "$_env" in
             dev)
-                _files="-p leeattend-dev -f $_PROJECT_ROOT/docker-compose.yml -f $_PROJECT_ROOT/docker-compose.dev.yml"
+                _files="-p leeattend-dev -f $_PROJECT_ROOT/docker-compose.yml -f $_PROJECT_ROOT/.compose/docker-compose.dev.yml"
                 ;;
             test)
-                _files="-p leeattend-test -f $_PROJECT_ROOT/docker-compose.test.yml"
+                _files="-p leeattend-test -f $_PROJECT_ROOT/.compose/docker-compose.test.yml"
                 ;;
             prod|base)
                 _files="-p leeattend -f $_PROJECT_ROOT/docker-compose.yml"
@@ -340,15 +340,15 @@ fi
 export USE_DOCKER=true
 export COMPOSE_PROJECT_NAME="leeattend-test"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
+export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
 
 # Cargo cache settings
 export CARGO_TARGET_DIR="$PROJECT_ROOT/target"
 export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
 
 # Auto-include CI override only in CI environments (GitHub Actions, etc.)
-if [[ "${CI:-}" == "true" && -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
-    export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD -f $PROJECT_ROOT/docker-compose.ci.yml"
+if [[ "${CI:-}" == "true" && -f "$PROJECT_ROOT/.compose/docker-compose.ci.yml" ]]; then
+    export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD -f $PROJECT_ROOT/.compose/docker-compose.ci.yml"
 fi
 
 # ── Compose Configuration Validation ─────────────────────────────────

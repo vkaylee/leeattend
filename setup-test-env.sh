@@ -10,7 +10,7 @@ set -euo pipefail
 # --- Configuration ---
 export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export COMPOSE_PROJECT_NAME="leeattend-test"
-export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
+export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
 export LOG_DIR="$PROJECT_ROOT/.test_logs"
 mkdir -p "$LOG_DIR"
 

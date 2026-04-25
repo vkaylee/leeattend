@@ -1,0 +1,27 @@
+# ==============================================================================
+# Podman Compose — CI Override
+# ==============================================================================
+
+services:
+  apiserver_test:
+    working_dir: /app
+    volumes:
+      - /app/target
+      - /sccache
+    environment:
+      - CARGO_TARGET_DIR=/app/target
+      - SCCACHE_DIR=/sccache
+
+  agent_test:
+    working_dir: /app
+    volumes:
+      - /app/target
+      - /sccache
+    environment:
+      - CARGO_TARGET_DIR=/app/target
+      - SCCACHE_DIR=/sccache
+
+  web_test:
+    working_dir: /app
+    volumes:
+      - /app/node_modules
