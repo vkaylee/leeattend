@@ -9,12 +9,14 @@ import {
 import CreateWorkspaceDialog from "@/components/features/workspaces/CreateWorkspaceDialog";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { Combobox } from "@/components/ui/Combobox";
+import WorkspaceTransitionOverlay from "./WorkspaceTransitionOverlay";
 
 export default function WorkspaceSwitcher() {
   const { t } = useTranslation();
   const { workspaces, isLoading } = useWorkspaces();
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [transitioningWorkspace, setTransitioningWorkspace] = useState<Workspace | null>(null);
 
   useEffect(() => {
     if (workspaces.length > 0) {
@@ -31,7 +33,14 @@ export default function WorkspaceSwitcher() {
   function handleSwitch(wsId: string) {
     if (wsId === "ADD_NEW") { setIsCreateOpen(true); return; }
     const ws = workspaces.find(w => w.id === wsId);
-    if (ws) { setActiveWorkspace(ws); setCurrentWorkspaceId(ws.id); window.location.reload(); }
+    if (ws) { 
+      setActiveWorkspace(ws);
+      setCurrentWorkspaceId(ws.id);
+      setTransitioningWorkspace(ws);
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    }
   }
 
   if (isLoading && workspaces.length === 0) return <div className="w-full h-12 bg-slate-100 dark:bg-slate-700/50 animate-pulse rounded-[1.25rem] border border-slate-200 dark:border-slate-700/50" />;
@@ -60,6 +69,9 @@ export default function WorkspaceSwitcher() {
         className="h-14 bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:border-primary-200 dark:border-primary-800 transition-all rounded-[1.5rem] text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight shadow-inner"
       />
       <CreateWorkspaceDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      {transitioningWorkspace && (
+        <WorkspaceTransitionOverlay workspace={transitioningWorkspace} />
+      )}
     </div>
   );
 }
