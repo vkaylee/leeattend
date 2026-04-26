@@ -17,6 +17,7 @@ export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WsMessage | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const socket = new WebSocket(WS_BASE_URL);
@@ -32,6 +33,13 @@ export function useWebSocket() {
         client_type: "dashboard",
       };
       socket.send(JSON.stringify(handshake));
+
+      // Bật heartbeat ping mỗi 30s để giữ kết nối qua proxy/Cloudflare
+      pingIntervalRef.current = setInterval(() => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: "ping" }));
+        }
+      }, 30000);
     };
 
     socket.onmessage = (event) => {
@@ -49,6 +57,10 @@ export function useWebSocket() {
     };
 
     return () => {
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
       socket.close();
     };
   }, []);

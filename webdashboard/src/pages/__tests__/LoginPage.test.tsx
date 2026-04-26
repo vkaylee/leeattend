@@ -27,7 +27,7 @@ describe("LoginPage", () => {
 
   afterEach(() => {
     // Restore the original DEV value
-    // @ts-ignore
+
     import.meta.env.DEV = originalDev;
   });
 
@@ -40,7 +40,7 @@ describe("LoginPage", () => {
   };
 
   it("renders login form and fast login button in DEV mode", async () => {
-    // @ts-ignore
+
     import.meta.env.DEV = true;
     renderWithProviders(<LoginPage />);
 
@@ -62,7 +62,7 @@ describe("LoginPage", () => {
   });
 
   it("does not render fast login button in PROD mode", async () => {
-    // @ts-ignore
+
     import.meta.env.DEV = false;
     renderWithProviders(<LoginPage />);
 

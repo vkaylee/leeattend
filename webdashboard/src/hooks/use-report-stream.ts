@@ -99,6 +99,7 @@ export function useReportStream({
 
   // Use refs to avoid re-renders on each chunk and prevent stale closures
   const socketRef = useRef<WebSocket | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const chunksRef = useRef<unknown[]>([]);
   const retryCountRef = useRef(0);
   const shouldReconnectRef = useRef(true);
@@ -192,6 +193,13 @@ export function useReportStream({
         console.debug("[ReportStream] Connected");
         setStatus("streaming");
         retryCountRef.current = 0; // Reset retry count on success
+
+        // Start heartbeat ping to keep connection alive through proxies (e.g., Cloudflare 100s limit)
+        pingIntervalRef.current = setInterval(() => {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 30000); // 30 seconds
       };
 
       socket.onmessage = handleMessage;
@@ -303,6 +311,10 @@ export function useReportStream({
     // Cleanup on unmount or jobId change
     return () => {
       shouldReconnectRef.current = false;
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;

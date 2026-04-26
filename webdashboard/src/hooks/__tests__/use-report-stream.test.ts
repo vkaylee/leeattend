@@ -474,6 +474,7 @@ describe("useReportStream Hook", () => {
       constructor(url: string) {
         capturedUrl = url;
       }
+      send = vi.fn();
       close = vi.fn();
       addEventListener = vi.fn();
       removeEventListener = vi.fn();
@@ -668,6 +669,79 @@ describe("useReportStream Hook", () => {
         expect(localStorage.getItem("active_workspace_id")).toBeNull();
         expect(localStorage.getItem("refresh_token")).toBeNull();
       });
+    });
+  });
+
+  describe("Heartbeat Ping", () => {
+    let mockOnOpen: ((ev?: Event) => void) | null;
+    let mockSend: any;
+
+    class MockWebSocket {
+      static OPEN = 1;
+      readyState = 1; // WebSocket.OPEN
+      constructor() {}
+      send = vi.fn().mockImplementation((val) => {
+        if (mockSend) mockSend(val);
+      });
+      close = vi.fn();
+      addEventListener = vi.fn();
+      removeEventListener = vi.fn();
+      set onopen(fn: ((ev?: Event) => void) | null) { mockOnOpen = fn; }
+      set onmessage(_: unknown) { }
+      set onerror(_: unknown) { }
+      set onclose(_: unknown) { }
+    }
+
+    beforeEach(() => {
+      mockOnOpen = null;
+      mockSend = vi.fn();
+      vi.stubGlobal("WebSocket", MockWebSocket);
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it("should start a 30s ping interval on open", () => {
+      renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      act(() => {
+        if (mockOnOpen) mockOnOpen();
+      });
+
+      // Advance time by 30 seconds
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+
+      expect(mockSend).toHaveBeenCalledWith(JSON.stringify({ type: "ping" }));
+
+      // Advance by another 30 seconds
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+
+      expect(mockSend).toHaveBeenCalledTimes(2);
+    });
+
+    it("should clear ping interval on unmount", () => {
+      const { unmount } = renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      act(() => {
+        if (mockOnOpen) mockOnOpen();
+      });
+
+      unmount();
+
+      // Advance time by 30 seconds after unmount
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+
+      // Should not have sent any pings because interval was cleared
+      expect(mockSend).not.toHaveBeenCalled();
     });
   });
 });
