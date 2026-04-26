@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Download, CalendarCheck, FileBarChart, Clock, Users2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
-import { useSearchParams, Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { format, endOfMonth } from "date-fns";
 import {
   fetchAttendanceReport,
@@ -26,7 +26,11 @@ const PAGE_SIZE = 50;
 export default function ReportsPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
-  const [searchParams, setSearchParams] = useSearchParams();
+  // URL search params — read once on mount for cross-page navigation
+  const searchParams = new URLSearchParams(window.location.search);
+  const setSearchParams = (_params: Record<string, string>, _opts?: any) => {
+    // No-op: local state only
+  };
 
   // Read URL params for cross-navigation
   const urlFrom = searchParams.get("from");
@@ -299,7 +303,8 @@ export default function ReportsPage() {
 
         <div className="flex items-center gap-3">
           <Link
-            to={`/attendance-logs?from=${dateRange.start}&to=${dateRange.end}`}
+            to="/attendance-logs"
+            search={{ from: dateRange.start, to: dateRange.end } as any}
             className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-8 py-3 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
           >
             <CalendarCheck size={18} /> {t("reports.view_raw_logs").toUpperCase()}

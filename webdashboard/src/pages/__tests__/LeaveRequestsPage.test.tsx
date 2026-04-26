@@ -2,10 +2,16 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import LeaveRequestsPage from "../LeaveRequestsPage";
-import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as api from "../../lib/api";
 import { ToastProvider } from "../../components/ui/Toast";
+
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+}));
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -49,9 +55,7 @@ const renderPage = (queryClient: QueryClient) =>
   render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <BrowserRouter>
-          <LeaveRequestsPage />
-        </BrowserRouter>
+        <LeaveRequestsPage />
       </ToastProvider>
     </QueryClientProvider>
   );

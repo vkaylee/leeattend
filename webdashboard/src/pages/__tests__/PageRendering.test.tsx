@@ -1,6 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MemoryRouter } from "react-router-dom";
 import DashboardPage from "../DashboardPage";
 import EmployeesPage from "../EmployeesPage";
 import LeaveBalancesPage from "../LeaveBalancesPage";
@@ -10,6 +9,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/ui/Toast";
 import React from "react";
 import i18n from "../../i18n/config";
+
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+}));
 
 // Mock scrollIntoView and IntersectionObserver for jsdom
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
@@ -115,9 +121,7 @@ describe("Page Rendering", () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <MemoryRouter>
-            {ui}
-          </MemoryRouter>
+          {ui}
         </ToastProvider>
       </QueryClientProvider>
     );

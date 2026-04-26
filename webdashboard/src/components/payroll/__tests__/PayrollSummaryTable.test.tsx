@@ -1,8 +1,14 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+}));
 import PayrollSummaryTable from "../PayrollSummaryTable";
 import { Employee, Payslip } from "@/lib/api/types";
-import { BrowserRouter } from "react-router-dom";
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
@@ -61,7 +67,6 @@ describe("PayrollSummaryTable", () => {
 
   it("renders employee list correctly", () => {
     render(
-      <BrowserRouter>
         <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
@@ -73,7 +78,6 @@ describe("PayrollSummaryTable", () => {
           searchTerm=""
           onSearchChange={onSearchChange}
         />
-      </BrowserRouter>
     );
 
     expect(screen.getByText("John Doe")).toBeDefined();
@@ -83,7 +87,6 @@ describe("PayrollSummaryTable", () => {
 
   it("filters employees based on search term", () => {
     render(
-      <BrowserRouter>
         <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
@@ -95,7 +98,6 @@ describe("PayrollSummaryTable", () => {
           searchTerm="Jane"
           onSearchChange={onSearchChange}
         />
-      </BrowserRouter>
     );
 
     expect(screen.queryByText("John Doe")).toBeNull();
@@ -104,7 +106,6 @@ describe("PayrollSummaryTable", () => {
 
   it("calls onToggleSelect when checkbox is clicked", () => {
     render(
-      <BrowserRouter>
         <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
@@ -116,7 +117,6 @@ describe("PayrollSummaryTable", () => {
           searchTerm=""
           onSearchChange={onSearchChange}
         />
-      </BrowserRouter>
     );
 
     const checkbox = screen.getByTestId("select-employee-emp-1");
@@ -126,7 +126,6 @@ describe("PayrollSummaryTable", () => {
 
   it("calls onViewDetail when row is clicked", () => {
     render(
-      <BrowserRouter>
         <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
@@ -138,7 +137,6 @@ describe("PayrollSummaryTable", () => {
           searchTerm=""
           onSearchChange={onSearchChange}
         />
-      </BrowserRouter>
     );
 
     fireEvent.click(screen.getByText("John Doe"));
@@ -147,7 +145,6 @@ describe("PayrollSummaryTable", () => {
 
   it("maintains input focus when switching to loading state (regression test)", () => {
     const { rerender } = render(
-      <BrowserRouter>
         <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
@@ -159,7 +156,6 @@ describe("PayrollSummaryTable", () => {
           searchTerm="test"
           onSearchChange={onSearchChange}
         />
-      </BrowserRouter>
     );
 
     // 1. Find input and focus it
@@ -169,7 +165,6 @@ describe("PayrollSummaryTable", () => {
 
     // 2. Rerender with isLoading=true
     rerender(
-      <BrowserRouter>
         <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
@@ -181,7 +176,6 @@ describe("PayrollSummaryTable", () => {
           searchTerm="test"
           onSearchChange={onSearchChange}
         />
-      </BrowserRouter>
     );
 
     // 3. Verify input is still there and still focused
@@ -194,7 +188,6 @@ describe("PayrollSummaryTable", () => {
 
   it("auto-focuses the search input on mount", () => {
     render(
-      <BrowserRouter>
         <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
@@ -206,7 +199,6 @@ describe("PayrollSummaryTable", () => {
           searchTerm=""
           onSearchChange={onSearchChange}
         />
-      </BrowserRouter>
     );
 
     const input = screen.getByLabelText("common.search");

@@ -44,7 +44,7 @@ import { ShiftPickerModal } from "../components/shifts/ShiftPickerModal";
 import { WeeklyRosterGrid } from "../components/shifts/WeeklyRosterGrid";
 import { PatternAssignmentForm } from "../components/shifts/PatternAssignmentForm";
 
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { ROUTES } from "@/lib/routes";
 
 type TabType = "weekly-roster" | "assignments" | "directory";
@@ -333,7 +333,7 @@ export default function ShiftsPage() {
           <p className="text-slate-500 dark:text-slate-400 mt-1">{t("shifts.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link to={`${ROUTES.SETTINGS.TIME}?tab=patterns`} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
+          <Link to={ROUTES.SETTINGS.TIME as any} search={{ tab: "patterns" } as any} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
             <CalendarRange className="w-4 h-4" />
             <span className="text-xs uppercase tracking-widest">{t("patterns.manage_btn")}</span>
           </Link>

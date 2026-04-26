@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+}));
 import { DarkModeContext } from '@/context/dark-mode-context-definition';
 import type { ThemeMode } from '@/hooks/use-dark-mode';
 import Navbar from '../Navbar';
@@ -26,16 +31,14 @@ function renderWithContext(mode: ThemeMode = 'system') {
 
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
-      <MemoryRouter>
-        <DarkModeContext.Provider value={contextValue}>
-          <Navbar
-            currentWorkspaceName="Test Workspace"
-            onOpenSidebar={vi.fn()}
-            isCollapsed={false}
-            onToggleCollapsed={vi.fn()}
-          />
-        </DarkModeContext.Provider>
-      </MemoryRouter>
+      <DarkModeContext.Provider value={contextValue}>
+        <Navbar
+          currentWorkspaceName="Test Workspace"
+          onOpenSidebar={vi.fn()}
+          isCollapsed={false}
+          onToggleCollapsed={vi.fn()}
+        />
+      </DarkModeContext.Provider>
     </QueryClientProvider>
   );
 }

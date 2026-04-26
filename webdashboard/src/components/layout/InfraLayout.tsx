@@ -1,4 +1,4 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link } from "@tanstack/react-router";
 import { ROUTES } from "@/lib/routes";
 import { useTranslation } from "react-i18next";
 import { Activity, LogOut, ArrowLeft } from "lucide-react";

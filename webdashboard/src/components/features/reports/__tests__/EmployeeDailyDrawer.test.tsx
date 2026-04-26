@@ -2,11 +2,17 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import EmployeeDailyDrawer from "../EmployeeDailyDrawer";
-import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/components/ui/Toast";
 import * as api from "@/lib/api";
 import React from "react";
+
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+    useNavigate: () => vi.fn(),
+    useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+    Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+}));
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
@@ -107,11 +113,11 @@ describe("EmployeeDailyDrawer", () => {
         (api.upsertRoster as any).mockResolvedValue({});
     });
 
-    const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {
+    const renderWithProviders = (ui: React.ReactElement, _initialEntries = ["/"]) => {
         return render(
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
-                    <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
+                    {ui}
                 </ToastProvider>
             </QueryClientProvider>
         );
@@ -409,9 +415,7 @@ describe("EmployeeDailyDrawer", () => {
         rerender(
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
-                    <MemoryRouter initialEntries={["/"]}>
-                        <EmployeeDailyDrawer {...defaultProps} isOpen={false} />
-                    </MemoryRouter>
+                    <EmployeeDailyDrawer {...defaultProps} isOpen={false} />
                 </ToastProvider>
             </QueryClientProvider>
         );
@@ -420,9 +424,7 @@ describe("EmployeeDailyDrawer", () => {
         rerender(
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
-                    <MemoryRouter initialEntries={["/"]}>
-                        <EmployeeDailyDrawer {...defaultProps} isOpen={true} />
-                    </MemoryRouter>
+                    <EmployeeDailyDrawer {...defaultProps} isOpen={true} />
                 </ToastProvider>
             </QueryClientProvider>
         );

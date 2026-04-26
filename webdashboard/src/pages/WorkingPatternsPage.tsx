@@ -33,7 +33,7 @@ import { useToast } from "../components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import { format, startOfToday } from "date-fns";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { cn } from "@/lib/utils";
 import Button from "@/components/ui/Button";

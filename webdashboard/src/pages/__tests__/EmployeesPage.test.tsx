@@ -2,11 +2,17 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import EmployeesPage from "../EmployeesPage";
-import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
 import React from "react";
+
+// Mock TanStack Router to avoid needing full route tree in unit tests
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+}));
 
 // Mock IntersectionObserver for jsdom
 class MockIntersectionObserver {
@@ -90,9 +96,7 @@ describe("EmployeesPage", () => {
         render(
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
-                    <MemoryRouter initialEntries={initialEntries}>
-                        <EmployeesPage />
-                    </MemoryRouter>
+                    <EmployeesPage />
                 </ToastProvider>
             </QueryClientProvider>
         );

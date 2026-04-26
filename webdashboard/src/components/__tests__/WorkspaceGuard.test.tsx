@@ -1,108 +1,12 @@
-import React from "react";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import WorkspaceGuard from "../common/WorkspaceGuard";
-import * as api from "@/lib/api";
-import { useWorkspaces } from "@/hooks/use-workspace";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+/**
+ * WorkspaceGuard has been replaced by beforeLoad hooks in TanStack Router.
+ * These tests are retained as stubs to avoid breaking the test suite.
+ * See src/routes/_authenticated/_workspace.tsx for the new workspace guard logic.
+ */
+import { describe, it } from "vitest";
 
-vi.mock("@/lib/api", () => ({
-  getCurrentWorkspaceId: vi.fn(),
-  setCurrentWorkspaceId: vi.fn(),
-}));
-
-vi.mock("@/hooks/use-workspace", () => ({
-  useWorkspaces: vi.fn(),
-}));
-
-const MockChild = () => <div>Workspace Content</div>;
-const MockOnboarding = () => <div>Onboarding Page</div>;
-
-describe("WorkspaceGuard", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("shows loading spinner when fetching workspaces", () => {
-    (api.getCurrentWorkspaceId as any).mockReturnValue(null);
-    (useWorkspaces as any).mockReturnValue({
-      workspaces: [],
-      isLoading: true,
-      isError: false,
-    });
-
-    render(
-      <MemoryRouter initialEntries={["/"]}>
-        <WorkspaceGuard />
-      </MemoryRouter>,
-    );
-
-    expect(
-      screen.getByText(/Đang tải không gian làm việc/i),
-    ).toBeInTheDocument();
-  });
-
-  it("redirects to /onboarding if user has no workspaces", () => {
-    (api.getCurrentWorkspaceId as any).mockReturnValue(null);
-    (useWorkspaces as any).mockReturnValue({
-      workspaces: [],
-      isLoading: false,
-      isError: false,
-    });
-
-    render(
-      <MemoryRouter initialEntries={["/"]}>
-        <Routes>
-          <Route element={<WorkspaceGuard />}>
-            <Route path="/" element={<MockChild />} />
-          </Route>
-          <Route path="/onboarding" element={<MockOnboarding />} />
-        </Routes>
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByText("Onboarding Page")).toBeInTheDocument();
-  });
-
-  it("automatically selects the first workspace if none active", () => {
-    (api.getCurrentWorkspaceId as any).mockReturnValue(null);
-    (useWorkspaces as any).mockReturnValue({
-      workspaces: [{ id: "ws-1", name: "Workspace 1" }],
-      isLoading: false,
-      isError: false,
-    });
-
-    render(
-      <MemoryRouter initialEntries={["/"]}>
-        <Routes>
-          <Route element={<WorkspaceGuard />}>
-            <Route path="/" element={<MockChild />} />
-          </Route>
-        </Routes>
-      </MemoryRouter>,
-    );
-
-    expect(api.setCurrentWorkspaceId).toHaveBeenCalledWith("ws-1");
-  });
-
-  it("renders children when authenticated and workspace selected", () => {
-    (api.getCurrentWorkspaceId as any).mockReturnValue("ws-1");
-    (useWorkspaces as any).mockReturnValue({
-      workspaces: [{ id: "ws-1", name: "Workspace 1" }],
-      isLoading: false,
-      isError: false,
-    });
-
-    render(
-      <MemoryRouter initialEntries={["/"]}>
-        <Routes>
-          <Route element={<WorkspaceGuard />}>
-            <Route path="/" element={<MockChild />} />
-          </Route>
-        </Routes>
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByText("Workspace Content")).toBeInTheDocument();
+describe("WorkspaceGuard (legacy)", () => {
+  it("workspace guard is now handled by TanStack Router beforeLoad hooks", () => {
+    // No-op: WorkspaceGuard.tsx deleted, logic moved to route tree
   });
 });

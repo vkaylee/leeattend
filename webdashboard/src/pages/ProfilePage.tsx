@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { ROUTES } from "@/lib/routes";
 import { useToast } from "../components/ui/Toast";
 import {
@@ -200,7 +200,7 @@ function ChangePasswordForm() {
     try {
       await changePassword({ old_password: formData.old_password, new_password: formData.new_password });
       toast.success(t("profile.security.messages.password_changed"));
-      setTimeout(() => { clearAuthSession(); navigate(ROUTES.LOGIN); }, 2000);
+      setTimeout(() => { clearAuthSession(); navigate({ to: ROUTES.LOGIN as any }); }, 2000);
     } catch (e: any) {
       toast.error(e.message || t("profile.security.messages.change_error"));
     } finally { setIsSubmitting(false); }

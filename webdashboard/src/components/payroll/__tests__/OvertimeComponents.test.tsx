@@ -1,9 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
+
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+}));
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import OvertimeRuleEditor from '../OvertimeRuleEditor';
 import AssignOvertimePolicyModal from '../AssignOvertimePolicyModal';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
+
 
 vi.mock('@/lib/api/payroll', () => ({
   addOvertimeRule: vi.fn().mockResolvedValue({}),
@@ -20,7 +27,7 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false 
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{ui}</BrowserRouter>
+      {ui}
     </QueryClientProvider>
   );
 };

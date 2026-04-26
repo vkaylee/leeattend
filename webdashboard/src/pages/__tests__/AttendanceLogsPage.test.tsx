@@ -2,11 +2,30 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import AttendanceLogsPage from "../AttendanceLogsPage";
-import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
 import React from "react";
+
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, search, children, ...props }: any) => {
+    let href = to;
+    if (search && typeof search === 'object') {
+      const params = new URLSearchParams();
+      Object.entries(search).forEach(([key, val]) => {
+        if (val !== undefined && val !== null) {
+          params.append(key, String(val));
+        }
+      });
+      const qs = params.toString();
+      if (qs) href += `?${qs}`;
+    }
+    return <a href={href} {...props}>{children}</a>;
+  },
+}));
 
 // Mock IntersectionObserver for jsdom
 class MockIntersectionObserver {
@@ -78,12 +97,11 @@ describe("AttendanceLogsPage", () => {
   });
 
   const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {
+    window.history.pushState({}, "Test page", initialEntries[0]);
     return render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <MemoryRouter initialEntries={initialEntries}>
-            {ui}
-          </MemoryRouter>
+          {ui}
         </ToastProvider>
       </QueryClientProvider>
     );

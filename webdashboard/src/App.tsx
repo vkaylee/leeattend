@@ -1,9 +1,8 @@
-import { BrowserRouter as Router } from "react-router-dom";
+import { RouterProvider } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DebugProvider } from "./context/DebugContext";
 import { DarkModeProvider } from "./context/DarkModeContext";
-import { DebugToolbar } from "./components/debug/DebugToolbar";
-import { AppRoutes } from "./AppRoutes";
+import { createAppRouter } from "./router";
 
 console.log("🚀 [LeeAttend] Bundle initialized at:", new Date().toISOString());
 
@@ -17,16 +16,15 @@ const queryClient = new QueryClient({
   },
 });
 
+const router = createAppRouter(queryClient);
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <DebugProvider>
         <DarkModeProvider>
-          <Router>
-            <AppRoutes />
-          </Router>
+          <RouterProvider router={router} />
         </DarkModeProvider>
-        <DebugToolbar />
       </DebugProvider>
     </QueryClientProvider>
   );

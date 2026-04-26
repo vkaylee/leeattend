@@ -144,7 +144,7 @@ show_help() {
 for _arg in "$@"; do
     if [[ "$_arg" == --docker=* ]]; then
         _env="${_arg#--docker=}"
-        _PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        _PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
         case "$_env" in
             dev)
                 _files="-p leeattend-dev -f $_PROJECT_ROOT/docker-compose.yml -f $_PROJECT_ROOT/.compose/docker-compose.dev.yml"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "@tanstack/react-router";
 import { Building2, X } from "lucide-react";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId } from "@/lib/api";

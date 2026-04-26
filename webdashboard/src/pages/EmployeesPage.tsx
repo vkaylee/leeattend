@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
 import {
   UserCircle,
   Building2,
@@ -55,7 +54,7 @@ export default function EmployeesPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const { formatDate } = useDateTimeFormatter();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useState(() => new URLSearchParams(window.location.search));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -65,19 +64,20 @@ export default function EmployeesPage() {
   const PAGE_SIZE = 20;
   const [prefillEnrollmentId, setPrefillEnrollmentId] = useState<string>("");
 
-  // Handle enrollment_id query param from staging logs
+  // Handle enrollment_id query param from staging logs (read once on mount)
   useEffect(() => {
     const enrollmentId = searchParams.get("enrollment_id");
     if (enrollmentId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPrefillEnrollmentId(enrollmentId);
       setIsModalOpen(true);
       setEditingEmployee(null);
-      // Clear the query param after opening modal
-      searchParams.delete("enrollment_id");
-      setSearchParams(searchParams, { replace: true });
+      // Clear from URL without triggering re-render
+      const url = new URL(window.location.href);
+      url.searchParams.delete("enrollment_id");
+      window.history.replaceState({}, "", url.toString());
     }
-  }, [searchParams, setSearchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { LayoutDashboard, Plus, Loader2 } from "lucide-react";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { setCurrentWorkspaceId } from "@/lib/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { ROUTES } from "@/lib/routes";
 import Button from "@/components/ui/Button";
 import { LABEL_BASE } from "@/components/ui/FormField";
@@ -21,7 +21,7 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     try {
       const ws = await createWorkspace({ name });
-      setCurrentWorkspaceId(ws.id); navigate(ROUTES.HOME, { replace: true });
+      setCurrentWorkspaceId(ws.id); navigate({ to: ROUTES.HOME, replace: true });
     } catch (error) { console.error(error); } finally { setIsSubmitting(false); }
   };
 

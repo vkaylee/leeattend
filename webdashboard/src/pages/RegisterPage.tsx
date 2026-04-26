@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, Navigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { ROUTES } from "@/lib/routes";
 import {
   register,
@@ -21,7 +21,10 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ email: "", full_name: "", password: "", confirm_password: "" });
 
-  if (userId) return <Navigate to={ROUTES.HOME} replace />;
+  if (userId) {
+    navigate({ to: ROUTES.HOME, replace: true });
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(null);

@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
 import { ToastProvider } from "../../components/ui/Toast";
 import PayrollPage from "../PayrollPage";
 import AttendanceLogsPage from "../AttendanceLogsPage";
@@ -21,6 +20,13 @@ import type { PaginatedResponse, Employee } from "../../lib/api/types";
  * - Components gracefully handle undefined/null responses
  * - Components handle empty paginated responses
  */
+
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+}));
 
 vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
@@ -73,7 +79,7 @@ describe("Pagination Integration Tests", () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <BrowserRouter>{component}</BrowserRouter>
+          {component}
         </ToastProvider>
       </QueryClientProvider>
     );

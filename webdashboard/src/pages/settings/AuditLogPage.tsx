@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { getCurrentWorkspaceId } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAuditLogs, AuditLog } from "@/lib/api";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ const formatDateTime = (dateStr: string) => {
 };
 
 export default function AuditLogPage() {
-    const { workspaceId } = useParams<{ workspaceId: string }>();
+    const workspaceId = getCurrentWorkspaceId();
     const [page, setPage] = useState(1);
     const limit = 20;
 

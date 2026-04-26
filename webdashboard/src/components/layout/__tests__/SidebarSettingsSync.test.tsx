@@ -1,9 +1,18 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import SettingsLayout from "../../../pages/settings/SettingsLayout";
+
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  useRouterState: () => ({ location: { pathname: "/" } }),
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  useLink: ({ to }: any) => ({ href: to, isActive: false }),
+  Outlet: () => <div data-testid="mock-outlet" />,
+}));
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
@@ -16,16 +25,14 @@ describe("Sidebar and SettingsLayout Synchronization", () => {
     it("should have the exact same settings routes in both components", () => {
         // 1. Render Sidebar with the 'system' section open
         const { unmount: unmountSidebar } = render(
-            <MemoryRouter>
-                <Sidebar
-                    isOpen={true}
-                    isCollapsed={false}
-                    onClose={() => { }}
-                    onShowSwitcher={() => { }}
-                    openSections={{ system: true }}
-                    toggleSection={() => { }}
-                />
-            </MemoryRouter>
+            <Sidebar
+                isOpen={true}
+                isCollapsed={false}
+                onClose={() => { }}
+                onShowSwitcher={() => { }}
+                openSections={{ system: true }}
+                toggleSection={() => { }}
+            />
         );
 
         // Get all links in the sidebar
@@ -41,9 +48,7 @@ describe("Sidebar and SettingsLayout Synchronization", () => {
 
         // 2. Render SettingsLayout
         const { unmount: unmountSettings } = render(
-            <MemoryRouter>
-                <SettingsLayout />
-            </MemoryRouter>
+            <SettingsLayout />
         );
 
         // Get all links in the settings layout

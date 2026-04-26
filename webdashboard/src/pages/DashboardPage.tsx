@@ -20,7 +20,7 @@ import {
   Timer,
   Settings2,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import DashboardViewTabs from "@/components/features/dashboard/DashboardViewTabs";
 import CollapsibleSection from "@/components/features/dashboard/CollapsibleSection";

@@ -1,8 +1,14 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+
+// Mock TanStack Router
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+}));
 import PayrollDetailDrawer from "../PayrollDetailDrawer";
 import { Employee, Payslip } from "@/lib/api/types";
-import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../ui/Toast";
 
@@ -35,7 +41,6 @@ describe("PayrollDetailDrawer", () => {
     render(
       <ToastProvider>
         <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
             <PayrollDetailDrawer 
               isOpen={true}
               onClose={onClose}
@@ -46,7 +51,6 @@ describe("PayrollDetailDrawer", () => {
               adjustments={[]}
               onResolveAdjustments={onResolveAdjustments}
             />
-          </BrowserRouter>
         </QueryClientProvider>
       </ToastProvider>
     );
@@ -60,7 +64,6 @@ describe("PayrollDetailDrawer", () => {
     render(
       <ToastProvider>
         <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
             <PayrollDetailDrawer 
               isOpen={true}
               onClose={onClose}
@@ -71,7 +74,6 @@ describe("PayrollDetailDrawer", () => {
               adjustments={[]}
               onResolveAdjustments={onResolveAdjustments}
             />
-          </BrowserRouter>
         </QueryClientProvider>
       </ToastProvider>
     );
@@ -87,7 +89,6 @@ describe("PayrollDetailDrawer", () => {
     render(
       <ToastProvider>
         <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
             <PayrollDetailDrawer 
               isOpen={true}
               onClose={onClose}
@@ -98,7 +99,6 @@ describe("PayrollDetailDrawer", () => {
               adjustments={[]}
               onResolveAdjustments={onResolveAdjustments}
             />
-          </BrowserRouter>
         </QueryClientProvider>
       </ToastProvider>
     );

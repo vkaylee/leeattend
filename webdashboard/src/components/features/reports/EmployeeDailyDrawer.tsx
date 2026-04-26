@@ -4,7 +4,7 @@ import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { RefreshCw, Check, CheckCircle, User, CalendarCheck, SearchX, Loader2, FileBarChart, AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import {
     fetchAttendanceReport,
     DailyAttendanceReport,

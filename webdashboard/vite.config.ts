@@ -1,6 +1,7 @@
 import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, ConfigEnv } from "vite";
+import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
 import fs from "node:fs";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
@@ -75,6 +76,11 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
 
   return {
     plugins: [
+      TanStackRouterVite({
+        routesDirectory: './src/routes',
+        generatedRouteTree: './src/routeTree.gen.ts',
+        quoteStyle: 'double',
+      }),
       react({
         babel: mode === 'production' ? {
           plugins: [

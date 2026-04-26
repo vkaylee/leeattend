@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { ROUTES } from "@/lib/routes";
 import { useTranslation } from "react-i18next";
 import {

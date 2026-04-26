@@ -32,7 +32,7 @@ import AttendanceImportDialog from "@/components/features/attendance/AttendanceI
 import PermissionGate from "@/components/common/PermissionGate";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, Link, useSearch } from "@tanstack/react-router";
 import { BarChart3 } from "lucide-react";
 
 
@@ -41,7 +41,11 @@ type TabType = "recorded" | "unknown";
 export default function AttendanceLogsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  // URL search params — read once on mount for cross-page navigation
+  const searchParams = new URLSearchParams(window.location.search);
+  const setSearchParams = (_params: Record<string, string>, _opts?: any) => {
+    // No-op: we use local state, not URL for this page
+  };
   const wsId = getCurrentWorkspaceId();
   const { formatDate, formatTime } = useDateTimeFormatter();
   const queryClient = useQueryClient();
@@ -232,7 +236,7 @@ export default function AttendanceLogsPage() {
   });
 
   const handleCreateEmployee = (enrollmentId: string) => {
-    navigate(`/employees?enrollment_id=${encodeURIComponent(enrollmentId)}`);
+    navigate({ to: "/employees", search: { enrollment_id: enrollmentId } });
   };
 
   return (
@@ -244,7 +248,8 @@ export default function AttendanceLogsPage() {
         </div>
         <div className="flex items-center gap-3">
           <Link
-            to={`/reports?from=${dateRange.start}&to=${dateRange.end}`}
+            to="/reports"
+            search={{ from: dateRange.start, to: dateRange.end } as any}
             className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-5 py-2.5 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"
           >
             <BarChart3 size={14} /> {t("attendance_logs.view_reports")}

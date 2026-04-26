@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Calculator, Save, ShieldAlert, Settings2, LayoutGrid, List, Zap, RefreshCw, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,11 +48,10 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
 
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get("tab") as TabType) || "general";
+  const [activeTab, setActiveTab] = useState<TabType>("general");
 
   const handleTabChange = (tab: TabType) => {
-    setSearchParams({ tab });
+    setActiveTab(tab);
   };
 
   const [workUnit, setWorkUnit] = useState(workspace.work_unit_minutes);
