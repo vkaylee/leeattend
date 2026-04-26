@@ -1,3 +1,4 @@
+
 //! WebSocket endpoint for streaming report data.
 //!
 //! Connects clients to Redis Pub/Sub for real-time report chunk delivery.
@@ -321,7 +322,7 @@ mod tests {
         };
         let json = serde_json::to_string(&msg);
         assert!(json.is_ok(), "Done serialization must not fail");
-        assert!(json.unwrap().contains("\"type\":\"DONE\""));
+        assert!(json.expect("Done serialization must not fail").contains("\"type\":\"DONE\""));
     }
 
     /// Normal StreamMessage::Error serialization should always succeed.
@@ -333,6 +334,6 @@ mod tests {
         };
         let json = serde_json::to_string(&msg);
         assert!(json.is_ok(), "Error serialization must not fail");
-        assert!(json.unwrap().contains("\"type\":\"ERROR\""));
+        assert!(json.expect("Error serialization must not fail").contains("\"type\":\"ERROR\""));
     }
 }

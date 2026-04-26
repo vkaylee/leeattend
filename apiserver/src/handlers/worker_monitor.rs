@@ -1,3 +1,4 @@
+
 //! Worker Monitoring API Handlers
 //!
 //! Provides real-time monitoring endpoints for distributed worker system.
@@ -346,9 +347,9 @@ mod tests {
         };
 
         let values = vec![
-            Some(serde_json::to_string(&w1).unwrap()),
-            Some(serde_json::to_string(&w2).unwrap()),
-            Some(serde_json::to_string(&w3).unwrap()),
+            Some(serde_json::to_string(&w1).expect("w1 serialization should not fail")),
+            Some(serde_json::to_string(&w2).expect("w2 serialization should not fail")),
+            Some(serde_json::to_string(&w3).expect("w3 serialization should not fail")),
             Some("invalid json...".to_string()),
             None,
         ];

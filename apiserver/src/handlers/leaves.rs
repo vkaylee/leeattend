@@ -1,3 +1,4 @@
+
 use axum::{
     extract::{Multipart, Path, Query, State},
     http::StatusCode,
@@ -619,11 +620,11 @@ pub async fn download_leave_import_errors(
 
     use axum::http::header;
 
-    Ok(axum::response::Response::builder()
+    axum::response::Response::builder()
         .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"leave_import_{job_id}_errors.xlsx\""))
         .body(axum::body::Body::from(bytes))
-        .expect("Failed to build response"))
+        .map_err(|e| AppError::Internal(format!("Failed to build response: {e}")))
 }
 
 #[derive(serde::Deserialize)]
@@ -658,9 +659,9 @@ pub async fn download_leave_import_template(
 
     use axum::http::header;
 
-    Ok(axum::response::Response::builder()
+    axum::response::Response::builder()
         .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         .header(header::CONTENT_DISPOSITION, "attachment; filename=\"leave_import_template.xlsx\"")
         .body(axum::body::Body::from(bytes))
-        .expect("Failed to build response"))
+        .map_err(|e| AppError::Internal(format!("Failed to build response: {e}")))
 }
