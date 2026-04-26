@@ -79,7 +79,6 @@ usage() {
 
 ${BOLD}Options:${NC}
   --service NAME     (Required) Build a specific service (apiserver, agent-main)
-                     Can be specified multiple times.
   --tag TAG          Image tag (default: latest)
   --registry URL     Registry prefix (default: \$REGISTRY or docker.io/vleedev)
   --push             Push images after building
@@ -107,6 +106,9 @@ parse_args() {
         case "$1" in
             --service)
                 [[ -n "${2:-}" ]] || die "--service requires a value"
+                if [[ ${#SERVICES[@]} -gt 0 ]]; then
+                    die "Error: You can only specify one service at a time."
+                fi
                 SERVICES+=("$2"); shift 2 ;;
             --tag)
                 [[ -n "${2:-}" ]] || die "--tag requires a value"
@@ -127,9 +129,9 @@ parse_args() {
         esac
     done
 
-    # Ensure at least one service is specified
+    # Ensure exactly one service is specified
     if [[ ${#SERVICES[@]} -eq 0 ]]; then
-        die "Error: You must specify at least one service using --service NAME. Valid services: ${ALL_SERVICES[*]}"
+        die "Error: You must specify a service using --service NAME. Valid services: ${ALL_SERVICES[*]}"
     fi
 
     # Validate service names
