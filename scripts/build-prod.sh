@@ -33,6 +33,7 @@ fi
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REGISTRY="${REGISTRY:-docker.io/vleedev}"
 TAG="latest"
+IMAGE_OVERRIDE=""
 SERVICES=()
 PUSH=false
 DRY_RUN=false
@@ -80,6 +81,8 @@ usage() {
 ${BOLD}Options:${NC}
   --service NAME     (Required) Build a specific service (apiserver, agent-main)
   --tag TAG          Image tag (default: latest)
+  --image NAME       Override full image name (e.g. myreg.io/myapp)
+                     If specified, --registry and the 'leeattend-' prefix are ignored.
   --registry URL     Registry prefix (default: \$REGISTRY or docker.io/vleedev)
   --push             Push images after building
   --also-latest      Also tag as :latest when using a specific tag
@@ -88,8 +91,8 @@ ${BOLD}Options:${NC}
 
 ${BOLD}Examples:${NC}
   ./scripts/build-prod.sh --service apiserver --tag v1.2.3 --push
-  ./scripts/build-prod.sh --tag \$(git rev-parse --short HEAD) --push --also-latest
-  REGISTRY=my.zot.dev/leeattend ./scripts/build-prod.sh --push
+  ./scripts/build-prod.sh --service apiserver --image myreg.io/my-custom-api --push
+  ./scripts/build-prod.sh --service agent-main --tag \$(git rev-parse --short HEAD) --push --also-latest
 
 ${BOLD}Environment:${NC}
   REGISTRY           Override default registry prefix
@@ -113,6 +116,9 @@ parse_args() {
             --tag)
                 [[ -n "${2:-}" ]] || die "--tag requires a value"
                 TAG="$2"; shift 2 ;;
+            --image)
+                [[ -n "${2:-}" ]] || die "--image requires a value"
+                IMAGE_OVERRIDE="$2"; shift 2 ;;
             --registry)
                 [[ -n "${2:-}" ]] || die "--registry requires a value"
                 REGISTRY="$2"; shift 2 ;;
@@ -224,7 +230,17 @@ stop_build_db() {
 image_name() {
     local svc="$1"
     local tag="${2:-$TAG}"
-    echo "${REGISTRY}/leeattend-${svc}:${tag}"
+    if [[ -n "$IMAGE_OVERRIDE" ]]; then
+        # If the override already has a tag (contains a colon), use it as is for the main tag,
+        # otherwise append the specified tag.
+        if [[ "$IMAGE_OVERRIDE" == *:* ]]; then
+            echo "$IMAGE_OVERRIDE"
+        else
+            echo "${IMAGE_OVERRIDE}:${tag}"
+        fi
+    else
+        echo "${REGISTRY}/leeattend-${svc}:${tag}"
+    fi
 }
 
 # ── Build a single service ───────────────────────────────────────────
