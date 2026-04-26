@@ -22,10 +22,7 @@ pub mod app_builder;
 #[cfg(test)]
 mod workspace_id_guard;
 
-use axum::{
-    routing::{get, post},
-    Router,
-};
+use axum::Router;
 
 use axum::http::{HeaderValue, Method};
 use std::sync::Arc;
@@ -156,7 +153,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     };
 
     // Compose domain-specific route modules
-    let mut router = Router::new()
+    let router = Router::new()
         .merge(routes::dashboard::router())
         .merge(routes::auth::router(&state))
         .merge(routes::workspaces::router())
@@ -171,19 +168,22 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .merge(routes::feature_flags::router());
 
     #[cfg(debug_assertions)]
-    {
-        router = router.route("/dev/super-user", get(handlers::get_dev_super_user));
-        router = router.route("/debug/users", get(handlers::debug::get_debug_users));
-        router = router.route(
-            "/debug/workspaces/:ws_id/clear",
-            post(handlers::debug::clear_debug_db),
-        );
-        router = router.route(
-            "/dev/workspaces/:ws_id/clear",
-            post(handlers::clear_workspace_data),
-        );
+    let router = {
+        use axum::routing::{get, post};
+        let router = router
+            .route("/dev/super-user", get(handlers::get_dev_super_user))
+            .route("/debug/users", get(handlers::debug::get_debug_users))
+            .route(
+                "/debug/workspaces/:ws_id/clear",
+                post(handlers::debug::clear_debug_db),
+            )
+            .route(
+                "/dev/workspaces/:ws_id/clear",
+                post(handlers::clear_workspace_data),
+            );
         tracing::warn!("⚠️ DEV MODE ACTIVE: Debug auth bypass & data-clearing endpoints are enabled. Never ship this to production!");
-    }
+        router
+    };
 
     Router::new()
         .nest("/api", router)
