@@ -20,7 +20,7 @@ x-rust-test-base: &rust-test-base
     - /workspace/target/nextest
     - /workspace/target/debug/incremental
   volumes:
-    - ./:/workspace
+    - ../:/workspace
     - target-cache:/workspace/target
     - ${HOME}/.cargo/registry:/usr/local/cargo/registry
     - sccache-cache:/workspace/.sccache
@@ -55,15 +55,29 @@ services:
       timeout: 5s
       retries: 5
 
-  apiserver_test:
+  db_init:
     <<: *rust-test-base
     image: localhost/leeattend-test_apiserver_test
     build:
-      context: ./apiserver
+      context: ../apiserver
       target: test
     depends_on:
       test_db:
         condition: service_healthy
+    working_dir: /workspace/apiserver
+    environment:
+      - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database?sslmode=disable
+      - CARGO_TARGET_DIR=/workspace/target
+      - SCCACHE_DIR=/workspace/.sccache
+      - RUSTC_WRAPPER=sccache
+    entrypoint: ["bash", "-c", "sqlx migrate run"]
+
+  apiserver_test:
+    <<: *rust-test-base
+    image: localhost/leeattend-test_apiserver_test
+    build:
+      context: ../apiserver
+      target: test
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
@@ -77,7 +91,7 @@ services:
     <<: *rust-test-base
     image: localhost/leeattend-test_agent_test
     build:
-      context: ./agent-main
+      context: ../agent-main
       target: test
     depends_on:
       - apiserver_test
@@ -90,10 +104,26 @@ services:
       - SCCACHE_DIR=/workspace/.sccache
       - RUSTC_WRAPPER=sccache
 
+  npm_init:
+    image: localhost/leeattend-test_web_test
+    build:
+      context: ../webdashboard
+      target: test
+    networks:
+      - test_net
+    working_dir: /workspace/webdashboard
+    command: npm install --no-audit --no-fund
+    environment:
+      - npm_config_cache=/workspace/.npm-cache
+    volumes:
+      - ../:/workspace
+      - web-node-modules:/workspace/webdashboard/node_modules
+      - npm-cache:/workspace/.npm-cache
+
   web_test:
     image: localhost/leeattend-test_web_test
     build:
-      context: ./webdashboard
+      context: ../webdashboard
       target: test
     tty: true
     networks:
@@ -107,7 +137,7 @@ services:
       - /workspace/webdashboard/test-results:size=128M
       - /workspace/webdashboard/playwright-report:size=64M
     volumes:
-      - ./:/workspace
+      - ../:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
       - shared-data:/workspace/shared
       - npm-cache:/workspace/.npm-cache

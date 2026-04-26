@@ -32,9 +32,12 @@ podman-compose down
 ## 🧪 Testing — MANDATORY RULES
 
 > [!WARNING]
-> **NEVER run `cargo test`, `npm test`, `npx playwright test`, or any test
-> command directly.** This project uses Podman-based test isolation.
-> The ONLY way to run tests is through `./run-tests.sh`.
+> **NEVER run `cargo test`, `npm test`, `npx playwright test`, or any test command directly.** 
+> This project uses Podman-based test isolation. The ONLY way to run tests is through `./run-tests.sh`.
+> 
+> **NEVER run `cargo`, `npm`, or `sqlx` directly for development tasks.**
+> ALWAYS use the hermetic toolbox wrappers: `./scripts/_cargo.sh`, `./scripts/_npm.sh`, `./scripts/_sqlx.sh`.
+> 
 > **AI Agents**: Always append `</dev/null` to prevent PTY hangs.
 
 | What you want | Command |

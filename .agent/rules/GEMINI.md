@@ -112,6 +112,16 @@ When user's prompt is NOT in English:
 - **Performance**: Measure first. Adhere to 2025 standards (Core Web Vitals).
 - **Infra/Safety**: 5-Phase Deployment. Verify secrets security.
 
+### 🧰 Hermetic Environment (Toolbox Scripts)
+
+> 🔴 **MANDATORY:** NEVER run `npm`, `cargo`, or `sqlx` directly on the host machine. You MUST use the Hermetic Toolbox scripts located in `scripts/` to ensure a Zero-Host-Dependency environment.
+
+- **Node.js/Web**: Use `./scripts/_npm.sh <command>` (e.g., `./scripts/_npm.sh install`, `./scripts/_npm.sh run build`)
+- **Rust/API**: Use `./scripts/_cargo.sh <command>` (e.g., `./scripts/_cargo.sh clippy`, `./scripts/_cargo.sh check`)
+- **Database**: Use `./scripts/_sqlx.sh <command>` (e.g., `./scripts/_sqlx.sh migrate run`)
+
+These wrapper scripts transparently route your commands into the correct isolated Docker/Podman containers.
+
 ### 📁 File Dependency Awareness
 
 **Before modifying ANY file:**
