@@ -78,8 +78,8 @@ usage() {
     echo -e "${BOLD}Usage:${NC} ./scripts/build-prod.sh [OPTIONS]
 
 ${BOLD}Options:${NC}
-  --service NAME     Build a specific service (apiserver, agent-main)
-                     Can be specified multiple times. Default: all services.
+  --service NAME     (Required) Build a specific service (apiserver, agent-main)
+                     Can be specified multiple times.
   --tag TAG          Image tag (default: latest)
   --registry URL     Registry prefix (default: \$REGISTRY or docker.io/vleedev)
   --push             Push images after building
@@ -127,9 +127,9 @@ parse_args() {
         esac
     done
 
-    # Default to all services
+    # Ensure at least one service is specified
     if [[ ${#SERVICES[@]} -eq 0 ]]; then
-        SERVICES=("${ALL_SERVICES[@]}")
+        die "Error: You must specify at least one service using --service NAME. Valid services: ${ALL_SERVICES[*]}"
     fi
 
     # Validate service names
