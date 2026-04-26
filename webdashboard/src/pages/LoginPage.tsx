@@ -1,4 +1,4 @@
-import { useNavigate, Navigate, Link, useLocation } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "@tanstack/react-router";
 import { ROUTES } from "@/lib/routes";
 import { useTranslation } from "react-i18next";
 import { useProfile } from "@/hooks/use-profile";
@@ -9,7 +9,7 @@ import {
   setRefreshToken,
   login as apiLogin,
 } from "@/lib/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { debugProps } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import { LABEL_BASE } from "@/components/ui/FormField";
@@ -23,19 +23,26 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Lấy trang trước đó từ location state, mặc định là Home
-  const from = location.state?.from?.pathname || ROUTES.HOME;
+  const from = (location.state as any)?.from || ROUTES.HOME;
 
   const userId = getCurrentUserId();
 
-  if (userId) return <Navigate to={from} replace />;
+  useEffect(() => {
+    if (userId) {
+      navigate({ to: from, replace: true });
+    }
+  }, [userId, navigate, from]);
+
+  if (userId) {
+    return null;
+  }
 
   const performLogin = async (loginEmail: string, loginPass: string) => {
     setIsSubmitting(true); setError(null);
     try {
       await apiLogin(loginEmail, loginPass);
       // Điều hướng về trang trước đó hoặc Dashboard
-      navigate(from, { replace: true });
+      navigate({ to: from, replace: true });
     } catch (err: any) {
       setError(err.message || t("auth.login_error"));
     } finally { setIsSubmitting(false); }
