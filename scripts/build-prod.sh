@@ -101,6 +101,9 @@ EOF
 }
 
 parse_args() {
+    if [[ $# -eq 0 ]]; then
+        usage
+    fi
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --service)
