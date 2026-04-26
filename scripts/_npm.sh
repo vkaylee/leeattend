@@ -8,4 +8,4 @@ SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 cd "$SCRIPT_DIR/.." || exit 1
 
 echo "📦 Running npm inside container environment..."
-exec podman-compose -p leeattend-test -f docker-compose.yml -f .compose/docker-compose.test.yml run --rm web_test npm "$@"
+exec podman-compose -p leeattend-test -f docker-compose.yml -f .compose/docker-compose.test.yml run --rm --entrypoint npm web_test "$@"

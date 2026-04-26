@@ -42,7 +42,15 @@ export default function LoginPage() {
   };
 
   const handleLogin = async (e: React.FormEvent) => { e.preventDefault(); await performLogin(email, password); };
-  const handleFastLogin = async () => { const devEmail = "admin@leeattend.com"; const devPass = "admin123"; setEmail(devEmail); setPassword(devPass); await performLogin(devEmail, devPass); };
+  const handleFastLogin = import.meta.env.DEV
+    ? async () => {
+        const devEmail = "admin@leeattend.com";
+        const devPass = "admin123";
+        setEmail(devEmail);
+        setPassword(devPass);
+        await performLogin(devEmail, devPass);
+      }
+    : undefined;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 relative overflow-hidden animate-in fade-in duration-1000">
@@ -67,19 +75,23 @@ export default function LoginPage() {
         )}
 
         <div className="space-y-10">
-          <button
-            onClick={handleFastLogin}
-            {...debugProps({ devEmail: "admin@leeattend.com", devPass: "admin123" })}
-            data-testid="fast-login-btn"
-            className="group relative w-full flex justify-center py-4 px-4 border-2 border-primary-100 dark:border-primary-800 text-[10px] font-bold rounded-2xl text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/20 hover:bg-primary-50 dark:bg-primary-950 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-[0.2em] shadow-sm hover:shadow-lg"
-          >
-            {t("auth.fast_login").toUpperCase()}
-          </button>
+          {import.meta.env.DEV && (
+            <>
+              <button
+                onClick={handleFastLogin}
+                {...debugProps({ devEmail: "admin@leeattend.com", devPass: "admin123" })}
+                data-testid="fast-login-btn"
+                className="group relative w-full flex justify-center py-4 px-4 border-2 border-primary-100 dark:border-primary-800 text-[10px] font-bold rounded-2xl text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/20 hover:bg-primary-50 dark:bg-primary-950 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-[0.2em] shadow-sm hover:shadow-lg"
+              >
+                {t("auth.fast_login").toUpperCase()}
+              </button>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100 dark:border-slate-800" /></div>
-            <div className="relative flex justify-center text-[9px] font-bold uppercase tracking-[0.4em] text-slate-300 dark:text-slate-600"><span className="px-6 bg-white dark:bg-slate-900">{t("auth.or_use_account")}</span></div>
-          </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100 dark:border-slate-800" /></div>
+                <div className="relative flex justify-center text-[9px] font-bold uppercase tracking-[0.4em] text-slate-300 dark:text-slate-600"><span className="px-6 bg-white dark:bg-slate-900">{t("auth.or_use_account")}</span></div>
+              </div>
+            </>
+          )}
 
           <form className="space-y-8" onSubmit={handleLogin}>
             <div className="space-y-6">

@@ -186,7 +186,7 @@ start_build_db() {
         -e "POSTGRES_USER=$BUILD_DB_USER" \
         -e "POSTGRES_PASSWORD=$BUILD_DB_PASS" \
         -e "POSTGRES_DB=$BUILD_DB_NAME" \
-        docker.io/library/postgres:16-alpine
+        docker.io/library/postgres:16-alpine </dev/null
 
     if $DRY_RUN; then
         ok "Build DB started (dry-run) on port $BUILD_DB_PORT"
