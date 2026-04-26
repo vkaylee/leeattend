@@ -75,8 +75,7 @@ detect_engine() {
 
 # ── CLI Parser ───────────────────────────────────────────────────────
 usage() {
-    cat <<EOF
-${BOLD}Usage:${NC} ./scripts/build-prod.sh [OPTIONS]
+    echo -e "${BOLD}Usage:${NC} ./scripts/build-prod.sh [OPTIONS]
 
 ${BOLD}Options:${NC}
   --service NAME     Build a specific service (apiserver, agent-main)
@@ -96,7 +95,7 @@ ${BOLD}Examples:${NC}
 ${BOLD}Environment:${NC}
   REGISTRY           Override default registry prefix
   BUILD_DB_PORT      Override Postgres port for apiserver build (auto-assigned if empty)
-EOF
+"
     exit 0
 }
 
