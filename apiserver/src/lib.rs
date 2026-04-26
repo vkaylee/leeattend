@@ -26,7 +26,7 @@ use axum::Router;
 
 use axum::http::{HeaderValue, Method};
 use std::sync::Arc;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 
 pub use crate::state::{
     AppState, AgentState, AttendanceState, CoreState, EmployeeState,
@@ -68,18 +68,28 @@ mod ax_auth {
                 }
             }
 
+            // 1. Try Authorization header first (Fallback for Native Apps / Postman)
             if let Some(auth_header) = parts.headers.get("Authorization") {
                 if let Ok(auth_str) = auth_header.to_str() {
                     if let Some(token) = auth_str.strip_prefix("Bearer ") {
                         let app_state = Arc::<AppState>::from_ref(state);
 
-                        match AuthService::verify_token(token, &app_state.core.jwt_secret) {
-                            Ok(user_id) => return Ok(UserId(user_id)),
-                            Err(_) => {
-                                return Err((
-                                    StatusCode::UNAUTHORIZED,
-                                    "Invalid or expired token".to_string(),
-                                ))
+                        if let Ok(user_id) = AuthService::verify_token(token, &app_state.core.jwt_secret) {
+                            return Ok(UserId(user_id));
+                        }
+                    }
+                }
+            }
+
+            // 2. Try Cookie header (Standard for Web Dashboard)
+            if let Some(cookie_header) = parts.headers.get("cookie") {
+                if let Ok(cookie_str) = cookie_header.to_str() {
+                    for cookie in cookie_str.split(';') {
+                        let cookie = cookie.trim();
+                        if let Some(token) = cookie.strip_prefix("access_token=") {
+                            let app_state = Arc::<AppState>::from_ref(state);
+                            if let Ok(user_id) = AuthService::verify_token(token, &app_state.core.jwt_secret) {
+                                return Ok(UserId(user_id));
                             }
                         }
                     }
@@ -108,49 +118,44 @@ mod ax_auth {
 pub use ax_auth::UserId;
 
 pub fn create_app(state: Arc<AppState>) -> Router {
-    let cors = if cfg!(debug_assertions) {
-        CorsLayer::new()
-            .allow_origin(Any)
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::PATCH,
-                Method::DELETE,
-                Method::OPTIONS,
-            ])
-            .allow_headers(Any)
-    } else {
-        let allowed_origins_str =
-            std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| "".to_string());
+    let allowed_origins_str = std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| {
+        if cfg!(debug_assertions) {
+            "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000".to_string()
+        } else {
+            "".to_string()
+        }
+    });
 
-        let mut origins = Vec::new();
-        for origin in allowed_origins_str.split(',') {
-            let trimmed = origin.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
-
-            if let Ok(header_value) = trimmed.parse::<HeaderValue>() {
-                origins.push(header_value);
-            }
+    let mut origins = Vec::new();
+    for origin in allowed_origins_str.split(',') {
+        let trimmed = origin.trim();
+        if trimmed.is_empty() {
+            continue;
         }
 
-        CorsLayer::new()
-            .allow_origin(origins)
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::PATCH,
-                Method::DELETE,
-            ])
-            .allow_headers([
-                axum::http::header::AUTHORIZATION,
-                axum::http::header::CONTENT_TYPE,
-                axum::http::HeaderName::from_static("x-requested-with"),
-            ])
-    };
+        if let Ok(header_value) = trimmed.parse::<HeaderValue>() {
+            origins.push(header_value);
+        }
+    }
+
+    let cors = CorsLayer::new()
+        .allow_origin(origins)
+        .allow_credentials(true)
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::CONTENT_TYPE,
+            axum::http::HeaderName::from_static("x-requested-with"),
+            axum::http::header::ACCEPT,
+            axum::http::header::ORIGIN,
+        ]);
 
     // Compose domain-specific route modules
     let router = Router::new()

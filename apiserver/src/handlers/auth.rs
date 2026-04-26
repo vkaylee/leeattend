@@ -1,6 +1,6 @@
 use axum::{
     extract::State,
-    http::StatusCode,
+    http::{HeaderMap, HeaderValue, StatusCode, header::SET_COOKIE},
     response::{IntoResponse, Json},
 };
 use chrono::Utc;
@@ -78,12 +78,68 @@ fn validate_email(email: &str) -> AppResult<()> {
     Ok(())
 }
 
+// --- Cookie Helpers ---
+
+fn create_auth_cookies(access_token: &str, refresh_token: &str) -> HeaderMap {
+    let mut headers = HeaderMap::new();
+    let domain_attr = match std::env::var("COOKIE_DOMAIN") {
+        Ok(d) if !d.is_empty() => format!("Domain={d}; "),
+        _ => "".to_string(),
+    };
+    
+    // access_token cookie
+    let access_cookie = format!(
+        "access_token={}; {}HttpOnly; SameSite=Lax; Path=/; Max-Age=3600",
+        access_token, domain_attr
+    );
+    // refresh_token cookie
+    let refresh_cookie = format!(
+        "refresh_token={}; {}HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000",
+        refresh_token, domain_attr
+    );
+
+    if let Ok(val) = HeaderValue::from_str(&access_cookie) {
+        headers.append(SET_COOKIE, val);
+    }
+    if let Ok(val) = HeaderValue::from_str(&refresh_cookie) {
+        headers.append(SET_COOKIE, val);
+    }
+    
+    headers
+}
+
+fn clear_auth_cookies() -> HeaderMap {
+    let mut headers = HeaderMap::new();
+    let domain_attr = match std::env::var("COOKIE_DOMAIN") {
+        Ok(d) if !d.is_empty() => format!("Domain={d}; "),
+        _ => "".to_string(),
+    };
+    
+    let access_cookie = format!(
+        "access_token=; {}HttpOnly; SameSite=Lax; Path=/; Max-Age=0",
+        domain_attr
+    );
+    let refresh_cookie = format!(
+        "refresh_token=; {}HttpOnly; SameSite=Lax; Path=/; Max-Age=0",
+        domain_attr
+    );
+
+    if let Ok(val) = HeaderValue::from_str(&access_cookie) {
+        headers.append(SET_COOKIE, val);
+    }
+    if let Ok(val) = HeaderValue::from_str(&refresh_cookie) {
+        headers.append(SET_COOKIE, val);
+    }
+    
+    headers
+}
+
 // --- Auth Handlers ---
 
 pub async fn register(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RegisterRequest>,
-) -> AppResult<Json<AuthResponse>> {
+) -> AppResult<impl IntoResponse> {
     // 1. Validation
     if req.full_name.trim().is_empty() {
         return Err(AppError::Validation("Full name is required".to_string()));
@@ -150,17 +206,19 @@ pub async fn register(
     let access_token =
         AuthService::generate_token(user.id, &state.core.jwt_secret, 60).map_err(AppError::from)?;
 
-    Ok(Json(AuthResponse {
+    let headers = create_auth_cookies(&access_token, &refresh_token);
+
+    Ok((headers, Json(AuthResponse {
         access_token,
         refresh_token,
         user: user_response,
-    }))
+    })))
 }
 
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
-) -> AppResult<Json<AuthResponse>> {
+) -> AppResult<impl IntoResponse> {
     let user = state.core.user_repo.get_user_by_email(&req.email)
         .await?
         .ok_or_else(|| AppError::Auth("Invalid email or password".to_string()))?;
@@ -187,21 +245,49 @@ pub async fn login(
         .await
         .map_err(AppError::from)?;
 
-    Ok(Json(AuthResponse {
+    let headers = create_auth_cookies(&access_token, &refresh_token);
+
+    Ok((headers, Json(AuthResponse {
         access_token,
         refresh_token,
         user: user_response,
-    }))
+    })))
 }
 
 pub async fn refresh_token(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<RefreshRequest>,
-) -> AppResult<Json<AuthResponse>> {
-    state.core.auth_service.refresh_session(&req.refresh_token, &state.core.jwt_secret)
+    headers: HeaderMap,
+    req_opt: Option<Json<RefreshRequest>>,
+) -> AppResult<impl IntoResponse> {
+    // Try to get refresh_token from body, fallback to cookie
+    let mut token_to_refresh = None;
+    
+    if let Some(Json(req)) = req_opt {
+        token_to_refresh = Some(req.refresh_token.clone());
+    }
+    
+    if token_to_refresh.is_none() {
+        if let Some(cookie_header) = headers.get("cookie") {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                for cookie in cookie_str.split(';') {
+                    let cookie = cookie.trim();
+                    if let Some(token) = cookie.strip_prefix("refresh_token=") {
+                        token_to_refresh = Some(token.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    let token = token_to_refresh.ok_or_else(|| AppError::Auth("No refresh token provided".to_string()))?;
+
+    let auth_response = state.core.auth_service.refresh_session(&token, &state.core.jwt_secret)
         .await
-        .map(Json)
-        .map_err(AppError::Auth)
+        .map_err(AppError::Auth)?;
+
+    let resp_headers = create_auth_cookies(&auth_response.access_token, &auth_response.refresh_token);
+    
+    Ok((resp_headers, Json(auth_response)))
 }
 
 pub async fn change_password(
@@ -245,12 +331,34 @@ pub async fn change_password(
 
 pub async fn logout(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<RefreshRequest>,
-) -> AppResult<StatusCode> {
-    state.core.auth_service.revoke_session(&req.refresh_token)
-        .await
-        .map(|_| StatusCode::OK)
-        .map_err(AppError::from)
+    headers: HeaderMap,
+    req_opt: Option<Json<RefreshRequest>>,
+) -> AppResult<impl IntoResponse> {
+    // Try to get refresh_token from body, fallback to cookie
+    let mut token_to_revoke = None;
+    
+    if let Some(Json(req)) = req_opt {
+        token_to_revoke = Some(req.refresh_token.clone());
+    }
+    
+    if token_to_revoke.is_none() {
+        if let Some(cookie_header) = headers.get("cookie") {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                for cookie in cookie_str.split(';') {
+                    let cookie = cookie.trim();
+                    if let Some(token) = cookie.strip_prefix("refresh_token=") {
+                        token_to_revoke = Some(token.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(token) = token_to_revoke {
+        let _ = state.core.auth_service.revoke_session(&token).await;
+    }
+
+    Ok((clear_auth_cookies(), StatusCode::OK))
 }
 
 pub async fn get_me(
@@ -354,7 +462,7 @@ pub async fn get_users(
 #[cfg(debug_assertions)]
 pub async fn get_dev_super_user(
     State(state): State<Arc<AppState>>,
-) -> AppResult<Json<serde_json::Value>> {
+) -> AppResult<impl IntoResponse> {
     use serde_json::json;
     tracing::info!("Dev fast login requested");
 
@@ -403,12 +511,15 @@ pub async fn get_dev_super_user(
     let access_token = AuthService::generate_token(user_id, &state.core.jwt_secret, 60 * 24 * 7)
         .map_err(|e| AppError::Internal(format!("Dev token generation failed: {e}")))?;
 
-    Ok(Json(json!({
+    let refresh_token = "dev_refresh_token".to_string();
+    let headers = create_auth_cookies(&access_token, &refresh_token);
+
+    Ok((headers, Json(json!({
         "user_id": user_id,
         "workspace_id": workspace_id,
         "access_token": access_token,
-        "refresh_token": "dev_refresh_token"
-    })))
+        "refresh_token": refresh_token
+    }))))
 }
 
 #[cfg(test)]

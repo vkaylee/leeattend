@@ -100,14 +100,14 @@ leeattend_setup() {
     local TEMPLATE_DB_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template?sslmode=disable"
 
     echo -e "  Running migrations..."
-    if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$MAIN_DB_URL' > .test_logs/parent_mig_main.log 2>&1"; then
+    if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$MAIN_DB_URL'" > "$LOG_DIR/parent_mig_main.log" 2>&1; then
         echo -e "${RED}❌ Main migration FAILED. Logs from container:${NC}"
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test cat .test_logs/parent_mig_main.log </dev/null
+        cat "$LOG_DIR/parent_mig_main.log"
         exit 1
     fi
-    if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$TEMPLATE_DB_URL' > .test_logs/parent_mig_template.log 2>&1"; then
+    if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$TEMPLATE_DB_URL'" > "$LOG_DIR/parent_mig_template.log" 2>&1; then
         echo -e "${RED}❌ Template migration FAILED. Logs from container:${NC}"
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test cat .test_logs/parent_mig_template.log </dev/null
+        cat "$LOG_DIR/parent_mig_template.log"
         exit 1
     fi
 
@@ -120,7 +120,7 @@ leeattend_setup() {
 
     for i in $(seq 0 $((NUM_WORKERS-1))); do
         local E2E_DB_URL="postgres://test_user:test_password@test_db:5432/test_database_e2e_$i?sslmode=disable"
-        if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$E2E_DB_URL' > .test_logs/parent_mig_e2e_$i.log 2>&1"; then
+        if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$E2E_DB_URL'" > "$LOG_DIR/parent_mig_e2e_$i.log" 2>&1; then
             echo -e "${RED}❌ E2E DB $i migration FAILED.${NC}"
             exit 1
         fi

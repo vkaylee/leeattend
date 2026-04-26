@@ -197,7 +197,8 @@ mod tests {
     async fn test_update_job_metadata_preserves_existing_ttl() {
         // Test: When updating metadata with existing TTL, preserve that TTL
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -280,7 +281,8 @@ mod tests {
     async fn test_update_job_metadata_applies_default_ttl_when_missing() {
         // Test: When updating metadata without TTL (new key), apply default 24h TTL
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -332,7 +334,8 @@ mod tests {
     async fn test_multiple_updates_preserve_ttl() {
         // Test: Multiple updates should preserve and not reset TTL
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -413,7 +416,8 @@ mod tests {
     async fn test_update_job_status_preserves_ttl() {
         // Test: update_job_status (which calls update_job_metadata) preserves TTL
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -479,6 +483,7 @@ mod tests {
     async fn test_redis_compatibility_ttl_method() {
         // Test: Verify TTL command works (Redis 3.0+ compatible)
         let pool = setup_redis_or_skip!();
+        let _test_ns = Uuid::new_v4().to_string();
         let mut conn = pool.conn();
         let test_key = format!("test:ttl:{}", Uuid::new_v4());
 
@@ -529,6 +534,7 @@ mod tests {
     async fn test_redis_pool_has_dual_connections() {
         // Test: RedisPool should successfully create both connection managers
         let pool = setup_redis_or_skip!();
+        let _test_ns = Uuid::new_v4().to_string();
 
         // Both connections should be usable independently
         let mut conn = pool.conn();
@@ -552,6 +558,7 @@ mod tests {
     async fn test_conn_and_blocking_conn_are_independent() {
         // Test: Operations on conn() and blocking_conn() should not interfere
         let pool = setup_redis_or_skip!();
+        let _test_ns = Uuid::new_v4().to_string();
         let test_key_1 = format!("test:dual:conn:{}", Uuid::new_v4());
         let test_key_2 = format!("test:dual:blocking:{}", Uuid::new_v4());
 
@@ -607,7 +614,8 @@ mod tests {
         // Test: dequeue_job should return None on timeout without blocking conn()
         // This is an integration test that proves BLPOP uses the dedicated connection.
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
 
         // Ensure the queue is empty (use a very short timeout)
         let result = queue
@@ -629,6 +637,7 @@ mod tests {
         // connection would block the concurrent SET operation.
         // After the fix, SET completes in <10ms while BLPOP waits on its own connection.
         let pool = setup_redis_or_skip!();
+        let _test_ns = Uuid::new_v4().to_string();
         let test_key = format!("test:blpop_nonblock:{}", Uuid::new_v4());
 
         // Start BLPOP on blocking_conn (will wait 2 seconds)
@@ -697,11 +706,12 @@ mod tests {
         // This simulates the real-world scenario where 6 workers run concurrently,
         // some storing results while the main loop dequeues new jobs.
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let job_id = Uuid::new_v4();
 
         // Start dequeue on a separate task (will wait 2 seconds on empty queue)
-        let queue_for_dequeue = JobQueue::new(pool.clone());
+        let queue_for_dequeue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let dequeue_handle = tokio::spawn(async move {
             let _ = queue_for_dequeue.dequeue_job(2.0).await;
         });
@@ -743,11 +753,12 @@ mod tests {
     #[tokio::test]
     async fn test_enqueue_routes_high_priority_to_high_queue() {
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
 
         let job = Job::with_priority(
@@ -772,25 +783,26 @@ mod tests {
 
         queue.enqueue_jobs(vec![job]).await.expect("enqueue should succeed");
 
-        let high_len: usize = conn.llen(QUEUE_HIGH).await.unwrap_or(0);
-        let low_len: usize = conn.llen(QUEUE_LOW).await.unwrap_or(0);
+        let high_len: usize = conn.llen(&queue.queue_high()).await.unwrap_or(0);
+        let low_len: usize = conn.llen(&queue.queue_low()).await.unwrap_or(0);
 
         assert!(high_len >= 1, "High-priority job should be in high queue");
         assert_eq!(low_len, 0, "Low queue should be empty");
 
         // Cleanup
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
     }
 
     #[tokio::test]
     async fn test_enqueue_routes_low_priority_to_low_queue() {
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
 
         let job = Job::with_priority(
@@ -812,25 +824,26 @@ mod tests {
 
         queue.enqueue_single(job).await.expect("enqueue should succeed");
 
-        let high_len: usize = conn.llen(QUEUE_HIGH).await.unwrap_or(0);
-        let low_len: usize = conn.llen(QUEUE_LOW).await.unwrap_or(0);
+        let high_len: usize = conn.llen(&queue.queue_high()).await.unwrap_or(0);
+        let low_len: usize = conn.llen(&queue.queue_low()).await.unwrap_or(0);
 
         assert_eq!(high_len, 0, "High queue should be empty");
         assert!(low_len >= 1, "Low-priority job should be in low queue");
 
         // Cleanup
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
     }
 
     #[tokio::test]
     async fn test_dequeue_serves_high_priority_first() {
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
 
         // Enqueue LOW job first
@@ -888,18 +901,19 @@ mod tests {
         );
 
         // Cleanup
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
     }
 
     #[tokio::test]
     async fn test_queue_length_sums_both_queues() {
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
 
         // Enqueue 1 high, 2 low
@@ -945,18 +959,19 @@ mod tests {
         assert_eq!(total, 3, "Total queue length should sum both queues");
 
         // Cleanup
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
     }
 
     #[tokio::test]
     async fn test_normal_priority_goes_to_high_queue() {
         let pool = setup_redis_or_skip!();
-        let queue = JobQueue::new(pool.clone());
+        let _test_ns = Uuid::new_v4().to_string();
+        let queue = JobQueue::with_namespace(pool.clone(), &_test_ns);
         let mut conn = pool.conn();
 
         // Clean up before test
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
 
         // Normal priority Job (via Job::new which defaults to Normal)
@@ -974,14 +989,14 @@ mod tests {
 
         queue.enqueue_single(job).await.unwrap();
 
-        let high_len: usize = conn.llen(QUEUE_HIGH).await.unwrap_or(0);
-        let low_len: usize = conn.llen(QUEUE_LOW).await.unwrap_or(0);
+        let high_len: usize = conn.llen(&queue.queue_high()).await.unwrap_or(0);
+        let low_len: usize = conn.llen(&queue.queue_low()).await.unwrap_or(0);
 
         assert!(high_len >= 1, "Normal priority should route to high queue");
         assert_eq!(low_len, 0, "Low queue should remain empty");
 
         // Cleanup
-        let _: () = redis::cmd("DEL").arg(QUEUE_HIGH).arg(QUEUE_LOW)
+        let _: () = redis::cmd("DEL").arg(queue.queue_high()).arg(queue.queue_low())
             .query_async(&mut conn).await.ok().unwrap_or(());
     }
 }

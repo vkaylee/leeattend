@@ -86,6 +86,9 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 3).unwrap(),
         reason: Some("Pre-approved by TeamLead".to_string()),
+        duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
+        start_time: None,
+        end_time: None,
     };
 
     let response = app
@@ -145,6 +148,9 @@ async fn test_teamlead_submit_other_dept_forbidden() {
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 3).unwrap(),
         reason: Some("Should fail".to_string()),
+        duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
+        start_time: None,
+        end_time: None,
     };
 
     let response = app
@@ -192,6 +198,9 @@ async fn test_hr_submit_stays_pending() {
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 7, 2).unwrap(),
         reason: Some("HR submit on behalf".to_string()),
+        duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
+        start_time: None,
+        end_time: None,
     };
 
     let response = app
@@ -245,6 +254,9 @@ async fn test_employee_submit_forbidden() {
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 8, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 8, 2).unwrap(),
         reason: Some("Should fail".to_string()),
+        duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
+        start_time: None,
+        end_time: None,
     };
 
     let response = app

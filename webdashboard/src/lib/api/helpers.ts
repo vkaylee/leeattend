@@ -38,6 +38,14 @@ export const clearAuthSession = () => {
   localStorage.removeItem("active_workspace_id");
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
+
+  // Call backend to clear HttpOnly cookies
+  fetch(`${API_BASE_URL}/auth/logout`, { 
+    method: "POST", 
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({})
+  }).catch(console.error);
 };
 
 function getHeaders() {
@@ -133,6 +141,7 @@ export async function apiFetch(
     const response = await fetch(fullUrl, {
       ...fetchOptions,
       headers,
+      credentials: "include", // Send HttpOnly cookies
       signal: controller.signal
     });
     clearTimeout(id);
@@ -145,6 +154,7 @@ export async function apiFetch(
           const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include", // Send HttpOnly cookies
             body: JSON.stringify({ refresh_token: refreshToken }),
           });
 
@@ -158,6 +168,7 @@ export async function apiFetch(
             const retryResponse = await fetch(fullUrl, {
               ...fetchOptions,
               headers: retryHeaders,
+              credentials: "include", // Send HttpOnly cookies
               signal: controller.signal
             });
             clearTimeout(id);

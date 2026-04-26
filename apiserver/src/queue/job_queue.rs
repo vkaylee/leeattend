@@ -37,12 +37,36 @@ const STATS_TTL_SECS: i64 = 604800; // 7 days retention
 /// Uses Redis LIST for FIFO job distribution and HASH for result storage.
 pub struct JobQueue {
     pool: RedisPool,
+    namespace: String,
 }
 
 impl JobQueue {
     /// Create a new JobQueue with the given Redis pool.
     pub fn new(pool: RedisPool) -> Self {
-        Self { pool }
+        Self { pool, namespace: "".to_string() }
+    }
+
+    /// Create a new JobQueue with a specific namespace (mainly for isolated testing).
+    pub fn with_namespace(pool: RedisPool, namespace: &str) -> Self {
+        Self { pool, namespace: namespace.to_string() }
+    }
+
+    /// Get the high priority queue key.
+    pub fn queue_high(&self) -> String {
+        if self.namespace.is_empty() {
+            QUEUE_HIGH.to_string()
+        } else {
+            format!("{}:{}", self.namespace, QUEUE_HIGH)
+        }
+    }
+
+    /// Get the low priority queue key.
+    pub fn queue_low(&self) -> String {
+        if self.namespace.is_empty() {
+            QUEUE_LOW.to_string()
+        } else {
+            format!("{}:{}", self.namespace, QUEUE_LOW)
+        }
     }
 
     /// Enqueue multiple jobs atomically using RPUSH.
@@ -63,8 +87,8 @@ impl JobQueue {
         for job in jobs {
             let json = serde_json::to_string(&job).expect("Job serialization should not fail");
             let key = match job.priority {
-                JobPriority::Low => QUEUE_LOW,
-                _ => QUEUE_HIGH,
+                JobPriority::Low => self.queue_low(),
+                _ => self.queue_high(),
             };
             tracing::debug!(job_id = %job.job_id, queue = key, "Pushing job to queue");
             let _: () = conn.rpush(key, json).await?;
@@ -78,8 +102,8 @@ impl JobQueue {
         let mut conn = self.pool.conn();
         let json = serde_json::to_string(&job).expect("Job serialization should not fail");
         let key = match job.priority {
-            JobPriority::Low => QUEUE_LOW,
-            _ => QUEUE_HIGH,
+            JobPriority::Low => self.queue_low(),
+            _ => self.queue_high(),
         };
         let _: () = conn.rpush(key, json).await?;
         Ok(())
@@ -120,8 +144,8 @@ impl JobQueue {
         // Use redis::cmd instead of blpop method to ensure correct type serialization
         // BLPOP checks keys left-to-right: high-priority queue is checked first
         let result: Option<(String, String)> = redis::cmd("BLPOP")
-            .arg(QUEUE_HIGH)
-            .arg(QUEUE_LOW)
+            .arg(self.queue_high())
+            .arg(self.queue_low())
             .arg(timeout_int)
             .query_async(&mut conn)
             .await?;
@@ -382,8 +406,8 @@ impl JobQueue {
     /// Get queue length (pending jobs count across both priority queues).
     pub async fn queue_length(&self) -> Result<usize, redis::RedisError> {
         let mut conn = self.pool.conn();
-        let high: usize = conn.llen(QUEUE_HIGH).await?;
-        let low: usize = conn.llen(QUEUE_LOW).await?;
+        let high: usize = conn.llen(self.queue_high()).await?;
+        let low: usize = conn.llen(self.queue_low()).await?;
         Ok(high + low)
     }
 

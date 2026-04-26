@@ -20,7 +20,7 @@ x-rust-test-base: &rust-test-base
     - /workspace/target/nextest
     - /workspace/target/debug/incremental
   volumes:
-    - ../:/workspace
+    - ${PROJECT_ROOT}:/workspace
     - target-cache:/workspace/target
     - ${HOME}/.cargo/registry:/usr/local/cargo/registry
     - sccache-cache:/workspace/.sccache
@@ -116,7 +116,7 @@ services:
     environment:
       - npm_config_cache=/workspace/.npm-cache
     volumes:
-      - ../:/workspace
+      - ${PROJECT_ROOT}:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
       - npm-cache:/workspace/.npm-cache
 
@@ -137,7 +137,7 @@ services:
       - /workspace/webdashboard/test-results:size=128M
       - /workspace/webdashboard/playwright-report:size=64M
     volumes:
-      - ../:/workspace
+      - ${PROJECT_ROOT}:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
       - shared-data:/workspace/shared
       - npm-cache:/workspace/.npm-cache

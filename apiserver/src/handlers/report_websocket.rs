@@ -36,7 +36,24 @@ pub async fn ws_auth_middleware(
     mut request: Request<axum::body::Body>,
     next: Next,
 ) -> Response {
-    let token = match query.token.as_deref() {
+    let mut token_opt = query.token.clone();
+
+    // If token is not in query, try to get it from cookie
+    if token_opt.is_none() {
+        if let Some(cookie_header) = request.headers().get("cookie") {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                for cookie in cookie_str.split(';') {
+                    let cookie = cookie.trim();
+                    if let Some(token) = cookie.strip_prefix("access_token=") {
+                        token_opt = Some(token.to_string());
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    let token = match token_opt.as_deref() {
         Some(t) => t,
         None => {
             return (StatusCode::UNAUTHORIZED, "Missing authentication token").into_response();

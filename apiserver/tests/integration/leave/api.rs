@@ -38,6 +38,9 @@ async fn test_leave_request_lifecycle() {
         start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
         end_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 3).unwrap(), // 3 days
         reason: Some("Vacation".to_string()),
+        duration_type: apiserver::models::enums::LeaveDurationType::FullDay,
+        start_time: None,
+        end_time: None,
     };
 
     let response = app
