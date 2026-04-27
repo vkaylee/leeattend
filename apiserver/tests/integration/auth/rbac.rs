@@ -3,7 +3,6 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::MemberRole;
 use apiserver::AppState;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -18,11 +17,11 @@ async fn test_rbac_admin_access() {
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
 
     let admin_id = factory.user().create().await;
-    factory.add_member(ws_id, admin_id, MemberRole::Admin).await;
+    factory.add_member(ws_id, admin_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap()).await;
 
     let member_id = factory.user().create().await;
     factory
-        .add_member(ws_id, member_id, MemberRole::Member)
+        .add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
         .await;
 
     // Test Admin Access to Restricted Resource (e.g. settings)

@@ -3,7 +3,6 @@
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::MemberRole;
 use reqwest::StatusCode;
 use uuid::Uuid;
 
@@ -175,7 +174,7 @@ async fn test_rbac_member_cannot_invite() {
         .create()
         .await;
     factory
-        .add_member(workspace_id, member_user_id, MemberRole::Member)
+        .add_member(workspace_id, member_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
         .await;
 
     // 3. Try to invite someone as this member
@@ -183,7 +182,7 @@ async fn test_rbac_member_cannot_invite() {
         .post(format!("{address}/api/workspaces/{workspace_id}/members"))
         .header("X-User-Id", member_user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
-        .json(&serde_json::json!({ "email": "other@test.com", "role": "admin" }))
+        .json(&serde_json::json!({ "email": "other@test.com", "role_id": "a0000000-0000-0000-0000-000000000002" }))
         .send()
         .await
         .unwrap();

@@ -3,7 +3,6 @@
 use crate::common::app::{setup_app_tower, spawn_app_with_factory};
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::MemberRole;
 use apiserver::repositories::{SqlxWorkspaceRepository, WorkspaceRepository};
 use apiserver::AppState;
 use axum::http::StatusCode;
@@ -43,7 +42,7 @@ async fn test_workspace_creation_and_membership() {
     let members: Vec<serde_json::Value> = response.json().await.unwrap();
     assert!(members
         .iter()
-        .any(|m| m["user_id"] == user_id.to_string() && m["role"] == "owner"));
+        .any(|m| m["user_id"] == user_id.to_string() && m["role_id"] == "a0000000-0000-0000-0000-000000000001"));
 }
 
 #[tokio::test]
@@ -76,7 +75,7 @@ async fn test_workspace_rbac_flow() {
     let member_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(owner_id).await;
     factory
-        .add_member(ws_id, member_id, MemberRole::Member)
+        .add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
         .await;
 
     // 1. Member tries to change roles (Forbidden)
@@ -90,7 +89,7 @@ async fn test_workspace_rbac_flow() {
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", member_id.to_string())
                 .body(axum::body::Body::from(
-                    serde_json::json!({ "role": MemberRole::Admin }).to_string(),
+                    serde_json::json!({ "role_id": uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap() }).to_string(),
                 ))
                 .unwrap(),
         )
@@ -109,7 +108,7 @@ async fn test_workspace_rbac_flow() {
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", owner_id.to_string())
                 .body(axum::body::Body::from(
-                    serde_json::json!({ "role": MemberRole::Admin }).to_string(),
+                    serde_json::json!({ "role_id": uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap() }).to_string(),
                 ))
                 .unwrap(),
         )
@@ -128,19 +127,19 @@ async fn test_workspace_repository_directly() {
     let user_id: Uuid = factory.user().create().await;
     let ws = repo.create_workspace("Test WS").await.unwrap();
 
-    repo.add_member(ws.id, user_id, MemberRole::Admin)
+    repo.add_member(ws.id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap())
         .await
         .unwrap();
 
     let role = repo.find_primary_role(ws.id, user_id).await.unwrap();
-    assert_eq!(role.unwrap(), MemberRole::Admin);
+    assert_eq!(role.unwrap(), uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap());
 
     // Update
-    repo.update_member_role(ws.id, user_id, MemberRole::Member)
+    repo.update_member_role(ws.id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
         .await
         .unwrap();
     let role = repo.find_primary_role(ws.id, user_id).await.unwrap();
-    assert_eq!(role.unwrap(), MemberRole::Member);
+    assert_eq!(role.unwrap(), uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap());
 
     // Remove
     repo.remove_member(ws.id, user_id).await.unwrap();

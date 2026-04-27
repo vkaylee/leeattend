@@ -1,4 +1,4 @@
-use apiserver::models::{LeaveStatus, MemberRole};
+use apiserver::models::LeaveStatus;
 use chrono::{DateTime, Datelike, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -213,11 +213,11 @@ impl WorkspaceBuilder {
         let pool = self.pool.clone();
         let ws_id = self.create().await;
         sqlx::query(
-            "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)",
+            "INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3)",
         )
         .bind(ws_id)
         .bind(user_id)
-        .bind(MemberRole::Owner)
+        .bind(Uuid::parse_str("a0000000-0000-0000-0000-000000000001").unwrap())
         .execute(&pool)
         .await
         .unwrap();
@@ -227,13 +227,13 @@ impl WorkspaceBuilder {
 
 impl TestFactory {
     #[allow(dead_code)]
-    pub async fn add_member(&self, ws_id: Uuid, user_id: Uuid, role: MemberRole) {
+    pub async fn add_member(&self, ws_id: Uuid, user_id: Uuid, role_id: Uuid) {
         sqlx::query(
-            "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)",
+            "INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3)",
         )
         .bind(ws_id)
         .bind(user_id)
-        .bind(role)
+        .bind(role_id)
         .execute(&self.pool)
         .await
         .unwrap();
@@ -244,13 +244,13 @@ impl TestFactory {
         &self,
         ws_id: Uuid,
         user_id: Uuid,
-        role: MemberRole,
+        role_id: Uuid,
         expires_at: DateTime<Utc>,
     ) {
-        sqlx::query("INSERT INTO member_extra_roles (workspace_id, user_id, role, expires_at) VALUES ($1, $2, $3, $4) RETURNING *")
+        sqlx::query("INSERT INTO member_extra_roles (workspace_id, user_id, role_id, expires_at) VALUES ($1, $2, $3, $4) RETURNING *")
             .bind(ws_id)
             .bind(user_id)
-            .bind(role)
+            .bind(role_id)
             .bind(expires_at)
             .execute(&self.pool)
             .await

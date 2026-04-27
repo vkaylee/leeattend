@@ -3,7 +3,6 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::MemberRole;
 use apiserver::AppState;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -174,7 +173,7 @@ async fn test_recruitment_source_rbac_member_forbidden() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, MemberRole::Member).await;
+    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let body = serde_json::json!({ "source_type": "direct", "name": "Unauthorized Source" });
     let resp = app

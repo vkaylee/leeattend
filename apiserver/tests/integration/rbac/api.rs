@@ -3,7 +3,6 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::MemberRole;
 use apiserver::AppState;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -25,7 +24,7 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
 
     // 3. Create TeamLead User and Employee in Dept A
     let tl_user_id = factory.user().create().await;
-    factory.add_member(ws_id, tl_user_id, MemberRole::TeamLead).await;
+    factory.add_member(ws_id, tl_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap()).await;
     let emp_tl = factory.employee().with_workspace(ws_id).with_user(tl_user_id).create().await;
 
     sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)")
@@ -68,7 +67,7 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
 
     // 6. Create Admin User (global scope)
     let admin_user_id = factory.user().create().await;
-    factory.add_member(ws_id, admin_user_id, MemberRole::Admin).await;
+    factory.add_member(ws_id, admin_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap()).await;
 
     // 7. Try to update Employee B using Admin (Should succeed -> 200 OK)
     // First we grant Admin HrManager powers to update employees (Wait, looking at role_permissions, Admin inherits HrManager which has EmployeesUpdate)
@@ -100,7 +99,7 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
     let ws_id: Uuid = factory.workspace().create_with_owner(admin_user_id).await; // Owner has members:roles:manage
 
     let target_user_id = factory.user().create().await;
-    factory.add_member(ws_id, target_user_id, MemberRole::Employee).await;
+    factory.add_member(ws_id, target_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     // 2. Grant temporary permission
     let future_date = chrono::Utc::now() + chrono::Duration::days(1);

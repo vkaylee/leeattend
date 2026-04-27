@@ -3,7 +3,6 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::MemberRole;
 use apiserver::AppState;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -200,7 +199,7 @@ async fn test_leave_type_rbac_member_forbidden() {
 
     // Create a member without LeaveTypesManage permission
     let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, MemberRole::Member).await;
+    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     // Member tries to create a leave type — should get 403
     let create_body = serde_json::json!({

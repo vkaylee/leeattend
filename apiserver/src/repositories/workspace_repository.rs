@@ -1,4 +1,4 @@
-use crate::models::{MemberExtraRole, MemberRole, Workspace};
+use crate::models::{MemberExtraRole, Workspace};
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -21,20 +21,20 @@ pub trait WorkspaceRepository: super::PoolBacked + Send + Sync {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-        role: MemberRole,
+        role_id: Uuid,
     ) -> Result<(), String>;
     async fn update_member_role(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-        role: MemberRole,
+        role_id: Uuid,
     ) -> Result<(), String>;
     async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), String>;
     async fn find_primary_role(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<MemberRole>, String>;
+    ) -> Result<Option<Uuid>, String>;
     async fn find_extra_roles(
         &self,
         workspace_id: Uuid,
@@ -86,15 +86,15 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-        role: MemberRole,
+        role_id: Uuid,
     ) -> Result<(), String> {
         sqlx::query(
-            "INSERT INTO workspace_members (workspace_id, user_id, role) 
+            "INSERT INTO workspace_members (workspace_id, user_id, role_id) 
              VALUES ($1, $2, $3)",
         )
         .bind(workspace_id)
         .bind(user_id)
-        .bind(role)
+        .bind(role_id)
         .execute(&self.pool)
         .await
         .map_err(|e| e.to_string())?;
@@ -106,12 +106,12 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-        role: MemberRole,
+        role_id: Uuid,
     ) -> Result<(), String> {
         sqlx::query(
-            "UPDATE workspace_members SET role = $1 WHERE workspace_id = $2 AND user_id = $3",
+            "UPDATE workspace_members SET role_id = $1 WHERE workspace_id = $2 AND user_id = $3",
         )
-        .bind(role)
+        .bind(role_id)
         .bind(workspace_id)
         .bind(user_id)
         .execute(&self.pool)
@@ -136,9 +136,9 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<MemberRole>, String> {
-        let row: Option<(MemberRole,)> = sqlx::query_as(
-            "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
+    ) -> Result<Option<Uuid>, String> {
+        let row: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT role_id FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
         )
         .bind(workspace_id)
         .bind(user_id)

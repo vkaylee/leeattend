@@ -3,7 +3,6 @@
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::MemberRole;
 use reqwest::StatusCode;
 use uuid::Uuid;
 
@@ -113,7 +112,7 @@ async fn test_department_rbac() {
     // Create a regular member
     let member_id: Uuid = factory.user().create().await;
     factory
-        .add_member(workspace_id, member_id, MemberRole::Member)
+        .add_member(workspace_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
         .await;
 
     // Member tries to create a department - should fail

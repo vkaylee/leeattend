@@ -3,7 +3,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{LeaveRequest, LeaveStatus, MemberRole, SubmitLeaveRequest};
+use apiserver::models::{LeaveRequest, LeaveStatus, SubmitLeaveRequest};
 use apiserver::AppState;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -62,7 +62,7 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
 
     // TeamLead user + employee record in same department
     let tl_user_id = factory.user().with_email("teamlead@test.com").create().await;
-    factory.add_member(ws_id, tl_user_id, MemberRole::TeamLead).await;
+    factory.add_member(ws_id, tl_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap()).await;
     let tl_emp_id = factory.employee().with_workspace(ws_id).with_user(tl_user_id).create().await;
     assign_to_department(&factory.pool, tl_emp_id, dept_id).await;
 
@@ -126,7 +126,7 @@ async fn test_teamlead_submit_other_dept_forbidden() {
 
     // TeamLead in Engineering
     let tl_user_id = factory.user().with_email("tl_eng@test.com").create().await;
-    factory.add_member(ws_id, tl_user_id, MemberRole::TeamLead).await;
+    factory.add_member(ws_id, tl_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap()).await;
     let tl_emp_id = factory.employee().with_workspace(ws_id).with_user(tl_user_id).create().await;
     assign_to_department(&factory.pool, tl_emp_id, dept_eng).await;
 
@@ -180,7 +180,7 @@ async fn test_hr_submit_stays_pending() {
 
     // HR Manager (global scope — managed_department_ids = None)
     let hr_user_id = factory.user().with_email("hr@test.com").create().await;
-    factory.add_member(ws_id, hr_user_id, MemberRole::HrManager).await;
+    factory.add_member(ws_id, hr_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000003").unwrap()).await;
 
     let emp_id = factory.employee().with_workspace(ws_id).with_full_name("Tran Van C").create().await;
 
@@ -236,7 +236,7 @@ async fn test_employee_submit_forbidden() {
 
     // Regular member (no LeaveRequestsSubmit permission)
     let member_user_id = factory.user().with_email("member@test.com").create().await;
-    factory.add_member(ws_id, member_user_id, MemberRole::Member).await;
+    factory.add_member(ws_id, member_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 

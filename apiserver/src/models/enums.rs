@@ -1,29 +1,9 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    sqlx::Type,
-    strum_macros::Display,
-    ToSchema,
-)]
-#[sqlx(type_name = "member_role_type", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-pub enum MemberRole {
-    Owner,
-    Admin,
-    HrManager,
-    ShiftManager,
-    TeamLead,
-    Member,
-    Employee,
-}
+
+
+
 
 #[derive(
     Debug,
@@ -259,26 +239,6 @@ pub enum RecruitmentSourceType {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_member_role_serde_roundtrip() {
-        let roles = vec![
-            MemberRole::Owner, MemberRole::Admin, MemberRole::HrManager,
-            MemberRole::ShiftManager, MemberRole::TeamLead, MemberRole::Member,
-            MemberRole::Employee,
-        ];
-        for role in roles {
-            let json = serde_json::to_string(&role).unwrap();
-            let back: MemberRole = serde_json::from_str(&json).unwrap();
-            assert_eq!(role, back);
-        }
-    }
-
-    #[test]
-    fn test_member_role_display() {
-        assert_eq!(MemberRole::Owner.to_string(), "Owner");
-        assert_eq!(MemberRole::Admin.to_string(), "Admin");
-        assert_eq!(MemberRole::HrManager.to_string(), "HrManager");
-    }
 
     #[test]
     fn test_leave_status_serde_roundtrip() {
@@ -424,16 +384,7 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_member_role_json_format() {
-        // Verify snake_case serialization from #[serde(rename_all = "snake_case")]
-        let json = serde_json::to_string(&MemberRole::HrManager).unwrap();
-        assert_eq!(json, "\"hr_manager\"");
-        let json = serde_json::to_string(&MemberRole::ShiftManager).unwrap();
-        assert_eq!(json, "\"shift_manager\"");
-        let json = serde_json::to_string(&MemberRole::TeamLead).unwrap();
-        assert_eq!(json, "\"team_lead\"");
-    }
+
 
     #[test]
     fn test_leave_status_json_format() {

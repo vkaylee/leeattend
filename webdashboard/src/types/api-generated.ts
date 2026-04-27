@@ -124,8 +124,6 @@ export interface components {
         LeaveTransactionType: "accrual" | "usage" | "adjustment" | "carry_over";
         /** @enum {string} */
         LogSource: "device" | "import" | "manual";
-        /** @enum {string} */
-        MemberRole: "owner" | "admin" | "hr_manager" | "shift_manager" | "team_lead" | "member" | "employee";
         UpdateDeviceRequest: {
             brand?: string | null;
             ip?: string | null;

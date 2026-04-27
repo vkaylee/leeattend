@@ -75,6 +75,18 @@ pub fn router() -> Router<Arc<AppState>> {
             delete(handlers::revoke_extra_permission),
         )
         .route(
+            "/workspaces/:ws_id/roles",
+            get(handlers::get_workspace_roles).post(handlers::create_workspace_role),
+        )
+        .route(
+            "/workspaces/:ws_id/roles/:role_id",
+            put(handlers::update_workspace_role).delete(handlers::delete_workspace_role),
+        )
+        .route(
+            "/workspaces/:ws_id/roles/:role_id/permissions",
+            get(handlers::get_role_permissions).put(handlers::update_role_permissions),
+        )
+        .route(
             "/workspaces/:ws_id/permissions/available",
             get(handlers::get_available_permissions),
         )

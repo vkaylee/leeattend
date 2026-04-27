@@ -180,7 +180,7 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 8. Authorized Agents (READ)
-    if (pathname.match(/\/api\/(authorized-)?agents(\/|$)/) && !pathname.match(/\/api\/agents\/status/)) {
+    if (pathname.match(/\/api\/authorized-agents(\/|$)/)) {
       if (method === 'GET') {
         const mockAgents = MOCK_AGENTS.map(a => ({
           ...a,
@@ -190,14 +190,16 @@ export async function setupApiMocks(page: Page) {
         console.log(`[MOCK API] Fulfilling agents list with ${mockAgents.length} items`);
         return fulfill(mockAgents);
       }
-      // POST agent command
       if (method === 'POST') {
-        return fulfill({ success: true });
+        return fulfill({ success: true }, 201);
+      }
+      if (method === 'PATCH' || method === 'PUT') {
+        return fulfill(MOCK_AGENTS[0]);
       }
     }
 
     // 9. Agent Status (realtime polling)
-    if (pathname.match(/\/api\/agents\/status/)) {
+    if (pathname.match(/\/api\/agents(\/|$)/) || pathname.match(/\/api\/agents\/status/)) {
       return fulfill([
         {
           agent_id: "agent-mock-1",

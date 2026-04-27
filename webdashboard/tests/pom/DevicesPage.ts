@@ -6,9 +6,8 @@ export class DevicesPage extends BasePage {
     super(page);
   }
   async goto() {
-    // Use sidebar to navigate — this is more stable for React state
-    await this.page.getByTestId('sidebar-section-system').click();
-    await this.page.getByTestId('sidebar-link-settings-connectivity').click();
+    await this.page.goto('/workspace/settings/connectivity');
+    await this.page.waitForURL('**/settings/connectivity', { timeout: 30000 });
     await this.waitForLoad();
   }
 
@@ -26,6 +25,12 @@ export class DevicesPage extends BasePage {
     // 3. Wait for the Global Add Device button
     const globalAddBtn = this.page.getByTestId('global-add-device-btn');
     await expect(globalAddBtn).toBeVisible({ timeout: 15000 });
+
+    // 4. Ensure accordions are expanded so devices are visible
+    const expandBtn = this.page.getByTestId('expand-all-btn');
+    if (await expandBtn.isVisible()) {
+      await expandBtn.click();
+    }
   }
 
   // ---------- Add/Edit form ----------

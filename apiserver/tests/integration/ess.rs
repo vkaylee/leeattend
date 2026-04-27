@@ -70,7 +70,7 @@ async fn test_ess_get_profile() {
     let (user_id, _emp_id) = create_employee_user(&factory, &test_db, ws_id, "ess@example.com").await;
 
     // Also need to add user as workspace member
-    factory.add_member(ws_id, user_id, apiserver::models::MemberRole::Member).await;
+    factory.add_member(ws_id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let resp = app
         .clone()
@@ -90,7 +90,7 @@ async fn test_ess_emergency_contacts_crud() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let (user_id, _emp_id) = create_employee_user(&factory, &test_db, ws_id, "contacts@example.com").await;
-    factory.add_member(ws_id, user_id, apiserver::models::MemberRole::Member).await;
+    factory.add_member(ws_id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     // 1. Get contacts (empty)
     let resp = app
@@ -156,7 +156,7 @@ async fn test_ess_get_documents_empty() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, "docs@example.com").await;
-    factory.add_member(ws_id, user_id, apiserver::models::MemberRole::Member).await;
+    factory.add_member(ws_id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let resp = app
         .clone()
@@ -174,7 +174,7 @@ async fn test_ess_get_payslips_empty() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, "payslips@example.com").await;
-    factory.add_member(ws_id, user_id, apiserver::models::MemberRole::Member).await;
+    factory.add_member(ws_id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let resp = app
         .clone()
@@ -192,7 +192,7 @@ async fn test_ess_get_attendance_empty() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, "att@example.com").await;
-    factory.add_member(ws_id, user_id, apiserver::models::MemberRole::Member).await;
+    factory.add_member(ws_id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let resp = app
         .clone()
@@ -216,7 +216,7 @@ async fn test_ess_get_leave_balances() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, "leave@example.com").await;
-    factory.add_member(ws_id, user_id, apiserver::models::MemberRole::Member).await;
+    factory.add_member(ws_id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let resp = app
         .clone()
@@ -234,7 +234,7 @@ async fn test_ess_get_leave_requests_empty() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, "lr@example.com").await;
-    factory.add_member(ws_id, user_id, apiserver::models::MemberRole::Member).await;
+    factory.add_member(ws_id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let resp = app
         .clone()
@@ -252,7 +252,7 @@ async fn test_ess_get_shift_swaps_empty() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, "swaps@example.com").await;
-    factory.add_member(ws_id, user_id, apiserver::models::MemberRole::Member).await;
+    factory.add_member(ws_id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let resp = app
         .clone()
@@ -272,7 +272,7 @@ async fn test_ess_no_employee_record_returns_forbidden() {
 
     // User without employee record
     let user_id = factory.user().with_email("noemp@example.com").create().await;
-    factory.add_member(ws_id, user_id, apiserver::models::MemberRole::Member).await;
+    factory.add_member(ws_id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let resp = app
         .clone()

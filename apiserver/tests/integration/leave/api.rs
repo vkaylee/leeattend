@@ -65,7 +65,7 @@ async fn test_leave_request_lifecycle() {
         .await
         .unwrap();
     let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
-    assert_eq!(leave_req.status, LeaveStatus::Pending);
+    assert_eq!(leave_req.status, LeaveStatus::PreApproved);
 
     // 3. Approve Request
     let approve_req = ApproveLeaveRequest {

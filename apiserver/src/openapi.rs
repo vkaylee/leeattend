@@ -17,13 +17,12 @@ use utoipa::OpenApi;
             DeviceStatus,
             GenericResponse,
             WorkspaceStats,
-            MemberRole,
+            EarlyArrivalStrategy,
             LeaveStatus,
             AdjustmentStatus,
             LogSource,
             ImportJobStatus,
-            LeaveTransactionType,
-            EarlyArrivalStrategy
+            LeaveTransactionType
         )
     ),
     tags(

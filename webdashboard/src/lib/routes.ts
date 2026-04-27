@@ -49,9 +49,13 @@ export const ROUTES = {
   ESS_ATTENDANCE: "/ess/attendance",
   ESS_CLOCK: "/ess/clock",
 
-  // Workspace Settings
+  // Workspace Settings (Unified Control Panel)
   SETTINGS: {
     ROOT: "/workspace/settings",
+    OVERVIEW: "/workspace/settings/overview",
+    MEMBERS: "/workspace/settings/members",
+    ROLES: "/workspace/settings/roles",
+    PERMISSIONS: "/workspace/settings/permissions",
     GENERAL: "/workspace/settings/general",
     PEOPLE: "/workspace/settings/people",
     TIME: "/workspace/settings/time",
@@ -60,5 +64,7 @@ export const ROUTES = {
     HOLIDAYS: "/workspace/settings/holidays",
     CONNECTIVITY: "/workspace/settings/connectivity",
     AUDIT_LOGS: "/workspace/settings/audit-logs",
+    BILLING: "/workspace/settings/billing",
+    DANGER: "/workspace/settings/danger",
   },
 } as const;

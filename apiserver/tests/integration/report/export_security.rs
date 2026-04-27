@@ -5,7 +5,6 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::MemberRole;
 use apiserver::AppState;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -22,7 +21,7 @@ async fn test_create_export_job_requires_admin_role() {
 
     let member_id = factory.user().with_email("member@test.com").create().await;
     factory
-        .add_member(ws_id, member_id, MemberRole::Member)
+        .add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
         .await;
 
     let body = serde_json::json!({

@@ -2,7 +2,7 @@ use sqlx::PgPool;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::models::MemberRole;
+
 
 pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
     info!("Ensuring dev data exists...");
@@ -51,17 +51,20 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
+    #[allow(clippy::expect_used)]
+    let owner_role_id = Uuid::parse_str("a0000000-0000-0000-0000-000000000001").expect("valid uuid");
+
     // 3. Upsert Membership
     sqlx::query(
         r#"
-        INSERT INTO workspace_members (workspace_id, user_id, role)
+        INSERT INTO workspace_members (workspace_id, user_id, role_id)
         VALUES ($1, $2, $3)
         ON CONFLICT (workspace_id, user_id) DO NOTHING
         "#,
     )
     .bind(workspace_id)
     .bind(admin_user_id)
-    .bind(MemberRole::Owner)
+    .bind(owner_role_id)
     .execute(pool)
     .await?;
 

@@ -5,7 +5,6 @@
 
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
-use apiserver::models::MemberRole;
 use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
 use std::sync::Arc;
@@ -293,7 +292,7 @@ pub async fn spawn_app_with_member() -> (String, Uuid, Uuid, Uuid, TestFactory, 
         .create()
         .await;
     factory
-        .add_member(workspace_id, member_id, MemberRole::Member)
+        .add_member(workspace_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
         .await;
 
     (address, workspace_id, owner_id, member_id, factory, test_db)

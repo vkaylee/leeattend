@@ -16,7 +16,7 @@ use crate::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateMemberRoleRequest {
-    pub role: crate::models::MemberRole,
+    pub role_id: Uuid,
 }
 
 pub async fn get_workspace_members(
@@ -24,7 +24,7 @@ pub async fn get_workspace_members(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<WorkspaceMemberDetail>>> {
     let members = sqlx::query_as::<_, WorkspaceMemberDetail>(
-        "SELECT wm.workspace_id, wm.user_id, wm.role, u.email, u.full_name, u.avatar_url
+        "SELECT wm.workspace_id, wm.user_id, wm.role_id, u.email, u.full_name, u.avatar_url
          FROM workspace_members wm
          JOIN users u ON wm.user_id = u.id
          WHERE wm.workspace_id = $1",
@@ -52,11 +52,11 @@ pub async fn add_workspace_member(
 
     // 3. Add to workspace
     sqlx::query(
-        "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+        "INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
     )
     .bind(ctx.workspace_id)
     .bind(user_id)
-    .bind(req.role)
+    .bind(req.role_id)
     .execute(state.infra.db.api())
     .await?;
 
@@ -67,7 +67,7 @@ pub async fn add_workspace_member(
         Some(user_id),
         None,
         "add_member",
-        Some(serde_json::json!({ "role": req.role })),
+        Some(serde_json::json!({ "role_id": req.role_id })),
         &headers,
     )
     .await;
@@ -86,7 +86,7 @@ pub async fn update_workspace_member_role(
 
     state
         .core.workspace_repo
-        .update_member_role(ctx.workspace_id, user_id, req.role)
+        .update_member_role(ctx.workspace_id, user_id, req.role_id)
         .await
         .map_err(AppError::from)?;
 
@@ -97,7 +97,7 @@ pub async fn update_workspace_member_role(
         Some(user_id),
         None,
         "update_member_role",
-        Some(serde_json::json!({ "new_role": req.role })),
+        Some(serde_json::json!({ "new_role_id": req.role_id })),
         &headers,
     )
     .await;

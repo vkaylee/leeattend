@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use sqlx::postgres::PgPoolOptions;
 
 #[tokio::test]

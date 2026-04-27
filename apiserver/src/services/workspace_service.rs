@@ -1,4 +1,4 @@
-use crate::models::{MemberExtraRole, MemberRole, Workspace};
+use crate::models::{MemberExtraRole, Workspace};
 use crate::repositories::WorkspaceRepository;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -40,12 +40,15 @@ impl WorkspaceService {
                 .await
                 .map_err(|e| e.to_string())?;
 
+        let owner_role_id = Uuid::parse_str("a0000000-0000-0000-0000-000000000001")
+            .map_err(|e| e.to_string())?;
+
         sqlx::query(
-            "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)",
+        "INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3)",
         )
         .bind(workspace.id)
         .bind(owner_id)
-        .bind(MemberRole::Owner)
+        .bind(owner_role_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
@@ -83,15 +86,15 @@ impl WorkspaceService {
         repo: &dyn WorkspaceRepository,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<(MemberRole, Vec<MemberExtraRole>), String> {
-        let primary_role = repo
+    ) -> Result<(Uuid, Vec<MemberExtraRole>), String> {
+        let primary_role_id = repo
             .find_primary_role(workspace_id, user_id)
             .await?
             .ok_or("NOT_FOUND".to_string())?;
 
         let extra_roles = repo.find_extra_roles(workspace_id, user_id).await?;
 
-        Ok((primary_role, extra_roles))
+        Ok((primary_role_id, extra_roles))
     }
 
     #[allow(clippy::too_many_arguments)]

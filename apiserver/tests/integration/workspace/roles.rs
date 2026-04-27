@@ -3,7 +3,7 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::MemberRole;
+
 use apiserver::AppState;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -41,6 +41,59 @@ async fn body_json(resp: axum::http::Response<axum::body::Body>) -> serde_json::
 }
 
 #[tokio::test]
+async fn test_system_roles_are_seeded_with_permissions() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+
+    // 1. Get workspace roles to find the 'owner' role
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let roles = body_json(resp).await;
+    
+    // Find owner role
+    let owner_role = roles.as_array().unwrap().iter().find(|r| r["name"] == "owner").expect("Owner role must exist");
+    assert_eq!(owner_role["is_system"], true);
+    
+    let role_id = owner_role["id"].as_str().unwrap();
+
+    // 2. Get permissions for the owner role
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/roles/{role_id}/permissions"),
+            ws_id,
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let permissions = body_json(resp).await;
+    let perms_array = permissions.as_array().unwrap();
+    
+    // 3. Verify it has ess:profile and feature_flags:read (added in the latest migration)
+    let perm_names: Vec<&str> = perms_array.iter().map(|p| p.as_str().unwrap()).collect();
+    
+    assert!(perm_names.contains(&"ess:profile"), "Owner should have ess:profile");
+    assert!(perm_names.contains(&"feature_flags:read"), "Owner should have feature_flags:read");
+    assert!(perm_names.len() >= 67, "Owner should have all core permissions");
+}
+
+#[tokio::test]
 async fn test_extra_role_assign_and_revoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
@@ -50,7 +103,7 @@ async fn test_extra_role_assign_and_revoke() {
 
     // Create member
     let member_id = factory.user().with_email("staff@example.com").create().await;
-    factory.add_member(ws_id, member_id, MemberRole::Member).await;
+    factory.add_member(ws_id, member_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     // 1. Get member roles (should have primary only)
     let resp = app
@@ -71,7 +124,7 @@ async fn test_extra_role_assign_and_revoke() {
     // 2. Assign extra role (TeamLead, expires in 1 hour)
     let expires_at = chrono::Utc::now() + chrono::Duration::hours(1);
     let assign_body = serde_json::json!({
-        "role": "team_lead",
+        "role_id": "a0000000-0000-0000-0000-000000000005",
         "expires_at": expires_at.to_rfc3339()
     });
 
@@ -130,12 +183,12 @@ async fn test_assign_role_expired_returns_validation_error() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     let member_id = factory.user().with_email("staff2@example.com").create().await;
-    factory.add_member(ws_id, member_id, MemberRole::Member).await;
+    factory.add_member(ws_id, member_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     // Try to assign with expired time
     let expired = chrono::Utc::now() - chrono::Duration::hours(1);
     let body = serde_json::json!({
-        "role": "hr_manager",
+        "role_id": "a0000000-0000-0000-0000-000000000003",
         "expires_at": expired.to_rfc3339()
     });
 
@@ -163,13 +216,13 @@ async fn test_assign_role_rbac_member_forbidden() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, MemberRole::Member).await;
+    factory.add_member(ws_id, member_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let target_id = factory.user().with_email("target@example.com").create().await;
-    factory.add_member(ws_id, target_id, MemberRole::Member).await;
+    factory.add_member(ws_id, target_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
 
     let body = serde_json::json!({
-        "role": "hr_manager",
+        "role_id": "a0000000-0000-0000-0000-000000000003",
         "expires_at": (chrono::Utc::now() + chrono::Duration::hours(1)).to_rfc3339()
     });
 

@@ -69,8 +69,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     {
       section: "org", sectionIcon: Folder, label: t("common.sections.organization"), testId: "sidebar-section-org", items: [
         { to: ROUTES.EMPLOYEES, icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees" },
-        { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments" },
-        { to: ROUTES.MEMBERS, icon: Users, label: t("members.title"), testId: "sidebar-link-members" }
+        { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments" }
       ]
     },
     {
@@ -93,14 +92,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     {
       section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
         { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor" },
-        { to: ROUTES.SETTINGS.GENERAL, icon: Globe, label: t("settings.categories.general"), testId: "sidebar-link-settings-general" },
-        { to: ROUTES.SETTINGS.PEOPLE, icon: UserCog, label: t("settings.categories.people"), testId: "sidebar-link-settings-people" },
-        { to: ROUTES.SETTINGS.TIME, icon: TimerIcon, label: t("settings.categories.time"), testId: "sidebar-link-settings-time" },
-        { to: ROUTES.SETTINGS.PAYROLL, icon: Banknote, label: t("settings.categories.payroll"), testId: "sidebar-link-settings-payroll" },
-        { to: ROUTES.SETTINGS.LEAVE, icon: CalendarDays, label: t("settings.categories.leave"), testId: "sidebar-link-settings-leave" },
-        { to: ROUTES.SETTINGS.HOLIDAYS, icon: Palmtree, label: "Holidays", testId: "sidebar-link-settings-holidays" },
-        { to: ROUTES.SETTINGS.CONNECTIVITY, icon: Share2, label: t("settings.categories.connectivity"), testId: "sidebar-link-settings-connectivity" },
-        { to: ROUTES.SETTINGS.AUDIT_LOGS, icon: ShieldCheck, label: "Audit Logs", testId: "sidebar-link-settings-audit-logs" }
+        { to: ROUTES.SETTINGS.ROOT, icon: Settings, label: t("settings.title"), testId: "sidebar-link-settings-root" }
       ]
     },
     {

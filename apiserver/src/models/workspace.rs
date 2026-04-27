@@ -3,7 +3,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::enums::{EarlyArrivalStrategy, MemberRole};
+use crate::models::enums::EarlyArrivalStrategy;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyRules {
@@ -78,13 +78,13 @@ pub struct UpdateWorkspaceRequest {
 pub struct WorkspaceMember {
     pub workspace_id: Uuid,
     pub user_id: Uuid,
-    pub role: MemberRole,
+    pub role_id: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AddMemberRequest {
     pub email: String,
-    pub role: MemberRole,
+    pub role_id: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
@@ -92,14 +92,14 @@ pub struct MemberExtraRole {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub user_id: Uuid,
-    pub role: MemberRole,
+    pub role_id: Uuid,
     pub assigned_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AssignRoleRequest {
-    pub role: MemberRole,
+    pub role_id: Uuid,
     pub expires_at: DateTime<Utc>,
 }
 
@@ -107,7 +107,7 @@ pub struct AssignRoleRequest {
 pub struct WorkspaceMemberDetail {
     pub workspace_id: Uuid,
     pub user_id: Uuid,
-    pub role: MemberRole,
+    pub role_id: Uuid,
     pub email: String,
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
@@ -128,4 +128,22 @@ pub struct MemberExtraPermission {
 pub struct AssignPermissionRequest {
     pub permission: String,
     pub expires_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct WorkspaceRole {
+    pub id: Uuid,
+    pub workspace_id: Option<Uuid>,
+    pub name: String,
+    pub description: Option<String>,
+    pub color: String,
+    pub is_system: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct WorkspaceRolePermission {
+    pub role_id: Uuid,
+    pub permission_name: String,
 }

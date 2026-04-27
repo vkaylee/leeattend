@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::domain::permissions::{self, Permission};
 use crate::errors::{AppError, AppResult};
-use crate::models::{GenericResponse, MemberRole};
+use crate::models::GenericResponse;
 use crate::{AppState, UserId};
 use axum::{
     async_trait,
@@ -60,15 +60,15 @@ where
 pub struct MemberContext {
     pub user_id: Uuid,
     pub workspace_id: Uuid,
-    pub roles: Vec<MemberRole>,
+    pub roles: Vec<Uuid>,
     pub permissions: HashSet<Permission>,
     /// None = global scope (Admin/Owner/etc). Some = restricted to specific departments.
     pub managed_department_ids: Option<HashSet<Uuid>>,
 }
 
 impl MemberContext {
-    pub fn has_role(&self, role: MemberRole) -> bool {
-        self.roles.contains(&role)
+    pub fn has_role(&self, role_id: Uuid) -> bool {
+        self.roles.contains(&role_id)
     }
 
     /// Check whether this member has a specific permission.
@@ -112,11 +112,6 @@ impl MemberContext {
             "Permission denied: Target is outside your managed departments scope.".to_string(),
         ))
     }
-
-    /// Backward-compatible check. Prefer `has_permission()` for new code.
-    pub fn is_admin_or_owner(&self) -> bool {
-        self.has_role(MemberRole::Admin) || self.has_role(MemberRole::Owner)
-    }
 }
 
 #[async_trait]
@@ -148,16 +143,29 @@ where
             .await
             .map_err(AppError::from)?;
 
-        let mut roles: Vec<MemberRole> = all_extra_roles
+        let mut roles: Vec<Uuid> = all_extra_roles
             .into_iter()
             .filter(|r| r.expires_at > chrono::Utc::now())
-            .map(|r| r.role)
+            .map(|r| r.role_id)
             .collect();
 
         roles.push(primary_role);
 
-        // Compute effective permissions from all roles
-        let mut permissions = permissions::effective_permissions(&roles);
+        // Compute effective permissions from all roles via DB
+        let db_perms = sqlx::query_scalar::<_, String>(
+            "SELECT permission_name FROM workspace_role_permissions WHERE role_id = ANY($1)"
+        )
+        .bind(&roles)
+        .fetch_all(app_state.infra.db.api())
+        .await
+        .map_err(AppError::from)?;
+
+        let mut permissions = HashSet::new();
+        for perm_str in db_perms {
+            if let Some(perm) = permissions::Permission::from_str_permission(&perm_str) {
+                permissions.insert(perm);
+            }
+        }
 
         // 3. Fetch Active Extra Permissions (individual overrides)
         let extra_perms = app_state
@@ -174,9 +182,13 @@ where
         }
 
         // 4. Determine Scope (Managed Departments)
-        let is_global_manager = roles.iter().any(|r| {
-            matches!(r, MemberRole::Owner | MemberRole::Admin | MemberRole::HrManager | MemberRole::ShiftManager)
-        });
+        let is_global_manager = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = ANY($1) AND is_system = true AND name IN ('owner', 'admin', 'hr_manager', 'shift_manager'))"
+        )
+        .bind(&roles)
+        .fetch_one(app_state.infra.db.api())
+        .await
+        .unwrap_or(false);
 
         let managed_department_ids = if is_global_manager {
             None
@@ -281,7 +293,7 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
-    fn make_ctx(roles: Vec<MemberRole>, perms: HashSet<Permission>, managed: Option<HashSet<Uuid>>) -> MemberContext {
+    fn make_ctx(roles: Vec<Uuid>, perms: HashSet<Permission>, managed: Option<HashSet<Uuid>>) -> MemberContext {
         MemberContext {
             user_id: Uuid::new_v4(),
             workspace_id: Uuid::new_v4(),
@@ -293,27 +305,30 @@ mod tests {
 
     #[test]
     fn test_has_role_present() {
-        let ctx = make_ctx(vec![MemberRole::Admin], HashSet::new(), None);
-        assert!(ctx.has_role(MemberRole::Admin));
+        let role = Uuid::new_v4();
+        let ctx = make_ctx(vec![role], HashSet::new(), None);
+        assert!(ctx.has_role(role));
     }
 
     #[test]
     fn test_has_role_absent() {
-        let ctx = make_ctx(vec![MemberRole::Member], HashSet::new(), None);
-        assert!(!ctx.has_role(MemberRole::Admin));
+        let role1 = Uuid::new_v4();
+        let role2 = Uuid::new_v4();
+        let ctx = make_ctx(vec![role1], HashSet::new(), None);
+        assert!(!ctx.has_role(role2));
     }
 
     #[test]
     fn test_has_permission_present() {
         let mut perms = HashSet::new();
         perms.insert(Permission::EmployeesRead);
-        let ctx = make_ctx(vec![MemberRole::Member], perms, None);
+        let ctx = make_ctx(vec![], perms, None);
         assert!(ctx.has_permission(Permission::EmployeesRead));
     }
 
     #[test]
     fn test_has_permission_absent() {
-        let ctx = make_ctx(vec![MemberRole::Member], HashSet::new(), None);
+        let ctx = make_ctx(vec![], HashSet::new(), None);
         assert!(!ctx.has_permission(Permission::PayrollCalculate));
     }
 
@@ -371,21 +386,5 @@ mod tests {
         let ctx = make_ctx(vec![], perms, Some(managed));
         // target_department_id = None with scoped permissions → Forbidden
         assert!(ctx.require_scoped_permission(Permission::EmployeesRead, None).is_err());
-    }
-
-    #[test]
-    fn test_is_admin_or_owner_true() {
-        let ctx_admin = make_ctx(vec![MemberRole::Admin], HashSet::new(), None);
-        assert!(ctx_admin.is_admin_or_owner());
-        let ctx_owner = make_ctx(vec![MemberRole::Owner], HashSet::new(), None);
-        assert!(ctx_owner.is_admin_or_owner());
-    }
-
-    #[test]
-    fn test_is_admin_or_owner_false() {
-        for role in [MemberRole::HrManager, MemberRole::ShiftManager, MemberRole::TeamLead, MemberRole::Member, MemberRole::Employee] {
-            let ctx = make_ctx(vec![role], HashSet::new(), None);
-            assert!(!ctx.is_admin_or_owner(), "Expected false for role {:?}", role);
-        }
     }
 }
