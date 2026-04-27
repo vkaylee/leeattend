@@ -86,7 +86,7 @@ const FormField = React.memo(function FormField({
           onChange={onChange as React.ChangeEventHandler<HTMLInputElement>}
           className={cn(
             INPUT_BASE,
-            "font-bold text-sm uppercase tracking-tight",
+            "font-medium text-sm",
             inputClassName,
           )}
         />

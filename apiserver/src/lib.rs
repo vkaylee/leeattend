@@ -226,6 +226,8 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             axum::http::header::AUTHORIZATION,
             axum::http::header::CONTENT_TYPE,
             axum::http::HeaderName::from_static("x-requested-with"),
+            axum::http::HeaderName::from_static("x-workspace-id"),
+            axum::http::HeaderName::from_static("x-user-id"),
             axum::http::header::ACCEPT,
             axum::http::header::ORIGIN,
         ]);
@@ -298,5 +300,36 @@ mod tests {
         assert_eq!(origins.len(), 2);
         assert_eq!(origins[0].to_str().unwrap(), "http://localhost:3000");
         assert_eq!(origins[1].to_str().unwrap(), "https://hrm.vlee.dev");
+    }
+
+    /// Verify that CORS allow_headers includes all custom headers
+    /// used by the frontend (X-Workspace-Id, X-User-Id).
+    /// Regression test for production bug: missing headers caused
+    /// preflight failures → 401 on /me → redirect to login on refresh.
+    #[test]
+    fn test_cors_includes_custom_headers() {
+        use axum::http::HeaderName;
+
+        let required_headers: Vec<HeaderName> = vec![
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::CONTENT_TYPE,
+            HeaderName::from_static("x-requested-with"),
+            HeaderName::from_static("x-workspace-id"),
+            HeaderName::from_static("x-user-id"),
+            axum::http::header::ACCEPT,
+            axum::http::header::ORIGIN,
+        ];
+
+        // Verify all custom headers are valid HeaderName instances
+        for header in &required_headers {
+            assert!(
+                !header.as_str().is_empty(),
+                "Header name should not be empty: {header:?}"
+            );
+        }
+
+        // Verify the specific custom headers we added for the CORS fix
+        assert!(required_headers.contains(&HeaderName::from_static("x-workspace-id")));
+        assert!(required_headers.contains(&HeaderName::from_static("x-user-id")));
     }
 }

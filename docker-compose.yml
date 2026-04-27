@@ -66,6 +66,7 @@ services:
       - API_PORT=3000
       - JWT_SECRET=${JWT_SECRET}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
       - RUST_LOG=${RUST_LOG:-info}
 
   webdashboard:

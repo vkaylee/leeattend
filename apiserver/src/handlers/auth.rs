@@ -620,4 +620,138 @@ mod tests {
         let long_email = format!("{}@{}.com", "a".repeat(64), "b".repeat(200));
         assert!(validate_email(&long_email).is_err());
     }
+
+    // --- cookie tests ---
+
+    #[test]
+    fn test_create_auth_cookies_contains_secure_and_samesite_none() {
+        // Temporarily clear COOKIE_DOMAIN if it was set
+        std::env::remove_var("COOKIE_DOMAIN");
+        
+        let headers = create_auth_cookies("my_access", "my_refresh");
+        
+        let mut found_access = false;
+        let mut found_refresh = false;
+        
+        for cookie in headers.get_all(SET_COOKIE) {
+            let cookie_str = cookie.to_str().unwrap();
+            if cookie_str.starts_with("access_token=") {
+                assert!(cookie_str.contains("SameSite=None"));
+                assert!(cookie_str.contains("Secure"));
+                assert!(cookie_str.contains("HttpOnly"));
+                found_access = true;
+            } else if cookie_str.starts_with("refresh_token=") {
+                assert!(cookie_str.contains("SameSite=None"));
+                assert!(cookie_str.contains("Secure"));
+                assert!(cookie_str.contains("HttpOnly"));
+                found_refresh = true;
+            }
+        }
+        
+        assert!(found_access, "access_token cookie not found");
+        assert!(found_refresh, "refresh_token cookie not found");
+    }
+
+    #[test]
+    fn test_clear_auth_cookies_contains_secure_and_samesite_none() {
+        std::env::remove_var("COOKIE_DOMAIN");
+        
+        let headers = clear_auth_cookies();
+        
+        for cookie in headers.get_all(SET_COOKIE) {
+            let cookie_str = cookie.to_str().unwrap();
+            assert!(cookie_str.contains("SameSite=None"));
+            assert!(cookie_str.contains("Secure"));
+            assert!(cookie_str.contains("Max-Age=0"));
+        }
+    }
+
+    #[test]
+    fn test_create_auth_cookies_with_domain() {
+        std::env::set_var("COOKIE_DOMAIN", ".vlee.dev");
+
+        let headers = create_auth_cookies("tok_access", "tok_refresh");
+
+        for cookie in headers.get_all(SET_COOKIE) {
+            let cookie_str = cookie.to_str().unwrap();
+            assert!(
+                cookie_str.contains("Domain=.vlee.dev"),
+                "Cookie missing Domain attribute: {cookie_str}"
+            );
+        }
+
+        // Cleanup
+        std::env::remove_var("COOKIE_DOMAIN");
+    }
+
+    #[test]
+    fn test_create_auth_cookies_without_domain_env() {
+        std::env::remove_var("COOKIE_DOMAIN");
+
+        let headers = create_auth_cookies("tok_access", "tok_refresh");
+
+        for cookie in headers.get_all(SET_COOKIE) {
+            let cookie_str = cookie.to_str().unwrap();
+            assert!(
+                !cookie_str.contains("Domain="),
+                "Cookie should NOT have Domain when COOKIE_DOMAIN is unset: {cookie_str}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_clear_auth_cookies_with_domain() {
+        std::env::set_var("COOKIE_DOMAIN", ".vlee.dev");
+
+        let headers = clear_auth_cookies();
+
+        for cookie in headers.get_all(SET_COOKIE) {
+            let cookie_str = cookie.to_str().unwrap();
+            assert!(cookie_str.contains("Domain=.vlee.dev"));
+            assert!(cookie_str.contains("Max-Age=0"));
+        }
+
+        std::env::remove_var("COOKIE_DOMAIN");
+    }
+
+    #[test]
+    fn test_create_auth_cookies_token_values() {
+        std::env::remove_var("COOKIE_DOMAIN");
+
+        let headers = create_auth_cookies("my_access_123", "my_refresh_456");
+
+        let mut found_access = false;
+        let mut found_refresh = false;
+
+        for cookie in headers.get_all(SET_COOKIE) {
+            let cookie_str = cookie.to_str().unwrap();
+            if cookie_str.starts_with("access_token=my_access_123;") {
+                found_access = true;
+                assert!(cookie_str.contains("Max-Age=3600"));
+            } else if cookie_str.starts_with("refresh_token=my_refresh_456;") {
+                found_refresh = true;
+                assert!(cookie_str.contains("Max-Age=2592000"));
+            }
+        }
+
+        assert!(found_access, "access_token with correct value not found");
+        assert!(found_refresh, "refresh_token with correct value not found");
+    }
+
+    #[test]
+    fn test_cookie_domain_empty_string_ignored() {
+        std::env::set_var("COOKIE_DOMAIN", "");
+
+        let headers = create_auth_cookies("tok", "ref");
+
+        for cookie in headers.get_all(SET_COOKIE) {
+            let cookie_str = cookie.to_str().unwrap();
+            assert!(
+                !cookie_str.contains("Domain="),
+                "Empty COOKIE_DOMAIN should not produce Domain attr: {cookie_str}"
+            );
+        }
+
+        std::env::remove_var("COOKIE_DOMAIN");
+    }
 }
