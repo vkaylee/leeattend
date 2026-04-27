@@ -185,17 +185,9 @@ mod ax_auth {
 
 pub use ax_auth::UserId;
 
-pub fn create_app(state: Arc<AppState>) -> Router {
-    let allowed_origins_str = std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| {
-        if cfg!(debug_assertions) {
-            "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000".to_string()
-        } else {
-            String::new()
-        }
-    });
-
+pub fn parse_allowed_origins(origins_str: &str) -> Vec<HeaderValue> {
     let mut origins = Vec::new();
-    for origin in allowed_origins_str.split(',') {
+    for origin in origins_str.split(',') {
         let trimmed = origin.trim();
         if trimmed.is_empty() {
             continue;
@@ -205,6 +197,19 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             origins.push(header_value);
         }
     }
+    origins
+}
+
+pub fn create_app(state: Arc<AppState>) -> Router {
+    let allowed_origins_str = std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| {
+        if cfg!(debug_assertions) {
+            "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000".to_string()
+        } else {
+            String::new()
+        }
+    });
+
+    let origins = parse_allowed_origins(&allowed_origins_str);
 
     let cors = CorsLayer::new()
         .allow_origin(origins)
@@ -265,3 +270,33 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .with_state(state)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_allowed_origins() {
+        // Test multiple valid origins with mixed spacing
+        let origins = parse_allowed_origins("http://localhost:3000, https://hrm.vlee.dev ,http://localhost:3001");
+        assert_eq!(origins.len(), 3);
+        assert_eq!(origins[0].to_str().unwrap(), "http://localhost:3000");
+        assert_eq!(origins[1].to_str().unwrap(), "https://hrm.vlee.dev");
+        assert_eq!(origins[2].to_str().unwrap(), "http://localhost:3001");
+
+        // Test empty string
+        let origins = parse_allowed_origins("");
+        assert!(origins.is_empty());
+
+        // Test trailing commas and extra spaces
+        let origins = parse_allowed_origins("http://localhost:3000,,  ,");
+        assert_eq!(origins.len(), 1);
+        assert_eq!(origins[0].to_str().unwrap(), "http://localhost:3000");
+
+        // Test invalid origin format (e.g. invalid chars in header value)
+        let origins = parse_allowed_origins("http://localhost:3000, invalid\norigin, https://hrm.vlee.dev");
+        // "invalid\norigin" will fail HeaderValue parsing because of newline, so it's ignored
+        assert_eq!(origins.len(), 2);
+        assert_eq!(origins[0].to_str().unwrap(), "http://localhost:3000");
+        assert_eq!(origins[1].to_str().unwrap(), "https://hrm.vlee.dev");
+    }
+}
