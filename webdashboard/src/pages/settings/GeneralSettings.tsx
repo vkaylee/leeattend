@@ -119,7 +119,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                 <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
                 <div className="flex flex-wrap gap-5 items-center">
                   {[
-                    { name: t("common.colors.violet"), color: '#7c3aed' }, { name: t("common.colors.indigo"), color: '#4f46e5' }, { name: t("common.colors.blue"), color: '#2563eb' },
+                    { name: t("common.colors.emerald"), color: '#10b981' }, { name: t("common.colors.indigo"), color: '#4f46e5' }, { name: t("common.colors.blue"), color: '#2563eb' },
                     { name: t("common.colors.emerald"), color: '#059669' }, { name: t("common.colors.amber"), color: '#d97706' }, { name: t("common.colors.rose"), color: '#e11d48' }, { name: t("common.colors.slate"), color: '#475569' },
                   ].map((preset) => (
                     <button key={preset.color} onClick={() => setThemePrimaryColor(preset.color)} className={cn("w-14 h-14 rounded-2xl transition-all border-4 flex items-center justify-center shadow-lg group active:scale-90", themePrimaryColor === preset.color ? 'border-slate-900 scale-110' : 'border-white hover:scale-105 hover:border-slate-100 dark:border-slate-800')} style={{ backgroundColor: preset.color }} title={preset.name}>

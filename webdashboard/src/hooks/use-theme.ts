@@ -45,7 +45,7 @@ export function useTheme() {
     };
   }, []);
 
-  const primaryColor = previewColor || userColor || workspace?.theme_primary_color || '#7c3aed';
+  const primaryColor = previewColor || userColor || workspace?.theme_primary_color || '#10b981';
 
   useEffect(() => {
     const root = document.documentElement;

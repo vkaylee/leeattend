@@ -17,7 +17,7 @@ import PermissionGate from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
 
 const roleColorMap: Record<string, string> = {
-  purple: "bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 border-purple-100",
+  teal: "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100",
   blue: "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800",
   slate: "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800",
   rose: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100",
@@ -59,7 +59,7 @@ export default function MemberTable() {
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold shadow-inner border border-primary-100 dark:border-primary-800/50 overflow-hidden group-hover:scale-110 transition-transform">
                         {member.avatar_url ? (
-                          <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
+                          <img src={member.avatar_url} alt="Member avatar" className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-lg uppercase">{(member.full_name || member.email).substring(0, 2)}</span>
                         )}

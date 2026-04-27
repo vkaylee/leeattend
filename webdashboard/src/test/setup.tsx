@@ -85,7 +85,7 @@ vi.mock("@/components/ui/Combobox", () => ({
 
   }: any) => (
 
-    <select
+    <select aria-label="Role"
 
       id={id}
 

@@ -24,7 +24,7 @@ vi.mock("@/hooks/use-debounce", () => ({
 // Mock EmployeeSearch to avoid internal queries
 vi.mock("@/components/common/EmployeeSearch", () => ({
   EmployeeSearch: ({ value, onChange }: any) => (
-    <select
+    <select aria-label="Employee Search"
       data-testid="employee-select"
       value={value}
       onChange={(e) => onChange(e.target.value)}

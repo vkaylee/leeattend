@@ -1,4 +1,4 @@
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
@@ -29,93 +29,381 @@ vi.mock("../../lib/api", () => ({
     updateRolePermissions: vi.fn().mockResolvedValue({}),
 }));
 
+// ─── Helpers ───────────────────────────────────────────────────
+
+const SYSTEM_ROLE = { id: "role-sys", name: "Admin", is_system: true };
+const CUSTOM_ROLE = { id: "role-custom", name: "HR Specialist", is_system: false };
+
+/** Build a matrix with real backend permission strings */
+const buildMatrix = (
+    sysPerms: string[] = [],
+    customPerms: string[] = [],
+) => ({
+    [SYSTEM_ROLE.id]: sysPerms,
+    [CUSTOM_ROLE.id]: customPerms,
+});
+
 describe("WorkspacePermissionsPage", () => {
     let queryClient: QueryClient;
-
-    const mockRoles = [
-        { id: "role-1", name: "Admin", is_system: true },
-        { id: "role-2", name: "Manager", is_system: false },
-    ];
-
-    const mockMatrix = {
-        "role-1": ["edit_workspace", "manage_roles", "view_employees"],
-        "role-2": ["view_employees"],
-    };
+    let mockRefetch: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
         vi.clearAllMocks();
         queryClient = new QueryClient({
             defaultOptions: { queries: { retry: false } },
         });
+        mockRefetch = vi.fn();
 
         (useWorkspaceRoles as any).mockReturnValue({
-            roles: mockRoles,
+            roles: [SYSTEM_ROLE, CUSTOM_ROLE],
             isLoading: false,
         });
 
         (useWorkspacePermissionsMatrix as any).mockReturnValue({
-            matrix: mockMatrix,
+            matrix: buildMatrix(
+                ["workspace:update", "members:roles:manage", "employees:read", "payroll:read", "audit_logs:read"],
+                ["employees:read", "leave:approve:l1"],
+            ),
             isLoading: false,
-            refetch: vi.fn(),
+            refetch: mockRefetch,
         });
 
         (useMyPermissions as any).mockReturnValue({
-            hasPermission: () => true,
+            hasPermission: (p: string) => p === "members:roles:manage",
             hasAnyPermission: () => true,
             hasScopedPermission: () => true,
             isLoading: false,
         });
     });
 
-    const renderWithProviders = (ui: React.ReactElement) => {
-        return render(
+    const renderPage = () =>
+        render(
             <QueryClientProvider client={queryClient}>
                 <MemoryRouter>
-                    {ui}
+                    <WorkspacePermissionsPage />
                 </MemoryRouter>
-            </QueryClientProvider>
+            </QueryClientProvider>,
         );
-    };
 
-    it("renders matrix correctly", () => {
-        renderWithProviders(<WorkspacePermissionsPage />);
-        expect(screen.getByText("Admin")).toBeDefined();
-        expect(screen.getByText("Manager")).toBeDefined();
-        
-        // Roles + Header + Checkboxes
-        expect(screen.getAllByRole("checkbox").length).toBeGreaterThan(0);
-    });
+    // ─── Rendering ─────────────────────────────────────────────
 
-    it("hides save button and disables checkboxes if user lacks manage permission", () => {
-        (useMyPermissions as any).mockReturnValue({
-            hasPermission: () => false,
-            isLoading: false,
+    describe("rendering", () => {
+        it("renders role column headers", () => {
+            renderPage();
+            expect(screen.getByText("Admin")).toBeDefined();
+            expect(screen.getByText("HR Specialist")).toBeDefined();
         });
 
-        renderWithProviders(<WorkspacePermissionsPage />);
-        
-        // Save Matrix button should be hidden
-        expect(screen.queryByText("Save Matrix")).toBeNull();
+        it("renders all 16 enterprise permission group headers", () => {
+            renderPage();
+            const expectedGroups = [
+                "Workspace & Setup",
+                "Members & Roles",
+                "Employees",
+                "Departments",
+                "Time & Attendance",
+                "Overtime",
+                "Leave Management",
+                "Shifts & Scheduling",
+                "Payroll",
+                "Holidays",
+                "Reports & Dashboard",
+                "Documents",
+                "Security & Audit",
+                "Infrastructure",
+                "Recruitment",
+                "Employee Self-Service",
+            ];
+            for (const name of expectedGroups) {
+                expect(screen.getByText(name)).toBeDefined();
+            }
+        });
 
-        // Checkboxes should be disabled
-        const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-        checkboxes.forEach(cb => {
-            expect(cb.disabled).toBe(true);
+        it("renders premium permission rows", () => {
+            renderPage();
+            // Multi-level approval
+            expect(screen.getByText("Approve L1 (Team)")).toBeDefined();
+            expect(screen.getByText("Approve L2 (HR)")).toBeDefined();
+            // Advanced payroll
+            expect(screen.getByText("Approve Payroll")).toBeDefined();
+            expect(screen.getByText("Disburse Payroll")).toBeDefined();
+            expect(screen.getByText("View Sensitive Data")).toBeDefined();
+            // Security & Audit
+            expect(screen.getByText("View Audit Logs")).toBeDefined();
+            expect(screen.getByText("Export Audit Logs")).toBeDefined();
+            expect(screen.getByText("Security Settings")).toBeDefined();
+            // Bulk Operations
+            expect(screen.getByText("Bulk Edit")).toBeDefined();
+            expect(screen.getByText("Force Clock Out")).toBeDefined();
+            // Documents
+            expect(screen.getByText("Medical Documents")).toBeDefined();
+            expect(screen.getByText("Contract Documents")).toBeDefined();
+        });
+
+        it("renders checkboxes for every permission × role combination", () => {
+            renderPage();
+            const checkboxes = screen.getAllByRole("checkbox");
+            // Count all permissions across groups
+            // Total = 4+4+7+5+8+4+10+13+8+2+4+2+3+7+2+6 = 89 permissions × 2 roles = 178
+            expect(checkboxes.length).toBe(89 * 2);
+        });
+
+        it("marks system role with 'System' badge", () => {
+            renderPage();
+            expect(screen.getByText("System")).toBeDefined();
+        });
+
+        it("marks custom role with 'Custom' badge", () => {
+            renderPage();
+            expect(screen.getByText("Custom")).toBeDefined();
         });
     });
 
-    it("allows editing custom roles if user has manage permission", async () => {
-        const user = userEvent.setup();
-        renderWithProviders(<WorkspacePermissionsPage />);
-        
-        const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-        // Find a checkbox that is not disabled (custom role checkbox)
-        const activeCheckbox = checkboxes.find(cb => !cb.disabled);
-        expect(activeCheckbox).toBeDefined();
+    // ─── Loading State ─────────────────────────────────────────
 
-        if (activeCheckbox) {
-            await user.click(activeCheckbox);
-            expect(screen.getByText("Save Matrix")).toBeDefined();
-        }
+    describe("loading state", () => {
+        it("shows spinner when roles are loading", () => {
+            (useWorkspaceRoles as any).mockReturnValue({
+                roles: [],
+                isLoading: true,
+            });
+            renderPage();
+            // Should not render checkboxes
+            expect(screen.queryAllByRole("checkbox").length).toBe(0);
+        });
+
+        it("shows spinner when matrix is loading", () => {
+            (useWorkspacePermissionsMatrix as any).mockReturnValue({
+                matrix: {},
+                isLoading: true,
+                refetch: mockRefetch,
+            });
+            renderPage();
+            expect(screen.queryAllByRole("checkbox").length).toBe(0);
+        });
+    });
+
+    // ─── Access Control ────────────────────────────────────────
+
+    describe("access control", () => {
+        it("disables ALL checkboxes when user lacks members:roles:manage", () => {
+            (useMyPermissions as any).mockReturnValue({
+                hasPermission: () => false,
+                isLoading: false,
+            });
+
+            renderPage();
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            const allDisabled = checkboxes.every((cb) => cb.disabled);
+            expect(allDisabled).toBe(true);
+        });
+
+        it("hides Save Matrix button when user lacks permission", () => {
+            (useMyPermissions as any).mockReturnValue({
+                hasPermission: () => false,
+                isLoading: false,
+            });
+
+            renderPage();
+            expect(screen.queryByText("Save Matrix")).toBeNull();
+        });
+
+        it("disables system role checkboxes even with manage permission", () => {
+            renderPage();
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            // System role is the first column → odd-indexed checkboxes in pair
+            // For each permission row: [system, custom] — system should be disabled
+            const systemCheckboxes = checkboxes.filter((_, i) => i % 2 === 0);
+            systemCheckboxes.forEach((cb) => {
+                expect(cb.disabled).toBe(true);
+            });
+        });
+
+        it("enables custom role checkboxes when user has manage permission", () => {
+            renderPage();
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            const customCheckboxes = checkboxes.filter((_, i) => i % 2 === 1);
+            customCheckboxes.forEach((cb) => {
+                expect(cb.disabled).toBe(false);
+            });
+        });
+    });
+
+    // ─── Checkbox State from Matrix ────────────────────────────
+
+    describe("checkbox state from matrix data", () => {
+        it("checks employees:read for both system and custom roles", () => {
+            renderPage();
+            // Both roles have employees:read in the mock matrix
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            const checkedCount = checkboxes.filter((cb) => cb.checked).length;
+            // System: 5 checked + Custom: 2 checked = 7
+            expect(checkedCount).toBe(7);
+        });
+    });
+
+    // ─── Toggle & Save ─────────────────────────────────────────
+
+    describe("toggle and save flow", () => {
+        it("shows 'Unsaved changes' indicator after toggling a custom role permission", async () => {
+            const user = userEvent.setup();
+            renderPage();
+
+            // Find an enabled, unchecked checkbox (custom role)
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            const customUnchecked = checkboxes.find((cb) => !cb.disabled && !cb.checked);
+            expect(customUnchecked).toBeDefined();
+
+            await user.click(customUnchecked!);
+            expect(screen.getByText("Unsaved changes")).toBeDefined();
+        });
+
+        it("enables Save Matrix button after a change", async () => {
+            const user = userEvent.setup();
+            renderPage();
+
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            const customUnchecked = checkboxes.find((cb) => !cb.disabled && !cb.checked);
+            await user.click(customUnchecked!);
+
+            const saveBtn = screen.getByText("Save Matrix").closest("button") as HTMLButtonElement;
+            expect(saveBtn.disabled).toBe(false);
+        });
+
+        it("Save Matrix button is disabled when no changes exist", () => {
+            renderPage();
+            const saveBtn = screen.getByText("Save Matrix").closest("button") as HTMLButtonElement;
+            expect(saveBtn.disabled).toBe(true);
+        });
+
+        it("calls updateRolePermissions only for modified roles on save", async () => {
+            const user = userEvent.setup();
+            renderPage();
+
+            // Toggle a custom role checkbox
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            const customUnchecked = checkboxes.find((cb) => !cb.disabled && !cb.checked);
+            await user.click(customUnchecked!);
+
+            // Click save
+            const saveBtn = screen.getByText("Save Matrix").closest("button")!;
+            await user.click(saveBtn);
+
+            await waitFor(() => {
+                // Should only call for the custom role, not the system role
+                expect(api.updateRolePermissions).toHaveBeenCalledTimes(1);
+                expect(api.updateRolePermissions).toHaveBeenCalledWith(
+                    "ws-1",
+                    CUSTOM_ROLE.id,
+                    expect.any(Array),
+                );
+            });
+        });
+
+        it("calls refetch after successful save", async () => {
+            const user = userEvent.setup();
+            renderPage();
+
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            const customUnchecked = checkboxes.find((cb) => !cb.disabled && !cb.checked);
+            await user.click(customUnchecked!);
+
+            const saveBtn = screen.getByText("Save Matrix").closest("button")!;
+            await user.click(saveBtn);
+
+            await waitFor(() => {
+                expect(mockRefetch).toHaveBeenCalledTimes(1);
+            });
+        });
+
+        it("removes 'Unsaved changes' after successful save", async () => {
+            const user = userEvent.setup();
+            renderPage();
+
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            const customUnchecked = checkboxes.find((cb) => !cb.disabled && !cb.checked);
+            await user.click(customUnchecked!);
+            expect(screen.getByText("Unsaved changes")).toBeDefined();
+
+            const saveBtn = screen.getByText("Save Matrix").closest("button")!;
+            await user.click(saveBtn);
+
+            await waitFor(() => {
+                expect(screen.queryByText("Unsaved changes")).toBeNull();
+            });
+        });
+
+        it("can toggle a checked permission off", async () => {
+            const user = userEvent.setup();
+            renderPage();
+
+            // Custom role has employees:read checked — find it and uncheck
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            const customChecked = checkboxes.find((cb) => !cb.disabled && cb.checked);
+            expect(customChecked).toBeDefined();
+
+            await user.click(customChecked!);
+            expect(screen.getByText("Unsaved changes")).toBeDefined();
+        });
+    });
+
+    // ─── System Role Protection ────────────────────────────────
+
+    describe("system role protection", () => {
+        it("clicking a system role checkbox does not trigger changes", async () => {
+            const user = userEvent.setup();
+            renderPage();
+
+            const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            // Get a system checkbox (disabled)
+            const systemCb = checkboxes.find((cb) => cb.disabled);
+            expect(systemCb).toBeDefined();
+
+            // Attempt click — should be blocked by disabled attribute
+            await user.click(systemCb!);
+            expect(screen.queryByText("Unsaved changes")).toBeNull();
+        });
+    });
+
+    // ─── Permission ID Integrity ───────────────────────────────
+
+    describe("permission ID integrity (backend sync)", () => {
+        it("all permission IDs use colon-separated backend format", () => {
+            renderPage();
+            // Verify no old mock IDs remain (edit_workspace, view_employees, etc.)
+            expect(screen.queryByText("Edit Workspace Info")).toBeNull();
+            expect(screen.queryByText("Manage Billing")).toBeNull();
+            expect(screen.queryByText("Danger Zone")).toBeNull();
+        });
+
+        it("renders ESS self-service permissions", () => {
+            renderPage();
+            expect(screen.getByText("ESS Profile")).toBeDefined();
+            expect(screen.getByText("ESS Attendance")).toBeDefined();
+            expect(screen.getByText("ESS Clock In/Out")).toBeDefined();
+            expect(screen.getByText("ESS Leave")).toBeDefined();
+            expect(screen.getByText("ESS Payslips")).toBeDefined();
+            expect(screen.getByText("ESS Shift Swaps")).toBeDefined();
+        });
+
+        it("renders infrastructure permissions", () => {
+            renderPage();
+            expect(screen.getByText("View Agents")).toBeDefined();
+            expect(screen.getByText("Manage Agents")).toBeDefined();
+            expect(screen.getByText("View Devices")).toBeDefined();
+            expect(screen.getByText("Manage Devices")).toBeDefined();
+            expect(screen.getByText("Infrastructure Monitor")).toBeDefined();
+        });
+    });
+
+    // ─── Info Footer ───────────────────────────────────────────
+
+    describe("info footer", () => {
+        it("shows system role explanation text", () => {
+            renderPage();
+            expect(
+                screen.getByText(/System roles.*have fixed permissions/i),
+            ).toBeDefined();
+        });
     });
 });

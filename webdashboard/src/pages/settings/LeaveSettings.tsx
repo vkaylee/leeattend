@@ -169,7 +169,7 @@ export default function LeaveSettings() {
                           <td className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{a.leave_type_name}</td>
                           <td className="px-6 py-5">
                             <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border shadow-sm", 
-                              a.assignee_type === "workspace" ? "bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 border-purple-100" :
+                              a.assignee_type === "workspace" ? "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100" :
                               a.assignee_type === "department" ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800" :
                               "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
                             )}>

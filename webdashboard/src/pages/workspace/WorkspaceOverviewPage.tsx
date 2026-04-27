@@ -101,7 +101,7 @@ export default function WorkspaceOverviewPage() {
         </div>
 
         <div className="p-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm">
-          <div className="w-12 h-12 bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center mb-4">
+          <div className="w-12 h-12 bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 rounded-2xl flex items-center justify-center mb-4">
             <CalendarDays size={24} />
           </div>
           <div className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
@@ -132,7 +132,7 @@ export default function WorkspaceOverviewPage() {
             <div key={admin.user_id} className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
               <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold">
                 {admin.avatar_url ? (
-                  <img src={admin.avatar_url} alt="" className="w-full h-full object-cover rounded-xl" />
+                  <img src={admin.avatar_url} alt="Admin avatar" className="w-full h-full object-cover rounded-xl" />
                 ) : (
                   (admin.full_name || admin.email).substring(0, 2).toUpperCase()
                 )}

@@ -79,8 +79,8 @@ export default function WorkerMonitorPage() {
       label: t("monitor.total_workers"),
       value: stats?.total_workers ?? 0,
       icon: Server,
-      color: "bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-300 border-violet-100 dark:border-violet-800",
-      bgIcon: "text-violet-100 dark:text-violet-800",
+      color: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800",
+      bgIcon: "text-emerald-100 dark:text-emerald-800",
     },
   ];
 

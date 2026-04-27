@@ -64,7 +64,7 @@ export default function AuditLogPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <select
+                        <select aria-label="Action"
                             value={actionFilter}
                             onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
                             className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -89,14 +89,14 @@ export default function AuditLogPage() {
                             </optgroup>
                         </select>
                         <div className="flex items-center gap-2">
-                            <input
+                            <input aria-label="Start Date"
                                 type="date"
                                 value={startDateFilter}
                                 onChange={(e) => { setStartDateFilter(e.target.value); setPage(1); }}
                                 className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                             />
                             <span className="text-slate-400">-</span>
-                            <input
+                            <input aria-label="End Date"
                                 type="date"
                                 value={endDateFilter}
                                 onChange={(e) => { setEndDateFilter(e.target.value); setPage(1); }}

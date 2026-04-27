@@ -43,7 +43,7 @@ vi.mock("@/hooks/use-workspace", () => ({
 
 vi.mock("@/hooks/use-theme", () => ({
     useTheme: () => ({
-        primaryColor: "#7c3aed",
+        primaryColor: "#10b981",
         setPreviewTheme: vi.fn(),
         setUserTheme: vi.fn(),
     }),

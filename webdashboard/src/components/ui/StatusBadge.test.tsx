@@ -56,9 +56,9 @@ describe("StatusBadge Component", () => {
     expect(screen.getByText("Indigo").className).toContain("bg-indigo-50");
   });
 
-  it("applies violet variant", () => {
-    render(<StatusBadge variant="violet">Violet</StatusBadge>);
-    expect(screen.getByText("Violet").className).toContain("bg-violet-50");
+  it("applies emerald variant", () => {
+    render(<StatusBadge variant="emerald">Emerald</StatusBadge>);
+    expect(screen.getByText("Emerald").className).toContain("bg-emerald-50");
   });
 
   it("applies orange variant", () => {

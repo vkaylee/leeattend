@@ -9,7 +9,7 @@ vi.mock('../use-workspace', () => ({
 }));
 
 describe('useTheme', () => {
-  const defaultColor = '#7c3aed';
+  const defaultColor = '#10b981';
   const workspaceColor = '#123456';
   const userColor = '#ff0000';
 

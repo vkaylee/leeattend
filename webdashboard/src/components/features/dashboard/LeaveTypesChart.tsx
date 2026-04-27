@@ -16,7 +16,7 @@ const LEAVE_COLORS = [
     "#ec4899", // pink-500  — Maternity
     "#f59e0b", // amber-500 — Unpaid
     "#10b981", // emerald-500
-    "#8b5cf6", // violet-500
+    "#10b981", // emerald-500
     "#06b6d4", // cyan-500
     "#f97316", // orange-500
 ];
@@ -35,7 +35,7 @@ export default function LeaveTypesChart() {
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex items-center gap-4 mb-8">
-                <div className="bg-violet-50 dark:bg-violet-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-violet-600 dark:text-violet-400 shadow-inner border border-violet-100 dark:border-violet-800">
+                <div className="bg-emerald-50 dark:bg-emerald-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner border border-emerald-100 dark:border-emerald-800">
                     <PieChartIcon size={22} />
                 </div>
                 <div>

@@ -222,7 +222,7 @@ export default function DashboardPage() {
                     <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] px-4">{t("dashboard.hr.quick_stats")}</h2>
                     {[
                       { label: "avg_work_hours", value: isLoading ? "..." : `${(hrStats?.avg_work_hours_today ?? 0).toFixed(1)}h`, icon: Timer, color: "bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800", mono: true },
-                      { label: "early_departures", value: isLoading ? "..." : hrStats?.early_departure_today ?? 0, icon: LogOut, color: "bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-400 border-violet-100 dark:border-violet-800", mono: false },
+                      { label: "early_departures", value: isLoading ? "..." : hrStats?.early_departure_today ?? 0, icon: LogOut, color: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800", mono: false },
                       { label: "estimated_payroll", value: isLoading ? "..." : formatCurrency(hrStats?.estimated_monthly_payroll || 0), icon: Banknote, color: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800", mono: true },
                     ].map((item, i) => (
                       <div key={i} className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 sm:gap-6 group hover:shadow-2xl hover:shadow-primary-100/10 transition-all">

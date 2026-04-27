@@ -25,7 +25,7 @@ export const workspaceFactory = (
     date_format: "DD/MM/YYYY", // Default value
     time_format: "24h", // Default value
     timezone: "Asia/Ho_Chi_Minh", // Default value
-    theme_primary_color: "#7c3aed",
+    theme_primary_color: "#10b981",
     default_language: "en",
     early_arrival_strategy: "block" as const,
     created_at: new Date().toISOString(),

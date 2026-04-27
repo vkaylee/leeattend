@@ -40,7 +40,7 @@ export function AssignmentHistory({ history, selectedEmployee }: AssignmentHisto
                 <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-200">{h.employee_name}</td>
                 <td className="p-4">
                   {h.assignment_type === 'roster' ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 text-[10px] font-bold uppercase tracking-tighter border border-purple-100">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 text-[10px] font-bold uppercase tracking-tighter border border-teal-100">
                       <Zap size={10} /> {t("shifts.types.flexible")}
                     </span>
                   ) : h.assignment_type === 'pattern' ? (

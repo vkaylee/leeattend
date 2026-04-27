@@ -16,7 +16,7 @@ const SOURCE_COLORS: Record<string, string> = {
 };
 
 const FALLBACK_COLORS = [
-    "#06b6d4", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316",
+    "#06b6d4", "#10b981", "#ec4899", "#14b8a6", "#f97316",
 ];
 
 function getColor(sourceType: string, index: number): string {

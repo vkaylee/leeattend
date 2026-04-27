@@ -285,6 +285,7 @@ export default function LeaveImportDialog({
           >
             <input
               id="leave-import-file-input"
+              aria-label="File Upload"
               type="file"
               className="hidden"
               accept=".xlsx,.xls,.csv"

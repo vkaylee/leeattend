@@ -176,7 +176,7 @@ export function WeeklyRosterGrid({
               <div className="flex-1 space-y-4">
                 <div className="flex justify-center items-center gap-1">
                   {source === "roster" && (
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 border border-purple-100 uppercase tracking-tighter flex items-center gap-1">
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border border-teal-100 uppercase tracking-tighter flex items-center gap-1">
                       <Zap size={8} /> {t("shifts.types.flexible")}
                     </span>
                   )}
@@ -206,13 +206,13 @@ export function WeeklyRosterGrid({
                 </div>
                 {effectiveSchedule?.shift_id ? (
                   <div
-                    className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${source === 'roster' ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-100' : 'bg-primary-50 dark:bg-primary-950 border-blue-100 dark:border-blue-800'
+                    className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${source === 'roster' ? 'bg-teal-50 dark:bg-teal-950/50 border-teal-100' : 'bg-primary-50 dark:bg-primary-950 border-blue-100 dark:border-blue-800'
                       }`}
                   >
-                    <div className={`font-bold text-xs mb-1 uppercase tracking-tight leading-tight ${source === 'roster' ? 'text-purple-700 dark:text-purple-300' : 'text-blue-700 dark:text-blue-300'}`}>
+                    <div className={`font-bold text-xs mb-1 uppercase tracking-tight leading-tight ${source === 'roster' ? 'text-teal-700 dark:text-teal-300' : 'text-blue-700 dark:text-blue-300'}`}>
                       {effectiveSchedule.shift_name}
                     </div>
-                    <div className={`flex items-center gap-1.5 text-[10px] font-bold ${source === 'roster' ? 'text-purple-500' : 'text-blue-500'}`}>
+                    <div className={`flex items-center gap-1.5 text-[10px] font-bold ${source === 'roster' ? 'text-teal-500' : 'text-blue-500'}`}>
                       {formatTime(effectiveSchedule.start_time)} - {formatTime(effectiveSchedule.end_time)}
                     </div>
                     {effectiveSchedule.break_duration_minutes !== null && (

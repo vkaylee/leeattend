@@ -57,11 +57,11 @@ describe("ROUTES constants", () => {
   });
 
   // -----------------------------------------------------------------
-  //  Verify ROUTES constants match the paths registered in AppRoutes
+  //  Verify ROUTES constants match the paths registered in the router
   // -----------------------------------------------------------------
-  // These are the route segments from AppRoutes.tsx, resolved to
-  // absolute paths based on nesting. Keeping this list explicit makes
-  // it easy to catch drift between routes.ts and the router config.
+  // These paths correspond to TanStack Router file-based routes in
+  // src/routes/. Keeping this list explicit catches drift between
+  // routes.ts constants and actual route definitions.
   const EXPECTED_APP_ROUTES = [
     // Auth
     "/login",
@@ -100,7 +100,7 @@ describe("ROUTES constants", () => {
     "/infra/monitor",
   ];
 
-  it("every AppRoutes path has a matching ROUTES constant", () => {
+  it("every router path has a matching ROUTES constant", () => {
     for (const expected of EXPECTED_APP_ROUTES) {
       expect(
         allPaths,
@@ -117,7 +117,7 @@ describe("ROUTES constants", () => {
     // If extras appear, add them to EXPECTED_APP_ROUTES or document why
     // they're expected extras (e.g. feature-flagged routes).
     for (const extra of extras) {
-      expect(extra, `Extra ROUTES constant "${extra}" not in AppRoutes — is this intentional?`).toMatch(/^\//);
+      expect(extra, `Extra ROUTES constant "${extra}" not in expected routes — is this intentional?`).toMatch(/^\//);
     }
   });
 });
@@ -148,7 +148,7 @@ function isExempt(filePath: string): boolean {
     rel.includes(".test.") ||
     rel.includes(".spec.") ||
     rel.endsWith("routes.ts") ||
-    rel.endsWith("AppRoutes.tsx")
+    rel.endsWith("routeTree.gen.ts")
   );
 }
 

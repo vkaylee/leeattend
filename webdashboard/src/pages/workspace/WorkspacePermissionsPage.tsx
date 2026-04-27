@@ -4,12 +4,7 @@ import {
   KeyRound,
   Save,
   Check,
-  Building2,
-  Users,
-  Clock,
-  Banknote,
-  ShieldCheck,
-  Info
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspaceRoles, useWorkspacePermissionsMatrix } from "@/hooks/use-workspace";
@@ -17,59 +12,8 @@ import { updateRolePermissions, getCurrentWorkspaceId } from "@/lib/api";
 import { useEffect } from "react";
 import PermissionGate from "@/components/common/PermissionGate";
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { permissionGroups } from "@/lib/permission-groups";
 
-// Mock assigned permissions no longer needed
-
-const permissionGroups = [
-  {
-    id: "general",
-    name: "General & Setup",
-    icon: Building2,
-    permissions: [
-      { id: "edit_workspace", name: "Edit Workspace Info", desc: "Change name, timezone, logo" },
-      { id: "manage_billing", name: "Manage Billing", desc: "Update cards, view invoices" },
-      { id: "manage_roles", name: "Manage Roles", desc: "Create or delete custom roles" },
-    ]
-  },
-  {
-    id: "people",
-    name: "People Management",
-    icon: Users,
-    permissions: [
-      { id: "view_employees", name: "View Employees", desc: "Access employee directory" },
-      { id: "manage_employees", name: "Manage Employees", desc: "Add, edit, or terminate" },
-      { id: "manage_org", name: "Manage Departments", desc: "Modify organizational structure" },
-    ]
-  },
-  {
-    id: "time",
-    name: "Time & Attendance",
-    icon: Clock,
-    permissions: [
-      { id: "view_time", name: "View Attendance", desc: "See everyone's time logs" },
-      { id: "edit_time", name: "Edit Time Logs", desc: "Fix missing clock-ins" },
-      { id: "approve_ot", name: "Approve Overtime", desc: "Review and approve OT requests" },
-    ]
-  },
-  {
-    id: "payroll",
-    name: "Payroll",
-    icon: Banknote,
-    permissions: [
-      { id: "run_payroll", name: "Run Payroll", desc: "Execute payroll processing" },
-      { id: "view_salaries", name: "View Salaries", desc: "See compensation data" },
-    ]
-  },
-  {
-    id: "security",
-    name: "Security",
-    icon: ShieldCheck,
-    permissions: [
-      { id: "view_audit", name: "View Audit Logs", desc: "Access security event logs" },
-      { id: "danger_zone", name: "Danger Zone", desc: "Data deletion and resets" },
-    ]
-  }
-];
 
 export default function WorkspacePermissionsPage() {
   const wsId = getCurrentWorkspaceId();

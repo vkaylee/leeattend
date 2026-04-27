@@ -15,7 +15,7 @@ const REASON_COLORS: Record<string, string> = {
   "Salary Change": "from-blue-500 to-indigo-600",
   "New Hire": "from-amber-400 to-orange-500",
   "Termination": "from-rose-400 to-rose-600",
-  "Department Transfer": "from-indigo-400 to-purple-600",
+  "Department Transfer": "from-indigo-400 to-teal-600",
 };
 
 export default function SegmentVisualizer({ segments, periodStart, periodEnd, className }: SegmentVisualizerProps) {

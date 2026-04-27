@@ -53,7 +53,7 @@ describe("useWorkspaces", () => {
           date_format: "DD/MM/YYYY",
           time_format: "24h",
           timezone: "Asia/Ho_Chi_Minh",
-          theme_primary_color: "#7c3aed",
+          theme_primary_color: "#10b981",
           default_language: "en",
           created_at: new Date().toISOString()
         },
@@ -77,7 +77,7 @@ describe("useWorkspaces", () => {
           date_format: "DD/MM/YYYY", 
           time_format: "24h", 
           timezone: "Asia/Ho_Chi_Minh", 
-          theme_primary_color: "#7c3aed",
+          theme_primary_color: "#10b981",
           default_language: "en",
           created_at: new Date().toISOString() 
         };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs as any);

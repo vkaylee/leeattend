@@ -53,7 +53,7 @@ function getPeriodOptions(t: (key: string) => string): PeriodOption[] {
 }
 
 const SOURCE_COLORS = [
-    "#22c55e", "#3b82f6", "#f59e0b", "#06b6d4", "#8b5cf6",
+    "#22c55e", "#3b82f6", "#f59e0b", "#06b6d4", "#10b981",
     "#ec4899", "#14b8a6", "#f97316",
 ];
 
@@ -116,7 +116,7 @@ export default function TurnoverAnalyticsChart() {
                     )}
 
                     {/* Period selector */}
-                    <select
+                    <select aria-label="Turnover Period"
                         value={selectedPeriod}
                         onChange={(e) => setSelectedPeriod(e.target.value)}
                         className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 uppercase tracking-widest cursor-pointer"

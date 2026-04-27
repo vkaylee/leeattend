@@ -6,8 +6,8 @@
  *   <Link to={ROUTES.EMPLOYEES}>...</Link>
  *   navigate(ROUTES.SETTINGS.CONNECTIVITY);
  *
- * Note: AppRoutes.tsx uses React Router relative segments and does NOT
- *       consume these constants (changing to full paths would break nesting).
+ * Route paths are defined by TanStack Router file-based routes in src/routes/.
+ * This file provides typed constants for type-safe navigation.
  */
 export const ROUTES = {
   // Auth

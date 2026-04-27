@@ -56,12 +56,12 @@ const RegisterRoute = RegisterRouteImport.update({
   id: "/register",
   path: "/register",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import("./routes/register.lazy").then((d) => d.Route))
 const LoginRoute = LoginRouteImport.update({
   id: "/login",
   path: "/login",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import("./routes/login.lazy").then((d) => d.Route))
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: "/_authenticated",
   getParentRoute: () => rootRouteImport,
@@ -70,7 +70,9 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: "/onboarding",
   path: "/onboarding",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any).lazy(() =>
+  import("./routes/_authenticated/onboarding.lazy").then((d) => d.Route),
+)
 const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
   id: "/_workspace",
   getParentRoute: () => AuthenticatedRoute,
@@ -84,91 +86,151 @@ const AuthenticatedWorkspaceIndexRoute =
     id: "/",
     path: "/",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/index.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkingPatternsRoute =
   AuthenticatedWorkspaceWorkingPatternsRouteImport.update({
     id: "/working-patterns",
     path: "/working-patterns",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/working-patterns.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceShiftsRoute =
   AuthenticatedWorkspaceShiftsRouteImport.update({
     id: "/shifts",
     path: "/shifts",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/shifts.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceShiftSwapsRoute =
   AuthenticatedWorkspaceShiftSwapsRouteImport.update({
     id: "/shift-swaps",
     path: "/shift-swaps",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/shift-swaps.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceReportsRoute =
   AuthenticatedWorkspaceReportsRouteImport.update({
     id: "/reports",
     path: "/reports",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/reports.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceProfileRoute =
   AuthenticatedWorkspaceProfileRouteImport.update({
     id: "/profile",
     path: "/profile",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/profile.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspacePayrollRoute =
   AuthenticatedWorkspacePayrollRouteImport.update({
     id: "/payroll",
     path: "/payroll",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/payroll.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceMembersRoute =
   AuthenticatedWorkspaceMembersRouteImport.update({
     id: "/members",
     path: "/members",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/members.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceLeaveRequestsRoute =
   AuthenticatedWorkspaceLeaveRequestsRouteImport.update({
     id: "/leave-requests",
     path: "/leave-requests",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/leave-requests.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceLeaveBalancesRoute =
   AuthenticatedWorkspaceLeaveBalancesRouteImport.update({
     id: "/leave-balances",
     path: "/leave-balances",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/leave-balances.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceEmployeesRoute =
   AuthenticatedWorkspaceEmployeesRouteImport.update({
     id: "/employees",
     path: "/employees",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/employees.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceDepartmentsRoute =
   AuthenticatedWorkspaceDepartmentsRouteImport.update({
     id: "/departments",
     path: "/departments",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/departments.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceAttendanceLogsRoute =
   AuthenticatedWorkspaceAttendanceLogsRouteImport.update({
     id: "/attendance-logs",
     path: "/attendance-logs",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/attendance-logs.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceAttendanceAdjustmentsRoute =
   AuthenticatedWorkspaceAttendanceAdjustmentsRouteImport.update({
     id: "/attendance-adjustments",
     path: "/attendance-adjustments",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/attendance-adjustments.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceAssignmentRulesRoute =
   AuthenticatedWorkspaceAssignmentRulesRouteImport.update({
     id: "/assignment-rules",
     path: "/assignment-rules",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/assignment-rules.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsRoute =
   AuthenticatedWorkspaceWorkspaceSettingsRouteImport.update({
     id: "/workspace/settings",
@@ -180,31 +242,51 @@ const AuthenticatedWorkspaceEssProfileRoute =
     id: "/ess/profile",
     path: "/ess/profile",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/ess/profile.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceEssClockRoute =
   AuthenticatedWorkspaceEssClockRouteImport.update({
     id: "/ess/clock",
     path: "/ess/clock",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/ess/clock.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceEssAttendanceRoute =
   AuthenticatedWorkspaceEssAttendanceRouteImport.update({
     id: "/ess/attendance",
     path: "/ess/attendance",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/ess/attendance.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceApprovalsOtRoute =
   AuthenticatedWorkspaceApprovalsOtRouteImport.update({
     id: "/approvals/ot",
     path: "/approvals/ot",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/approvals/ot.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedInfraInfraMonitorRoute =
   AuthenticatedInfraInfraMonitorRouteImport.update({
     id: "/infra/monitor",
     path: "/infra/monitor",
     getParentRoute: () => AuthenticatedInfraRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_infra/infra/monitor.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsIndexRoute =
   AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport.update({
     id: "/",
@@ -216,85 +298,141 @@ const AuthenticatedWorkspaceWorkspaceSettingsTimeRoute =
     id: "/time",
     path: "/time",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/time.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsRolesRoute =
   AuthenticatedWorkspaceWorkspaceSettingsRolesRouteImport.update({
     id: "/roles",
     path: "/roles",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/roles.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute =
   AuthenticatedWorkspaceWorkspaceSettingsPermissionsRouteImport.update({
     id: "/permissions",
     path: "/permissions",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/permissions.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsPeopleRoute =
   AuthenticatedWorkspaceWorkspaceSettingsPeopleRouteImport.update({
     id: "/people",
     path: "/people",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/people.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute =
   AuthenticatedWorkspaceWorkspaceSettingsPayrollRouteImport.update({
     id: "/payroll",
     path: "/payroll",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/payroll.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute =
   AuthenticatedWorkspaceWorkspaceSettingsOverviewRouteImport.update({
     id: "/overview",
     path: "/overview",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/overview.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsMembersRoute =
   AuthenticatedWorkspaceWorkspaceSettingsMembersRouteImport.update({
     id: "/members",
     path: "/members",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/members.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute =
   AuthenticatedWorkspaceWorkspaceSettingsLeaveRouteImport.update({
     id: "/leave",
     path: "/leave",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/leave.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute =
   AuthenticatedWorkspaceWorkspaceSettingsHolidaysRouteImport.update({
     id: "/holidays",
     path: "/holidays",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/holidays.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute =
   AuthenticatedWorkspaceWorkspaceSettingsGeneralRouteImport.update({
     id: "/general",
     path: "/general",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/general.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsDangerRoute =
   AuthenticatedWorkspaceWorkspaceSettingsDangerRouteImport.update({
     id: "/danger",
     path: "/danger",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/danger.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute =
   AuthenticatedWorkspaceWorkspaceSettingsConnectivityRouteImport.update({
     id: "/connectivity",
     path: "/connectivity",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/connectivity.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsBillingRoute =
   AuthenticatedWorkspaceWorkspaceSettingsBillingRouteImport.update({
     id: "/billing",
     path: "/billing",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/billing.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute =
   AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRouteImport.update({
     id: "/audit-logs",
     path: "/audit-logs",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any)
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/settings/audit-logs.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 
 export interface FileRoutesByFullPath {
   "/": typeof AuthenticatedWorkspaceIndexRoute

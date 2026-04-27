@@ -130,7 +130,7 @@ describe("EmployeeSearch Component", () => {
       { wrapper }
     );
 
-    // Use the hidden <select> (sr-only) to simulate selection
+    // Use the hidden select element (sr-only) to simulate selection
     const hiddenSelect = screen.getByRole("combobox");
     fireEvent.change(hiddenSelect, { target: { value: "1" } });
 

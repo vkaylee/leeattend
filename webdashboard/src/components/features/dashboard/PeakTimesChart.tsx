@@ -14,7 +14,7 @@ import { usePeakTimes } from "@/hooks/use-dashboard";
 
 const COLORS = {
     check_in: "#06b6d4",  // cyan-500
-    check_out: "#8b5cf6", // violet-500
+    check_out: "#10b981", // emerald-500
 };
 
 export default function PeakTimesChart() {

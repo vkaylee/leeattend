@@ -7,7 +7,7 @@ export const PriorityLegend: React.FC = () => {
   const { t } = useTranslation();
 
   const priorities = [
-    { label: t("shifts.traceability.p100_manual"), priority: 100, color: "bg-purple-50 dark:bg-purple-950", isActive: true },
+    { label: t("shifts.traceability.p100_manual"), priority: 100, color: "bg-teal-50 dark:bg-teal-950", isActive: true },
     { label: t("shifts.traceability.p80_pattern"), priority: 80, color: "bg-blue-50 dark:bg-blue-950", isActive: true },
     { label: t("shifts.traceability.p60_rules"), priority: 60, color: "bg-indigo-50 dark:bg-indigo-950", isActive: true },
     { label: t("shifts.traceability.p40_dept_pattern"), priority: 40, color: "bg-slate-50 dark:bg-slate-8000", isActive: true },

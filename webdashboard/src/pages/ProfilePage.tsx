@@ -147,7 +147,7 @@ export default function ProfilePage() {
                 <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
                 <div className="flex flex-wrap gap-5 items-center">
                   {[
-                    { name: t("common.colors.violet"), color: '#7c3aed' }, { name: t("common.colors.indigo"), color: '#4f46e5' }, { name: t("common.colors.blue"), color: '#2563eb' },
+                    { name: t("common.colors.emerald"), color: '#10b981' }, { name: t("common.colors.indigo"), color: '#4f46e5' }, { name: t("common.colors.blue"), color: '#2563eb' },
                     { name: t("common.colors.emerald"), color: '#059669' }, { name: t("common.colors.amber"), color: '#d97706' }, { name: t("common.colors.rose"), color: '#e11d48' },
                     { name: t("common.colors.slate"), color: '#475569' }, { name: t("common.colors.black"), color: '#0f172a' },
                   ].map((preset) => (

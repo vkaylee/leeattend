@@ -118,7 +118,7 @@ export const DebugToolbar: React.FC = () => {
         <button 
           onClick={() => setActiveTab("time")}
           className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
-            activeTab === "time" ? "bg-slate-800 text-purple-400 border-b-2 border-purple-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
+            activeTab === "time" ? "bg-slate-800 text-teal-400 border-b-2 border-teal-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
           }`}
         >
           <Calendar size={12} /> Time
@@ -180,11 +180,11 @@ export const DebugToolbar: React.FC = () => {
                   type="date"
                   value={tempDate}
                   onChange={(e) => setTempDate(e.target.value)}
-                  className="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-purple-500 [color-scheme:dark]"
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-teal-500 [color-scheme:dark]"
                 />
                 <button
                   onClick={() => setMockDate(tempDate)}
-                  className="bg-purple-600 hover:bg-purple-50 dark:bg-purple-950 px-3 py-1.5 rounded text-[10px] font-bold"
+                  className="bg-teal-600 hover:bg-teal-50 dark:bg-teal-950 px-3 py-1.5 rounded text-[10px] font-bold"
                 >
                   Apply
                 </button>
