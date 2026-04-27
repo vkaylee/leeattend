@@ -82,6 +82,7 @@ impl MergeHandler {
                 job.merge_payload()
                     .map(|p| (p.date_range.start, p.date_range.end))
                     .unwrap_or_else(|| {
+                        #[allow(clippy::expect_used)]
                         let d = chrono::NaiveDate::from_ymd_opt(2000, 1, 1).expect("valid date");
                         (d, d)
                     })

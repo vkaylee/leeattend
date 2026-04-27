@@ -479,6 +479,7 @@ impl RosterCache {
             result
         } else {
             // --- follower path ---------------------------------------------
+            #[allow(clippy::expect_used)]
             let rx = rx.as_mut().expect("follower must have receiver");
 
             // wait_for borrows rx mutably; we only need to know whether it

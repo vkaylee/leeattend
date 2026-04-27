@@ -50,7 +50,8 @@ impl RateLimitConfig {
     }
 
     /// Return a short tier label used in the Redis key.
-    pub fn tier_label(method: &Method) -> &'static str {
+    #[must_use]
+    pub const fn tier_label(method: &Method) -> &'static str {
         match *method {
             Method::GET | Method::HEAD | Method::OPTIONS => "r",
             _ => "w",
@@ -72,7 +73,8 @@ pub struct RateLimitLayer {
 }
 
 impl RateLimitLayer {
-    pub fn new(redis: Option<RedisPool>, config: RateLimitConfig, jwt_secret: String) -> Self {
+    #[must_use]
+    pub const fn new(redis: Option<RedisPool>, config: RateLimitConfig, jwt_secret: String) -> Self {
         Self {
             redis,
             config,
@@ -181,9 +183,9 @@ where
 // ── Identity resolution ────────────────────────────────────────────
 
 /// Extract identity for rate limiting. Priority:
-/// 1. JWT Bearer token → user_id (lightweight decode, no DB call)
+/// 1. JWT Bearer token → `user_id` (lightweight decode, no DB call)
 /// 2. X-User-Id debug header (debug builds only)
-/// 3. Client IP address (ConnectInfo or X-Forwarded-For)
+/// 3. Client IP address (`ConnectInfo` or X-Forwarded-For)
 fn resolve_identity(req: &Request<Body>, jwt_secret: &str) -> String {
     // 1. Try JWT token
     if let Some(auth_header) = req.headers().get("authorization") {
@@ -216,16 +218,18 @@ fn resolve_identity(req: &Request<Body>, jwt_secret: &str) -> String {
     let ip = req
         .extensions()
         .get::<ConnectInfo<SocketAddr>>()
-        .map(|ci| ci.0.ip().to_string())
-        .unwrap_or_else(|| {
-            req.headers()
-                .get("x-forwarded-for")
-                .and_then(|v| v.to_str().ok())
-                .and_then(|s| s.split(',').next())
-                .unwrap_or("unknown")
-                .trim()
-                .to_string()
-        });
+        .map_or_else(
+            || {
+                req.headers()
+                    .get("x-forwarded-for")
+                    .and_then(|v| v.to_str().ok())
+                    .and_then(|s| s.split(',').next())
+                    .unwrap_or("unknown")
+                    .trim()
+                    .to_string()
+            },
+            |ci| ci.0.ip().to_string(),
+        );
 
     format!("ip:{ip}")
 }
@@ -241,7 +245,7 @@ async fn check_rate(
     let count: u64 = conn.incr(key, 1u64).await?;
     if count == 1 {
         // First request in window — set expiry
-        conn.expire::<_, ()>(key, window_secs as i64).await?;
+        conn.expire::<_, ()>(key, i64::try_from(window_secs).unwrap_or(i64::MAX)).await?;
     }
     Ok(count <= max_requests)
 }

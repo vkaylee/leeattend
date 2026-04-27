@@ -40,8 +40,8 @@ impl DbPoolConfig {
     /// | `DB_WORKER_MAX_CONN` | 5 | Worker pool max connections |
     /// | `DB_WORKER_ACQUIRE_TIMEOUT_SECS` | 30 | Worker pool acquire timeout |
     pub fn from_env() -> Self {
-        let primary_url =
-            std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        #[allow(clippy::expect_used)]
+        let primary_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
         let reader_url = std::env::var("DATABASE_READER_URL")
             .ok()
@@ -83,6 +83,7 @@ impl DbPools {
             "Initializing database pools"
         );
 
+        #[allow(clippy::expect_used)]
         let api = PgPoolOptions::new()
             .max_connections(config.api_max_conn)
             .acquire_timeout(Duration::from_secs(config.api_acquire_timeout_secs))
@@ -90,6 +91,7 @@ impl DbPools {
             .await
             .expect("Failed to connect API pool to Postgres");
 
+        #[allow(clippy::expect_used)]
         let worker = PgPoolOptions::new()
             .max_connections(config.worker_max_conn)
             .acquire_timeout(Duration::from_secs(config.worker_acquire_timeout_secs))
@@ -99,6 +101,7 @@ impl DbPools {
 
         let reader = if let Some(ref reader_url) = config.reader_url {
             tracing::info!("Connecting read-replica pool...");
+            #[allow(clippy::expect_used)]
             let pool = PgPoolOptions::new()
                 .max_connections(config.api_max_conn)
                 .acquire_timeout(Duration::from_secs(config.api_acquire_timeout_secs))
@@ -142,6 +145,7 @@ impl DbPools {
 
     /// Run database migrations on the primary pool.
     pub async fn run_migrations(&self) {
+        #[allow(clippy::expect_used)]
         sqlx::migrate!("./migrations")
             .run(&self.api)
             .await

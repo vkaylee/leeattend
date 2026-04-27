@@ -35,8 +35,8 @@ impl OvertimeEngine {
         }
 
         let mut time_points = std::collections::BTreeSet::new();
-        time_points.insert(NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid"));
-        time_points.insert(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
+        time_points.insert(NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_default());
+        time_points.insert(NaiveTime::from_hms_opt(23, 59, 59).unwrap_or_default());
 
         for rule in &active_rules {
             if let Some(start) = rule.time_start {
@@ -57,17 +57,17 @@ impl OvertimeEngine {
             let mid_secs =
                 (start.num_seconds_from_midnight() + end.num_seconds_from_midnight()) / 2;
             let mid_time = NaiveTime::from_num_seconds_from_midnight_opt(mid_secs, 0)
-                .expect("midpoint time is valid");
+                .unwrap_or_default();
 
             let best_rule = active_rules
                 .iter()
                 .filter(|r| {
                     let r_start = r
                         .time_start
-                        .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid"));
+                        .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_default());
                     let r_end = r
                         .time_end
-                        .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
+                        .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).unwrap_or_default());
 
                     if r_start <= r_end {
                         mid_time >= r_start && mid_time < r_end
@@ -156,12 +156,12 @@ impl OvertimeEngine {
             let date = current.date_naive();
             // 23:59:59 is always valid; DST can make from_local ambiguous but we pick first
             let day_end =
-                match tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).expect("valid time")) {
+                match tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).unwrap_or_default()) {
                     chrono::LocalResult::Single(dt) => dt,
                     chrono::LocalResult::Ambiguous(dt, _) => dt,
                     chrono::LocalResult::None => {
                         // Rare: DST gap at 23:59:59 - use 22:59:59 + 1 hour
-                        let shifted = date.and_hms_opt(22, 59, 59).expect("valid time")
+                        let shifted = date.and_hms_opt(22, 59, 59).unwrap_or_default()
                             + chrono::Duration::hours(1);
                         tz.from_local_datetime(&shifted).single().unwrap_or(current)
                     }
@@ -180,7 +180,7 @@ impl OvertimeEngine {
             // Special case for NaiveTime max
             let s_time = current.time();
             let e_time = if segment_end.date_naive() > date {
-                NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid")
+                NaiveTime::from_hms_opt(23, 59, 59).unwrap_or_default()
             } else {
                 segment_end.time()
             };
@@ -199,13 +199,13 @@ impl OvertimeEngine {
                 break;
             };
             current = match tz
-                .from_local_datetime(&next_date.and_hms_opt(0, 0, 0).expect("midnight valid"))
+                .from_local_datetime(&next_date.and_hms_opt(0, 0, 0).unwrap_or_default())
             {
                 chrono::LocalResult::Single(dt) => dt,
                 chrono::LocalResult::Ambiguous(dt, _) => dt,
                 chrono::LocalResult::None => {
                     // DST gap at midnight - advance by 1 hour
-                    let shifted = next_date.and_hms_opt(1, 0, 0).expect("1am valid");
+                    let shifted = next_date.and_hms_opt(1, 0, 0).unwrap_or_default();
                     tz.from_local_datetime(&shifted)
                         .single()
                         .unwrap_or(segment_end)

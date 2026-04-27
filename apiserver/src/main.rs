@@ -1,3 +1,11 @@
+#![allow(
+    clippy::needless_continue,
+    clippy::clone_on_ref_ptr,
+    clippy::manual_let_else,
+    clippy::single_match_else,
+    clippy::ignored_unit_patterns,
+    missing_docs
+)]
 use apiserver::db_pool::{DbPoolConfig, DbPools};
 use apiserver::openapi::ApiDoc;
 use apiserver::queue::RedisPool;
@@ -23,14 +31,13 @@ impl Drop for PortFileGuard {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Check for openapi generation flag before everything else
     if std::env::args().any(|arg| arg == "gen-openapi") {
         let openapi_json = ApiDoc::openapi()
-            .to_pretty_json()
-            .expect("Failed to generate OpenAPI JSON");
+            .to_pretty_json()?;
         println!("{openapi_json}");
-        return;
+        return Ok(());
     }
 
     tracing_subscriber::registry()
@@ -62,7 +69,7 @@ async fn main() {
     let redis_pool = init_redis().await;
     tracing::info!("Redis initialization complete");
 
-    let (state, workers) = AppState::build(db_pools, redis_pool).await;
+    let (state, workers) = AppState::build(db_pools, redis_pool).await?;
 
     let app = create_app(state.clone());
 
@@ -92,15 +99,14 @@ async fn main() {
                     tracing::warn!("Port {} is in use, trying next port", port);
                     continue;
                 }
-                Err(e) => panic!("Failed to bind to {addr_str}: {e}"),
+                Err(e) => return Err(format!("Failed to bind to {addr_str}: {e}").into()),
             }
         }
-        listener.expect("Could not find an available port")
+        listener.ok_or("Could not find an available port")?
     };
 
     let actual_addr = listener
-        .local_addr()
-        .expect("Failed to get listener local address");
+        .local_addr()?;
     if std::fs::write(&port_file_name, actual_addr.port().to_string()).is_ok() {
         tracing::info!("Actual listening on {}", actual_addr);
     }
@@ -111,8 +117,7 @@ async fn main() {
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
-        .await
-        .expect("Server exited with error");
+        .await?;
 
     // Graceful shutdown sequence
     tracing::info!("Starting graceful shutdown...");
@@ -136,6 +141,7 @@ async fn main() {
     }
 
     tracing::info!("Server stopped.");
+    Ok(())
 }
 
 async fn init_redis() -> Option<RedisPool> {
@@ -180,17 +186,21 @@ async fn init_redis() -> Option<RedisPool> {
 
 async fn shutdown_signal() {
     let ctrl_c = async {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
+        if let Err(err) = tokio::signal::ctrl_c().await {
+            tracing::error!("failed to install Ctrl+C handler: {}", err);
+        }
     };
 
     #[cfg(unix)]
     let terminate = async {
-        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut signal) => {
+                signal.recv().await;
+            }
+            Err(err) => {
+                tracing::error!("failed to install signal handler: {}", err);
+            }
+        }
     };
 
     #[cfg(not(unix))]

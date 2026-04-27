@@ -182,8 +182,8 @@ impl ReportPublisher {
     ) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
         let channel = Self::channel_name(job_id);
-        let json =
-            serde_json::to_string(message).expect("StreamMessage serialization should not fail");
+        #[allow(clippy::expect_used)]
+        let json = serde_json::to_string(message).expect("StreamMessage serialization should not fail");
 
         tracing::debug!(
             job_id = %job_id,

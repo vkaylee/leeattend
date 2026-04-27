@@ -16,7 +16,7 @@ pub struct AppWorkers {
 }
 
 impl AppState {
-    pub async fn build(db_pools: DbPools, redis_pool: Option<RedisPool>) -> (Arc<Self>, AppWorkers) {
+    pub async fn build(db_pools: DbPools, redis_pool: Option<RedisPool>) -> Result<(Arc<Self>, AppWorkers), Box<dyn std::error::Error>> {
         // Use API pool for application-level initialization (HTTP handlers, CRUD)
         let pool = db_pools.api().clone();
         // Use Worker pool for background services (patient timeout, won't starve API)
@@ -25,8 +25,7 @@ impl AppState {
         #[cfg(debug_assertions)]
         {
             crate::dev_initialization::ensure_dev_data(&pool)
-                .await
-                .expect("Failed to seed dev data");
+                .await?;
         }
 
         let agent_manager = AgentManager::new(
@@ -163,7 +162,7 @@ impl AppState {
                 "dev_secret_key_leeattend_2026".to_string()
             })
         } else {
-            std::env::var("JWT_SECRET").expect("JWT_SECRET must be set in production")
+            std::env::var("JWT_SECRET").map_err(|_| "JWT_SECRET must be set in production")?
         };
 
         let buffer_capacity: usize = std::env::var("AGENT_LOG_BUFFER_CAPACITY")
@@ -198,30 +197,31 @@ impl AppState {
 
         // Initialize job worker if Redis is available
         let worker_cancel_token = CancellationToken::new();
-        let (coordinator, worker_handle) = if let Some(ref redis) = redis_pool {
-            let worker_config = WorkerConfig::from_env();
-            tracing::info!(
-                max_concurrent = worker_config.max_concurrent_jobs,
-                poll_timeout = worker_config.poll_timeout_secs,
-                "Initializing job worker"
-            );
+        let (coordinator, worker_handle) = redis_pool.as_ref().map_or_else(
+            || (None, None),
+            |redis| {
+                let worker_config = WorkerConfig::from_env();
+                tracing::info!(
+                    max_concurrent = worker_config.max_concurrent_jobs,
+                    poll_timeout = worker_config.poll_timeout_secs,
+                    "Initializing job worker"
+                );
 
-            let coordinator = Arc::new(ReportCoordinator::new(redis.clone(), pool.clone()));
+                let coordinator = Arc::new(ReportCoordinator::new(redis.clone(), pool.clone()));
 
-            let worker = JobWorker::new(
-                redis.clone(),
-                db_pools.worker().clone(),
-                worker_config,
-                coordinator.clone(),
-                roster_cache.clone(),
-            );
-            (
-                Some(coordinator),
-                Some(worker.start(worker_cancel_token.clone())),
-            )
-        } else {
-            (None, None)
-        };
+                let worker = JobWorker::new(
+                    redis.clone(),
+                    db_pools.worker().clone(),
+                    worker_config,
+                    coordinator.clone(),
+                    roster_cache.clone(),
+                );
+                (
+                    Some(coordinator),
+                    Some(worker.start(worker_cancel_token.clone())),
+                )
+            },
+        );
 
         let user_repo: Arc<dyn crate::repositories::user_repository::UserRepository> =
             Arc::new(crate::repositories::user_repository::SqlxUserRepository::new(pool.clone()));
@@ -292,6 +292,6 @@ impl AppState {
             job_worker_token: worker_cancel_token,
         };
 
-        (state, workers)
+        Ok((state, workers))
     }
 }

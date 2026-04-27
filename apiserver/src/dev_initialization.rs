@@ -7,19 +7,19 @@ use crate::models::MemberRole;
 pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
     info!("Ensuring dev data exists...");
 
-    let admin_user_id =
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").expect("valid UUID constant");
-    let workspace_id =
-        Uuid::parse_str("00000000-0000-0000-0000-000000000002").expect("valid UUID constant");
-    let device_id_1 =
-        Uuid::parse_str("00000000-0000-0000-0000-000000000011").expect("valid UUID constant");
-    let device_id_2 =
-        Uuid::parse_str("00000000-0000-0000-0000-000000000012").expect("valid UUID constant");
+    #[allow(clippy::expect_used)]
+    let admin_user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").expect("valid UUID constant");
+    #[allow(clippy::expect_used)]
+    let workspace_id = Uuid::parse_str("00000000-0000-0000-0000-000000000002").expect("valid UUID constant");
+    #[allow(clippy::expect_used)]
+    let device_id_1 = Uuid::parse_str("00000000-0000-0000-0000-000000000011").expect("valid UUID constant");
+    #[allow(clippy::expect_used)]
+    let device_id_2 = Uuid::parse_str("00000000-0000-0000-0000-000000000012").expect("valid UUID constant");
 
     // 1. Upsert Admin User
     // Password is 'admin123' hashed with bcrypt
-    let password_hash =
-        bcrypt::hash("admin123", bcrypt::DEFAULT_COST).expect("bcrypt hash should not fail");
+    #[allow(clippy::expect_used)]
+    let password_hash = bcrypt::hash("admin123", bcrypt::DEFAULT_COST).expect("bcrypt hash should not fail");
 
     sqlx::query(
         r#"

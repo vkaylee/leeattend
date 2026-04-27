@@ -85,6 +85,7 @@ impl JobQueue {
         let mut conn = self.pool.conn();
 
         for job in jobs {
+            #[allow(clippy::expect_used)]
             let json = serde_json::to_string(&job).expect("Job serialization should not fail");
             let key = match job.priority {
                 JobPriority::Low => self.queue_low(),
@@ -100,6 +101,7 @@ impl JobQueue {
     /// Enqueue a single job. Convenience method for log ingestion.
     pub async fn enqueue_single(&self, job: Job) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
+        #[allow(clippy::expect_used)]
         let json = serde_json::to_string(&job).expect("Job serialization should not fail");
         let key = match job.priority {
             JobPriority::Low => self.queue_low(),
@@ -173,6 +175,7 @@ impl JobQueue {
     pub async fn create_job_metadata(&self, meta: &JobMetadata) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
         let key = format!("{}{}", META_PREFIX, meta.job_id);
+        #[allow(clippy::expect_used)]
         let json = serde_json::to_string(meta).expect("JobMetadata serialization should not fail");
 
         redis::pipe()
@@ -218,6 +221,7 @@ impl JobQueue {
     pub async fn update_job_metadata(&self, meta: &JobMetadata) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
         let key = format!("{}{}", META_PREFIX, meta.job_id);
+        #[allow(clippy::expect_used)]
         let json = serde_json::to_string(meta).expect("JobMetadata serialization should not fail");
 
         // Get current TTL before update (compatible with Redis 3.0+)
@@ -398,6 +402,7 @@ impl JobQueue {
             failed_at: chrono::Utc::now(),
         };
 
+        #[allow(clippy::expect_used)]
         let json = serde_json::to_string(&entry).expect("DLQ serialization should not fail");
         let _: () = conn.rpush(DLQ_KEY, json).await?;
         Ok(())
