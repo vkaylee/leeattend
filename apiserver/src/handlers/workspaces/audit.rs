@@ -35,8 +35,7 @@ pub async fn get_audit_logs(
     Query(params): Query<AuditLogQueryParams>,
 ) -> AppResult<Json<PaginatedAuditLogs>> {
     // Only admins or those with specific permission should see audit logs.
-    // Let's reuse MembersRolesManage or we can just require admin via specific logic.
-    ctx.require_permission(Permission::MembersRolesManage)?;
+    ctx.require_permission(Permission::AuditLogsRead)?;
 
     let page = params.page.unwrap_or(1).max(1);
     let limit = params.limit.unwrap_or(50).clamp(1, 100);

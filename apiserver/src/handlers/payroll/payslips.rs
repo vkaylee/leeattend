@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
@@ -39,21 +40,23 @@ pub struct FullPayslipResponse {
 
 pub async fn calculate_batch_payroll(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<BatchCalculatePayrollRequest>,
 ) -> AppResult<Json<BatchCalculatePayrollResponse>> {
+    ctx.require_permission(Permission::PayrollCalculate)?;
     let response = state
         .payroll.service
-        .calculate_batch_payslips(req.employee_ids, workspace_id, req.year, req.month)
+        .calculate_batch_payslips(req.employee_ids, ctx.workspace_id, req.year, req.month)
         .await;
     Ok(Json(response))
 }
 
 pub async fn get_workspace_payslips(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(query): Query<PayrollQuery>,
 ) -> AppResult<Json<Vec<Payslip>>> {
+    ctx.require_permission(Permission::PayrollRead)?;
     let start_date = chrono::NaiveDate::from_ymd_opt(query.year, query.month, 1)
         .ok_or_else(|| AppError::Validation("Invalid year/month".to_string()))?;
 
@@ -67,7 +70,7 @@ pub async fn get_workspace_payslips(
         .and_then(|d| d.pred_opt())
         .ok_or_else(|| AppError::Validation("Invalid date range".to_string()))?;
 
-    let payslips = state.payroll.repo.get_payslips_by_workspace_period(workspace_id,
+    let payslips = state.payroll.repo.get_payslips_by_workspace_period(ctx.workspace_id,
         start_date,
         end_date,
     )
@@ -79,15 +82,16 @@ pub async fn get_workspace_payslips(
 pub async fn calculate_payroll(
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     crate::utils::debug::DebugContext {
         mock_date: _mock_date,
     }: crate::utils::debug::DebugContext,
     Query(query): Query<PayrollQuery>,
 ) -> AppResult<Json<FullPayslipResponse>> {
+    ctx.require_permission(Permission::PayrollCalculate)?;
     let payslip = state
         .payroll.service
-        .calculate_monthly_payslip(employee_id, workspace_id, query.year, query.month)
+        .calculate_monthly_payslip(employee_id, ctx.workspace_id, query.year, query.month)
         .await
         ?;
 
@@ -101,7 +105,7 @@ pub async fn calculate_payroll(
 
     // Fetch salary components at the period start date
     let salary_components =
-        state.payroll.repo.get_employee_salary_components(workspace_id, employee_id,
+        state.payroll.repo.get_employee_salary_components(ctx.workspace_id, employee_id,
             payslip.period_start,
         )
         .await?
@@ -138,10 +142,11 @@ pub async fn calculate_payroll(
 pub async fn get_employee_payslips(
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<FullPayslipResponse>>> {
+    ctx.require_permission(Permission::PayrollRead)?;
     let payslips =
-        state.payroll.repo.get_payslips_by_employee(workspace_id, employee_id)
+        state.payroll.repo.get_payslips_by_employee(ctx.workspace_id, employee_id)
             .await?;
 
     let mut responses = Vec::new();
@@ -155,7 +160,7 @@ pub async fn get_employee_payslips(
 
         // Fetch salary components at the period start date
         let salary_components =
-            state.payroll.repo.get_employee_salary_components(workspace_id, employee_id,
+            state.payroll.repo.get_employee_salary_components(ctx.workspace_id, employee_id,
                 p.period_start,
             )
             .await?

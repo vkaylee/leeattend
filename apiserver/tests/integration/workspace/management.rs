@@ -48,17 +48,18 @@ async fn test_workspace_creation_and_membership() {
 
     // 3. Assign an extra role
     let extra_role_id = "a0000000-0000-0000-0000-000000000002"; // admin role
+    let future_date = chrono::Utc::now() + chrono::Duration::days(365);
     let res = client
         .post(format!("{address}/api/workspaces/{ws_id}/members/{user_id}/roles"))
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({
             "role_id": extra_role_id,
-            "expires_at": null
+            "expires_at": future_date
         }))
         .send()
         .await
         .unwrap();
-    assert_eq!(res.status(), reqwest::StatusCode::OK);
+    assert_eq!(res.status(), reqwest::StatusCode::CREATED);
 
     // 4. Check member list again to see if extra_role_ids is populated
     let response = client

@@ -40,7 +40,7 @@ pub async fn submit_leave_request(
 
     // Auto-approve if submitter also has approve permission for this department
     let can_auto_approve = ctx
-        .require_scoped_permission(Permission::LeaveRequestsApprove, target_dept_id)
+        .require_any_scoped_permission(&[Permission::LeaveRequestsApprove, Permission::LeaveApproveL1, Permission::LeaveApproveL2], target_dept_id)
         .is_ok();
 
     let request = state.leaves.service.submit_leave_request(
@@ -74,7 +74,7 @@ pub async fn approve_leave_request(
         "#
     ).bind(id).bind(ctx.workspace_id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
 
-    ctx.require_scoped_permission(Permission::LeaveRequestsApprove, target_dept_id)?;
+    ctx.require_any_scoped_permission(&[Permission::LeaveRequestsApprove, Permission::LeaveApproveL1, Permission::LeaveApproveL2], target_dept_id)?;
     state.leaves.service.approve_leave_request(
         ctx.workspace_id,
         user_id,
@@ -465,7 +465,9 @@ pub async fn upload_leave_excel(
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
 
     // Check auto-approve permission
-    let auto_approve = ctx.has_permission(Permission::LeaveRequestsApprove);
+    let auto_approve = ctx.has_permission(Permission::LeaveRequestsApprove) 
+        || ctx.has_permission(Permission::LeaveApproveL1) 
+        || ctx.has_permission(Permission::LeaveApproveL2);
 
     // Create import job record in DB
     let import_job_id = Uuid::new_v4();

@@ -115,6 +115,26 @@ pub enum Permission {
     FeatureFlagsRead,
     FeatureFlagsManage,
 
+    // ── Security & Audit ──────────────────────────────
+    AuditLogsRead,
+    AuditLogsExport,
+    SecuritySettingsManage,
+
+    // ── Bulk & Emergency ──────────────────────────────
+    EmployeesBulkEdit,
+    AttendanceForceClockOut,
+
+    // ── Documents ─────────────────────────────────────
+    DocumentsMedicalRead,
+    DocumentsContractRead,
+
+    // ── Advanced Payroll & Approvals ──────────────────
+    PayrollApprove,
+    PayrollDisburse,
+    PayrollSensitiveRead,
+    LeaveApproveL1,
+    LeaveApproveL2,
+
     // ── Infrastructure ─────────────────────────────────
     InfraMonitor,
 
@@ -201,6 +221,18 @@ impl Permission {
             "recruitment:manage" => Some(Self::RecruitmentManage),
             "feature_flags:read" => Some(Self::FeatureFlagsRead),
             "feature_flags:manage" => Some(Self::FeatureFlagsManage),
+            "audit_logs:read" => Some(Self::AuditLogsRead),
+            "audit_logs:export" => Some(Self::AuditLogsExport),
+            "security:settings:manage" => Some(Self::SecuritySettingsManage),
+            "employees:bulk_edit" => Some(Self::EmployeesBulkEdit),
+            "attendance:force_clock_out" => Some(Self::AttendanceForceClockOut),
+            "documents:medical:read" => Some(Self::DocumentsMedicalRead),
+            "documents:contract:read" => Some(Self::DocumentsContractRead),
+            "payroll:approve" => Some(Self::PayrollApprove),
+            "payroll:disburse" => Some(Self::PayrollDisburse),
+            "payroll:sensitive:read" => Some(Self::PayrollSensitiveRead),
+            "leave:approve:l1" => Some(Self::LeaveApproveL1),
+            "leave:approve:l2" => Some(Self::LeaveApproveL2),
             "infra:monitor" => Some(Self::InfraMonitor),
             "ess:profile" => Some(Self::EssProfile),
             "ess:attendance" => Some(Self::EssAttendance),
@@ -285,6 +317,18 @@ impl Permission {
             Self::RecruitmentManage => "recruitment:manage",
             Self::FeatureFlagsRead => "feature_flags:read",
             Self::FeatureFlagsManage => "feature_flags:manage",
+            Self::AuditLogsRead => "audit_logs:read",
+            Self::AuditLogsExport => "audit_logs:export",
+            Self::SecuritySettingsManage => "security:settings:manage",
+            Self::EmployeesBulkEdit => "employees:bulk_edit",
+            Self::AttendanceForceClockOut => "attendance:force_clock_out",
+            Self::DocumentsMedicalRead => "documents:medical:read",
+            Self::DocumentsContractRead => "documents:contract:read",
+            Self::PayrollApprove => "payroll:approve",
+            Self::PayrollDisburse => "payroll:disburse",
+            Self::PayrollSensitiveRead => "payroll:sensitive:read",
+            Self::LeaveApproveL1 => "leave:approve:l1",
+            Self::LeaveApproveL2 => "leave:approve:l2",
             Self::InfraMonitor => "infra:monitor",
             Self::EssProfile => "ess:profile",
             Self::EssAttendance => "ess:attendance",
@@ -317,6 +361,12 @@ impl Permission {
             "dashboard:read", "dashboard:preferences",
             "agents:read", "agents:manage", "devices:read", "devices:manage",
             "recruitment:read", "recruitment:manage",
+            "feature_flags:read", "feature_flags:manage",
+            "audit_logs:read", "audit_logs:export", "security:settings:manage",
+            "employees:bulk_edit", "attendance:force_clock_out",
+            "documents:medical:read", "documents:contract:read",
+            "payroll:approve", "payroll:disburse", "payroll:sensitive:read",
+            "leave:approve:l1", "leave:approve:l2",
             "infra:monitor",
             "ess:profile", "ess:attendance", "ess:clock", "ess:leave", "ess:payslips", "ess:shift_swaps",
         ]
@@ -324,3 +374,189 @@ impl Permission {
 }
 
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    /// Lock the total permission count at 89.
+    /// If you add a new Permission variant, update this number,
+    /// `all_permission_strings()`, AND the frontend PermissionSync.test.ts.
+    #[test]
+    fn test_total_permission_count_is_89() {
+        let all = Permission::all_permission_strings();
+        assert_eq!(
+            all.len(),
+            89,
+            "Permission count changed! Update this test, the UI permissionGroups, AND PermissionSync.test.ts. Current count: {}",
+            all.len()
+        );
+    }
+
+    /// Every string in all_permission_strings() must roundtrip through from_str → to_str.
+    #[test]
+    fn test_all_permission_strings_roundtrip() {
+        for s in Permission::all_permission_strings() {
+            let parsed = Permission::from_str_permission(s);
+            assert!(
+                parsed.is_some(),
+                "from_str_permission failed for '{s}' — missing match arm in from_str_permission()"
+            );
+            let back = parsed.unwrap().to_str_permission();
+            assert_eq!(
+                s, back,
+                "Roundtrip mismatch: from_str('{s}') → to_str = '{back}'"
+            );
+        }
+    }
+
+    /// No duplicate strings in all_permission_strings().
+    #[test]
+    fn test_no_duplicate_permission_strings() {
+        let all = Permission::all_permission_strings();
+        let unique: HashSet<&str> = all.iter().copied().collect();
+        assert_eq!(
+            all.len(),
+            unique.len(),
+            "Duplicate permission strings detected! Count: {} vs unique: {}",
+            all.len(),
+            unique.len()
+        );
+    }
+
+    /// Every Permission enum variant is covered by all_permission_strings().
+    /// We verify this indirectly: to_str_permission for each variant must appear in the vec.
+    #[test]
+    fn test_all_enum_variants_covered() {
+        let all_set: HashSet<&str> = Permission::all_permission_strings().into_iter().collect();
+
+        // Exhaustive list of all enum variants
+        let all_variants = vec![
+            Permission::WorkspaceUpdate,
+            Permission::WorkspaceDelete,
+            Permission::WorkspaceSettingsRead,
+            Permission::WorkspaceSettingsWrite,
+            Permission::MembersRead,
+            Permission::MembersInvite,
+            Permission::MembersRolesManage,
+            Permission::MembersRemove,
+            Permission::EmployeesRead,
+            Permission::EmployeesCreate,
+            Permission::EmployeesUpdate,
+            Permission::EmployeesDelete,
+            Permission::EmployeesRehire,
+            Permission::EmployeesUpload,
+            Permission::DepartmentsRead,
+            Permission::DepartmentsCreate,
+            Permission::DepartmentsUpdate,
+            Permission::DepartmentsDelete,
+            Permission::DepartmentsTransfer,
+            Permission::AttendanceLogsRead,
+            Permission::AttendanceLogsImport,
+            Permission::AttendanceSummariesRead,
+            Permission::AttendanceAdjustmentsSubmit,
+            Permission::AttendanceAdjustmentsApprove,
+            Permission::AttendanceReprocess,
+            Permission::AttendanceStagingManage,
+            Permission::OvertimeClaim,
+            Permission::OvertimeApprove,
+            Permission::OvertimePoliciesManage,
+            Permission::OvertimePaperUpload,
+            Permission::LeaveRequestsRead,
+            Permission::LeaveRequestsSubmit,
+            Permission::LeaveRequestsApprove,
+            Permission::LeaveBalancesRead,
+            Permission::LeaveBalancesAdjust,
+            Permission::LeaveTypesManage,
+            Permission::LeavePoliciesManage,
+            Permission::LeaveAccrualRun,
+            Permission::ShiftsRead,
+            Permission::ShiftsCreate,
+            Permission::ShiftsUpdate,
+            Permission::ShiftsAssign,
+            Permission::ShiftSwapsManage,
+            Permission::ShiftSwapsApprove,
+            Permission::PatternsRead,
+            Permission::PatternsCreate,
+            Permission::PatternsAssign,
+            Permission::PatternsDelete,
+            Permission::RostersRead,
+            Permission::RostersManage,
+            Permission::AssignmentRulesManage,
+            Permission::PayrollRead,
+            Permission::PayrollCalculate,
+            Permission::PayrollSettingsManage,
+            Permission::PayrollComponentsManage,
+            Permission::PayrollIncentivesManage,
+            Permission::HolidaysRead,
+            Permission::HolidaysManage,
+            Permission::ReportsRead,
+            Permission::ReportsExport,
+            Permission::DashboardRead,
+            Permission::DashboardPreferences,
+            Permission::AgentsRead,
+            Permission::AgentsManage,
+            Permission::DevicesRead,
+            Permission::DevicesManage,
+            Permission::RecruitmentRead,
+            Permission::RecruitmentManage,
+            Permission::FeatureFlagsRead,
+            Permission::FeatureFlagsManage,
+            Permission::AuditLogsRead,
+            Permission::AuditLogsExport,
+            Permission::SecuritySettingsManage,
+            Permission::EmployeesBulkEdit,
+            Permission::AttendanceForceClockOut,
+            Permission::DocumentsMedicalRead,
+            Permission::DocumentsContractRead,
+            Permission::PayrollApprove,
+            Permission::PayrollDisburse,
+            Permission::PayrollSensitiveRead,
+            Permission::LeaveApproveL1,
+            Permission::LeaveApproveL2,
+            Permission::InfraMonitor,
+            Permission::EssProfile,
+            Permission::EssAttendance,
+            Permission::EssClock,
+            Permission::EssLeave,
+            Permission::EssPayslips,
+            Permission::EssShiftSwaps,
+        ];
+
+        assert_eq!(
+            all_variants.len(),
+            89,
+            "Variant list in test is stale — expected 89, got {}",
+            all_variants.len()
+        );
+
+        for variant in &all_variants {
+            let s = variant.to_str_permission();
+            assert!(
+                all_set.contains(s),
+                "Enum variant {:?} ('{s}') is missing from all_permission_strings()",
+                variant
+            );
+        }
+    }
+
+    /// All permission strings follow colon-separated lowercase format.
+    #[test]
+    fn test_permission_string_format() {
+        for s in Permission::all_permission_strings() {
+            assert!(!s.is_empty(), "Empty permission string found");
+            assert!(
+                s.chars().all(|c| c.is_ascii_lowercase() || c == ':' || c == '_' || c.is_ascii_digit()),
+                "Permission string '{s}' contains invalid characters (expected lowercase, digits, colons, underscores)"
+            );
+            assert!(
+                !s.starts_with(':') && !s.ends_with(':'),
+                "Permission string '{s}' must not start or end with ':'"
+            );
+            assert!(
+                !s.contains("::"),
+                "Permission string '{s}' must not contain consecutive colons"
+            );
+        }
+    }
+}

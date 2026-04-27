@@ -11,7 +11,9 @@ use axum::{
     Json,
 };
 use std::sync::Arc;
+use std::time::Duration;
 use uuid::Uuid;
+use serde::{Deserialize, Serialize};
 
 // --- Extractors ---
 
@@ -112,6 +114,37 @@ impl MemberContext {
             "Permission denied: Target is outside your managed departments scope.".to_string(),
         ))
     }
+
+    /// Check if the member has ANY of the given permissions, scoped to the department.
+    pub fn require_any_scoped_permission(
+        &self,
+        perms: &[Permission],
+        target_department_id: Option<Uuid>,
+    ) -> AppResult<()> {
+        let has_perm = perms.iter().any(|&p| self.has_permission(p));
+        if !has_perm {
+            return Err(AppError::Forbidden(format!(
+                "Missing any of permissions: {:?}", perms
+            )));
+        }
+
+        // Global scope
+        let allowed_depts = match &self.managed_department_ids {
+            None => return Ok(()),
+            Some(depts) => depts,
+        };
+
+        // Scoped check
+        if let Some(dept_id) = target_department_id {
+            if allowed_depts.contains(&dept_id) {
+                return Ok(());
+            }
+        }
+
+        Err(AppError::Forbidden(
+            "Permission denied: Target is outside your managed departments scope.".to_string(),
+        ))
+    }
 }
 
 #[async_trait]
@@ -128,20 +161,76 @@ where
 
         let app_state = Arc::<AppState>::from_ref(state);
 
+        let cache_key = format!("cache:auth:permissions:{workspace_id}:{user_id}");
+        let ttl = Duration::from_secs(3600); // 1 hour TTL
+
+        let cached_data = if let Some(redis_pool) = app_state.infra.redis.clone() {
+            let redis_cache = crate::cache::RedisCache::new(redis_pool);
+            if let Some(d) = redis_cache.get::<CachedMemberContext>(&cache_key).await {
+                d
+            } else {
+                let fresh = Self::fetch_member_context_from_db(user_id, workspace_id, &app_state)
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("DB error fetching member context: {e}");
+                        AppError::Internal("Database error".to_string())
+                    })?;
+                let _ = redis_cache.set(&cache_key, &fresh, ttl).await;
+                fresh
+            }
+        } else {
+            Self::fetch_member_context_from_db(user_id, workspace_id, &app_state)
+                .await
+                .map_err(|e| {
+                    tracing::error!("DB error fetching member context: {e}");
+                    AppError::Internal("Database error".to_string())
+                })?
+        };
+
+        let mut permissions = HashSet::new();
+        for perm_str in cached_data.permissions {
+            if let Some(perm) = permissions::Permission::from_str_permission(&perm_str) {
+                permissions.insert(perm);
+            }
+        }
+
+        Ok(MemberContext {
+            user_id,
+            workspace_id,
+            roles: cached_data.roles,
+            permissions,
+            managed_department_ids: cached_data.managed_department_ids,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CachedMemberContext {
+    pub roles: Vec<Uuid>,
+    pub permissions: Vec<String>,
+    pub managed_department_ids: Option<HashSet<Uuid>>,
+}
+
+impl MemberContext {
+    async fn fetch_member_context_from_db(
+        user_id: Uuid,
+        workspace_id: Uuid,
+        app_state: &Arc<AppState>,
+    ) -> Result<CachedMemberContext, String> {
         // 1. Fetch Primary Role
         let primary_role = app_state
             .core.workspace_repo
             .find_primary_role(workspace_id, user_id)
             .await
-            .map_err(AppError::from)?
-            .ok_or_else(|| AppError::Forbidden("Not a member of this workspace".to_string()))?;
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| "Not a member of this workspace".to_string())?;
 
         // 2. Fetch Active Extra Roles
         let all_extra_roles = app_state
             .core.workspace_repo
             .find_extra_roles(workspace_id, user_id)
             .await
-            .map_err(AppError::from)?;
+            .map_err(|e| e.to_string())?;
 
         let mut roles: Vec<Uuid> = all_extra_roles
             .into_iter()
@@ -158,7 +247,7 @@ where
         .bind(&roles)
         .fetch_all(app_state.infra.db.api())
         .await
-        .map_err(AppError::from)?;
+        .map_err(|e| e.to_string())?;
 
         let mut permissions = HashSet::new();
         for perm_str in db_perms {
@@ -205,11 +294,9 @@ where
             Some(depts.into_iter().collect())
         };
 
-        Ok(MemberContext {
-            user_id,
-            workspace_id,
+        Ok(CachedMemberContext {
             roles,
-            permissions,
+            permissions: permissions.into_iter().map(|p| p.to_str_permission().to_string()).collect(),
             managed_department_ids,
         })
     }
@@ -386,5 +473,57 @@ mod tests {
         let ctx = make_ctx(vec![], perms, Some(managed));
         // target_department_id = None with scoped permissions → Forbidden
         assert!(ctx.require_scoped_permission(Permission::EmployeesRead, None).is_err());
+    }
+
+    #[test]
+    fn test_require_any_scoped_permission_global_scope_ok() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::LeaveApproveL1);
+        let ctx = make_ctx(vec![], perms, None);
+        let dept_id = Uuid::new_v4();
+        let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1];
+        assert!(ctx.require_any_scoped_permission(&any_perms, Some(dept_id)).is_ok());
+    }
+
+    #[test]
+    fn test_require_any_scoped_permission_in_scope_ok() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::LeaveApproveL2);
+        let dept_id = Uuid::new_v4();
+        let mut managed = HashSet::new();
+        managed.insert(dept_id);
+        let ctx = make_ctx(vec![], perms, Some(managed));
+        let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1, Permission::LeaveApproveL2];
+        assert!(ctx.require_any_scoped_permission(&any_perms, Some(dept_id)).is_ok());
+    }
+
+    #[test]
+    fn test_require_any_scoped_permission_out_of_scope_err() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::LeaveApproveL1);
+        let managed = HashSet::from([Uuid::new_v4()]);
+        let ctx = make_ctx(vec![], perms, Some(managed));
+        let other_dept = Uuid::new_v4();
+        let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1];
+        assert!(ctx.require_any_scoped_permission(&any_perms, Some(other_dept)).is_err());
+    }
+
+    #[test]
+    fn test_require_any_scoped_permission_no_perms_err() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::EmployeesRead); // Has a different permission
+        let ctx = make_ctx(vec![], perms, None);
+        let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1];
+        assert!(ctx.require_any_scoped_permission(&any_perms, Some(Uuid::new_v4())).is_err());
+    }
+
+    #[test]
+    fn test_require_any_scoped_permission_no_target_dept_err() {
+        let mut perms = HashSet::new();
+        perms.insert(Permission::LeaveApproveL1);
+        let managed = HashSet::from([Uuid::new_v4()]);
+        let ctx = make_ctx(vec![], perms, Some(managed));
+        let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1];
+        assert!(ctx.require_any_scoped_permission(&any_perms, None).is_err());
     }
 }
