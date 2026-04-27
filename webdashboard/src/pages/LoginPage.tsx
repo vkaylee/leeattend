@@ -105,7 +105,7 @@ export default function LoginPage() {
               <div className="space-y-3 px-1">
                 <label className={LABEL_BASE}>{t("auth.email")}</label>
                 <div className="relative group">
-                  <input id="email-address" data-testid="login-email-input" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm uppercase tracking-tight shadow-inner" placeholder="admin@leeattend.com" />
+                  <input id="email-address" data-testid="login-email-input" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm tracking-tight shadow-inner" placeholder="admin@leeattend.com" />
                 </div>
               </div>
               <div className="space-y-3 px-1">
