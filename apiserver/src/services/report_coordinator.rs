@@ -356,6 +356,7 @@ impl ReportCoordinator {
                     // It's a report job, trigger merge
                     tracing::info!(parent_job_id = %parent_job_id, "Triggering merge job");
 
+                    #[allow(clippy::expect_used)]
                     let date_range = meta.date_range.clone().unwrap_or(DateRange {
                         start: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
                         end: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),

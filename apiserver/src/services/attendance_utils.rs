@@ -191,6 +191,7 @@ pub fn extract_punch_status(raw_data: Option<&serde_json::Value>) -> (i32, i32) 
 ///
 /// Delegates to [`crate::utils::tz::start_of_day_utc`] / [`crate::utils::tz::end_of_day_utc`]
 /// for proper DST gap handling (shifts forward by 1 hour instead of panicking).
+#[allow(clippy::expect_used)]
 pub fn date_range_to_utc(
     tz: Tz,
     start_date: NaiveDate,

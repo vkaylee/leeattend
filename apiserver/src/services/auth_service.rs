@@ -24,6 +24,7 @@ impl AuthService {
 
     // --- Pure functions (no pool needed) — kept as associated functions ---
 
+    #[allow(clippy::expect_used)]
     pub fn generate_token(
         user_id: Uuid,
         secret: &str,
