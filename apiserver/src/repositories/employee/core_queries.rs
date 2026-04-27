@@ -187,6 +187,7 @@ pub async fn get_all_employees(
     );
     let mut count_query = query_scalar::<_, i64>(&count_sql).bind(workspace_id);
     if search_sql.has_search {
+        #[allow(clippy::expect_used)]
         let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
         count_query = count_query.bind(format!("%{raw_q}%"));
     }
@@ -207,6 +208,7 @@ pub async fn get_all_employees(
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
     if search_sql.has_search {
+        #[allow(clippy::expect_used)]
         let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
         db_query = db_query.bind(format!("%{raw_q}%"));
     } else {
@@ -218,6 +220,7 @@ pub async fn get_all_employees(
 
     // $5 — raw search term for ranking, or None when not searching
     if search_sql.has_search {
+        #[allow(clippy::expect_used)]
         let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
         db_query = db_query.bind(raw_q);
     } else {
