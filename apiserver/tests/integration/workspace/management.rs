@@ -42,7 +42,39 @@ async fn test_workspace_creation_and_membership() {
     let members: Vec<serde_json::Value> = response.json().await.unwrap();
     assert!(members
         .iter()
-        .any(|m| m["user_id"] == user_id.to_string() && m["role_id"] == "a0000000-0000-0000-0000-000000000001"));
+        .any(|m| m["user_id"] == user_id.to_string() 
+            && m["role_id"] == "a0000000-0000-0000-0000-000000000001"
+            && m["extra_role_ids"].as_array().map_or(false, |arr| arr.is_empty())));
+
+    // 3. Assign an extra role
+    let extra_role_id = "a0000000-0000-0000-0000-000000000002"; // admin role
+    let res = client
+        .post(format!("{address}/api/workspaces/{ws_id}/members/{user_id}/roles"))
+        .header("X-User-Id", user_id.to_string())
+        .json(&serde_json::json!({
+            "role_id": extra_role_id,
+            "expires_at": null
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), reqwest::StatusCode::OK);
+
+    // 4. Check member list again to see if extra_role_ids is populated
+    let response = client
+        .get(format!("{address}/api/workspaces/{ws_id}/members"))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let members: Vec<serde_json::Value> = response.json().await.unwrap();
+    assert!(members
+        .iter()
+        .any(|m| m["user_id"] == user_id.to_string() 
+            && m["role_id"] == "a0000000-0000-0000-0000-000000000001"
+            && m["extra_role_ids"].as_array().map_or(false, |arr| arr.contains(&serde_json::json!(extra_role_id)))));
 }
 
 #[tokio::test]

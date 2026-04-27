@@ -78,7 +78,8 @@ export const memberFactory = (
   return {
     workspace_id: crypto.randomUUID(),
     user_id: crypto.randomUUID(),
-    role: "member",
+    role_id: "role-member",
+    extra_role_ids: [],
     email: "test@example.com",
     ...overrides,
   };

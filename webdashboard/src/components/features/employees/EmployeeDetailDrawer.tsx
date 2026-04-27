@@ -14,6 +14,7 @@ import Sheet from "@/components/ui/Sheet";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 import WorkingConditionConfig from "@/components/employees/WorkingConditionConfig";
 import type { Employee, Department } from "@/lib/api";
+import PermissionGate from "@/components/common/PermissionGate";
 
 type DetailTabType = "profile" | "salary" | "history" | "policies";
 const TAB_ORDER: DetailTabType[] = ["profile", "salary", "policies", "history"];
@@ -120,18 +121,24 @@ export default function EmployeeDetailDrawer({
                 {activeDetailTab === "profile" && (
                     <div className="space-y-10">
                         <div className="grid grid-cols-2 gap-6">
-                            <button data-testid="employees-btn-edit" onClick={() => onEdit(employee)} className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95"><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</button>
-                            {employee.is_active ? (
-                                <button data-testid="employees-btn-terminate" onClick={() => onTerminate(employee)} className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</button>
-                            ) : (
-                                <button data-testid="employees-btn-rehire" onClick={() => onRehire(employee)} className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</button>
-                            )}
+                            <PermissionGate permission="employees:update">
+                                <button data-testid="employees-btn-edit" onClick={() => onEdit(employee)} className="flex items-center justify-center gap-3 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95"><Pencil size={18} /> {t("employees.details.edit_profile").toUpperCase()}</button>
+                            </PermissionGate>
+                            <PermissionGate permission="employees:update">
+                                {employee.is_active ? (
+                                    <button data-testid="employees-btn-terminate" onClick={() => onTerminate(employee)} className="flex items-center justify-center gap-3 py-4 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 font-bold rounded-2xl hover:bg-rose-100 dark:bg-rose-900 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</button>
+                                ) : (
+                                    <button data-testid="employees-btn-rehire" onClick={() => onRehire(employee)} className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</button>
+                                )}
+                            </PermissionGate>
                         </div>
 
                         <section className="space-y-5">
                             <div className="flex justify-between items-center px-2">
                                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><Building2 size={14} className="text-primary-500" /> {t("employees.details.current_dept").toUpperCase()}</span>
-                                <button onClick={() => onTransfer(deptHistory?.[0]?.department_id || "")} className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90">{t("employees.details.transfer").toUpperCase()}</button>
+                                <PermissionGate permission="employees:update">
+                                    <button onClick={() => onTransfer(deptHistory?.[0]?.department_id || "")} className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90">{t("employees.details.transfer").toUpperCase()}</button>
+                                </PermissionGate>
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
                                 {deptHistory && deptHistory.length > 0 ? (

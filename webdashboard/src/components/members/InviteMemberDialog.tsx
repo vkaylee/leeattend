@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Mail, UserPlus, Loader2 } from "lucide-react";
-import { useWorkspaceMembers } from "@/hooks/use-workspace";
+import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import Modal from "../ui/Modal";
 
 interface InviteMemberDialogProps {
@@ -15,15 +15,18 @@ export default function InviteMemberDialog({
 }: InviteMemberDialogProps) {
   const { t } = useTranslation();
   const { addMember, isAdding } = useWorkspaceMembers();
+  const { roles } = useWorkspaceRoles();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("member");
+  const [roleId, setRoleId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setError(null);
     try {
-      await addMember({ email, role });
-      setEmail(""); setRole("member"); onClose();
+      const selectedRoleId = roleId || roles[0]?.id;
+      if (!selectedRoleId) throw new Error("No role selected");
+      await addMember({ email, roleId: selectedRoleId });
+      setEmail(""); setRoleId(""); onClose();
     } catch (e) {
       setError(t("members.invite.error_message"));
     }
@@ -50,9 +53,10 @@ export default function InviteMemberDialog({
 
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("members.invite.role_label")}</label>
-          <select className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm appearance-none cursor-pointer" value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="member">{t("members.roles.member").toUpperCase()}</option>
-            <option value="admin">{t("members.roles.admin").toUpperCase()}</option>
+          <select className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm appearance-none cursor-pointer" value={roleId || (roles[0]?.id ?? "")} onChange={(e) => setRoleId(e.target.value)}>
+            {roles.map(r => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
           </select>
         </div>
 

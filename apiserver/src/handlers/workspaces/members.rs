@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{AddMemberRequest, WorkspaceMemberDetail};
+use crate::models::{AddMemberRequest, WorkspaceMemberDetail, WorkspaceMemberDetailResponse, MemberExtraRole};
 use crate::services::audit_service::AuditHelper;
 use crate::AppState;
 
@@ -22,7 +22,7 @@ pub struct UpdateMemberRoleRequest {
 pub async fn get_workspace_members(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> AppResult<Json<Vec<WorkspaceMemberDetail>>> {
+) -> AppResult<Json<Vec<WorkspaceMemberDetailResponse>>> {
     let members = sqlx::query_as::<_, WorkspaceMemberDetail>(
         "SELECT wm.workspace_id, wm.user_id, wm.role_id, u.email, u.full_name, u.avatar_url
          FROM workspace_members wm
@@ -33,7 +33,28 @@ pub async fn get_workspace_members(
     .fetch_all(state.infra.db.api())
     .await?;
 
-    Ok(Json(members))
+    let extra_roles = sqlx::query_as::<_, MemberExtraRole>(
+        "SELECT * FROM member_extra_roles WHERE workspace_id = $1 AND expires_at > NOW()"
+    )
+    .bind(workspace_id)
+    .fetch_all(state.infra.db.api())
+    .await?;
+
+    let mut response = Vec::with_capacity(members.len());
+    for member in members {
+        let extra_role_ids = extra_roles
+            .iter()
+            .filter(|r| r.user_id == member.user_id)
+            .map(|r| r.role_id)
+            .collect();
+
+        response.push(WorkspaceMemberDetailResponse {
+            detail: member,
+            extra_role_ids,
+        });
+    }
+
+    Ok(Json(response))
 }
 
 pub async fn add_workspace_member(

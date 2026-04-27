@@ -102,10 +102,22 @@ export interface RegisterRequest {
 export interface WorkspaceMember {
   workspace_id: string;
   user_id: string;
-  role: "owner" | "admin" | "member";
+  role_id: string;
   email: string;
   full_name?: string;
   avatar_url?: string;
+  extra_role_ids: string[];
+}
+
+export interface WorkspaceRole {
+  id: string;
+  workspace_id?: string;
+  name: string;
+  description?: string;
+  color: string;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthResponse {

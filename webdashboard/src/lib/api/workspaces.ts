@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission } from "./types";
+import { Workspace, WorkspaceMember, MemberRolesResponse, MemberExtraRole, MemberExtraPermission, WorkspaceRole } from "./types";
 
 export async function fetchWorkspaces(): Promise<Workspace[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces`);
@@ -47,13 +47,13 @@ export async function fetchWorkspaceMembers(
 export async function addWorkspaceMember(
   wsId: string,
   email: string,
-  role: string,
+  roleId: string,
 ): Promise<void> {
   const response = await apiFetch(
     `${API_BASE_URL}/workspaces/${wsId}/members`,
     {
       method: "POST",
-      body: JSON.stringify({ email, role }),
+      body: JSON.stringify({ email, role_id: roleId }),
     },
   );
   if (!response.ok) throw new Error("Failed to add member");
@@ -78,13 +78,13 @@ export async function removeWorkspaceMember(
 export async function updateWorkspaceMemberRole(
   wsId: string,
   userId: string,
-  role: string,
+  roleId: string,
 ): Promise<void> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/members/${userId}`,
+    `${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles`,
     {
       method: "PATCH",
-      body: JSON.stringify({ role }),
+      body: JSON.stringify({ role_id: roleId }),
     },
   );
   if (!response.ok) {
@@ -107,14 +107,14 @@ export async function fetchMemberRoles(
 export async function assignExtraRole(
   wsId: string,
   userId: string,
-  role: string,
+  roleId: string,
   expiresAt: string,
 ): Promise<MemberExtraRole> {
   const response = await apiFetch(
     `${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles`,
     {
       method: "POST",
-      body: JSON.stringify({ role, expires_at: expiresAt }),
+      body: JSON.stringify({ role_id: roleId, expires_at: expiresAt }),
     },
   );
   if (!response.ok) throw new Error("Failed to assign role");
@@ -133,6 +133,12 @@ export async function revokeExtraRole(
     },
   );
   if (!response.ok) throw new Error("Failed to revoke role");
+}
+
+export async function fetchWorkspaceRoles(wsId: string): Promise<WorkspaceRole[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/roles`);
+  if (!response.ok) throw new Error("Failed to fetch workspace roles");
+  return response.json();
 }
 
 export async function clearWorkspaceData(wsId: string, group: string): Promise<void> {
@@ -200,4 +206,57 @@ export async function fetchAvailablePermissions(
   );
   if (!response.ok) throw new Error("Failed to fetch available permissions");
   return response.json();
+}
+
+// --- Roles & Matrix ---
+
+export async function createWorkspaceRole(wsId: string, data: { name: string; description?: string; color: string }): Promise<WorkspaceRole> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/roles`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to create role");
+  }
+  return response.json();
+}
+
+export async function updateWorkspaceRole(wsId: string, roleId: string, data: { name?: string; description?: string; color?: string }): Promise<WorkspaceRole> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/roles/${roleId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to update role");
+  }
+  return response.json();
+}
+
+export async function deleteWorkspaceRole(wsId: string, roleId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/roles/${roleId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to delete role");
+  }
+}
+
+export async function fetchRolePermissions(wsId: string, roleId: string): Promise<string[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/roles/${roleId}/permissions`);
+  if (!response.ok) throw new Error("Failed to fetch role permissions");
+  return response.json();
+}
+
+export async function updateRolePermissions(wsId: string, roleId: string, permissions: string[]): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/roles/${roleId}/permissions`, {
+    method: "PUT",
+    body: JSON.stringify(permissions),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to update role permissions");
+  }
 }

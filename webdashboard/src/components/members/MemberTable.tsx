@@ -9,16 +9,27 @@ import {
   Mail,
   User as UserIcon,
 } from "lucide-react";
-import { WorkspaceMember } from "@/lib/api";
-import { useWorkspaceMembers } from "@/hooks/use-workspace";
+import { WorkspaceMember, WorkspaceRole } from "@/lib/api";
+import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import RoleManagementModal from "@/components/features/settings/RoleManagementModal";
 import PermissionManagementModal from "@/components/features/settings/PermissionManagementModal";
 import PermissionGate from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
 
+const roleColorMap: Record<string, string> = {
+  purple: "bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 border-purple-100",
+  blue: "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800",
+  slate: "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800",
+  rose: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100",
+  indigo: "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border-indigo-100",
+  emerald: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100",
+};
+
 export default function MemberTable() {
   const { t } = useTranslation();
-  const { members, isLoading, removeMember } = useWorkspaceMembers();
+  const { members, isLoading: membersLoading, removeMember } = useWorkspaceMembers();
+  const { roles, isLoading: rolesLoading } = useWorkspaceRoles();
+  const isLoading = membersLoading || rolesLoading;
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isPermModalOpen, setIsPermModalOpen] = useState(false);
@@ -62,14 +73,51 @@ export default function MemberTable() {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <span className={cn("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
-                      member.role === "owner" ? "bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 border-purple-100" :
-                        member.role === "admin" ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800" :
-                          "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800"
-                    )}>
-                      {member.role === "owner" && <Shield size={10} />}
-                      {member.role.toUpperCase()}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {(() => {
+                        const primaryRole = roles.find(r => r.id === member.role_id);
+                        if (!primaryRole) return <span className="text-xs text-slate-400">Loading...</span>;
+                        
+                        const extraRoles = (member.extra_role_ids || [])
+                          .map(id => roles.find(r => r.id === id))
+                          .filter(Boolean) as WorkspaceRole[];
+
+                        return (
+                          <>
+                            <span className={cn(
+                              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm",
+                              roleColorMap[primaryRole.color] || roleColorMap.slate
+                            )}>
+                              {primaryRole.is_system && primaryRole.name.toLowerCase() === "owner" && <Shield size={10} />}
+                              {primaryRole.name}
+                            </span>
+                            
+                            {extraRoles.length > 0 && (
+                              <div className="relative group/badge">
+                                <span className="inline-flex items-center justify-center min-w-[28px] h-[26px] px-1.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-help transition-colors group-hover/badge:bg-indigo-50 group-hover/badge:text-indigo-600 group-hover/badge:border-indigo-200 dark:group-hover/badge:bg-indigo-900/50 dark:group-hover/badge:border-indigo-800">
+                                  +{extraRoles.length}
+                                </span>
+                                
+                                {/* Premium Popover for extra roles */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[200px] opacity-0 invisible group-hover/badge:opacity-100 group-hover/badge:visible transition-all duration-300 ease-out translate-y-2 group-hover/badge:translate-y-0 z-10">
+                                  <div className="p-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 border border-slate-100 dark:border-slate-800 flex flex-col gap-2">
+                                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-100 dark:border-slate-800">Extra Roles</span>
+                                    {extraRoles.map(er => (
+                                      <span key={er.id} className={cn(
+                                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
+                                        roleColorMap[er.color] || roleColorMap.slate
+                                      )}>
+                                        {er.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
                   </td>
                   <td className="px-10 py-6 text-right">
                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
@@ -79,7 +127,7 @@ export default function MemberTable() {
                       <PermissionGate permission="members_roles:manage">
                         <button onClick={() => handleManagePermissions(member.user_id)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })}><KeyRound size={20} /></button>
                       </PermissionGate>
-                      {member.role !== "owner" && (
+                      {roles.find(r => r.id === member.role_id)?.name.toLowerCase() !== "owner" && (
                         <PermissionGate permission="members:manage">
                           <button onClick={() => handleRemoveMember(member.user_id)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("members.table.remove_member")}><Trash2 size={20} /></button>
                         </PermissionGate>

@@ -14,9 +14,11 @@ vi.mock("../../lib/api", () => ({
 vi.mock("../../hooks/use-workspace", () => ({
   useWorkspace: vi.fn(),
   useWorkspaceMembers: vi.fn(),
+  useWorkspaceRoles: vi.fn(),
+  useWorkspacePermissionsMatrix: vi.fn(),
 }));
 
-import { useWorkspace, useWorkspaceMembers } from "../../hooks/use-workspace";
+import { useWorkspace, useWorkspaceMembers, useWorkspaceRoles } from "../../hooks/use-workspace";
 
 describe("WorkspaceOverviewPage", () => {
   let queryClient: QueryClient;
@@ -41,11 +43,13 @@ describe("WorkspaceOverviewPage", () => {
     
     (useWorkspaceMembers as any).mockReturnValue({
       members: [
-        { user_id: "user-1", email: "owner@test.com", full_name: "Owner User", role: "owner" },
-        { user_id: "user-2", email: "member@test.com", full_name: "Member User", role: "member" },
+        { workspace_id: "ws-1", user_id: "user-1", email: "owner@test.com", full_name: "Owner User", role_id: "role-1", extra_role_ids: [] },
+        { workspace_id: "ws-1", user_id: "user-2", email: "member@test.com", full_name: "Member User", role_id: "role-2", extra_role_ids: [] },
       ],
       isLoading: false,
     });
+    
+    (useWorkspaceRoles as any).mockReturnValue({ roles: [{ id: "role-1", name: "owner", is_system: true }], isLoading: false });
     
     (api.apiFetch as any).mockResolvedValue({
       ok: true,

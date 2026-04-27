@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import EmployeeDetailDrawer from "../EmployeeDetailDrawer";
 import type { Employee } from "@/lib/api";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock scroll methods not available in jsdom
 Element.prototype.scrollIntoView = vi.fn();
@@ -21,6 +22,14 @@ vi.mock("@/components/payroll/EmployeeSalaryConfig", () => ({
 }));
 vi.mock("@/components/employees/WorkingConditionConfig", () => ({
     default: () => <div data-testid="working-condition">WorkingCondition</div>,
+}));
+vi.mock("@/hooks/use-permissions", () => ({
+    useMyPermissions: () => ({
+        hasPermission: () => true,
+        hasAnyPermission: () => true,
+        hasScopedPermission: () => true,
+        isLoading: false,
+    }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -77,35 +86,44 @@ const defaultProps = {
 // ---------------------------------------------------------------------------
 
 describe("EmployeeDetailDrawer", () => {
-    beforeEach(() => { vi.clearAllMocks(); });
+    let queryClient: QueryClient;
+    
+    beforeEach(() => { 
+        vi.clearAllMocks(); 
+        queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    });
+
+    const renderWithClient = (ui: React.ReactElement) => {
+        return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+    };
 
     // ── Rendering ──────────────────────────────────────────────
 
     it("renders nothing when employee is null", () => {
-        const { container } = render(
+        const { container } = renderWithClient(
             <EmployeeDetailDrawer {...defaultProps} employee={null} />
         );
         expect(container.innerHTML).toBe("");
     });
 
     it("renders employee name and ID when open", () => {
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
         expect(screen.getByText("Alice Nguyen")).toBeDefined();
         expect(screen.getByText("EMP-001")).toBeDefined();
     });
 
     it("displays active status badge for active employees", () => {
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
         expect(screen.getByText(/employees.table.active/i)).toBeDefined();
     });
 
     it("displays terminated status badge for terminated employees", () => {
-        render(<EmployeeDetailDrawer {...defaultProps} employee={terminatedEmployee} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} employee={terminatedEmployee} />);
         expect(screen.getByText(/employees.table.terminated/i)).toBeDefined();
     });
 
     it("renders only one X close button (not two)", () => {
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
         const closeButtons = document.querySelectorAll("svg.lucide-x");
         expect(closeButtons.length).toBe(1);
     });
@@ -113,13 +131,13 @@ describe("EmployeeDetailDrawer", () => {
     // ── Tabs ───────────────────────────────────────────────────
 
     it("starts on Profile tab by default", () => {
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
         expect(screen.getByTestId("employees-btn-edit")).toBeDefined();
     });
 
     it("switches to Salary tab on click", async () => {
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
         await user.click(screen.getByTestId("employees-tab-salary"));
         expect(screen.getByTestId("salary-config")).toBeDefined();
@@ -127,7 +145,7 @@ describe("EmployeeDetailDrawer", () => {
 
     it("switches to Policies tab on click", async () => {
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
         await user.click(screen.getByTestId("employees-tab-policies"));
         expect(screen.getByTestId("working-condition")).toBeDefined();
@@ -135,7 +153,7 @@ describe("EmployeeDetailDrawer", () => {
 
     it("switches to History tab on click", async () => {
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
         await user.click(screen.getByTestId("employees-tab-history"));
         expect(screen.getByText(/employees.details.joined/i)).toBeDefined();
@@ -146,7 +164,7 @@ describe("EmployeeDetailDrawer", () => {
     it("calls onEdit when edit button is clicked", async () => {
         const onEdit = vi.fn();
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} onEdit={onEdit} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} onEdit={onEdit} />);
 
         await user.click(screen.getByTestId("employees-btn-edit"));
         expect(onEdit).toHaveBeenCalledWith(mockEmployee);
@@ -155,7 +173,7 @@ describe("EmployeeDetailDrawer", () => {
     it("calls onTerminate when terminate button is clicked (active employee)", async () => {
         const onTerminate = vi.fn();
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} onTerminate={onTerminate} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} onTerminate={onTerminate} />);
 
         await user.click(screen.getByTestId("employees-btn-terminate"));
         expect(onTerminate).toHaveBeenCalledWith(mockEmployee);
@@ -164,7 +182,7 @@ describe("EmployeeDetailDrawer", () => {
     it("shows rehire button for terminated employee and calls onRehire", async () => {
         const onRehire = vi.fn();
         const user = userEvent.setup();
-        render(
+        renderWithClient(
             <EmployeeDetailDrawer {...defaultProps} employee={terminatedEmployee} onRehire={onRehire} />
         );
 
@@ -175,19 +193,19 @@ describe("EmployeeDetailDrawer", () => {
     // ── Department section ─────────────────────────────────────
 
     it("displays current department name", () => {
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
         expect(screen.getByText("Engineering")).toBeDefined();
     });
 
     it("shows 'not assigned' when no department history", () => {
-        render(<EmployeeDetailDrawer {...defaultProps} deptHistory={[]} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} deptHistory={[]} />);
         expect(screen.getByText(/employees.details.not_assigned_dept/i)).toBeDefined();
     });
 
     it("calls onTransfer when transfer button is clicked", async () => {
         const onTransfer = vi.fn();
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} onTransfer={onTransfer} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} onTransfer={onTransfer} />);
 
         await user.click(screen.getByText(/employees.details.transfer/i));
         expect(onTransfer).toHaveBeenCalledWith("dept-1");
@@ -198,7 +216,7 @@ describe("EmployeeDetailDrawer", () => {
     it("calls onClose when X button is clicked", async () => {
         const onClose = vi.fn();
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} onClose={onClose} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} onClose={onClose} />);
 
         const xButton = document.querySelector("svg.lucide-x")!.closest("button")!;
         await user.click(xButton);
@@ -208,7 +226,7 @@ describe("EmployeeDetailDrawer", () => {
     // ── Hire date ──────────────────────────────────────────────
 
     it("displays formatted hire date", () => {
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
         expect(screen.getByText("2024-06-15")).toBeDefined();
     });
 
@@ -216,7 +234,7 @@ describe("EmployeeDetailDrawer", () => {
 
     it("ArrowRight moves to the next tab", async () => {
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
         // Start on Profile (has edit button)
         expect(screen.getByTestId("employees-btn-edit")).toBeDefined();
@@ -232,7 +250,7 @@ describe("EmployeeDetailDrawer", () => {
 
     it("ArrowLeft moves to the previous tab", async () => {
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
         // ArrowRight to Salary first
         await user.keyboard("{ArrowRight}");
@@ -245,7 +263,7 @@ describe("EmployeeDetailDrawer", () => {
 
     it("ArrowLeft wraps from first tab to last tab", async () => {
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
         // On Profile → ArrowLeft → should wrap to History (last tab)
         await user.keyboard("{ArrowLeft}");
@@ -254,7 +272,7 @@ describe("EmployeeDetailDrawer", () => {
 
     it("ArrowRight wraps from last tab to first tab", async () => {
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
         // Navigate to History (last tab): Profile → Salary → Policies → History
         await user.keyboard("{ArrowRight}{ArrowRight}{ArrowRight}");
@@ -269,7 +287,7 @@ describe("EmployeeDetailDrawer", () => {
 
     it("ArrowDown scrolls drawer content down", async () => {
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
         const scrollContainer = document.querySelector(".overflow-y-auto")!;
         const scrollBySpy = vi.fn();
@@ -281,7 +299,7 @@ describe("EmployeeDetailDrawer", () => {
 
     it("ArrowUp scrolls drawer content up", async () => {
         const user = userEvent.setup();
-        render(<EmployeeDetailDrawer {...defaultProps} />);
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
 
         const scrollContainer = document.querySelector(".overflow-y-auto")!;
         const scrollBySpy = vi.fn();

@@ -239,3 +239,160 @@ async fn test_assign_role_rbac_member_forbidden() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn test_custom_role_crud() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+
+    // 1. Create a custom role
+    let create_body = serde_json::json!({
+        "name": "Finance Manager",
+        "description": "Can manage payroll",
+        "color": "emerald"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            admin_id,
+            Some(create_body.to_string()),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let role = body_json(resp).await;
+    assert_eq!(role["name"], "Finance Manager");
+    assert_eq!(role["color"], "emerald");
+    assert_eq!(role["is_system"], false);
+
+    let role_id = role["id"].as_str().unwrap();
+
+    // 2. Update the custom role
+    let update_body = serde_json::json!({
+        "name": "Senior Finance Manager",
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "PUT",
+            &format!("/api/workspaces/{ws_id}/roles/{role_id}"),
+            ws_id,
+            admin_id,
+            Some(update_body.to_string()),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::OK);
+    let updated_role = body_json(resp).await;
+    assert_eq!(updated_role["name"], "Senior Finance Manager");
+
+    // 3. Delete the custom role
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "DELETE",
+            &format!("/api/workspaces/{ws_id}/roles/{role_id}"),
+            ws_id,
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn test_custom_role_permissions() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+
+    // Create a custom role
+    let create_body = serde_json::json!({
+        "name": "Payroll Manager",
+        "description": "Can run payroll",
+        "color": "cyan"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            admin_id,
+            Some(create_body.to_string()),
+        ))
+        .await
+        .unwrap();
+    
+    let role = body_json(resp).await;
+    let role_id = role["id"].as_str().unwrap();
+
+    // 1. Initially it has no permissions
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/roles/{role_id}/permissions"),
+            ws_id,
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let perms = body_json(resp).await;
+    assert!(perms.as_array().unwrap().is_empty());
+
+    // 2. Update permissions
+    let update_body = serde_json::json!({
+        "permissions": ["payroll:manage", "reports:read"]
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "PUT",
+            &format!("/api/workspaces/{ws_id}/roles/{role_id}/permissions"),
+            ws_id,
+            admin_id,
+            Some(update_body.to_string()),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    // 3. Verify permissions were updated
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/roles/{role_id}/permissions"),
+            ws_id,
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    let perms = body_json(resp).await;
+    let perms_array = perms.as_array().unwrap();
+    assert_eq!(perms_array.len(), 2);
+    
+    let perm_names: Vec<&str> = perms_array.iter().map(|p| p.as_str().unwrap()).collect();
+    assert!(perm_names.contains(&"payroll:manage"));
+    assert!(perm_names.contains(&"reports:read"));
+}

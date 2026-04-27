@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Users, UserPlus, Mail, Settings2, Trash2, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useWorkspaceMembers } from "@/hooks/use-workspace";
+import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { useToast } from "@/components/ui/Toast";
 import { Combobox } from "@/components/ui/Combobox";
 import Button from "@/components/ui/Button";
@@ -17,7 +17,9 @@ export default function PeopleSettings() {
 
   const { t } = useTranslation();
 
-  const { members, isLoading, addMember, isAdding } = useWorkspaceMembers();
+  const { members, isLoading: isMembersLoading, addMember, isAdding } = useWorkspaceMembers();
+  const { roles, isLoading: isRolesLoading } = useWorkspaceRoles();
+  const isLoading = isMembersLoading || isRolesLoading;
 
   const toast = useToast();
 
@@ -25,7 +27,7 @@ export default function PeopleSettings() {
 
   const [newMemberEmail, setNewMemberEmail] = useState("");
 
-  const [newMemberRole, setNewMemberRole] = useState<"admin" | "member">("member");
+  const [newMemberRoleId, setNewMemberRoleId] = useState("");
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
@@ -39,7 +41,9 @@ export default function PeopleSettings() {
 
     try {
 
-      await addMember({ email: newMemberEmail, role: newMemberRole });
+      const roleId = newMemberRoleId || roles[0]?.id;
+      if (!roleId) throw new Error("No role selected");
+      await addMember({ email: newMemberEmail, roleId });
 
       toast.success(`${t("common.workspace_settings.invite_member")} ${newMemberEmail}`);
 
@@ -115,7 +119,11 @@ export default function PeopleSettings() {
 
                   <label className={LABEL_BASE}>{t("common.role")}</label>
 
-                  <Combobox options={[{ value: "member", label: t("common.members.roles.member").toUpperCase(), description: t("common.members.roles.member_desc") }, { value: "admin", label: t("common.members.roles.admin").toUpperCase(), description: t("common.members.roles.admin_desc") }]} value={newMemberRole} onChange={(val) => setNewMemberRole(val as any)} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
+                  <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold uppercase tracking-tight h-14" value={newMemberRoleId || (roles[0]?.id ?? "")} onChange={(e) => setNewMemberRoleId(e.target.value)}>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id}>{r.name.toUpperCase()}</option>
+                    ))}
+                  </select>
 
                 </div>
 
@@ -154,9 +162,11 @@ export default function PeopleSettings() {
                       <div className="flex items-center gap-5">
 
                         <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-lg shadow-inner border transition-all uppercase", 
-
-                          member.role === 'owner' || member.role === 'admin' ? 'bg-primary-600 text-white border-primary-500 shadow-primary-100' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800'
-
+                          (() => {
+                            const r = roles.find(role => role.id === member.role_id);
+                            const isOwnerOrAdmin = r && (r.name.toLowerCase() === 'owner' || r.name.toLowerCase() === 'admin');
+                            return isOwnerOrAdmin ? 'bg-primary-600 text-white border-primary-500 shadow-primary-100' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800';
+                          })()
                         )}>{member.full_name ? member.full_name[0] : <Users size={20} />}</div>
 
                         <div>
@@ -165,14 +175,10 @@ export default function PeopleSettings() {
 
                             {member.full_name || member.email}
 
-                            {member.role === "owner" && <StatusBadge variant="warning">{t("common.workspace_settings.founder")}</StatusBadge>}
-
+                            {roles.find(r => r.id === member.role_id)?.name.toLowerCase() === "owner" && <StatusBadge variant="warning">{t("common.workspace_settings.founder")}</StatusBadge>}
                           </div>
-
                           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400 mt-1 opacity-70">
-
-                            {member.role === 'admin' ? t("common.members.roles.admin") : member.role === 'owner' ? t("common.members.roles.owner") : t("common.members.roles.member")}
-
+                            {roles.find(r => r.id === member.role_id)?.name || "Member"}
                           </p>
 
                         </div>
@@ -185,7 +191,7 @@ export default function PeopleSettings() {
 
                         <button onClick={() => { setSelectedUserId(member.user_id); setIsRoleModalOpen(true); }} className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.members.table.manage_roles")}><Settings2 size={18} /></button>
 
-                        {member.role !== "owner" && (
+                        {roles.find(r => r.id === member.role_id)?.name.toLowerCase() !== "owner" && (
 
                           <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.members.table.remove_member")}><Trash2 size={18} /></button>
 

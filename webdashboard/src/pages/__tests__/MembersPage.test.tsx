@@ -24,6 +24,7 @@ vi.mock("../../lib/api", () => ({
   fetchMemberRoles: vi.fn(),
   assignExtraRole: vi.fn(),
   revokeExtraRole: vi.fn(),
+  fetchWorkspaceRoles: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
   fetchUsers: vi.fn(),
   fetchMyPermissions: vi.fn(),
@@ -47,8 +48,13 @@ describe("MembersPage", () => {
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["members:manage", "members_roles:manage"], roles: ["admin"] });
     (api.fetchWorkspaceMembers as any).mockResolvedValue([
-      { user_id: "user-1", email: "owner@example.com", full_name: "Workspace Owner", role: "owner" },
-      { user_id: "user-2", email: "admin@example.com", full_name: "Admin User", role: "admin" }
+        { workspace_id: "test-ws-id", user_id: "user-1", email: "owner@example.com", full_name: "Workspace Owner", role_id: "role-owner", extra_role_ids: [] },
+        { workspace_id: "test-ws-id", user_id: "user-2", email: "admin@example.com", full_name: "Admin User", role_id: "role-admin", extra_role_ids: [] }
+    ]);
+    (api.fetchWorkspaceRoles as any).mockResolvedValue([
+      { id: "role-owner", name: "Owner", is_system: true, color: "rose" },
+      { id: "role-admin", name: "Admin", is_system: true, color: "indigo" },
+      { id: "role-member", name: "Member", is_system: true, color: "slate" }
     ]);
   });
 
@@ -90,7 +96,7 @@ describe("MembersPage", () => {
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(api.addWorkspaceMember).toHaveBeenCalledWith("test-ws-id", "new@example.com", "member");
+      expect(api.addWorkspaceMember).toHaveBeenCalledWith("test-ws-id", "new@example.com", "role-owner");
     });
   });
 

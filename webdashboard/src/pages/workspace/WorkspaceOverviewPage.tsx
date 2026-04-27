@@ -1,4 +1,4 @@
-import { useWorkspace, useWorkspaceMembers } from "@/hooks/use-workspace";
+import { useWorkspace, useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import PageHeader from "@/components/ui/PageHeader";
 import { Building2, Users, CalendarDays, BarChart3, Clock, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ export default function WorkspaceOverviewPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const { workspace, isLoading: isWsLoading } = useWorkspace();
   const { members, isLoading: isMembersLoading } = useWorkspaceMembers();
+  const { roles, isLoading: isRolesLoading } = useWorkspaceRoles();
 
   // Fetch workspace stats
   const { data: stats, isLoading: isStatsLoading } = useQuery({
@@ -20,7 +21,7 @@ export default function WorkspaceOverviewPage() {
     enabled: !!wsId,
   });
 
-  if (isWsLoading || isMembersLoading || isStatsLoading) {
+  if (isWsLoading || isMembersLoading || isStatsLoading || isRolesLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
@@ -117,11 +118,17 @@ export default function WorkspaceOverviewPage() {
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Admin Members</h3>
           <span className="px-3 py-1 bg-white dark:bg-slate-900 rounded-xl text-[10px] font-bold text-slate-500 uppercase tracking-widest shadow-sm">
-            {members.filter(m => m.role === 'owner' || m.role === 'admin').length} Admins
+            {members.filter(m => {
+              const r = roles.find(role => role.id === m.role_id);
+              return r && (r.name.toLowerCase() === 'owner' || r.name.toLowerCase() === 'admin');
+            }).length} Admins
           </span>
         </div>
         <div className="flex flex-wrap gap-4">
-          {members.filter(m => m.role === 'owner' || m.role === 'admin').map(admin => (
+          {members.filter(m => {
+            const r = roles.find(role => role.id === m.role_id);
+            return r && (r.name.toLowerCase() === 'owner' || r.name.toLowerCase() === 'admin');
+          }).map(admin => (
             <div key={admin.user_id} className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
               <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold">
                 {admin.avatar_url ? (

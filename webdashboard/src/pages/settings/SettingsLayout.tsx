@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { ROUTES } from "@/lib/routes";
 import { useTranslation } from "react-i18next";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import {
   Building2,
   Users,
@@ -63,6 +64,7 @@ function NavGroup({ title, items, isActive }: { title: string, items: { path: st
 export default function SettingsLayout() {
   const { t } = useTranslation();
   const location = useLocation();
+  const { hasAnyPermission } = useMyPermissions();
 
   const workspaceGroup = [
     {
@@ -70,18 +72,21 @@ export default function SettingsLayout() {
       label: "Overview",
       icon: <Building2 className="w-4 h-4" />,
       description: "Workspace summary and statistics",
+      permissions: ["workspace:settings:read"],
     },
     {
       path: ROUTES.SETTINGS.GENERAL,
       label: t("settings.categories.general"),
       icon: <Settings2 className="w-4 h-4" />,
       description: t("settings.categories.general_desc"),
+      permissions: ["workspace:settings:read"],
     },
     {
       path: ROUTES.SETTINGS.BILLING,
       label: "Billing",
       icon: <CreditCard className="w-4 h-4" />,
       description: "Subscription and invoices",
+      permissions: ["workspace:settings:read"],
     },
   ];
 
@@ -91,18 +96,21 @@ export default function SettingsLayout() {
       label: "Members",
       icon: <Users className="w-4 h-4" />,
       description: "Manage users and invitations",
+      permissions: ["members:read"],
     },
     {
       path: ROUTES.SETTINGS.ROLES,
       label: "Roles",
       icon: <ShieldAlert className="w-4 h-4" />,
       description: "Define custom roles",
+      permissions: ["members:roles:manage"],
     },
     {
       path: ROUTES.SETTINGS.PERMISSIONS,
       label: "Permissions",
       icon: <KeyRound className="w-4 h-4" />,
       description: "Permission matrix",
+      permissions: ["members:roles:manage"],
     },
   ];
 
@@ -112,30 +120,35 @@ export default function SettingsLayout() {
       label: t("settings.categories.people"),
       icon: <UserCog className="w-4 h-4" />,
       description: t("settings.categories.people_desc"),
+      permissions: ["employees:read", "departments:read"],
     },
     {
       path: ROUTES.SETTINGS.TIME,
       label: t("settings.categories.time"),
       icon: <Clock className="w-4 h-4" />,
       description: t("settings.categories.time_desc"),
+      permissions: ["attendance:logs:read"],
     },
     {
       path: ROUTES.SETTINGS.PAYROLL,
       label: t("settings.categories.payroll"),
       icon: <Banknote className="w-4 h-4" />,
       description: t("settings.categories.payroll_desc"),
+      permissions: ["payroll:read", "payroll:settings:manage"],
     },
     {
       path: ROUTES.SETTINGS.LEAVE,
       label: "Leave",
       icon: <CalendarDays className="w-4 h-4" />,
       description: "Leave policies",
+      permissions: ["leave:policies:manage"],
     },
     {
       path: ROUTES.SETTINGS.HOLIDAYS,
       label: "Holidays",
       icon: <Palmtree className="w-4 h-4" />,
       description: "Public holidays",
+      permissions: ["holidays:manage"],
     },
   ];
 
@@ -145,12 +158,14 @@ export default function SettingsLayout() {
       label: t("settings.categories.connectivity"),
       icon: <Cpu className="w-4 h-4" />,
       description: t("settings.categories.connectivity_desc"),
+      permissions: ["infra:monitor"],
     },
     {
       path: ROUTES.SETTINGS.AUDIT_LOGS,
       label: "Audit Logs",
       icon: <ShieldCheck className="w-4 h-4" />,
       description: "Security events",
+      permissions: ["workspace:settings:read", "infra:monitor"],
     },
   ];
 
@@ -159,6 +174,7 @@ export default function SettingsLayout() {
     label: "Danger Zone",
     icon: <AlertTriangle className="w-4 h-4" />,
     description: "Destructive operations",
+    permissions: ["workspace:delete"],
   };
 
   const isActive = (path: string) => {
@@ -167,6 +183,16 @@ export default function SettingsLayout() {
   };
 
 
+
+  type SettingItem = { path: string; label: string; icon: React.ReactNode; description: string; permissions?: string[] };
+  const filterItems = (items: SettingItem[]) => 
+    items.filter(item => !item.permissions || item.permissions.length === 0 || hasAnyPermission(...item.permissions));
+
+  const filteredWorkspaceGroup = filterItems(workspaceGroup);
+  const filteredAccessGroup = filterItems(accessGroup);
+  const filteredOperationsGroup = filterItems(operationsGroup);
+  const filteredSystemGroup = filterItems(systemGroup);
+  const showDangerItem = !dangerItem.permissions || dangerItem.permissions.length === 0 || hasAnyPermission(...dangerItem.permissions);
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-10rem)]">
@@ -188,40 +214,42 @@ export default function SettingsLayout() {
           </div>
           
           <nav>
-            <NavGroup title="Workspace" items={workspaceGroup} isActive={isActive} />
-            <NavGroup title="Access" items={accessGroup} isActive={isActive} />
-            <NavGroup title="Operations" items={operationsGroup} isActive={isActive} />
-            <NavGroup title="Security & System" items={systemGroup} isActive={isActive} />
+            {filteredWorkspaceGroup.length > 0 && <NavGroup title="Workspace" items={filteredWorkspaceGroup} isActive={isActive} />}
+            {filteredAccessGroup.length > 0 && <NavGroup title="Access" items={filteredAccessGroup} isActive={isActive} />}
+            {filteredOperationsGroup.length > 0 && <NavGroup title="Operations" items={filteredOperationsGroup} isActive={isActive} />}
+            {filteredSystemGroup.length > 0 && <NavGroup title="Security & System" items={filteredSystemGroup} isActive={isActive} />}
             
-            <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
-              <Link
-                to={dangerItem.path}
-                className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
-                  isActive(dangerItem.path)
-                    ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-100 dark:border-rose-900/50"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 hover:text-rose-600 dark:hover:text-rose-400 border border-transparent"
-                }`}
-              >
-                <div
-                  className={`p-2 rounded-xl transition-colors ${
+            {showDangerItem && (
+              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
+                <Link
+                  to={dangerItem.path}
+                  className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
                     isActive(dangerItem.path)
-                      ? "bg-white dark:bg-slate-900 shadow-sm"
-                      : "bg-slate-50 dark:bg-slate-800 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/30 text-rose-500"
+                      ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-100 dark:border-rose-900/50"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 hover:text-rose-600 dark:hover:text-rose-400 border border-transparent"
                   }`}
                 >
-                  {dangerItem.icon}
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="font-bold text-sm leading-tight">{dangerItem.label}</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight hidden xl:block mt-0.5 group-hover:text-rose-500/70">
-                    {dangerItem.description}
-                  </span>
-                </div>
-                {isActive(dangerItem.path) && (
-                  <ChevronRight className="w-4 h-4 ml-auto text-rose-400" />
-                )}
-              </Link>
-            </div>
+                  <div
+                    className={`p-2 rounded-xl transition-colors ${
+                      isActive(dangerItem.path)
+                        ? "bg-white dark:bg-slate-900 shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-800 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/30 text-rose-500"
+                    }`}
+                  >
+                    {dangerItem.icon}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-sm leading-tight">{dangerItem.label}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight hidden xl:block mt-0.5 group-hover:text-rose-500/70">
+                      {dangerItem.description}
+                    </span>
+                  </div>
+                  {isActive(dangerItem.path) && (
+                    <ChevronRight className="w-4 h-4 ml-auto text-rose-400" />
+                  )}
+                </Link>
+              </div>
+            )}
           </nav>
 
           <div className="mt-8 pt-6 border-t border-slate-50 dark:border-slate-800 px-4 pb-2">

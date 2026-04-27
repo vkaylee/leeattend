@@ -15,6 +15,12 @@ import {
   revokeExtraPermission,
   fetchAvailablePermissions,
   getCurrentWorkspaceId,
+  fetchWorkspaceRoles,
+  createWorkspaceRole,
+  updateWorkspaceRole,
+  deleteWorkspaceRole,
+  fetchRolePermissions,
+  updateRolePermissions,
 } from "@/lib/api";
 
 export const workspaceKeys = {
@@ -26,6 +32,9 @@ export const workspaceKeys = {
     ["workspaces", wsId, "members", userId, "permissions"] as const,
   availablePermissions: (wsId: string) =>
     ["workspaces", wsId, "permissions", "available"] as const,
+  workspaceRoles: (wsId: string) => ["workspaces", wsId, "roles"] as const,
+  rolePermissions: (wsId: string, roleId: string) => ["workspaces", wsId, "roles", roleId, "permissions"] as const,
+  permissionsMatrix: (wsId: string) => ["workspaces", wsId, "permissions", "matrix"] as const,
 };
 
 export function useWorkspaces() {
@@ -67,6 +76,50 @@ export function useWorkspace(wsId?: string) {
   };
 }
 
+export function useWorkspaceRoles(wsId?: string) {
+  const queryClient = useQueryClient();
+  const activeWsId = wsId || getCurrentWorkspaceId();
+
+  const rolesQuery = useQuery({
+    queryKey: workspaceKeys.workspaceRoles(activeWsId || ""),
+    queryFn: () => fetchWorkspaceRoles(activeWsId!),
+    enabled: !!activeWsId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const createRoleMutation = useMutation({
+    mutationFn: (data: { name: string; description?: string; color: string }) => createWorkspaceRole(activeWsId!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.workspaceRoles(activeWsId!) });
+    },
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ roleId, data }: { roleId: string; data: { name?: string; description?: string; color?: string } }) => updateWorkspaceRole(activeWsId!, roleId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.workspaceRoles(activeWsId!) });
+    },
+  });
+
+  const deleteRoleMutation = useMutation({
+    mutationFn: (roleId: string) => deleteWorkspaceRole(activeWsId!, roleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.workspaceRoles(activeWsId!) });
+    },
+  });
+
+  return {
+    roles: rolesQuery.data ?? [],
+    isLoading: rolesQuery.isLoading,
+    createRole: createRoleMutation.mutateAsync,
+    isCreating: createRoleMutation.isPending,
+    updateRole: updateRoleMutation.mutateAsync,
+    isUpdating: updateRoleMutation.isPending,
+    deleteRole: deleteRoleMutation.mutateAsync,
+    isDeleting: deleteRoleMutation.isPending,
+  };
+}
+
 export function useWorkspaceMembers(wsId?: string) {
   const queryClient = useQueryClient();
   const activeWsId = wsId || getCurrentWorkspaceId();
@@ -78,8 +131,8 @@ export function useWorkspaceMembers(wsId?: string) {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: ({ email, role }: { email: string; role: string }) =>
-      addWorkspaceMember(activeWsId!, email, role),
+    mutationFn: ({ email, roleId }: { email: string; roleId: string }) =>
+      addWorkspaceMember(activeWsId!, email, roleId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: workspaceKeys.members(activeWsId!),
@@ -202,5 +255,60 @@ export function useMemberPermissions(userId: string, wsId?: string) {
     isAssigning: assignMutation.isPending,
     revokePermission: revokeMutation.mutateAsync,
     isRevoking: revokeMutation.isPending,
+  };
+}
+
+export function useRolePermissions(roleId: string, wsId?: string) {
+  const queryClient = useQueryClient();
+  const activeWsId = wsId || getCurrentWorkspaceId();
+
+  const permissionsQuery = useQuery({
+    queryKey: workspaceKeys.rolePermissions(activeWsId || "", roleId),
+    queryFn: () => fetchRolePermissions(activeWsId!, roleId),
+    enabled: !!activeWsId && !!roleId,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (permissions: string[]) => updateRolePermissions(activeWsId!, roleId, permissions),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.rolePermissions(activeWsId!, roleId),
+      });
+    },
+  });
+
+  return {
+    permissions: permissionsQuery.data ?? [],
+    isLoading: permissionsQuery.isLoading,
+    updatePermissions: updateMutation.mutateAsync,
+    isUpdating: updateMutation.isPending,
+  };
+}
+
+export function useWorkspacePermissionsMatrix(wsId?: string) {
+  const activeWsId = wsId || getCurrentWorkspaceId();
+  const { roles } = useWorkspaceRoles(activeWsId ?? undefined);
+
+  const matrixQuery = useQuery({
+    queryKey: workspaceKeys.permissionsMatrix(activeWsId || ""),
+    queryFn: async () => {
+      const matrix: Record<string, string[]> = {};
+      await Promise.all(roles.map(async (role) => {
+        try {
+          const perms = await fetchRolePermissions(activeWsId!, role.id);
+          matrix[role.id] = perms;
+        } catch (e) {
+          matrix[role.id] = [];
+        }
+      }));
+      return matrix;
+    },
+    enabled: !!activeWsId && roles.length > 0,
+  });
+
+  return {
+    matrix: matrixQuery.data ?? {},
+    isLoading: matrixQuery.isLoading,
+    refetch: matrixQuery.refetch,
   };
 }

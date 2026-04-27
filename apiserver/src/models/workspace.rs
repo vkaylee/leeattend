@@ -113,6 +113,13 @@ pub struct WorkspaceMemberDetail {
     pub avatar_url: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WorkspaceMemberDetailResponse {
+    #[serde(flatten)]
+    pub detail: WorkspaceMemberDetail,
+    pub extra_role_ids: Vec<Uuid>,
+}
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct MemberExtraPermission {
     pub id: Uuid,
