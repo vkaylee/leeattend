@@ -6,6 +6,7 @@ import fs from "node:fs";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { IncomingMessage, ServerResponse } from "node:http";
+import { visualizer } from "rollup-plugin-visualizer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -93,6 +94,12 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
           ],
         } : undefined
       }),
+      ...(process.env.ANALYZE === 'true' ? [visualizer({
+        filename: 'dist/stats.html',
+        open: true,
+        gzipSize: true,
+        brotliSize: true,
+      })] : []),
       {
         name: 'save-port-file',
         configureServer(server: any) { // Explicitly declare server type as any

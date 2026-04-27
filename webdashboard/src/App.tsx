@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DebugProvider } from "./context/DebugContext";
 import { DarkModeProvider } from "./context/DarkModeContext";
 import { createAppRouter } from "./router";
+import * as Sentry from "@sentry/react";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
 console.log("🚀 [LeeAttend] Bundle initialized at:", new Date().toISOString());
 
@@ -23,7 +25,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <DebugProvider>
         <DarkModeProvider>
-          <RouterProvider router={router} />
+          <Sentry.ErrorBoundary fallback={(error: any) => <ErrorBoundary>{null}</ErrorBoundary>}>
+            <RouterProvider router={router} />
+          </Sentry.ErrorBoundary>
         </DarkModeProvider>
       </DebugProvider>
     </QueryClientProvider>

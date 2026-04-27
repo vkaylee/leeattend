@@ -12,7 +12,6 @@ export function createAppRouter(queryClient: QueryClient) {
   });
 }
 
-// Type registration for type-safe router
 declare module "@tanstack/react-router" {
   interface Register {
     router: ReturnType<typeof createAppRouter>;
