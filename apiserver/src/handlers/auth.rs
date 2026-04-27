@@ -89,12 +89,12 @@ fn create_auth_cookies(access_token: &str, refresh_token: &str) -> HeaderMap {
     
     // access_token cookie
     let access_cookie = format!(
-        "access_token={}; {}HttpOnly; SameSite=Lax; Path=/; Max-Age=3600",
+        "access_token={}; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=3600",
         access_token, domain_attr
     );
     // refresh_token cookie
     let refresh_cookie = format!(
-        "refresh_token={}; {}HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000",
+        "refresh_token={}; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=2592000",
         refresh_token, domain_attr
     );
 
@@ -116,11 +116,11 @@ fn clear_auth_cookies() -> HeaderMap {
     };
     
     let access_cookie = format!(
-        "access_token=; {}HttpOnly; SameSite=Lax; Path=/; Max-Age=0",
+        "access_token=; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0",
         domain_attr
     );
     let refresh_cookie = format!(
-        "refresh_token=; {}HttpOnly; SameSite=Lax; Path=/; Max-Age=0",
+        "refresh_token=; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0",
         domain_attr
     );
 
