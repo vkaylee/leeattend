@@ -13,6 +13,7 @@ import {
 import { Employee, Payslip } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import PaginationControls from "@/components/common/PaginationControls";
+import { useMyPermissions } from "@/hooks/use-permissions";
 
 interface PayrollSummaryTableProps {
   employees: Employee[];
@@ -38,6 +39,8 @@ export default function PayrollSummaryTable({
   onSearchChange
 }: PayrollSummaryTableProps) {
   const { t } = useTranslation();
+  const { hasPermission } = useMyPermissions();
+  const canReadSensitive = hasPermission("payroll:sensitive:read");
   
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -171,14 +174,22 @@ export default function PayrollSummaryTable({
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-6 text-right font-mono text-sm font-bold text-slate-500 dark:text-slate-400">{slip ? new Intl.NumberFormat('vi-VN').format(parseFloat(slip.base_pay_amount)) : "—"}</td>
-                  <td className="px-4 py-6 text-right font-mono text-sm text-emerald-600 dark:text-emerald-300 font-bold">{slip && parseFloat(slip.overtime_pay_amount) > 0 ? `+${new Intl.NumberFormat('vi-VN').format(parseFloat(slip.overtime_pay_amount))}` : "—"}</td>
-                  <td className="px-4 py-6 text-right font-mono text-sm text-blue-600 dark:text-blue-300 font-bold">
-                    {slip && slip.incentives && slip.incentives.length > 0 
-                      ? `+${new Intl.NumberFormat('vi-VN').format(slip.incentives.reduce((acc, i) => acc + parseFloat(i.amount), 0))}` 
-                      : "—"}
+                  <td className="px-4 py-6 text-right font-mono text-sm font-bold text-slate-500 dark:text-slate-400">
+                    {!canReadSensitive ? "***" : (slip ? new Intl.NumberFormat('vi-VN').format(parseFloat(slip.base_pay_amount)) : "—")}
                   </td>
-                  <td className="px-4 py-6 text-right"><div className="font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter font-mono">{slip ? new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount)) : "—"}</div></td>
+                  <td className="px-4 py-6 text-right font-mono text-sm text-emerald-600 dark:text-emerald-300 font-bold">
+                    {!canReadSensitive ? "***" : (slip && parseFloat(slip.overtime_pay_amount) > 0 ? `+${new Intl.NumberFormat('vi-VN').format(parseFloat(slip.overtime_pay_amount))}` : "—")}
+                  </td>
+                  <td className="px-4 py-6 text-right font-mono text-sm text-blue-600 dark:text-blue-300 font-bold">
+                    {!canReadSensitive ? "***" : (slip && slip.incentives && slip.incentives.length > 0 
+                      ? `+${new Intl.NumberFormat('vi-VN').format(slip.incentives.reduce((acc, i) => acc + parseFloat(i.amount), 0))}` 
+                      : "—")}
+                  </td>
+                  <td className="px-4 py-6 text-right">
+                    <div className="font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter font-mono">
+                      {!canReadSensitive ? "***" : (slip ? new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount)) : "—")}
+                    </div>
+                  </td>
                   <td className="px-8 py-6 text-center">
                     {slip ? (
                       <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", slip.status === 'paid' ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800")}>

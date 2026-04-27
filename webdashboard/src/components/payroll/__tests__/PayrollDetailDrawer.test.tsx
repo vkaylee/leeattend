@@ -19,6 +19,12 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+vi.mock("@/hooks/use-permissions", () => ({
+  useMyPermissions: () => ({
+    hasPermission: () => true,
+  }),
+}));
+
 const mockEmployee: Employee = {
   id: "emp-1",
   full_name: "John Doe",

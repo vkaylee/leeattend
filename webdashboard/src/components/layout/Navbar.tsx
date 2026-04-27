@@ -117,7 +117,7 @@ function ThemeToggle() {
           title={opt.label}
           data-testid={`theme-toggle-${opt.value}`}
           className={cn(
-            "p-2 rounded-lg transition-all flex items-center gap-1.5",
+            "p-2 rounded-lg transition-all flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px]",
             mode === opt.value
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-700"
               : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"

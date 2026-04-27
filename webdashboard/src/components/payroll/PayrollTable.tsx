@@ -22,6 +22,7 @@ import { Employee, Workspace } from "@/lib/api/types";
 import PayslipModal from "./PayslipModal";
 import { FileText } from "lucide-react";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { PayrollPriorityLegend } from "./PayrollPriorityLegend";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,8 @@ export default function PayrollTable({
   const { t } = useTranslation();
   const { formatMonthYear } = useDateTimeFormatter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { hasPermission } = useMyPermissions();
+  const canReadSensitive = hasPermission("payroll:sensitive:read");
 
   if (isLoading) return <div className="p-20 text-center text-slate-500 dark:text-slate-400 font-bold italic animate-pulse uppercase tracking-widest text-xs opacity-50">{t("common.loading")}</div>;
 
@@ -102,7 +105,7 @@ export default function PayrollTable({
               <div className="flex items-center gap-10 pr-2">
                 <div className="text-right">
                   <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none mb-1.5 opacity-60">{t("common.payroll.table.net_pay")}</p>
-                  <p className="text-2xl font-bold text-primary-600 dark:text-primary-400 tracking-tighter font-mono">{new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount))}</p>
+                  <p className="text-2xl font-bold text-primary-600 dark:text-primary-400 tracking-tighter font-mono">{!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount))}</p>
                 </div>
                 <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border transition-all shadow-sm", isExpanded ? "bg-white dark:bg-slate-900 border-primary-200 dark:border-primary-800 text-primary-600 dark:text-primary-400 rotate-180" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 group-hover:text-primary-400")}>
                   <ChevronDown size={20} />
@@ -135,6 +138,7 @@ export default function PayrollTable({
                       segment={seg} 
                       index={idx} 
                       isLast={idx === (slip.segments?.length || 0) - 1} 
+                      canReadSensitive={canReadSensitive}
                     />
                   ))}
                 </div>
@@ -154,7 +158,7 @@ export default function PayrollTable({
                             </div>
                             <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{inc.policy_name}</span>
                           </div>
-                          <span className="text-sm font-bold text-blue-600 dark:text-blue-300 font-mono tracking-tighter">+{new Intl.NumberFormat('vi-VN').format(parseFloat(inc.amount))}</span>
+                          <span className="text-sm font-bold text-blue-600 dark:text-blue-300 font-mono tracking-tighter">{!canReadSensitive ? "***" : `+${new Intl.NumberFormat('vi-VN').format(parseFloat(inc.amount))}`}</span>
                         </div>
                       ))}
                     </div>
@@ -175,7 +179,7 @@ export default function PayrollTable({
                   ].map((stat, i) => (
                     <div key={i} className="p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-inner flex flex-col gap-1">
                        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{stat.label}</p>
-                       <p className={cn("text-xl font-bold font-mono tracking-tighter", stat.color)}>{stat.prefix}{new Intl.NumberFormat('vi-VN').format(parseFloat(stat.value))}</p>
+                       <p className={cn("text-xl font-bold font-mono tracking-tighter", stat.color)}>{!canReadSensitive ? "***" : `${stat.prefix || ''}${new Intl.NumberFormat('vi-VN').format(parseFloat(stat.value))}`}</p>
                     </div>
                   ))}
                 </div>
@@ -202,7 +206,7 @@ export default function PayrollTable({
   );
 }
 
-function SegmentCard({ segment, index }: { segment: PayrollSegment, index: number, isLast: boolean }) {
+function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSegment, index: number, isLast: boolean, canReadSensitive: boolean }) {
   const { t } = useTranslation();
   const { formatDate } = useDateTimeFormatter();
 
@@ -231,7 +235,7 @@ function SegmentCard({ segment, index }: { segment: PayrollSegment, index: numbe
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
                 <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70">Base Salary</p>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold font-mono text-sm tracking-tighter">
-                  <Banknote size={14} className="text-primary-500 opacity-50" /> {new Intl.NumberFormat('vi-VN').format(segment.applied_base_salary)}
+                  <Banknote size={14} className="text-primary-500 opacity-50" /> {!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(segment.applied_base_salary)}
                 </div>
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
@@ -265,7 +269,7 @@ function SegmentCard({ segment, index }: { segment: PayrollSegment, index: numbe
                 <div className="h-10 w-px bg-white dark:bg-slate-900/10" />
                 <div className="text-right">
                   <p className="text-[9px] font-bold text-primary-200 uppercase tracking-widest mb-1 opacity-80">Segment Net</p>
-                  <p className="text-xl font-bold font-mono tracking-tighter">{new Intl.NumberFormat('vi-VN').format(segment.amount)}</p>
+                  <p className="text-xl font-bold font-mono tracking-tighter">{!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(segment.amount)}</p>
                 </div>
               </div>
               <Calculator className="absolute -right-4 -bottom-4 w-20 h-20 text-white opacity-5 -rotate-12 transition-transform group-hover/out:rotate-0 duration-700" />

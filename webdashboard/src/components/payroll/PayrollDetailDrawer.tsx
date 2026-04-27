@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { useMyPermissions } from "@/hooks/use-permissions";
 import PayrollTable from "./PayrollTable";
 import EmployeeSalaryConfig from "./EmployeeSalaryConfig";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,8 @@ export default function PayrollDetailDrawer({
 }: PayrollDetailDrawerProps) {
   const { t } = useTranslation();
   const { workspace } = useWorkspace(workspaceId);
+  const { hasPermission } = useMyPermissions();
+  const canReadSensitive = hasPermission("payroll:sensitive:read");
   const [activeTab, setActiveTab] = useState<"history" | "config">("history");
 
   if (!employee) return null;
@@ -111,9 +114,9 @@ export default function PayrollDetailDrawer({
                       <div>
                         <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70">{t("common.payroll.table.net_pay")} (Latest)</p>
                         <p className="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono tracking-tighter">
-                          {payslips.length > 0 
+                          {!canReadSensitive ? "***" : (payslips.length > 0 
                             ? new Intl.NumberFormat('vi-VN').format(parseFloat(payslips[0].net_pay_amount))
-                            : "—"}
+                            : "—")}
                         </p>
                       </div>
                    </div>

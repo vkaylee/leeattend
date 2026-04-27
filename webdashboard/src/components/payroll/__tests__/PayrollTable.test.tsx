@@ -13,6 +13,12 @@ import { ToastProvider } from "../../ui/Toast";
 import { Payslip } from "@/lib/api/types";
 import React from "react";
 
+vi.mock("@/hooks/use-permissions", () => ({
+  useMyPermissions: () => ({
+    hasPermission: () => true,
+  }),
+}));
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
 });

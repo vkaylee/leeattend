@@ -128,14 +128,14 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     <div className={cn("fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 transition-all duration-300 shadow-xl shadow-slate-200/50 dark:shadow-black/30", isCollapsed ? "w-20" : "w-72", !isOpen && "-translate-x-full lg:translate-x-0")}>
       <div className="flex h-24 items-center justify-between px-6 border-b border-slate-50 dark:border-slate-800">
         {!isCollapsed && <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-500 shadow-lg shadow-primary-200 flex items-center justify-center text-white font-black text-xl tracking-tighter italic">L</div><span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase italic">Lee<span className="text-primary-600 dark:text-primary-400">Attend</span></span></div>}
-        <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors"><X className="h-5 w-5" /></button>
+        <button onClick={onClose} className="lg:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors"><X className="h-5 w-5" /></button>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6 space-y-8">
         {filteredMenuItems.map((item) => (
           <div key={item.label}>
             {item.section ? (
               <div className="space-y-2">
-                {!isCollapsed && <button onClick={() => toggleSection(item.section!)} data-testid={item.testId} className="flex w-full items-center justify-between px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group"><div className="flex items-center gap-2">{item.sectionIcon && <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />}<span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
+                {!isCollapsed && <button onClick={() => toggleSection(item.section!)} data-testid={item.testId} className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group"><div className="flex items-center gap-2">{item.sectionIcon && <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />}<span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
                 {(openSections[item.section] || isCollapsed) && (
                   <div className="space-y-1">
                     {item.items?.map((subItem) => (

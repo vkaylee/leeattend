@@ -122,7 +122,7 @@ export default function MainLayout() {
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 relative scroll-smooth">
-          <div className="max-w-7xl mx-auto">
+          <div key={location.pathname} className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
             <Outlet />
           </div>
         </main>
