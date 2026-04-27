@@ -7,7 +7,18 @@ export async function login(username: string, password: string): Promise<AuthRes
     method: "POST",
     body: JSON.stringify({ email: username, password }),
   });
-  if (!response.ok) throw new Error("Login failed");
+  if (!response.ok) {
+    let errorMessage = "Login failed";
+    try {
+      const errorData = await response.json();
+      if (errorData?.error?.message) {
+        errorMessage = errorData.error.message;
+      }
+    } catch (e) {
+      // Ignore JSON parse errors and use default message
+    }
+    throw new Error(errorMessage);
+  }
   const data = await response.json();
   setAccessToken(data.access_token);
   setRefreshToken(data.refresh_token);

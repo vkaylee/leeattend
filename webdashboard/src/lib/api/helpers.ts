@@ -146,7 +146,7 @@ export async function apiFetch(
     });
     clearTimeout(id);
     
-    if (response.status === 401) {
+    if (response.status === 401 && !fullUrl.includes("/auth/login")) {
       // Attempt to refresh token
       const refreshToken = getRefreshToken();
       if (refreshToken) {
