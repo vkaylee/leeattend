@@ -9,6 +9,7 @@
     "analyze": "ANALYZE=true vite build",
     "preview": "vite preview",
     "lint": "eslint --cache --max-warnings 0",
+    "check-budget": "node scripts/check-budget.mjs",
     "type-check": "tsc --noEmit",
     "test": "NODE_OPTIONS='--experimental-require-module' vitest run --bail 1",
     "test:coverage": "NODE_OPTIONS='--experimental-require-module' vitest run --coverage",
