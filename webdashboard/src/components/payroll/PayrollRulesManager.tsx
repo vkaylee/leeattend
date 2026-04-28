@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle2, CircleDashed, FileText, Trash2, Percent, Calculator } from "lucide-react";
-import { fetchPayrollRules, createPayrollRule } from "@/lib/api/payroll";
+import { fetchPayrollRules, createPayrollRule, fetchSalaryBaseGroups } from "@/lib/api/payroll";
 import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "react-i18next";
 import { PayrollRuleDefinition } from "@/lib/api/types";
@@ -22,11 +22,13 @@ export default function PayrollRulesManager({ wsId }: Props) {
   const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
 
   const { data: rules, isLoading } = useQuery({ queryKey: ["payroll-rules", wsId], queryFn: () => fetchPayrollRules(wsId), enabled: !!wsId });
-  const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross_salary" } });
+  const { data: bases } = useQuery({ queryKey: ["salary-base-groups", wsId], queryFn: () => fetchSalaryBaseGroups(wsId), enabled: !!wsId });
+  
+  const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } });
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<PayrollRuleDefinition>) => createPayrollRule(wsId, data),
-    onSuccess: () => { toast.success(t("common.success")); queryClient.invalidateQueries({ queryKey: ["payroll-rules"] }); setIsModalOpen(false); setFormData({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross_salary" } }); },
+    onSuccess: () => { toast.success(t("common.success")); queryClient.invalidateQueries({ queryKey: ["payroll-rules"] }); setIsModalOpen(false); setFormData({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } }); },
   });
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); createMutation.mutate(formData); };
@@ -88,7 +90,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
                   {rule.calculation_method === "tiered" && (
                     <RuleTierManager wsId={wsId} ruleId={rule.id} />
                   )}
-                  <RuleAssignmentManager wsId={wsId} ruleId={rule.id} />
+                  <RuleAssignmentManager wsId={wsId} ruleId={rule.id} calculationMethod={rule.calculation_method} />
                 </div>
               )}
             </div>
@@ -124,7 +126,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
               <select id="rule-calc" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" value={formData.calculation_method} onChange={e => {
                 const method = e.target.value as any;
                 let newConfig = {};
-                if (method === "percentage") newConfig = { rate: 0, base: "gross_salary" };
+                if (method === "percentage") newConfig = { rate: 0, base: "gross" };
                 else if (method === "fixed") newConfig = { amount: 0, frequency: "monthly" };
                 else if (method === "tiered") newConfig = { base: "taxable_income" };
                 setFormData({...formData, calculation_method: method, rule_config: newConfig});
@@ -150,10 +152,16 @@ export default function PayrollRulesManager({ wsId }: Props) {
                 </div>
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Calculation Base</label>
-                  <select required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={formData.rule_config?.base || "gross_salary"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
-                    <option value="gross_salary">Gross Salary (Total)</option>
-                    <option value="base_salary">Base Salary Only</option>
-                    <option value="taxable_income">Taxable Income</option>
+                  <select required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={formData.rule_config?.base || "gross"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
+                    {bases?.map(b => (
+                      <option key={b.slug} value={b.slug}>{b.name}</option>
+                    ))}
+                    {(!bases || bases.length === 0) && (
+                      <>
+                        <option value="gross">Gross Salary (Total)</option>
+                        <option value="taxable_income">Taxable Income</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>
@@ -173,8 +181,15 @@ export default function PayrollRulesManager({ wsId }: Props) {
                 <div className="space-y-3">
                   <label htmlFor="rule-tier-base" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Tier Base Amount</label>
                   <select id="rule-tier-base" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={formData.rule_config?.base || "taxable_income"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
-                    <option value="taxable_income">Taxable Income</option>
-                    <option value="gross_salary">Gross Salary (Total)</option>
+                    {bases?.map(b => (
+                      <option key={b.slug} value={b.slug}>{b.name}</option>
+                    ))}
+                    {(!bases || bases.length === 0) && (
+                      <>
+                        <option value="taxable_income">Taxable Income</option>
+                        <option value="gross">Gross Salary (Total)</option>
+                      </>
+                    )}
                   </select>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic">Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.</p>
                 </div>

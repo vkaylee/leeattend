@@ -415,6 +415,23 @@ export interface SalaryComponentWithDefinition {
   definition: SalaryComponentDefinition;
 }
 
+export interface SalaryBaseGroup {
+  id: string;
+  workspace_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalaryBaseGroupMember {
+  component_definition_id: string;
+  base_group_id: string;
+  created_at: string;
+}
+
 export interface Payslip {
   id: string;
   employee_id: string;
@@ -982,4 +999,67 @@ export interface AttendanceDailySummary {
   entered_via?: "self_service" | "paper_form";
   created_at: string;
   updated_at: string;
+}
+
+// --- Payroll Rules ---
+
+export interface PayrollRuleDefinition {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description?: string;
+  code: string;
+  category: "statutory_deduction" | "allowance" | "bonus" | "deduction";
+  applies_to: "all" | "department" | "employee";
+  calculation_method: "percentage" | "fixed" | "tiered";
+  rule_config: Record<string, any>;
+  is_mandatory: boolean;
+  display_order: number;
+  created_at: string;
+}
+
+export interface PayrollRuleTier {
+  id: string;
+  rule_definition_id: string;
+  tier_order: number;
+  min_amount: number;
+  max_amount?: number;
+  rate?: number;
+  fixed_amount?: number;
+}
+
+export interface PayrollRuleAssignment {
+  id: string;
+  workspace_id: string;
+  rule_definition_id: string;
+  assignee_type: "workspace" | "department" | "employee";
+  assignee_id: string | null;
+  effective_from: string;
+  effective_to?: string | null;
+  override_config?: Record<string, any> | null;
+  created_at: string;
+}
+
+// --- Employment Phases ---
+
+export interface EmploymentPhaseDefinition {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description?: string;
+  phase_type: "probation" | "internship" | "official" | "contract";
+  default_duration_days?: number;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+}
+
+export interface EmploymentPhaseAssignment {
+  id: string;
+  employee_id: string;
+  phase_definition_id: string;
+  start_date: string;
+  end_date?: string;
+  status: "active" | "completed" | "terminated";
+  notes?: string;
 }

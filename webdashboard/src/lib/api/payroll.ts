@@ -1,6 +1,15 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { Payslip, PayrollSettings, SalaryComponentDefinition, EmployeeSalaryComponent, PayrollIncentivePolicy } from "./types";
+import { 
+  Payslip, 
+  PayrollSettings, 
+  SalaryComponentDefinition, 
+  EmployeeSalaryComponent, 
+  PayrollIncentivePolicy,
+  PayrollRuleAssignment,
+  SalaryBaseGroup,
+  SalaryBaseGroupMember
+} from "./types";
 
 export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncentivePolicy[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll/incentive-policies`);
@@ -20,7 +29,34 @@ export async function deleteIncentivePolicy(wsId: string, policyId: string): Pro
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll/incentive-policies/${policyId}`, {
     method: "DELETE",
   });
-  if (!response.ok) throw new Error("Failed to delete incentive policy");
+  if (!response.ok) throw new Error("Failed to delete overtime policy");
+}
+
+export async function fetchSalaryBaseGroups(wsId: string): Promise<SalaryBaseGroup[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-bases`);
+  if (!response.ok) throw new Error("Failed to fetch salary bases");
+  return response.json();
+}
+
+export async function fetchSalaryBaseGroupMembers(wsId: string): Promise<SalaryBaseGroupMember[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-bases/members`);
+  if (!response.ok) throw new Error("Failed to fetch salary base members");
+  return response.json();
+}
+
+export async function assignComponentToSalaryBase(wsId: string, baseId: string, componentId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-bases/${baseId}/members`, {
+    method: "POST",
+    body: JSON.stringify({ component_definition_id: componentId }),
+  });
+  if (!response.ok) throw new Error("Failed to assign component");
+}
+
+export async function unassignComponentFromSalaryBase(wsId: string, baseId: string, componentId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-bases/${baseId}/members/${componentId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to unassign component");
 }
 
 export async function fetchPayrollSettings(wsId: string): Promise<PayrollSettings> {
@@ -189,4 +225,63 @@ export async function assignOvertimePolicy(wsId: string, data: any) {
   });
   if (!response.ok) throw new Error('Failed to assign overtime policy');
   return response.ok;
+}
+
+// --- Payroll Rules API ---
+
+export async function fetchPayrollRules(wsId: string): Promise<any[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-rules`);
+  if (!response.ok) throw new Error("Failed to fetch payroll rules");
+  return response.json();
+}
+
+export async function createPayrollRule(wsId: string, data: any): Promise<any> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-rules`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create payroll rule");
+  return response.json();
+}
+
+export async function fetchPayrollRuleTiers(wsId: string, ruleId: string): Promise<any[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-rules/${ruleId}/tiers`);
+  if (!response.ok) throw new Error("Failed to fetch payroll rule tiers");
+  return response.json();
+}
+
+export async function createPayrollRuleTier(wsId: string, ruleId: string, data: any): Promise<any> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-rules/${ruleId}/tiers`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create payroll rule tier");
+  return response.json();
+}
+
+// --- Payroll Rule Assignments ---
+
+export async function fetchPayrollRuleAssignments(wsId: string, ruleId: string): Promise<PayrollRuleAssignment[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-rules/${ruleId}/assignments`);
+  if (!response.ok) throw new Error("Failed to fetch rule assignments");
+  return response.json();
+}
+
+export async function createPayrollRuleAssignment(wsId: string, ruleId: string, data: Partial<PayrollRuleAssignment>): Promise<PayrollRuleAssignment> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-rules/${ruleId}/assignments`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    throw new Error(errorBody || "Failed to create rule assignment");
+  }
+  return response.json();
+}
+
+export async function deletePayrollRuleAssignment(wsId: string, ruleId: string, assignmentId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-rules/${ruleId}/assignments/${assignmentId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete rule assignment");
 }
