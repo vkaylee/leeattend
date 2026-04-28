@@ -15,6 +15,7 @@ import RoleManagementModal from "@/components/features/settings/RoleManagementMo
 import PermissionManagementModal from "@/components/features/settings/PermissionManagementModal";
 import PermissionGate from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/use-confirm";
 
 const roleColorMap: Record<string, string> = {
   teal: "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100",
@@ -27,6 +28,7 @@ const roleColorMap: Record<string, string> = {
 
 export default function MemberTable() {
   const { t } = useTranslation();
+  const { confirm, ConfirmationDialog } = useConfirm();
   const { members, isLoading: membersLoading, removeMember } = useWorkspaceMembers();
   const { roles, isLoading: rolesLoading } = useWorkspaceRoles();
   const isLoading = membersLoading || rolesLoading;
@@ -36,7 +38,11 @@ export default function MemberTable() {
 
   const handleManageRoles = (userId: string) => { setSelectedUserId(userId); setIsRoleModalOpen(true); };
   const handleManagePermissions = (userId: string) => { setSelectedUserId(userId); setIsPermModalOpen(true); };
-  const handleRemoveMember = async (userId: string) => { if (!confirm(t("members.table.confirm_remove"))) return; try { await removeMember(userId); } catch (e: any) { console.error(e); } };
+  const handleRemoveMember = async (userId: string) => { 
+    const isConfirmed = await confirm({ title: t('common.warning', { defaultValue: 'Warning' }), message: t("members.table.confirm_remove"), variant: 'danger' });
+    if (!isConfirmed) return; 
+    try { await removeMember(userId); } catch (e: any) { console.error(e); } 
+  };
 
   if (isLoading) return <div className="flex justify-center py-32"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent shadow-xl"></div></div>;
 
@@ -154,6 +160,7 @@ export default function MemberTable() {
           <PermissionManagementModal isOpen={isPermModalOpen} onClose={() => setIsPermModalOpen(false)} userId={selectedUserId} />
         </>
       )}
+      <ConfirmationDialog />
     </>
   );
 }

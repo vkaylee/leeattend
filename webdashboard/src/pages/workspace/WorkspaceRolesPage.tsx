@@ -21,6 +21,7 @@ import RoleFormModal from "@/components/features/settings/RoleFormModal";
 import { Link } from "@tanstack/react-router";
 import PermissionGate from "@/components/common/PermissionGate";
 import { useTranslation } from "react-i18next";
+import { useConfirm } from "@/hooks/use-confirm";
 
 // No mock roles needed
 
@@ -40,6 +41,7 @@ const iconColorMap: Record<string, string> = {
 
 export default function WorkspaceRolesPage() {
   const { t } = useTranslation();
+  const { confirm, ConfirmationDialog } = useConfirm();
   const { roles, isLoading, deleteRole } = useWorkspaceRoles();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,7 +59,12 @@ export default function WorkspaceRolesPage() {
   };
 
   const handleDelete = async (roleId: string) => {
-    if (confirm(t('rolesPage.confirmDelete', { defaultValue: "Are you sure you want to delete this role?" }))) {
+    const isConfirmed = await confirm({
+      title: t('rolesPage.deleteTitle', { defaultValue: 'Delete Role' }),
+      message: t('rolesPage.confirmDelete', { defaultValue: "Are you sure you want to delete this role?" }),
+      variant: 'danger',
+    });
+    if (isConfirmed) {
       await deleteRole(roleId);
     }
     setActiveMenu(null);
@@ -182,6 +189,7 @@ export default function WorkspaceRolesPage() {
         onClose={() => setIsModalOpen(false)}
         editingRole={editingRole}
       />
+      <ConfirmationDialog />
     </div>
   );
 }

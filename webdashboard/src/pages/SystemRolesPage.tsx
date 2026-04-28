@@ -4,6 +4,7 @@ import { ShieldAlert, ShieldCheck, Shield, Users, Plus, Trash2, ShieldHalf } fro
 import { useSystemRoles } from "@/hooks/use-system-roles";
 import { cn } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
+import { useConfirm } from "@/hooks/use-confirm";
 
 const roleDescriptions: Record<string, string> = {
   platform_admin: "Full platform access. Can manage workspaces, global settings, and other system roles.",
@@ -19,6 +20,7 @@ const roleIcons: Record<string, any> = {
 
 export default function SystemRolesPage() {
   const { roles, isLoading, assignRole, revokeRole, isAssigning, isRevoking } = useSystemRoles();
+  const { confirm, ConfirmationDialog } = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [userIdInput, setUserIdInput] = useState("");
@@ -44,7 +46,12 @@ export default function SystemRolesPage() {
   };
 
   const handleRevoke = async (userId: string, roleName: string) => {
-    if (confirm("Are you sure you want to revoke this system role? This may lock the user out of system-level access.")) {
+    const isConfirmed = await confirm({
+      title: "Revoke System Role",
+      message: "Are you sure you want to revoke this system role? This may lock the user out of system-level access.",
+      variant: "danger"
+    });
+    if (isConfirmed) {
       try {
         await revokeRole({ userId, roleName });
       } catch (err: any) {
@@ -188,6 +195,7 @@ export default function SystemRolesPage() {
           </div>
         </form>
       </Modal>
+      <ConfirmationDialog />
     </div>
   );
 }
