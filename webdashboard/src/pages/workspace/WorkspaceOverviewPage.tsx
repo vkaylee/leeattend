@@ -3,8 +3,10 @@ import PageHeader from "@/components/ui/PageHeader";
 import { Building2, Users, CalendarDays, BarChart3, Clock, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, API_BASE_URL, getCurrentWorkspaceId } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 export default function WorkspaceOverviewPage() {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
   const { workspace, isLoading: isWsLoading } = useWorkspace();
   const { members, isLoading: isMembersLoading } = useWorkspaceMembers();
@@ -34,7 +36,7 @@ export default function WorkspaceOverviewPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
       <PageHeader
-        title="Workspace Overview"
+        title={t('overview.title', { defaultValue: 'Workspace Overview' })}
         subtitle={`ID: ${workspace.id.substring(0, 8).toUpperCase()}`}
       />
 
@@ -46,17 +48,17 @@ export default function WorkspaceOverviewPage() {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-50">Active Workspace</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-indigo-50">{t('overview.activeWorkspace', { defaultValue: 'Active Workspace' })}</span>
           </div>
           <h2 className="text-5xl font-black tracking-tight mb-2">{workspace.name}</h2>
           <div className="flex items-center gap-6 mt-8 text-indigo-100 font-medium">
             <div className="flex items-center gap-2">
               <Clock size={16} className="opacity-70" />
-              <span>Timezone: {workspace.timezone}</span>
+              <span>{t('overview.timezone', { defaultValue: 'Timezone:' })} {workspace.timezone}</span>
             </div>
             <div className="flex items-center gap-2">
               <CalendarDays size={16} className="opacity-70" />
-              <span>Created: {new Date(workspace.created_at).toLocaleDateString()}</span>
+              <span>{t('overview.created', { defaultValue: 'Created:' })} {new Date(workspace.created_at).toLocaleDateString()}</span>
             </div>
           </div>
         </div>
@@ -72,7 +74,7 @@ export default function WorkspaceOverviewPage() {
             {stats?.total_employees || 0}
           </div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-            Total Employees
+            {t('overview.totalEmployees', { defaultValue: 'Total Employees' })}
           </div>
         </div>
 
@@ -84,7 +86,7 @@ export default function WorkspaceOverviewPage() {
             {stats?.present_today || 0}
           </div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-            Present Today
+            {t('overview.presentToday', { defaultValue: 'Present Today' })}
           </div>
         </div>
 
@@ -96,7 +98,7 @@ export default function WorkspaceOverviewPage() {
             {stats?.late_today || 0}
           </div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-            Late Today
+            {t('overview.lateToday', { defaultValue: 'Late Today' })}
           </div>
         </div>
 
@@ -108,7 +110,7 @@ export default function WorkspaceOverviewPage() {
             {stats?.on_leave_today || 0}
           </div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-            On Leave
+            {t('overview.onLeave', { defaultValue: 'On Leave' })}
           </div>
         </div>
       </div>
@@ -116,12 +118,12 @@ export default function WorkspaceOverviewPage() {
       {/* Admin Members Preview */}
       <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Admin Members</h3>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">{t('overview.adminMembers', { defaultValue: 'Admin Members' })}</h3>
           <span className="px-3 py-1 bg-white dark:bg-slate-900 rounded-xl text-[10px] font-bold text-slate-500 uppercase tracking-widest shadow-sm">
             {members.filter(m => {
               const r = roles.find(role => role.id === m.role_id);
               return r && (r.name.toLowerCase() === 'owner' || r.name.toLowerCase() === 'admin');
-            }).length} Admins
+            }).length} {t('overview.admins', { defaultValue: 'Admins' })}
           </span>
         </div>
         <div className="flex flex-wrap gap-4">
@@ -138,7 +140,7 @@ export default function WorkspaceOverviewPage() {
                 )}
               </div>
               <div>
-                <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{admin.full_name || "Admin"}</div>
+                <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{admin.full_name || t('overview.adminFallback', { defaultValue: 'Admin' })}</div>
                 <div className="text-[10px] font-medium text-slate-500">{admin.email}</div>
               </div>
             </div>

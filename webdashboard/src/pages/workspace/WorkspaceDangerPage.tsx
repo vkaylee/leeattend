@@ -7,16 +7,18 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import Modal from "@/components/ui/Modal";
 import { clearWorkspaceData } from "@/lib/api/workspaces";
 import { getCurrentWorkspaceId } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 export default function WorkspaceDangerPage() {
   const { workspace } = useWorkspace();
   const [isClearDataOpen, setIsClearDataOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
       <PageHeader
-        title="Danger Zone"
-        subtitle="Destructive operations for this workspace"
+        title={t('danger.title', { defaultValue: 'Danger Zone' })}
+        subtitle={t('danger.subtitle', { defaultValue: 'Destructive operations for this workspace' })}
       />
       
       <div className="bg-rose-50 dark:bg-rose-950/20 p-8 rounded-[2.5rem] border border-rose-200 dark:border-rose-900/50 space-y-6">
@@ -25,9 +27,9 @@ export default function WorkspaceDangerPage() {
             <AlertTriangle size={24} />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-rose-700 dark:text-rose-400">Clear Workspace Data</h3>
+            <h3 className="text-xl font-bold text-rose-700 dark:text-rose-400">{t('danger.clearDataTitle', { defaultValue: 'Clear Workspace Data' })}</h3>
             <p className="text-sm font-medium text-rose-600/70 dark:text-rose-400/70 mt-1">
-              Delete all employees, time entries, leaves, and other data. This action cannot be undone.
+              {t('danger.clearDataDesc', { defaultValue: 'Delete all employees, time entries, leaves, and other data. This action cannot be undone.' })}
             </p>
           </div>
         </div>
@@ -37,7 +39,7 @@ export default function WorkspaceDangerPage() {
             variant="destructive" 
             onClick={() => setIsClearDataOpen(true)}
           >
-            CLEAR ALL DATA
+            {t('danger.clearAllData', { defaultValue: 'CLEAR ALL DATA' })}
           </Button>
         </div>
       </div>
@@ -52,6 +54,7 @@ export default function WorkspaceDangerPage() {
 }
 
 function ClearDataModal({ isOpen, onClose, workspaceName }: { isOpen: boolean, onClose: () => void, workspaceName: string }) {
+  const { t } = useTranslation();
   const [confirmText, setConfirmText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
@@ -63,28 +66,28 @@ function ClearDataModal({ isOpen, onClose, workspaceName }: { isOpen: boolean, o
     setIsLoading(true);
     try {
       await clearWorkspaceData(wsId, "all");
-      toast.success("Workspace data cleared successfully");
+      toast.success(t('danger.successMessage', { defaultValue: 'Workspace data cleared successfully' }));
       onClose();
       // Reload to reset state
       setTimeout(() => window.location.reload(), 1000);
     } catch (e: any) {
-      toast.error(e.message || "Failed to clear data");
+      toast.error(e.message || t('danger.errorMessage', { defaultValue: 'Failed to clear data' }));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Clear Workspace Data" icon={<AlertTriangle size={24} />} maxWidth="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('danger.modalTitle', { defaultValue: 'Clear Workspace Data' })} icon={<AlertTriangle size={24} />} maxWidth="md">
       <div className="space-y-6 pt-4 animate-in fade-in">
         <div className="p-4 bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-900 rounded-2xl text-rose-700 dark:text-rose-300 text-sm font-medium">
-          <strong>Warning:</strong> This will permanently delete all data in the workspace, including employees, shifts, time entries, and leaves. 
-          Members and settings will be preserved.
+          <strong>{t('common.warning', { defaultValue: 'Warning:' })}</strong> {t('danger.warningDesc1', { defaultValue: 'This will permanently delete all data in the workspace, including employees, shifts, time entries, and leaves.' })} 
+          <br/>{t('danger.warningDesc2', { defaultValue: 'Members and settings will be preserved.' })}
         </div>
 
         <div className="space-y-3">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-            Type <strong>{workspaceName}</strong> to confirm
+            {t('danger.typeToConfirmPrefix', { defaultValue: 'Type' })} <strong>{workspaceName}</strong> {t('danger.typeToConfirmSuffix', { defaultValue: 'to confirm' })}
           </label>
           <input 
             type="text" 
@@ -102,7 +105,7 @@ function ClearDataModal({ isOpen, onClose, workspaceName }: { isOpen: boolean, o
           loading={isLoading}
           onClick={handleClear}
         >
-          PERMANENTLY DELETE DATA
+          {t('danger.permanentlyDelete', { defaultValue: 'PERMANENTLY DELETE DATA' })}
         </Button>
       </div>
     </Modal>

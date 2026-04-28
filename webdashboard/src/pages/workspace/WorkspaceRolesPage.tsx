@@ -20,6 +20,7 @@ import { useWorkspaceRoles } from "@/hooks/use-workspace";
 import RoleFormModal from "@/components/features/settings/RoleFormModal";
 import { Link } from "@tanstack/react-router";
 import PermissionGate from "@/components/common/PermissionGate";
+import { useTranslation } from "react-i18next";
 
 // No mock roles needed
 
@@ -38,6 +39,7 @@ const iconColorMap: Record<string, string> = {
 };
 
 export default function WorkspaceRolesPage() {
+  const { t } = useTranslation();
   const { roles, isLoading, deleteRole } = useWorkspaceRoles();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,7 +57,7 @@ export default function WorkspaceRolesPage() {
   };
 
   const handleDelete = async (roleId: string) => {
-    if (confirm("Are you sure you want to delete this role?")) {
+    if (confirm(t('rolesPage.confirmDelete', { defaultValue: "Are you sure you want to delete this role?" }))) {
       await deleteRole(roleId);
     }
     setActiveMenu(null);
@@ -65,13 +67,13 @@ export default function WorkspaceRolesPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader
-          title="Role Management"
-          subtitle="Define custom roles and manage access levels across the workspace"
+          title={t('rolesPage.title', { defaultValue: 'Role Management' })}
+          subtitle={t('rolesPage.subtitle', { defaultValue: 'Define custom roles and manage access levels across the workspace' })}
         />
         <PermissionGate permission="members:roles:manage">
           <button onClick={handleCreate} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
             <Plus size={18} />
-            Create Role
+            {t('rolesPage.createRole', { defaultValue: 'Create Role' })}
           </button>
         </PermissionGate>
       </div>
@@ -106,13 +108,13 @@ export default function WorkspaceRolesPage() {
                       </h3>
                       {role.is_system && (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                          System
+                          {t('common.system', { defaultValue: 'System' })}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 text-sm font-medium text-slate-500 mt-1">
                       <Users size={14} />
-                      <span>Role ID: {role.id.split('-')[0]}...</span>
+                      <span>{t('rolesPage.roleId', { defaultValue: 'Role ID:' })} {role.id.split('-')[0]}...</span>
                     </div>
                   </div>
                 </div>
@@ -131,17 +133,17 @@ export default function WorkspaceRolesPage() {
                       <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 border border-slate-100 dark:border-slate-800 py-2 z-10 animate-in fade-in zoom-in-95 duration-200">
                         {!role.is_system && (
                           <button onClick={() => handleEdit(role)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                            <Edit2 size={16} /> Edit Role
+                            <Edit2 size={16} /> {t('rolesPage.editRole', { defaultValue: 'Edit Role' })}
                           </button>
                         )}
                         <Link to="/workspace/settings/permissions" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                          <CheckCircle2 size={16} /> Matrix
+                          <CheckCircle2 size={16} /> {t('rolesPage.matrix', { defaultValue: 'Matrix' })}
                         </Link>
                         {!role.is_system && (
                           <>
                             <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
                             <button onClick={() => handleDelete(role.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors">
-                              <Trash2 size={16} /> Delete Role
+                              <Trash2 size={16} /> {t('rolesPage.deleteRole', { defaultValue: 'Delete Role' })}
                             </button>
                           </>
                         )}
@@ -152,7 +154,7 @@ export default function WorkspaceRolesPage() {
               </div>
 
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 line-clamp-2 min-h-[40px]">
-                {role.description || "No description provided."}
+                {role.description || t('rolesPage.noDescription', { defaultValue: 'No description provided.' })}
               </p>
 
               <div className="space-y-4">
@@ -164,7 +166,7 @@ export default function WorkspaceRolesPage() {
                   </div>
                   <PermissionGate permission="members:roles:manage">
                     <Link to="/workspace/settings/permissions" className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                      Manage Access <ChevronRight size={14} />
+                      {t('rolesPage.manageAccess', { defaultValue: 'Manage Access' })} <ChevronRight size={14} />
                     </Link>
                   </PermissionGate>
                 </div>
