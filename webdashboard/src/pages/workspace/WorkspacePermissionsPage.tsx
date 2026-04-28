@@ -24,9 +24,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { permissionGroups } from "@/lib/permission-groups";
+import { useTranslation } from "react-i18next";
 
+const formatRoleName = (name: string) => {
+  if (!name) return "";
+  return name
+    .split(/[_-\s]/)
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
 
 export default function WorkspacePermissionsPage() {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const { roles, isLoading: isRolesLoading } = useWorkspaceRoles(wsId || undefined);
   const { matrix, isLoading: isMatrixLoading, refetch } = useWorkspacePermissionsMatrix(wsId || undefined);
@@ -132,7 +142,7 @@ export default function WorkspacePermissionsPage() {
               <DropdownMenuLabel>Visible Roles</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {roles.map(role => (
-                <DropdownMenuCheckboxItem
+                  <DropdownMenuCheckboxItem
                   key={role.id}
                   checked={!hiddenRoleIds.includes(role.id)}
                   onCheckedChange={(checked) => {
@@ -141,7 +151,7 @@ export default function WorkspacePermissionsPage() {
                     );
                   }}
                 >
-                  {role.name}
+                  {t(`roles.${role.name}`, { defaultValue: formatRoleName(role.name) })}
                   {role.is_system && <span className="ml-2 text-[9px] text-slate-400 font-normal uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">System</span>}
                 </DropdownMenuCheckboxItem>
               ))}
@@ -220,7 +230,9 @@ export default function WorkspacePermissionsPage() {
                 {visibleRoles.map(role => (
                   <th key={role.id} className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-6 text-center min-w-[140px]">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate w-full px-2">{role.name}</h4>
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate w-full px-2" title={t(`roles.${role.name}`, { defaultValue: formatRoleName(role.name) })}>
+                        {t(`roles.${role.name}`, { defaultValue: formatRoleName(role.name) })}
+                      </h4>
                       {role.is_system ? (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500">System</span>
                       ) : (

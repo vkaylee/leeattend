@@ -11,7 +11,12 @@ import * as api from "../../lib/api";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, fallback?: string) => fallback || key,
+        t: (key: string, options?: any) => {
+            if (options && typeof options === 'object' && options.defaultValue) {
+                return options.defaultValue;
+            }
+            return key;
+        },
     }),
 }));
 
@@ -31,8 +36,8 @@ vi.mock("../../lib/api", () => ({
 
 // ─── Helpers ───────────────────────────────────────────────────
 
-const SYSTEM_ROLE = { id: "role-sys", name: "Admin", is_system: true };
-const CUSTOM_ROLE = { id: "role-custom", name: "HR Specialist", is_system: false };
+const SYSTEM_ROLE = { id: "role-sys", name: "admin", is_system: true };
+const CUSTOM_ROLE = { id: "role-custom", name: "hr_specialist", is_system: false };
 
 /** Build a matrix with real backend permission strings */
 const buildMatrix = (
@@ -91,7 +96,7 @@ describe("WorkspacePermissionsPage", () => {
         it("renders role column headers", () => {
             renderPage();
             expect(screen.getByText("Admin")).toBeDefined();
-            expect(screen.getByText("HR Specialist")).toBeDefined();
+            expect(screen.getByText("Hr Specialist")).toBeDefined();
         });
 
         it("renders all 16 enterprise permission group headers", () => {
