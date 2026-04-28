@@ -181,20 +181,22 @@ export default function WorkspacePermissionsPage() {
           <div className={cn("absolute left-[280px] top-0 bottom-0 w-12 bg-gradient-to-r from-slate-200/50 dark:from-slate-950/50 to-transparent z-10 pointer-events-none transition-opacity duration-300", canScrollLeft ? "opacity-100" : "opacity-0")} />
           <div className={cn("absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-slate-200/50 dark:from-slate-950/50 to-transparent z-10 pointer-events-none transition-opacity duration-300", canScrollRight ? "opacity-100" : "opacity-0")} />
           
-          {/* Scroll Buttons */}
-          <button 
-            onClick={() => scrollBy(-300)}
-            className={cn("absolute left-[265px] top-1/2 -translate-y-1/2 z-30 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg text-slate-700 dark:text-slate-300 rounded-full p-2.5 transition-all hover:scale-110", canScrollLeft ? "opacity-0 group-hover/table:opacity-100" : "opacity-0 pointer-events-none")}
-          >
-            <ChevronLeft size={20} />
-          </button>
-          
-          <button 
-            onClick={() => scrollBy(300)}
-            className={cn("absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg text-slate-700 dark:text-slate-300 rounded-full p-2.5 transition-all hover:scale-110", canScrollRight ? "opacity-0 group-hover/table:opacity-100" : "opacity-0 pointer-events-none")}
-          >
-            <ChevronRight size={20} />
-          </button>
+          {/* Scroll Buttons - Sticky to viewport */}
+          <div className="sticky top-[30vh] z-30 h-0 w-full pointer-events-none">
+            <button 
+              onClick={() => scrollBy(-300)}
+              className={cn("absolute left-[265px] top-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg text-slate-700 dark:text-slate-300 rounded-full p-2.5 transition-all hover:scale-110 pointer-events-auto", canScrollLeft ? "opacity-0 group-hover/table:opacity-100" : "opacity-0 pointer-events-none")}
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            <button 
+              onClick={() => scrollBy(300)}
+              className={cn("absolute right-4 top-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg text-slate-700 dark:text-slate-300 rounded-full p-2.5 transition-all hover:scale-110 pointer-events-auto", canScrollRight ? "opacity-0 group-hover/table:opacity-100" : "opacity-0 pointer-events-none")}
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
 
           <div 
             ref={scrollContainerRef}
