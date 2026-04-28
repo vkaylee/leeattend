@@ -254,7 +254,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     let router = {
         use axum::routing::{get, post};
         let router = router
-            .route("/dev/super-user", get(handlers::get_dev_super_user))
             .route("/debug/users", get(handlers::debug::get_debug_users))
             .route(
                 "/debug/workspaces/:ws_id/clear",

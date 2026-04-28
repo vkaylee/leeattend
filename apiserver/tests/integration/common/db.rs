@@ -43,9 +43,22 @@ impl TestDatabase {
 
         Self::init_trap();
 
-        let mut connection = PgConnection::connect(&admin_url)
-            .await
-            .expect("Failed to connect to Postgres admin");
+        // Retry with backoff — parallel test workers can cause transient DNS
+        // resolution failures when many containers resolve the same hostname.
+        let mut connection = {
+            let mut result: Result<PgConnection, sqlx::Error> = Err(sqlx::Error::PoolClosed);
+            for attempt in 0..5 {
+                result = PgConnection::connect(&admin_url).await;
+                if result.is_ok() {
+                    break;
+                }
+                if attempt < 4 {
+                    let delay = std::time::Duration::from_millis(200 * (1 << attempt));
+                    tokio::time::sleep(delay).await;
+                }
+            }
+            result.expect("Failed to connect to Postgres admin after 5 retries")
+        };
 
         // Use template database to avoid running migrations.
         // Retry with backoff since parallel tests may briefly connect to the

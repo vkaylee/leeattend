@@ -22,11 +22,7 @@ impl AppState {
         // Use Worker pool for background services (patient timeout, won't starve API)
         let worker_pool = db_pools.worker().clone();
 
-        #[cfg(debug_assertions)]
-        {
-            crate::dev_initialization::ensure_dev_data(&pool)
-                .await?;
-        }
+        // Dev seed data removed — first registered user gets platform_admin automatically.
 
         let agent_manager = AgentManager::new(
             redis_pool

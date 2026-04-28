@@ -179,6 +179,27 @@ pub async fn register(
         return Err(e.into());
     }
 
+    // 4b. Auto-assign platform_admin to the very first user registered
+    let user_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM users")
+            .fetch_one(&mut *tx)
+            .await?;
+
+    if user_count == 1 {
+        sqlx::query(
+            "INSERT INTO user_system_roles (user_id, role_id) \
+             SELECT $1, id FROM system_roles WHERE name = 'platform_admin'",
+        )
+        .bind(user.id)
+        .execute(&mut *tx)
+        .await?;
+
+        tracing::info!(
+            user_id = %user.id,
+            "First user registered — auto-assigned platform_admin role"
+        );
+    }
+
     // 5. Create session within transaction
     let refresh_token = match AuthService::create_session_tx(&mut *tx, user.id).await {
         Ok(t) => t,
@@ -459,68 +480,6 @@ pub async fn get_users(
 }
 
 
-#[cfg(debug_assertions)]
-pub async fn get_dev_super_user(
-    State(state): State<Arc<AppState>>,
-) -> AppResult<impl IntoResponse> {
-    use serde_json::json;
-    tracing::info!("Dev fast login requested");
-
-    // 1. Thử lấy user admin mặc định (từ seed)
-    let user_id: Uuid = match sqlx::query_scalar::<_, Uuid>(
-        "SELECT id FROM users WHERE email = 'admin@leeattend.com' LIMIT 1",
-    )
-    .fetch_one(state.infra.db.api())
-    .await
-    {
-        Ok(id) => id,
-        Err(_) => {
-            // Nếu không thấy admin@, lấy đại bất kỳ user nào
-            sqlx::query_scalar::<_, Uuid>("SELECT id FROM users LIMIT 1")
-                .fetch_one(state.infra.db.api())
-                .await
-                .map_err(|e| AppError::NotFound(format!("No users found in database: {e}")))?
-        }
-    };
-
-    // 2. Lấy workspace đầu tiên mà user này là thành viên
-    let workspace_id: Uuid = match sqlx::query_scalar::<_, Uuid>(
-        "SELECT workspace_id FROM workspace_members WHERE user_id = $1 LIMIT 1",
-    )
-    .bind(user_id)
-    .fetch_one(state.infra.db.api())
-    .await
-    {
-        Ok(id) => id,
-        Err(_) => {
-            // Nếu user đầu tiên không có workspace, thử tìm bất kỳ workspace nào
-            sqlx::query_scalar::<_, Uuid>("SELECT workspace_id FROM workspace_members LIMIT 1")
-                .fetch_one(state.infra.db.api())
-                .await
-                .map_err(|e| AppError::NotFound(format!("No workspace memberships found: {e}")))?
-        }
-    };
-
-    tracing::info!(
-        "Dev login successful: user={}, workspace={}",
-        user_id,
-        workspace_id
-    );
-
-    // Generate JWT for dev mode
-    let access_token = AuthService::generate_token(user_id, &state.core.jwt_secret, 60 * 24 * 7)
-        .map_err(|e| AppError::Internal(format!("Dev token generation failed: {e}")))?;
-
-    let refresh_token = "dev_refresh_token".to_string();
-    let headers = create_auth_cookies(&access_token, &refresh_token);
-
-    Ok((headers, Json(json!({
-        "user_id": user_id,
-        "workspace_id": workspace_id,
-        "access_token": access_token,
-        "refresh_token": refresh_token
-    }))))
-}
 
 #[cfg(test)]
 mod tests {

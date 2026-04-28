@@ -19,6 +19,5 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
 
--- Cập nhật mật khẩu mặc định cho admin seeded (mật khẩu: 'admin123')
--- Hash: $2b$12$R9h/lIPzBZB9u34rn8qSze1FFE6zS/vU.YQe8V9M.Yq6.X9fP8P3C
-UPDATE users SET password_hash = '$2b$12$R9h/lIPzBZB9u34rn8qSze1FFE6zS/vU.YQe8V9M.Yq6.X9fP8P3C' WHERE email = 'admin@leeattend.com';
+-- Note: Previously set a default password for a seeded admin user.
+-- Removed: No seeded admin — first registered user gets platform_admin automatically.
