@@ -221,6 +221,7 @@ pub async fn register(
         bio: user.bio,
         preferred_language: user.preferred_language,
         created_at: user.created_at,
+        system_roles: vec![],
     };
 
     // 7. Generate access token (stateless, no DB write needed)
@@ -257,6 +258,7 @@ pub async fn login(
         bio: user.bio,
         preferred_language: user.preferred_language,
         created_at: user.created_at,
+        system_roles: vec![],
     };
 
     let access_token =
@@ -391,6 +393,16 @@ pub async fn get_me(
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
+    // Fetch system-level roles (platform_admin, support, etc.)
+    let system_roles: Vec<String> = sqlx::query_scalar(
+        "SELECT sr.name FROM user_system_roles usr \
+         JOIN system_roles sr ON sr.id = usr.role_id \
+         WHERE usr.user_id = $1"
+    )
+    .bind(user_id)
+    .fetch_all(state.infra.db.api())
+    .await?;
+
     Ok(Json(UserResponse {
         id: user.id,
         email: user.email,
@@ -399,6 +411,7 @@ pub async fn get_me(
         bio: user.bio,
         preferred_language: user.preferred_language,
         created_at: user.created_at,
+        system_roles,
     }))
 }
 
@@ -445,6 +458,7 @@ pub async fn update_me(
         bio: user.bio,
         preferred_language: user.preferred_language,
         created_at: user.created_at,
+        system_roles: vec![],
     }))
 }
 
@@ -473,6 +487,7 @@ pub async fn get_users(
             bio: u.bio,
             preferred_language: u.preferred_language,
             created_at: u.created_at,
+            system_roles: vec![],
         })
         .collect();
 

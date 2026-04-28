@@ -133,6 +133,17 @@ impl AuthService {
             .await
             .map_err(|e| e.to_string())?;
 
+        // Fetch system-level roles for this user
+        let system_roles: Vec<String> = sqlx::query_scalar(
+            "SELECT sr.name FROM user_system_roles usr \
+             JOIN system_roles sr ON sr.id = usr.role_id \
+             WHERE usr.user_id = $1"
+        )
+        .bind(user.id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
         Ok(AuthResponse {
             access_token,
             refresh_token: new_refresh_token,
@@ -144,6 +155,7 @@ impl AuthService {
                 bio: user.bio,
                 preferred_language: user.preferred_language,
                 created_at: user.created_at,
+                system_roles,
             },
         })
     }

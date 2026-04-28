@@ -37,6 +37,8 @@ pub struct UserResponse {
     pub bio: Option<String>,
     pub preferred_language: Option<String>,
     pub created_at: DateTime<Utc>,
+    #[serde(default)]
+    pub system_roles: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
