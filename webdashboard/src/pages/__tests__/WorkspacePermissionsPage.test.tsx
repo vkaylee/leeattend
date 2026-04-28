@@ -401,6 +401,50 @@ describe("WorkspacePermissionsPage", () => {
         });
     });
 
+    // ─── Columns Visibility ────────────────────────────────────
+
+    describe("columns visibility dropdown", () => {
+        it("renders Columns button", () => {
+            renderPage();
+            expect(screen.getByRole("button", { name: /Columns/i })).toBeDefined();
+        });
+
+        it("allows hiding and showing roles", async () => {
+            const user = userEvent.setup();
+            renderPage();
+
+            // Both roles should be visible initially in the table header
+            // Using queryByRole because we expect it to exist, and later to be null
+            expect(screen.queryByRole("columnheader", { name: /admin/i })).not.toBeNull();
+            expect(screen.queryByRole("columnheader", { name: /hr_specialist/i })).not.toBeNull();
+
+            // Click Columns button
+            const columnsBtn = screen.getByRole("button", { name: /Columns/i });
+            await user.click(columnsBtn);
+
+            // Find the checkbox for hr_specialist
+            const hrSpecialistCheckbox = screen.getByRole("menuitemcheckbox", { name: /hr_specialist/i });
+            
+            // Uncheck it
+            await user.click(hrSpecialistCheckbox);
+
+            // Verify hr_specialist is removed from headers
+            expect(screen.queryByRole("columnheader", { name: /hr_specialist/i })).toBeNull();
+            // Verify admin is still there
+            expect(screen.queryByRole("columnheader", { name: /admin/i })).not.toBeNull();
+
+            // Click Columns button again to open menu (Radix dropdown closes after click)
+            await user.click(columnsBtn);
+            
+            // Check it back
+            const hrSpecialistCheckboxAgain = screen.getByRole("menuitemcheckbox", { name: /hr_specialist/i });
+            await user.click(hrSpecialistCheckboxAgain);
+
+            // Verify hr_specialist is back
+            expect(screen.queryByRole("columnheader", { name: /hr_specialist/i })).not.toBeNull();
+        });
+    });
+
     // ─── Info Footer ───────────────────────────────────────────
 
     describe("info footer", () => {
