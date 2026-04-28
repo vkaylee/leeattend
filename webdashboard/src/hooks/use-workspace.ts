@@ -289,8 +289,10 @@ export function useWorkspacePermissionsMatrix(wsId?: string) {
   const activeWsId = wsId || getCurrentWorkspaceId();
   const { roles } = useWorkspaceRoles(activeWsId ?? undefined);
 
+  const roleIds = roles.map(r => r.id).sort().join(',');
+
   const matrixQuery = useQuery({
-    queryKey: workspaceKeys.permissionsMatrix(activeWsId || ""),
+    queryKey: [...workspaceKeys.permissionsMatrix(activeWsId || ""), roleIds],
     queryFn: async () => {
       const matrix: Record<string, string[]> = {};
       await Promise.all(roles.map(async (role) => {

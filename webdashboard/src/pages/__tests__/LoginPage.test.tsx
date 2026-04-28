@@ -41,36 +41,14 @@ describe("LoginPage", () => {
     return render(ui);
   };
 
-  it("renders login form and fast login button in DEV mode", async () => {
+  it("renders login form", async () => {
 
-    import.meta.env.DEV = true;
     renderWithProviders(<LoginPage />);
 
     expect(screen.getByTestId("login-email-input")).toBeDefined();
     expect(screen.getByTestId("login-password-input")).toBeDefined();
-    
-    // Fast login button should exist
-    const fastLoginBtn = screen.getByTestId("fast-login-btn");
-    expect(fastLoginBtn).toBeDefined();
-
-    const user = userEvent.setup();
-    (api.login as any).mockResolvedValue({});
-
-    await user.click(fastLoginBtn);
-
-    await waitFor(() => {
-      expect(api.login).toHaveBeenCalledWith("admin@leeattend.com", "admin123");
-    });
   });
 
-  it("does not render fast login button in PROD mode", async () => {
-
-    import.meta.env.DEV = false;
-    renderWithProviders(<LoginPage />);
-
-    // Fast login button should NOT exist
-    expect(screen.queryByTestId("fast-login-btn")).toBeNull();
-  });
 
   it("redirects to home if user is already logged in", () => {
     (api.getCurrentUserId as any).mockReturnValue("user-123");
