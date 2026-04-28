@@ -12,7 +12,7 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     BatchCalculatePayrollRequest, BatchCalculatePayrollResponse, IncentiveEvaluationResult,
-    Payslip, PayslipSegment, SalaryComponentWithDefinition,
+    Payslip, PayslipSegment, SalaryComponentWithDefinition, PayslipRuleEvaluation,
 };
 use crate::AppState;
 
@@ -35,6 +35,7 @@ pub struct FullPayslipResponse {
     pub payslip: Payslip,
     pub segments: Vec<PayslipSegmentResponse>,
     pub incentives: Vec<IncentiveEvaluationResult>,
+    pub rule_evaluations: Vec<PayslipRuleEvaluation>,
     pub salary_components: Vec<SalaryComponentWithDefinition>,
 }
 
@@ -102,6 +103,9 @@ pub async fn calculate_payroll(
     let incentives =
         state.payroll.repo.get_payslip_incentives(payslip.id)
             .await?;
+    let rule_evaluations =
+        state.payroll.repo.get_payslip_rule_evaluations(payslip.id)
+            .await?;
 
     // Fetch salary components at the period start date
     let salary_components =
@@ -134,6 +138,7 @@ pub async fn calculate_payroll(
             })
             .collect(),
         incentives,
+        rule_evaluations,
         salary_components,
     };
     Ok(Json(response))
@@ -156,6 +161,9 @@ pub async fn get_employee_payslips(
                 .await?;
         let incentives =
             state.payroll.repo.get_payslip_incentives(p.id)
+                .await?;
+        let rule_evaluations =
+            state.payroll.repo.get_payslip_rule_evaluations(p.id)
                 .await?;
 
         // Fetch salary components at the period start date
@@ -188,6 +196,7 @@ pub async fn get_employee_payslips(
                 })
                 .collect(),
             incentives,
+            rule_evaluations,
             salary_components,
         });
     }

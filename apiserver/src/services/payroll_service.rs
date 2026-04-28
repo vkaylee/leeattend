@@ -352,9 +352,12 @@ impl PayrollService {
         ).await?;
 
         // Phase 6: Deductions — delegated to FinancialCalculator
+        let gross_salary = total_base_pay + total_overtime_pay + total_holiday_work_premium + incentives.total_amount;
+        let last_department_id = segment_snapshots.last().and_then(|s| s.department_id);
+        
         let deductions = FinancialCalculator::calculate_deductions(
-            pool, workspace_id, employee_id,
-            ctx.start_date, ctx.end_date, &segment_snapshots,
+            pool, workspace_id, employee_id, last_department_id,
+            ctx.start_date, ctx.end_date, gross_salary, &segment_snapshots,
         ).await?;
 
         // Phase 7: Assemble Payslip — delegated to FinancialCalculator
@@ -366,7 +369,7 @@ impl PayrollService {
         );
 
         // Phase 8: Persist — delegated to PayslipPersister
-        self.persist_calculated_payslip(payslip, segment_snapshots, incentives.results).await
+        self.persist_calculated_payslip(payslip, segment_snapshots, incentives.results, deductions.rule_results).await
     }
 
     /// Helper extracted to move Database operations out of the calculation flow
@@ -376,6 +379,7 @@ impl PayrollService {
         payslip: Payslip,
         segment_snapshots: Vec<SegmentSnapshot>,
         incentive_results: Vec<crate::models::IncentiveEvaluationResult>,
+        rule_results: Vec<crate::services::payroll_rule_evaluator::RuleEvaluationResult>,
     ) -> Result<Payslip, AppError> {
         let created_payslip = self.payroll_repo.create_payslip(&payslip)
             .await
@@ -401,6 +405,14 @@ impl PayrollService {
 
         for res in incentive_results {
             let _ = self.payroll_repo.create_payslip_incentive(created_payslip.id, &res).await;
+        }
+
+        for rule in rule_results {
+            let _ = self.payroll_repo.create_payslip_rule_evaluation(
+                created_payslip.id,
+                rule.rule_code,
+                rule.amount,
+            ).await;
         }
 
         Ok(created_payslip)

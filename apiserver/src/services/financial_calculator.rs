@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::models::{IncentiveEvaluationResult, Payslip};
 use crate::repositories::{leave_request_repository, payroll_repository};
 use crate::services::payroll_evaluator::{IncentiveContext, PayrollEvaluator};
+use crate::services::payroll_rule_evaluator::PayrollRuleEvaluator;
 
 use super::payroll_service::SegmentSnapshot;
 
@@ -25,6 +26,7 @@ pub struct IncentivesResult {
 /// Deductions calculation result.
 pub struct DeductionsResult {
     pub amount: Decimal,
+    pub rule_results: Vec<super::payroll_rule_evaluator::RuleEvaluationResult>,
 }
 
 pub struct FinancialCalculator;
@@ -154,8 +156,10 @@ impl FinancialCalculator {
         pool: &PgPool,
         workspace_id: Uuid,
         employee_id: Uuid,
+        department_id: Option<Uuid>,
         start_date: NaiveDate,
         end_date: NaiveDate,
+        gross_salary: Decimal,
         segment_snapshots: &[SegmentSnapshot],
     ) -> Result<DeductionsResult, AppError> {
         let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
@@ -209,8 +213,25 @@ impl FinancialCalculator {
             }
         }
 
+        // Evaluate statutory deductions via new Rule Engine
+        let rule_results = PayrollRuleEvaluator::evaluate_rules(
+            pool,
+            workspace_id,
+            employee_id,
+            department_id,
+            start_date,
+            end_date,
+            gross_salary,
+        )
+        .await?;
+
+        for res in &rule_results {
+            deductions_amount += res.amount;
+        }
+
         Ok(DeductionsResult {
             amount: deductions_amount,
+            rule_results,
         })
     }
 
@@ -387,8 +408,10 @@ mod tests {
     fn test_deductions_result_construction() {
         let result = DeductionsResult {
             amount: Decimal::from(500),
+            rule_results: vec![],
         };
         assert_eq!(result.amount, Decimal::from(500));
+        assert!(result.rule_results.is_empty());
     }
 
     // =====================================================================

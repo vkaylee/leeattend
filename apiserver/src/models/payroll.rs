@@ -70,6 +70,15 @@ pub struct IncentiveEvaluationResult {
     pub tier_id: Option<Uuid>,
 }
 
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct PayslipRuleEvaluation {
+    pub id: Uuid,
+    pub payslip_id: Uuid,
+    pub rule_code: String,
+    pub amount: rust_decimal::Decimal,
+    pub created_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateIncentiveTierRequest {
     pub priority: i32,
@@ -101,6 +110,7 @@ pub struct PayslipResponse {
     pub payslip: Payslip,
     pub segments: Vec<PayslipSegment>,
     pub incentives: Vec<IncentiveEvaluationResult>,
+    pub rule_evaluations: Vec<PayslipRuleEvaluation>,
     pub salary_components: Vec<SalaryComponentWithDefinition>,
 }
 

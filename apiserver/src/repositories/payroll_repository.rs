@@ -37,6 +37,18 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
         payslip_id: Uuid,
     ) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error>;
 
+    async fn create_payslip_rule_evaluation(
+        &self,
+        payslip_id: Uuid,
+        rule_code: String,
+        amount: Decimal,
+    ) -> Result<(), sqlx::Error>;
+
+    async fn get_payslip_rule_evaluations(
+        &self,
+        payslip_id: Uuid,
+    ) -> Result<Vec<crate::models::PayslipRuleEvaluation>, sqlx::Error>;
+
     async fn get_payroll_settings(
         &self,
         workspace_id: Uuid,
@@ -157,6 +169,12 @@ impl PayrollRepository for SqlxPayrollRepository {
     }
     async fn get_payslip_incentives(&self, payslip_id: Uuid) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error> {
         get_payslip_incentives(&self.pool, payslip_id).await
+    }
+    async fn create_payslip_rule_evaluation(&self, payslip_id: Uuid, rule_code: String, amount: Decimal) -> Result<(), sqlx::Error> {
+        create_payslip_rule_evaluation(&self.pool, payslip_id, rule_code, amount).await
+    }
+    async fn get_payslip_rule_evaluations(&self, payslip_id: Uuid) -> Result<Vec<crate::models::PayslipRuleEvaluation>, sqlx::Error> {
+        get_payslip_rule_evaluations(&self.pool, payslip_id).await
     }
     async fn get_payroll_settings(&self, workspace_id: Uuid) -> Result<Option<PayrollSettings>, sqlx::Error> {
         get_payroll_settings(&self.pool, workspace_id).await
@@ -315,6 +333,40 @@ pub async fn get_payslip_incentives(
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(results)
+}
+
+pub async fn create_payslip_rule_evaluation(
+    pool: &PgPool,
+    payslip_id: Uuid,
+    rule_code: String,
+    amount: Decimal,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"INSERT INTO payslip_rule_evaluations (payslip_id, rule_code, amount)
+           VALUES ($1, $2, $3)"#,
+    )
+    .bind(payslip_id)
+    .bind(rule_code)
+    .bind(amount)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn get_payslip_rule_evaluations(
+    pool: &PgPool,
+    payslip_id: Uuid,
+) -> Result<Vec<crate::models::PayslipRuleEvaluation>, sqlx::Error> {
+    sqlx::query_as!(
+        crate::models::PayslipRuleEvaluation,
+        r#"SELECT id, payslip_id, rule_code, amount, created_at as "created_at!"
+           FROM payslip_rule_evaluations
+           WHERE payslip_id = $1
+           ORDER BY created_at ASC"#,
+        payslip_id
+    )
+    .fetch_all(pool)
+    .await
 }
 
 pub async fn get_payroll_settings(
