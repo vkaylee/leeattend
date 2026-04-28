@@ -5,12 +5,23 @@ import {
   Save,
   Check,
   Info,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspaceRoles, useWorkspacePermissionsMatrix } from "@/hooks/use-workspace";
 import { updateRolePermissions, getCurrentWorkspaceId } from "@/lib/api";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import PermissionGate from "@/components/common/PermissionGate";
+import { 
+  DropdownMenu, 
+  DropdownMenuTrigger, 
+  DropdownMenuContent, 
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { permissionGroups } from "@/lib/permission-groups";
 
@@ -25,6 +36,33 @@ export default function WorkspacePermissionsPage() {
   const [permissions, setPermissions] = useState<Record<string, string[]>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hiddenRoleIds, setHiddenRoleIds] = useState<string[]>([]);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const visibleRoles = roles.filter(r => !hiddenRoleIds.includes(r.id));
+
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
+    }
+  };
+
+  useEffect(() => {
+    handleScroll();
+    window.addEventListener("resize", handleScroll);
+    return () => window.removeEventListener("resize", handleScroll);
+  }, [visibleRoles.length, roles.length]);
+
+  const scrollBy = (amount: number) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: amount, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     if (matrix) {
@@ -82,6 +120,36 @@ export default function WorkspacePermissionsPage() {
           {hasChanges && (
             <span className="text-xs font-bold text-amber-500 animate-pulse">Unsaved changes</span>
           )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                <SlidersHorizontal size={16} className="text-slate-500" />
+                Columns
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Visible Roles</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {roles.map(role => (
+                <DropdownMenuCheckboxItem
+                  key={role.id}
+                  checked={!hiddenRoleIds.includes(role.id)}
+                  onCheckedChange={(checked) => {
+                    if (role.is_system) return;
+                    setHiddenRoleIds(prev => 
+                      checked ? prev.filter(id => id !== role.id) : [...prev, role.id]
+                    );
+                  }}
+                  disabled={role.is_system}
+                >
+                  {role.name}
+                  {role.is_system && <span className="ml-2 text-[9px] text-slate-400 font-normal uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Fixed</span>}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <PermissionGate permission="members:roles:manage">
             <button 
               onClick={handleSave}
@@ -110,9 +178,33 @@ export default function WorkspacePermissionsPage() {
             <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[800px]">
-            <thead>
+        <div className="relative group/table">
+          {/* Scroll Visual Cues */}
+          <div className={cn("absolute left-[280px] top-0 bottom-0 w-12 bg-gradient-to-r from-slate-200/50 dark:from-slate-950/50 to-transparent z-10 pointer-events-none transition-opacity duration-300", canScrollLeft ? "opacity-100" : "opacity-0")} />
+          <div className={cn("absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-slate-200/50 dark:from-slate-950/50 to-transparent z-10 pointer-events-none transition-opacity duration-300", canScrollRight ? "opacity-100" : "opacity-0")} />
+          
+          {/* Scroll Buttons */}
+          <button 
+            onClick={() => scrollBy(-300)}
+            className={cn("absolute left-[265px] top-1/2 -translate-y-1/2 z-30 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg text-slate-700 dark:text-slate-300 rounded-full p-2.5 transition-all hover:scale-110", canScrollLeft ? "opacity-0 group-hover/table:opacity-100" : "opacity-0 pointer-events-none")}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          
+          <button 
+            onClick={() => scrollBy(300)}
+            className={cn("absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg text-slate-700 dark:text-slate-300 rounded-full p-2.5 transition-all hover:scale-110", canScrollRight ? "opacity-0 group-hover/table:opacity-100" : "opacity-0 pointer-events-none")}
+          >
+            <ChevronRight size={20} />
+          </button>
+
+          <div 
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="overflow-x-auto custom-scrollbar relative z-0"
+          >
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
               <tr>
                 <th className="sticky left-0 z-20 bg-slate-50 dark:bg-slate-900 border-b border-r border-slate-100 dark:border-slate-800 p-6 min-w-[280px]">
                   <div className="flex items-center gap-3">
@@ -125,10 +217,10 @@ export default function WorkspacePermissionsPage() {
                     </div>
                   </div>
                 </th>
-                {roles.map(role => (
+                {visibleRoles.map(role => (
                   <th key={role.id} className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-6 text-center min-w-[140px]">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">{role.name}</h4>
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate w-full px-2">{role.name}</h4>
                       {role.is_system ? (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500">System</span>
                       ) : (
@@ -145,7 +237,7 @@ export default function WorkspacePermissionsPage() {
                   {/* Group Header */}
                   <tr>
                     <td 
-                      colSpan={roles.length + 1} 
+                      colSpan={visibleRoles.length + 1} 
                       className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800 py-3 px-6"
                     >
                       <div className="flex items-center gap-2">
@@ -167,7 +259,7 @@ export default function WorkspacePermissionsPage() {
                         </div>
                       </td>
                       
-                      {roles.map(role => {
+                      {visibleRoles.map(role => {
                         const isChecked = permissions[role.id]?.includes(perm.id);
                         const isSystem = role.is_system;
                         
@@ -183,7 +275,7 @@ export default function WorkspacePermissionsPage() {
                               <input 
                                 type="checkbox" 
                                 className="sr-only"
-                                checked={isChecked}
+                                checked={!!isChecked}
                                 disabled={isSystem || !hasManagePermission}
                                 onChange={() => togglePermission(role, perm.id)}
                               />
@@ -198,6 +290,7 @@ export default function WorkspacePermissionsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
         )}
         
