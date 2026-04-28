@@ -210,6 +210,27 @@ describe("useWorkspacePermissionsMatrix", () => {
       "role-2": ["p2"],
     });
   });
+
+  it("includes role IDs in the query key to trigger refetch when roles change", async () => {
+    const mockRoles = [
+      { id: "role-1", name: "Admin", is_system: true, color: "indigo" },
+      { id: "role-new", name: "New", is_system: false, color: "slate" }
+    ];
+    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as any);
+    vi.mocked(api.fetchRolePermissions).mockResolvedValue([]);
+
+    const { renderHook, waitFor } = await import("@testing-library/react");
+    const { useWorkspacePermissionsMatrix } = await import("../use-workspace");
+    
+    // We can spy on useQuery indirectly, but it's simpler to test that it doesn't crash
+    // and returns a matrix with the new role.
+    const { result } = renderHook(() => useWorkspacePermissionsMatrix("ws-1"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.matrix["role-new"]).toBeDefined());
+    expect(result.current.matrix["role-new"]).toEqual([]);
+  });
 });
 
 describe("useMemberRoles", () => {

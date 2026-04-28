@@ -41,12 +41,26 @@ describe("LoginPage", () => {
     return render(ui);
   };
 
-  it("renders login form", async () => {
-
+  it("renders login form and handles submission", async () => {
     renderWithProviders(<LoginPage />);
 
-    expect(screen.getByTestId("login-email-input")).toBeDefined();
-    expect(screen.getByTestId("login-password-input")).toBeDefined();
+    const emailInput = screen.getByTestId("login-email-input");
+    const passwordInput = screen.getByTestId("login-password-input");
+    const submitBtn = screen.getByTestId("login-submit-btn");
+
+    expect(emailInput).toBeDefined();
+    expect(passwordInput).toBeDefined();
+
+    const user = userEvent.setup();
+    (api.login as any).mockResolvedValue({});
+
+    await user.type(emailInput, "admin@leeattend.com");
+    await user.type(passwordInput, "admin123");
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(api.login).toHaveBeenCalledWith("admin@leeattend.com", "admin123");
+    });
   });
 
 
