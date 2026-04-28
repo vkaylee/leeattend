@@ -1,14 +1,43 @@
 import path from "node:path";
 import react from "@vitejs/plugin-react";
-import { defineConfig, ConfigEnv } from "vite";
+import { defineConfig, ConfigEnv, Plugin } from "vite";
 import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
 import fs from "node:fs";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { visualizer } from "rollup-plugin-visualizer";
+import { execSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+function getBuildHash(): string {
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
+  } catch {
+    return Date.now().toString(36);
+  }
+}
+
+function buildVersionPlugin(): Plugin {
+  const buildHash = getBuildHash();
+  return {
+    name: "build-version",
+    transformIndexHtml(html) {
+      return html.replace(
+        "</head>",
+        `    <meta name="build-version" content="${buildHash}" />\n  </head>`,
+      );
+    },
+    config() {
+      return {
+        define: {
+          __BUILD_HASH__: JSON.stringify(buildHash),
+        },
+      };
+    },
+  };
+}
 
 async function findAvailablePort(
   startPort: number,
@@ -77,6 +106,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
 
   return {
     plugins: [
+      buildVersionPlugin(),
       TanStackRouterVite({
         routesDirectory: './src/routes',
         generatedRouteTree: './src/routeTree.gen.ts',
