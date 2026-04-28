@@ -95,8 +95,8 @@ describe("WorkspacePermissionsPage", () => {
     describe("rendering", () => {
         it("renders role column headers", () => {
             renderPage();
-            expect(screen.getByText("Admin")).toBeDefined();
-            expect(screen.getByText("Hr Specialist")).toBeDefined();
+            expect(screen.getByText("admin")).toBeDefined();
+            expect(screen.getByText("hr_specialist")).toBeDefined();
         });
 
         it("renders all 16 enterprise permission group headers", () => {
