@@ -518,7 +518,9 @@
         "appearance": "外观",
         "agents": "连接的应用程序",
         "devices": "物联网设备",
-        "overtime_policy": "加班政策"
+        "overtime_policy": "加班政策",
+        "statutory_rules": "法定规则",
+        "employment_phases": "雇佣阶段"
       },
       "title": "Settings Hub",
       "navigation": "Navigation",

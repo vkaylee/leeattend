@@ -145,8 +145,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
             {formData.calculation_method === "percentage" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1"><Percent size={12}/> Rate (%)</label>
-                  <input type="number" step="0.01" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={formData.rule_config?.rate || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}})} />
+                  <label htmlFor="rule-rate" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1"><Percent size={12}/> Rate (%)</label>
+                  <input id="rule-rate" type="number" step="0.01" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={formData.rule_config?.rate || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}})} />
                 </div>
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Calculation Base</label>
@@ -162,8 +162,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
             {formData.calculation_method === "fixed" && (
               <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Fixed Amount (₫)</label>
-                  <input type="number" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={formData.rule_config?.amount || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}})} />
+                  <label htmlFor="rule-fixed" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Fixed Amount (₫)</label>
+                  <input id="rule-fixed" type="number" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={formData.rule_config?.amount || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}})} />
                 </div>
               </div>
             )}
@@ -171,8 +171,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
             {formData.calculation_method === "tiered" && (
               <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Tier Base Amount</label>
-                  <select required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={formData.rule_config?.base || "taxable_income"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
+                  <label htmlFor="rule-tier-base" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Tier Base Amount</label>
+                  <select id="rule-tier-base" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={formData.rule_config?.base || "taxable_income"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
                     <option value="taxable_income">Taxable Income</option>
                     <option value="gross_salary">Gross Salary (Total)</option>
                   </select>
