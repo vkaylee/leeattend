@@ -84,8 +84,9 @@ leeattend_run_integration() {
             done
         fi
 
-        APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
-        AGENT_INT_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
+        local THREADS=${NEXTEST_TEST_THREADS:-1}
+        APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL -e NEXTEST_TEST_THREADS=$THREADS apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
+        AGENT_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e NEXTEST_TEST_THREADS=$THREADS agent_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
         PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test $PW_ARGS --workers 1\" </dev/null"
     fi
 

@@ -90,10 +90,7 @@ leeattend_setup() {
     $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS leeattend_test_template;" </dev/null > /dev/null 2>&1 || true
     $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE leeattend_test_template;" </dev/null > /dev/null 2>&1 || true
 
-    for i in $(seq 0 $((NUM_WORKERS-1))); do
-        $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS test_database_e2e_$i;" </dev/null > /dev/null 2>&1 || true
-        $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE test_database_e2e_$i;" </dev/null > /dev/null 2>&1 || true
-    done
+
 
     # Internal URLs
     local MAIN_DB_URL="postgres://test_user:test_password@test_db:5432/test_database?sslmode=disable"
@@ -118,13 +115,7 @@ leeattend_setup() {
     $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" </dev/null > /dev/null 2>&1
     $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" </dev/null > /dev/null 2>&1
 
-    for i in $(seq 0 $((NUM_WORKERS-1))); do
-        local E2E_DB_URL="postgres://test_user:test_password@test_db:5432/test_database_e2e_$i?sslmode=disable"
-        if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$E2E_DB_URL'" > "$LOG_DIR/parent_mig_e2e_$i.log" 2>&1; then
-            echo -e "${RED}❌ E2E DB $i migration FAILED.${NC}"
-            exit 1
-        fi
-    done
+
 
     echo -e "${GREEN}✅ Infrastructure ready.${NC}"
 }
