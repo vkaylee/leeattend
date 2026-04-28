@@ -191,9 +191,10 @@ pub async fn revoke_system_role(
         AppError::Validation(format!("Unknown system role: '{role_name}'"))
     })?;
 
-    // Prevent self-revocation of PlatformAdmin (would lock out the last admin)
-    if ctx.user_id == user_id && role_type == SystemRoleType::PlatformAdmin {
-        // Check if this is the last platform admin
+    // Prevent revoking the last platform_admin — regardless of who performs it.
+    // Without this guard, admin A could revoke admin B (the sole remaining admin),
+    // leaving the platform with zero administrators.
+    if role_type == SystemRoleType::PlatformAdmin {
         let admin_count: i64 = sqlx::query_scalar(
             r#"
             SELECT COUNT(*)
