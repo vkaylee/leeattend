@@ -10,8 +10,9 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { LABEL_BASE } from "@/components/ui/FormField";
 import RoleManagementModal from "@/components/features/settings/RoleManagementModal";
 import DepartmentsPage from "@/pages/DepartmentsPage";
+import EmploymentPhaseManager from "@/components/people/EmploymentPhaseManager";
 
-type TabType = "members" | "departments";
+type TabType = "members" | "departments" | "employment_phases";
 
 export default function PeopleSettings() {
 
@@ -82,9 +83,8 @@ export default function PeopleSettings() {
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
 
         <button data-testid="tab-members" onClick={() => setActiveTab("members")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'members' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}><Users size={14} /> {t("common.settings.tabs.members")}</button>
-
         <button data-testid="tab-departments" onClick={() => setActiveTab("departments")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'departments' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}><Building2 size={14} /> {t("common.settings.tabs.departments")}</button>
-
+        <button data-testid="tab-phases" onClick={() => setActiveTab("employment_phases")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'employment_phases' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}><Users size={14} /> {t("common.settings.tabs.employment_phases")}</button>
       </div>
 
 
@@ -165,7 +165,7 @@ export default function PeopleSettings() {
                           (() => {
                             const r = roles.find(role => role.id === member.role_id);
                             const isOwnerOrAdmin = r && (r.name.toLowerCase() === 'owner' || r.name.toLowerCase() === 'admin');
-                            return isOwnerOrAdmin ? 'bg-primary-600 text-white border-primary-500 shadow-primary-100' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800';
+                            return isOwnerOrAdmin ? 'bg-primary-600 text-white border-primary-500 shadow-primary-100' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-slate-800';
                           })()
                         )}>{member.full_name ? member.full_name[0] : <Users size={20} />}</div>
 
@@ -219,6 +219,12 @@ export default function PeopleSettings() {
 
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4"><DepartmentsPage /></div>
 
+        )}
+
+        {activeTab === "employment_phases" && (
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4">
+            <EmploymentPhaseManager wsId={roles[0]?.workspace_id || ""} />
+          </div>
         )}
 
       </div>

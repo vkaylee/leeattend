@@ -43,9 +43,14 @@ pub use time_entry_repository::{TimeEntryRepository, SqlxTimeEntryRepository};
 pub mod user_repository;
 pub mod working_pattern_repository;
 pub mod workspace_repository;
+pub mod employment_phase_repository;
+pub mod payroll_rule_repository;
+pub mod salary_base_repository;
 
 pub use agent_repository::{AgentRepository, SqlxAgentRepository};
 pub use workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
+pub use employment_phase_repository::EmploymentPhaseRepository;
+pub use payroll_rule_repository::PayrollRuleRepository;
 pub mod attendance_log_error_repository;
 pub mod leave_policy_repository;
 pub mod overtime_policy_repository;

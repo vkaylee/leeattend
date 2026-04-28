@@ -159,7 +159,7 @@ impl FinancialCalculator {
         department_id: Option<Uuid>,
         start_date: NaiveDate,
         end_date: NaiveDate,
-        gross_salary: Decimal,
+        base_values: &std::collections::HashMap<String, Decimal>,
         segment_snapshots: &[SegmentSnapshot],
     ) -> Result<DeductionsResult, AppError> {
         let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
@@ -221,7 +221,7 @@ impl FinancialCalculator {
             department_id,
             start_date,
             end_date,
-            gross_salary,
+            base_values,
         )
         .await?;
 

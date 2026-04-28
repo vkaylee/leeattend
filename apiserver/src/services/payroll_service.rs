@@ -355,9 +355,20 @@ impl PayrollService {
         let gross_salary = total_base_pay + total_overtime_pay + total_holiday_work_premium + incentives.total_amount;
         let last_department_id = segment_snapshots.last().and_then(|s| s.department_id);
         
+        let mut base_values = HashMap::new();
+        base_values.insert("gross".to_string(), gross_salary);
+        base_values.insert("base_pay".to_string(), total_base_pay);
+        
+        if let Ok(groups) = crate::repositories::salary_base_repository::SalaryBaseRepository::get_groups(pool, workspace_id).await {
+            for group in groups {
+                let amount = if group.slug == "bhxh_base" { total_base_pay } else { gross_salary };
+                base_values.insert(group.slug, amount);
+            }
+        }
+
         let deductions = FinancialCalculator::calculate_deductions(
             pool, workspace_id, employee_id, last_department_id,
-            ctx.start_date, ctx.end_date, gross_salary, &segment_snapshots,
+            ctx.start_date, ctx.end_date, &base_values, &segment_snapshots,
         ).await?;
 
         // Phase 7: Assemble Payslip — delegated to FinancialCalculator

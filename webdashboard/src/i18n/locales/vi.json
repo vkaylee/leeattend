@@ -502,7 +502,9 @@
         "appearance": "Giao diện",
         "patterns": "Mẫu làm việc",
         "departments": "Phòng ban",
+        "employment_phases": "Giai đoạn nhân sự",
         "salary_components": "Thành phần lương",
+        "statutory_rules": "Quy tắc chung",
         "members": "Thành viên",
         "incentives": "Phụ cấp & Thưởng",
         "general": "Cấu hình chung"

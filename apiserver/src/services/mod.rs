@@ -15,6 +15,7 @@ pub mod leave_service;
 pub mod pairing_algo;
 pub mod pairing_service;
 pub mod payroll_evaluator;
+pub mod payroll_rule_evaluator;
 pub mod payroll_service;
 pub mod report_coordinator;
 pub mod report_service;

@@ -14,6 +14,7 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::collections::HashMap;
 
 #[tokio::test]
 async fn test_payroll_rules_crud_api() {
@@ -96,7 +97,6 @@ async fn test_payroll_rules_crud_api() {
 
     // 4. Assign the rule to the employee
     let assign_payload = json!({
-        "rule_definition_id": rule_id,
         "assignee_type": "employee",
         "assignee_id": employee_id,
         "effective_from": "2026-01-01",
@@ -106,7 +106,7 @@ async fn test_payroll_rules_crud_api() {
 
     let req = axum::http::Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{ws_id}/payroll-rules/assignments"))
+        .uri(format!("/api/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
@@ -129,8 +129,8 @@ async fn test_payroll_rule_evaluator() {
     let rule_id = Uuid::new_v4();
     sqlx::query!(
         r#"
-        INSERT INTO payroll_rule_definitions (id, workspace_id, code, name, category, applies_to, calculation_method, rule_config, is_mandatory)
-        VALUES ($1, $2, 'TAX10', 'Tax 10%', 'statutory_deduction', 'employee', 'percentage', '{"rate": 10.0, "base": "gross_salary"}', true)
+        INSERT INTO payroll_rule_definitions (id, workspace_id, code, name, category, applies_to, calculation_method, rule_config, is_mandatory, is_active)
+        VALUES ($1, $2, 'TAX10', 'Tax 10%', 'statutory_deduction', 'employee', 'percentage', '{"rate": 10.0, "base": "gross_salary"}', true, true)
         "#,
         rule_id,
         ws_id
@@ -159,6 +159,9 @@ async fn test_payroll_rule_evaluator() {
     let end_date = NaiveDate::from_ymd_opt(2026, 1, 31).unwrap();
     let gross_salary = Decimal::from_str("10000.0").unwrap();
 
+    let mut base_values = HashMap::new();
+    base_values.insert("gross_salary".to_string(), gross_salary);
+
     let results = PayrollRuleEvaluator::evaluate_rules(
         &test_db.pool(),
         ws_id,
@@ -166,7 +169,7 @@ async fn test_payroll_rule_evaluator() {
         None,
         start_date,
         end_date,
-        gross_salary,
+        &base_values,
     )
     .await
     .unwrap();

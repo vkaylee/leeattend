@@ -235,6 +235,118 @@ pub enum RecruitmentSourceType {
     Agency,
 }
 
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum AssigneeType {
+    Workspace,
+    Department,
+    Employee,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum PayrollCalculationMethod {
+    Percentage,
+    Fixed,
+    Tiered,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum PayrollRuleCategory {
+    StatutoryDeduction,
+    Allowance,
+    Bonus,
+    Deduction,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum RuleAppliesTo {
+    Employee,
+    Employer,
+}
+
+impl From<String> for AssigneeType {
+    fn from(s: String) -> Self {
+        std::str::FromStr::from_str(&s).unwrap_or(AssigneeType::Employee)
+    }
+}
+
+impl From<String> for PayrollCalculationMethod {
+    fn from(s: String) -> Self {
+        std::str::FromStr::from_str(&s).unwrap_or(PayrollCalculationMethod::Fixed)
+    }
+}
+
+impl From<String> for PayrollRuleCategory {
+    fn from(s: String) -> Self {
+        std::str::FromStr::from_str(&s).unwrap_or(PayrollRuleCategory::Allowance)
+    }
+}
+
+impl From<String> for RuleAppliesTo {
+    fn from(s: String) -> Self {
+        std::str::FromStr::from_str(&s).unwrap_or(RuleAppliesTo::Employee)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -2,6 +2,7 @@
 
 mod bulk_import;
 mod department_name;
+mod employment_phases;
 mod id_normalization;
 mod management;
 mod pagination;

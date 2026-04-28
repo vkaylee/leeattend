@@ -207,7 +207,6 @@ pub async fn build_roster_data(
     )
     .fetch_all(pool);
 
-    // Run all 8 independent queries concurrently
     let (
         shift_rows,
         fixed_rows,
@@ -217,6 +216,15 @@ pub async fn build_roster_data(
         active_rules,
         rule_pattern_rows,
         dept_history_rows,
+    ): (
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<_>,
+        Vec<crate::models::AssignmentRule>,
+        Vec<_>,
+        Vec<_>
     ) = tokio::try_join!(
         async { q1.await.map_err(|e: sqlx::Error| format!("shifts: {e}")) },
         async { q2.await.map_err(|e: sqlx::Error| format!("fixed_assignments: {e}")) },

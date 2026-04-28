@@ -12,5 +12,6 @@ mod traceability;
 mod v2;
 mod holiday_credit;
 mod incentive_policies;
+mod rules;
 mod salary_components;
 mod settings;

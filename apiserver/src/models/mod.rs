@@ -23,6 +23,10 @@ pub mod shift;
 pub mod shift_swap;
 pub mod time_tracking;
 pub mod workspace;
+pub mod employment_phase;
+pub mod payroll_rule;
+pub mod policy_template;
+pub mod salary_base;
 
 // Re-export everything to maintain backward compatibility with all consumers
 pub use agent::*;
@@ -43,3 +47,7 @@ pub use shift::*;
 pub use shift_swap::*;
 pub use time_tracking::*;
 pub use workspace::*;
+pub use employment_phase::*;
+pub use payroll_rule::*;
+pub use policy_template::*;
+pub use salary_base::*;

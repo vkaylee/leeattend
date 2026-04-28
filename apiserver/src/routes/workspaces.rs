@@ -95,9 +95,60 @@ pub fn router() -> Router<Arc<AppState>> {
             "/workspaces/:ws_id/audit-logs",
             get(handlers::workspaces::audit::get_audit_logs),
         )
+        // Employment Phases
+        .route(
+            "/workspaces/:ws_id/employment-phases",
+            get(handlers::employment_phases::get_employment_phase_definitions)
+                .post(handlers::employment_phases::create_employment_phase_definition),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:user_id/phases",
+            post(handlers::employment_phases::assign_employee_phase),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:user_id/phases/:phase_id/status",
+            put(handlers::employment_phases::update_employee_phase_status),
+        )
+        // Payroll Rules
+        .route(
+            "/workspaces/:ws_id/payroll-rules",
+            get(handlers::payroll_rules::get_payroll_rule_definitions)
+                .post(handlers::payroll_rules::create_payroll_rule_definition),
+        )
+        .route(
+            "/workspaces/:ws_id/payroll-rules/:rule_id/tiers",
+            get(handlers::payroll_rules::get_payroll_rule_tiers)
+                .post(handlers::payroll_rules::create_payroll_rule_tier),
+        )
+        .route(
+            "/workspaces/:ws_id/payroll-rules/:rule_id/tiers/:tier_id",
+            delete(handlers::payroll_rules::delete_payroll_rule_tier),
+        )
+        .route(
+            "/workspaces/:ws_id/payroll-rules/:rule_id/assignments",
+            get(handlers::payroll_rules::get_payroll_rule_assignments)
+                .post(handlers::payroll_rules::assign_payroll_rule),
+        )
+        .route(
+            "/workspaces/:ws_id/payroll-rules/:rule_id/assignments/:assignment_id",
+            delete(handlers::payroll_rules::delete_payroll_rule_assignment),
+        )
         // Jobs
         .route(
             "/workspaces/:ws_id/jobs/:job_id",
             get(handlers::get_generic_job_status),
+        )
+        // Salary Bases
+        .route(
+            "/workspaces/:ws_id/salary-bases",
+            get(handlers::salary_bases::get_salary_bases),
+        )
+        .route(
+            "/workspaces/:ws_id/salary-bases/:base_id/members",
+            post(handlers::salary_bases::assign_component_to_base),
+        )
+        .route(
+            "/workspaces/:ws_id/salary-bases/:base_id/members/:component_id",
+            delete(handlers::salary_bases::unassign_component_from_base),
         )
 }

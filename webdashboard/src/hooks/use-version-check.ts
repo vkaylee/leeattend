@@ -30,13 +30,26 @@ export function useVersionCheck() {
   }, []);
 
   useEffect(() => {
-    check();
-    const interval = setInterval(check, CHECK_INTERVAL_MS);
-    return () => clearInterval(interval);
+    let cancelled = false;
+
+    const run = async () => {
+      await check();
+    };
+    run();
+
+    const interval = setInterval(() => {
+      if (!cancelled) check();
+    }, CHECK_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [check]);
 
   useEffect(() => {
     if (!CHECK_ON_VISIBLE) return;
+
     const handleVisibility = () => {
       if (document.visibilityState === "visible") check();
     };

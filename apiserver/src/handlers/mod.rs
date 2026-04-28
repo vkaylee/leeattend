@@ -10,12 +10,14 @@ pub mod leaves;
 pub mod jobs;
 pub mod payroll;
 pub mod report_export;
+pub mod payroll_rules;
+pub mod salary_bases;
 pub mod report_websocket;
 pub mod shifts;
 pub mod worker_monitor;
 pub mod working_patterns;
 pub mod workspaces;
-
+pub mod employment_phases;
 pub use agents::*;
 pub use attendance::*;
 pub use auth::*;

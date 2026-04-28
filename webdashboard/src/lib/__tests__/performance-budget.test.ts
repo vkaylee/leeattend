@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 describe("performance budget", () => {
@@ -11,7 +11,6 @@ describe("performance budget", () => {
   });
 
   it("main bundle is under 500 kB", () => {
-    const { readdirSync, statSync } = require("node:fs");
     const files = readdirSync(distDir).filter(
       (f: string) => f.startsWith("index-") && f.endsWith(".js") && !f.includes(".lazy-"),
     );
@@ -23,7 +22,6 @@ describe("performance budget", () => {
   });
 
   it("vendor chunks are under their individual budgets", () => {
-    const { readdirSync, statSync } = require("node:fs");
     const files = readdirSync(distDir).filter(
       (f: string) => f.startsWith("vendor-") && f.endsWith(".js"),
     );
@@ -48,7 +46,6 @@ describe("performance budget", () => {
   });
 
   it("lazy route chunks are under 150 kB", () => {
-    const { readdirSync, statSync } = require("node:fs");
     const files = readdirSync(distDir).filter(
       (f: string) => f.includes(".lazy-") && f.endsWith(".js"),
     );
@@ -77,6 +74,6 @@ describe("performance budget", () => {
 
   it("build-version meta tag is injected into index.html", () => {
     const html = readFileSync(resolve(__dirname, "../../../dist/index.html"), "utf-8");
-    expect(html).toMatch(/<meta\s+name="build-version"\s+content="[a-f0-9]+"/);
+    expect(html).toMatch(/<meta\s+name="build-version"\s+content="[a-zA-Z0-9]+"\s*\/>/);
   });
 });

@@ -14,6 +14,23 @@ export async function fetchEmployees(
   return response.json();
 }
 
+// --- Employment Phases API ---
+
+export async function fetchEmploymentPhases(wsId: string): Promise<any[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employment-phases`);
+  if (!response.ok) throw new Error("Failed to fetch employment phases");
+  return response.json();
+}
+
+export async function createEmploymentPhase(wsId: string, data: any): Promise<any> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employment-phases`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create employment phase");
+  return response.json();
+}
+
 export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions`);
   if (!response.ok) throw new Error("Failed to fetch working conditions");
