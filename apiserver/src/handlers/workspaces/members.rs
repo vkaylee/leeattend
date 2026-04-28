@@ -93,6 +93,11 @@ pub async fn add_workspace_member(
     )
     .await;
 
+    if let Some(redis_pool) = state.infra.redis.clone() {
+        let cache = crate::cache::RedisCache::new(redis_pool);
+        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+    }
+
     Ok(StatusCode::CREATED)
 }
 
@@ -122,6 +127,11 @@ pub async fn update_workspace_member_role(
         &headers,
     )
     .await;
+
+    if let Some(redis_pool) = state.infra.redis.clone() {
+        let cache = crate::cache::RedisCache::new(redis_pool);
+        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+    }
 
     Ok(StatusCode::OK)
 }
@@ -158,6 +168,11 @@ pub async fn remove_workspace_member(
         &headers,
     )
     .await;
+
+    if let Some(redis_pool) = state.infra.redis.clone() {
+        let cache = crate::cache::RedisCache::new(redis_pool);
+        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -94,6 +94,6 @@ run_integration() {
         leeattend_run_integration "$filter"
     else
         # Integration tests cho API vẫn cần môi trường thực
-        ./setup-test-env.sh "leeattend_run_integration \"$filter\""
+        ./setup-test-env.sh leeattend_run_integration "$filter"
     fi
 }

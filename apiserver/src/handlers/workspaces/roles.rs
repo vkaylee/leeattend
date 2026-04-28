@@ -92,6 +92,11 @@ pub async fn assign_extra_role(
     )
     .await;
 
+    if let Some(redis_pool) = state.infra.redis.clone() {
+        let cache = crate::cache::RedisCache::new(redis_pool);
+        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+    }
+
     Ok((StatusCode::CREATED, Json(extra_role)))
 }
 
@@ -121,6 +126,12 @@ pub async fn revoke_extra_role(
             &headers,
         )
         .await;
+
+        if let Some(redis_pool) = state.infra.redis.clone() {
+            let cache = crate::cache::RedisCache::new(redis_pool);
+            let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+        }
+
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound("Role not found".to_string()))
@@ -202,6 +213,10 @@ pub async fn delete_workspace_role(
         .await?;
 
     if res.rows_affected() > 0 {
+        if let Some(redis_pool) = state.infra.redis.clone() {
+            let cache = crate::cache::RedisCache::new(redis_pool);
+            let _ = cache.delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id)).await;
+        }
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound("Role not found or is a system role".to_string()))
@@ -263,6 +278,11 @@ pub async fn update_role_permissions(
     }
 
     tx.commit().await?;
+
+    if let Some(redis_pool) = state.infra.redis.clone() {
+        let cache = crate::cache::RedisCache::new(redis_pool);
+        let _ = cache.delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id)).await;
+    }
 
     Ok(StatusCode::OK)
 }

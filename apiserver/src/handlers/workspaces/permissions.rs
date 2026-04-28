@@ -81,6 +81,11 @@ pub async fn assign_extra_permission(
     )
     .await;
 
+    if let Some(redis_pool) = state.infra.redis.clone() {
+        let cache = crate::cache::RedisCache::new(redis_pool);
+        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+    }
+
     Ok((StatusCode::CREATED, Json(perm)))
 }
 
@@ -115,6 +120,11 @@ pub async fn revoke_extra_permission(
         )
         .await;
         
+        if let Some(redis_pool) = state.infra.redis.clone() {
+            let cache = crate::cache::RedisCache::new(redis_pool);
+            let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+        }
+
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound("Permission not found".to_string()))

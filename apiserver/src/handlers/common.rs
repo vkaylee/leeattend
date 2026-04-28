@@ -172,8 +172,12 @@ where
                 let fresh = Self::fetch_member_context_from_db(user_id, workspace_id, &app_state)
                     .await
                     .map_err(|e| {
-                        tracing::error!("DB error fetching member context: {e}");
-                        AppError::Internal("Database error".to_string())
+                        if e == "Not a member of this workspace" {
+                            AppError::Forbidden(e.to_string())
+                        } else {
+                            tracing::error!("DB error fetching member context: {e}");
+                            AppError::Internal("Database error".to_string())
+                        }
                     })?;
                 let _ = redis_cache.set(&cache_key, &fresh, ttl).await;
                 fresh
@@ -182,14 +186,18 @@ where
             Self::fetch_member_context_from_db(user_id, workspace_id, &app_state)
                 .await
                 .map_err(|e| {
-                    tracing::error!("DB error fetching member context: {e}");
-                    AppError::Internal("Database error".to_string())
+                    if e == "Not a member of this workspace" {
+                        AppError::Forbidden(e.to_string())
+                    } else {
+                        tracing::error!("DB error fetching member context: {e}");
+                        AppError::Internal("Database error".to_string())
+                    }
                 })?
         };
 
         let mut permissions = HashSet::new();
-        for perm_str in cached_data.permissions {
-            if let Some(perm) = permissions::Permission::from_str_permission(&perm_str) {
+        for perm_str in &cached_data.permissions {
+            if let Some(perm) = permissions::Permission::from_str_permission(perm_str) {
                 permissions.insert(perm);
             }
         }

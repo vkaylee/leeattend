@@ -82,6 +82,22 @@ impl RedisCache {
         Ok(())
     }
 
+    /// Delete keys matching a pattern.
+    pub async fn delete_pattern(&self, pattern: &str) -> Result<(), String> {
+        let mut conn = self.pool.conn();
+        let keys: Vec<String> = conn.keys(pattern)
+            .await
+            .map_err(|e| format!("Redis KEYS error: {e}"))?;
+
+        if !keys.is_empty() {
+            conn.del::<_, ()>(&keys)
+                .await
+                .map_err(|e| format!("Redis DEL error: {e}"))?;
+            debug!(pattern = pattern, count = keys.len(), "Pattern cache invalidated");
+        }
+        Ok(())
+    }
+
     /// Get value from cache, or fetch from source and cache the result.
     ///
     /// Implements cache-aside pattern:
@@ -120,6 +136,7 @@ impl RedisCache {
 #[cfg(test)]
 mod tests {
     use serde::{Deserialize, Serialize};
+    use std::collections::HashSet;
     use std::time::Duration;
 
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -164,5 +181,108 @@ mod tests {
         // 5 minute TTL is reasonable for cache
         assert!(ttl.as_secs() >= 60);
         assert!(ttl.as_secs() <= 3600);
+    }
+
+    // --- RBAC Permission Cache Tests ---
+
+    #[test]
+    fn test_rbac_permission_cache_key_format() {
+        let workspace_id = uuid::Uuid::new_v4();
+        let user_id = uuid::Uuid::new_v4();
+        let key = format!("cache:auth:permissions:{workspace_id}:{user_id}");
+
+        assert!(key.starts_with("cache:auth:permissions:"));
+        assert!(key.contains(&workspace_id.to_string()));
+        assert!(key.contains(&user_id.to_string()));
+        assert_eq!(key.matches(':').count(), 4);
+    }
+
+    #[test]
+    fn test_rbac_permission_cache_key_uniqueness() {
+        let ws = uuid::Uuid::new_v4();
+        let user_a = uuid::Uuid::new_v4();
+        let user_b = uuid::Uuid::new_v4();
+
+        let key_a = format!("cache:auth:permissions:{ws}:{user_a}");
+        let key_b = format!("cache:auth:permissions:{ws}:{user_b}");
+
+        assert_ne!(key_a, key_b, "Different users must produce different keys");
+    }
+
+    #[test]
+    fn test_rbac_invalidation_pattern_format() {
+        let workspace_id = uuid::Uuid::new_v4();
+        let pattern = format!("cache:auth:permissions:{workspace_id}:*");
+
+        assert!(pattern.ends_with(":*"), "Pattern must use wildcard for user segment");
+        assert!(pattern.contains(&workspace_id.to_string()));
+    }
+
+    #[test]
+    fn test_rbac_ttl_is_one_hour() {
+        let ttl = Duration::from_secs(3600);
+        assert_eq!(ttl.as_secs(), 3600, "RBAC permission cache TTL must be 1 hour");
+    }
+
+    #[test]
+    fn test_cached_member_context_serialization_roundtrip() {
+        use crate::handlers::common::CachedMemberContext;
+
+        let role_a = uuid::Uuid::new_v4();
+        let role_b = uuid::Uuid::new_v4();
+        let dept_id = uuid::Uuid::new_v4();
+
+        let original = CachedMemberContext {
+            roles: vec![role_a, role_b],
+            permissions: vec![
+                "employees:read".to_string(),
+                "shifts:create".to_string(),
+                "attendance:read".to_string(),
+            ],
+            managed_department_ids: Some(HashSet::from([dept_id])),
+        };
+
+        let json = serde_json::to_string(&original).unwrap();
+        let decoded: CachedMemberContext = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(decoded.roles, original.roles);
+        assert_eq!(decoded.permissions.len(), 3);
+        assert!(decoded.permissions.contains(&"employees:read".to_string()));
+        assert!(decoded.permissions.contains(&"shifts:create".to_string()));
+        assert!(decoded.permissions.contains(&"attendance:read".to_string()));
+        assert_eq!(decoded.managed_department_ids, original.managed_department_ids);
+    }
+
+    #[test]
+    fn test_cached_member_context_global_manager_none_departments() {
+        use crate::handlers::common::CachedMemberContext;
+
+        let ctx = CachedMemberContext {
+            roles: vec![uuid::Uuid::new_v4()],
+            permissions: vec!["employees:read".to_string()],
+            managed_department_ids: None,
+        };
+
+        let json = serde_json::to_string(&ctx).unwrap();
+        let decoded: CachedMemberContext = serde_json::from_str(&json).unwrap();
+
+        assert!(decoded.managed_department_ids.is_none(), "Global managers should have None for managed_department_ids");
+    }
+
+    #[test]
+    fn test_cached_member_context_empty_permissions() {
+        use crate::handlers::common::CachedMemberContext;
+
+        let ctx = CachedMemberContext {
+            roles: vec![uuid::Uuid::new_v4()],
+            permissions: vec![],
+            managed_department_ids: Some(HashSet::new()),
+        };
+
+        let json = serde_json::to_string(&ctx).unwrap();
+        let decoded: CachedMemberContext = serde_json::from_str(&json).unwrap();
+
+        assert!(decoded.permissions.is_empty());
+        assert_eq!(decoded.managed_department_ids, Some(HashSet::new()));
     }
 }

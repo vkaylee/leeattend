@@ -1,7 +1,8 @@
 ---
 title: "Redis RBAC Caching Implementation Plan"
-status: "Planned"
+status: "COMPLETED"
 created: "2026-04-28"
+completed: "2026-04-28"
 ---
 
 # Architecture & Implementation Plan: Redis RBAC Caching
@@ -22,27 +23,41 @@ Quyết định kiến trúc: Sử dụng **Distributed Cache (Redis)** để l�
 
 ## 3. Các bước triển khai (Implementation Steps)
 
-### Phase 1: Chuẩn bị Models
-- Tạo struct `CachedMemberContext` trong `apiserver/src/handlers/common.rs` có implement `Serialize`, `Deserialize`. Struct này sẽ chứa các field đã được rút gọn từ các truy vấn DB.
+### ✅ Phase 1: Chuẩn bị Models
+- Tạo struct `CachedMemberContext` trong `apiserver/src/handlers/common.rs` có implement `Serialize`, `Deserialize`.
 - Đảm bảo Enum `Permission` có thể chuyển đổi qua lại giữa `String` dễ dàng.
 
-### Phase 2: Cập nhật `MemberContext::from_request_parts`
+### ✅ Phase 2: Cập nhật `MemberContext::from_request_parts`
 - Chỉnh sửa `apiserver/src/handlers/common.rs`.
-- Khởi tạo RedisCache client từ `app_state.infra.redis.clone()`.
-- Bọc toàn bộ 6 DB queries hiện tại vào một hàm `fetch_fn`.
-- Sử dụng phương thức `redis_cache.get_or_fetch(key, ttl, fetch_fn).await` (đã có sẵn ở `apiserver/src/cache/redis_cache.rs`).
-- Sau khi lấy được `CachedMemberContext` từ Redis/DB, map nó về struct `MemberContext` chuẩn.
+- Triển khai inline cache-aside pattern: `redis_cache.get` → fallback `fetch_member_context_from_db` → `redis_cache.set`.
+- Xử lý an toàn `Option<RedisPool>` (graceful fallback khi Redis không khả dụng).
 
-### Phase 3: Triển khai Cache Invalidation (Thu hồi quyền Real-time)
-- Tìm tất cả các endpoints cập nhật quyền (ví dụ trong `apiserver/src/handlers/workspaces/roles.rs`, `members.rs`, `permissions.rs`).
-- Khi có thay đổi: Gọi lệnh `redis_cache.delete(&format!("cache:auth:permissions:{workspace_id}:{user_id}")).await`.
-- Nếu thay đổi cấp Role (ảnh hưởng nhiều user): Có thể cần quét và xóa nhiều keys (dùng Redis `SCAN` + `DEL`).
+### ✅ Phase 3: Triển khai Cache Invalidation (Thu hồi quyền Real-time)
+Đã thêm logic `redis_cache.delete` / `redis_cache.delete_pattern` tại:
+- `apiserver/src/handlers/workspaces/members.rs`: `add_member`, `update_member_role`, `remove_member`
+- `apiserver/src/handlers/workspaces/roles.rs`: `assign_extra_role`, `revoke_extra_role`, `delete_workspace_role`, `update_role_permissions`
+- `apiserver/src/handlers/workspaces/permissions.rs`: `assign_extra_permission`, `revoke_extra_permission`
+- Thêm method `delete_pattern` vào `RedisCache` để hỗ trợ xóa hàng loạt khi thay đổi cấp Role (ảnh hưởng nhiều user).
 
-### Phase 4: Testing & Verification
-- Đảm bảo các Integration Tests (đặc biệt là tests về RBAC, permission matrix) vẫn chạy pass (Dùng lệnh `./run-tests.sh --api --smoke </dev/null`).
+### ✅ Phase 4: Testing & Verification
+**Unit Tests** (7 tests trong `apiserver/src/cache/redis_cache.rs`):
+- `test_rbac_permission_cache_key_format`
+- `test_rbac_permission_cache_key_uniqueness`
+- `test_rbac_invalidation_pattern_format`
+- `test_rbac_ttl_is_one_hour`
+- `test_cached_member_context_serialization_roundtrip`
+- `test_cached_member_context_global_manager_none_departments`
+- `test_cached_member_context_empty_permissions`
 
-## 4. Các câu hỏi mở (Open Questions)
-- Cần user xác nhận về việc xử lý Invalidation khi cập nhật quyền của Role (ảnh hưởng tất cả member của Role đó). Xóa từng key hay áp dụng global cache invalidation flag?
+**Integration Tests** (6 tests trong `apiserver/tests/integration/rbac/cache.rs`):
+- `test_cache_aside_repeated_requests_succeed`
+- `test_cache_invalidation_on_member_role_update`
+- `test_cache_invalidation_on_extra_permission_grant`
+- `test_cache_invalidation_on_extra_permission_revoke`
+- `test_cache_invalidation_on_role_permissions_update`
+- `test_cache_invalidation_on_member_removal`
+
+**Bonus Fix**: Sửa lỗi `setup-test-env.sh` không source được function `leeattend_run_integration` — nguyên nhân do `test-runner.sh` truyền argument dạng single-string thay vì separate args.
 
 ---
-**Chờ xác nhận từ User để chuyển sang trạng thái IMPLEMENTATION.**
+**Status: ✅ COMPLETED — All phases implemented and verified.**

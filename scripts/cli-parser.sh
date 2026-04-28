@@ -30,7 +30,7 @@ show_help() {
     echo -e "    ${GREEN}--test=PATTERN${NC}     Run ONLY tests matching PATTERN (regex for Rust, string for Playwright)"
     echo -e "    ${GREEN}--test-only${NC}        Skip lint + unit phases, run ONLY integration/E2E matching PATTERN"
     echo -e "    ${GREEN}--component=NAME${NC}   Limit to one component: apiserver | agent-main | webdashboard"
-    echo -e "    ${GREEN}--smoke${NC}            Quick check: run lint + unit only (skip slow integration/E2E)"
+    echo -e "    ${GREEN}--smoke${NC}            Quick check: run lint + unit + fast smoke-tagged integration"
     echo -e "    ${GREEN}--list${NC}             List available tests without running them"
     echo -e "    ${GREEN}--dry-run${NC}          Show what commands would execute, without running anything"
     echo -e "    ${GREEN}--shard=N/M${NC}        CI parallelization: run shard N of M (e.g., --shard=1/3)"
@@ -73,8 +73,8 @@ show_help() {
     echo "    ./run-tests.sh --logs                                    # Step 3: read logs if it still fails"
     echo ""
     echo -e "${YELLOW}# 4. Quick smoke check before committing:${NC}"
-    echo "    ./run-tests.sh --api --smoke    # lint + unit, skip integration"
-    echo "    ./run-tests.sh --all --smoke    # all components, no integration"
+    echo "    ./run-tests.sh --api --smoke    # lint + unit + fast integration (smoke-tagged)"
+    echo "    ./run-tests.sh --all --smoke    # all components, smoke integration only"
     echo ""
     echo -e "${YELLOW}# 5. Full test pipeline:${NC}"
     echo "    ./run-tests.sh --all            # Lint → Unit → Integration → E2E"
@@ -410,12 +410,17 @@ parse_cli_args() {
         echo -e "${BLUE}⚡ Test-only mode: skipping lint and unit phases${NC}"
     fi
     
-    # Apply smoke mode (lint + unit only, skip integration for speed)
+    # Apply smoke mode (lint + unit + fast smoke-tagged integration)
     if [[ "$SMOKE" == "true" ]]; then
         PHASE_LINT=true
         PHASE_UNIT=true
-        PHASE_INTEGRATION=false
-        echo -e "${BLUE}🔥 Smoke mode: running lint + unit only${NC}"
+        PHASE_INTEGRATION=true
+        # Set the integration test filter to "smoke" — nextest uses substring
+        # matching on test names, and Playwright uses --grep to filter titles.
+        if [[ -z "$PATTERN" ]]; then
+            PATTERN="smoke"
+        fi
+        echo -e "${BLUE}🔥 Smoke mode: running lint + unit + smoke-tagged integration${NC}"
     fi
     
     # Set default phases if not specified

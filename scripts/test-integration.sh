@@ -21,6 +21,14 @@ leeattend_run_integration() {
     local COMPONENT_FILTER=$(echo "$filter_input" | cut -d':' -f1)
     local TEST_PATTERN=$(echo "$filter_input" | cut -d':' -f2-)
 
+    # When SMOKE mode is active, make nextest fail if zero tests match the filter.
+    # This catches accidental smoke-tag removal (e.g., test renames that drop _smoke).
+    local NO_TESTS_FLAG="pass"
+    if [[ "${SMOKE:-}" == "true" ]]; then
+        NO_TESTS_FLAG="fail"
+        echo -e "${YELLOW}🔥 Smoke mode: running only smoke-tagged integration tests (no-tests=fail)${NC}"
+    fi
+
     # Integration tests use isolated databases (test_db_{uuid} from template)
     # so they can safely run in parallel. Thread count is set in nextest.toml (num-cpus).
     echo -e "${YELLOW}⚙️ Integration mode: Parallel execution enabled (nextest.toml → num-cpus).${NC}"
@@ -33,8 +41,8 @@ leeattend_run_integration() {
     # Default URL for internal tests
     export DATABASE_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
 
-    local APISERVER_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass"
-    local AGENT_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass"
+    local APISERVER_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG"
+    local AGENT_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG"
     
     # For Playwright, we use -g for grep if pattern is provided
     local PW_ARGS=""
@@ -76,8 +84,8 @@ leeattend_run_integration() {
             done
         fi
 
-        APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass\" </dev/null"
-        AGENT_INT_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass\" </dev/null"
+        APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
+        AGENT_INT_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
         PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test $PW_ARGS --workers 1\" </dev/null"
     fi
 
