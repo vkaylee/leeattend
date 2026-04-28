@@ -7,6 +7,8 @@ import { useTranslation } from "react-i18next";
 import { PayrollRuleDefinition } from "@/lib/api/types";
 import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import RuleTierManager from "./RuleTierManager";
+import RuleAssignmentManager from "./RuleAssignmentManager";
 
 interface Props {
   wsId: string;
@@ -17,6 +19,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
 
   const { data: rules, isLoading } = useQuery({ queryKey: ["payroll-rules", wsId], queryFn: () => fetchPayrollRules(wsId), enabled: !!wsId });
   const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross_salary" } });
@@ -51,28 +54,43 @@ export default function PayrollRulesManager({ wsId }: Props) {
           </div>
         ) : (
           rules?.map((rule) => (
-            <div key={rule.id} className="p-8 px-10 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group relative rounded-3xl m-2">
-              <div className="flex items-center gap-6">
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-inner group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 group-hover:shadow-md transition-all uppercase">{rule.code.slice(0, 2)}</div>
-                <div>
-                  <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{rule.name}</p>
-                  <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70">
-                    {rule.category} • {rule.calculation_method} 
-                    {rule.calculation_method === "percentage" && ` (${rule.rule_config?.rate}%)`}
-                    {rule.calculation_method === "fixed" && ` (Fixed Amount)`}
-                  </p>
+            <div key={rule.id} className="border-b border-slate-50 dark:border-slate-800/50 last:border-0">
+              <div 
+                className={cn("p-8 px-10 flex items-center justify-between transition-all group relative m-2 rounded-3xl cursor-pointer", expandedRuleId === rule.id ? "bg-slate-50 dark:bg-slate-800/80 shadow-inner" : "hover:bg-slate-50 dark:hover:bg-slate-800/50")}
+                onClick={() => setExpandedRuleId(expandedRuleId === rule.id ? null : rule.id)}
+              >
+                <div className="flex items-center gap-6">
+                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-sm group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 transition-all uppercase">{rule.code.slice(0, 2)}</div>
+                  <div>
+                    <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{rule.name}</p>
+                    <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70">
+                      {rule.category} • {rule.calculation_method} 
+                      {rule.calculation_method === "percentage" && ` (${rule.rule_config?.rate}%)`}
+                      {rule.calculation_method === "fixed" && ` (Fixed Amount)`}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-10">
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={cn("text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm", rule.is_mandatory ? 'bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>
+                      {rule.is_mandatory ? "MANDATORY" : "OPTIONAL"}
+                    </span>
+                    <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-50 italic">{rule.applies_to.toUpperCase()}</span>
+                  </div>
+                  <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90" onClick={(e) => e.stopPropagation()}><Trash2 size={18} /></button>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-10">
-                <div className="flex flex-col items-end gap-2">
-                  <span className={cn("text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm", rule.is_mandatory ? 'bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>
-                    {rule.is_mandatory ? "MANDATORY" : "OPTIONAL"}
-                  </span>
-                  <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-50 italic">{rule.applies_to.toUpperCase()}</span>
+
+              {/* Expanded details section */}
+              {expandedRuleId === rule.id && (
+                <div className="px-12 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300 space-y-6">
+                  {rule.calculation_method === "tiered" && (
+                    <RuleTierManager wsId={wsId} ruleId={rule.id} />
+                  )}
+                  <RuleAssignmentManager wsId={wsId} ruleId={rule.id} />
                 </div>
-                <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90"><Trash2 size={18} /></button>
-              </div>
+              )}
             </div>
           ))
         )}
