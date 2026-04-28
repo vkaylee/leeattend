@@ -2392,6 +2392,9 @@
     },
     "label": "Reports"
   },
+  "payroll_rules": {
+    "scope_workspace": "Workspace Wide"
+  },
   "patterns": {
     "title": "Working Patterns",
     "subtitle": "Manage recurring work schedules for employees",

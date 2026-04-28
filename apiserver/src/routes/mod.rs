@@ -10,3 +10,4 @@ pub mod payroll;
 pub mod shifts;
 pub mod ess;
 pub mod workspaces;
+pub mod system;

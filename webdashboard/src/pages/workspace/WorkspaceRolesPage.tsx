@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useWorkspaceRoles } from "@/hooks/use-workspace";
 import RoleFormModal from "@/components/features/settings/RoleFormModal";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import PermissionGate from "@/components/common/PermissionGate";
 
 // No mock roles needed

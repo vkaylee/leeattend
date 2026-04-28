@@ -22,6 +22,10 @@ vi.mock("../../hooks/use-permissions", () => ({
     useMyPermissions: vi.fn(),
 }));
 
+vi.mock("@tanstack/react-router", () => ({
+    Link: ({ children, to, className }: any) => <a href={to} className={className}>{children}</a>,
+}));
+
 vi.mock("@/components/features/settings/RoleFormModal", () => ({
     default: ({ isOpen, editingRole }: any) => {
         if (!isOpen) return null;

@@ -3,7 +3,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::enums::EarlyArrivalStrategy;
+use crate::models::enums::{EarlyArrivalStrategy, RoleScopeType};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyRules {
@@ -145,6 +145,7 @@ pub struct WorkspaceRole {
     pub description: Option<String>,
     pub color: String,
     pub is_system: bool,
+    pub scope_type: RoleScopeType,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

@@ -14,11 +14,27 @@ async fn get_test_redis() -> RedisPool {
     RedisPool::new(&redis_url).await.expect("Failed to create Redis pool")
 }
 
+/// Grant platform_admin system role to the given user so they can access monitor endpoints.
+async fn grant_platform_admin(factory: &TestFactory, user_id: Uuid) {
+    sqlx::query(
+        "INSERT INTO user_system_roles (user_id, role_id, assigned_by)
+         SELECT $1, id, $1 FROM system_roles WHERE name = 'platform_admin'
+         ON CONFLICT DO NOTHING"
+    )
+    .bind(user_id)
+    .execute(&factory.pool)
+    .await
+    .expect("Failed to seed platform_admin role for test user");
+}
+
 #[tokio::test]
 async fn test_monitor_overview_rest() {
-    let (address, _, _, _, _): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+    let (address, _, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
+
+    // Grant platform_admin so the user can access /monitor/overview
+    grant_platform_admin(&factory, user_id).await;
 
     // 1. Mock some data in Redis
     let redis_pool = get_test_redis().await;
@@ -38,6 +54,7 @@ async fn test_monitor_overview_rest() {
     // 2. Call the overview endpoint
     let response = client
         .get(format!("{address}/api/monitor/overview"))
+        .header("X-User-Id", user_id.to_string())
         .send()
         .await
         .unwrap();
@@ -53,9 +70,12 @@ async fn test_monitor_overview_rest() {
 
 #[tokio::test]
 async fn test_monitor_stream_sse() {
-    let (address, _, _, _, _): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+    let (address, _, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
+
+    // Grant platform_admin so the user can access /monitor/stream
+    grant_platform_admin(&factory, user_id).await;
 
     // 1. Mock some data in Redis
     let redis_pool = get_test_redis().await;
@@ -75,6 +95,7 @@ async fn test_monitor_stream_sse() {
     // 2. Connect to SSE stream
     let response = client
         .get(format!("{address}/api/monitor/stream"))
+        .header("X-User-Id", user_id.to_string())
         .send()
         .await
         .unwrap();

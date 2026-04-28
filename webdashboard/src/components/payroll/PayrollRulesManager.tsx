@@ -22,7 +22,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
   const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
 
   const { data: rules, isLoading } = useQuery({ queryKey: ["payroll-rules", wsId], queryFn: () => fetchPayrollRules(wsId), enabled: !!wsId });
-  const { data: bases } = useQuery({ queryKey: ["salary-base-groups", wsId], queryFn: () => fetchSalaryBaseGroups(wsId), enabled: !!wsId });
+  const { data: basesResponse } = useQuery({ queryKey: ["salary-base-groups", wsId], queryFn: () => fetchSalaryBaseGroups(wsId), enabled: !!wsId });
+  const bases = basesResponse?.groups;
   
   const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } });
 
@@ -48,7 +49,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
 
       <div className="divide-y divide-slate-50 dark:divide-slate-800 px-2">
         {isLoading ? (
-          <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
+          <div data-testid="loader" className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
         ) : rules?.length === 0 ? (
           <div className="p-32 text-center bg-slate-50 dark:bg-slate-800/30 m-8 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center">
             <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><FileText size={32} className="text-slate-200 dark:text-slate-700" /></div>

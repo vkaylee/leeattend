@@ -21,13 +21,8 @@ leeattend_run_integration() {
     local COMPONENT_FILTER=$(echo "$filter_input" | cut -d':' -f1)
     local TEST_PATTERN=$(echo "$filter_input" | cut -d':' -f2-)
 
-    # When SMOKE mode is active, make nextest fail if zero tests match the filter.
-    # This catches accidental smoke-tag removal (e.g., test renames that drop _smoke).
+    # nextest uses substrings for matching tests.
     local NO_TESTS_FLAG="pass"
-    if [[ "${SMOKE:-}" == "true" ]]; then
-        NO_TESTS_FLAG="fail"
-        echo -e "${YELLOW}🔥 Smoke mode: running only smoke-tagged integration tests (no-tests=fail)${NC}"
-    fi
 
     # Integration tests use isolated databases (test_db_{uuid} from template)
     # so they can safely run in parallel. Thread count is set in nextest.toml (num-cpus).

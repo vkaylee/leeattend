@@ -41,7 +41,6 @@
     "react-i18next": "^16.5.3",
     "react-router-dom": "^7.12.0",
     "recharts": "^3.7.0",
-    "rollup-plugin-visualizer": "^7.0.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "web-vitals": "^5.2.0"
@@ -68,6 +67,7 @@
     "globals": "^17.0.0",
     "happy-dom": "^20.8.4",
     "jsdom": "^27.4.0",
+    "rollup-plugin-visualizer": "^6.0.11",
     "tailwindcss": "^4",
     "typescript": "^5",
     "typescript-eslint": "^8.53.0",

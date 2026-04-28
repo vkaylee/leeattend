@@ -115,7 +115,6 @@ chore(deps): bump sqlx to 0.8.6
 ```bash
 ./run-tests.sh --all              # Full suite
 ./run-tests.sh --api              # Backend (clippy + unit + integration)
-./run-tests.sh --api --smoke      # Quick compilation check
 ./run-tests.sh --web              # Frontend (vitest + playwright)
 ./run-tests.sh --docker=dev up -d # Start dev environment
 ```

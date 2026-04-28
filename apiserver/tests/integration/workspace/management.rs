@@ -13,11 +13,34 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_workspace_creation_and_membership_smoke() {
-    let (address, _, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+    let (address, _, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
-    // 1. Create new workspace
+    // 0. A regular user (no system role) must get 403 on POST /workspaces.
+    let regular_user = factory.user().with_email("regular@example.com").create().await;
+    let deny = client
+        .post(format!("{address}/api/workspaces"))
+        .header("X-User-Id", regular_user.to_string())
+        .json(&serde_json::json!({ "name": "Unauthorized Workspace" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(deny.status(), reqwest::StatusCode::FORBIDDEN,
+        "Regular user without platform_admin must be denied");
+
+    // 1. Grant the owner platform_admin system role directly in the DB.
+    sqlx::query(
+        "INSERT INTO user_system_roles (user_id, role_id, assigned_by)
+         SELECT $1, id, $1 FROM system_roles WHERE name = 'platform_admin'
+         ON CONFLICT DO NOTHING"
+    )
+    .bind(user_id)
+    .execute(&factory.pool)
+    .await
+    .expect("Failed to seed platform_admin role for test user");
+
+    // 2. Now PlatformAdmin user can create a new workspace.
     let response = client
         .post(format!("{address}/api/workspaces"))
         .header("X-User-Id", user_id.to_string())
@@ -26,11 +49,12 @@ async fn test_workspace_creation_and_membership_smoke() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    assert_eq!(response.status(), reqwest::StatusCode::OK,
+        "PlatformAdmin must be able to create workspace");
     let workspace: serde_json::Value = response.json().await.unwrap();
     let ws_id = workspace["id"].as_str().unwrap();
 
-    // 2. Check member list
+    // 3. Check member list — creator should be owner
     let response = client
         .get(format!("{address}/api/workspaces/{ws_id}/members"))
         .header("X-User-Id", user_id.to_string())
@@ -46,7 +70,7 @@ async fn test_workspace_creation_and_membership_smoke() {
             && m["role_id"] == "a0000000-0000-0000-0000-000000000001"
             && m["extra_role_ids"].as_array().map_or(false, |arr| arr.is_empty())));
 
-    // 3. Assign an extra role
+    // 4. Assign an extra role
     let extra_role_id = "a0000000-0000-0000-0000-000000000002"; // admin role
     let future_date = chrono::Utc::now() + chrono::Duration::days(365);
     let res = client
@@ -61,7 +85,7 @@ async fn test_workspace_creation_and_membership_smoke() {
         .unwrap();
     assert_eq!(res.status(), reqwest::StatusCode::CREATED);
 
-    // 4. Check member list again to see if extra_role_ids is populated
+    // 5. Verify extra_role_ids populated
     let response = client
         .get(format!("{address}/api/workspaces/{ws_id}/members"))
         .header("X-User-Id", user_id.to_string())
@@ -78,6 +102,7 @@ async fn test_workspace_creation_and_membership_smoke() {
             && m["extra_role_ids"].as_array().map_or(false, |arr| arr.contains(&serde_json::json!(extra_role_id)))));
 }
 
+
 #[tokio::test]
 async fn test_create_workspace_with_non_existent_user() {
     let (address, _, _, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
@@ -93,9 +118,10 @@ async fn test_create_workspace_with_non_existent_user() {
         .await
         .unwrap();
 
+    // After RBAC: non-existent user has no system roles → 403 before reaching creation logic
     assert_eq!(
         response.status(),
-        reqwest::StatusCode::INTERNAL_SERVER_ERROR
+        reqwest::StatusCode::FORBIDDEN
     );
 }
 

@@ -2834,5 +2834,8 @@
       "respond_success": "已回复换班请求！",
       "cancel_success": "换班请求已取消！"
     }
+  },
+  "payroll_rules": {
+    "scope_workspace": "工作区范围"
   }
 }

@@ -10,6 +10,8 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
+use crate::handlers::system_auth::SystemContext;
+use crate::models::enums::SystemRoleType;
 use crate::models::{
     AttendanceTrendPoint, CreateWorkspaceRequest, DepartmentAttendancePoint, LatenessByDay,
     LeaveTypeBreakdown, OvertimeTrendPoint, PeakTimeSlot, UnexcusedAbsencesPoint, UpdateWorkspaceRequest, Workspace,
@@ -1323,12 +1325,17 @@ pub async fn get_workspace_by_id(
     Ok(Json(workspace))
 }
 
+/// POST /workspaces
+/// Creates a new workspace.
+/// Requires: SystemRole::PlatformAdmin — prevents arbitrary users from creating workspaces.
 pub async fn create_workspace(
     State(state): State<Arc<AppState>>,
-    UserId(user_id): UserId,
+    ctx: SystemContext,
     Json(req): Json<CreateWorkspaceRequest>,
 ) -> AppResult<Json<Workspace>> {
-    state.core.workspace_service.create_workspace(&req.name, user_id)
+    ctx.require_role(SystemRoleType::PlatformAdmin)?;
+
+    state.core.workspace_service.create_workspace(&req.name, ctx.user_id)
         .await
         .map(Json)
         .map_err(AppError::from)

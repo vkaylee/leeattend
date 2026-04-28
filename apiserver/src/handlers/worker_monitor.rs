@@ -20,6 +20,8 @@ use tokio_stream::StreamExt;
 use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
+use crate::handlers::system_auth::SystemContext;
+use crate::models::enums::SystemRoleType;
 use crate::AppState;
 
 // Redis key patterns for monitoring
@@ -128,18 +130,25 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
 /// Get combined monitor overview: stats + worker list in a single call.
 ///
 /// Route: GET /monitor/overview
+/// Requires: PlatformAdmin or Support
 pub async fn get_monitor_overview(
     State(state): State<Arc<AppState>>,
+    ctx: SystemContext,
 ) -> AppResult<Json<MonitorOverviewResponse>> {
+    ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
     Ok(Json(fetch_overview_data(&state).await?))
 }
 
 /// SSE stream: push monitor overview data every 2 seconds.
 ///
 /// Route: GET /monitor/stream
+/// Requires: PlatformAdmin or Support
 pub async fn monitor_stream_sse(
     State(state): State<Arc<AppState>>,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    ctx: SystemContext,
+) -> AppResult<Sse<impl Stream<Item = Result<Event, Infallible>>>> {
+    ctx.require_any_role(&[SystemRoleType::PlatformAdmin, SystemRoleType::Support])?;
+
     let interval = tokio::time::interval(Duration::from_secs(SSE_INTERVAL_SECS));
     let stream = tokio_stream::wrappers::IntervalStream::new(interval);
 
@@ -159,7 +168,7 @@ pub async fn monitor_stream_sse(
         }
     });
 
-    Sse::new(event_stream).keep_alive(KeepAlive::default())
+    Ok(Sse::new(event_stream).keep_alive(KeepAlive::default()))
 }
 
 /// Helper to parse worker heartbeats from Redis strings and filter out stale ones.

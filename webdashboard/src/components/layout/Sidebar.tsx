@@ -50,6 +50,8 @@ import {
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/routes";
 
+import { useProfile } from "@/hooks/use-profile";
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -63,6 +65,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
   const { t } = useTranslation();
   const location = useLocation();
   const { hasAnyPermission } = useMyPermissions();
+  const { user } = useProfile();
 
   const handleLogout = () => { localStorage.clear(); window.location.href = ROUTES.LOGIN; };
 
@@ -93,7 +96,8 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     },
     {
       section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
-        { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor", permissions: ["infra:monitor"] },
+        { to: ROUTES.INFRA_MONITOR, icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor", systemRoles: ["platform_admin", "support"] },
+        { to: ROUTES.SYSTEM_ROLES, icon: ShieldCheck, label: "Platform Admins", testId: "sidebar-link-system-roles", systemRoles: ["platform_admin"] },
         { to: ROUTES.SETTINGS.ROOT, icon: Settings, label: t("settings.title"), testId: "sidebar-link-settings-root", permissions: ["workspace:settings:read", "members:roles:manage"] }
       ]
     },
@@ -110,8 +114,12 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     .map((item) => {
       if (item.section && item.items) {
         const filteredItems = item.items.filter(
-          (subItem) =>
-            !subItem.permissions || subItem.permissions.length === 0 || hasAnyPermission(...subItem.permissions)
+          (subItem: any) => {
+            if (subItem.systemRoles && subItem.systemRoles.length > 0) {
+              return subItem.systemRoles.some((role: string) => user?.system_roles?.includes(role));
+            }
+            return !subItem.permissions || subItem.permissions.length === 0 || hasAnyPermission(...subItem.permissions);
+          }
         );
         return { ...item, items: filteredItems };
       }

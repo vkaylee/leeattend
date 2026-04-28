@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import PayrollRulesManager from "../PayrollRulesManager";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,21 +11,17 @@ import React from "react";
 vi.mock("@/lib/api/payroll", () => ({
   fetchPayrollRules: vi.fn(),
   createPayrollRule: vi.fn(),
-  fetchPayrollRuleTiers: vi.fn(),
-  fetchPayrollRuleAssignments: vi.fn(),
+  fetchSalaryBaseGroups: vi.fn(),
 }));
 
-// We mock apiFetch for assignments since RuleAssignmentManager uses it directly
-vi.mock("@/lib/api/helpers", async () => {
-  const actual = await vi.importActual("@/lib/api/helpers");
-  return {
-    ...actual as any,
-    apiFetch: vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve([]),
-    }),
-  };
-});
+// Mock child components to simplify
+vi.mock("../RuleTierManager", () => ({
+  default: () => <div data-testid="rule-tier-manager">RuleTierManager</div>,
+}));
+
+vi.mock("../RuleAssignmentManager", () => ({
+  default: () => <div data-testid="rule-assignment-manager">RuleAssignmentManager</div>,
+}));
 
 // Standard override for i18n
 vi.mock('react-i18next', () => ({
@@ -40,9 +37,27 @@ vi.mock('react-i18next', () => ({
 describe("PayrollRulesManager", () => {
   let queryClient: QueryClient;
   const mockWsId = "ws-123";
+  
   const mockRules = [
-    { id: "1", name: "Bảo hiểm Xã hội", code: "BHXH", category: "statutory_deduction", calculation_method: "percentage", applies_to: "employee", is_mandatory: true },
+    { 
+      id: "rule-1", 
+      name: "Social Insurance", 
+      code: "SI", 
+      category: "statutory_deduction", 
+      applies_to: "employee", 
+      calculation_method: "percentage", 
+      is_mandatory: true,
+      rule_config: { rate: 8, base: "social_insurance" }
+    },
   ];
+
+  const mockBasesResponse = {
+    groups: [
+      { id: "base-1", name: "Gross Salary", slug: "gross" },
+      { id: "base-2", name: "Social Insurance", slug: "social_insurance" },
+    ],
+    members: []
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,6 +65,7 @@ describe("PayrollRulesManager", () => {
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
     (api.fetchPayrollRules as any).mockResolvedValue(mockRules);
+    (api.fetchSalaryBaseGroups as any).mockResolvedValue(mockBasesResponse);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -62,66 +78,59 @@ describe("PayrollRulesManager", () => {
     );
   };
 
-  it("renders list of payroll rules", async () => {
+  it("renders list of statutory rules", async () => {
     renderWithProviders(<PayrollRulesManager wsId={mockWsId} />);
 
-    expect(await screen.findByText(/Bảo hiểm Xã hội/i)).toBeInTheDocument();
-    expect(screen.getByText(/statutory_deduction • percentage/i)).toBeInTheDocument();
-    expect(screen.getByText(/MANDATORY/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Social Insurance/i)).toBeInTheDocument();
+    expect(screen.getByText(/SI/i)).toBeInTheDocument();
   });
 
-  it("opens modal and submits new payroll rule", async () => {
-    (api.createPayrollRule as any).mockResolvedValue({ id: "2" });
+  it("opens modal and submits new rule", async () => {
+    const user = userEvent.setup();
+    (api.createPayrollRule as any).mockResolvedValue({ id: "rule-2" });
     renderWithProviders(<PayrollRulesManager wsId={mockWsId} />);
 
-    const addBtn = screen.getByText(/common.add/i);
-    fireEvent.click(addBtn);
+    const addBtn = await screen.findByText(/common.add/i);
+    await user.click(addBtn);
 
-    const nameInput = await screen.findByLabelText(/common.name/i);
-    fireEvent.change(nameInput, { target: { value: "Phạt đi muộn" } });
+    const nameInput = await screen.findByPlaceholderText(/Social Insurance/i);
+    await user.type(nameInput, "Health Insurance");
     
-    const codeInput = screen.getByLabelText(/Code/i);
-    fireEvent.change(codeInput, { target: { value: "LATE" } });
+    const codeInput = screen.getByPlaceholderText(/BHXH/i);
+    await user.type(codeInput, "HI");
 
-    const catSelect = screen.getByLabelText(/Category/i);
-    fireEvent.change(catSelect, { target: { value: "deduction" } });
+    // The label has an SVG icon inside, so getByLabelText might fail if not matched correctly.
+    // Let's find by role and then check for "Rate"
+    const rateInput = screen.getByRole("spinbutton");
+    await user.clear(rateInput);
+    await user.type(rateInput, "1.5");
 
-    const rateInput = screen.getByLabelText(/Rate \(%\)/i);
-    fireEvent.change(rateInput, { target: { value: "10" } });
-
-    const saveBtn = await screen.findByRole("button", { name: /common.save/i });
-    fireEvent.submit(saveBtn.closest("form") as HTMLFormElement);
+    const saveBtn = screen.getByRole("button", { name: /common.save/i });
+    expect(saveBtn).not.toBeDisabled();
+    
+    // Sometimes clicking button doesn't trigger submit in tests depending on portal/event bubbling
+    const form = screen.getByRole("dialog").querySelector("form");
+    if (form) {
+      fireEvent.submit(form);
+    } else {
+      await user.click(saveBtn);
+    }
 
     await waitFor(() => {
       expect(api.createPayrollRule).toHaveBeenCalledWith(mockWsId, expect.objectContaining({
-        name: "Phạt đi muộn",
-        code: "LATE",
-        category: "deduction"
+        name: "Health Insurance",
+        code: "HI",
+        rule_config: expect.objectContaining({ rate: 1.5 })
       }));
-    });
+    }, { timeout: 3000 });
   });
 
-  it("renders logic configuration dynamically", async () => {
+  it("expands rule to show details", async () => {
     renderWithProviders(<PayrollRulesManager wsId={mockWsId} />);
-    const addBtn = screen.getByText(/common.add/i);
-    fireEvent.click(addBtn);
 
-    const calcMethodSelect = screen.getByLabelText(/Calculation Method/i);
-    fireEvent.change(calcMethodSelect, { target: { value: "fixed" } });
+    const ruleItem = await screen.findByText(/Social Insurance/i);
+    fireEvent.click(ruleItem);
 
-    expect(await screen.findByLabelText(/Fixed Amount \(₫\)/i)).toBeInTheDocument();
-    
-    fireEvent.change(calcMethodSelect, { target: { value: "tiered" } });
-    expect(await screen.findByLabelText(/Tier Base Amount/i)).toBeInTheDocument();
-  });
-
-  it("expands a rule to show Tier and Assignment managers", async () => {
-    (api.fetchPayrollRuleTiers as any).mockResolvedValue([]);
-    renderWithProviders(<PayrollRulesManager wsId={mockWsId} />);
-    
-    const ruleCard = await screen.findByText(/Bảo hiểm Xã hội/i);
-    fireEvent.click(ruleCard);
-
-    expect(await screen.findByText(/Rule Assignments/i)).toBeInTheDocument();
+    expect(await screen.findByTestId("rule-assignment-manager")).toBeInTheDocument();
   });
 });

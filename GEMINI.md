@@ -176,6 +176,6 @@ All commands run **inside Podman containers**, never on the host.
 | `./scripts/_npm.sh <cmd>` | `npm` | `web_test` | Node.js installs, builds, type checks |
 | `./scripts/_sqlx.sh <cmd>` | `sqlx` | `apiserver_test` | DB migrations, schema validation |
 | `./run-tests.sh --all` | (orchestrator) | Multiple | Full test suite |
-| `./run-tests.sh --api --smoke` | (orchestrator) | `apiserver_test` | Quick API lint + unit |
+| `./run-tests.sh --api` | (orchestrator) | `apiserver_test` | Quick API check |
 
 ---

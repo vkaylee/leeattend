@@ -79,6 +79,7 @@ export interface User {
   avatar_url?: string;
   bio?: string;
   preferred_language?: string;
+  system_roles?: string[];
   created_at?: string;
 }
 

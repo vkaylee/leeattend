@@ -2843,5 +2843,8 @@
       "respond_success": "Đã phản hồi yêu cầu đổi ca!",
       "cancel_success": "Đã hủy yêu cầu đổi ca!"
     }
+  },
+  "payroll_rules": {
+    "scope_workspace": "Toàn Không gian làm việc"
   }
 }

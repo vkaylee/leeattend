@@ -246,7 +246,9 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .merge(routes::payroll::router())
         .merge(routes::shifts::router())
         .merge(routes::ess::router())
-        .merge(routes::feature_flags::router());
+        .merge(routes::feature_flags::router())
+        // System-level RBAC routes (PlatformAdmin + Support)
+        .merge(routes::system::router());
 
     #[cfg(debug_assertions)]
     let router = {

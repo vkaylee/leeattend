@@ -279,8 +279,12 @@ impl MemberContext {
         }
 
         // 4. Determine Scope (Managed Departments)
+        // Determine global scope via scope_type column — avoids hardcoded role name list.
+        // A role is "global" if scope_type = 'global', which applies to system roles
+        // (owner, admin, hr_manager, shift_manager) AND any custom role a Workspace Admin
+        // explicitly marks as global-scoped.
         let is_global_manager = sqlx::query_scalar::<_, bool>(
-            "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = ANY($1) AND is_system = true AND name IN ('owner', 'admin', 'hr_manager', 'shift_manager'))"
+            "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = ANY($1) AND scope_type = 'global')"
         )
         .bind(&roles)
         .fetch_one(app_state.infra.db.api())

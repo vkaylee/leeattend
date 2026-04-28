@@ -41,8 +41,9 @@ export const ROUTES = {
   WORKING_PATTERNS: "/working-patterns",
   ASSIGNMENT_RULES: "/assignment-rules",
 
-  // Infra
+  // Infra & System
   INFRA_MONITOR: "/infra/monitor",
+  SYSTEM_ROLES: "/system/roles",
 
   // Employee Self-Service
   ESS_PROFILE: "/ess/profile",

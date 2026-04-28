@@ -90,7 +90,7 @@ async fn test_agent_crud_operations_smoke() {
 
 #[tokio::test]
 async fn test_workspace_isolation() {
-    let (address, workspace_id_1, user_id, _, _db): (
+    let (address, workspace_id_1, user_id, factory, _db): (
         String,
         Uuid,
         Uuid,
@@ -100,16 +100,12 @@ async fn test_workspace_isolation() {
     let client = reqwest::Client::new();
     let user_header = ("X-User-Id", user_id.to_string());
 
-    // Create second workspace
-    let ws_2_resp = client
-        .post(format!("{address}/api/workspaces"))
-        .header(user_header.0, user_header.1.clone())
-        .json(&serde_json::json!({ "name": "Second Workspace" }))
-        .send()
-        .await
-        .unwrap();
-    let ws_2: serde_json::Value = ws_2_resp.json().await.unwrap();
-    let workspace_id_2 = Uuid::parse_str(ws_2["id"].as_str().unwrap()).unwrap();
+    // Create second workspace directly via DB factory (bypasses PlatformAdmin requirement)
+    let workspace_id_2 = factory
+        .workspace()
+        .with_name("Second Workspace")
+        .create_with_owner(user_id)
+        .await;
 
     // 1. Create agent in WS 1
     client

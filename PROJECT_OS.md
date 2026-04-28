@@ -44,7 +44,7 @@
 | Web/E2E only | `./run-tests.sh --web` |
 | Run one test | `./run-tests.sh --api --test=TEST_NAME` |
 | Skip lint, run test | `./run-tests.sh --api --test-only --test=TEST_NAME` |
-| Quick smoke check | `./run-tests.sh --api --smoke` |
+| Quick check | `./run-tests.sh --api` |
 | Dry run (preview) | `./run-tests.sh --api --dry-run` |
 | Read test logs | `./run-tests.sh --logs` |
 
@@ -99,10 +99,10 @@ Wrapper scripts for direct host → container access:
 - [ ] **Lint**: Linter is clean (`clippy`, `eslint`)
 - [ ] **Write/Update Tests**: (see "Test Authoring" section below)
 - [ ] **Test**: Run the test scope relevant to the change:
-  - Changed `apiserver/` or `agent-main/` → `./run-tests.sh --api --smoke`
-  - Changed `webdashboard/` → `./run-tests.sh --web --smoke`
-  - Major refactor → `./run-tests.sh --all --smoke`
-- [ ] **Verify**: If smoke fails → run full suite for the changed component to identify exact failure
+  - Changed `apiserver/` or `agent-main/` → `./run-tests.sh --api`
+  - Changed `webdashboard/` → `./run-tests.sh --web`
+  - Major refactor → `./run-tests.sh --all`
+- [ ] **Verify**: If tests fail → run full suite for the changed component to identify exact failure
 - [ ] **Report**: Summarize pass/fail + which tests were run
 
 > [!WARNING]

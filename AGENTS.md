@@ -22,7 +22,7 @@
 # ✅ Correct — AGENT_MODE skips Podman tests in pre-commit hook
 AGENT_MODE=1 git commit --no-gpg-sign -m "message" </dev/null
 podman-compose down </dev/null
-./run-tests.sh --api --smoke </dev/null
+./run-tests.sh --api </dev/null
 
 # ❌ Wrong — will hang
 git commit -m "message"
@@ -42,10 +42,9 @@ podman-compose down
 
 | What you want | Command |
 |---------------|---------|
-| Quick smoke check (lint + unit + fast integration) | `./run-tests.sh --api --smoke </dev/null` |
+| Quick API check (lint + unit + integration) | `./run-tests.sh --api </dev/null` |
 | Full test suite | `./run-tests.sh --all </dev/null` |
 | Single test | `./run-tests.sh --api --test-only --test=test_name </dev/null` |
-| Web tests only | `./run-tests.sh --web --smoke </dev/null` |
 | See what would run | `./run-tests.sh --api --dry-run` |
 | Read failure logs | `cat .test_logs/latest-failure.log` |
 | Full help | `./run-tests.sh --help` |

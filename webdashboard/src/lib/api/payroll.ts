@@ -32,17 +32,13 @@ export async function deleteIncentivePolicy(wsId: string, policyId: string): Pro
   if (!response.ok) throw new Error("Failed to delete overtime policy");
 }
 
-export async function fetchSalaryBaseGroups(wsId: string): Promise<SalaryBaseGroup[]> {
+export async function fetchSalaryBaseGroups(wsId: string): Promise<{ groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] }> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-bases`);
   if (!response.ok) throw new Error("Failed to fetch salary bases");
   return response.json();
 }
 
-export async function fetchSalaryBaseGroupMembers(wsId: string): Promise<SalaryBaseGroupMember[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-bases/members`);
-  if (!response.ok) throw new Error("Failed to fetch salary base members");
-  return response.json();
-}
+
 
 export async function assignComponentToSalaryBase(wsId: string, baseId: string, componentId: string): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-bases/${baseId}/members`, {

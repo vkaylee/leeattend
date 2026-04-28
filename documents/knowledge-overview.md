@@ -91,7 +91,6 @@ LeeAttend is a comprehensive **Attendance Management System** designed for enter
 ./run-tests.sh --all             # Full test suite
 ./run-tests.sh --api [pattern]   # Backend tests (Rust)
 ./run-tests.sh --web [pattern]   # Frontend + E2E tests
-./run-tests.sh --api --smoke     # Quick compilation check
 ```
 
 ### Environment Variables

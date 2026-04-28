@@ -347,6 +347,103 @@ impl From<String> for RuleAppliesTo {
     }
 }
 
+/// Determines whether a workspace role has global (workspace-wide) or
+/// department-scoped visibility. Used to replace the hardcoded name check
+/// for 'owner', 'admin', 'hr_manager', 'shift_manager' in MemberContext.
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Default,
+    sqlx::Type,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum RoleScopeType {
+    /// Role can manage all employees across the entire workspace.
+    Global,
+    /// Role is limited to employees within managed departments only.
+    #[default]
+    Scoped,
+}
+
+impl RoleScopeType {
+    pub fn is_global(self) -> bool {
+        self == Self::Global
+    }
+}
+
+impl From<String> for RoleScopeType {
+    fn from(s: String) -> Self {
+        std::str::FromStr::from_str(&s).unwrap_or(RoleScopeType::Scoped)
+    }
+}
+
+/// Platform-level roles that govern cross-workspace, infrastructure, and billing operations.
+/// These are entirely separate from `workspace_roles` which are tenant-scoped.
+///
+/// Stored in the `system_roles` table and resolved via `SystemContext` extractor.
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    sqlx::Type,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum SystemRoleType {
+    /// Full platform control: create/suspend workspaces, assign system roles, manage infrastructure.
+    PlatformAdmin,
+    /// Read-only cross-workspace access for customer support and debugging.
+    Support,
+    /// Manage billing, subscription plans, and invoicing.
+    BillingAdmin,
+}
+
+impl SystemRoleType {
+    /// Returns true if this role allows creation of new workspaces.
+    pub fn can_create_workspace(self) -> bool {
+        matches!(self, Self::PlatformAdmin)
+    }
+
+    /// Returns true if this role allows read access to infrastructure monitoring.
+    pub fn can_monitor_infra(self) -> bool {
+        matches!(self, Self::PlatformAdmin | Self::Support)
+    }
+
+    /// Returns true if this role allows billing operations.
+    pub fn can_manage_billing(self) -> bool {
+        matches!(self, Self::PlatformAdmin | Self::BillingAdmin)
+    }
+}
+
+impl From<String> for SystemRoleType {
+    fn from(s: String) -> Self {
+        use std::str::FromStr;
+        // Safe fallback: unknown strings are treated as Support (lowest privilege).
+        // This prevents privilege escalation via corrupted DB values.
+        Self::from_str(&s).unwrap_or(Self::Support)
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -494,6 +591,43 @@ mod tests {
             let back: RecruitmentSourceType = serde_json::from_str(&json).unwrap();
             assert_eq!(t, back);
         }
+    }
+
+    #[test]
+    fn test_role_scope_type_serde_roundtrip() {
+        for s in [RoleScopeType::Global, RoleScopeType::Scoped] {
+            let json = serde_json::to_string(&s).unwrap();
+            let back: RoleScopeType = serde_json::from_str(&json).unwrap();
+            assert_eq!(s, back);
+        }
+    }
+
+    #[test]
+    fn test_role_scope_type_json_format() {
+        assert_eq!(serde_json::to_string(&RoleScopeType::Global).unwrap(), "\"global\"");
+        assert_eq!(serde_json::to_string(&RoleScopeType::Scoped).unwrap(), "\"scoped\"");
+    }
+
+    #[test]
+    fn test_role_scope_type_default_is_scoped() {
+        assert_eq!(RoleScopeType::default(), RoleScopeType::Scoped);
+    }
+
+    #[test]
+    fn test_role_scope_type_is_global() {
+        assert!(RoleScopeType::Global.is_global());
+        assert!(!RoleScopeType::Scoped.is_global());
+    }
+
+    #[test]
+    fn test_role_scope_type_from_string() {
+        let g = RoleScopeType::from("global".to_string());
+        assert_eq!(g, RoleScopeType::Global);
+        let s = RoleScopeType::from("scoped".to_string());
+        assert_eq!(s, RoleScopeType::Scoped);
+        // Unknown value falls back to Scoped (safe default)
+        let unknown = RoleScopeType::from("unknown_value".to_string());
+        assert_eq!(unknown, RoleScopeType::Scoped);
     }
 
 

@@ -367,8 +367,8 @@ run_runtime_test() {
         "$PROJECT_ROOT/run-tests.sh" "--help" 10
 
     # Test 2: run-tests.sh --dry-run must exit cleanly
-    _pty_test "run-tests.sh --api --smoke --dry-run" \
-        "$PROJECT_ROOT/run-tests.sh" "--api --smoke --dry-run" 15
+    _pty_test "run-tests.sh --api --dry-run" \
+        "$PROJECT_ROOT/run-tests.sh" "--api --dry-run" 15
 
     # Test 3: Argument word-splitting test
     _arg_quoting_test
