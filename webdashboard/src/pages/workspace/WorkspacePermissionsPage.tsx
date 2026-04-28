@@ -136,15 +136,13 @@ export default function WorkspacePermissionsPage() {
                   key={role.id}
                   checked={!hiddenRoleIds.includes(role.id)}
                   onCheckedChange={(checked) => {
-                    if (role.is_system) return;
                     setHiddenRoleIds(prev => 
                       checked ? prev.filter(id => id !== role.id) : [...prev, role.id]
                     );
                   }}
-                  disabled={role.is_system}
                 >
                   {role.name}
-                  {role.is_system && <span className="ml-2 text-[9px] text-slate-400 font-normal uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Fixed</span>}
+                  {role.is_system && <span className="ml-2 text-[9px] text-slate-400 font-normal uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">System</span>}
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>
