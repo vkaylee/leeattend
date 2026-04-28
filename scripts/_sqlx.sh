@@ -4,6 +4,7 @@
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 cd "$SCRIPT_DIR/.." || exit 1
+export PROJECT_ROOT=$(pwd)
 
 echo "🗄️ Running sqlx inside container environment..."
 exec podman-compose -p leeattend-test -f docker-compose.yml -f .compose/docker-compose.test.yml run --rm --entrypoint sqlx apiserver_test "$@"

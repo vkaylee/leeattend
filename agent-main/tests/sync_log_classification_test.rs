@@ -3,7 +3,7 @@ use agent::models::AttendanceData;
 
 /// Test that new logs (updated_at IS None) are correctly identified vs retries.
 #[tokio::test]
-async fn test_sync_log_classification_new_vs_retry() {
+async fn test_sync_log_classification_new_vs_retry_smoke() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
     store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();

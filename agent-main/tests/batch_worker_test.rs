@@ -2,7 +2,7 @@ use agent::hybrid_database::HybridDatabase;
 use agent::models::AttendanceData;
 
 #[tokio::test]
-async fn test_batch_worker_inserts_records() {
+async fn test_batch_worker_inserts_records_smoke() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     hybrid.store().upsert_device("D1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 

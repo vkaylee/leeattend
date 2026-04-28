@@ -32,7 +32,7 @@ async fn test_mock_worker_disconnect_idempotent() {
 /// Test full lifecycle: connect → get_info → get_logs → disconnect
 /// Ensures operations work before disconnect and the sequence is clean.
 #[tokio::test]
-async fn test_worker_lifecycle_connect_operations_disconnect() {
+async fn test_worker_lifecycle_connect_operations_disconnect_smoke() {
     let mut worker = MockWorker::new();
     
     // Connect

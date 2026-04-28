@@ -142,7 +142,7 @@ async fn test_get_max_id() {
 // =============================================================================
 
 #[tokio::test]
-async fn test_device_signature_load_unload() {
+async fn test_device_signature_load_unload_smoke() {
     let db = setup_with_device("DEV_SIG");
     let store = db.store();
 

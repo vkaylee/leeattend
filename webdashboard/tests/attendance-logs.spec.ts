@@ -2,7 +2,7 @@ import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
 
 test.describe.skip("Attendance Logs UI", () => {
-  test('should navigate to Attendance Logs and see table headers', async ({ page }) => {
+  test('smoke: navigate to attendance logs', async ({ page }) => {
     try {
       // 1. Login
       await page.goto('/login');

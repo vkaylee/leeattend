@@ -14,7 +14,7 @@ use std::sync::Arc;
 use tower::ServiceExt;
 
 #[tokio::test]
-async fn test_punch_in_grace_period_enforcement() {
+async fn test_punch_in_grace_period_enforcement_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 

@@ -5,7 +5,7 @@ import { expect } from "@playwright/test";
  * SMOKE TEST: Đảm bảo UI được build và render thành công
  */
 test.describe("UI Build Smoke Test", () => {
-  test("should load the application and render the root element without errors", async ({ page, baseURL }) => {
+  test("smoke: app renders without errors", async ({ page, baseURL }) => {
     const errors: string[] = [];
 
     // Thu thập tất cả lỗi trình duyệt

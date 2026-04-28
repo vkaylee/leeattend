@@ -161,7 +161,7 @@ run_within_env() {
         fi
 
         # Thực thi lệnh
-        eval "$@"
+        "$@"
     else
         echo -e "${YELLOW}⚠️ No child command provided. Environment is up. Press Ctrl+C to cleanup.${NC}"
         # Keep alive until Ctrl+C

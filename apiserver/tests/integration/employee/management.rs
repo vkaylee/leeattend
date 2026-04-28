@@ -11,7 +11,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_employee_crud_lifecycle() {
+async fn test_employee_crud_lifecycle_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
@@ -110,7 +110,7 @@ async fn test_employee_crud_lifecycle() {
 }
 
 #[tokio::test]
-async fn test_get_employees_list() {
+async fn test_get_employees_list_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 

@@ -7,7 +7,7 @@ use agent::hybrid_database::HybridDatabase;
 use agent::models::AttendanceData;
 
 #[tokio::test]
-async fn test_end_to_end_log_push_data_flow() {
+async fn test_end_to_end_log_push_data_flow_smoke() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
 

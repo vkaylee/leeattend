@@ -11,7 +11,7 @@ use std::sync::Arc;
 use tower::ServiceExt;
 
 #[tokio::test]
-async fn test_attendance_adjustment_lifecycle() {
+async fn test_attendance_adjustment_lifecycle_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 

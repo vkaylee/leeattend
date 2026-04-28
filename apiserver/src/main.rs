@@ -10,9 +10,13 @@ use apiserver::db_pool::{DbPoolConfig, DbPools};
 use apiserver::openapi::ApiDoc;
 use apiserver::queue::RedisPool;
 use apiserver::{create_app, AppState};
+use mimalloc::MiMalloc;
 use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 struct PortFileGuard {
     filename: String,

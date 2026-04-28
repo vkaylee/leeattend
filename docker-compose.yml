@@ -42,8 +42,6 @@ services:
       context: ./apiserver
       dockerfile: Dockerfile
       target: runtime
-      args:
-        DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
     restart: always
     networks:
       - backend_net

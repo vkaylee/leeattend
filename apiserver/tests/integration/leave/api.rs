@@ -14,7 +14,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_leave_request_lifecycle() {
+async fn test_leave_request_lifecycle_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 
@@ -100,7 +100,7 @@ async fn test_leave_request_lifecycle() {
 }
 
 #[tokio::test]
-async fn test_leave_balances() {
+async fn test_leave_balances_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 

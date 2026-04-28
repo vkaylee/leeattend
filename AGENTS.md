@@ -42,7 +42,7 @@ podman-compose down
 
 | What you want | Command |
 |---------------|---------|
-| Quick lint + unit | `./run-tests.sh --api --smoke </dev/null` |
+| Quick smoke check (lint + unit + fast integration) | `./run-tests.sh --api --smoke </dev/null` |
 | Full test suite | `./run-tests.sh --all </dev/null` |
 | Single test | `./run-tests.sh --api --test-only --test=test_name </dev/null` |
 | Web tests only | `./run-tests.sh --web --smoke </dev/null` |

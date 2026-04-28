@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tower::ServiceExt;
 
 #[tokio::test]
-async fn test_shift_api_lifecycle() {
+async fn test_shift_api_lifecycle_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
 
     let admin_id = factory.user().create().await;

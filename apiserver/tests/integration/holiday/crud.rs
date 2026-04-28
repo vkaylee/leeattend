@@ -45,7 +45,7 @@ async fn read_body<T: serde::de::DeserializeOwned>(
 }
 
 #[tokio::test]
-async fn test_holiday_crud_lifecycle() {
+async fn test_holiday_crud_lifecycle_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 

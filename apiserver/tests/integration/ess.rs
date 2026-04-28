@@ -61,7 +61,7 @@ async fn create_employee_user(
 }
 
 #[tokio::test]
-async fn test_ess_get_profile() {
+async fn test_ess_get_profile_smoke() {
     let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 

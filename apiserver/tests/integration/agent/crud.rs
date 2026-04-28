@@ -7,7 +7,7 @@ use reqwest::StatusCode;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_agent_crud_operations() {
+async fn test_agent_crud_operations_smoke() {
     let (address, workspace_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();

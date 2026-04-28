@@ -80,6 +80,9 @@ if [[ "$PHASE_INTEGRATION" == "true" ]]; then
     if [[ "$SMOKE" == "true" && -z "$INT_PATTERN" ]]; then
         INT_PATTERN="smoke"
     fi
+    if [[ "$SMOKE" == "true" ]]; then
+        echo -e "${YELLOW}🔥 Smoke integration filter: only tests with 'smoke' in their name${NC}"
+    fi
     run_integration "$FILTER:$INT_PATTERN"
 fi
 

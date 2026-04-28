@@ -11,7 +11,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_auth_session_lifecycle() {
+async fn test_auth_session_lifecycle_smoke() {
     let (_test_db, factory, state, _app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
     let user_id: Uuid = factory.user().create().await;
@@ -81,7 +81,7 @@ async fn test_revoke_all_sessions() {
 }
 
 #[tokio::test]
-async fn test_get_me_and_logout() {
+async fn test_get_me_and_logout_smoke() {
     let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 

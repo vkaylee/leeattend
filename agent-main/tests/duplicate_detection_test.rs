@@ -5,7 +5,7 @@ use tokio::time::Duration;
 /// Test that duplicate detection filters repeated logs before sending to queue.
 /// Simulates device returning same logs repeatedly (no device clearing).
 #[tokio::test]
-async fn test_duplicate_detection_filters_repeated_logs() {
+async fn test_duplicate_detection_filters_repeated_logs_smoke() {
     let (tx, mut rx) = mpsc::channel::<(String, String)>(100);
     let mut seen_logs: HashSet<String> = HashSet::new();
 

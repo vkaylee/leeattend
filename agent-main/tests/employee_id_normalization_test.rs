@@ -13,7 +13,7 @@ fn test_normalize_employee_id_direct() {
 
 /// Test employee ID normalization in database flow
 #[tokio::test]
-async fn test_employee_id_stored_with_leading_zeros() {
+async fn test_employee_id_stored_with_leading_zeros_smoke() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     hybrid.store().upsert_device("device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
 

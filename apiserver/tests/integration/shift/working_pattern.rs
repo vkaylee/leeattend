@@ -40,7 +40,7 @@ async fn body_json(resp: axum::http::Response<axum::body::Body>) -> serde_json::
 }
 
 #[tokio::test]
-async fn test_working_pattern_crud_lifecycle() {
+async fn test_working_pattern_crud_lifecycle_smoke() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
 

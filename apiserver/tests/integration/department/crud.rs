@@ -7,7 +7,7 @@ use reqwest::StatusCode;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_department_crud() {
+async fn test_department_crud_smoke() {
     let (address, workspace_id, user_id, _factory, _db): (
         String,
         Uuid,

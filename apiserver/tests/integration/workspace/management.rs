@@ -12,7 +12,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_workspace_creation_and_membership() {
+async fn test_workspace_creation_and_membership_smoke() {
     let (address, _, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();

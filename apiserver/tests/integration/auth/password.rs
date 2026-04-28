@@ -5,7 +5,7 @@ use crate::common::db::TestDatabase;
 use apiserver::models::{AuthResponse, ChangePasswordRequest, LoginRequest, RegisterRequest};
 
 #[tokio::test]
-async fn test_change_password_flow() {
+async fn test_change_password_flow_smoke() {
     let (address, _test_db): (String, TestDatabase) = spawn_app().await;
     let client = reqwest::Client::new();
 

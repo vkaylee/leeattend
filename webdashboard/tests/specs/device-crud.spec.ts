@@ -9,7 +9,7 @@ test.describe('Device CRUD — DevicesPage', () => {
 
   // ---- List ----
 
-  test('should display existing devices from mock data', async ({ devicesPage }) => {
+  test('smoke: display mock devices', async ({ devicesPage }) => {
     await expect(devicesPage.getDeviceItem('device-mock-1')).toBeVisible();
     await expect(devicesPage.getDeviceItem('device-mock-2')).toBeVisible();
   });

@@ -9,7 +9,7 @@ use reqwest::StatusCode;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_bulk_upsert_roster_api() {
+async fn test_bulk_upsert_roster_api_smoke() {
     let (address, workspace_id, user_id, factory, _db): (
         String,
         Uuid,

@@ -3,7 +3,7 @@ use agent::models::AttendanceData;
 
 /// Test retry count increments on each mark_in_flight call
 #[tokio::test]
-async fn test_retry_count_increments() {
+async fn test_retry_count_increments_smoke() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
     let store = hybrid.store();
     store.upsert_device("device1", "Dev 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
