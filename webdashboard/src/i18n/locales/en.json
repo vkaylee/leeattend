@@ -58,6 +58,12 @@
         "th": "Thailand (UTC+7)",
         "utc": "International Standard (UTC)"
       },
+      "new_version": "Add Settings Version",
+      "no_versions": "No advanced configuration found.",
+      "no_versions_desc": "If you don't add specific versions, the default settings will apply forever.",
+      "new_version_desc": "Create a future version of time settings",
+      "valid_from": "Valid From",
+      "valid_from_note": "Settings will take effect from this date",
       "early_arrival_strategy": "Early Arrival Policy",
       "early_arrival_options": {
         "allow": "Allow Always",

@@ -58,6 +58,12 @@
         "th": "Thái Lan (UTC+7)",
         "utc": "Giờ quốc tế (UTC)"
       },
+      "new_version": "Thêm Phiên bản Cài đặt",
+      "no_versions": "Chưa có cấu hình nâng cao nào.",
+      "no_versions_desc": "Nếu bạn không tạo phiên bản cụ thể, cài đặt mặc định sẽ được áp dụng vĩnh viễn.",
+      "new_version_desc": "Tạo một phiên bản cài đặt thời gian trong tương lai",
+      "valid_from": "Hiệu lực từ",
+      "valid_from_note": "Cài đặt sẽ có hiệu lực từ ngày này",
       "early_arrival_strategy": "Quy tắc đến sớm",
       "early_arrival_options": {
         "allow": "Cho phép mọi lúc",

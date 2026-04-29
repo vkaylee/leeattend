@@ -58,6 +58,12 @@
         "th": "泰国 (UTC+7)",
         "utc": "协调世界时 (UTC)"
       },
+      "new_version": "添加设置版本",
+      "no_versions": "未找到高级配置。",
+      "no_versions_desc": "如果您不添加特定版本，默认设置将永久适用。",
+      "new_version_desc": "创建未来的时间设置版本",
+      "valid_from": "生效日期",
+      "valid_from_note": "设置将从此日期起生效",
       "early_arrival_strategy": "Early Arrival Policy",
       "early_arrival_options": {
         "allow": "Allow Always",
