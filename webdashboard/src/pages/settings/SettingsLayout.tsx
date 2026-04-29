@@ -91,13 +91,7 @@ export default function SettingsLayout() {
   ];
 
   const accessGroup = [
-    {
-      path: ROUTES.SETTINGS.MEMBERS,
-      label: "Members",
-      icon: <Users className="w-4 h-4" />,
-      description: "Manage users and invitations",
-      permissions: ["members:read"],
-    },
+
     {
       path: ROUTES.SETTINGS.ROLES,
       label: "Roles",
@@ -116,10 +110,10 @@ export default function SettingsLayout() {
 
   const operationsGroup = [
     {
-      path: ROUTES.SETTINGS.PEOPLE,
-      label: t("settings.categories.people"),
-      icon: <UserCog className="w-4 h-4" />,
-      description: t("settings.categories.people_desc"),
+      path: ROUTES.SETTINGS.ORGANIZATION,
+      label: t("settings.categories.organization", { defaultValue: "Organization" }),
+      icon: <Building2 className="w-4 h-4" />,
+      description: t("settings.categories.organization_desc", { defaultValue: "Manage departments and employment phases" }),
       permissions: ["employees:read", "departments:read"],
     },
     {

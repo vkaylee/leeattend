@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { X, Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
 import { useMemberRoles, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
+import Modal from "@/components/ui/Modal";
 
 interface RoleManagementModalProps {
   userId: string | null;
@@ -67,24 +69,15 @@ export default function RoleManagementModal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content max-w-lg shadow-premium-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
-          <div className="flex items-center gap-5">
-            <div className="bg-primary-50 dark:bg-primary-950 p-4 rounded-2xl text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100 dark:border-primary-800/50">
-              <UserCheck size={32} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none">
-                {t("members.roles.modal_title")}
-              </h2>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-2 opacity-60">{t("members.roles.modal_subtitle")}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 active:scale-90"><X size={24} /></button>
-        </div>
-
-        <div className="p-10 space-y-10">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("members.roles.modal_title")}
+      subtitle={t("members.roles.modal_subtitle")}
+      icon={<UserCheck size={24} />}
+      maxWidth="lg"
+    >
+      <div className="space-y-10">
           {isLoading ? (
             <div className="py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</div>
           ) : (
@@ -155,8 +148,7 @@ export default function RoleManagementModal({
               </div>
             </form>
           </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

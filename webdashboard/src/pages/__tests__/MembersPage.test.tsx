@@ -46,7 +46,7 @@ describe("MembersPage", () => {
       },
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["members:manage", "members_roles:manage"], roles: ["admin"] });
+    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["members:invite", "members:remove", "members:roles:manage"], roles: ["admin"] });
     (api.fetchWorkspaceMembers as any).mockResolvedValue([
         { workspace_id: "test-ws-id", user_id: "user-1", email: "owner@example.com", full_name: "Workspace Owner", role_id: "role-owner", extra_role_ids: [] },
         { workspace_id: "test-ws-id", user_id: "user-2", email: "admin@example.com", full_name: "Admin User", role_id: "role-admin", extra_role_ids: [] }

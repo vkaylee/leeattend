@@ -27,7 +27,7 @@ export default function MembersPage() {
           </div>
         </div>
 
-        <PermissionGate permission="members:manage">
+        <PermissionGate permission="members:invite">
           <Button
             onClick={() => setIsInviteOpen(true)}
             data-testid="invite-member-trigger"

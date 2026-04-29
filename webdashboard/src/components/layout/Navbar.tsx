@@ -23,12 +23,12 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
 
   const getPageName = (path: string) => {
     const map: Record<string, string> = {
-      [ROUTES.HOME]: t("common.dashboard"), [ROUTES.MEMBERS]: t("members.title"), [ROUTES.EMPLOYEES]: t("common.employees"), [ROUTES.DEPARTMENTS]: t("common.departments"),
+      [ROUTES.HOME]: t("common.dashboard"), [ROUTES.PEOPLE]: t("people.title"), [ROUTES.EMPLOYEES]: t("common.employees"), [ROUTES.DEPARTMENTS]: t("common.departments"),
       [ROUTES.ATTENDANCE_LOGS]: t("common.logs"), [ROUTES.LEAVE_REQUESTS]: t("leave_requests.title"),
       [ROUTES.LEAVE_BALANCES]: t("common.leave_balances"), [ROUTES.ATTENDANCE_ADJUSTMENTS]: t("common.attendance_confirm"), [ROUTES.REPORTS]: t("common.reports"),
       [ROUTES.SHIFTS]: t("common.shifts"), [ROUTES.PAYROLL]: t("payroll.title"),
       [ROUTES.AGENTS]: t("agents.title"), [ROUTES.DEVICES]: t("common.devices"), [ROUTES.SETTINGS.ROOT]: t("settings.title"), [ROUTES.SETTINGS.GENERAL]: t("settings.categories.general"),
-      [ROUTES.SETTINGS.PEOPLE]: t("settings.categories.people"), [ROUTES.SETTINGS.TIME]: t("settings.categories.time"),
+      [ROUTES.SETTINGS.ORGANIZATION]: t("settings.categories.organization", { defaultValue: "Organization" }), [ROUTES.SETTINGS.TIME]: t("settings.categories.time"),
       [ROUTES.SETTINGS.PAYROLL]: t("settings.categories.payroll"), [ROUTES.SETTINGS.CONNECTIVITY]: t("settings.categories.connectivity"),
       [ROUTES.PROFILE]: t("common.profile"), [ROUTES.ESS_PROFILE]: t("common.my_profile"), [ROUTES.ESS_ATTENDANCE]: t("ess.attendance.title"),
       [ROUTES.ESS_CLOCK]: t("ess.clock.title"),

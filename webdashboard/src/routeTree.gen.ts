@@ -31,6 +31,7 @@ import { Route as AuthenticatedWorkspaceAttendanceLogsRouteImport } from "./rout
 import { Route as AuthenticatedWorkspaceAttendanceAdjustmentsRouteImport } from "./routes/_authenticated/_workspace/attendance-adjustments"
 import { Route as AuthenticatedWorkspaceAssignmentRulesRouteImport } from "./routes/_authenticated/_workspace/assignment-rules"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings"
+import { Route as AuthenticatedWorkspaceWorkspacePeopleRouteImport } from "./routes/_authenticated/_workspace/workspace/people"
 import { Route as AuthenticatedWorkspaceEssProfileRouteImport } from "./routes/_authenticated/_workspace/ess/profile"
 import { Route as AuthenticatedWorkspaceEssClockRouteImport } from "./routes/_authenticated/_workspace/ess/clock"
 import { Route as AuthenticatedWorkspaceEssAttendanceRouteImport } from "./routes/_authenticated/_workspace/ess/attendance"
@@ -41,10 +42,9 @@ import { Route as AuthenticatedWorkspaceWorkspaceSettingsIndexRouteImport } from
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsTimeRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/time"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsRolesRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/roles"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsPermissionsRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/permissions"
-import { Route as AuthenticatedWorkspaceWorkspaceSettingsPeopleRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/people"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsPayrollRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/payroll"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsOverviewRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/overview"
-import { Route as AuthenticatedWorkspaceWorkspaceSettingsMembersRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/members"
+import { Route as AuthenticatedWorkspaceWorkspaceSettingsOrganizationRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/organization"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsLeaveRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/leave"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsHolidaysRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/holidays"
 import { Route as AuthenticatedWorkspaceWorkspaceSettingsGeneralRouteImport } from "./routes/_authenticated/_workspace/workspace/settings/general"
@@ -238,6 +238,16 @@ const AuthenticatedWorkspaceWorkspaceSettingsRoute =
     path: "/workspace/settings",
     getParentRoute: () => AuthenticatedWorkspaceRoute,
   } as any)
+const AuthenticatedWorkspaceWorkspacePeopleRoute =
+  AuthenticatedWorkspaceWorkspacePeopleRouteImport.update({
+    id: "/workspace/people",
+    path: "/workspace/people",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any).lazy(() =>
+    import("./routes/_authenticated/_workspace/workspace/people.lazy").then(
+      (d) => d.Route,
+    ),
+  )
 const AuthenticatedWorkspaceEssProfileRoute =
   AuthenticatedWorkspaceEssProfileRouteImport.update({
     id: "/ess/profile",
@@ -334,16 +344,6 @@ const AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute =
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceWorkspaceSettingsPeopleRoute =
-  AuthenticatedWorkspaceWorkspaceSettingsPeopleRouteImport.update({
-    id: "/people",
-    path: "/people",
-    getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
-  } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/workspace/settings/people.lazy").then(
-      (d) => d.Route,
-    ),
-  )
 const AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute =
   AuthenticatedWorkspaceWorkspaceSettingsPayrollRouteImport.update({
     id: "/payroll",
@@ -364,13 +364,13 @@ const AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute =
       (d) => d.Route,
     ),
   )
-const AuthenticatedWorkspaceWorkspaceSettingsMembersRoute =
-  AuthenticatedWorkspaceWorkspaceSettingsMembersRouteImport.update({
-    id: "/members",
-    path: "/members",
+const AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute =
+  AuthenticatedWorkspaceWorkspaceSettingsOrganizationRouteImport.update({
+    id: "/organization",
+    path: "/organization",
     getParentRoute: () => AuthenticatedWorkspaceWorkspaceSettingsRoute,
   } as any).lazy(() =>
-    import("./routes/_authenticated/_workspace/workspace/settings/members.lazy").then(
+    import("./routes/_authenticated/_workspace/workspace/settings/organization.lazy").then(
       (d) => d.Route,
     ),
   )
@@ -470,6 +470,7 @@ export interface FileRoutesByFullPath {
   "/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
   "/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
   "/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
+  "/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
@@ -478,10 +479,9 @@ export interface FileRoutesByFullPath {
   "/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
-  "/workspace/settings/members": typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRoute
+  "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overview": typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
   "/workspace/settings/payroll": typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
-  "/workspace/settings/people": typeof AuthenticatedWorkspaceWorkspaceSettingsPeopleRoute
   "/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
   "/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
@@ -512,6 +512,7 @@ export interface FileRoutesByTo {
   "/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
   "/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
   "/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
+  "/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
   "/workspace/settings/connectivity": typeof AuthenticatedWorkspaceWorkspaceSettingsConnectivityRoute
@@ -519,10 +520,9 @@ export interface FileRoutesByTo {
   "/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
-  "/workspace/settings/members": typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRoute
+  "/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/workspace/settings/overview": typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
   "/workspace/settings/payroll": typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
-  "/workspace/settings/people": typeof AuthenticatedWorkspaceWorkspaceSettingsPeopleRoute
   "/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
   "/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
@@ -557,6 +557,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/ess/attendance": typeof AuthenticatedWorkspaceEssAttendanceRoute
   "/_authenticated/_workspace/ess/clock": typeof AuthenticatedWorkspaceEssClockRoute
   "/_authenticated/_workspace/ess/profile": typeof AuthenticatedWorkspaceEssProfileRoute
+  "/_authenticated/_workspace/workspace/people": typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   "/_authenticated/_workspace/workspace/settings": typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
   "/_authenticated/_workspace/workspace/settings/audit-logs": typeof AuthenticatedWorkspaceWorkspaceSettingsAuditLogsRoute
   "/_authenticated/_workspace/workspace/settings/billing": typeof AuthenticatedWorkspaceWorkspaceSettingsBillingRoute
@@ -565,10 +566,9 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/workspace/settings/general": typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   "/_authenticated/_workspace/workspace/settings/holidays": typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   "/_authenticated/_workspace/workspace/settings/leave": typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
-  "/_authenticated/_workspace/workspace/settings/members": typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRoute
+  "/_authenticated/_workspace/workspace/settings/organization": typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   "/_authenticated/_workspace/workspace/settings/overview": typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
   "/_authenticated/_workspace/workspace/settings/payroll": typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
-  "/_authenticated/_workspace/workspace/settings/people": typeof AuthenticatedWorkspaceWorkspaceSettingsPeopleRoute
   "/_authenticated/_workspace/workspace/settings/permissions": typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   "/_authenticated/_workspace/workspace/settings/roles": typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
   "/_authenticated/_workspace/workspace/settings/time": typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
@@ -601,6 +601,7 @@ export interface FileRouteTypes {
     | "/ess/attendance"
     | "/ess/clock"
     | "/ess/profile"
+    | "/workspace/people"
     | "/workspace/settings"
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
@@ -609,10 +610,9 @@ export interface FileRouteTypes {
     | "/workspace/settings/general"
     | "/workspace/settings/holidays"
     | "/workspace/settings/leave"
-    | "/workspace/settings/members"
+    | "/workspace/settings/organization"
     | "/workspace/settings/overview"
     | "/workspace/settings/payroll"
-    | "/workspace/settings/people"
     | "/workspace/settings/permissions"
     | "/workspace/settings/roles"
     | "/workspace/settings/time"
@@ -643,6 +643,7 @@ export interface FileRouteTypes {
     | "/ess/attendance"
     | "/ess/clock"
     | "/ess/profile"
+    | "/workspace/people"
     | "/workspace/settings/audit-logs"
     | "/workspace/settings/billing"
     | "/workspace/settings/connectivity"
@@ -650,10 +651,9 @@ export interface FileRouteTypes {
     | "/workspace/settings/general"
     | "/workspace/settings/holidays"
     | "/workspace/settings/leave"
-    | "/workspace/settings/members"
+    | "/workspace/settings/organization"
     | "/workspace/settings/overview"
     | "/workspace/settings/payroll"
-    | "/workspace/settings/people"
     | "/workspace/settings/permissions"
     | "/workspace/settings/roles"
     | "/workspace/settings/time"
@@ -687,6 +687,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/ess/attendance"
     | "/_authenticated/_workspace/ess/clock"
     | "/_authenticated/_workspace/ess/profile"
+    | "/_authenticated/_workspace/workspace/people"
     | "/_authenticated/_workspace/workspace/settings"
     | "/_authenticated/_workspace/workspace/settings/audit-logs"
     | "/_authenticated/_workspace/workspace/settings/billing"
@@ -695,10 +696,9 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/workspace/settings/general"
     | "/_authenticated/_workspace/workspace/settings/holidays"
     | "/_authenticated/_workspace/workspace/settings/leave"
-    | "/_authenticated/_workspace/workspace/settings/members"
+    | "/_authenticated/_workspace/workspace/settings/organization"
     | "/_authenticated/_workspace/workspace/settings/overview"
     | "/_authenticated/_workspace/workspace/settings/payroll"
-    | "/_authenticated/_workspace/workspace/settings/people"
     | "/_authenticated/_workspace/workspace/settings/permissions"
     | "/_authenticated/_workspace/workspace/settings/roles"
     | "/_authenticated/_workspace/workspace/settings/time"
@@ -867,6 +867,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
+    "/_authenticated/_workspace/workspace/people": {
+      id: "/_authenticated/_workspace/workspace/people"
+      path: "/workspace/people"
+      fullPath: "/workspace/people"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspacePeopleRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
     "/_authenticated/_workspace/ess/profile": {
       id: "/_authenticated/_workspace/ess/profile"
       path: "/ess/profile"
@@ -937,13 +944,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
-    "/_authenticated/_workspace/workspace/settings/people": {
-      id: "/_authenticated/_workspace/workspace/settings/people"
-      path: "/people"
-      fullPath: "/workspace/settings/people"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPeopleRouteImport
-      parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
-    }
     "/_authenticated/_workspace/workspace/settings/payroll": {
       id: "/_authenticated/_workspace/workspace/settings/payroll"
       path: "/payroll"
@@ -958,11 +958,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
-    "/_authenticated/_workspace/workspace/settings/members": {
-      id: "/_authenticated/_workspace/workspace/settings/members"
-      path: "/members"
-      fullPath: "/workspace/settings/members"
-      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRouteImport
+    "/_authenticated/_workspace/workspace/settings/organization": {
+      id: "/_authenticated/_workspace/workspace/settings/organization"
+      path: "/organization"
+      fullPath: "/workspace/settings/organization"
+      preLoaderRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRouteImport
       parentRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRoute
     }
     "/_authenticated/_workspace/workspace/settings/leave": {
@@ -1038,10 +1038,9 @@ interface AuthenticatedWorkspaceWorkspaceSettingsRouteChildren {
   AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsGeneralRoute
   AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute
   AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute
-  AuthenticatedWorkspaceWorkspaceSettingsMembersRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsMembersRoute
+  AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute
   AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute
   AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute
-  AuthenticatedWorkspaceWorkspaceSettingsPeopleRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPeopleRoute
   AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute
   AuthenticatedWorkspaceWorkspaceSettingsRolesRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRolesRoute
   AuthenticatedWorkspaceWorkspaceSettingsTimeRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsTimeRoute
@@ -1064,14 +1063,12 @@ const AuthenticatedWorkspaceWorkspaceSettingsRouteChildren: AuthenticatedWorkspa
       AuthenticatedWorkspaceWorkspaceSettingsHolidaysRoute,
     AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute:
       AuthenticatedWorkspaceWorkspaceSettingsLeaveRoute,
-    AuthenticatedWorkspaceWorkspaceSettingsMembersRoute:
-      AuthenticatedWorkspaceWorkspaceSettingsMembersRoute,
+    AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute:
+      AuthenticatedWorkspaceWorkspaceSettingsOrganizationRoute,
     AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute:
       AuthenticatedWorkspaceWorkspaceSettingsOverviewRoute,
     AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute:
       AuthenticatedWorkspaceWorkspaceSettingsPayrollRoute,
-    AuthenticatedWorkspaceWorkspaceSettingsPeopleRoute:
-      AuthenticatedWorkspaceWorkspaceSettingsPeopleRoute,
     AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute:
       AuthenticatedWorkspaceWorkspaceSettingsPermissionsRoute,
     AuthenticatedWorkspaceWorkspaceSettingsRolesRoute:
@@ -1107,6 +1104,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceEssAttendanceRoute: typeof AuthenticatedWorkspaceEssAttendanceRoute
   AuthenticatedWorkspaceEssClockRoute: typeof AuthenticatedWorkspaceEssClockRoute
   AuthenticatedWorkspaceEssProfileRoute: typeof AuthenticatedWorkspaceEssProfileRoute
+  AuthenticatedWorkspaceWorkspacePeopleRoute: typeof AuthenticatedWorkspaceWorkspacePeopleRoute
   AuthenticatedWorkspaceWorkspaceSettingsRoute: typeof AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren
 }
 
@@ -1142,6 +1140,8 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceEssClockRoute: AuthenticatedWorkspaceEssClockRoute,
     AuthenticatedWorkspaceEssProfileRoute:
       AuthenticatedWorkspaceEssProfileRoute,
+    AuthenticatedWorkspaceWorkspacePeopleRoute:
+      AuthenticatedWorkspaceWorkspacePeopleRoute,
     AuthenticatedWorkspaceWorkspaceSettingsRoute:
       AuthenticatedWorkspaceWorkspaceSettingsRouteWithChildren,
   }

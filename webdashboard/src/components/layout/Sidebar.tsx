@@ -74,6 +74,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     {
       section: "org", sectionIcon: Folder, label: t("common.sections.organization"), testId: "sidebar-section-org", items: [
         { to: ROUTES.EMPLOYEES, icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees", permissions: ["employees:read"] },
+        { to: ROUTES.PEOPLE, icon: Users, label: t("members.title", { defaultValue: "Directory" }), testId: "sidebar-link-people", permissions: ["members:read"] },
         { to: ROUTES.DEPARTMENTS, icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments", permissions: ["departments:read"] }
       ]
     },

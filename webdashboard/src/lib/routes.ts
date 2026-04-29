@@ -19,7 +19,7 @@ export const ROUTES = {
   HOME: "/",
   EMPLOYEES: "/employees",
   DEPARTMENTS: "/departments",
-  MEMBERS: "/members",
+  PEOPLE: "/workspace/people",
 
   // Attendance & Leave
   ATTENDANCE_LOGS: "/attendance-logs",
@@ -54,11 +54,10 @@ export const ROUTES = {
   SETTINGS: {
     ROOT: "/workspace/settings",
     OVERVIEW: "/workspace/settings/overview",
-    MEMBERS: "/workspace/settings/members",
     ROLES: "/workspace/settings/roles",
     PERMISSIONS: "/workspace/settings/permissions",
     GENERAL: "/workspace/settings/general",
-    PEOPLE: "/workspace/settings/people",
+    ORGANIZATION: "/workspace/settings/organization",
     TIME: "/workspace/settings/time",
     PAYROLL: "/workspace/settings/payroll",
     LEAVE: "/workspace/settings/leave",
