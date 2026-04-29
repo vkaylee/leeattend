@@ -5,14 +5,15 @@ import { fetchAuditLogs, AuditLog } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Activity, Globe, Monitor, User } from "lucide-react";
 
-const formatDateTime = (dateStr: string) => {
-    return new Intl.DateTimeFormat('en-US', {
+const formatDateTime = (dateStr: string, lng: string = 'en-US') => {
+    return new Intl.DateTimeFormat(lng === 'vi' ? 'vi-VN' : lng === 'zh' ? 'zh-CN' : 'en-US', {
         dateStyle: 'medium',
         timeStyle: 'medium',
     }).format(new Date(dateStr));
 };
 
 export default function AuditLogPage() {
+    const { t, i18n } = useTranslation();
     const workspaceId = getCurrentWorkspaceId();
     const [page, setPage] = useState(1);
     const limit = 20;
@@ -50,9 +51,9 @@ export default function AuditLogPage() {
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
             <div>
-                <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Audit Logs</h2>
+                <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{t("audit_logs.title")}</h2>
                 <p className="text-slate-500 dark:text-slate-400 mt-1">
-                    Track security and administrative events across your workspace.
+                    {t("audit_logs.subtitle")}
                 </p>
             </div>
 
@@ -60,43 +61,43 @@ export default function AuditLogPage() {
                 <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <Activity className="h-5 w-5 text-slate-400" />
-                        <h3 className="font-medium text-slate-900 dark:text-white">Security Events</h3>
+                        <h3 className="font-medium text-slate-900 dark:text-white">{t("audit_logs.section_title")}</h3>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <select aria-label="Action"
+                        <select aria-label={t("audit_logs.filters.action")}
                             value={actionFilter}
                             onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
                             className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
-                            <option value="">All Actions</option>
-                            <optgroup label="User & Auth">
-                                <option value="user_login">User Login</option>
-                                <option value="user_create">User Create</option>
-                                <option value="user_update">User Update</option>
-                                <option value="user_delete">User Delete</option>
+                            <option value="">{t("audit_logs.filters.all_actions")}</option>
+                            <optgroup label={t("audit_logs.filters.groups.user_auth")}>
+                                <option value="user_login">{t("auth.login.title")}</option>
+                                <option value="user_create">{t("common.create")} {t("common.user")}</option>
+                                <option value="user_update">{t("common.update")} {t("common.user")}</option>
+                                <option value="user_delete">{t("common.delete")} {t("common.user")}</option>
                             </optgroup>
-                            <optgroup label="Roles & Permissions">
-                                <option value="role_assign">Role Assign</option>
-                                <option value="role_revoke">Role Revoke</option>
-                                <option value="permission_override_set">Permission Set</option>
+                            <optgroup label={t("audit_logs.filters.groups.roles_perms")}>
+                                <option value="role_assign">{t("workspace.roles.title")} {t("common.assign")}</option>
+                                <option value="role_revoke">{t("workspace.roles.title")} {t("common.revoke")}</option>
+                                <option value="permission_override_set">{t("common.permissions")} {t("common.set")}</option>
                             </optgroup>
-                            <optgroup label="Domain">
-                                <option value="leave_request_create">Leave Request Create</option>
-                                <option value="leave_request_approve">Leave Request Approve</option>
-                                <option value="attendance_log_create">Attendance Log Create</option>
-                                <option value="shift_swap_request">Shift Swap Request</option>
+                            <optgroup label={t("audit_logs.filters.groups.domain")}>
+                                <option value="leave_request_create">{t("leave.request.create")}</option>
+                                <option value="leave_request_approve">{t("leave.request.approve")}</option>
+                                <option value="attendance_log_create">{t("attendance.log.create")}</option>
+                                <option value="shift_swap_request">{t("attendance.shift_swap.request")}</option>
                             </optgroup>
                         </select>
                         <div className="flex items-center gap-2">
-                            <input aria-label="Start Date"
+                            <input aria-label={t("audit_logs.filters.start_date")}
                                 type="date"
                                 value={startDateFilter}
                                 onChange={(e) => { setStartDateFilter(e.target.value); setPage(1); }}
                                 className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                             />
                             <span className="text-slate-400">-</span>
-                            <input aria-label="End Date"
+                            <input aria-label={t("audit_logs.filters.end_date")}
                                 type="date"
                                 value={endDateFilter}
                                 onChange={(e) => { setEndDateFilter(e.target.value); setPage(1); }}
@@ -110,11 +111,11 @@ export default function AuditLogPage() {
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 uppercase">
                             <tr>
-                                <th className="px-6 py-3 font-medium">Timestamp</th>
-                                <th className="px-6 py-3 font-medium">Action</th>
-                                <th className="px-6 py-3 font-medium">Actor / Target</th>
-                                <th className="px-6 py-3 font-medium">Details</th>
-                                <th className="px-6 py-3 font-medium">Context</th>
+                                <th className="px-6 py-3 font-medium">{t("audit_logs.table.timestamp")}</th>
+                                <th className="px-6 py-3 font-medium">{t("audit_logs.table.action")}</th>
+                                <th className="px-6 py-3 font-medium">{t("audit_logs.table.actor_target")}</th>
+                                <th className="px-6 py-3 font-medium">{t("audit_logs.table.details")}</th>
+                                <th className="px-6 py-3 font-medium">{t("audit_logs.table.context")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -131,20 +132,20 @@ export default function AuditLogPage() {
                             ) : isError ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-8 text-center text-red-500 dark:text-red-400">
-                                        Error loading audit logs.
+                                        {t("audit_logs.messages.error_loading")}
                                     </td>
                                 </tr>
                             ) : !data || data.data.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
-                                        No audit logs found.
+                                        {t("audit_logs.messages.no_logs")}
                                     </td>
                                 </tr>
                             ) : (
                                 data.data.map((log: AuditLog) => (
                                     <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">
-                                            {formatDateTime(log.created_at)}
+                                            {formatDateTime(log.created_at, i18n.language)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBadgeColor(log.action)}`}>
@@ -156,12 +157,12 @@ export default function AuditLogPage() {
                                                 <div className="flex items-center gap-1.5 text-slate-900 dark:text-slate-200 font-medium">
                                                     <User className="h-3.5 w-3.5 text-slate-400" />
                                                     <span title={log.actor_id}>
-                                                        {log.actor_id ? log.actor_id.substring(0, 8) + '...' : 'System'}
+                                                        {log.actor_id ? log.actor_id.substring(0, 8) + '...' : t("audit_logs.messages.system")}
                                                     </span>
                                                 </div>
                                                 {log.target_user_id && (
                                                     <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                                                        Target: <span title={log.target_user_id} className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">{log.target_user_id.substring(0, 8)}...</span>
+                                                        {t("audit_logs.messages.target")} <span title={log.target_user_id} className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">{log.target_user_id.substring(0, 8)}...</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -172,7 +173,7 @@ export default function AuditLogPage() {
                                                     {JSON.stringify(log.details, null, 2)}
                                                 </pre>
                                             ) : (
-                                                <span className="text-xs text-slate-400 dark:text-slate-500 italic">No details</span>
+                                                <span className="text-xs text-slate-400 dark:text-slate-500 italic">{t("audit_logs.messages.no_details")}</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -201,7 +202,7 @@ export default function AuditLogPage() {
                 {data && data.total > 0 && (
                     <div className="border-t border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/10">
                         <div className="text-sm text-slate-500 dark:text-slate-400">
-                            Showing <span className="font-medium text-slate-900 dark:text-white">{((page - 1) * limit) + 1}</span> to <span className="font-medium text-slate-900 dark:text-white">{Math.min(page * limit, data.total)}</span> of <span className="font-medium text-slate-900 dark:text-white">{data.total}</span> entries
+                            {t("audit_logs.pagination.showing")} <span className="font-medium text-slate-900 dark:text-white">{((page - 1) * limit) + 1}</span> {t("audit_logs.pagination.to")} <span className="font-medium text-slate-900 dark:text-white">{Math.min(page * limit, data.total)}</span> {t("audit_logs.pagination.of")} <span className="font-medium text-slate-900 dark:text-white">{data.total}</span> {t("audit_logs.pagination.entries")}
                         </div>
                         <div className="flex items-center gap-2">
                             <button
@@ -210,14 +211,14 @@ export default function AuditLogPage() {
                                 className="flex items-center justify-center h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 <ChevronLeft className="h-4 w-4 mr-1" />
-                                Previous
+                                {t("audit_logs.pagination.previous")}
                             </button>
                             <button
                                 onClick={() => setPage(p => p + 1)}
                                 disabled={page * limit >= data.total || isLoading}
                                 className="flex items-center justify-center h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                                Next
+                                {t("audit_logs.pagination.next")}
                                 <ChevronRight className="h-4 w-4 ml-1" />
                             </button>
                         </div>

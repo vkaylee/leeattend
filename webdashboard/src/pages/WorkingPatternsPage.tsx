@@ -223,7 +223,7 @@ export default function WorkingPatternsPage() {
               <div className="w-16 h-16 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-[1.5rem] flex items-center justify-center shadow-inner border border-primary-100 dark:border-primary-800/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500"><CalendarDays size={32} /></div>
               <div>
                 <h3 className="font-bold text-2xl text-slate-700 dark:text-slate-200 leading-none uppercase tracking-tight mb-2">{pattern.name}</h3>
-                <StatusBadge variant={pattern.is_active ? "success" : "neutral"}>{pattern.is_active ? t("common.active").toUpperCase() : t("common.inactive").toUpperCase()}</StatusBadge>
+                <StatusBadge variant={pattern.is_active ? "success" : "neutral"}>{pattern.is_active ? t("status_active_caps") : t("status_off")}</StatusBadge>
               </div>
             </div>
 
@@ -266,7 +266,7 @@ export default function WorkingPatternsPage() {
                               );
                             })
                           ) : (
-                            <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">OFF</span>
+                            <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">{t("status_off")}</span>
                           )}
                         </div>
                       </div>
@@ -333,7 +333,7 @@ export default function WorkingPatternsPage() {
                         );
                       })}
                       {dayShifts.length === 0 && (
-                        <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">OFF</span>
+                        <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">{t("status_off")}</span>
                       )}
                     </div>
 

@@ -4,6 +4,7 @@
     "syncing_data": "Đang đồng bộ dữ liệu...",
     "preparing_environment": "Đang chuẩn bị môi trường...",
     "search": "Tìm kiếm...",
+    "ip_address": "Địa chỉ IP",
     "dashboard": "Bảng điều khiển",
     "startDate": "Ngày bắt đầu",
     "endDate": "Ngày kết thúc",
@@ -354,6 +355,7 @@
       "components": {
         "title": "Danh mục thành phần lương",
         "subtitle": "Định nghĩa các khoản thu nhập và khấu trừ.",
+        "salary_bases": "Lương căn bản",
         "form_subtitle": "Thông số thành phần",
         "add_new": "Thêm thành phần",
         "no_components": "Chưa có thành phần nào",
@@ -498,23 +500,6 @@
     },
     "devices": "Thiết bị",
     "settings": {
-      "tabs": {
-        "overtime_policy": "Chính sách tăng ca",
-        "devices": "Thiết bị IoT",
-        "localization": "Bản địa hóa",
-        "agents": "Ứng dụng kết nối",
-        "rules": "Quy tắc tự động",
-        "payroll_policy": "Chính sách lương",
-        "appearance": "Giao diện",
-        "patterns": "Mẫu làm việc",
-        "departments": "Phòng ban",
-        "employment_phases": "Giai đoạn nhân sự",
-        "salary_components": "Thành phần lương",
-        "statutory_rules": "Quy tắc chung",
-        "members": "Thành viên",
-        "incentives": "Phụ cấp & Thưởng",
-        "general": "Cấu hình chung"
-      },
       "categories": {
         "payroll_desc": "Quản lý ngày công tiêu chuẩn và công thức tính lương.",
         "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
@@ -572,6 +557,30 @@
           "effective_date": "Ngày hiệu lực",
           "created_at": "Ngày tạo"
         }
+      },
+      "tabs": {
+        "overtime_policy": "Chính sách tăng ca",
+        "localization": "Định dạng & Ngôn ngữ",
+        "appearance": "Giao diện",
+        "rules": "Quy tắc tự động",
+        "payroll_policy": "Chính sách lương",
+        "patterns": "Ca làm việc",
+        "departments": "Phòng ban",
+        "employment_phases": "Giai đoạn việc làm",
+        "salary_components": "Thành phần lương",
+        "statutory_rules": "Quy định pháp lý",
+        "members": "Thành viên",
+        "incentives": "Thưởng & Khuyến khích",
+        "general": "Cấu hình chung",
+        "devices": "Thiết bị IoT",
+        "agents": "Agent đã kết nối"
+      },
+      "layout": {
+        "control_panel": "Bảng điều khiển",
+        "workspace": "Không gian làm việc",
+        "operations": "Vận hành",
+        "security_system": "An ninh & Hệ thống",
+        "access": "Truy cập"
       }
     },
     "logout": "Đăng xuất",
@@ -627,6 +636,7 @@
     "collapse_all": "Thu gọn tất cả",
     "error_occurred": "Đã xảy ra lỗi",
     "processing": "Đang xử lý...",
+    "working": "Đang xử lý...",
     "shift": "Ca làm việc",
     "status": "Trạng thái",
     "date": "Ngày",
@@ -697,6 +707,9 @@
     "no_name": "Không có tên",
     "status_active": "Hoạt động",
     "status_inactive": "Tạm dừng",
+    "status_expired": "HẾT HẠN",
+    "status_active_caps": "ĐANG HOẠT ĐỘNG",
+    "status_off": "TẮT",
     "system_error": "Lỗi hệ thống",
     "restore": "Khôi phục",
     "online": "Trực tuyến",
@@ -828,7 +841,9 @@
       "messages": {
         "loading": "Đang tải nhật ký...",
         "no_data": "Không tìm thấy nhật ký chấm công.",
-        "no_unknown_logs": "Không có nhật ký không xác định"
+        "no_data_hint": "Hãy thử điều chỉnh bộ lọc phạm vi ngày hoặc chọn một nhân viên khác để tìm nội dung bạn đang tìm kiếm.",
+        "no_unknown_logs": "Không có nhật ký không xác định",
+        "all_matched": "Tuyệt vời! Tất cả các bản ghi chấm công từ thiết bị đã được khớp thành công với nhân viên trong hệ thống."
       },
       "modal": {
         "import_title": "Nhập nhật ký chấm công từ file"
@@ -1071,7 +1086,11 @@
         "duration": "Thời lượng",
         "status": "Trạng thái",
         "generation_info": "Thông tin xử lý (Truy xuất nguồn gốc)",
-        "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này."
+        "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này.",
+        "ot_status": "Trạng thái OT",
+        "active_status": "Đang hoạt động...",
+        "system_ot_suffix": "{{minutes}}p OT",
+        "claim_btn": "Gửi yêu cầu"
       },
       "ot": {
         "claim_title": "Yêu cầu làm thêm giờ (OT)",
@@ -2122,6 +2141,17 @@
     }
   },
   "payroll": {
+    "rule_tiers": {
+      "title": "Bậc thuế / Phân cấp",
+      "subtitle": "Cấu hình các bậc lũy tiến",
+      "loading": "Đang tải các bậc...",
+      "fields": {
+        "min_amount": "Mức tối thiểu (₫)",
+        "max_amount": "Mức tối đa (₫) - Để trống nếu không giới hạn (∞)",
+        "rate": "Tỷ lệ (%)",
+        "fixed_deduction": "Khấu trừ cố định (₫)"
+      }
+    },
     "selection": {
       "all_filtered_selected": "Đã chọn toàn bộ {{count}} nhân viên trong danh sách.",
       "count_selected": "Đã chọn {{count}} nhân viên.",
@@ -2937,6 +2967,69 @@
       "delete_success": "Đã xóa ghi đè chính sách",
       "save_success": "Đã lưu ghi đè chính sách",
       "validation_select_target": "Vui lòng chọn phòng ban hoặc nhân viên"
+    }
+  },
+  "ot_approvals": {
+    "title": "Duyệt tăng ca (OT)",
+    "subtitle": "Xem xét và phê duyệt các yêu cầu tăng ca",
+    "empty_state": {
+      "title": "Đã hoàn thành hết!",
+      "description": "Không có yêu cầu tăng ca nào đang chờ trong giai đoạn này."
+    },
+    "table": {
+      "date": "Ngày",
+      "employee": "Nhân viên",
+      "source": "Nguồn",
+      "system": "Hệ thống",
+      "claimed": "Yêu cầu",
+      "reason": "Lý do",
+      "actions": "Hành động"
+    },
+    "actions": {
+      "approve": "Duyệt",
+      "reject": "Từ chối"
+    },
+    "badges": {
+      "paper": "Đơn giấy",
+      "self": "Cá nhân"
+    }
+  },
+  "audit_logs": {
+    "title": "Nhật ký hệ thống",
+    "subtitle": "Theo dõi các sự kiện bảo mật và quản trị trong không gian làm việc.",
+    "section_title": "Sự kiện bảo mật",
+    "filters": {
+      "action": "Hành động",
+      "all_actions": "Tất cả hành động",
+      "start_date": "Ngày bắt đầu",
+      "end_date": "Ngày kết thúc",
+      "groups": {
+        "user_auth": "Người dùng & Xác thực",
+        "roles_perms": "Vai trò & Quyền hạn",
+        "domain": "Nghiệp vụ"
+      }
+    },
+    "table": {
+      "timestamp": "Thời gian",
+      "action": "Hành động",
+      "actor_target": "Người thực hiện / Đối tượng",
+      "details": "Chi tiết",
+      "context": "Bối cảnh"
+    },
+    "messages": {
+      "error_loading": "Lỗi khi tải nhật ký hệ thống.",
+      "no_logs": "Không tìm thấy nhật ký nào.",
+      "no_details": "Không có chi tiết",
+      "target": "Đối tượng:",
+      "system": "Hệ thống"
+    },
+    "pagination": {
+      "showing": "Hiển thị",
+      "to": "đến",
+      "of": "trong tổng số",
+      "entries": "mục",
+      "previous": "Trước",
+      "next": "Tiếp"
     }
   }
 }

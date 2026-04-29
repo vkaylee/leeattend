@@ -4,6 +4,7 @@
     "syncing_data": "正在同步数据...",
     "preparing_environment": "正在准备环境...",
     "search": "搜索...",
+    "ip_address": "IP 地址",
     "dashboard": "仪表板",
     "startDate": "开始日期",
     "endDate": "结束日期",
@@ -354,6 +355,7 @@
       "components": {
         "title": "薪资组成部分目录",
         "subtitle": "定义收入和扣除项。",
+        "salary_bases": "薪资基数",
         "form_subtitle": "组件参数",
         "add_new": "添加组件",
         "no_components": "尚无组件",
@@ -572,6 +574,13 @@
           "effective_date": "生效日期",
           "created_at": "创建于"
         }
+      },
+      "layout": {
+        "control_panel": "控制面板",
+        "workspace": "工作空间",
+        "operations": "运营",
+        "security_system": "安全与系统",
+        "access": "访问控制"
       }
     },
     "logout": "退出登录",
@@ -597,6 +606,38 @@
     "error": "错误",
     "leeattend_system": "LeeAttend 系统",
     "org_name_label": "组织/项目名称",
+    "system_roles": {
+      "title": "平台管理员",
+      "subtitle": "管理跨越工作区边界的系统级角色",
+      "assign_to_user": "分配给用户",
+      "no_users": "尚未为该角色分配用户。",
+      "system_label": "系统",
+      "grant_privileges": "授予用户系统级权限",
+      "user_id_label": "用户 ID (UUID)",
+      "revoke_role": "撤销角色",
+      "assigned_users": "已分配用户",
+      "assignees_count": "{{count}} 名被分配者",
+      "assigned_date": "分配日期：{{date}}",
+      "descriptions": {
+        "platform_admin": "拥有完整的平台访问权限。可以管理工作空间、全局设置和其他系统角色。",
+        "support": "只读访问权限，用于监控基础设施和跨工作区的支持数据。",
+        "billing_admin": "管理所有工作空间的平台计费、订阅和配额。",
+        "default": "系统级角色。"
+      },
+      "modal": {
+        "assign_title": "分配 {{role}} 角色",
+        "submit_btn": "分配角色",
+        "assigning": "正在分配..."
+      },
+      "confirm": {
+        "revoke_title": "撤销系统角色",
+        "revoke_message": "您确定要撤销此系统角色吗？这可能会导致用户失去系统级访问权限。"
+      },
+      "messages": {
+        "assign_error": "分配角色失败",
+        "revoke_error": "撤销角色失败"
+      }
+    },
     "org_name_placeholder": "例：ABC 公司、自由职业团队...",
     "employee": "员工",
     "all_employees": "所有员工",
@@ -627,6 +668,7 @@
     "collapse_all": "全部折叠",
     "error_occurred": "发生错误",
     "processing": "正在处理...",
+    "working": "正在处理...",
     "shift": "班次",
     "status": "状态",
     "date": "日期",
@@ -697,6 +739,9 @@
     "no_name": "无名称",
     "status_active": "活跃",
     "status_inactive": "非活跃",
+    "status_expired": "已过期",
+    "status_active_caps": "激活",
+    "status_off": "关闭",
     "system_error": "系统错误",
     "restore": "恢复",
     "online": "在线",
@@ -828,7 +873,9 @@
       "messages": {
         "loading": "正在加载日志...",
         "no_data": "未找到打卡日志。",
-        "no_unknown_logs": "没有未识别的记录"
+        "no_data_hint": "尝试调整日期范围筛选器或选择其他员工以查找您需要的内容。",
+        "no_unknown_logs": "没有未识别的记录",
+        "all_matched": "太棒了！所有设备打卡记录已成功与系统中的员工匹配。"
       },
       "modal": {
         "import_title": "从文件导入打卡记录"
@@ -1071,7 +1118,11 @@
         "duration": "时长",
         "status": "状态",
         "generation_info": "处理信息（可追溯性）",
-        "no_data": "本月未找到考勤数据。"
+        "no_data": "本月未找到考勤数据。",
+        "ot_status": "加班状态",
+        "active_status": "活跃中...",
+        "system_ot_suffix": "{{minutes}}分钟 加班",
+        "claim_btn": "申请"
       },
       "ot": {
         "claim_title": "申请加班",
@@ -2122,6 +2173,17 @@
     }
   },
   "payroll": {
+    "rule_tiers": {
+      "title": "税级 / 阶梯",
+      "subtitle": "配置累进阶梯",
+      "loading": "正在加载阶梯...",
+      "fields": {
+        "min_amount": "最小金额 (₫)",
+        "max_amount": "最大金额 (₫) - 留空表示无限 (∞)",
+        "rate": "税率 (%)",
+        "fixed_deduction": "固定扣除 (₫)"
+      }
+    },
     "selection": {
       "all_filtered_selected": "已选择列表中全部 {{count}} 名员工。",
       "count_selected": "已选择 {{count}} 名员工。",
@@ -2937,6 +2999,69 @@
       "delete_success": "政策覆盖已移除",
       "save_success": "政策覆盖已保存",
       "validation_select_target": "请选择部门或员工"
+    }
+  },
+  "ot_approvals": {
+    "title": "加班审批",
+    "subtitle": "审查并批准加班申请",
+    "empty_state": {
+      "title": "全部处理完成！",
+      "description": "此期间没有待处理的加班请求。"
+    },
+    "table": {
+      "date": "日期",
+      "employee": "员工",
+      "source": "来源",
+      "system": "系统",
+      "claimed": "申请",
+      "reason": "原因",
+      "actions": "操作"
+    },
+    "actions": {
+      "approve": "通过",
+      "reject": "拒绝"
+    },
+    "badges": {
+      "paper": "纸质",
+      "self": "自助"
+    }
+  },
+  "audit_logs": {
+    "title": "审计日志",
+    "subtitle": "跟踪工作区中的安全和管理事件。",
+    "section_title": "安全事件",
+    "filters": {
+      "action": "操作",
+      "all_actions": "所有操作",
+      "start_date": "开始日期",
+      "end_date": "结束日期",
+      "groups": {
+        "user_auth": "用户与认证",
+        "roles_perms": "角色与权限",
+        "domain": "业务领域"
+      }
+    },
+    "table": {
+      "timestamp": "时间戳",
+      "action": "操作",
+      "actor_target": "操作者 / 目标",
+      "details": "详情",
+      "context": "上下文"
+    },
+    "messages": {
+      "error_loading": "加载审计日志出错。",
+      "no_logs": "未找到审计日志。",
+      "no_details": "无详情",
+      "target": "目标:",
+      "system": "系统"
+    },
+    "pagination": {
+      "showing": "显示",
+      "to": "至",
+      "of": "共",
+      "entries": "条",
+      "previous": "上一页",
+      "next": "下一页"
     }
   }
 }

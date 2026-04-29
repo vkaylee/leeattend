@@ -165,7 +165,7 @@ export default function MyAttendancePage() {
                   <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.out")}</th>
 
                   <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">{t("ess.attendance.duration")}</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">OT Status</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">{t("ess.attendance.ot_status")}</th>
                   <th className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right">{t("common.status")}</th>
 
                 </tr>
@@ -223,7 +223,7 @@ export default function MyAttendancePage() {
 
                         </div>
 
-                      ) : <span className="text-slate-300 dark:text-slate-600 font-bold tracking-widest italic text-[10px] uppercase opacity-50">Active...</span>}
+                      ) : <span className="text-slate-300 dark:text-slate-600 font-bold tracking-widest italic text-[10px] uppercase opacity-50">{t("ess.attendance.active_status")}</span>}
 
                     </td>
 
@@ -241,13 +241,13 @@ export default function MyAttendancePage() {
                     <td className="px-8 py-6 text-center">
                         {summary && summary.system_detected_ot_minutes > 0 ? (
                             <div className="flex flex-col items-center gap-1">
-                                <span className="text-xs font-bold text-amber-600 dark:text-amber-300">{summary.system_detected_ot_minutes}m OT</span>
+                                <span className="text-xs font-bold text-amber-600 dark:text-amber-300">{t("ess.attendance.system_ot_suffix", { minutes: summary.system_detected_ot_minutes })}</span>
                                 {summary.ot_status === "pending_employee" || (summary.ot_status === "none" && summary.system_detected_ot_minutes > 0) ? (
                                     <button 
                                         onClick={() => { setSelectedSummary(summary); setClaimOpen(true); }}
                                         className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors"
                                     >
-                                        Claim
+                                        {t("ess.attendance.claim_btn")}
                                     </button>
                                 ) : (
                                     <span className={cn(
@@ -256,7 +256,7 @@ export default function MyAttendancePage() {
                                         summary.ot_status === "rejected" ? "bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300" :
                                         "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
                                     )}>
-                                        {summary.ot_status === "pending_manager" ? "Pending" : summary.ot_status}
+                                        {summary.ot_status === "pending_manager" ? t("common.status_pending") : summary.ot_status}
                                     </span>
                                 )}
                             </div>

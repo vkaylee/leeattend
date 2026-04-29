@@ -65,8 +65,8 @@ export default function OtApprovalsPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20 p-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div className="space-y-1">
-          <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">OT Approvals</h1>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">Review and approve overtime claims</p>
+          <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">{t("ot_approvals.title")}</h1>
+          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("ot_approvals.subtitle")}</p>
         </div>
 
         <div className="flex items-center gap-4">
@@ -153,21 +153,21 @@ export default function OtApprovalsPage() {
         ) : pendingSummaries.length === 0 ? (
           <div className="py-40 text-center flex flex-col items-center border-4 border-dashed border-slate-50 dark:border-slate-800 m-8 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30">
             <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-8"><CheckCircle size={40} className="text-emerald-200" /></div>
-            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">All Caught Up!</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic">No pending overtime requests for this period.</p>
+            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{t("ot_approvals.empty_state.title")}</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic">{t("ot_approvals.empty_state.description")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Date</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Employee</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Source</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">System</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">Claimed</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Reason</th>
-                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right">Actions</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("ot_approvals.table.date")}</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("ot_approvals.table.employee")}</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("ot_approvals.table.source")}</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">{t("ot_approvals.table.system")}</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">{t("ot_approvals.table.claimed")}</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("ot_approvals.table.reason")}</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right">{t("ot_approvals.table.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -187,7 +187,7 @@ export default function OtApprovalsPage() {
                           onClick={() => handleApprove(summary, true)}
                           disabled={isProcessing}
                           className="p-2 rounded-full hover:bg-emerald-50 dark:bg-emerald-950 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:text-emerald-300 transition-all disabled:opacity-50"
-                          title="Approve"
+                          title={t("ot_approvals.actions.approve")}
                         >
                           <CheckCircle className="w-5 h-5" />
                         </button>
@@ -195,7 +195,7 @@ export default function OtApprovalsPage() {
                           onClick={() => handleApprove(summary, false)}
                           disabled={isProcessing}
                           className="p-2 rounded-full hover:bg-rose-50 dark:bg-rose-950 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 transition-all disabled:opacity-50"
-                          title="Reject"
+                          title={t("ot_approvals.actions.reject")}
                         >
                           <XCircle className="w-5 h-5" />
                         </button>
@@ -213,16 +213,17 @@ export default function OtApprovalsPage() {
 }
 
 function SourceBadge({ enteredVia }: { enteredVia?: string }) {
+  const { t } = useTranslation();
   if (enteredVia === "paper_form") {
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border border-amber-200">
-        Paper
+        {t("ot_approvals.badges.paper")}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-      Self
+      {t("ot_approvals.badges.self")}
     </span>
   );
 }

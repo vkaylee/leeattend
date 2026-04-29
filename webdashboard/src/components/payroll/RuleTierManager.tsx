@@ -53,13 +53,13 @@ export default function RuleTierManager({ wsId, ruleId, onClose }: Props) {
             <LayoutList size={16} />
           </div>
           <div>
-            <h3 className="font-bold text-sm uppercase tracking-widest text-slate-700 dark:text-slate-200">Tax Brackets / Tiers</h3>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Configure progressive brackets</p>
+            <h3 className="font-bold text-sm uppercase tracking-widest text-slate-700 dark:text-slate-200">{t("payroll.rule_tiers.title")}</h3>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">{t("payroll.rule_tiers.subtitle")}</p>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="p-10 text-center text-slate-500">Loading tiers...</div>
+          <div className="p-10 text-center text-slate-500">{t("payroll.rule_tiers.loading")}</div>
         ) : (
           <div className="space-y-2">
             {tiers?.map((tier) => (
@@ -81,19 +81,19 @@ export default function RuleTierManager({ wsId, ruleId, onClose }: Props) {
             {/* Add new tier form */}
             <form onSubmit={handleSubmit} className="mt-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner flex items-end gap-4">
               <div className="flex-1 space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Min Amount (₫)</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.min_amount")}</label>
                 <input type="number" required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={newTier.min_amount} onChange={e => setNewTier({...newTier, min_amount: parseFloat(e.target.value)})} />
               </div>
               <div className="flex-1 space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Max Amount (₫) - Leave empty for ∞</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.max_amount")}</label>
                 <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={newTier.max_amount || ""} onChange={e => setNewTier({...newTier, max_amount: e.target.value ? parseFloat(e.target.value) : undefined})} />
               </div>
               <div className="flex-1 space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rate (%)</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.rate")}</label>
                 <input type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={newTier.rate || ""} onChange={e => setNewTier({...newTier, rate: e.target.value ? parseFloat(e.target.value) : 0})} />
               </div>
               <div className="flex-1 space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fixed Deduction (₫)</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.fixed_deduction")}</label>
                 <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={newTier.fixed_amount || ""} onChange={e => setNewTier({...newTier, fixed_amount: e.target.value ? parseFloat(e.target.value) : 0})} />
               </div>
               <button type="submit" disabled={createMutation.isPending} className="bg-primary-600 text-white p-2.5 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50">

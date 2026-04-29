@@ -47,7 +47,7 @@ export default function LeaveBalancesPage() {
         const status = await fetchJobStatus(wsId!, jobId);
         if (status.status === 'completed') {
           queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
-          toast.success(t("leave_balances.accrual_completed", "Cập nhật số dư phép thành công!"));
+          toast.success(t("leave_balances.accrual_completed"));
           return;
         }
         if (status.status === 'failed') {
@@ -62,14 +62,14 @@ export default function LeaveBalancesPage() {
       }
     }
     // Timed out
-    toast.error(t("leave_balances.accrual_timeout", "Quá thời gian chờ. Vui lòng kiểm tra lại sau."));
+    toast.error(t("leave_balances.accrual_timeout"));
   }, [wsId, queryClient, toast, t]);
 
   const accrualMutation = useMutation({
     mutationFn: () => triggerAccrualRun(wsId!, { date: new Date().toISOString().split('T')[0] }),
     onSuccess: (data) => {
       if (data.status === 'queued' && data.job_id) {
-        toast.success(t("leave_balances.accrual_queued", "Đang xử lý tích lũy phép trong nền..."));
+        toast.success(t("leave_balances.accrual_queued"));
         pollJobStatus(data.job_id);
       } else {
         queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
@@ -93,10 +93,10 @@ export default function LeaveBalancesPage() {
         <button
           onClick={() => setShowAccrualConfirm(true)}
           disabled={accrualMutation.isPending || selectedYear !== currentYear}
-          title={selectedYear !== currentYear ? t("leave_balances.accrual_current_year_only", "Chỉ có thể cập nhật số dư cho năm hiện tại") : undefined}
+          title={selectedYear !== currentYear ? t("leave_balances.accrual_current_year_only") : undefined}
           className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
         >
-          <PlayCircle size={18} /> <span className="whitespace-nowrap">{accrualMutation.isPending ? t("common.processing").toUpperCase() : t("leave_balances.run_accrual", "Cập nhật số dư").toUpperCase()}</span>
+          <PlayCircle size={18} /> <span className="whitespace-nowrap">{accrualMutation.isPending ? t("common.processing").toUpperCase() : t("leave_balances.run_accrual").toUpperCase()}</span>
         </button>
       </div>
 
@@ -147,7 +147,7 @@ export default function LeaveBalancesPage() {
                 <th className="px-5 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("common.type")}</th>
                 <th className="px-5 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] text-right">{t("leave_balances.table.remaining")}</th>
                 <th className="px-5 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("leave_balances.table.usage")}</th>
-                <th className="px-6 py-5 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("common.actions", "Actions")}</th>
+                <th className="px-6 py-5 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -255,8 +255,8 @@ export default function LeaveBalancesPage() {
                 <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("leave_balances.run_accrual", "Cập nhật số dư")}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t("leave_balances.confirm_accrual", "Bạn có chắc chắn muốn cập nhật số dư nghỉ phép?")}</p>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("leave_balances.run_accrual")}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t("leave_balances.confirm_accrual")}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 pt-2">
@@ -264,7 +264,7 @@ export default function LeaveBalancesPage() {
                 onClick={() => setShowAccrualConfirm(false)}
                 className="flex-1 px-5 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 min-h-[44px]"
               >
-                {t("common.cancel", "Huỷ")}
+                {t("common.cancel")}
               </button>
               <button
                 onClick={() => {
@@ -273,7 +273,7 @@ export default function LeaveBalancesPage() {
                 }}
                 className="flex-1 px-5 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-lg shadow-primary-200 min-h-[44px]"
               >
-                {t("common.confirm", "Xác nhận")}
+                {t("common.confirm")}
               </button>
             </div>
           </div>
@@ -327,7 +327,7 @@ function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
             {balance.remaining}
           </span>
           <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
-            {t("common.days_short", "days")}
+            {t("common.days_short")}
           </span>
         </div>
       </td>
@@ -358,7 +358,7 @@ function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
           <button
             onClick={onViewDetails}
             className="p-2.5 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:bg-primary-900 rounded-xl border border-primary-200 dark:border-primary-800 transition-all active:scale-90 min-w-[44px] min-h-[44px]"
-            title={t("leave_balances.view_details", "View Details")}
+            title={t("leave_balances.view_details")}
           >
             <Eye className="h-5 w-5" />
           </button>
@@ -415,7 +415,7 @@ function MobileBalanceCard({ balance, onViewDetails, onViewHistory }: {
             {balance.remaining}
           </span>
           <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase">
-            {t("common.days_short", "days")}
+            {t("common.days_short")}
           </span>
         </div>
       </div>
@@ -446,7 +446,7 @@ function MobileBalanceCard({ balance, onViewDetails, onViewHistory }: {
           className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold uppercase tracking-wider text-xs rounded-xl transition-all active:scale-95 shadow-lg shadow-primary-200 min-h-[44px]"
         >
           <Eye className="h-5 w-5" />
-          <span>{t("leave_balances.view_details", "View Details")}</span>
+          <span>{t("leave_balances.view_details")}</span>
         </button>
         <button
           onClick={onViewHistory}

@@ -273,7 +273,7 @@ export default function AttendanceLogsPage() {
           )}
         >
           <Clock size={14} />
-          {t("attendance_logs.tabs.recorded", "Recorded Logs")}
+          {t("attendance_logs.tabs.recorded")}
         </button>
         <button
           onClick={() => { setActiveTab("unknown"); }}
@@ -285,7 +285,7 @@ export default function AttendanceLogsPage() {
           )}
         >
           <AlertTriangle size={14} />
-          {t("attendance_logs.tabs.unknown", "Unidentified")}
+          {t("attendance_logs.tabs.unknown")}
           {(stagingCount ?? 0) > 0 && (
             <span className="ml-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-200 rounded-full text-[9px] font-bold">
               {stagingCount}

@@ -18,6 +18,7 @@ use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentR
 use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::{employee, EmployeeRepository, TimeEntryRepository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
+use crate::services::import_messages::{AttendanceImportMessages, fmt_msg};
 use crate::utils::normalize_employee_id;
 use std::collections::HashMap;
 
@@ -144,9 +145,11 @@ impl AttendanceImportService {
         let date_format = workspace.date_format.clone();
         let time_format = workspace.time_format.clone();
         let timezone = workspace.timezone.clone();
+        let lang = &workspace.default_language;
+        let msgs = AttendanceImportMessages::for_lang(lang);
 
         if job.target_type == "employee" {
-            return self.process_employee_job(job_id, &job).await;
+            return self.process_employee_job(job_id, &job, &msgs).await;
         }
 
         let file_path = match &job.file_path {
@@ -184,6 +187,7 @@ impl AttendanceImportService {
                     Some(&date_format),
                     Some(&time_format),
                     &timezone,
+                    &msgs,
                 );
             }
         } else if let Ok(mut reader) = Xls::new(Cursor::new(&file_bytes)) {
@@ -196,6 +200,7 @@ impl AttendanceImportService {
                     Some(&date_format),
                     Some(&time_format),
                     &timezone,
+                    &msgs,
                 );
             }
         }
@@ -212,8 +217,9 @@ impl AttendanceImportService {
                 let emp_dt_str = record.get(2).unwrap_or("").trim();
 
                 if emp_id_number.is_empty() || emp_dt_str.is_empty() {
-                    errors.push(format!(
-                        "Dòng {current_line}: Thiếu mã nhân viên hoặc thời gian"
+                    errors.push(fmt_msg(
+                        msgs.missing_employee_or_time,
+                        &[("line", &current_line.to_string())],
                     ));
                     continue;
                 }
@@ -231,9 +237,13 @@ impl AttendanceImportService {
                             line_number: current_line,
                         });
                     }
-                    Err(e) => {
+                    Err(_e) => {
                         errors.push(format!(
-                            "Dòng {current_line} (NV {emp_id_number}): {e} [Dữ liệu gốc: '{emp_dt_str}']"
+                            "{} [Raw: '{emp_dt_str}']",
+                            fmt_msg(
+                                msgs.missing_employee_or_time,
+                                &[("line", &current_line.to_string())],
+                            )
                         ));
                     }
                 };
@@ -279,10 +289,12 @@ impl AttendanceImportService {
                         unique_emp_ids.difference(&known).cloned().collect();
 
                     if !missing_ids.is_empty() {
-                        errors.push(format!(
-                            "Bỏ qua {} mã nhân viên không tồn tại: {}",
-                            missing_ids.len(),
-                            missing_ids.join(", ")
+                        errors.push(fmt_msg(
+                            msgs.skipped_unknown_employees,
+                            &[
+                                ("count", &missing_ids.len().to_string()),
+                                ("ids", &missing_ids.join(", ")),
+                            ],
                         ));
                     }
                     known
@@ -329,17 +341,21 @@ impl AttendanceImportService {
                     }
                 }
                 Err(_) => {
-                    errors.push(format!(
-                        "NV {}: Lỗi hệ thống khi lưu (Dòng {})",
-                        row.emp_id_number, row.line_number
+                    errors.push(fmt_msg(
+                        msgs.system_save_error,
+                        &[
+                            ("emp", &row.emp_id_number),
+                            ("line", &row.line_number.to_string()),
+                        ],
                     ));
                 }
             }
         }
 
         if skipped_rows > 0 {
-            errors.push(format!(
-                "Đã bỏ qua {skipped_rows} dòng (trùng lặp hoặc NV không tồn tại)."
+            errors.push(fmt_msg(
+                msgs.skipped_rows,
+                &[("count", &skipped_rows.to_string())],
             ));
         }
 
@@ -370,6 +386,7 @@ impl AttendanceImportService {
         &self,
         job_id: Uuid,
         job: &AttendanceImportJob,
+        msgs: &AttendanceImportMessages,
     ) -> Result<(), ()> {
         let pool = self.pool.clone();
         let file_path = match &job.file_path {
@@ -399,12 +416,12 @@ impl AttendanceImportService {
         if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::parse_employee_excel_range(range, &mut pending_employees, &mut errors);
+                Self::parse_employee_excel_range(range, &mut pending_employees, &mut errors, msgs);
             }
         } else if let Ok(mut reader) = Xls::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::parse_employee_excel_range(range, &mut pending_employees, &mut errors);
+                Self::parse_employee_excel_range(range, &mut pending_employees, &mut errors, msgs);
             }
         }
 
@@ -420,7 +437,10 @@ impl AttendanceImportService {
                 let hire_date_str = record.get(2).unwrap_or("").trim();
 
                 if id_number.is_empty() || full_name.is_empty() {
-                    errors.push(format!("Dòng {current_line}: Thiếu ID hoặc Tên nhân viên"));
+                    errors.push(fmt_msg(
+                        msgs.missing_employee_or_id,
+                        &[("line", &current_line.to_string())],
+                    ));
                     continue;
                 }
 
@@ -575,9 +595,13 @@ impl AttendanceImportService {
                     }
                 }
                 Err(e) => {
-                    errors.push(format!(
-                        "Dòng {} (ID {}): Lỗi khi lưu vào DB: {}",
-                        emp.line_number, emp.id_number, e
+                    errors.push(fmt_msg(
+                        msgs.db_save_error,
+                        &[
+                            ("line", &emp.line_number.to_string()),
+                            ("emp", &emp.id_number),
+                            ("error", &e.to_string()),
+                        ],
                     ));
                 }
             }
@@ -595,7 +619,10 @@ impl AttendanceImportService {
             Some(errors.join("\n"))
         };
         if skipped_rows > 0 {
-            let skip_msg = format!("Đã bỏ qua {skipped_rows} nhân viên trùng mã.");
+            let skip_msg = fmt_msg(
+                msgs.skipped_employees,
+                &[("count", &skipped_rows.to_string())],
+            );
             final_log = Some(match final_log {
                 Some(log) => format!("{log}\n{skip_msg}"),
                 None => skip_msg,
@@ -618,6 +645,7 @@ impl AttendanceImportService {
         range: calamine::Range<Data>,
         pending: &mut Vec<PendingEmployee>,
         errors: &mut Vec<String>,
+        msgs: &AttendanceImportMessages,
     ) {
         for (idx, row) in range.rows().skip(1).enumerate() {
             let current_line = idx + 2;
@@ -626,7 +654,10 @@ impl AttendanceImportService {
                 Some(Data::Float(f)) => f.to_string(),
                 Some(Data::Int(i)) => i.to_string(),
                 _ => {
-                    errors.push(format!("Dòng {current_line}: Thiếu ID nhân viên"));
+                    errors.push(fmt_msg(
+                        msgs.missing_employee_id,
+                        &[("line", &current_line.to_string())],
+                    ));
                     continue;
                 }
             };
@@ -634,7 +665,10 @@ impl AttendanceImportService {
             let full_name = match row.get(1) {
                 Some(Data::String(s)) => s.trim().to_string(),
                 _ => {
-                    errors.push(format!("Dòng {current_line}: Thiếu Tên nhân viên"));
+                    errors.push(fmt_msg(
+                        msgs.missing_employee_name,
+                        &[("line", &current_line.to_string())],
+                    ));
                     continue;
                 }
             };
@@ -723,6 +757,7 @@ impl AttendanceImportService {
         preferred_date: Option<&str>,
         preferred_time: Option<&str>,
         timezone: &str,
+        msgs: &AttendanceImportMessages,
     ) {
         for (idx, row) in range.rows().skip(1).enumerate() {
             let current_line = idx + 2;
@@ -731,7 +766,10 @@ impl AttendanceImportService {
                 Some(Data::Float(f)) => f.to_string(),
                 Some(Data::Int(i)) => i.to_string(),
                 _ => {
-                    errors.push(format!("Dòng {current_line}: Thiếu mã nhân viên"));
+                    errors.push(fmt_msg(
+                        msgs.missing_employee_id,
+                        &[("line", &current_line.to_string())],
+                    ));
                     continue;
                 }
             };
@@ -745,9 +783,16 @@ impl AttendanceImportService {
                     preferred_time,
                 ) {
                     Ok(dt) => Some(dt),
-                    Err(e) => {
+                    Err(_e) => {
                         errors.push(format!(
-                            "Dòng {current_line} (NV {emp_id_number}): {e} [Dữ liệu gốc: '{s}']"
+                            "{} [Raw: '{s}']",
+                            fmt_msg(
+                                msgs.missing_time_data,
+                                &[
+                                    ("line", &current_line.to_string()),
+                                    ("emp", &emp_id_number),
+                                ],
+                            )
                         ));
                         None
                     }
@@ -760,13 +805,24 @@ impl AttendanceImportService {
                             _ => Some(DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc)),
                         }
                     } else {
-                        errors.push(format!("Dòng {current_line} (NV {emp_id_number}): Không phải định dạng ngày giờ hợp lệ [Dữ liệu gốc: '{cell_data}']"));
+                        errors.push(fmt_msg(
+                            msgs.invalid_datetime,
+                            &[
+                                ("line", &current_line.to_string()),
+                                ("emp", &emp_id_number),
+                                ("raw", &cell_data.to_string()),
+                            ],
+                        ));
                         None
                     }
                 }
                 _ => {
-                    errors.push(format!(
-                        "Dòng {current_line} (NV {emp_id_number}): Thiếu dữ liệu thời gian"
+                    errors.push(fmt_msg(
+                        msgs.missing_time_data,
+                        &[
+                            ("line", &current_line.to_string()),
+                            ("emp", &emp_id_number),
+                        ],
                     ));
                     None
                 }

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import PageHeader from "@/components/ui/PageHeader";
 import { ShieldAlert, ShieldCheck, Shield, Users, Plus, Trash2, ShieldHalf } from "lucide-react";
 import { useSystemRoles } from "@/hooks/use-system-roles";
@@ -7,9 +8,9 @@ import Modal from "@/components/ui/Modal";
 import { useConfirm } from "@/hooks/use-confirm";
 
 const roleDescriptions: Record<string, string> = {
-  platform_admin: "Full platform access. Can manage workspaces, global settings, and other system roles.",
-  support: "Read-only access to infrastructure monitoring and cross-workspace support data.",
-  billing_admin: "Manage platform billing, subscriptions, and quotas across all workspaces.",
+  platform_admin: "system_roles.descriptions.platform_admin",
+  support: "system_roles.descriptions.support",
+  billing_admin: "system_roles.descriptions.billing_admin",
 };
 
 const roleIcons: Record<string, any> = {
@@ -19,6 +20,7 @@ const roleIcons: Record<string, any> = {
 };
 
 export default function SystemRolesPage() {
+  const { t } = useTranslation();
   const { roles, isLoading, assignRole, revokeRole, isAssigning, isRevoking } = useSystemRoles();
   const { confirm, ConfirmationDialog } = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,21 +43,21 @@ export default function SystemRolesPage() {
       await assignRole({ userId: userIdInput.trim(), request: { role_name: selectedRole } });
       setIsModalOpen(false);
     } catch (err: any) {
-      setAssignError(err.message || "Failed to assign role");
+      setAssignError(err.message || t("system_roles.messages.assign_error"));
     }
   };
 
   const handleRevoke = async (userId: string, roleName: string) => {
     const isConfirmed = await confirm({
-      title: "Revoke System Role",
-      message: "Are you sure you want to revoke this system role? This may lock the user out of system-level access.",
+      title: t("system_roles.confirm.revoke_title"),
+      message: t("system_roles.confirm.revoke_message"),
       variant: "danger"
     });
     if (isConfirmed) {
       try {
         await revokeRole({ userId, roleName });
       } catch (err: any) {
-        alert(err.message || "Failed to revoke role");
+        alert(err.message || t("system_roles.messages.revoke_error"));
       }
     }
   };
@@ -64,8 +66,8 @@ export default function SystemRolesPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader
-          title="Platform Administrators"
-          subtitle="Manage system-level roles that bypass workspace boundaries"
+          title={t("system_roles.title")}
+          subtitle={t("system_roles.subtitle")}
         />
       </div>
 
@@ -94,12 +96,12 @@ export default function SystemRolesPage() {
                           {role.name}
                         </h3>
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
-                          System
+                          {t("system_roles.system_label")}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 text-sm font-medium text-slate-500 mt-1">
                         <Users size={14} />
-                        <span>{role.assignees?.length || 0} Assignees</span>
+                        <span>{t("system_roles.assignees_count", { count: role.assignees?.length || 0 })}</span>
                       </div>
                     </div>
                   </div>
@@ -107,20 +109,20 @@ export default function SystemRolesPage() {
                   <button
                     onClick={() => handleOpenAssign(role.name)}
                     className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 rounded-xl transition-colors"
-                    title="Assign to user"
+                    title={t("system_roles.assign_to_user")}
                   >
                     <Plus size={20} />
                   </button>
                 </div>
 
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 flex-1">
-                  {role.description || roleDescriptions[role.name] || "System level role."}
+                  {role.description || t(roleDescriptions[role.name] || "system_roles.descriptions.default")}
                 </p>
 
                 <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Assigned Users</h4>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("system_roles.assigned_users")}</h4>
                   {role.assignees?.length === 0 ? (
-                    <p className="text-sm text-slate-500 italic">No users assigned to this role.</p>
+                    <p className="text-sm text-slate-500 italic">{t("system_roles.no_users")}</p>
                   ) : (
                     <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                       {role.assignees?.map((assignee) => (
@@ -130,14 +132,14 @@ export default function SystemRolesPage() {
                               {assignee.user_id}
                             </span>
                             <span className="text-xs text-slate-500">
-                              Assigned: {new Date(assignee.assigned_at).toLocaleDateString()}
+                              {t("system_roles.assigned_date", { date: new Date(assignee.assigned_at).toLocaleDateString() })}
                             </span>
                           </div>
                           <button
                             onClick={() => handleRevoke(assignee.user_id, role.name)}
                             disabled={isRevoking}
                             className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-50"
-                            title="Revoke role"
+                            title={t("system_roles.revoke_role")}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -155,14 +157,14 @@ export default function SystemRolesPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={`Assign ${selectedRole} Role`}
-        subtitle="Grant system-level privileges to a user"
+        title={t("system_roles.modal.assign_title", { role: selectedRole })}
+        subtitle={t("system_roles.grant_privileges")}
         maxWidth="md"
       >
         <form onSubmit={handleAssignSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
-              User ID (UUID)
+              {t("system_roles.user_id_label")}
             </label>
             <input
               type="text"
@@ -183,14 +185,14 @@ export default function SystemRolesPage() {
               onClick={() => setIsModalOpen(false)}
               className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={isAssigning || !userIdInput.trim()}
               className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all disabled:opacity-50 shadow-md shadow-indigo-200 dark:shadow-none"
             >
-              {isAssigning ? "Assigning..." : "Assign Role"}
+              {isAssigning ? t("system_roles.modal.assigning") : t("system_roles.modal.submit_btn")}
             </button>
           </div>
         </form>

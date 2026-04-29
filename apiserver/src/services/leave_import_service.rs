@@ -16,6 +16,7 @@ use crate::repositories::leave_balance_repository::SqlxLeaveBalanceRepository;
 use crate::repositories::leave_request_repository::SqlxLeaveRequestRepository;
 use crate::repositories::roster::SqlxRosterRepository;
 use crate::repositories::{SqlxEmployeeRepository, EmployeeRepository};
+use crate::services::import_messages::LeaveImportMessages;
 use crate::services::leave_service::LeaveService;
 
 /// Result of a leave import operation.
@@ -74,10 +75,7 @@ impl LeaveImportService {
             .await
             .map_err(|e| format!("Failed to read file: {e}"))?;
 
-        // Parse rows from Excel or CSV
-        let (pending_rows, mut errors) = self.parse_file(&file_bytes);
-
-        // Fetch workspace to get language
+        // Fetch workspace language for i18n messages
         let lang = sqlx::query_scalar::<_, String>(
             "SELECT default_language FROM workspaces WHERE id = $1"
         )
@@ -87,26 +85,13 @@ impl LeaveImportService {
         .unwrap_or(Some("en".to_string()))
         .unwrap_or_else(|| "en".to_string());
 
-        let (err_empty, err_emp_not_found, err_leave_not_found) = match lang.as_str() {
-            "vi" => (
-                "File rỗng hoặc không có dữ liệu hợp lệ",
-                "Mã nhân viên '{}' không tồn tại",
-                "Loại nghỉ '{}' không tồn tại",
-            ),
-            "zh" => (
-                "文件为空或没有有效数据",
-                "员工编号 '{}' 不存在",
-                "假期类型 '{}' 不存在",
-            ),
-            _ => (
-                "File is empty or contains no valid data",
-                "Employee ID '{}' does not exist",
-                "Leave type '{}' does not exist",
-            ),
-        };
+        let msgs = LeaveImportMessages::for_lang(&lang);
+
+        // Parse rows from Excel or CSV
+        let (pending_rows, mut errors) = self.parse_file(&file_bytes, &msgs);
 
         if pending_rows.is_empty() && errors.is_empty() {
-            return Err(err_empty.to_string());
+            return Err(msgs.file_empty.to_string());
         }
 
         // Build leave service for submission
@@ -142,7 +127,7 @@ impl LeaveImportService {
                         end_date_raw: row.end_date.to_string(),
                         reason: row.reason.clone().unwrap_or_default(),
                         duration_type_raw: format!("{:?}", row.duration_type),
-                        error_message: err_emp_not_found.replace("{}", &row.employee_id_number),
+                        error_message: msgs.employee_not_found_tpl.replace("{}", &row.employee_id_number),
                     });
                     continue;
                 }
@@ -160,7 +145,7 @@ impl LeaveImportService {
                         end_date_raw: row.end_date.to_string(),
                         reason: row.reason.clone().unwrap_or_default(),
                         duration_type_raw: format!("{:?}", row.duration_type),
-                        error_message: err_leave_not_found.replace("{}", &row.leave_type_code),
+                        error_message: msgs.leave_type_not_found_tpl.replace("{}", &row.leave_type_code),
                     });
                     continue;
                 }
@@ -194,7 +179,7 @@ impl LeaveImportService {
                         end_date_raw: row.end_date.to_string(),
                         reason: row.reason.clone().unwrap_or_default(),
                         duration_type_raw: format!("{:?}", row.duration_type),
-                        error_message: format!("Lỗi khi tạo đơn: {e}"),
+                        error_message: format!("{}: {e}", msgs.submission_error_prefix),
                     });
                 }
             }
@@ -211,7 +196,7 @@ impl LeaveImportService {
             tokio::fs::create_dir_all(&error_dir).await.ok();
 
             let error_path = format!("{error_dir}/{_import_job_id}_errors.xlsx");
-            match Self::generate_error_excel(&errors) {
+            match Self::generate_error_excel(&errors, &msgs) {
                 Ok(bytes) => {
                     if let Err(e) = tokio::fs::write(&error_path, &bytes).await {
                         tracing::error!(error = %e, "Failed to write error Excel file");
@@ -237,7 +222,7 @@ impl LeaveImportService {
     }
 
     /// Parse file bytes into pending rows and parse-time errors.
-    fn parse_file(&self, file_bytes: &[u8]) -> (Vec<PendingLeaveRow>, Vec<ErrorRow>) {
+    fn parse_file(&self, file_bytes: &[u8], msgs: &LeaveImportMessages) -> (Vec<PendingLeaveRow>, Vec<ErrorRow>) {
         let mut pending = Vec::new();
         let mut errors = Vec::new();
 
@@ -246,19 +231,19 @@ impl LeaveImportService {
         if let Ok(mut reader) = Xlsx::new(Cursor::new(file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::parse_excel_range(range, &mut pending, &mut errors);
+                Self::parse_excel_range(range, &mut pending, &mut errors, msgs);
             }
         }
         if !is_excel {
             if let Ok(mut reader) = Xls::new(Cursor::new(file_bytes)) {
                 if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                     is_excel = true;
-                    Self::parse_excel_range(range, &mut pending, &mut errors);
+                    Self::parse_excel_range(range, &mut pending, &mut errors, msgs);
                 }
             }
         }
         if !is_excel {
-            Self::parse_csv(file_bytes, &mut pending, &mut errors);
+            Self::parse_csv(file_bytes, &mut pending, &mut errors, msgs);
         }
 
         (pending, errors)
@@ -270,6 +255,7 @@ impl LeaveImportService {
         range: calamine::Range<Data>,
         pending: &mut Vec<PendingLeaveRow>,
         errors: &mut Vec<ErrorRow>,
+        msgs: &LeaveImportMessages,
     ) {
         for (idx, row) in range.rows().enumerate() {
             if idx == 0 {
@@ -297,7 +283,7 @@ impl LeaveImportService {
                     end_date_raw: end_str,
                     reason: reason.clone(),
                     duration_type_raw: duration_str,
-                    error_message: "Thiếu mã nhân viên".to_string(),
+                    error_message: msgs.missing_employee_id.to_string(),
                 });
                 continue;
             }
@@ -311,7 +297,7 @@ impl LeaveImportService {
                     end_date_raw: end_str,
                     reason: reason.clone(),
                     duration_type_raw: duration_str,
-                    error_message: "Thiếu mã loại nghỉ".to_string(),
+                    error_message: msgs.missing_leave_type.to_string(),
                 });
                 continue;
             }
@@ -327,7 +313,7 @@ impl LeaveImportService {
                         end_date_raw: end_str,
                         reason: reason.clone(),
                         duration_type_raw: duration_str,
-                        error_message: "Ngày bắt đầu sai format (yêu cầu YYYY-MM-DD)".to_string(),
+                        error_message: msgs.invalid_start_date.to_string(),
                     });
                     continue;
                 }
@@ -344,7 +330,7 @@ impl LeaveImportService {
                         end_date_raw: end_str,
                         reason: reason.clone(),
                         duration_type_raw: duration_str,
-                        error_message: "Ngày kết thúc sai format (yêu cầu YYYY-MM-DD)".to_string(),
+                        error_message: msgs.invalid_end_date.to_string(),
                     });
                     continue;
                 }
@@ -359,7 +345,7 @@ impl LeaveImportService {
                     end_date_raw: end_str,
                     reason: reason.clone(),
                     duration_type_raw: duration_str,
-                    error_message: "Ngày kết thúc phải >= ngày bắt đầu".to_string(),
+                    error_message: msgs.end_before_start.to_string(),
                 });
                 continue;
             }
@@ -383,6 +369,7 @@ impl LeaveImportService {
         file_bytes: &[u8],
         pending: &mut Vec<PendingLeaveRow>,
         errors: &mut Vec<ErrorRow>,
+        msgs: &LeaveImportMessages,
     ) {
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(true)
@@ -401,7 +388,7 @@ impl LeaveImportService {
                         end_date_raw: String::new(),
                         reason: String::new(),
                         duration_type_raw: String::new(),
-                        error_message: format!("Lỗi đọc dòng CSV: {e}"),
+                        error_message: format!("{}: {e}", msgs.csv_read_error_prefix),
                     });
                     continue;
                 }
@@ -427,7 +414,7 @@ impl LeaveImportService {
                     end_date_raw: end_str,
                     reason: reason.clone(),
                     duration_type_raw: duration_str,
-                    error_message: "Thiếu mã nhân viên hoặc mã loại nghỉ".to_string(),
+                    error_message: msgs.missing_employee_or_leave.to_string(),
                 });
                 continue;
             }
@@ -443,7 +430,7 @@ impl LeaveImportService {
                         end_date_raw: end_str,
                         reason: reason.clone(),
                         duration_type_raw: duration_str,
-                        error_message: "Ngày bắt đầu sai format".to_string(),
+                        error_message: msgs.invalid_start_date.to_string(),
                     });
                     continue;
                 }
@@ -460,7 +447,7 @@ impl LeaveImportService {
                         end_date_raw: end_str,
                         reason: reason.clone(),
                         duration_type_raw: duration_str,
-                        error_message: "Ngày kết thúc sai format".to_string(),
+                        error_message: msgs.invalid_end_date.to_string(),
                     });
                     continue;
                 }
@@ -521,11 +508,11 @@ impl LeaveImportService {
     }
 
     /// Generate an error Excel file containing failed rows with error descriptions.
-    pub(crate) fn generate_error_excel(errors: &[ErrorRow]) -> Result<Vec<u8>, String> {
+    pub(crate) fn generate_error_excel(errors: &[ErrorRow], msgs: &LeaveImportMessages) -> Result<Vec<u8>, String> {
         let mut workbook = Workbook::new();
         let sheet = workbook
             .add_worksheet()
-            .set_name("Dòng lỗi")
+            .set_name(msgs.error_sheet_name)
             .map_err(|e| e.to_string())?;
 
         let header_fmt = Format::new()
@@ -538,10 +525,7 @@ impl LeaveImportService {
             .set_font_color(Color::RGB(0xD32F2F))
             .set_bold();
 
-        let headers = [
-            "Dòng", "Mã NV", "Loại nghỉ", "Ngày bắt đầu",
-            "Ngày kết thúc", "Lý do", "Loại thời gian", "❌ Lỗi",
-        ];
+        let headers = msgs.error_headers;
 
         for (col, header) in headers.iter().enumerate() {
             sheet
@@ -575,40 +559,20 @@ impl LeaveImportService {
         leave_types: &[(String, String)], // (code, name) pairs
         lang: &str, // requested language code (e.g., "en", "vi", "zh")
     ) -> Result<Vec<u8>, String> {
-        // --- Translations ---
-        let (
-            sheet1_name, sheet2_name,
-            headers,
-            ex_reason1, ex_reason2,
-            ref_header_code, ref_header_name,
-            ref_header_duration, ref_header_desc,
-            desc_full, desc_morning, desc_afternoon
-        ) = match lang {
-            "vi" => (
-                "Mẫu nhập", "Danh sách loại nghỉ",
-                ["Mã NV", "Loại nghỉ (code)", "Ngày bắt đầu", "Ngày kết thúc", "Lý do", "Loại thời gian"],
-                "Việc gia đình", "Khám bệnh",
-                "Code", "Tên loại nghỉ",
-                "Loại thời gian", "Mô tả",
-                "Cả ngày (mặc định)", "Nửa ngày sáng", "Nửa ngày chiều"
-            ),
-            "zh" => (
-                "输入模板", "假期类型列表",
-                ["员工编号", "假期类型(code)", "开始日期", "结束日期", "原因", "时长类型"],
-                "家庭事务", "看病",
-                "代码", "假期类型名称",
-                "时长类型", "描述",
-                "全天(默认)", "上午半天", "下午半天"
-            ),
-            _ => (
-                "Entry Template", "Leave Types List",
-                ["Emp ID", "Leave Type (code)", "Start Date", "End Date", "Reason", "Duration Type"],
-                "Family matter", "Doctor appointment",
-                "Code", "Leave Type Name",
-                "Duration Type", "Description",
-                "Full day (default)", "Morning half", "Afternoon half"
-            ),
-        };
+        let msgs = LeaveImportMessages::for_lang(lang);
+
+        let sheet1_name = msgs.template_sheet_name;
+        let sheet2_name = msgs.template_ref_sheet_name;
+        let headers = msgs.template_headers;
+        let ex_reason1 = msgs.template_example_reason_1;
+        let ex_reason2 = msgs.template_example_reason_2;
+        let ref_header_code = msgs.ref_header_code;
+        let ref_header_name = msgs.ref_header_name;
+        let ref_header_duration = msgs.ref_header_duration;
+        let ref_header_desc = msgs.ref_header_desc;
+        let desc_full = msgs.desc_full_day;
+        let desc_morning = msgs.desc_morning;
+        let desc_afternoon = msgs.desc_afternoon;
 
         let mut workbook = Workbook::new();
 
@@ -775,6 +739,12 @@ fn parse_duration_type(s: &str) -> LeaveDurationType {
 mod tests {
     use super::*;
     use chrono::NaiveDate;
+    use crate::services::import_messages::LeaveImportMessages;
+
+    /// Vietnamese messages (matches the original hardcoded strings for test backwards-compat).
+    fn msgs_vi() -> LeaveImportMessages {
+        LeaveImportMessages::for_lang("vi")
+    }
 
     // ---- parse_date tests ----
 
@@ -935,7 +905,7 @@ mod tests {
 
     #[test]
     fn test_generate_error_excel_empty() {
-        let result = LeaveImportService::generate_error_excel(&[]);
+        let result = LeaveImportService::generate_error_excel(&[], &msgs_vi());
         assert!(result.is_ok());
         let bytes = result.unwrap();
         assert!(!bytes.is_empty());
@@ -967,7 +937,7 @@ mod tests {
             },
         ];
 
-        let result = LeaveImportService::generate_error_excel(&errors);
+        let result = LeaveImportService::generate_error_excel(&errors, &msgs_vi());
         assert!(result.is_ok());
         let bytes = result.unwrap();
         assert!(bytes.len() > 100);
@@ -990,7 +960,7 @@ mod tests {
             },
         ];
 
-        let bytes = LeaveImportService::generate_error_excel(&errors).unwrap();
+        let bytes = LeaveImportService::generate_error_excel(&errors, &msgs_vi()).unwrap();
 
         // Re-parse with calamine
         let mut workbook: Xlsx<_> = Xlsx::new(Cursor::new(&bytes)).expect("parse xlsx");
@@ -1026,7 +996,7 @@ mod tests {
             })
             .collect();
 
-        let result = LeaveImportService::generate_error_excel(&errors);
+        let result = LeaveImportService::generate_error_excel(&errors, &msgs_vi());
         assert!(result.is_ok());
         let bytes = result.unwrap();
 
@@ -1121,7 +1091,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 2);
         assert_eq!(errors.len(), 0);
@@ -1144,7 +1114,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1); // Only NV003 is valid
         assert_eq!(errors.len(), 3); // 3 rows with errors
@@ -1159,7 +1129,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1);
         assert_eq!(errors.len(), 0);
@@ -1172,7 +1142,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 1);
@@ -1186,7 +1156,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].duration_type, LeaveDurationType::CustomHours);
@@ -1199,7 +1169,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].reason, None); // Empty reason → None
@@ -1212,7 +1182,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].reason, Some("Family emergency".to_string()));
@@ -1227,7 +1197,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 3);
@@ -1239,7 +1209,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 0);
@@ -1253,7 +1223,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1);
         // Missing duration should default to FullDay
@@ -1269,7 +1239,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         // Line numbers: header=1, NV001=2, empty=3, NV003=4
         assert_eq!(pending.len(), 2);
@@ -1286,7 +1256,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors);
+        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1);
         assert_eq!(
@@ -1339,7 +1309,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1);
         assert_eq!(errors.len(), 0);
@@ -1367,7 +1337,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 1);
@@ -1390,7 +1360,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 1);
@@ -1413,7 +1383,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 1);
@@ -1436,7 +1406,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 1);
@@ -1459,7 +1429,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 1);
@@ -1483,7 +1453,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1);
         assert_eq!(errors.len(), 0);
@@ -1506,7 +1476,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].employee_id_number, "1001"); // Float 1001.0 → "1001"
@@ -1557,7 +1527,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 2); // NV001 + NV003
         assert_eq!(errors.len(), 2);  // missing emp + bad date
@@ -1573,7 +1543,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 0);
@@ -1605,7 +1575,7 @@ mod tests {
 
         let mut pending = Vec::new();
         let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors);
+        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending[0].line_number, 2);
         assert_eq!(errors[0].line_number, 3);

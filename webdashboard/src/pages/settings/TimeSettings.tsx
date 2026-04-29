@@ -260,8 +260,8 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                             </div>
                             <div>
                               <div className="flex items-center gap-3 mb-1">
-                                {isCurrent && <span className="px-2.5 py-0.5 bg-primary-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm">ACTIVE</span>}
-                                {v.valid_to && <span className="px-2.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase tracking-widest rounded-lg">EXPIRED</span>}
+                                {isCurrent && <span className="px-2.5 py-0.5 bg-primary-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm">{t("status_active_caps")}</span>}
+                                {v.valid_to && <span className="px-2.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase tracking-widest rounded-lg">{t("status_expired")}</span>}
                               </div>
                               <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                 {formatDate(v.valid_from)}{v.valid_to ? ` → ${formatDate(v.valid_to)}` : " → Present"}
@@ -409,7 +409,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
           {pollingJobId && jobStatusQuery.data ? (
             <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
               <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">
-                <span>Working...</span>
+                <span>{t("common.working")}</span>
                 <span>{Math.round(jobStatusQuery.data.progress.percentage)}%</span>
               </div>
               <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -419,7 +419,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                 />
               </div>
               <p className="text-center text-xs text-slate-400 mt-2 font-medium">
-                Please wait, this may take a few minutes.
+                {t("common.workspace_settings.please_wait_minutes")}
               </p>
             </div>
           ) : (

@@ -4,6 +4,7 @@
     "syncing_data": "Syncing data...",
     "preparing_environment": "Preparing environment...",
     "search": "Search...",
+    "ip_address": "IP Address",
     "dashboard": "Dashboard",
     "startDate": "Start Date",
     "endDate": "End Date",
@@ -339,6 +340,7 @@
       "components": {
         "title": "Salary Components Catalog",
         "subtitle": "Define income and deduction items.",
+        "salary_bases": "Salary Bases",
         "form_subtitle": "Component parameters",
         "add_new": "Add Component",
         "no_components": "No components yet",
@@ -572,6 +574,13 @@
         "general": "General Config",
         "devices": "IoT Devices",
         "agents": "Connected Agents"
+      },
+      "layout": {
+        "control_panel": "Control Panel",
+        "workspace": "Workspace",
+        "operations": "Operations",
+        "security_system": "Security & System",
+        "access": "Access"
       }
     },
     "logout": "Logout",
@@ -597,6 +606,38 @@
     "error": "Error",
     "leeattend_system": "LeeAttend System",
     "org_name_label": "Organization / Project Name",
+    "system_roles": {
+      "title": "Platform Administrators",
+      "subtitle": "Manage system-level roles that bypass workspace boundaries",
+      "assign_to_user": "Assign to user",
+      "no_users": "No users assigned to this role.",
+      "system_label": "System",
+      "grant_privileges": "Grant system-level privileges to a user",
+      "user_id_label": "User ID (UUID)",
+      "revoke_role": "Revoke role",
+      "assigned_users": "Assigned Users",
+      "assignees_count": "{{count}} Assignees",
+      "assigned_date": "Assigned: {{date}}",
+      "descriptions": {
+        "platform_admin": "Full platform access. Can manage workspaces, global settings, and other system roles.",
+        "support": "Read-only access to infrastructure monitoring and cross-workspace support data.",
+        "billing_admin": "Manage platform billing, subscriptions, and quotas across all workspaces.",
+        "default": "System level role."
+      },
+      "modal": {
+        "assign_title": "Assign {{role}} Role",
+        "submit_btn": "Assign Role",
+        "assigning": "Assigning..."
+      },
+      "confirm": {
+        "revoke_title": "Revoke System Role",
+        "revoke_message": "Are you sure you want to revoke this system role? This may lock the user out of system-level access."
+      },
+      "messages": {
+        "assign_error": "Failed to assign role",
+        "revoke_error": "Failed to revoke role"
+      }
+    },
     "org_name_placeholder": "Ex: ABC Company, Freelance Team...",
     "employee": "Employee",
     "all_employees": "All Employees",
@@ -627,6 +668,7 @@
     "collapse_all": "Collapse All",
     "error_occurred": "An error occurred",
     "processing": "Processing...",
+    "working": "Working...",
     "shift": "Shift",
     "status": "Status",
     "date": "Date",
@@ -697,6 +739,9 @@
     "no_name": "No Name",
     "status_active": "Active",
     "status_inactive": "Inactive",
+    "status_expired": "EXPIRED",
+    "status_active_caps": "ACTIVE",
+    "status_off": "OFF",
     "system_error": "System Error",
     "restore": "Restore",
     "online": "Online",
@@ -828,7 +873,9 @@
       "messages": {
         "loading": "Loading logs...",
         "no_data": "No punch logs found.",
-        "no_unknown_logs": "No unidentified logs"
+        "no_data_hint": "Try adjusting your date range filter or selecting a different employee to find what you're looking for.",
+        "no_unknown_logs": "No unidentified logs",
+        "all_matched": "Awesome! All device punch records have been successfully matched to employees in the system."
       },
       "modal": {
         "import_title": "Import punch logs from file"
@@ -1071,7 +1118,11 @@
         "duration": "Duration",
         "status": "Status",
         "generation_info": "Processing Info (Traceability)",
-        "no_data": "No attendance data found for this month."
+        "no_data": "No attendance data found for this month.",
+        "ot_status": "OT Status",
+        "active_status": "Active...",
+        "system_ot_suffix": "{{minutes}}m OT",
+        "claim_btn": "Claim"
       },
       "ot": {
         "claim_title": "Claim Overtime",
@@ -2122,6 +2173,17 @@
     }
   },
   "payroll": {
+    "rule_tiers": {
+      "title": "Tax Brackets / Tiers",
+      "subtitle": "Configure progressive brackets",
+      "loading": "Loading tiers...",
+      "fields": {
+        "min_amount": "Min Amount (₫)",
+        "max_amount": "Max Amount (₫) - Leave empty for ∞",
+        "rate": "Rate (%)",
+        "fixed_deduction": "Fixed Deduction (₫)"
+      }
+    },
     "selection": {
       "all_filtered_selected": "All {{count}} employees in this list are selected.",
       "count_selected": "{{count}} employees selected.",
@@ -2937,6 +2999,69 @@
       "delete_success": "Policy override removed",
       "save_success": "Policy override saved",
       "validation_select_target": "Please select a department or employee"
+    }
+  },
+  "ot_approvals": {
+    "title": "OT Approvals",
+    "subtitle": "Review and approve overtime claims",
+    "empty_state": {
+      "title": "All Caught Up!",
+      "description": "No pending overtime requests for this period."
+    },
+    "table": {
+      "date": "Date",
+      "employee": "Employee",
+      "source": "Source",
+      "system": "System",
+      "claimed": "Claimed",
+      "reason": "Reason",
+      "actions": "Actions"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "badges": {
+      "paper": "Paper",
+      "self": "Self"
+    }
+  },
+  "audit_logs": {
+    "title": "Audit Logs",
+    "subtitle": "Track security and administrative events across your workspace.",
+    "section_title": "Security Events",
+    "filters": {
+      "action": "Action",
+      "all_actions": "All Actions",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "groups": {
+        "user_auth": "User & Auth",
+        "roles_perms": "Roles & Permissions",
+        "domain": "Domain"
+      }
+    },
+    "table": {
+      "timestamp": "Timestamp",
+      "action": "Action",
+      "actor_target": "Actor / Target",
+      "details": "Details",
+      "context": "Context"
+    },
+    "messages": {
+      "error_loading": "Error loading audit logs.",
+      "no_logs": "No audit logs found.",
+      "no_details": "No details",
+      "target": "Target:",
+      "system": "System"
+    },
+    "pagination": {
+      "showing": "Showing",
+      "to": "to",
+      "of": "of",
+      "entries": "entries",
+      "previous": "Previous",
+      "next": "Next"
     }
   }
 }

@@ -50,7 +50,7 @@ export function StagingLogsTable({
           <thead className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur pb-2">
             <tr className="bg-amber-50/80 dark:bg-amber-950/80 border-b border-amber-100 dark:border-amber-800 shadow-sm backdrop-blur">
               <th className="px-8 py-4 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{t("common.time")}</th>
-              <th className="px-8 py-4 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{t("attendance_logs.unknown_id", "Unknown ID")}</th>
+              <th className="px-8 py-4 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{t("attendance_logs.unknown_id")}</th>
               <th className="px-8 py-4 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{t("common.device")}</th>
               <th className="px-8 py-4 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest text-right">{t("common.actions")}</th>
             </tr>
@@ -66,8 +66,8 @@ export function StagingLogsTable({
                       <Check className="h-8 w-8 text-emerald-400" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t("attendance_logs.messages.no_unknown_logs", "No unidentified logs")}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">{t("attendance_logs.messages.all_matched", "Awesome! All device punch records have been successfully matched to employees in the system.")}</p>
+                      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t("attendance_logs.messages.no_unknown_logs")}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">{t("attendance_logs.messages.all_matched")}</p>
                     </div>
                   </div>
                 </td>
@@ -87,7 +87,7 @@ export function StagingLogsTable({
                     </td>
                     <td className="px-8 py-5">
                       <div className="font-bold text-amber-700 dark:text-amber-300 text-lg tracking-tight font-mono">{log.raw_user_id}</div>
-                      <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">{t("attendance_logs.not_in_system", "Not in system")}</div>
+                      <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">{t("attendance_logs.not_in_system")}</div>
                     </td>
                     <td className="px-8 py-5">
                       <div className="flex flex-col gap-1">
@@ -112,7 +112,7 @@ export function StagingLogsTable({
                                   handleResolve(log.id, empId);
                                 }
                               }}
-                              placeholder={t("attendance_logs.select_employee", "Select employee...")}
+                              placeholder={t("attendance_logs.select_employee")}
                             />
                             <button
                               onClick={() => setAssigningLogId(null)}
@@ -127,13 +127,13 @@ export function StagingLogsTable({
                               onClick={() => setAssigningLogId(log.id)}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-primary-100 dark:bg-primary-900 transition-all"
                             >
-                              <Link2 size={12} /> {t("attendance_logs.assign", "Assign")}
+                              <Link2 size={12} /> {t("attendance_logs.assign")}
                             </button>
                             <button
                               onClick={() => onCreateEmployee(log.raw_user_id)}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-100 dark:bg-emerald-900 transition-all"
                             >
-                              <UserPlus size={12} /> {t("attendance_logs.create_employee", "Create")}
+                              <UserPlus size={12} /> {t("attendance_logs.create_employee")}
                             </button>
                             <button
                               onClick={() => onDismiss(log.id)}

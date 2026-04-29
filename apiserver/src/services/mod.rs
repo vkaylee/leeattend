@@ -10,6 +10,7 @@ pub mod employee_service;
 pub mod excel_writer;
 pub mod financial_calculator;
 pub mod leave_accrual_service;
+pub mod import_messages;
 pub mod leave_import_service;
 pub mod leave_service;
 pub mod pairing_algo;

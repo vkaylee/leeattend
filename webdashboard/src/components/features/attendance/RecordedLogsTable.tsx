@@ -54,8 +54,8 @@ export function RecordedLogsTable({
                       <CalendarRange size={32} />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t("attendance_logs.messages.no_data", "No Attendance Logs Found")}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto font-medium">{t("attendance_logs.messages.no_data_hint", "Try adjusting your date range filter or selecting a different employee to find what you're looking for.")}</p>
+                      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t("attendance_logs.messages.no_data")}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto font-medium">{t("attendance_logs.messages.no_data_hint")}</p>
                     </div>
                   </div>
                 </td>
@@ -75,7 +75,7 @@ export function RecordedLogsTable({
                     </td>
                     <td className="px-8 py-5">
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-sm tracking-tight uppercase">{getEmployeeName(log)}</div>
-                      <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">{getEmployeeID(log) || t("common.system", "SYSTEM")}</div>
+                      <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">{getEmployeeID(log) || t("common.system")}</div>
                     </td>
                     <td className="px-8 py-5">
                       <div className="flex flex-col gap-1">

@@ -69,9 +69,9 @@ export default function SettingsLayout() {
   const workspaceGroup = [
     {
       path: ROUTES.SETTINGS.OVERVIEW,
-      label: "Overview",
+      label: t("common.overview"),
       icon: <Building2 className="w-4 h-4" />,
-      description: "Workspace summary and statistics",
+      description: t("settings.categories.general_desc"),
       permissions: ["workspace:settings:read"],
     },
     {
@@ -83,9 +83,9 @@ export default function SettingsLayout() {
     },
     {
       path: ROUTES.SETTINGS.BILLING,
-      label: "Billing",
+      label: t("common.billing"),
       icon: <CreditCard className="w-4 h-4" />,
-      description: "Subscription and invoices",
+      description: t("settings.categories.billing_desc"),
       permissions: ["workspace:settings:read"],
     },
   ];
@@ -94,16 +94,16 @@ export default function SettingsLayout() {
 
     {
       path: ROUTES.SETTINGS.ROLES,
-      label: "Roles",
+      label: t("settings.tabs.members"),
       icon: <ShieldAlert className="w-4 h-4" />,
-      description: "Define custom roles",
+      description: t("common.members.roles.subtitle"),
       permissions: ["members:roles:manage"],
     },
     {
       path: ROUTES.SETTINGS.PERMISSIONS,
-      label: "Permissions",
+      label: t("common.permissions"),
       icon: <KeyRound className="w-4 h-4" />,
-      description: "Permission matrix",
+      description: t("common.members.permissions.modal_subtitle"),
       permissions: ["members:roles:manage"],
     },
   ];
@@ -132,16 +132,16 @@ export default function SettingsLayout() {
     },
     {
       path: ROUTES.SETTINGS.LEAVE,
-      label: "Leave",
+      label: t("settings.categories.leave"),
       icon: <CalendarDays className="w-4 h-4" />,
-      description: "Leave policies",
+      description: t("settings.leave.desc"),
       permissions: ["leave:policies:manage"],
     },
     {
       path: ROUTES.SETTINGS.HOLIDAYS,
-      label: "Holidays",
+      label: t("common.holidays"),
       icon: <Palmtree className="w-4 h-4" />,
-      description: "Public holidays",
+      description: t("common.public_holidays"),
       permissions: ["holidays:manage"],
     },
   ];
@@ -156,18 +156,18 @@ export default function SettingsLayout() {
     },
     {
       path: ROUTES.SETTINGS.AUDIT_LOGS,
-      label: "Audit Logs",
+      label: t("common.logs"),
       icon: <ShieldCheck className="w-4 h-4" />,
-      description: "Security events",
+      description: t("common.security_events"),
       permissions: ["workspace:settings:read", "infra:monitor"],
     },
   ];
 
   const dangerItem = {
     path: ROUTES.SETTINGS.DANGER,
-    label: "Danger Zone",
+    label: t("common.danger_zone"),
     icon: <AlertTriangle className="w-4 h-4" />,
-    description: "Destructive operations",
+    description: t("common.destructive_operations"),
     permissions: ["workspace:delete"],
   };
 
@@ -199,19 +199,19 @@ export default function SettingsLayout() {
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                Settings
+                {t("common.settings")}
               </h2>
               <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">
-                Control Panel
+                {t("settings.layout.control_panel")}
               </p>
             </div>
           </div>
           
           <nav>
-            {filteredWorkspaceGroup.length > 0 && <NavGroup title="Workspace" items={filteredWorkspaceGroup} isActive={isActive} />}
-            {filteredAccessGroup.length > 0 && <NavGroup title="Access" items={filteredAccessGroup} isActive={isActive} />}
-            {filteredOperationsGroup.length > 0 && <NavGroup title="Operations" items={filteredOperationsGroup} isActive={isActive} />}
-            {filteredSystemGroup.length > 0 && <NavGroup title="Security & System" items={filteredSystemGroup} isActive={isActive} />}
+            {filteredWorkspaceGroup.length > 0 && <NavGroup title={t("settings.layout.workspace")} items={filteredWorkspaceGroup} isActive={isActive} />}
+            {filteredAccessGroup.length > 0 && <NavGroup title={t("settings.layout.access")} items={filteredAccessGroup} isActive={isActive} />}
+            {filteredOperationsGroup.length > 0 && <NavGroup title={t("settings.layout.operations")} items={filteredOperationsGroup} isActive={isActive} />}
+            {filteredSystemGroup.length > 0 && <NavGroup title={t("settings.layout.security_system")} items={filteredSystemGroup} isActive={isActive} />}
             
             {showDangerItem && (
               <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
@@ -249,7 +249,7 @@ export default function SettingsLayout() {
           <div className="mt-8 pt-6 border-t border-slate-50 dark:border-slate-800 px-4 pb-2">
             <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
               <ShieldCheck className="w-3 h-3" />
-              <span>Workspace Admin Only</span>
+              <span>{t("settings.admin_only")}</span>
             </div>
           </div>
         </div>

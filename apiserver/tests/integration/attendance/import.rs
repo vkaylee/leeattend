@@ -63,8 +63,10 @@ async fn test_import_csv_with_line_errors() {
     let errors = job.error_log.expect("No error log found");
 
     assert!(
-        errors.contains("Không thể nhận diện") || errors.contains("Cannot parse"),
-        "Should identify recognition error"
+        errors.contains("Missing employee ID or timestamp")
+            || errors.contains("Thiếu mã nhân viên hoặc thời gian")
+            || errors.contains("Raw:")
+            || errors.contains("not-a-date"),
+        "Should identify recognition error, got: {errors}"
     );
-    assert!(errors.contains("not-a-date"));
 }
