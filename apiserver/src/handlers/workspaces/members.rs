@@ -110,6 +110,13 @@ pub async fn update_workspace_member_role(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::MembersRolesManage)?;
 
+    let old_role_id = state
+        .core
+        .workspace_repo
+        .find_primary_role(ctx.workspace_id, user_id)
+        .await
+        .unwrap_or(None);
+
     state
         .core.workspace_repo
         .update_member_role(ctx.workspace_id, user_id, req.role_id)
@@ -123,7 +130,10 @@ pub async fn update_workspace_member_role(
         Some(user_id),
         None,
         "update_member_role",
-        Some(serde_json::json!({ "new_role_id": req.role_id })),
+        Some(serde_json::json!({ 
+            "old_role_id": old_role_id,
+            "new_role_id": req.role_id 
+        })),
         &headers,
     )
     .await;
