@@ -107,10 +107,9 @@ impl PolicyResolver {
         // Convert NaiveDate to UTC start of day
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
         
-        let policy_version = repo.get_effective_policy(
+        let policy_version = repo.get_employee_effective_policy(
             workspace_id,
             employee_id,
-            "USER",
             effective_time
         ).await?;
 
@@ -121,6 +120,7 @@ impl PolicyResolver {
             Ok(AttendanceRules {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
             })
         }
     }
@@ -138,10 +138,9 @@ impl PolicyResolver {
         let repo = SqlxAttendancePolicyRepository::from_pool(pool.clone());
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
         
-        let versions = repo.get_effective_policies_batch(
+        let versions = repo.get_employee_effective_policies_batch(
             workspace_id,
             employee_ids,
-            "USER",
             effective_time
         ).await?;
 
@@ -153,6 +152,7 @@ impl PolicyResolver {
                 result.insert(id, AttendanceRules {
                     work_unit_minutes: 30,
                     rounding_policy: "floor".to_string(),
+                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                 });
             }
         }
@@ -166,10 +166,9 @@ impl PolicyResolver {
         workspace_id: Uuid,
         date: NaiveDate,
     ) -> Result<PolicyRules, sqlx::Error> {
-        // 1. Get Workspace Defaults
-        let ws = crate::repositories::workspace_repository::get_workspace_by_id(pool, workspace_id)
-            .await?
-            .ok_or_else(|| sqlx::Error::RowNotFound)?;
+        // 1. Get Attendance Policy rules
+        let attendance_rules = Self::resolve_attendance_policy(pool, employee_id, workspace_id, date).await?;
+
 
         // 2. Get Employee Special Conditions
         let conditions =
@@ -180,7 +179,7 @@ impl PolicyResolver {
             grace_period_minutes: DEFAULT_GRACE_PERIOD_MINUTES,
             authorized_early_leave_minutes: 0,
             is_early_leave_paid: false,
-            early_arrival_strategy: ws.early_arrival_strategy,
+            early_arrival_strategy: attendance_rules.early_arrival_strategy,
             is_break_auto_deduct: true, // Default
             is_break_overtime: false,
             allow_early_ot: false,
@@ -427,6 +426,19 @@ mod tests {
         );
         assert_eq!(rules.authorized_early_leave_minutes, 60);
         assert!(rules.is_early_leave_paid);
+    }
+
+    #[test]
+    fn test_build_rules_early_arrival_strategy_preserved() {
+        let rules = PolicyResolver::build_rules_from_conditions(
+            &[], d(2026, 3, 1), EarlyArrivalStrategy::Clamp,
+        );
+        assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Clamp);
+
+        let rules_block = PolicyResolver::build_rules_from_conditions(
+            &[], d(2026, 3, 1), EarlyArrivalStrategy::Block,
+        );
+        assert_eq!(rules_block.early_arrival_strategy, EarlyArrivalStrategy::Block);
     }
 
     #[test]

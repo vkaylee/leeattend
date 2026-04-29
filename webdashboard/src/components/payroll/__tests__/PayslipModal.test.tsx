@@ -112,7 +112,6 @@ const mockWorkspace: Workspace = {
   timezone: "Asia/Bangkok",
   theme_primary_color: "#3b82f6",
   default_language: "vi",
-  early_arrival_strategy: "allow" as const,
   created_at: "2024-01-01T00:00:00Z",
 };
 

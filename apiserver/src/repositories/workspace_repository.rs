@@ -60,8 +60,8 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String> {
         let ws = sqlx::query_as::<_, Workspace>(
             "INSERT INTO workspaces (id, name, created_at) 
-             VALUES ($1, $2, NOW()) 
-             RETURNING id, name, date_format, time_format, timezone, theme_primary_color, default_language, early_arrival_strategy, holiday_overnight_strategy, default_holiday_ot_multiplier, created_at",
+             VALUES ($1, $2, NOW())
+             RETURNING id, name, date_format, time_format, timezone, theme_primary_color, default_language, holiday_overnight_strategy, default_holiday_ot_multiplier, created_at",
         )
         .bind(Uuid::new_v4())
         .bind(name)

@@ -19,8 +19,8 @@ pub struct UpdateAttendanceRulesRequest {
     pub work_unit_minutes: Option<i32>,
     pub rounding_policy: Option<String>,
     /// ISO 8601 date string for when this version takes effect.
-    /// If omitted, defaults to now.
     pub valid_from: Option<String>,
+    pub early_arrival_strategy: Option<crate::models::enums::EarlyArrivalStrategy>,
 }
 
 /// Response shape for a single policy version (includes metadata)
@@ -29,6 +29,7 @@ pub struct AttendancePolicyVersionResponse {
     pub id: String,
     pub work_unit_minutes: i32,
     pub rounding_policy: String,
+    pub early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy,
     pub valid_from: String,
     pub valid_to: Option<String>,
     pub created_by: Option<String>,
@@ -54,6 +55,7 @@ pub async fn get_default_attendance_rules(
             return Ok(Json(AttendanceRules {
                 work_unit_minutes: 15,
                 rounding_policy: "none".to_string(),
+                early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
             }));
         }
     };
@@ -75,6 +77,7 @@ pub async fn get_default_attendance_rules(
         None => Ok(Json(AttendanceRules {
             work_unit_minutes: 15,
             rounding_policy: "none".to_string(),
+            early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
         })),
     }
 }
@@ -116,6 +119,7 @@ pub async fn list_default_attendance_policy_versions(
                 id: id.to_string(),
                 work_unit_minutes: rules.0.work_unit_minutes,
                 rounding_policy: rules.0.rounding_policy,
+                early_arrival_strategy: rules.0.early_arrival_strategy,
                 valid_from: valid_from.to_rfc3339(),
                 valid_to: valid_to.map(|v| v.to_rfc3339()),
                 created_by: created_by.map(|u| u.to_string()),
@@ -180,6 +184,7 @@ pub async fn update_default_attendance_rules(
         None => AttendanceRules {
             work_unit_minutes: 15,
             rounding_policy: "none".to_string(),
+            early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
         },
     };
 
@@ -188,6 +193,9 @@ pub async fn update_default_attendance_rules(
     }
     if let Some(r) = req.rounding_policy {
         new_rules.rounding_policy = r;
+    }
+    if let Some(s) = req.early_arrival_strategy {
+        new_rules.early_arrival_strategy = s;
     }
 
     // Parse valid_from or default to now
@@ -237,7 +245,8 @@ pub async fn update_default_attendance_rules(
     Ok(Json(AttendancePolicyVersionResponse {
         id: version_id.to_string(),
         work_unit_minutes: new_rules.work_unit_minutes,
-        rounding_policy: new_rules.rounding_policy,
+        rounding_policy: new_rules.rounding_policy.clone(),
+        early_arrival_strategy: new_rules.early_arrival_strategy,
         valid_from: valid_from.to_rfc3339(),
         valid_to: None,
         created_by: Some(ctx.user_id.to_string()),

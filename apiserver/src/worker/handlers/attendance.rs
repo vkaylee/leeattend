@@ -187,7 +187,7 @@ impl AttendanceHandler {
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-        workspace_config: &CachedWorkspaceConfig,
+        _workspace_config: &CachedWorkspaceConfig,
         tz: Tz,
     ) -> Result<String, String> {
         use sqlx::Row;
@@ -261,6 +261,7 @@ impl AttendanceHandler {
             let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
             });
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
@@ -292,7 +293,7 @@ impl AttendanceHandler {
                     let mut rules = PolicyResolver::build_rules_from_conditions(
                         emp_conditions,
                         date,
-                        workspace_config.early_arrival_strategy,
+                        emp_attendance_rules.early_arrival_strategy,
                     );
 
                     // Override with shift-specific settings
@@ -364,7 +365,7 @@ impl AttendanceHandler {
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-        workspace_config: &CachedWorkspaceConfig,
+        _workspace_config: &CachedWorkspaceConfig,
         tz: Tz,
     ) -> Result<String, String> {
         let mut reports: Vec<DailyAttendanceReport> = Vec::new();
@@ -405,6 +406,7 @@ impl AttendanceHandler {
             let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
             });
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
@@ -450,7 +452,7 @@ impl AttendanceHandler {
                         let mut rules = PolicyResolver::build_rules_from_conditions(
                             emp_conditions,
                             date,
-                            workspace_config.early_arrival_strategy,
+                            emp_attendance_rules.early_arrival_strategy,
                         );
 
                         if let Some(gp) = daily.early_punch_in_grace_period_minutes {

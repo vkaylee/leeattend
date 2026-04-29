@@ -7,7 +7,6 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::cache::{RedisCache, DEFAULT_CACHE_TTL};
-use crate::models::EarlyArrivalStrategy;
 
 /// Cached workspace configuration.
 /// Contains fields needed for attendance calculations.
@@ -15,7 +14,6 @@ use crate::models::EarlyArrivalStrategy;
 pub struct CachedWorkspaceConfig {
     pub id: Uuid,
     pub timezone: String,
-    pub early_arrival_strategy: EarlyArrivalStrategy,
 }
 
 /// Cache for workspace configuration.
@@ -50,8 +48,7 @@ impl WorkspaceCache {
                     r#"
                     SELECT
                         id,
-                        timezone,
-                        early_arrival_strategy as "early_arrival_strategy: EarlyArrivalStrategy"
+                        timezone
                     FROM workspaces
                     WHERE id = $1
                     "#,
@@ -64,7 +61,6 @@ impl WorkspaceCache {
                 Ok(CachedWorkspaceConfig {
                     id: row.id,
                     timezone: row.timezone,
-                    early_arrival_strategy: row.early_arrival_strategy,
                 })
             })
             .await
@@ -93,7 +89,6 @@ mod tests {
         let config = CachedWorkspaceConfig {
             id: Uuid::new_v4(),
             timezone: "Asia/Ho_Chi_Minh".to_string(),
-            early_arrival_strategy: EarlyArrivalStrategy::Allow,
         };
 
         let json = serde_json::to_string(&config).unwrap();

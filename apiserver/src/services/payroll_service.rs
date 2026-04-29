@@ -556,7 +556,6 @@ mod tests {
                 timezone: "UTC".into(),
                 theme_primary_color: "#000".into(),
                 default_language: "en".into(),
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Allow,
                 holiday_overnight_strategy: "split".into(),
                 default_holiday_ot_multiplier: Decimal::from(2),
                 created_at: Utc::now(),

@@ -3,7 +3,6 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::cache::{RedisCache, WorkspaceCache};
-use apiserver::models::EarlyArrivalStrategy;
 
 use tokio::time::{sleep, Duration};
 use uuid::Uuid;
@@ -26,14 +25,12 @@ async fn test_workspace_cache_get_and_invalidate() {
     let config = workspace_cache.get(ws_id).await.expect("Failed to get workspace config");
     assert_eq!(config.id, ws_id);
     assert_eq!(config.timezone, "Asia/Ho_Chi_Minh");
-    assert!(matches!(config.early_arrival_strategy, EarlyArrivalStrategy::Block | EarlyArrivalStrategy::Allow | EarlyArrivalStrategy::Clamp));
 
     // 2. Modify DB directly (bypassing service/cache)
     sqlx::query(
-        "UPDATE workspaces SET timezone = $1, early_arrival_strategy = $2 WHERE id = $3",
+        "UPDATE workspaces SET timezone = $1 WHERE id = $2",
     )
     .bind("UTC")
-    .bind(EarlyArrivalStrategy::Allow)
     .bind(ws_id)
     .execute(&pool)
     .await
@@ -52,5 +49,4 @@ async fn test_workspace_cache_get_and_invalidate() {
     // 5. Third `get` should fetch from DB again (returning fresh data)
     let fresh_config = workspace_cache.get(ws_id).await.expect("Failed to get workspace config");
     assert_eq!(fresh_config.timezone, "UTC");
-    assert!(matches!(fresh_config.early_arrival_strategy, EarlyArrivalStrategy::Allow));
 }

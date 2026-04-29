@@ -276,6 +276,7 @@ impl ReportService {
                 let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
                     work_unit_minutes: 30,
                     rounding_policy: "floor".to_string(),
+                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
                 });
 
                 let (std_work_units, ot_work_units) = self.calculate_day_units(
@@ -285,7 +286,7 @@ impl ReportService {
                     tz,
                     emp_sched.employee_id,
                     workspace.id,
-                    workspace.early_arrival_strategy,
+                    emp_attendance_rules.early_arrival_strategy,
                     emp_attendance_rules.work_unit_minutes,
                     &emp_attendance_rules.rounding_policy,
                 )
@@ -526,6 +527,7 @@ impl ReportService {
             let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
                 work_unit_minutes: 30,
                 rounding_policy: "floor".to_string(),
+                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
             });
             let mut employee_total_std = 0i32;
             let mut employee_total_ot = 0i32;
@@ -550,7 +552,7 @@ impl ReportService {
                     tz,
                     emp_sched.employee_id,
                     workspace.id,
-                    workspace.early_arrival_strategy,
+                    emp_attendance_rules.early_arrival_strategy,
                     emp_attendance_rules.work_unit_minutes,
                     &emp_attendance_rules.rounding_policy,
                 )

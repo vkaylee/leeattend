@@ -145,11 +145,13 @@ pub enum LeaveTransactionType {
     sqlx::Type,
     strum_macros::Display,
     ToSchema,
+    Default,
 )]
 #[sqlx(type_name = "early_arrival_strategy_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum EarlyArrivalStrategy {
     Allow,
+    #[default]
     Block,
     Clamp,
 }

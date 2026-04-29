@@ -605,12 +605,14 @@ export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
 export interface AttendanceRules {
   work_unit_minutes: number;
   rounding_policy: string;
+  early_arrival_strategy: "allow" | "block" | "clamp";
 }
 
 export interface AttendancePolicyVersion {
   id: string;
   work_unit_minutes: number;
   rounding_policy: string;
+  early_arrival_strategy: "allow" | "block" | "clamp";
   valid_from: string;
   valid_to: string | null;
   created_by: string | null;
@@ -620,6 +622,7 @@ export interface AttendancePolicyVersion {
 export interface UpdateAttendanceRulesRequest {
   work_unit_minutes?: number;
   rounding_policy?: string;
+  early_arrival_strategy?: "allow" | "block" | "clamp";
   valid_from?: string;
 }
 
@@ -633,6 +636,49 @@ export async function fetchAttendancePolicyVersions(wsId: string): Promise<Atten
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/default/versions`);
   if (!response.ok) throw new Error("Failed to fetch attendance policy versions");
   return response.json();
+}
+
+export interface PolicyAssignmentResponse {
+  id: string;
+  target_type: "USER" | "GROUP";
+  target_id: string;
+  valid_from: string;
+  valid_to: string | null;
+  rules: AttendanceRules;
+}
+
+export interface UpsertPolicyAssignmentRequest {
+  target_type: "USER" | "GROUP";
+  target_id: string;
+  work_unit_minutes: number;
+  rounding_policy: string;
+  early_arrival_strategy: "allow" | "block" | "clamp";
+  valid_from?: string;
+}
+
+export async function fetchPolicyAssignments(wsId: string): Promise<PolicyAssignmentResponse[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/assignments`);
+  if (!response.ok) throw new Error("Failed to fetch policy assignments");
+  return response.json();
+}
+
+export async function upsertPolicyAssignment(
+  wsId: string,
+  data: UpsertPolicyAssignmentRequest
+): Promise<PolicyAssignmentResponse> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/assignments`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to upsert policy assignment");
+  return response.json();
+}
+
+export async function deletePolicyAssignment(wsId: string, assignmentId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/assignments/${assignmentId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete policy assignment");
 }
 
 export async function updateDefaultAttendanceRules(

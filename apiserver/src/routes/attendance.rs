@@ -16,6 +16,15 @@ pub fn router() -> Router<Arc<AppState>> {
             get(handlers::list_default_attendance_policy_versions),
         )
         .route(
+            "/workspaces/:ws_id/attendance/policies/assignments",
+            get(handlers::list_policy_assignments)
+                .post(handlers::upsert_policy_assignment),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/policies/assignments/:assignment_id",
+            delete(handlers::delete_policy_assignment),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/adjustments",
             post(handlers::submit_attendance_adjustment)
                 .get(handlers::get_workspace_attendance_adjustments),

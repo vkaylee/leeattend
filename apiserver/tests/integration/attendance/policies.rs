@@ -296,3 +296,39 @@ async fn test_patch_with_rfc3339_valid_from() {
     let vf = v["valid_from"].as_str().expect("valid_from");
     assert!(vf.contains("2026-06-01"), "valid_from should contain 2026-06-01, got {vf}");
 }
+
+// ── 8. Update early_arrival_strategy ──────────────────────────────
+
+#[tokio::test]
+async fn test_patch_early_arrival_strategy() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+
+    // Default strategy should be block
+    let resp = app.clone().oneshot(req(
+        "GET",
+        &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+        ws_id, admin_id, None,
+    )).await.expect("get rules");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let rules = body_json(resp).await;
+    assert_eq!(rules["early_arrival_strategy"].as_str().expect("eas"), "block");
+
+    // Patch to clamp
+    let resp = app.clone().oneshot(req(
+        "PATCH",
+        &format!("/api/workspaces/{ws_id}/attendance/policies/default"),
+        ws_id, admin_id,
+        Some(serde_json::json!({
+            "early_arrival_strategy": "clamp"
+        }).to_string()),
+    )).await.expect("patch early_arrival_strategy");
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let v = body_json(resp).await;
+    assert_eq!(v["early_arrival_strategy"].as_str().expect("eas"), "clamp");
+}
+

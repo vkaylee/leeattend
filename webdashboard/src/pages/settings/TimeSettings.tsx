@@ -11,6 +11,7 @@ import { Combobox } from "@/components/ui/Combobox";
 import { useTranslation } from "react-i18next";
 import WorkingPatternsPage from "@/pages/WorkingPatternsPage";
 import AssignmentRulesPage from "@/pages/AssignmentRulesPage";
+import { PolicyAssignmentsSection } from "@/components/features/attendance/PolicyAssignmentsSection";
 
 export default function TimeSettings() {
   const wsId = getCurrentWorkspaceId();
@@ -68,7 +69,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
 
   const [workUnit, setWorkUnit] = useState(rules.work_unit_minutes ?? 15);
   const [roundingPolicy, setRoundingPolicy] = useState(rules.rounding_policy || "none");
-  const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState(workspace.early_arrival_strategy || "block");
+  const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState(rules.early_arrival_strategy || "block");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newValidFrom, setNewValidFrom] = useState(() => new Date().toISOString().split("T")[0]);
 
@@ -150,10 +151,8 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
     updateRulesMutation.mutate({
       work_unit_minutes: workUnit,
       rounding_policy: roundingPolicy,
-      valid_from: newValidFrom,
-    });
-    updateWsMutation.mutate({
       early_arrival_strategy: earlyArrivalStrategy as any,
+      valid_from: newValidFrom,
     });
   }
 
@@ -218,20 +217,6 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
 
         {activeTab === "general" && (
           <>
-            {/* Early Arrival Strategy (workspace-level, not versioned) */}
-            <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6 mb-8">
-              <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><ShieldAlert className="w-6 h-6 text-amber-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.early_arrival_strategy")}</h2></div>
-              <Combobox
-                options={[
-                  { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> },
-                  { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> },
-                  { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
-                ]}
-                value={earlyArrivalStrategy}
-                onChange={(v) => { setEarlyArrivalStrategy(v as any); updateWsMutation.mutate({ early_arrival_strategy: v as any }); }}
-                className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
-              />
-            </div>
 
             {/* Version History Timeline */}
             <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
@@ -286,6 +271,15 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t("common.workspace_settings.rounding_policy")}</p>
                             <p className={cn("text-lg font-bold tracking-tight", isCurrent ? "text-primary-600 dark:text-primary-400" : "text-slate-600 dark:text-slate-300")}>{roundingLabel(v.rounding_policy)}</p>
                           </div>
+                          <div className="col-span-2 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <div>
+                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t("common.workspace_settings.early_arrival_strategy")}</p>
+                               <p className={cn("text-sm font-bold tracking-tight", isCurrent ? "text-amber-600 dark:text-amber-400" : "text-slate-600 dark:text-slate-300")}>
+                                 {t(`common.workspace_settings.early_arrival_options.${v.early_arrival_strategy || "block"}`)}
+                               </p>
+                            </div>
+                            <ShieldAlert className={cn("w-5 h-5", isCurrent ? "text-amber-500/50" : "text-slate-400/50")} />
+                          </div>
                         </div>
                         <p className="mt-3 text-[9px] font-medium text-slate-400 dark:text-slate-500 italic">Created {formatDate(v.created_at)}</p>
                       </div>
@@ -294,6 +288,9 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                 </div>
               )}
             </div>
+
+            {/* Overrides & Exceptions */}
+            <PolicyAssignmentsSection wsId={wsId} />
 
             {/* Reprocess section */}
             <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10 mt-8">
@@ -342,6 +339,19 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                     <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
                     <Combobox options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy || "none"} onChange={setRoundingPolicy} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
                   </div>
+                </div>
+                <div className="space-y-3 px-1">
+                  <label className={LABEL_BASE}>{t("common.workspace_settings.early_arrival_strategy")}</label>
+                  <Combobox
+                    options={[
+                      { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> },
+                      { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> },
+                      { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
+                    ]}
+                    value={earlyArrivalStrategy}
+                    onChange={(v) => setEarlyArrivalStrategy(v as any)}
+                    className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
+                  />
                 </div>
                 <div className="pt-8 border-t border-slate-50 dark:border-slate-800 grid grid-cols-2 gap-6">
                   <Button variant="outline" size="lg" onClick={() => setShowCreateModal(false)}>{t("common.cancel").toUpperCase()}</Button>

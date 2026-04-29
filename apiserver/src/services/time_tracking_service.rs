@@ -88,7 +88,14 @@ impl TimeTrackingService {
                 let shift_start = today.and_time(start_time);
                 let earliest_punch = shift_start - chrono::Duration::minutes(grace_minutes as i64);
 
-                if workspace.early_arrival_strategy == crate::models::EarlyArrivalStrategy::Block
+                let rules = crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
+                    &self.pool,
+                    req.employee_id,
+                    workspace_id,
+                    today,
+                ).await.map_err(AppError::Sqlx)?;
+
+                if rules.early_arrival_strategy == crate::models::EarlyArrivalStrategy::Block
                     && local_now.naive_local() < earliest_punch
                 {
                     return Err(AppError::Validation("Too early to punch in".into()));

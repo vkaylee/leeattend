@@ -119,8 +119,15 @@ impl AttendanceSummaryService {
                         end += chrono::Duration::days(1);
                     }
 
+                    let rules = crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
+                        &self.pool,
+                        employee_id,
+                        workspace_id,
+                        date,
+                    ).await.map_err(|e| e.to_string())?;
+
                     // Resolve Policy Rules
-                    let rules = PolicyResolver::resolve_with_shift_overrides(
+                    let policy_rules = PolicyResolver::resolve_with_shift_overrides(
                         &self.pool,
                         employee_id,
                         workspace_id,
@@ -129,7 +136,7 @@ impl AttendanceSummaryService {
                             grace_period_minutes: daily_schedule.early_punch_in_grace_period_minutes,
                             is_break_auto_deduct: daily_schedule.is_break_auto_deduct,
                             allow_early_ot: daily_schedule.allow_early_ot,
-                            early_arrival_strategy: workspace.early_arrival_strategy,
+                            early_arrival_strategy: rules.early_arrival_strategy,
                             is_break_overtime: false,
                         },
                     )
@@ -142,7 +149,7 @@ impl AttendanceSummaryService {
                         Some(end),
                         daily_schedule.break_duration_minutes.unwrap_or(0),
                         actual_break_minutes,
-                        &rules,
+                        &policy_rules,
                         None,
                     );
 

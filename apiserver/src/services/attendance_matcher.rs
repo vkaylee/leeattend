@@ -140,7 +140,7 @@ impl AttendanceMatcher {
                                         grace_period_minutes: Some(s.early_punch_in_grace_period_minutes),
                                         is_break_auto_deduct: Some(s.is_break_auto_deduct),
                                         allow_early_ot: Some(s.allow_early_ot),
-                                        early_arrival_strategy: ctx.workspace.early_arrival_strategy,
+                                        early_arrival_strategy: attendance_rules.early_arrival_strategy,
                                         is_break_overtime: entry.is_break_overtime,
                                     },
                                 )

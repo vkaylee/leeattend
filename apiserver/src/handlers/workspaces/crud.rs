@@ -1355,7 +1355,6 @@ pub async fn update_workspace(
         req.timezone,
         req.theme_primary_color,
         req.default_language,
-        req.early_arrival_strategy,
         req.holiday_overnight_strategy,
         req.default_holiday_ot_multiplier,
     )
