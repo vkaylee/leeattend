@@ -34,18 +34,15 @@ leeattend_run_unit() {
         local shard_flag=""
     fi
 
-    local APISERVER_CMD="cargo nextest run --lib $TEST_PATTERN --no-tests=pass"
-    local AGENT_MAIN_CMD="cargo nextest run --lib $TEST_PATTERN --no-tests=pass"
+    local BACKEND_CMD="cargo nextest run --workspace --lib $TEST_PATTERN --no-tests=pass"
     local WEB_CMD="npm run test -- $TEST_PATTERN --passWithNoTests"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"cargo nextest run --lib $TEST_PATTERN $shard_flag --no-tests=pass || [ \$? -eq 4 ]\" </dev/null"
-        AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T -e CENTRAL_SERVER_URL=ws://unit-test-invalid:3000 agent_test bash -c \"cargo nextest run --lib $TEST_PATTERN $shard_flag --no-tests=pass || [ \$? -eq 4 ]\" </dev/null"
+        BACKEND_CMD="$DOCKER_COMPOSE_CMD exec -T -w /workspace apiserver_test bash -c \"cargo nextest run --workspace --lib $TEST_PATTERN $shard_flag --no-tests=pass || [ \\$? -eq 4 ]\" </dev/null"
         WEB_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run test -- $TEST_PATTERN $shard_flag --passWithNoTests </dev/null"
     fi
 
     run_parallel_ordered "Phase 1 (Unit Tests)" "$COMPONENT_FILTER" \
-        "1|apiserver|apiserver|$APISERVER_CMD" \
-        "2|agent-main|agent-main|$AGENT_MAIN_CMD" \
+        "1|rust-backend|apiserver|$BACKEND_CMD" \
         "4|webdashboard|webdashboard|$WEB_CMD"
 }

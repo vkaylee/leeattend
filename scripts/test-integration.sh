@@ -36,8 +36,7 @@ leeattend_run_integration() {
     # Default URL for internal tests
     export DATABASE_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
 
-    local APISERVER_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG"
-    local AGENT_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG"
+    local BACKEND_INT_CMD="cargo nextest run --workspace --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG"
     
     # For Playwright, we use -g for grep if pattern is provided
     local PW_ARGS=""
@@ -64,13 +63,13 @@ leeattend_run_integration() {
             podman exec -d -e DATABASE_URL=$API_SERVER_DB_URL "$_apiserver_ctr" bash -c "cargo run --bin apiserver > /workspace/apiserver/apiserver.log 2>&1" </dev/null
             
             # Wait for server to be ready (direct podman exec for speed)
-            echo -n "  Waiting for API Server (timeout: 120s)..."
-            for i in {1..120}; do
+            echo -n "  Waiting for API Server (timeout: 600s)..."
+            for i in {1..600}; do
                 if podman exec "$_apiserver_ctr" curl -s http://localhost:3000/api/health </dev/null > /dev/null 2>&1; then
                     echo " Ready!"
                     break
                 fi
-                if [[ $i -eq 120 ]]; then
+                if [[ $i -eq 600 ]]; then
                     echo -e "\n  ${RED}❌ API Server failed to start! Logs:${NC}"
                     podman exec "$_apiserver_ctr" tail -20 /workspace/apiserver/apiserver.log </dev/null 2>&1
                 fi
@@ -80,8 +79,7 @@ leeattend_run_integration() {
         fi
 
         local THREADS=${NEXTEST_TEST_THREADS:-1}
-        APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL -e NEXTEST_TEST_THREADS=$THREADS apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
-        AGENT_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e NEXTEST_TEST_THREADS=$THREADS agent_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
+        BACKEND_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL -e NEXTEST_TEST_THREADS=$THREADS -w /workspace apiserver_test bash -c \"cargo nextest run --workspace --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
         PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test $PW_ARGS --workers 1\" </dev/null"
     fi
 
@@ -89,10 +87,10 @@ leeattend_run_integration() {
         echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
         local prebuild_exit=0
         if [[ "${USE_DOCKER:-}" == "true" ]]; then
-            $DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c "cargo test --no-run -j $CARGO_BUILD_JOBS" </dev/null > "$LOG_DIR/prebuild.log" 2>&1
+            $DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL -w /workspace apiserver_test bash -c "cargo test --workspace --no-run -j $CARGO_BUILD_JOBS" </dev/null > "$LOG_DIR/prebuild.log" 2>&1
             prebuild_exit=$?
         else
-            run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && DATABASE_URL=$DATABASE_URL cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
+            run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT' && DATABASE_URL=$DATABASE_URL cargo test --workspace --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
             prebuild_exit=$?
         fi
         if [[ $prebuild_exit -ne 0 ]]; then
@@ -106,7 +104,6 @@ leeattend_run_integration() {
 
     # Note: Individual task timeouts are handled by run_parallel_ordered via TIMEOUT_INTEGRATION
     run_parallel_ordered "Phase 3 (Integration & E2E)" "$COMPONENT_FILTER" \
-        "1|apiserver-int|apiserver|$APISERVER_INT_CMD" \
-        "2|agent-int|agent-main|$AGENT_INT_CMD" \
+        "1|rust-backend-int|apiserver|$BACKEND_INT_CMD" \
         "3|playwright-e2e|webdashboard|$PW_CMD"
 }

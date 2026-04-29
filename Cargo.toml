@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "apiserver",
+    "agent-main"
+]
+resolver = "2"
