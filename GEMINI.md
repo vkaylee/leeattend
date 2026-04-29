@@ -108,6 +108,12 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 
 *❌ Failure Condition:* Running tools directly on the host bypasses container isolation, causes "works on my machine" bugs, and can corrupt the host environment.
 
+### 4.11 Enterprise-Grade Premium Standard (MANDATORY)
+> 🔴 **MANDATORY:** Every single feature, component, and API developed in this workspace MUST default to an **Enterprise-Grade Premium Ready** standard. Do NOT deliver MVP-style or basic implementations.
+- **Frontend (UI/UX):** Use premium design patterns (e.g., Combobox/Radix instead of native selects). Implement full i18n support, Skeleton loaders, empty states, Error Boundaries, and smooth micro-interactions.
+- **Backend (API/DB):** Architecture must be production-ready from day one. This means strict validation (Type-safety, UUIDs), explicit error handling mapping to AppError, proper transaction boundaries, comprehensive audit logging for sensitive actions, and structured telemetry.
+*❌ Failure Condition:* Delivering a bare-bones UI with hardcoded text or an API without proper error handling/validation will be instantly rejected.
+
 ### 4.8 Performance & Resource Optimization
 - **Performance Budget:** JS bundle `< 200KB` gzipped. Core Web Vitals: LCP < 2.5s. Ensure zero memory leaks for SPAs.
 - **Scalability (Backend):** ZERO N+1 Queries allowed. ALL public APIs MUST implement Rate Limiting to prevent DDoS and resource exhaustion.
