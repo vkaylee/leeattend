@@ -7,6 +7,15 @@ use crate::AppState;
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route(
+            "/workspaces/:ws_id/attendance/policies/default",
+            get(handlers::get_default_attendance_rules)
+                .patch(handlers::update_default_attendance_rules),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/policies/default/versions",
+            get(handlers::list_default_attendance_policy_versions),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/adjustments",
             post(handlers::submit_attendance_adjustment)
                 .get(handlers::get_workspace_attendance_adjustments),

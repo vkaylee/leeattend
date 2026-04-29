@@ -601,3 +601,48 @@ export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
   if (!response.ok) throw new Error("Failed to fetch monitor overview");
   return response.json();
 }
+
+export interface AttendanceRules {
+  work_unit_minutes: number;
+  rounding_policy: string;
+}
+
+export interface AttendancePolicyVersion {
+  id: string;
+  work_unit_minutes: number;
+  rounding_policy: string;
+  valid_from: string;
+  valid_to: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface UpdateAttendanceRulesRequest {
+  work_unit_minutes?: number;
+  rounding_policy?: string;
+  valid_from?: string;
+}
+
+export async function fetchDefaultAttendanceRules(wsId: string): Promise<AttendanceRules> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/default`);
+  if (!response.ok) throw new Error("Failed to fetch default attendance rules");
+  return response.json();
+}
+
+export async function fetchAttendancePolicyVersions(wsId: string): Promise<AttendancePolicyVersion[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/default/versions`);
+  if (!response.ok) throw new Error("Failed to fetch attendance policy versions");
+  return response.json();
+}
+
+export async function updateDefaultAttendanceRules(
+  wsId: string,
+  data: UpdateAttendanceRulesRequest
+): Promise<AttendancePolicyVersion> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/default`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update default attendance rules");
+  return response.json();
+}

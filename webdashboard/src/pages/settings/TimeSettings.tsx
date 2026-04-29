@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Calculator, Save, ShieldAlert, Settings2, LayoutGrid, List, Zap, RefreshCw, AlertTriangle } from "lucide-react";
+import { Clock, Calculator, Save, ShieldAlert, Settings2, LayoutGrid, Zap, RefreshCw, AlertTriangle, Plus, History, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { LABEL_BASE } from "@/components/ui/FormField";
-import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace, reprocessAllAttendance, fetchGenericJobStatus } from "@/lib/api";
+import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace, reprocessAllAttendance, fetchGenericJobStatus, fetchDefaultAttendanceRules, updateDefaultAttendanceRules, fetchAttendancePolicyVersions, AttendanceRules, AttendancePolicyVersion, UpdateAttendanceRulesRequest } from "@/lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import { useTranslation } from "react-i18next";
 import WorkingPatternsPage from "@/pages/WorkingPatternsPage";
@@ -21,7 +21,19 @@ export default function TimeSettings() {
     enabled: !!wsId,
   });
 
-  if (isLoadingWs) {
+  const { data: rules, isLoading: isLoadingRules } = useQuery({
+    queryKey: ["attendance-rules", wsId],
+    queryFn: () => fetchDefaultAttendanceRules(wsId!),
+    enabled: !!wsId,
+  });
+
+  const { data: versions = [], isLoading: isLoadingVersions } = useQuery({
+    queryKey: ["attendance-policy-versions", wsId],
+    queryFn: () => fetchAttendancePolicyVersions(wsId!),
+    enabled: !!wsId,
+  });
+
+  if (isLoadingWs || isLoadingRules || isLoadingVersions) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -29,14 +41,14 @@ export default function TimeSettings() {
     );
   }
 
-  if (!workspace) return null;
+  if (!workspace || !rules) return null;
 
-  return <TimeSettingsContent key={workspace.id} workspace={workspace} />;
+  return <TimeSettingsContent key={`${workspace.id}-${versions.length}`} workspace={workspace} rules={rules} versions={versions} />;
 }
 
 type TabType = "general" | "patterns" | "rules";
 
-function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
+function TimeSettingsContent({ workspace, rules, versions }: { workspace: Workspace; rules: AttendanceRules; versions: AttendancePolicyVersion[] }) {
 
   const { t } = useTranslation();
 
@@ -54,13 +66,11 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
     setActiveTab(tab);
   };
 
-  const [workUnit, setWorkUnit] = useState(workspace.work_unit_minutes);
-
-  const [roundingPolicy, setRoundingPolicy] = useState(workspace.rounding_policy);
-
-
-
+  const [workUnit, setWorkUnit] = useState(rules.work_unit_minutes ?? 15);
+  const [roundingPolicy, setRoundingPolicy] = useState(rules.rounding_policy || "none");
   const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState(workspace.early_arrival_strategy || "block");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newValidFrom, setNewValidFrom] = useState(() => new Date().toISOString().split("T")[0]);
 
   // --- Bulk Reprocess State ---
   const [reprocessStart, setReprocessStart] = useState(() => {
@@ -120,34 +130,45 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
   };
 
   const updateWsMutation = useMutation({
-
     mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
-
     onSuccess: () => {
-
-      toast.success(t("common.success"));
-
       queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
-
     },
-
   });
 
+  const updateRulesMutation = useMutation({
+    mutationFn: (data: UpdateAttendanceRulesRequest) => updateDefaultAttendanceRules(wsId, data),
+    onSuccess: () => {
+      toast.success(t("common.success"));
+      queryClient.invalidateQueries({ queryKey: ["attendance-rules", wsId] });
+      queryClient.invalidateQueries({ queryKey: ["attendance-policy-versions", wsId] });
+      setShowCreateModal(false);
+    },
+  });
 
-
-  function handleSaveConfig() {
-
-    updateWsMutation.mutate({
-
+  function handleSaveNewVersion() {
+    updateRulesMutation.mutate({
       work_unit_minutes: workUnit,
-
       rounding_policy: roundingPolicy,
-
-      early_arrival_strategy: earlyArrivalStrategy as any
-
+      valid_from: newValidFrom,
     });
-
+    updateWsMutation.mutate({
+      early_arrival_strategy: earlyArrivalStrategy as any,
+    });
   }
+
+  const formatDate = (iso: string) => {
+    try { return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); } catch { return iso; }
+  };
+
+  const workUnitLabel = (v: number) => {
+    if (v === 1) return "1 min (exact)";
+    return `${v} min`;
+  };
+  const roundingLabel = (v: string) => {
+    const map: Record<string, string> = { none: "No rounding", floor: "Round down", ceil: "Round up", round: "Standard rounding" };
+    return map[v] || v;
+  };
 
 
 
@@ -174,9 +195,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
         </div>
 
         {activeTab === "general" && (
-
-          <Button onClick={handleSaveConfig} loading={updateWsMutation.isPending} icon={<Save size={18} />}>{t("common.workspace_settings.save_config").toUpperCase()}</Button>
-
+          <Button onClick={() => { setShowCreateModal(true); setNewValidFrom(new Date().toISOString().split("T")[0]); }} icon={<Plus size={18} />}>{t("common.workspace_settings.new_version") || "NEW VERSION"}</Button>
         )}
 
       </div>
@@ -199,58 +218,84 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
         {activeTab === "general" && (
           <>
-            <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
-
-              <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Calculator className="w-6 h-6 text-indigo-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.attendance_config")}</h2></div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-
-                <div className="space-y-3">
-
-                  <label className={LABEL_BASE}>{t("common.workspace_settings.work_unit")}</label>
-
-                  <Combobox options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnit.toString()} onChange={(v) => setWorkUnit(parseInt(v))} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
-
-                </div>
-
-                <div className="space-y-3">
-
-                  <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
-
-                  <Combobox options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy} onChange={setRoundingPolicy} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
-
-                </div>
-
-                <div className="space-y-3 md:col-span-2">
-
-                  <label className={LABEL_BASE}>{t("common.workspace_settings.early_arrival_strategy")}</label>
-
-                  <Combobox
-
-                    options={[
-
-                      { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> },
-
-                      { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> },
-
-                      { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
-
-                    ]}
-
-                    value={earlyArrivalStrategy}
-
-                    onChange={(v) => setEarlyArrivalStrategy(v as any)}
-
-                    className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
-
-                  />
-
-                </div>
-
-              </div>
-              <Button onClick={handleSaveConfig} loading={updateWsMutation.isPending} icon={<Save size={18} />}>{t("common.workspace_settings.save_config").toUpperCase()}</Button>
+            {/* Early Arrival Strategy (workspace-level, not versioned) */}
+            <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-6 mb-8">
+              <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><ShieldAlert className="w-6 h-6 text-amber-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.early_arrival_strategy")}</h2></div>
+              <Combobox
+                options={[
+                  { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> },
+                  { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> },
+                  { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
+                ]}
+                value={earlyArrivalStrategy}
+                onChange={(v) => { setEarlyArrivalStrategy(v as any); updateWsMutation.mutate({ early_arrival_strategy: v as any }); }}
+                className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
+              />
             </div>
 
+            {/* Version History Timeline */}
+            <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
+              <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
+                <div className="flex items-center gap-3"><History className="w-6 h-6 text-indigo-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.attendance_config")}</h2></div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{versions.length} {versions.length === 1 ? "VERSION" : "VERSIONS"}</span>
+              </div>
+
+              {versions.length === 0 ? (
+                <div className="py-16 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
+                  <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-5 border border-slate-100 dark:border-slate-800"><Calculator size={36} className="text-slate-200 dark:text-slate-700" /></div>
+                  <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{t("common.workspace_settings.no_versions") || "No configuration yet"}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 opacity-50 italic">{t("common.workspace_settings.no_versions_desc") || "Create the first version to get started"}</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {versions.map((v, idx) => {
+                    const isCurrent = idx === 0 && !v.valid_to;
+                    return (
+                      <div key={v.id} className={cn(
+                        "relative p-6 rounded-2xl border transition-all group",
+                        isCurrent
+                          ? "bg-primary-50/50 dark:bg-primary-950/30 border-primary-200 dark:border-primary-800 shadow-md"
+                          : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 opacity-70"
+                      )}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className={cn(
+                              "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                              isCurrent ? "bg-primary-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-600 border border-slate-100 dark:border-slate-800"
+                            )}>
+                              {isCurrent ? <CheckCircle2 size={24} /> : <Clock size={24} />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-3 mb-1">
+                                {isCurrent && <span className="px-2.5 py-0.5 bg-primary-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm">ACTIVE</span>}
+                                {v.valid_to && <span className="px-2.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase tracking-widest rounded-lg">EXPIRED</span>}
+                              </div>
+                              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                {formatDate(v.valid_from)}{v.valid_to ? ` → ${formatDate(v.valid_to)}` : " → Present"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                          <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t("common.workspace_settings.work_unit")}</p>
+                            <p className={cn("text-lg font-bold tracking-tight", isCurrent ? "text-primary-600 dark:text-primary-400" : "text-slate-600 dark:text-slate-300")}>{workUnitLabel(v.work_unit_minutes)}</p>
+                          </div>
+                          <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t("common.workspace_settings.rounding_policy")}</p>
+                            <p className={cn("text-lg font-bold tracking-tight", isCurrent ? "text-primary-600 dark:text-primary-400" : "text-slate-600 dark:text-slate-300")}>{roundingLabel(v.rounding_policy)}</p>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-[9px] font-medium text-slate-400 dark:text-slate-500 italic">Created {formatDate(v.created_at)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Reprocess section */}
             <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10 mt-8">
               <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
                 <div className="flex items-center gap-3">
@@ -260,44 +305,50 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
                   </h2>
                 </div>
               </div>
-              
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {t("reports.reprocess.bulk_confirm_message") || "Recalculate attendance for all employees in the selected date range. This will apply the latest shift settings and pairing logic."}
+                {t("reports.reprocess.bulk_confirm_message") || "Recalculate attendance for all employees in the selected date range."}
               </p>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-3">
                   <label className={LABEL_BASE}>{t("common.startDate") || "Start Date"}</label>
-                  <input
-                    type="date"
-                    value={reprocessStart}
-                    onChange={(e) => setReprocessStart(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold h-14"
-                  />
+                  <input type="date" value={reprocessStart} onChange={(e) => setReprocessStart(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold h-14" />
                 </div>
-
                 <div className="space-y-3">
                   <label className={LABEL_BASE}>{t("common.endDate") || "End Date"}</label>
-                  <input
-                    type="date"
-                    value={reprocessEnd}
-                    onChange={(e) => setReprocessEnd(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold h-14"
-                  />
+                  <input type="date" value={reprocessEnd} onChange={(e) => setReprocessEnd(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold h-14" />
                 </div>
-
                 <div className="space-y-3 md:col-span-2 flex justify-end">
-                  <Button 
-                    onClick={() => setShowReprocessConfirm(true)} 
-                    variant="outline" 
-                    className="text-orange-600 border-orange-200 hover:bg-orange-50 dark:border-orange-900/50 dark:hover:bg-orange-900/20"
-                    icon={<RefreshCw size={18} />}
-                  >
+                  <Button onClick={() => setShowReprocessConfirm(true)} variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50 dark:border-orange-900/50 dark:hover:bg-orange-900/20" icon={<RefreshCw size={18} />}>
                     {t("reports.reprocess.bulk_tooltip")?.toUpperCase() || "REPROCESS DATA"}
                   </Button>
                 </div>
               </div>
             </div>
+
+            {/* Create New Version Modal */}
+            <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title={t("common.workspace_settings.new_version") || "New Attendance Config"} subtitle={t("common.workspace_settings.new_version_desc") || "Create a new configuration version with an effective date"} icon={<Plus size={24} />} maxWidth="xl">
+              <div className="space-y-8 pt-4 animate-in fade-in duration-500">
+                <div className="space-y-3 px-1">
+                  <label className={LABEL_BASE}>{t("common.workspace_settings.valid_from") || "Effective From"}</label>
+                  <input type="date" value={newValidFrom} onChange={e => setNewValidFrom(e.target.value)} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" />
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60">{t("common.workspace_settings.valid_from_note") || "Payroll calculations will use this configuration from this date forward."}</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3 px-1">
+                    <label className={LABEL_BASE}>{t("common.workspace_settings.work_unit")}</label>
+                    <Combobox options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnit?.toString() || "15"} onChange={(v) => setWorkUnit(parseInt(v))} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
+                  </div>
+                  <div className="space-y-3 px-1">
+                    <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
+                    <Combobox options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy || "none"} onChange={setRoundingPolicy} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
+                  </div>
+                </div>
+                <div className="pt-8 border-t border-slate-50 dark:border-slate-800 grid grid-cols-2 gap-6">
+                  <Button variant="outline" size="lg" onClick={() => setShowCreateModal(false)}>{t("common.cancel").toUpperCase()}</Button>
+                  <Button variant="secondary" size="lg" loading={updateRulesMutation.isPending} onClick={handleSaveNewVersion}>{(t("common.workspace_settings.save_config") || "SAVE").toUpperCase()}</Button>
+                </div>
+              </div>
+            </Modal>
           </>
         )}
 
