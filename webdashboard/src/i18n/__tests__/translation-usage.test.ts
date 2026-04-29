@@ -99,6 +99,7 @@ describe('Translation Usage', () => {
       });
     }
 
+    fs.writeFileSync('missing-keys.json', JSON.stringify(missingKeys, null, 2));
     expect(missingKeys.length, `Found ${missingKeys.length} missing translation keys across all languages.`).toBe(0);
   });
 

@@ -18,7 +18,7 @@ async fn test_payroll_credits_paid_holiday() {
 
     // Set work_unit_minutes to 60 for consistent hourly-like testing
     sqlx::query(
-        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+        "UPDATE attendance_policy_versions SET rules = '{\"work_unit_minutes\": 60, \"rounding_policy\": \"none\"}'::jsonb WHERE policy_id = (SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true)",
     )
     .bind(workspace_id)
     .execute(&pool)

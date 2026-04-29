@@ -235,6 +235,16 @@ impl ReportService {
         .await
         .map_err(AppError::Sqlx)?;
 
+        // 5d. BATCH fetch attendance rules (SCD Type 2)
+        let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
+            &self.pool,
+            &emp_ids,
+            workspace_id,
+            start_date, // proxy date for the report period
+        )
+        .await
+        .map_err(AppError::Sqlx)?;
+
         // 6. Calculate reports (same logic as before)
         let mut reports = Vec::new();
 
@@ -263,6 +273,11 @@ impl ReportService {
                     .last()
                     .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
 
+                let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
+                    work_unit_minutes: 30,
+                    rounding_policy: "floor".to_string(),
+                });
+
                 let (std_work_units, ot_work_units) = self.calculate_day_units(
                     day_entries,
                     &daily,
@@ -271,8 +286,8 @@ impl ReportService {
                     emp_sched.employee_id,
                     workspace.id,
                     workspace.early_arrival_strategy,
-                    workspace.work_unit_minutes,
-                    &workspace.rounding_policy,
+                    emp_attendance_rules.work_unit_minutes,
+                    &emp_attendance_rules.rounding_policy,
                 )
                 .await;
 
@@ -489,15 +504,29 @@ impl ReportService {
         })
         .collect();
 
+        // 6b. BATCH fetch attendance rules (SCD Type 2)
+        let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
+            &self.pool,
+            &emp_ids,
+            workspace.id,
+            start_date, // proxy date for the report period
+        )
+        .await
+        .map_err(AppError::Sqlx)?;
+
         // 7. Calculate work units per employee using the SAME logic as daily report
         let mut employee_totals: HashMap<Uuid, (i32, i32)> = HashMap::new();
 
         for emp_sched in schedules {
-            // Get entries from HashMap (O(1) lookup instead of DB query)
             let entries = entries_map
                 .get(&emp_sched.employee_id)
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
+
+            let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+            });
             let mut employee_total_std = 0i32;
             let mut employee_total_ot = 0i32;
 
@@ -522,8 +551,8 @@ impl ReportService {
                     emp_sched.employee_id,
                     workspace.id,
                     workspace.early_arrival_strategy,
-                    workspace.work_unit_minutes,
-                    &workspace.rounding_policy,
+                    emp_attendance_rules.work_unit_minutes,
+                    &emp_attendance_rules.rounding_policy,
                 )
                 .await;
 

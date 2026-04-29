@@ -1350,8 +1350,6 @@ pub async fn update_workspace(
     state.core.workspace_service.update_workspace(
         ctx.workspace_id,
         req.name,
-        req.work_unit_minutes,
-        req.rounding_policy,
         req.date_format,
         req.time_format,
         req.timezone,

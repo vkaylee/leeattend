@@ -202,6 +202,28 @@ impl WorkspaceBuilder {
             .await
             .unwrap();
 
+            // Seed default attendance policy for tests
+            let policy_id: Uuid = sqlx::query_scalar(
+                "INSERT INTO attendance_policies (workspace_id, name, is_default) VALUES ($1, 'Default Test Policy', true) RETURNING id"
+            )
+            .bind(ws_id)
+            .fetch_one(&self.pool)
+            .await
+            .unwrap();
+
+            let rules_json = serde_json::json!({
+                "work_unit_minutes": 30,
+                "rounding_policy": "floor"
+            });
+            sqlx::query(
+                "INSERT INTO attendance_policy_versions (policy_id, rules, valid_from) VALUES ($1, $2, '2000-01-01 00:00:00Z')"
+            )
+            .bind(policy_id)
+            .bind(rules_json)
+            .execute(&self.pool)
+            .await
+            .unwrap();
+
             ws_id
         })
         .await
@@ -666,6 +688,14 @@ impl TestFactory {
                 .await
                 .unwrap();
             sqlx::query("DELETE FROM users CASCADE")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM attendance_policy_versions CASCADE")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM attendance_policies CASCADE")
                 .execute(&self.pool)
                 .await
                 .unwrap();

@@ -496,6 +496,7 @@
         "connectivity": "连接性",
         "connectivity_desc": "管理设备连接和网络设置。",
         "general": "常规",
+        "organization": "组织",
         "payroll": "薪资",
         "payroll_desc": "管理标准工作日和薪资公式。",
         "people": "人员",
@@ -503,6 +504,7 @@
         "time": "时间与考勤",
         "time_desc": "配置班次、排班和考勤规则。",
         "general_desc": "Branding and basic workspace options.",
+        "organization_desc": "管理公司详细信息和品牌。",
         "leave": "Leave Management"
       },
       "tabs": {
@@ -2669,11 +2671,13 @@
     "title": "设置中心",
     "categories": {
       "general": "常规",
+      "organization": "组织",
       "people": "人员",
       "time": "时间与考勤",
       "payroll": "薪资",
       "connectivity": "连接性",
       "general_desc": "品牌塑造和基本工作空间选项。",
+      "organization_desc": "管理公司详细信息和品牌。",
       "people_desc": "管理员工、部门和角色。",
       "time_desc": "配置班次、排班和考勤规则。",
       "payroll_desc": "管理标准工作日和公式。",

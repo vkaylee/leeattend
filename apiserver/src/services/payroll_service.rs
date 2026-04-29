@@ -285,14 +285,20 @@ impl PayrollService {
             .await
             .map_err(AppError::Sqlx)?;
 
+            let attendance_policy = PolicyResolver::resolve_attendance_policy(
+                pool, employee_id, workspace_id, seg_start,
+            )
+            .await
+            .map_err(AppError::Sqlx)?;
+
             let seg_units_per_day = (std_config.hours_per_day * Decimal::from(60))
-                / Decimal::from(ctx.workspace.work_unit_minutes);
+                / Decimal::from(attendance_policy.work_unit_minutes);
 
             // B. Attendance — delegated to AttendanceMatcher
             let att = AttendanceMatcher::process_segment_attendance(
                 pool, &ctx, seg_start, seg_end,
                 segment_total_base, segment_ot_base,
-                &std_config, seg_units_per_day,
+                &std_config, &attendance_policy, seg_units_per_day,
                 &mut policy_cache,
             ).await;
 
@@ -328,9 +334,15 @@ impl PayrollService {
         ).await.unwrap_or(None);
         if let Some(ref ps) = payroll_settings {
             if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
+                let month_end_policy = PolicyResolver::resolve_attendance_policy(
+                    pool, employee_id, workspace_id, ctx.end_date,
+                )
+                .await
+                .map_err(AppError::Sqlx)?;
+
                 let (capped_units, capped_pay) = FinancialCalculator::apply_ot_cap(
                     total_ot_units, total_overtime_pay,
-                    max_monthly_hours, ctx.workspace.work_unit_minutes,
+                    max_monthly_hours, month_end_policy.work_unit_minutes,
                 );
                 if capped_units < total_ot_units {
                     tracing::info!(
@@ -539,8 +551,6 @@ mod tests {
             workspace: crate::models::Workspace {
                 id: Uuid::new_v4(),
                 name: "Test".into(),
-                work_unit_minutes: 30,
-                rounding_policy: "floor".into(),
                 date_format: "YYYY-MM-DD".into(),
                 time_format: "HH:mm".into(),
                 timezone: "UTC".into(),

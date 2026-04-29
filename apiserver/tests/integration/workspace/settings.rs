@@ -74,8 +74,6 @@ async fn test_update_workspace_time_format() {
         ws_id,
         None,
         None,
-        None,
-        None,
         Some("12h".to_string()),
         None,
         None,

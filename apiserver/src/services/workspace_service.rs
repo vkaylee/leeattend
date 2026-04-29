@@ -103,8 +103,6 @@ impl WorkspaceService {
         &self,
         ws_id: Uuid,
         name: Option<String>,
-        work_unit_minutes: Option<i32>,
-        rounding_policy: Option<String>,
         date_format: Option<String>,
         time_format: Option<String>,
         timezone: Option<String>,
@@ -120,22 +118,6 @@ impl WorkspaceService {
 
         if name.is_some() {
             query.push_str(&format!("name = ${arg_idx}"));
-            arg_idx += 1;
-            has_fields = true;
-        }
-        if work_unit_minutes.is_some() {
-            if has_fields {
-                query.push_str(", ");
-            }
-            query.push_str(&format!("work_unit_minutes = ${arg_idx}"));
-            arg_idx += 1;
-            has_fields = true;
-        }
-        if rounding_policy.is_some() {
-            if has_fields {
-                query.push_str(", ");
-            }
-            query.push_str(&format!("rounding_policy = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -214,12 +196,6 @@ impl WorkspaceService {
 
         if let Some(n) = name {
             q = q.bind(n);
-        }
-        if let Some(w) = work_unit_minutes {
-            q = q.bind(w);
-        }
-        if let Some(r) = rounding_policy {
-            q = q.bind(r);
         }
         if let Some(d) = date_format {
             q = q.bind(d);

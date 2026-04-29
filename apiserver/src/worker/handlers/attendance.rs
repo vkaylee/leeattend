@@ -235,6 +235,15 @@ impl AttendanceHandler {
         .await
         .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
+        let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
+            pool,
+            &emp_ids,
+            workspace_id,
+            start_date, // Using start_date as proxy for the report period
+        )
+        .await
+        .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;
+
         for emp_sched in schedules {
             let entries = entries_map
                 .get(&emp_sched.employee_id)
@@ -248,6 +257,11 @@ impl AttendanceHandler {
                 .get(&emp_sched.employee_id)
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
+
+            let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+            });
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
             let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
@@ -317,8 +331,8 @@ impl AttendanceHandler {
                         shift_end,
                         daily.break_duration_minutes.unwrap_or(0),
                         actual_break_minutes,
-                        workspace_config.work_unit_minutes,
-                        &workspace_config.rounding_policy,
+                        emp_attendance_rules.work_unit_minutes,
+                        &emp_attendance_rules.rounding_policy,
                         &rules,
                         None,
                     );
@@ -367,6 +381,15 @@ impl AttendanceHandler {
         .await
         .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
+        let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
+            pool,
+            &emp_ids,
+            workspace_id,
+            start_date, // Using start_date as proxy for the report period
+        )
+        .await
+        .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;
+
         for emp_sched in schedules {
             let entries = entries_map
                 .get(&emp_sched.employee_id)
@@ -378,6 +401,11 @@ impl AttendanceHandler {
                 .get(&emp_sched.employee_id)
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
+
+            let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+            });
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
             let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
@@ -452,8 +480,8 @@ impl AttendanceHandler {
                             shift_end,
                             daily.break_duration_minutes.unwrap_or(0),
                             actual_break_minutes,
-                            workspace_config.work_unit_minutes,
-                            &workspace_config.rounding_policy,
+                            emp_attendance_rules.work_unit_minutes,
+                            &emp_attendance_rules.rounding_policy,
                             &rules,
                             None,
                         );

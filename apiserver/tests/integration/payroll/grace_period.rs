@@ -21,7 +21,7 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
 
     // Set work_unit to 60 min, no rounding
     sqlx::query(
-        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+        "UPDATE attendance_policy_versions SET rules = '{\"work_unit_minutes\": 60, \"rounding_policy\": \"none\"}'::jsonb WHERE policy_id = (SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true)",
     )
     .bind(workspace_id)
     .execute(&pool)
@@ -133,7 +133,7 @@ async fn test_grace_period_nonzero_shift_overrides() {
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
     sqlx::query(
-        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+        "UPDATE attendance_policy_versions SET rules = '{\"work_unit_minutes\": 60, \"rounding_policy\": \"none\"}'::jsonb WHERE policy_id = (SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true)",
     )
     .bind(workspace_id)
     .execute(&pool)

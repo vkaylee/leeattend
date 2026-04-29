@@ -7,3 +7,4 @@ mod settings;
 mod roles;
 mod audit;
 mod data_management;
+mod cache;

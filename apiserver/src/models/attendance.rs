@@ -168,3 +168,42 @@ pub struct BulkOtUploadResult {
     pub failed_count: usize,
     pub errors: Vec<BulkOtEntryError>,
 }
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct AttendancePolicy {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub is_default: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct AttendancePolicyVersion {
+    pub id: Uuid,
+    pub policy_id: Uuid,
+    pub rules: sqlx::types::Json<AttendanceRules>,
+    pub valid_from: DateTime<Utc>,
+    pub valid_to: Option<DateTime<Utc>>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AttendanceRules {
+    pub work_unit_minutes: i32,
+    pub rounding_policy: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct AttendancePolicyAssignment {
+    pub id: Uuid,
+    pub policy_id: Uuid,
+    pub target_type: String, // "GROUP" or "USER"
+    pub target_id: Uuid,
+    pub valid_from: DateTime<Utc>,
+    pub valid_to: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}

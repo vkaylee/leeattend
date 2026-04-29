@@ -57,3 +57,5 @@ pub mod overtime_policy_repository;
 pub mod staging_log_repository;
 pub mod audit_log_repository;
 pub use audit_log_repository::{AuditLogRepository, SqlxAuditLogRepository};
+pub mod attendance_policy_repository;
+pub use attendance_policy_repository::{AttendancePolicyRepository, SqlxAttendancePolicyRepository};

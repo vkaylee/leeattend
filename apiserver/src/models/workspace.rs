@@ -41,8 +41,6 @@ pub struct CreateWorkingConditionRequest {
 pub struct Workspace {
     pub id: Uuid,
     pub name: String,
-    pub work_unit_minutes: i32,
-    pub rounding_policy: String,
     pub date_format: String,
     pub time_format: String,
     pub timezone: String,
@@ -62,8 +60,6 @@ pub struct CreateWorkspaceRequest {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateWorkspaceRequest {
     pub name: Option<String>,
-    pub work_unit_minutes: Option<i32>,
-    pub rounding_policy: Option<String>,
     pub date_format: Option<String>,
     pub time_format: Option<String>,
     pub timezone: Option<String>,

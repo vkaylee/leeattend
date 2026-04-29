@@ -15,8 +15,6 @@ use crate::models::EarlyArrivalStrategy;
 pub struct CachedWorkspaceConfig {
     pub id: Uuid,
     pub timezone: String,
-    pub rounding_policy: String,
-    pub work_unit_minutes: i32,
     pub early_arrival_strategy: EarlyArrivalStrategy,
 }
 
@@ -53,8 +51,6 @@ impl WorkspaceCache {
                     SELECT
                         id,
                         timezone,
-                        rounding_policy,
-                        work_unit_minutes,
                         early_arrival_strategy as "early_arrival_strategy: EarlyArrivalStrategy"
                     FROM workspaces
                     WHERE id = $1
@@ -68,8 +64,6 @@ impl WorkspaceCache {
                 Ok(CachedWorkspaceConfig {
                     id: row.id,
                     timezone: row.timezone,
-                    rounding_policy: row.rounding_policy,
-                    work_unit_minutes: row.work_unit_minutes,
                     early_arrival_strategy: row.early_arrival_strategy,
                 })
             })
@@ -99,8 +93,6 @@ mod tests {
         let config = CachedWorkspaceConfig {
             id: Uuid::new_v4(),
             timezone: "Asia/Ho_Chi_Minh".to_string(),
-            rounding_policy: "floor".to_string(),
-            work_unit_minutes: 30,
             early_arrival_strategy: EarlyArrivalStrategy::Allow,
         };
 
@@ -109,8 +101,6 @@ mod tests {
 
         assert_eq!(config.id, decoded.id);
         assert_eq!(config.timezone, decoded.timezone);
-        assert_eq!(config.rounding_policy, decoded.rounding_policy);
-        assert_eq!(config.work_unit_minutes, decoded.work_unit_minutes);
     }
 
     #[test]

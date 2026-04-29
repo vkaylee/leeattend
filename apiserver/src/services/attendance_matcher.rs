@@ -47,6 +47,7 @@ impl AttendanceMatcher {
         segment_total_base: Decimal,
         segment_ot_base: Decimal,
         std_config: &crate::domain::policy::resolver::StandardMonthConfig,
+        attendance_rules: &crate::models::AttendanceRules,
         seg_units_per_day: Decimal,
         policy_cache: &mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
     ) -> SegmentAttendanceResult {
@@ -153,8 +154,8 @@ impl AttendanceMatcher {
                                         Some(end),
                                         s.break_duration_minutes,
                                         actual_break_minutes,
-                                        ctx.workspace.work_unit_minutes,
-                                        &ctx.workspace.rounding_policy,
+                                        attendance_rules.work_unit_minutes,
+                                        &attendance_rules.rounding_policy,
                                         &rules,
                                         ot_ceiling,
                                     );
@@ -219,7 +220,7 @@ impl AttendanceMatcher {
                                         segment_ot_pay += total_ot_pay;
                                     } else {
                                         let hourly_rate = FinancialCalculator::calculate_hourly_rate(segment_ot_base, std_config.std_working_days, std_config.hours_per_day);
-                                        segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(ctx.workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(DEFAULT_OT_MULTIPLIER).unwrap_or(Decimal::new(15, 1));
+                                        segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(attendance_rules.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(DEFAULT_OT_MULTIPLIER).unwrap_or(Decimal::new(15, 1));
                                     }
                                 }
 
@@ -248,8 +249,8 @@ impl AttendanceMatcher {
                             let punch_out = punch_out_raw.with_timezone(&ctx.tz);
                             segment_std_units += AttendanceCalculator::calculate_units(
                                 (punch_out - punch_in).num_minutes() as i32,
-                                ctx.workspace.work_unit_minutes,
-                                &ctx.workspace.rounding_policy,
+                                attendance_rules.work_unit_minutes,
+                                &attendance_rules.rounding_policy,
                             );
                         }
                     }

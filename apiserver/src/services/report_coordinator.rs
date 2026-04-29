@@ -90,8 +90,6 @@ impl std::error::Error for ReportError {}
 #[derive(sqlx::FromRow)]
 struct WorkspaceConfig {
     timezone: String,
-    rounding_policy: String,
-    work_unit_minutes: i32,
 }
 
 /// Coordinates distributed report generation.
@@ -171,8 +169,8 @@ impl ReportCoordinator {
                         config: ReportConfig {
                             report_type: request.report_type.clone(),
                             timezone: workspace.timezone.clone(),
-                            rounding_policy: workspace.rounding_policy.clone(),
-                            work_unit_minutes: workspace.work_unit_minutes,
+                            rounding_policy: "floor".to_string(),
+                            work_unit_minutes: 30,
                         },
                     }),
                     JobPriority::High,
@@ -415,7 +413,7 @@ impl ReportCoordinator {
     ) -> Result<WorkspaceConfig, ReportError> {
         let row = sqlx::query_as!(
             WorkspaceConfig,
-            r#"SELECT timezone, rounding_policy, work_unit_minutes
+            r#"SELECT timezone
                FROM workspaces WHERE id = $1"#,
             workspace_id
         )
@@ -425,8 +423,6 @@ impl ReportCoordinator {
 
         Ok(WorkspaceConfig {
             timezone: row.timezone,
-            rounding_policy: row.rounding_policy,
-            work_unit_minutes: row.work_unit_minutes,
         })
     }
 }

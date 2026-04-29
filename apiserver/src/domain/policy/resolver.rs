@@ -1,7 +1,8 @@
 use crate::domain::policy::defaults::{
     DEFAULT_GRACE_PERIOD_MINUTES, DEFAULT_HOURS_PER_DAY, DEFAULT_STD_WORKING_DAYS,
 };
-use crate::models::{EarlyArrivalStrategy, PolicyRules, WorkingCondition};
+use crate::models::{AttendanceRules, EarlyArrivalStrategy, PolicyRules, WorkingCondition};
+use crate::repositories::{AttendancePolicyRepository, PoolBacked, SqlxAttendancePolicyRepository};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
@@ -94,6 +95,69 @@ impl PolicyResolver {
             Self::resolve_standard_month(pool, employee_id, department_id, workspace_id, date)
                 .await?;
         Ok(config.std_working_days)
+    }
+
+    pub async fn resolve_attendance_policy(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<AttendanceRules, sqlx::Error> {
+        let repo = SqlxAttendancePolicyRepository::from_pool(pool.clone());
+        // Convert NaiveDate to UTC start of day
+        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
+        
+        let policy_version = repo.get_effective_policy(
+            workspace_id,
+            employee_id,
+            "USER",
+            effective_time
+        ).await?;
+
+        // Fallback if no policy found
+        if let Some(pv) = policy_version {
+            Ok(pv.rules.0)
+        } else {
+            Ok(AttendanceRules {
+                work_unit_minutes: 30,
+                rounding_policy: "floor".to_string(),
+            })
+        }
+    }
+
+    pub async fn resolve_attendance_policy_batch(
+        pool: &PgPool,
+        employee_ids: &[Uuid],
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<std::collections::HashMap<Uuid, AttendanceRules>, sqlx::Error> {
+        if employee_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let repo = SqlxAttendancePolicyRepository::from_pool(pool.clone());
+        let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
+        
+        let versions = repo.get_effective_policies_batch(
+            workspace_id,
+            employee_ids,
+            "USER",
+            effective_time
+        ).await?;
+
+        let mut result = std::collections::HashMap::with_capacity(employee_ids.len());
+        for &id in employee_ids {
+            if let Some(pv) = versions.get(&id) {
+                result.insert(id, pv.rules.0.clone());
+            } else {
+                result.insert(id, AttendanceRules {
+                    work_unit_minutes: 30,
+                    rounding_policy: "floor".to_string(),
+                });
+            }
+        }
+
+        Ok(result)
     }
 
     pub async fn resolve_attendance_rules(
