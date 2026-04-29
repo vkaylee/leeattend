@@ -110,6 +110,11 @@ export interface WorkspaceMember {
   extra_role_ids: string[];
 }
 
+export enum RoleScopeType {
+  Global = 'global',
+  Scoped = 'scoped',
+}
+
 export interface WorkspaceRole {
   id: string;
   workspace_id?: string;
@@ -117,7 +122,7 @@ export interface WorkspaceRole {
   description?: string;
   color: string;
   is_system: boolean;
-  scope_type: 'global' | 'scoped';
+  scope_type: RoleScopeType;
   created_at: string;
   updated_at: string;
 }

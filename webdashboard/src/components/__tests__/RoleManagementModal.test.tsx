@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import RoleManagementModal from "../features/settings/RoleManagementModal";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../ui/Toast";
+import { RoleScopeType } from "@/lib/api/types";
 import * as api from "../../lib/api";
 import React from "react";
 
@@ -13,10 +14,10 @@ const EMPLOYEE_ROLE_ID = "a0000000-0000-0000-0000-000000000006";
 const TEAM_LEAD_ROLE_ID = "a0000000-0000-0000-0000-000000000005";
 
 const mockWorkspaceRoles = [
-  { id: OWNER_ROLE_ID, name: "owner", description: "Full access", color: "rose", is_system: true, scope_type: "global" as const, created_at: "", updated_at: "" },
-  { id: ADMIN_ROLE_ID, name: "admin", description: "Admin access", color: "rose", is_system: true, scope_type: "global" as const, created_at: "", updated_at: "" },
-  { id: TEAM_LEAD_ROLE_ID, name: "team_lead", description: "Team management", color: "blue", is_system: true, scope_type: "scoped" as const, created_at: "", updated_at: "" },
-  { id: EMPLOYEE_ROLE_ID, name: "employee", description: "Default access", color: "slate", is_system: true, scope_type: "scoped" as const, created_at: "", updated_at: "" },
+  { id: OWNER_ROLE_ID, name: "owner", description: "Full access", color: "rose", is_system: true, scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
+  { id: ADMIN_ROLE_ID, name: "admin", description: "Admin access", color: "rose", is_system: true, scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
+  { id: TEAM_LEAD_ROLE_ID, name: "team_lead", description: "Team management", color: "blue", is_system: true, scope_type: RoleScopeType.Scoped, created_at: "", updated_at: "" },
+  { id: EMPLOYEE_ROLE_ID, name: "employee", description: "Default access", color: "slate", is_system: true, scope_type: RoleScopeType.Scoped, created_at: "", updated_at: "" },
 ];
 
 // Mock the API library
@@ -108,9 +109,14 @@ describe("RoleManagementModal", () => {
       expect(api.fetchWorkspaceRoles).toHaveBeenCalled();
     });
 
-    // Select a role for extra assignment
-    const extraRoleSelect = screen.getByLabelText(/Quyền hạn/i);
-    fireEvent.change(extraRoleSelect, { target: { value: ADMIN_ROLE_ID } });
+    const extraRoleSelect = screen.getByLabelText(/Vai trò gán/i);
+
+    // Wait for options to populate
+    await waitFor(() => {
+      expect(extraRoleSelect.children.length).toBeGreaterThan(1);
+    });
+
+    await user.selectOptions(extraRoleSelect, ADMIN_ROLE_ID);
 
     const dateInput = screen.getByLabelText(/Ngày hết hạn/i);
     fireEvent.change(dateInput, { target: { value: "2026-12-31T23:59" } });
@@ -133,10 +139,11 @@ describe("RoleManagementModal", () => {
     renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
 
     // Should display the resolved role name from workspace roles
-    expect(await screen.findByText(/admin/i)).toBeDefined();
+    const adminTexts = await screen.findAllByText(/admin/i);
+    expect(adminTexts.length).toBeGreaterThan(0);
 
     // Find the revoke button
-    const extraRoleItem = screen.getByText(/admin/i).closest("div");
+    const extraRoleItem = adminTexts[0].closest("div");
     const revokeBtn = extraRoleItem!.parentElement!.querySelector('button');
     await user.click(revokeBtn!);
 
@@ -158,7 +165,13 @@ describe("RoleManagementModal", () => {
     });
 
     // The extra role select should not contain the primary role (employee) or existing extra (admin)
-    const extraRoleSelect = screen.getByLabelText(/Quyền hạn/i);
+    const extraRoleSelect = screen.getByLabelText(/Vai trò gán/i);
+    
+    // Wait for options to populate
+    await waitFor(() => {
+      expect(extraRoleSelect.children.length).toBeGreaterThan(1);
+    });
+
     const options = extraRoleSelect.querySelectorAll("option");
 
     const optionValues = Array.from(options).map(o => (o as HTMLOptionElement).value);
