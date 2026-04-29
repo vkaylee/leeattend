@@ -74,7 +74,11 @@ pub struct RateLimitLayer {
 
 impl RateLimitLayer {
     #[must_use]
-    pub const fn new(redis: Option<RedisPool>, config: RateLimitConfig, jwt_secret: String) -> Self {
+    pub const fn new(
+        redis: Option<RedisPool>,
+        config: RateLimitConfig,
+        jwt_secret: String,
+    ) -> Self {
         Self {
             redis,
             config,
@@ -203,11 +207,7 @@ fn resolve_identity(req: &Request<Body>, jwt_secret: &str) -> String {
     // 2. Debug: X-User-Id header (test/dev only)
     #[cfg(debug_assertions)]
     {
-        if let Some(user_id_str) = req
-            .headers()
-            .get("x-user-id")
-            .and_then(|h| h.to_str().ok())
-        {
+        if let Some(user_id_str) = req.headers().get("x-user-id").and_then(|h| h.to_str().ok()) {
             if let Ok(user_id) = uuid::Uuid::parse_str(user_id_str) {
                 return format!("u:{user_id}");
             }
@@ -245,7 +245,8 @@ async fn check_rate(
     let count: u64 = conn.incr(key, 1u64).await?;
     if count == 1 {
         // First request in window — set expiry
-        conn.expire::<_, ()>(key, i64::try_from(window_secs).unwrap_or(i64::MAX)).await?;
+        conn.expire::<_, ()>(key, i64::try_from(window_secs).unwrap_or(i64::MAX))
+            .await?;
     }
     Ok(count <= max_requests)
 }
@@ -331,10 +332,7 @@ mod tests {
 
     #[test]
     fn test_resolve_identity_no_headers() {
-        let req = Request::builder()
-            .uri("/test")
-            .body(Body::empty())
-            .unwrap();
+        let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
 
         let identity = resolve_identity(&req, "test_secret");
         assert_eq!(identity, "ip:unknown");

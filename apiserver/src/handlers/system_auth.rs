@@ -63,9 +63,7 @@ impl SystemContext {
         if self.has_role(role) {
             Ok(())
         } else {
-            Err(AppError::Forbidden(format!(
-                "Requires system role: {role}"
-            )))
+            Err(AppError::Forbidden(format!("Requires system role: {role}")))
         }
     }
 
@@ -146,35 +144,33 @@ where
         let cache_key = Self::cache_key(user_id);
 
         // --- Cache lookup ---
-        let roles: HashSet<SystemRoleType> =
-            if let Some(redis_pool) = app_state.infra.redis.clone() {
-                let cache = crate::cache::RedisCache::new(redis_pool);
+        let roles: HashSet<SystemRoleType> = if let Some(redis_pool) = app_state.infra.redis.clone()
+        {
+            let cache = crate::cache::RedisCache::new(redis_pool);
 
-                if let Some(cached) = cache.get::<CachedSystemRoles>(&cache_key).await {
-                    // Deserialize from cached string names
-                    cached
-                        .roles
-                        .into_iter()
-                        .filter_map(|name| {
-                            use std::str::FromStr;
-                            SystemRoleType::from_str(&name).ok()
-                        })
-                        .collect()
-                } else {
-                    // Cache miss: hit DB and populate cache
-                    let fresh = Self::fetch_system_roles_from_db(user_id, &app_state).await?;
-                    let payload = CachedSystemRoles {
-                        roles: fresh.iter().map(|r| r.to_string()).collect(),
-                    };
-                    let _ = cache
-                        .set(&cache_key, &payload, SYSTEM_ROLE_CACHE_TTL)
-                        .await;
-                    fresh
-                }
+            if let Some(cached) = cache.get::<CachedSystemRoles>(&cache_key).await {
+                // Deserialize from cached string names
+                cached
+                    .roles
+                    .into_iter()
+                    .filter_map(|name| {
+                        use std::str::FromStr;
+                        SystemRoleType::from_str(&name).ok()
+                    })
+                    .collect()
             } else {
-                // No Redis: always go to DB
-                Self::fetch_system_roles_from_db(user_id, &app_state).await?
-            };
+                // Cache miss: hit DB and populate cache
+                let fresh = Self::fetch_system_roles_from_db(user_id, &app_state).await?;
+                let payload = CachedSystemRoles {
+                    roles: fresh.iter().map(|r| r.to_string()).collect(),
+                };
+                let _ = cache.set(&cache_key, &payload, SYSTEM_ROLE_CACHE_TTL).await;
+                fresh
+            }
+        } else {
+            // No Redis: always go to DB
+            Self::fetch_system_roles_from_db(user_id, &app_state).await?
+        };
 
         // Any authenticated user can pass extraction — enforcement is done
         // by calling `ctx.require_role(...)` inside each handler.
@@ -332,7 +328,10 @@ mod tests {
     fn test_cache_key_unique_per_user() {
         let uid1 = Uuid::new_v4();
         let uid2 = Uuid::new_v4();
-        assert_ne!(SystemContext::cache_key(uid1), SystemContext::cache_key(uid2));
+        assert_ne!(
+            SystemContext::cache_key(uid1),
+            SystemContext::cache_key(uid2)
+        );
     }
 
     // ── SystemRoleType serde & display ───────────────────────────────────────

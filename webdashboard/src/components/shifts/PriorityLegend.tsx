@@ -1,6 +1,8 @@
 import React from 'react';
+
 import { Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { HierarchyLegend } from '../common/HierarchyLegend';
 
 export const PriorityLegend: React.FC = () => {

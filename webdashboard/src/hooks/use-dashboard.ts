@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { useWorkspace } from "./use-workspace";
+
 import { apiFetch } from "@/lib/api";
+
+import { useWorkspace } from "./use-workspace";
 
 export interface WorkspaceStats {
   total_employees: number;

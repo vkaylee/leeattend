@@ -18,7 +18,7 @@ use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentR
 use crate::repositories::import_job_repository::ImportJobRepository;
 use crate::repositories::{employee, EmployeeRepository, TimeEntryRepository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
-use crate::services::import_messages::{AttendanceImportMessages, fmt_msg};
+use crate::services::import_messages::{fmt_msg, AttendanceImportMessages};
 use crate::utils::normalize_employee_id;
 use std::collections::HashMap;
 
@@ -54,7 +54,14 @@ impl AttendanceImportService {
         pool: PgPool,
         redis: Option<crate::queue::RedisPool>,
     ) -> Self {
-        Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool, redis }
+        Self {
+            import_repo,
+            adj_repo,
+            employee_repo,
+            time_entry_repo,
+            pool,
+            redis,
+        }
     }
     #[tracing::instrument(skip_all, err)]
     pub async fn batch_import_from_file(
@@ -80,12 +87,10 @@ impl AttendanceImportService {
             updated_at: Utc::now(),
         };
 
-        self.import_repo.create_job(&job)
-            .await
-            .map_err(|e| {
-                error!("CREATE_JOB_ERROR: {:?}", e);
-                AppError::Internal("Internal error".into())
-            })?;
+        self.import_repo.create_job(&job).await.map_err(|e| {
+            error!("CREATE_JOB_ERROR: {:?}", e);
+            AppError::Internal("Internal error".into())
+        })?;
 
         let pool_clone = self.pool.clone();
         let import_repo = self.import_repo.clone();
@@ -94,7 +99,14 @@ impl AttendanceImportService {
         let time_entry_repo = self.time_entry_repo.clone();
         let redis = self.redis.clone();
         tokio::spawn(async move {
-            let svc = Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool: pool_clone, redis };
+            let svc = Self {
+                import_repo,
+                adj_repo,
+                employee_repo,
+                time_entry_repo,
+                pool: pool_clone,
+                redis,
+            };
             let _ = svc.process_job(job_id).await;
         });
 
@@ -116,7 +128,14 @@ impl AttendanceImportService {
                 let time_entry_repo = self.time_entry_repo.clone();
                 let redis = self.redis.clone();
                 tokio::spawn(async move {
-                    let svc = Self { import_repo, adj_repo, employee_repo, time_entry_repo, pool: pool_clone, redis };
+                    let svc = Self {
+                        import_repo,
+                        adj_repo,
+                        employee_repo,
+                        time_entry_repo,
+                        pool: pool_clone,
+                        redis,
+                    };
                     let _ = svc.process_job(job.id).await;
                 });
             }
@@ -161,13 +180,15 @@ impl AttendanceImportService {
             Ok(b) => b,
             Err(e) => {
                 error!("READ_FILE_ERROR for job {}: {:?}", job_id, e);
-                let _ = self.import_repo.update_job_progress(
-                    job_id,
-                    job.processed_rows,
-                    ImportJobStatus::Failed,
-                    Some(format!("Could not read file: {e:?}")),
-                )
-                .await;
+                let _ = self
+                    .import_repo
+                    .update_job_progress(
+                        job_id,
+                        job.processed_rows,
+                        ImportJobStatus::Failed,
+                        Some(format!("Could not read file: {e:?}")),
+                    )
+                    .await;
                 return Err(());
             }
         };
@@ -259,13 +280,10 @@ impl AttendanceImportService {
             .await;
 
         if !errors.is_empty() {
-            let _ = self.import_repo.update_job_progress(
-                job_id,
-                0,
-                ImportJobStatus::Failed,
-                Some(errors.join("\n")),
-            )
-            .await;
+            let _ = self
+                .import_repo
+                .update_job_progress(job_id, 0, ImportJobStatus::Failed, Some(errors.join("\n")))
+                .await;
             let _ = tokio::fs::remove_file(file_path).await;
             return Err(());
         }
@@ -276,42 +294,41 @@ impl AttendanceImportService {
             .collect();
         let unique_emp_ids_vec: Vec<String> = unique_emp_ids.iter().cloned().collect();
 
-        let known_emp_ids: HashSet<String> =
-            match self.employee_repo.get_existing_employee_ids_by_numbers(
-                job.workspace_id,
-                &unique_emp_ids_vec,
-            )
+        let known_emp_ids: HashSet<String> = match self
+            .employee_repo
+            .get_existing_employee_ids_by_numbers(job.workspace_id, &unique_emp_ids_vec)
             .await
-            {
-                Ok(existing_ids) => {
-                    let known: HashSet<String> = existing_ids.into_iter().collect();
-                    let missing_ids: Vec<String> =
-                        unique_emp_ids.difference(&known).cloned().collect();
+        {
+            Ok(existing_ids) => {
+                let known: HashSet<String> = existing_ids.into_iter().collect();
+                let missing_ids: Vec<String> = unique_emp_ids.difference(&known).cloned().collect();
 
-                    if !missing_ids.is_empty() {
-                        errors.push(fmt_msg(
-                            msgs.skipped_unknown_employees,
-                            &[
-                                ("count", &missing_ids.len().to_string()),
-                                ("ids", &missing_ids.join(", ")),
-                            ],
-                        ));
-                    }
-                    known
+                if !missing_ids.is_empty() {
+                    errors.push(fmt_msg(
+                        msgs.skipped_unknown_employees,
+                        &[
+                            ("count", &missing_ids.len().to_string()),
+                            ("ids", &missing_ids.join(", ")),
+                        ],
+                    ));
                 }
-                Err(e) => {
-                    error!("VALIDATION_ERROR: {:?}", e);
-                    let _ = self.import_repo.update_job_progress(
+                known
+            }
+            Err(e) => {
+                error!("VALIDATION_ERROR: {:?}", e);
+                let _ = self
+                    .import_repo
+                    .update_job_progress(
                         job_id,
                         0,
                         ImportJobStatus::Failed,
                         Some("Database error during validation".to_string()),
                     )
                     .await;
-                    let _ = tokio::fs::remove_file(file_path).await;
-                    return Err(());
-                }
-            };
+                let _ = tokio::fs::remove_file(file_path).await;
+                return Err(());
+            }
+        };
 
         let mut skipped_rows = 0;
         let rows_to_process = pending_rows.into_iter().skip(processed_rows as usize);
@@ -322,7 +339,10 @@ impl AttendanceImportService {
                 continue;
             }
 
-            match self.process_import_row(&job, &row.emp_id_number, row.punch_time).await {
+            match self
+                .process_import_row(&job, &row.emp_id_number, row.punch_time)
+                .await
+            {
                 Ok(inserted) => {
                     if inserted > 0 {
                         processed_rows += 1;
@@ -331,13 +351,15 @@ impl AttendanceImportService {
                     }
 
                     if (processed_rows + skipped_rows) % 10 == 0 {
-                        let _ = self.import_repo.update_job_progress(
-                            job_id,
-                            processed_rows,
-                            ImportJobStatus::Processing,
-                            None,
-                        )
-                        .await;
+                        let _ = self
+                            .import_repo
+                            .update_job_progress(
+                                job_id,
+                                processed_rows,
+                                ImportJobStatus::Processing,
+                                None,
+                            )
+                            .await;
                     }
                 }
                 Err(_) => {
@@ -370,13 +392,10 @@ impl AttendanceImportService {
         } else {
             Some(errors.join("\n"))
         };
-        let _ = self.import_repo.update_job_progress(
-            job_id,
-            processed_rows,
-            status,
-            error_log,
-        )
-        .await;
+        let _ = self
+            .import_repo
+            .update_job_progress(job_id, processed_rows, status, error_log)
+            .await;
 
         let _ = tokio::fs::remove_file(file_path).await;
         Ok(())
@@ -398,13 +417,15 @@ impl AttendanceImportService {
             Ok(b) => b,
             Err(e) => {
                 error!("READ_FILE_ERROR for job {}: {:?}", job_id, e);
-                let _ = self.import_repo.update_job_progress(
-                    job_id,
-                    0,
-                    ImportJobStatus::Failed,
-                    Some(format!("Could not read file: {e:?}")),
-                )
-                .await;
+                let _ = self
+                    .import_repo
+                    .update_job_progress(
+                        job_id,
+                        0,
+                        ImportJobStatus::Failed,
+                        Some(format!("Could not read file: {e:?}")),
+                    )
+                    .await;
                 return Err(());
             }
         };
@@ -459,7 +480,8 @@ impl AttendanceImportService {
                         })
                 };
 
-                let department_name = record.get(3)
+                let department_name = record
+                    .get(3)
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty());
 
@@ -481,13 +503,10 @@ impl AttendanceImportService {
             .await;
 
         if !errors.is_empty() {
-            let _ = self.import_repo.update_job_progress(
-                job_id,
-                0,
-                ImportJobStatus::Failed,
-                Some(errors.join("\n")),
-            )
-            .await;
+            let _ = self
+                .import_repo
+                .update_job_progress(job_id, 0, ImportJobStatus::Failed, Some(errors.join("\n")))
+                .await;
             let _ = tokio::fs::remove_file(file_path).await;
             return Err(());
         }
@@ -498,7 +517,10 @@ impl AttendanceImportService {
         // Cache department lookups by name (lowercased) -> department_id
         let mut dept_cache: HashMap<String, Uuid> = HashMap::new();
         // Pre-load existing departments
-        if let Ok(existing_depts) = crate::repositories::department_repository::get_departments(&pool, job.workspace_id).await {
+        if let Ok(existing_depts) =
+            crate::repositories::department_repository::get_departments(&pool, job.workspace_id)
+                .await
+        {
             for dept in existing_depts {
                 dept_cache.insert(dept.name.to_lowercase(), dept.id);
             }
@@ -513,11 +535,10 @@ impl AttendanceImportService {
                     } else {
                         skipped_rows += 1;
                         // If already exists, we still want to try claiming logs for this ID
-                        match self.employee_repo.get_employee_by_id_number(
-                            &emp.id_number,
-                            job.workspace_id,
-                        )
-                        .await
+                        match self
+                            .employee_repo
+                            .get_employee_by_id_number(&emp.id_number, job.workspace_id)
+                            .await
                         {
                             Ok(Some(e)) => e.id,
                             _ => continue,
@@ -532,8 +553,15 @@ impl AttendanceImportService {
                         } else {
                             // Create the department
                             match crate::repositories::department_repository::create_department(
-                                &pool, job.workspace_id, dept_name.clone(), None, None, None,
-                            ).await {
+                                &pool,
+                                job.workspace_id,
+                                dept_name.clone(),
+                                None,
+                                None,
+                                None,
+                            )
+                            .await
+                            {
                                 Ok(new_dept) => {
                                     dept_cache.insert(dept_key, new_dept.id);
                                     new_dept.id
@@ -546,11 +574,20 @@ impl AttendanceImportService {
                             }
                         };
                         if !dept_id.is_nil() {
-                            if let Err(e) = crate::repositories::department_repository::transfer_employee(
-                                &pool, employee_id, dept_id, emp.hire_date,
-                                Some("Auto-assigned via bulk import".to_string()),
-                            ).await {
-                                error!("Failed to assign employee {} to department '{}': {}", emp.id_number, dept_name, e);
+                            if let Err(e) =
+                                crate::repositories::department_repository::transfer_employee(
+                                    &pool,
+                                    employee_id,
+                                    dept_id,
+                                    emp.hire_date,
+                                    Some("Auto-assigned via bulk import".to_string()),
+                                )
+                                .await
+                            {
+                                error!(
+                                    "Failed to assign employee {} to department '{}': {}",
+                                    emp.id_number, dept_name, e
+                                );
                             }
                         }
                     }
@@ -563,35 +600,48 @@ impl AttendanceImportService {
                             0,
                             crate::queue::TaskType::ClaimStagedLogs,
                             job.workspace_id,
-                            crate::queue::JobPayload::ClaimStagedLogs(crate::queue::ClaimStagedLogsPayload {
-                                workspace_id: job.workspace_id,
-                                employee_id,
-                                employee_id_number: emp.id_number.clone(),
-                            }),
+                            crate::queue::JobPayload::ClaimStagedLogs(
+                                crate::queue::ClaimStagedLogsPayload {
+                                    workspace_id: job.workspace_id,
+                                    employee_id,
+                                    employee_id_number: emp.id_number.clone(),
+                                },
+                            ),
                         );
                         if let Err(e) = queue.enqueue_jobs(vec![claim_job]).await {
-                            error!("Failed to enqueue claim-staged-logs for {}: {}", emp.id_number, e);
+                            error!(
+                                "Failed to enqueue claim-staged-logs for {}: {}",
+                                emp.id_number, e
+                            );
                         }
                     } else {
                         // Fallback: claim staged logs directly when no queue runner is available
-                        if let Err(e) = crate::repositories::staging_log_repository::claim_staged_logs_direct(
-                            &self.pool,
-                            job.workspace_id,
-                            employee_id,
-                            &emp.id_number,
-                        ).await {
-                            error!("Failed to claim staged logs directly for {}: {}", emp.id_number, e);
+                        if let Err(e) =
+                            crate::repositories::staging_log_repository::claim_staged_logs_direct(
+                                &self.pool,
+                                job.workspace_id,
+                                employee_id,
+                                &emp.id_number,
+                            )
+                            .await
+                        {
+                            error!(
+                                "Failed to claim staged logs directly for {}: {}",
+                                emp.id_number, e
+                            );
                         }
                     }
 
                     if (processed_rows + skipped_rows) % 10 == 0 {
-                        let _ = self.import_repo.update_job_progress(
-                            job_id,
-                            processed_rows,
-                            ImportJobStatus::Processing,
-                            None,
-                        )
-                        .await;
+                        let _ = self
+                            .import_repo
+                            .update_job_progress(
+                                job_id,
+                                processed_rows,
+                                ImportJobStatus::Processing,
+                                None,
+                            )
+                            .await;
                     }
                 }
                 Err(e) => {
@@ -629,13 +679,10 @@ impl AttendanceImportService {
             });
         }
 
-        let _ = self.import_repo.update_job_progress(
-            job_id,
-            processed_rows,
-            status,
-            final_log,
-        )
-        .await;
+        let _ = self
+            .import_repo
+            .update_job_progress(job_id, processed_rows, status, final_log)
+            .await;
         let _ = tokio::fs::remove_file(file_path).await;
 
         Ok(())
@@ -694,12 +741,14 @@ impl AttendanceImportService {
                     .date_naive(),
             };
 
-            let department_name = row.get(3).and_then(|cell| {
-                match cell {
-                    Data::Empty => None,
-                    _ => {
-                        let s = cell.to_string();
-                        if s.trim().is_empty() { None } else { Some(s.trim().to_string()) }
+            let department_name = row.get(3).and_then(|cell| match cell {
+                Data::Empty => None,
+                _ => {
+                    let s = cell.to_string();
+                    if s.trim().is_empty() {
+                        None
+                    } else {
+                        Some(s.trim().to_string())
                     }
                 }
             });
@@ -788,10 +837,7 @@ impl AttendanceImportService {
                             "{} [Raw: '{s}']",
                             fmt_msg(
                                 msgs.missing_time_data,
-                                &[
-                                    ("line", &current_line.to_string()),
-                                    ("emp", &emp_id_number),
-                                ],
+                                &[("line", &current_line.to_string()), ("emp", &emp_id_number),],
                             )
                         ));
                         None
@@ -819,10 +865,7 @@ impl AttendanceImportService {
                 _ => {
                     errors.push(fmt_msg(
                         msgs.missing_time_data,
-                        &[
-                            ("line", &current_line.to_string()),
-                            ("emp", &emp_id_number),
-                        ],
+                        &[("line", &current_line.to_string()), ("emp", &emp_id_number)],
                     ));
                     None
                 }
@@ -845,11 +888,10 @@ impl AttendanceImportService {
         punch_time_utc: DateTime<Utc>,
     ) -> Result<usize, AppError> {
         let pool = self.pool.clone();
-        let employee = match self.employee_repo.get_employee_by_id_number(
-            emp_id_number,
-            job.workspace_id,
-        )
-        .await
+        let employee = match self
+            .employee_repo
+            .get_employee_by_id_number(emp_id_number, job.workspace_id)
+            .await
         {
             Ok(Some(emp)) => emp,
             _ => {
@@ -863,21 +905,47 @@ impl AttendanceImportService {
 
         if job.target_type == "log" {
             let te_repo = self.time_entry_repo.clone();
-            let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(te_repo, std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone()));
-            let emp_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> = std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(pool.clone()));
+            let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(
+                te_repo,
+                std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(
+                    pool.clone(),
+                )),
+                pool.clone(),
+            ));
+            let emp_repo: std::sync::Arc<dyn crate::repositories::EmployeeRepository> =
+                std::sync::Arc::new(crate::repositories::SqlxEmployeeRepository::new(
+                    pool.clone(),
+                ));
             let rl_repo: std::sync::Arc<dyn crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(crate::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
-            let st_repo: std::sync::Arc<dyn crate::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(pool.clone()));
+            let st_repo: std::sync::Arc<
+                dyn crate::repositories::staging_log_repository::StagingLogRepository,
+            > = std::sync::Arc::new(
+                crate::repositories::staging_log_repository::SqlxStagingLogRepository::new(
+                    pool.clone(),
+                ),
+            );
             let er_repo: std::sync::Arc<dyn crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(crate::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
-            let (log_svc, _h) = crate::services::AttendanceLogService::new(pool.clone(), ps, 1, 1, 1000, emp_repo, rl_repo, st_repo, er_repo);
-            match log_svc.process_parsed_log(
-                job.workspace_id,
-                employee.id,
-                punch_time_utc,
-                LogSource::Import,
-                None,
-                None,
-            )
-            .await
+            let (log_svc, _h) = crate::services::AttendanceLogService::new(
+                pool.clone(),
+                ps,
+                1,
+                1,
+                1000,
+                emp_repo,
+                rl_repo,
+                st_repo,
+                er_repo,
+            );
+            match log_svc
+                .process_parsed_log(
+                    job.workspace_id,
+                    employee.id,
+                    punch_time_utc,
+                    LogSource::Import,
+                    None,
+                    None,
+                )
+                .await
             {
                 Ok(true) => Ok(1),
                 Ok(false) => Ok(0),
@@ -899,22 +967,24 @@ impl AttendanceImportService {
             let adj_svc = {
                 let adj_repo = self.adj_repo.clone();
                 let te_repo = self.time_entry_repo.clone();
-                crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(adj_repo, te_repo, pool.clone())
-            };
-            if let Ok(adjustment) = adj_svc.submit_request(
-                job.workspace_id,
-                job.user_id,
-                req,
-            )
-            .await
-            {
-                let _ = adj_svc.approve_request(
-                    job.workspace_id,
-                    job.user_id,
-                    adjustment.id,
-                    AdjustmentStatus::Approved,
+                crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
+                    adj_repo,
+                    te_repo,
+                    pool.clone(),
                 )
-                .await;
+            };
+            if let Ok(adjustment) = adj_svc
+                .submit_request(job.workspace_id, job.user_id, req)
+                .await
+            {
+                let _ = adj_svc
+                    .approve_request(
+                        job.workspace_id,
+                        job.user_id,
+                        adjustment.id,
+                        AdjustmentStatus::Approved,
+                    )
+                    .await;
 
                 return Ok(1);
             }

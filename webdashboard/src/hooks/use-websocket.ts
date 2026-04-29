@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+
 import { WS_BASE_URL } from "@/lib/api";
 
 export type ReportStreamMessage = 

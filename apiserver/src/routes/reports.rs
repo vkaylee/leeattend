@@ -1,4 +1,8 @@
-use axum::{middleware, routing::{get, post}, Router};
+use axum::{
+    middleware,
+    routing::{get, post},
+    Router,
+};
 use std::sync::Arc;
 
 use crate::handlers;

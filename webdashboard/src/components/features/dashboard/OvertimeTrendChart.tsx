@@ -1,3 +1,4 @@
+import { Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
     AreaChart,
@@ -9,7 +10,7 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-import { Clock } from "lucide-react";
+
 import { useOvertimeTrend } from "@/hooks/use-dashboard";
 
 const COLORS = {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import {
   MoreVertical,
   Shield,
@@ -9,13 +9,16 @@ import {
   Mail,
   User as UserIcon,
 } from "lucide-react";
-import { WorkspaceMember, WorkspaceRole } from "@/lib/api";
-import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
-import RoleManagementModal from "@/components/features/settings/RoleManagementModal";
-import PermissionManagementModal from "@/components/features/settings/PermissionManagementModal";
+import { useTranslation } from "react-i18next";
+
 import PermissionGate from "@/components/common/PermissionGate";
-import { cn } from "@/lib/utils";
+import PermissionManagementModal from "@/components/features/settings/PermissionManagementModal";
+import RoleManagementModal from "@/components/features/settings/RoleManagementModal";
+
 import { useConfirm } from "@/hooks/use-confirm";
+import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
+import { WorkspaceMember, WorkspaceRole } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const roleColorMap: Record<string, string> = {
   teal: "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100",

@@ -1,8 +1,10 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import SystemRolesPage from "../SystemRolesPage";
 import React from "react";
+
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import SystemRolesPage from "../SystemRolesPage";
 
 // Mock the hooks
 vi.mock("@/hooks/use-system-roles", () => ({
@@ -52,7 +54,7 @@ describe("SystemRolesPage", () => {
 
   it("renders correctly", () => {
     renderComponent();
-    expect(screen.getByText("Platform Administrators")).toBeInTheDocument();
+    expect(screen.getByText("Quản trị viên Nền tảng")).toBeInTheDocument();
     expect(screen.getByText("platform_admin")).toBeInTheDocument();
     expect(screen.getByText("user-1")).toBeInTheDocument();
   });
@@ -61,19 +63,19 @@ describe("SystemRolesPage", () => {
     const user = userEvent.setup();
     renderComponent();
 
-    // Click assign button
-    const assignBtn = screen.getByTitle("Assign to user");
+    // Click assign button (title uses vi translation)
+    const assignBtn = screen.getByTitle("Gán cho người dùng");
     await user.click(assignBtn);
 
-    // Modal should be open
-    expect(screen.getByText("Assign platform_admin Role")).toBeInTheDocument();
+    // Modal should be open (with vi translation interpolated)
+    expect(screen.getByText("Gán Vai trò platform_admin")).toBeInTheDocument();
 
     // Fill in user ID
     const input = screen.getByPlaceholderText("e.g. 123e4567-e89b-12d3-a456-426614174000");
     await user.type(input, "new-user-123");
 
-    // Submit
-    const submitBtn = screen.getByText("Assign Role");
+    // Submit (vi translation)
+    const submitBtn = screen.getByText("Gán Vai trò");
     await user.click(submitBtn);
 
     expect(mockAssignRole).toHaveBeenCalledWith({
@@ -88,7 +90,7 @@ describe("SystemRolesPage", () => {
 
     renderComponent();
 
-    const revokeBtn = screen.getByTitle("Revoke role");
+    const revokeBtn = screen.getByTitle("Thu hồi vai trò");
     await user.click(revokeBtn);
 
     expect(mockConfirm).toHaveBeenCalled();

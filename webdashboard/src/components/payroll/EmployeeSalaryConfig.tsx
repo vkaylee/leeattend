@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { 
   Plus, 
   Coins, 
@@ -13,6 +15,13 @@ import {
   History,
   ArrowUpRight
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { Combobox } from "@/components/ui/Combobox";
+import { useToast } from "@/components/ui/Toast";
+
+
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { 
   fetchSalaryComponents, 
   fetchEmployeeSalaryComponents, 
@@ -20,14 +29,10 @@ import {
   fetchEmployeePayrollConfigs,
   setEmployeePayrollConfig
 } from "@/lib/api/payroll";
-import { useToast } from "@/components/ui/Toast";
-import { useTranslation } from "react-i18next";
 import { EmployeeSalaryComponent, SalaryComponentDefinition } from "@/lib/api/types";
-import { Combobox } from "@/components/ui/Combobox";
-import { format } from "date-fns";
-import TemporalConfigTable from "../common/TemporalConfigTable";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { cn } from "@/lib/utils";
+
+import TemporalConfigTable from "../common/TemporalConfigTable";
 
 interface Props {
   wsId: string;

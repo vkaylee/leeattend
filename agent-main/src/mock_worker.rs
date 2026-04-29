@@ -1,8 +1,8 @@
 use crate::worker::Worker;
 use async_trait::async_trait;
+use chrono::Local;
 use serde_json::Value;
 use std::time::Duration;
-use chrono::Local;
 
 pub struct MockWorker;
 
@@ -20,13 +20,19 @@ impl MockWorker {
 
 #[async_trait]
 impl Worker for MockWorker {
-    async fn connect(&mut self, _ip: &str, _port: u16) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    async fn connect(
+        &mut self,
+        _ip: &str,
+        _port: u16,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         // Simulate connection delay
         tokio::time::sleep(Duration::from_millis(100)).await;
         Ok(true)
     }
 
-    async fn get_attendance_logs(&mut self) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_attendance_logs(
+        &mut self,
+    ) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>> {
         // Return a static mock log similar to the Python version
         let log = crate::models::AttendanceData {
             user_id: "999".to_string(),
@@ -37,7 +43,10 @@ impl Worker for MockWorker {
         Ok(vec![log])
     }
 
-    async fn get_info(&mut self, _time_sync: &crate::time_sync::TimeSync) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_info(
+        &mut self,
+        _time_sync: &crate::time_sync::TimeSync,
+    ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         Ok(serde_json::json!({
             "users_count": 100,
             "users_capacity": 1000,
@@ -73,8 +82,11 @@ mod tests {
     #[tokio::test]
     async fn test_mock_worker_capacity() {
         let mut worker = MockWorker::new();
-        let info = worker.get_info(&crate::time_sync::TimeSync::new()).await.expect("Failed to get info");
-        
+        let info = worker
+            .get_info(&crate::time_sync::TimeSync::new())
+            .await
+            .expect("Failed to get info");
+
         assert_eq!(info["users_count"], 100);
         assert_eq!(info["users_capacity"], 1000);
         assert_eq!(info["logs_capacity"], 10000);
@@ -85,7 +97,10 @@ mod tests {
     #[tokio::test]
     async fn test_mock_worker_ping_always_true() {
         let mut worker = MockWorker::new();
-        assert!(worker.ping().await, "MockWorker ping should always return true");
+        assert!(
+            worker.ping().await,
+            "MockWorker ping should always return true"
+        );
     }
 
     #[tokio::test]

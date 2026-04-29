@@ -1,9 +1,11 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import LeaveSettings from "../LeaveSettings";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import * as api from "@/lib/api/leaves";
+
 import * as helpers from "@/lib/api/helpers";
+import * as api from "@/lib/api/leaves";
+
+import LeaveSettings from "../LeaveSettings";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ 

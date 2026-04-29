@@ -1,6 +1,6 @@
+use log::{debug, error, info, warn};
 use rustzk::{ZK, ZKProtocol};
 use serde_json::Value;
-use log::{info, warn, debug, error};
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -29,36 +29,49 @@ impl ZkWorker {
         }
     }
 
-    pub async fn connect(&mut self, ip: &str, port: u16, protocol: ZKProtocol) -> Result<bool, ZkError> {
+    pub async fn connect(
+        &mut self,
+        ip: &str,
+        port: u16,
+        protocol: ZKProtocol,
+    ) -> Result<bool, ZkError> {
         info!("[{ip}] Connecting via {:?}...", protocol);
         self.ip = ip.to_string();
         let ip_clone = self.ip.clone();
         let mut zk = ZK::new(&ip_clone, port);
         let join_handle = tokio::task::spawn_blocking(move || {
-            let res = zk.connect(protocol); 
+            let res = zk.connect(protocol);
             (zk, res)
         });
         match tokio::time::timeout(Duration::from_secs(10), join_handle).await {
             Ok(Ok((zk_instance, Ok(_)))) => {
-                 self.zk = Some(zk_instance);
-                 info!("✅ Connected");
-                 Ok(true)
+                self.zk = Some(zk_instance);
+                info!("✅ Connected");
+                Ok(true)
             }
-            Ok(Ok((_, Err(e)))) => Err(ZkError { message: format!("Failed: {e}") }),
-            _ => Err(ZkError { message: "Timeout".to_string() }),
+            Ok(Ok((_, Err(e)))) => Err(ZkError {
+                message: format!("Failed: {e}"),
+            }),
+            _ => Err(ZkError {
+                message: "Timeout".to_string(),
+            }),
         }
     }
 
     pub async fn run_test(&mut self) {
-        if self.zk.is_none() { return; }
-        
+        if self.zk.is_none() {
+            return;
+        }
+
         // 1. Firmware
         info!("Step 1: Get Firmware");
         let mut zk = self.zk.take().unwrap();
         let (zk, res) = tokio::task::spawn_blocking(move || {
             let res = zk.get_firmware_version();
             (zk, res)
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
         match res {
             Ok(fw) => info!("✅ Firmware: {}", fw),
             Err(e) => error!("❌ Firmware failed: {}", e),
@@ -71,7 +84,9 @@ impl ZkWorker {
         let (zk, res) = tokio::task::spawn_blocking(move || {
             let res = zk.get_users();
             (zk, res)
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
         match res {
             Ok(users) => info!("✅ Users: {}", users.len()),
             Err(e) => error!("❌ Users failed: {}", e),

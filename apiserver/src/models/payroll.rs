@@ -266,7 +266,10 @@ mod tests {
         }"#;
         let req: AssignSalaryComponentRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.amount, Decimal::new(500050, 2));
-        assert_eq!(req.effective_date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap());
+        assert_eq!(
+            req.effective_date,
+            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+        );
     }
 
     #[test]

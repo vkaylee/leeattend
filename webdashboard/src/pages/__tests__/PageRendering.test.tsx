@@ -1,14 +1,16 @@
+import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import { ToastProvider } from "../../components/ui/Toast";
+import i18n from "../../i18n/config";
+import AttendanceLogsPage from "../AttendanceLogsPage";
 import DashboardPage from "../DashboardPage";
 import EmployeesPage from "../EmployeesPage";
-import LeaveBalancesPage from "../LeaveBalancesPage";
-import AttendanceLogsPage from "../AttendanceLogsPage";
 import MyClockPage from "../ess/MyClockPage";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../components/ui/Toast";
-import React from "react";
-import i18n from "../../i18n/config";
+import LeaveBalancesPage from "../LeaveBalancesPage";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({

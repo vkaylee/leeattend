@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import LeaveTypesChart from "../LeaveTypesChart";
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import * as dashboardHooks from "@/hooks/use-dashboard";
+
+import LeaveTypesChart from "../LeaveTypesChart";
 
 vi.mock("@/hooks/use-dashboard", () => ({
     useLeaveTypesBreakdown: vi.fn(),

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { Building2 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+
 import { Workspace } from "@/lib/api";
 
 interface Props {

@@ -1,8 +1,11 @@
 import React from "react";
+
 import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown, AlertTriangle } from "lucide-react";
+
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
-import { formatUnitsToHours } from "@/lib/utils/attendance";
 import { cn } from "@/lib/utils";
+import { formatUnitsToHours } from "@/lib/utils/attendance";
+
 import type { OtStatus } from "@/lib/api";
 
 interface DailyReportTableProps {

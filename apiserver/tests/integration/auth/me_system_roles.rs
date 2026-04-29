@@ -65,7 +65,9 @@ async fn test_get_me_returns_system_roles_for_platform_admin() {
     let body = body_json(response).await;
     let system_roles = body["system_roles"].as_array().unwrap();
     assert!(
-        system_roles.iter().any(|r| r.as_str() == Some("platform_admin")),
+        system_roles
+            .iter()
+            .any(|r| r.as_str() == Some("platform_admin")),
         "Expected platform_admin in system_roles, got: {system_roles:?}"
     );
 }
@@ -130,12 +132,12 @@ async fn test_get_me_returns_multiple_system_roles() {
 
     let body = body_json(response).await;
     let system_roles = body["system_roles"].as_array().unwrap();
-    let role_names: Vec<&str> = system_roles
-        .iter()
-        .filter_map(|r| r.as_str())
-        .collect();
+    let role_names: Vec<&str> = system_roles.iter().filter_map(|r| r.as_str()).collect();
 
-    assert!(role_names.contains(&"platform_admin"), "Missing platform_admin");
+    assert!(
+        role_names.contains(&"platform_admin"),
+        "Missing platform_admin"
+    );
     assert!(role_names.contains(&"support"), "Missing support");
     assert_eq!(role_names.len(), 2, "Expected exactly 2 roles");
 }
@@ -167,7 +169,10 @@ async fn test_refresh_session_includes_system_roles() {
 
     assert_eq!(auth_res.user.id, user_id);
     assert!(
-        auth_res.user.system_roles.contains(&"platform_admin".to_string()),
+        auth_res
+            .user
+            .system_roles
+            .contains(&"platform_admin".to_string()),
         "Refresh response should include system_roles, got: {:?}",
         auth_res.user.system_roles
     );

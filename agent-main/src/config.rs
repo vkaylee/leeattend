@@ -1,5 +1,5 @@
-use std::env;
 use log::{info, warn};
+use std::env;
 // use std::path::Path;
 
 pub struct Config {
@@ -51,7 +51,6 @@ impl Config {
             fallbacks.push(format!("DATABASE_URL (mặc định: {default_db})"));
             default_db
         });
-
 
         // max_concurrent_workers: server-managed via ConfigPush, hardcode conservative default
         let max_concurrent_workers = 2;
@@ -139,21 +138,38 @@ impl Config {
         info!("⚙️  RUNTIME SETTINGS");
         info!("------------------------------------------------------------");
         info!("Poll Interval      : {}s", self.poll_interval_seconds);
-        info!("Max Workers        : {} (initial, server overrides via ConfigPush)", self.max_concurrent_workers);
+        info!(
+            "Max Workers        : {} (initial, server overrides via ConfigPush)",
+            self.max_concurrent_workers
+        );
         info!("------------------------------------------------------------");
         info!("🧹 MEMORY MANAGEMENT");
         info!("------------------------------------------------------------");
         info!("Max Memory Logs    : {}", self.max_memory_logs);
         info!("Signature TTL      : {} days", self.signature_ttl_days);
-        info!("Signature Cleanup  : every {}h", self.signature_cleanup_hours);
+        info!(
+            "Signature Cleanup  : every {}h",
+            self.signature_cleanup_hours
+        );
         info!("Inflight Timeout   : {}s", self.inflight_timeout_secs);
-        info!("Success Cooldown   : {}s ({} min)", self.success_cooldown_secs, self.success_cooldown_secs / 60);
-        info!("Connection Lifetime: {}s ({} min)", self.connection_max_lifetime_secs, self.connection_max_lifetime_secs / 60);
-        info!("ZK Legacy Checksum : {}", match self.zk_legacy_checksum {
-            Some(true) => "forced legacy",
-            Some(false) => "forced modern",
-            None => "auto-detect",
-        });
+        info!(
+            "Success Cooldown   : {}s ({} min)",
+            self.success_cooldown_secs,
+            self.success_cooldown_secs / 60
+        );
+        info!(
+            "Connection Lifetime: {}s ({} min)",
+            self.connection_max_lifetime_secs,
+            self.connection_max_lifetime_secs / 60
+        );
+        info!(
+            "ZK Legacy Checksum : {}",
+            match self.zk_legacy_checksum {
+                Some(true) => "forced legacy",
+                Some(false) => "forced modern",
+                None => "auto-detect",
+            }
+        );
         info!("ZK Connect Timeout : {}s", self.zk_connect_timeout_secs);
         info!("------------------------------------------------------------");
         info!("🔄 RETRY & BACKOFF CONSTANTS");

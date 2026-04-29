@@ -1,8 +1,9 @@
 import { renderHook } from "@testing-library/react";
+import { format } from "date-fns";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { useDateTimeFormatter } from "../use-datetime";
 import { useWorkspace } from "../use-workspace";
-import { format } from "date-fns";
 
 // Mock useWorkspace
 vi.mock("../use-workspace", () => ({

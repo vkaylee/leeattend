@@ -34,13 +34,17 @@ async fn test_employment_phases_crud_api() {
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
-        .body(axum::body::Body::from(serde_json::to_string(&def_payload).unwrap()))
+        .body(axum::body::Body::from(
+            serde_json::to_string(&def_payload).unwrap(),
+        ))
         .unwrap();
 
     let response = app.clone().oneshot(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let created_def: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
     let phase_def_id = created_def["id"].as_str().unwrap().to_string();
     assert_eq!(created_def["name"], "Probation");
@@ -57,7 +61,9 @@ async fn test_employment_phases_crud_api() {
     let response = app.clone().oneshot(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let defs: Vec<serde_json::Value> = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(defs.len(), 1);
 
@@ -71,17 +77,23 @@ async fn test_employment_phases_crud_api() {
 
     let req = axum::http::Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{ws_id}/employees/{employee_id}/phases"))
+        .uri(format!(
+            "/api/workspaces/{ws_id}/employees/{employee_id}/phases"
+        ))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
-        .body(axum::body::Body::from(serde_json::to_string(&assign_payload).unwrap()))
+        .body(axum::body::Body::from(
+            serde_json::to_string(&assign_payload).unwrap(),
+        ))
         .unwrap();
 
     let response = app.clone().oneshot(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let created_assignment: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
     let _assignment_id = created_assignment["id"].as_str().unwrap().to_string();
     assert_eq!(created_assignment["status"], "active");

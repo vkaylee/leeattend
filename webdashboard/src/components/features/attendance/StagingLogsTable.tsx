@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+
 import { AlertTriangle, Check, Link2, UserPlus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { StagingLog } from '@/lib/api/attendance';
+
+import { EmployeeSearch } from '@/components/common/EmployeeSearch';
 import InfiniteScrollSentinel from '@/components/common/InfiniteScrollSentinel';
 import { TableSkeleton } from '@/components/common/TableSkeleton';
-import { EmployeeSearch } from '@/components/common/EmployeeSearch';
+
+import { StagingLog } from '@/lib/api/attendance';
 
 interface StagingLogsTableProps {
   logs: StagingLog[];

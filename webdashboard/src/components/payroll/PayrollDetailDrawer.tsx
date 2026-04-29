@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import * as Dialog from "@radix-ui/react-dialog";
 import { 
   X, 
@@ -9,12 +9,15 @@ import {
   Banknote,
   CalendarDays
 } from "lucide-react";
-import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
-import { useWorkspace } from "@/hooks/use-workspace";
+import { useTranslation } from "react-i18next";
+
 import { useMyPermissions } from "@/hooks/use-permissions";
-import PayrollTable from "./PayrollTable";
-import EmployeeSalaryConfig from "./EmployeeSalaryConfig";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+
+import EmployeeSalaryConfig from "./EmployeeSalaryConfig";
+import PayrollTable from "./PayrollTable";
 
 interface PayrollDetailDrawerProps {
   isOpen: boolean;

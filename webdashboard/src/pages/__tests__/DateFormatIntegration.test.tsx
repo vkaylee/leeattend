@@ -1,13 +1,15 @@
-import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import PayrollPage from "../PayrollPage";
-import AttendanceLogsPage from "../AttendanceLogsPage";
-import { BrowserRouter as _BrowserRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../components/ui/Toast";
-import * as api from "../../lib/api";
 import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
+import { BrowserRouter as _BrowserRouter } from "react-router-dom";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import { ToastProvider } from "../../components/ui/Toast";
 import i18n from "../../i18n/config";
+import * as api from "../../lib/api";
+import AttendanceLogsPage from "../AttendanceLogsPage";
+import PayrollPage from "../PayrollPage";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({

@@ -1,12 +1,17 @@
 import React, { RefObject, useEffect, useRef, useState, useCallback } from "react";
+
 import { SearchX, Loader2, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useKeyboardListNav } from "@/hooks/use-keyboard-list-nav";
-import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { useStickyHeader } from "@/hooks/use-sticky-header";
+import { useTranslation } from "react-i18next";
+
 import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
 import SearchBox from "@/components/common/SearchBox";
-import { useTranslation } from "react-i18next";
+
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useKeyboardListNav } from "@/hooks/use-keyboard-list-nav";
+import { useStickyHeader } from "@/hooks/use-sticky-header";
+import { cn } from "@/lib/utils";
+
+
 
 // ---------------------------------------------------------------------------
 // Column definition

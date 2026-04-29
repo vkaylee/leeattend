@@ -7,10 +7,13 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }));
-import PayrollDetailDrawer from "../PayrollDetailDrawer";
 import { Employee, Payslip } from "@/lib/api/types";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { ToastProvider } from "../../ui/Toast";
+import PayrollDetailDrawer from "../PayrollDetailDrawer";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 
 // Mock i18next
 vi.mock("react-i18next", () => ({

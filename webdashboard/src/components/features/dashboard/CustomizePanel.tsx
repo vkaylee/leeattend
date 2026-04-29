@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import {
     DndContext,
     closestCenter,
@@ -18,7 +18,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, X, RotateCcw, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import { cn } from "@/lib/utils";
+
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
 // ── Types ──────────────────────────────────────────────────────────

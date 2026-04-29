@@ -1,6 +1,8 @@
 import React from "react";
-import { PayrollSegment } from "@/lib/api/types";
+
 import { differenceInDays, parseISO, startOfDay, endOfDay } from "date-fns";
+
+import { PayrollSegment } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface SegmentVisualizerProps {

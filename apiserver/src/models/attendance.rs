@@ -2,7 +2,9 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::enums::{AdjustmentStatus, EarlyArrivalStrategy, ImportJobStatus, LogSource, OtStatus};
+use crate::models::enums::{
+    AdjustmentStatus, EarlyArrivalStrategy, ImportJobStatus, LogSource, OtStatus,
+};
 use crate::services::attendance_utils::AttendanceStatus;
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

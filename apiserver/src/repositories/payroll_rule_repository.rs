@@ -2,7 +2,10 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::errors::AppError;
-use crate::models::{PayrollRuleAssignment, PayrollRuleDefinition, PayrollRuleTier, enums::{AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo}};
+use crate::models::{
+    enums::{AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo},
+    PayrollRuleAssignment, PayrollRuleDefinition, PayrollRuleTier,
+};
 
 pub struct PayrollRuleRepository;
 
@@ -53,7 +56,8 @@ impl PayrollRuleRepository {
             if let sqlx::Error::Database(db_err) = &e {
                 if db_err.constraint() == Some("payroll_rule_definitions_workspace_id_code_key") {
                     return AppError::Validation(
-                        "A payroll rule with this code already exists in the workspace.".to_string(),
+                        "A payroll rule with this code already exists in the workspace."
+                            .to_string(),
                     );
                 }
             }
@@ -84,7 +88,9 @@ impl PayrollRuleRepository {
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to fetch payroll rule definitions: {}", e)))?;
+        .map_err(|e| {
+            AppError::Internal(format!("Failed to fetch payroll rule definitions: {}", e))
+        })?;
 
         Ok(rows)
     }
@@ -118,7 +124,9 @@ impl PayrollRuleRepository {
         .await
         .map_err(|e| {
             if let sqlx::Error::Database(db_err) = &e {
-                if db_err.constraint() == Some("payroll_rule_tiers_rule_definition_id_tier_order_key") {
+                if db_err.constraint()
+                    == Some("payroll_rule_tiers_rule_definition_id_tier_order_key")
+                {
                     return AppError::Validation(
                         "A tier with this order already exists for this rule.".to_string(),
                     );

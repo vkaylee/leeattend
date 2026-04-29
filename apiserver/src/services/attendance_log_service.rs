@@ -56,7 +56,15 @@ impl AttendanceLogService {
             .await;
         });
 
-        let service = Self { employee_repo, raw_log_repo, staging_repo, error_repo, pool, pairing_service, log_buffer };
+        let service = Self {
+            employee_repo,
+            raw_log_repo,
+            staging_repo,
+            error_repo,
+            pool,
+            pairing_service,
+            log_buffer,
+        };
 
         (service, worker_handle)
     }
@@ -142,25 +150,29 @@ impl AttendanceLogService {
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         // 1. Resolve employee_id from employee_id_number and workspace_id
-        let employee =
-            match self.employee_repo.find_by_number(workspace_id, employee_id_number).await
-            {
-                Ok(Some(emp)) => emp,
-                Ok(None) => {
-                    // Case 2: Unknown user → Stage for later review (NOT an error)
-                    let fingerprint = Self::calculate_fingerprint(
-                        device_id.as_deref(),
-                        employee_id_number,
-                        punch_time_raw,
-                        raw_data.as_ref(),
-                    );
+        let employee = match self
+            .employee_repo
+            .find_by_number(workspace_id, employee_id_number)
+            .await
+        {
+            Ok(Some(emp)) => emp,
+            Ok(None) => {
+                // Case 2: Unknown user → Stage for later review (NOT an error)
+                let fingerprint = Self::calculate_fingerprint(
+                    device_id.as_deref(),
+                    employee_id_number,
+                    punch_time_raw,
+                    raw_data.as_ref(),
+                );
 
-                    // Parse timestamp for staging (best effort)
-                    let punch_time =
-                        parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
-                            .unwrap_or_else(|_| Utc::now());
+                // Parse timestamp for staging (best effort)
+                let punch_time =
+                    parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
+                        .unwrap_or_else(|_| Utc::now());
 
-                    let _ = self.staging_repo.create_staging_log(
+                let _ = self
+                    .staging_repo
+                    .create_staging_log(
                         workspace_id,
                         device_id,
                         employee_id_number,
@@ -170,21 +182,21 @@ impl AttendanceLogService {
                     )
                     .await;
 
-                    warn!(
-                        "Unknown user {} staged for workspace {} (fingerprint: {})",
-                        employee_id_number,
-                        workspace_id,
-                        &fingerprint[..8]
-                    );
-                    return Ok(false); // SUCCESS - don't retry
-                }
-                Err(e) => {
-                    // Case 4: Database error → Agent should retry
-                    let msg = format!("Database error finding employee: {e}");
-                    error!("{}", msg);
-                    return Err(msg);
-                }
-            };
+                warn!(
+                    "Unknown user {} staged for workspace {} (fingerprint: {})",
+                    employee_id_number,
+                    workspace_id,
+                    &fingerprint[..8]
+                );
+                return Ok(false); // SUCCESS - don't retry
+            }
+            Err(e) => {
+                // Case 4: Database error → Agent should retry
+                let msg = format!("Database error finding employee: {e}");
+                error!("{}", msg);
+                return Err(msg);
+            }
+        };
 
         // 2. Parse punch_time with workspace configuration
         let punch_time = match parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
@@ -202,15 +214,17 @@ impl AttendanceLogService {
                     raw_data.as_ref(),
                 );
 
-                let _ = self.error_repo.create_error_log_with_fingerprint(
-                    workspace_id,
-                    device_id,
-                    raw_data,
-                    &msg,
-                    &format!("{source:?}"),
-                    &fingerprint,
-                )
-                .await;
+                let _ = self
+                    .error_repo
+                    .create_error_log_with_fingerprint(
+                        workspace_id,
+                        device_id,
+                        raw_data,
+                        &msg,
+                        &format!("{source:?}"),
+                        &fingerprint,
+                    )
+                    .await;
 
                 return Ok(false); // SUCCESS - don't retry
             }
@@ -357,21 +371,17 @@ impl AttendanceLogService {
                     dates_to_reprocess.insert(staged.punch_time.date_naive());
 
                     // Mark staging log as processed
-                    let _ = self.staging_repo.update_staging_status(
-                        staged.id,
-                        staged.workspace_id,
-                        "processed",
-                    )
-                    .await;
+                    let _ = self
+                        .staging_repo
+                        .update_staging_status(staged.id, staged.workspace_id, "processed")
+                        .await;
                 }
                 Ok(false) => {
                     // Duplicate - still mark as processed
-                    let _ = self.staging_repo.update_staging_status(
-                        staged.id,
-                        staged.workspace_id,
-                        "processed",
-                    )
-                    .await;
+                    let _ = self
+                        .staging_repo
+                        .update_staging_status(staged.id, staged.workspace_id, "processed")
+                        .await;
                 }
                 Err(e) => {
                     error!("Failed to claim staged log {}: {}", staged.id, e);
@@ -392,9 +402,10 @@ impl AttendanceLogService {
                 "Reprocessing attendance for employee {} on {}",
                 employee_id, date
             );
-            if let Err(e) =
-                self.pairing_service.reprocess_daily_attendance(workspace_id, employee_id, date, tz)
-                    .await
+            if let Err(e) = self
+                .pairing_service
+                .reprocess_daily_attendance(workspace_id, employee_id, date, tz)
+                .await
             {
                 error!(
                     "Pairing error for employee {} on {}: {:?}",
@@ -418,10 +429,16 @@ mod tests {
     #[test]
     fn test_fingerprint_deterministic() {
         let fp1 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            None,
         );
         let fp2 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            None,
         );
         assert_eq!(fp1, fp2);
         assert_eq!(fp1.len(), 64); // SHA256 hex is 64 chars
@@ -430,21 +447,29 @@ mod tests {
     #[test]
     fn test_fingerprint_different_device() {
         let fp1 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            None,
         );
         let fp2 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV2"), "U001", "2026-01-01 08:00:00", None,
+            Some("DEV2"),
+            "U001",
+            "2026-01-01 08:00:00",
+            None,
         );
         assert_ne!(fp1, fp2);
     }
 
     #[test]
     fn test_fingerprint_no_device() {
-        let fp1 = AttendanceLogService::calculate_fingerprint(
-            None, "U001", "2026-01-01 08:00:00", None,
-        );
+        let fp1 =
+            AttendanceLogService::calculate_fingerprint(None, "U001", "2026-01-01 08:00:00", None);
         let fp2 = AttendanceLogService::calculate_fingerprint(
-            Some(""), "U001", "2026-01-01 08:00:00", None,
+            Some(""),
+            "U001",
+            "2026-01-01 08:00:00",
+            None,
         );
         // None and "" should produce the same fingerprint
         assert_eq!(fp1, fp2);
@@ -454,10 +479,16 @@ mod tests {
     fn test_fingerprint_with_raw_data() {
         let raw = serde_json::json!({"punch": 1, "status": 2});
         let fp1 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw),
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            Some(&raw),
         );
         let fp2 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            None,
         );
         assert_ne!(fp1, fp2);
     }
@@ -467,10 +498,16 @@ mod tests {
         let raw1 = serde_json::json!({"punch": 1, "status": 0});
         let raw2 = serde_json::json!({"punch": 2, "status": 0});
         let fp1 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw1),
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            Some(&raw1),
         );
         let fp2 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw2),
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            Some(&raw2),
         );
         assert_ne!(fp1, fp2);
     }
@@ -479,7 +516,10 @@ mod tests {
     fn test_fingerprint_raw_data_no_punch_status() {
         let raw = serde_json::json!({"other": "data"});
         let fp = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw),
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            Some(&raw),
         );
         assert_eq!(fp.len(), 64);
     }
@@ -487,10 +527,16 @@ mod tests {
     #[test]
     fn test_fingerprint_different_user() {
         let fp1 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            None,
         );
         let fp2 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U002", "2026-01-01 08:00:00", None,
+            Some("DEV1"),
+            "U002",
+            "2026-01-01 08:00:00",
+            None,
         );
         assert_ne!(fp1, fp2);
     }
@@ -498,10 +544,16 @@ mod tests {
     #[test]
     fn test_fingerprint_different_timestamp() {
         let fp1 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            None,
         );
         let fp2 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 09:00:00", None,
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 09:00:00",
+            None,
         );
         assert_ne!(fp1, fp2);
     }
@@ -561,14 +613,10 @@ mod tests {
 
     #[test]
     fn test_fingerprint_empty_strings() {
-        let fp = AttendanceLogService::calculate_fingerprint(
-            Some(""), "", "", None,
-        );
+        let fp = AttendanceLogService::calculate_fingerprint(Some(""), "", "", None);
         assert_eq!(fp.len(), 64);
         // Should be deterministic
-        let fp2 = AttendanceLogService::calculate_fingerprint(
-            Some(""), "", "", None,
-        );
+        let fp2 = AttendanceLogService::calculate_fingerprint(Some(""), "", "", None);
         assert_eq!(fp, fp2);
     }
 
@@ -576,7 +624,10 @@ mod tests {
     fn test_fingerprint_raw_data_with_only_status() {
         let raw = serde_json::json!({"status": 5});
         let fp = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw),
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            Some(&raw),
         );
         assert_eq!(fp.len(), 64);
     }
@@ -585,7 +636,10 @@ mod tests {
     fn test_fingerprint_raw_data_with_negative_values() {
         let raw = serde_json::json!({"punch": -1, "status": -1});
         let fp = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw),
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            Some(&raw),
         );
         assert_eq!(fp.len(), 64);
     }
@@ -593,7 +647,10 @@ mod tests {
     #[test]
     fn test_fingerprint_unicode_user_id() {
         let fp = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "員工001", "2026-01-01 08:00:00", None,
+            Some("DEV1"),
+            "員工001",
+            "2026-01-01 08:00:00",
+            None,
         );
         assert_eq!(fp.len(), 64);
     }
@@ -603,10 +660,16 @@ mod tests {
         let raw1 = serde_json::json!({"punch": 1, "status": 0});
         let raw2 = serde_json::json!({"punch": 1, "status": 1});
         let fp1 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw1),
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            Some(&raw1),
         );
         let fp2 = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw2),
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            Some(&raw2),
         );
         assert_ne!(fp1, fp2);
     }
@@ -615,13 +678,18 @@ mod tests {
     fn test_fingerprint_none_vs_empty_raw_data() {
         let raw_empty = serde_json::json!({});
         let fp_none = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", None,
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            None,
         );
         let fp_empty = AttendanceLogService::calculate_fingerprint(
-            Some("DEV1"), "U001", "2026-01-01 08:00:00", Some(&raw_empty),
+            Some("DEV1"),
+            "U001",
+            "2026-01-01 08:00:00",
+            Some(&raw_empty),
         );
         // None and {} both contribute empty string to the hash, so fingerprints are equal
         assert_eq!(fp_none, fp_empty);
     }
 }
-

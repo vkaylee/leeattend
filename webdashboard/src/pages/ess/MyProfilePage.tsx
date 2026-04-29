@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { useToast } from "@/components/ui/Toast";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useMyProfile, useEmergencyContacts } from "@/hooks/use-ess";
+
 import {
   User as UserIcon,
   Phone,
@@ -17,11 +14,18 @@ import {
   AlertCircle,
   ShieldCheck,
 } from "lucide-react";
-import Modal from "@/components/ui/Modal";
-import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+
 import Button from "@/components/ui/Button";
-import StatusBadge from "@/components/ui/StatusBadge";
 import { LABEL_BASE } from "@/components/ui/FormField";
+import Modal from "@/components/ui/Modal";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { useToast } from "@/components/ui/Toast";
+
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useMyProfile, useEmergencyContacts } from "@/hooks/use-ess";
+import { cn } from "@/lib/utils";
+
 
 type TabType = "personal" | "banking" | "emergency";
 

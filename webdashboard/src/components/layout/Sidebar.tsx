@@ -1,7 +1,6 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+
 import { Link, useLocation } from "@tanstack/react-router";
-import { useMyPermissions } from "@/hooks/use-permissions";
 import {
   LayoutDashboard,
   Cpu,
@@ -47,10 +46,13 @@ import {
   Activity,
   Palmtree
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ROUTES } from "@/lib/routes";
+import { useTranslation } from "react-i18next";
 
+import { useMyPermissions } from "@/hooks/use-permissions";
 import { useProfile } from "@/hooks/use-profile";
+import { ROUTES } from "@/lib/routes";
+import { cn } from "@/lib/utils";
+
 
 interface SidebarProps {
   isOpen: boolean;

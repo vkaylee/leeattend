@@ -7,6 +7,7 @@ import {
     Tooltip,
     Legend,
 } from "recharts";
+
 import { useRecruitmentSourceBreakdown } from "@/hooks/use-dashboard";
 
 const SOURCE_COLORS: Record<string, string> = {

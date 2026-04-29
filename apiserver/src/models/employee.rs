@@ -187,4 +187,3 @@ pub struct UpdateEmployeeRequest {
     pub max_concurrent_workers: Option<i32>,
     pub recruitment_source_id: Option<Uuid>,
 }
-

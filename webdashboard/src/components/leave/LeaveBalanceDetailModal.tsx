@@ -1,11 +1,14 @@
+import { useState } from "react";
+
+import { useQuery } from "@tanstack/react-query";
 import { X, Info, TrendingUp, Calendar, Award, FileText, ArrowUpRight, ArrowDownRight, History as HistoryIcon, Clock } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
-import { WorkspaceLeaveBalance, fetchLeaveHistory, getCurrentWorkspaceId, LeaveHistoryItem } from "@/lib/api";
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
+
+import { WorkspaceLeaveBalance, fetchLeaveHistory, getCurrentWorkspaceId, LeaveHistoryItem } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface LeaveBalanceDetailModalProps {
   balance: WorkspaceLeaveBalance;

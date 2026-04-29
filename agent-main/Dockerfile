@@ -2,7 +2,7 @@
 
 # Stage 1: Cargo Chef base
 FROM rust:1.93-slim-bookworm AS chef
-RUN rustup component add clippy
+RUN rustup component add clippy rustfmt
 RUN cargo install cargo-chef
 RUN apt-get update && apt-get install -y wget && \
     wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \

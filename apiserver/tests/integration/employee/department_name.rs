@@ -234,9 +234,7 @@ async fn test_get_active_employees_includes_department_name() {
     let today = chrono::Utc::now().date_naive();
     transfer(&pool, emp_id, dept_id, today).await;
 
-    let actives = employee::get_active_employees(&pool, ws_id)
-        .await
-        .unwrap();
+    let actives = employee::get_active_employees(&pool, ws_id).await.unwrap();
     assert_eq!(actives.len(), 1);
     assert_eq!(actives[0].department_name.as_deref(), Some("Operations"));
 }

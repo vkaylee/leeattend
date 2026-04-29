@@ -2,19 +2,19 @@
 
 use axum::http::StatusCode;
 use serde_json::json;
-use uuid::Uuid;
 use tower::ServiceExt;
+use uuid::Uuid;
 
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::AppState;
 use apiserver::services::payroll_rule_evaluator::PayrollRuleEvaluator;
+use apiserver::AppState;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::collections::HashMap;
 
 #[tokio::test]
 async fn test_payroll_rules_crud_api() {
@@ -47,13 +47,17 @@ async fn test_payroll_rules_crud_api() {
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
-        .body(axum::body::Body::from(serde_json::to_string(&rule_payload).unwrap()))
+        .body(axum::body::Body::from(
+            serde_json::to_string(&rule_payload).unwrap(),
+        ))
         .unwrap();
 
     let response = app.clone().oneshot(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let created_rule: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
     let rule_id = created_rule["id"].as_str().unwrap().to_string();
     assert_eq!(created_rule["code"], "BHXH");
@@ -69,8 +73,10 @@ async fn test_payroll_rules_crud_api() {
 
     let response = app.clone().oneshot(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    
-    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let rules: Vec<serde_json::Value> = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(rules.len(), 1);
 
@@ -85,11 +91,15 @@ async fn test_payroll_rules_crud_api() {
 
     let req = axum::http::Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers"))
+        .uri(format!(
+            "/api/workspaces/{ws_id}/payroll-rules/{rule_id}/tiers"
+        ))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
-        .body(axum::body::Body::from(serde_json::to_string(&tier_payload).unwrap()))
+        .body(axum::body::Body::from(
+            serde_json::to_string(&tier_payload).unwrap(),
+        ))
         .unwrap();
 
     let response = app.clone().oneshot(req).await.unwrap();
@@ -106,11 +116,15 @@ async fn test_payroll_rules_crud_api() {
 
     let req = axum::http::Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments"))
+        .uri(format!(
+            "/api/workspaces/{ws_id}/payroll-rules/{rule_id}/assignments"
+        ))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .header("Content-Type", "application/json")
-        .body(axum::body::Body::from(serde_json::to_string(&assign_payload).unwrap()))
+        .body(axum::body::Body::from(
+            serde_json::to_string(&assign_payload).unwrap(),
+        ))
         .unwrap();
 
     let response = app.clone().oneshot(req).await.unwrap();

@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { Users, UserPlus } from "lucide-react";
-import MemberTable from "@/components/members/MemberTable";
-import InviteMemberDialog from "@/components/members/InviteMemberDialog";
+import { useTranslation } from "react-i18next";
+
 import PermissionGate from "@/components/common/PermissionGate";
+import InviteMemberDialog from "@/components/members/InviteMemberDialog";
+import MemberTable from "@/components/members/MemberTable";
 import Button from "@/components/ui/Button";
 
 export default function MembersPage() {

@@ -7,8 +7,10 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }));
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import OvertimeRuleEditor from '../OvertimeRuleEditor';
+
 import AssignOvertimePolicyModal from '../AssignOvertimePolicyModal';
+import OvertimeRuleEditor from '../OvertimeRuleEditor';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 

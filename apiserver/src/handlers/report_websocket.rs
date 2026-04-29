@@ -1,4 +1,3 @@
-
 //! WebSocket endpoint for streaming report data.
 //!
 //! Connects clients to Redis Pub/Sub for real-time report chunk delivery.
@@ -80,7 +79,6 @@ pub async fn report_stream_ws(
     axum::Extension(user_id): axum::Extension<Uuid>,
     State(state): State<Arc<AppState>>,
 ) -> Response {
-
     // 2. Check if Redis is available
     let redis = match &state.infra.redis {
         Some(redis) => redis.clone(),
@@ -109,7 +107,8 @@ pub async fn report_stream_ws(
 
     // Check if user belongs to the workspace of this job
     let is_member = match state
-        .core.workspace_repo
+        .core
+        .workspace_repo
         .find_primary_role(metadata.workspace_id, user_id)
         .await
     {
@@ -298,8 +297,8 @@ mod tests {
     #[test]
     fn test_done_fallback_json_is_valid() {
         let fallback = r#"{"type":"DONE"}"#;
-        let parsed: serde_json::Value = serde_json::from_str(fallback)
-            .expect("Done fallback JSON must be valid");
+        let parsed: serde_json::Value =
+            serde_json::from_str(fallback).expect("Done fallback JSON must be valid");
         assert_eq!(parsed["type"], "DONE");
     }
 
@@ -307,8 +306,8 @@ mod tests {
     #[test]
     fn test_error_fallback_json_is_valid() {
         let fallback = r#"{"type":"ERROR","message":"Job failed"}"#;
-        let parsed: serde_json::Value = serde_json::from_str(fallback)
-            .expect("Error fallback JSON must be valid");
+        let parsed: serde_json::Value =
+            serde_json::from_str(fallback).expect("Error fallback JSON must be valid");
         assert_eq!(parsed["type"], "ERROR");
         assert_eq!(parsed["message"], "Job failed");
     }
@@ -322,7 +321,9 @@ mod tests {
         };
         let json = serde_json::to_string(&msg);
         assert!(json.is_ok(), "Done serialization must not fail");
-        assert!(json.expect("Done serialization must not fail").contains("\"type\":\"DONE\""));
+        assert!(json
+            .expect("Done serialization must not fail")
+            .contains("\"type\":\"DONE\""));
     }
 
     /// Normal StreamMessage::Error serialization should always succeed.
@@ -334,6 +335,8 @@ mod tests {
         };
         let json = serde_json::to_string(&msg);
         assert!(json.is_ok(), "Error serialization must not fail");
-        assert!(json.expect("Error serialization must not fail").contains("\"type\":\"ERROR\""));
+        assert!(json
+            .expect("Error serialization must not fail")
+            .contains("\"type\":\"ERROR\""));
     }
 }

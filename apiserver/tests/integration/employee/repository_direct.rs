@@ -45,7 +45,9 @@ async fn test_working_condition_crud() {
         start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
         end_date: None,
     };
-    employee::create_working_condition(&pool, &wc).await.unwrap();
+    employee::create_working_condition(&pool, &wc)
+        .await
+        .unwrap();
 
     // Read back
     let conditions = employee::get_working_conditions(&pool, ws_id, emp_id)
@@ -76,11 +78,7 @@ async fn test_delete_nonexistent_working_condition_returns_false() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let deleted = employee::delete_working_condition(&pool, Uuid::new_v4(), emp_id)
         .await
@@ -149,11 +147,7 @@ async fn test_payroll_config_upsert_and_lookup() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let effective = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
 
@@ -206,22 +200,30 @@ async fn test_payroll_config_returns_closest_effective() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     // Insert two configs with different effective dates
     let jan = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
     let jul = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
 
-    employee::upsert_employee_payroll_config(&pool, emp_id, Decimal::from(22), Decimal::from(8), jan)
-        .await
-        .unwrap();
-    employee::upsert_employee_payroll_config(&pool, emp_id, Decimal::from(20), Decimal::from(7), jul)
-        .await
-        .unwrap();
+    employee::upsert_employee_payroll_config(
+        &pool,
+        emp_id,
+        Decimal::from(22),
+        Decimal::from(8),
+        jan,
+    )
+    .await
+    .unwrap();
+    employee::upsert_employee_payroll_config(
+        &pool,
+        emp_id,
+        Decimal::from(20),
+        Decimal::from(7),
+        jul,
+    )
+    .await
+    .unwrap();
 
     // Lookup in March → should get Jan config
     let march = NaiveDate::from_ymd_opt(2026, 3, 15).unwrap();
@@ -271,9 +273,7 @@ async fn test_get_active_employees_excludes_inactive() {
         .await
         .unwrap();
 
-    let active = employee::get_active_employees(&pool, ws_id)
-        .await
-        .unwrap();
+    let active = employee::get_active_employees(&pool, ws_id).await.unwrap();
     assert_eq!(active.len(), 1);
     assert_eq!(active[0].full_name, "Active One");
 }

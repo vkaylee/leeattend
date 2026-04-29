@@ -210,4 +210,3 @@ impl Drop for TestDatabase {
         Self::cleanup_database_blocking(self.db_name.clone(), self.base_url.clone());
     }
 }
-

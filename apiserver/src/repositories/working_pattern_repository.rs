@@ -158,7 +158,11 @@ pub async fn bulk_assign_pattern(
     })
 }
 
-pub async fn delete_pattern(pool: &PgPool, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), sqlx::Error> {
+pub async fn delete_pattern(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    pattern_id: Uuid,
+) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
 
     // 1. Delete details first

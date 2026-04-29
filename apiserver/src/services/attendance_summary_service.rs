@@ -9,12 +9,11 @@ use crate::domain::policy::defaults::DEFAULT_WORK_MINUTES_PER_DAY;
 
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceDailySummary, OtStatus};
-use crate::repositories::{
-    workspace_repository::WorkspaceRepository,
-    SqlxWorkspaceRepository, TimeEntryRepository,
-};
-use crate::repositories::roster::RosterRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
+use crate::repositories::roster::RosterRepository;
+use crate::repositories::{
+    workspace_repository::WorkspaceRepository, SqlxWorkspaceRepository, TimeEntryRepository,
+};
 use crate::services::AttendanceCalculator;
 
 pub struct AttendanceSummaryService {
@@ -24,8 +23,16 @@ pub struct AttendanceSummaryService {
 }
 
 impl AttendanceSummaryService {
-    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, roster_repo: Arc<dyn RosterRepository>, pool: PgPool) -> Self {
-        Self { time_entry_repo, roster_repo, pool }
+    pub fn new(
+        time_entry_repo: Arc<dyn TimeEntryRepository>,
+        roster_repo: Arc<dyn RosterRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self {
+            time_entry_repo,
+            roster_repo,
+            pool,
+        }
     }
 
     /// Recalculates and persists the daily summary for a specific employee and date.
@@ -38,7 +45,9 @@ impl AttendanceSummaryService {
         date: NaiveDate,
     ) -> Result<(), String> {
         // 1. Get Workspace Settings
-        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository {
+            pool: self.pool.clone(),
+        };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
@@ -48,15 +57,11 @@ impl AttendanceSummaryService {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         // 2. Get Effective Schedule for this specific date
-        let schedules = self.roster_repo.get_workspace_schedules(
-            None,
-            workspace_id,
-            date,
-            date,
-            Some(&vec![employee_id]),
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+        let schedules = self
+            .roster_repo
+            .get_workspace_schedules(None, workspace_id, date, date, Some(&vec![employee_id]))
+            .await
+            .map_err(|e| e.to_string())?;
 
         let emp_sched = schedules.first().ok_or("No schedule found for employee")?;
         let daily_schedule = emp_sched
@@ -119,12 +124,15 @@ impl AttendanceSummaryService {
                         end += chrono::Duration::days(1);
                     }
 
-                    let rules = crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
-                        &self.pool,
-                        employee_id,
-                        workspace_id,
-                        date,
-                    ).await.map_err(|e| e.to_string())?;
+                    let rules =
+                        crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
+                            &self.pool,
+                            employee_id,
+                            workspace_id,
+                            date,
+                        )
+                        .await
+                        .map_err(|e| e.to_string())?;
 
                     // Resolve Policy Rules
                     let policy_rules = PolicyResolver::resolve_with_shift_overrides(
@@ -133,7 +141,8 @@ impl AttendanceSummaryService {
                         workspace_id,
                         date,
                         &crate::domain::policy::resolver::ShiftPolicyOverrides {
-                            grace_period_minutes: daily_schedule.early_punch_in_grace_period_minutes,
+                            grace_period_minutes: daily_schedule
+                                .early_punch_in_grace_period_minutes,
                             is_break_auto_deduct: daily_schedule.is_break_auto_deduct,
                             allow_early_ot: daily_schedule.allow_early_ot,
                             early_arrival_strategy: rules.early_arrival_strategy,
@@ -189,12 +198,19 @@ impl AttendanceSummaryService {
                 .unwrap_or(None);
 
                 if let Some((leave_request_id, _leave_type_id, _leave_code)) = system_leave {
-                    let shift_minutes = daily_schedule.start_time
-                        .and_then(|st| daily_schedule.end_time.map(|et| {
-                            let diff = et.signed_duration_since(st).num_minutes() as i32;
-                            let break_mins = daily_schedule.break_duration_minutes.unwrap_or(0);
-                            if diff > 0 { diff - break_mins } else { diff + 1440 - break_mins }
-                        }))
+                    let shift_minutes = daily_schedule
+                        .start_time
+                        .and_then(|st| {
+                            daily_schedule.end_time.map(|et| {
+                                let diff = et.signed_duration_since(st).num_minutes() as i32;
+                                let break_mins = daily_schedule.break_duration_minutes.unwrap_or(0);
+                                if diff > 0 {
+                                    diff - break_mins
+                                } else {
+                                    diff + 1440 - break_mins
+                                }
+                            })
+                        })
                         .unwrap_or(DEFAULT_WORK_MINUTES_PER_DAY);
 
                     let threshold = hol.work_threshold_percent.unwrap_or(50);

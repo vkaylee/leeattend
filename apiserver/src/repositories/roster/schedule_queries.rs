@@ -57,10 +57,8 @@ pub async fn get_workspace_schedules(
     };
 
     // 2b. Fetch holidays in range for overlay
-    let holidays_map = HolidayRepository::get_holidays_in_range(
-        pool, workspace_id, start_date, end_date,
-    )
-    .await?;
+    let holidays_map =
+        HolidayRepository::get_holidays_in_range(pool, workspace_id, start_date, end_date).await?;
 
     // 3. Fetch Rosters in range (per-request — date-bounded)
     let rosters = sqlx::query_as::<_, ShiftRoster>(
@@ -261,7 +259,10 @@ pub async fn get_effective_shift(
 
             let mut rule_patterns_map: HashMap<(Uuid, i32), Vec<Option<Uuid>>> = HashMap::new();
             for d in raw_rows {
-                rule_patterns_map.entry((d.pattern_id, d.day_of_week)).or_default().push(d.shift_id);
+                rule_patterns_map
+                    .entry((d.pattern_id, d.day_of_week))
+                    .or_default()
+                    .push(d.shift_id);
             }
 
             let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {

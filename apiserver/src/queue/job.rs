@@ -635,7 +635,10 @@ mod tests {
         // Nested payload
         let payload = roundtripped.report_payload().expect("should be report");
         assert_eq!(payload.employee_ids, emp_ids);
-        assert_eq!(payload.date_range.start, NaiveDate::from_ymd_opt(2026, 3, 1).unwrap());
+        assert_eq!(
+            payload.date_range.start,
+            NaiveDate::from_ymd_opt(2026, 3, 1).unwrap()
+        );
         assert_eq!(payload.config.timezone, "Asia/Tokyo");
         assert_eq!(payload.config.report_type, ReportType::Detail);
         assert_eq!(payload.config.work_unit_minutes, 15);
@@ -689,7 +692,10 @@ mod tests {
 
         assert!(meta.date_range.is_some());
         let stored_dr = meta.date_range.unwrap();
-        assert_eq!(stored_dr.start, NaiveDate::from_ymd_opt(2026, 6, 1).unwrap());
+        assert_eq!(
+            stored_dr.start,
+            NaiveDate::from_ymd_opt(2026, 6, 1).unwrap()
+        );
         assert_eq!(stored_dr.end, NaiveDate::from_ymd_opt(2026, 6, 30).unwrap());
     }
 
@@ -728,10 +734,22 @@ mod tests {
     /// JobStatus serde uses snake_case.
     #[test]
     fn test_job_status_serde() {
-        assert_eq!(serde_json::to_string(&JobStatus::Pending).unwrap(), "\"pending\"");
-        assert_eq!(serde_json::to_string(&JobStatus::Processing).unwrap(), "\"processing\"");
-        assert_eq!(serde_json::to_string(&JobStatus::Completed).unwrap(), "\"completed\"");
-        assert_eq!(serde_json::to_string(&JobStatus::Failed).unwrap(), "\"failed\"");
+        assert_eq!(
+            serde_json::to_string(&JobStatus::Pending).unwrap(),
+            "\"pending\""
+        );
+        assert_eq!(
+            serde_json::to_string(&JobStatus::Processing).unwrap(),
+            "\"processing\""
+        );
+        assert_eq!(
+            serde_json::to_string(&JobStatus::Completed).unwrap(),
+            "\"completed\""
+        );
+        assert_eq!(
+            serde_json::to_string(&JobStatus::Failed).unwrap(),
+            "\"failed\""
+        );
     }
 
     // ====== PRIORITY + LOG INGESTION TESTS ======
@@ -739,8 +757,14 @@ mod tests {
     /// JobPriority serde uses snake_case.
     #[test]
     fn test_job_priority_serde() {
-        assert_eq!(serde_json::to_string(&JobPriority::High).unwrap(), "\"high\"");
-        assert_eq!(serde_json::to_string(&JobPriority::Normal).unwrap(), "\"normal\"");
+        assert_eq!(
+            serde_json::to_string(&JobPriority::High).unwrap(),
+            "\"high\""
+        );
+        assert_eq!(
+            serde_json::to_string(&JobPriority::Normal).unwrap(),
+            "\"normal\""
+        );
         assert_eq!(serde_json::to_string(&JobPriority::Low).unwrap(), "\"low\"");
 
         // Roundtrip

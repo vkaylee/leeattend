@@ -1,8 +1,11 @@
+import React from "react";
+
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import OnboardingPage from "../OnboardingPage";
-import React from "react";
+
 import { ROUTES } from "@/lib/routes";
+
+import OnboardingPage from "../OnboardingPage";
 
 // Mock router
 vi.mock("@tanstack/react-router", () => ({

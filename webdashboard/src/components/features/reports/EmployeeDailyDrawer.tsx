@@ -1,10 +1,17 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
-import { useTranslation } from "react-i18next";
+
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { RefreshCw, Check, CheckCircle, User, CalendarCheck, SearchX, Loader2, FileBarChart, AlertTriangle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { RefreshCw, Check, CheckCircle, User, CalendarCheck, SearchX, Loader2, FileBarChart, AlertTriangle, Clock  } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
+import Sheet from "@/components/ui/Sheet";
+import { useToast } from "@/components/ui/Toast";
+
+import { useDebug } from "@/context/DebugContext";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import {
     fetchAttendanceReport,
     DailyAttendanceReport,
@@ -19,14 +26,11 @@ import {
     upsertRoster,
     Shift,
 } from "@/lib/api";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
-import { useDebug } from "@/context/DebugContext";
-import { useToast } from "@/components/ui/Toast";
-import Sheet from "@/components/ui/Sheet";
+
 import Modal from "@/components/ui/Modal";
+
 import DailyReportTable from "./DailyReportTable";
-import { Clock } from "lucide-react";
 
 interface EmployeeDailyDrawerProps {
     isOpen: boolean;

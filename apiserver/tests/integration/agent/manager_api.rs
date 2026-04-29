@@ -97,7 +97,7 @@ async fn test_get_agents_device_status() {
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
-    
+
     // Create an agent
     let agent_id: String = factory
         .agent()
@@ -156,18 +156,28 @@ async fn test_get_agents_device_status() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), 1024*1024).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
     let agents: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
-    
+
     // Find our agent
-    let agent = agents.iter().find(|a| a["agent_id"] == agent_id).expect("Agent must be returned");
+    let agent = agents
+        .iter()
+        .find(|a| a["agent_id"] == agent_id)
+        .expect("Agent must be returned");
     assert_eq!(agent["is_online"], false);
-    
+
     // Check devices
-    let devices = agent["devices"].as_array().expect("Devices should be an array");
+    let devices = agent["devices"]
+        .as_array()
+        .expect("Devices should be an array");
     assert_eq!(devices.len(), 2);
     for dev in devices {
-        assert_eq!(dev["status"], "offline", "All devices should be offline when agent is offline");
+        assert_eq!(
+            dev["status"], "offline",
+            "All devices should be offline when agent is offline"
+        );
     }
 
     // 2. Mock agent being online
@@ -188,22 +198,35 @@ async fn test_get_agents_device_status() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), 1024*1024).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
     let agents: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
-    
-    let agent = agents.iter().find(|a| a["agent_id"] == agent_id).expect("Agent must be returned");
+
+    let agent = agents
+        .iter()
+        .find(|a| a["agent_id"] == agent_id)
+        .expect("Agent must be returned");
     assert_eq!(agent["is_online"], true);
-    
-    let devices = agent["devices"].as_array().expect("Devices should be an array");
+
+    let devices = agent["devices"]
+        .as_array()
+        .expect("Devices should be an array");
     assert_eq!(devices.len(), 2);
-    
+
     // Now the enabled device should be "online", disabled should be "offline"
     for dev in devices {
         let dev_id = dev["device_id"].as_str().unwrap();
         if dev_id == dev_enabled_id.to_string() {
-            assert_eq!(dev["status"], "online", "Enabled device should be online when agent is online");
+            assert_eq!(
+                dev["status"], "online",
+                "Enabled device should be online when agent is online"
+            );
         } else if dev_id == dev_disabled_id.to_string() {
-            assert_eq!(dev["status"], "offline", "Disabled device should be offline even when agent is online");
+            assert_eq!(
+                dev["status"], "offline",
+                "Disabled device should be offline even when agent is online"
+            );
         }
     }
 }

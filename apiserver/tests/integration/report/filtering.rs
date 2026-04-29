@@ -32,37 +32,35 @@ async fn test_daily_report_employee_filtering() {
     let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
 
     let report_service = ReportService::new(
-        std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())),
-        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())),
-        pool.clone()
+        std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+            pool.clone(),
+        )),
+        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+            pool.clone(),
+        )),
+        pool.clone(),
     );
 
     // Filter by emp1
-    let result_1 = report_service.get_daily_attendance_report(
-        workspace_id,
-        date,
-        date,
-        None,
-        None,
-        Some(vec![emp1]),
-        None,
-    )
-    .await
-    .expect("Failed to get report");
+    let result_1 = report_service
+        .get_daily_attendance_report(workspace_id, date, date, None, None, Some(vec![emp1]), None)
+        .await
+        .expect("Failed to get report");
     assert_eq!(result_1.data.len(), 1);
     assert_eq!(result_1.data[0].employee_id, emp1);
 
     // Filter by emp2, emp3
-    let result_23 = report_service.get_daily_attendance_report(
-        workspace_id,
-        date,
-        date,
-        None,
-        None,
-        Some(vec![emp2, emp3]),
-        None,
-    )
-    .await
-    .expect("Failed to get report");
+    let result_23 = report_service
+        .get_daily_attendance_report(
+            workspace_id,
+            date,
+            date,
+            None,
+            None,
+            Some(vec![emp2, emp3]),
+            None,
+        )
+        .await
+        .expect("Failed to get report");
     assert_eq!(result_23.data.len(), 2);
 }

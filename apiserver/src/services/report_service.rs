@@ -11,12 +11,10 @@ use crate::domain::policy::resolver::{PolicyResolver, ShiftPolicyOverrides};
 use crate::models::{
     AttendanceReportSort, AttendanceSummary, DailyAttendanceReport, PaginatedResponse,
 };
-use crate::repositories::workspace_repository::WorkspaceRepository;
-use crate::repositories::{
-    employee, SqlxWorkspaceRepository, TimeEntryRepository,
-};
-use crate::repositories::roster::RosterRepository;
 use crate::repositories::holiday_repository::HolidayRepository;
+use crate::repositories::roster::RosterRepository;
+use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::repositories::{employee, SqlxWorkspaceRepository, TimeEntryRepository};
 use crate::services::AttendanceCalculator;
 
 pub struct ReportService {
@@ -26,8 +24,16 @@ pub struct ReportService {
 }
 
 impl ReportService {
-    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, roster_repo: Arc<dyn RosterRepository>, pool: PgPool) -> Self {
-        Self { time_entry_repo, roster_repo, pool }
+    pub fn new(
+        time_entry_repo: Arc<dyn TimeEntryRepository>,
+        roster_repo: Arc<dyn RosterRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self {
+            time_entry_repo,
+            roster_repo,
+            pool,
+        }
     }
 
     /// Shared calculation for a single day's standard/OT units.
@@ -130,7 +136,9 @@ impl ReportService {
         department_id: Option<Uuid>,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
-        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository {
+            pool: self.pool.clone(),
+        };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
@@ -147,21 +155,20 @@ impl ReportService {
         let limit = limit.unwrap_or(20);
 
         // Daily report always uses ASC sort (no sort parameter exposed)
-        let (paginated_employees, total_employees) =
-            employee::get_paginated_employee_ids(
-                &self.pool,
-                workspace_id,
-                employee_ids.as_ref(),
-                department_id,
-                page,
-                limit,
-                false, // sort_desc = false -> ORDER BY full_name ASC
-            )
-            .await
-            .map_err(|e| {
-                tracing::error!("Error fetching paginated employees: {}", e);
-                AppError::Internal("Internal error".into())
-            })?;
+        let (paginated_employees, total_employees) = employee::get_paginated_employee_ids(
+            &self.pool,
+            workspace_id,
+            employee_ids.as_ref(),
+            department_id,
+            page,
+            limit,
+            false, // sort_desc = false -> ORDER BY full_name ASC
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Error fetching paginated employees: {}", e);
+            AppError::Internal("Internal error".into())
+        })?;
 
         // Early return if no employees
         if paginated_employees.is_empty() {
@@ -177,21 +184,16 @@ impl ReportService {
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
         // 3. Get schedules ONLY for paginated employees
-        let schedules = self.roster_repo.get_workspace_schedules(
-            None,
-            workspace_id,
-            start_date,
-            end_date,
-            Some(&emp_ids),
-        )
-        .await
-        .map_err(AppError::Sqlx)?;
+        let schedules = self
+            .roster_repo
+            .get_workspace_schedules(None, workspace_id, start_date, end_date, Some(&emp_ids))
+            .await
+            .map_err(AppError::Sqlx)?;
 
         // 4. Convert NaiveDate to DateTime<Utc> using Workspace Timezone
-        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
-            tz, start_date, end_date,
-        )
-        .ok_or(AppError::Validation("Invalid request".into()))?;
+        let (start_dt, end_dt) =
+            crate::services::attendance_utils::date_range_to_utc_checked(tz, start_date, end_date)
+                .ok_or(AppError::Validation("Invalid request".into()))?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
@@ -202,7 +204,10 @@ impl ReportService {
 
         // 5a. BATCH fetch holidays for the date range
         let holidays_map = HolidayRepository::get_holidays_in_range(
-            &self.pool, workspace_id, start_date, end_date,
+            &self.pool,
+            workspace_id,
+            start_date,
+            end_date,
         )
         .await
         .map_err(AppError::Sqlx)?;
@@ -225,12 +230,21 @@ impl ReportService {
 
         let ot_status_map: HashMap<(Uuid, NaiveDate), String> = ot_status_rows
             .into_iter()
-            .map(|r| ((r.employee_id, r.date), r.ot_status.to_string().to_lowercase()))
+            .map(|r| {
+                (
+                    (r.employee_id, r.date),
+                    r.ot_status.to_string().to_lowercase(),
+                )
+            })
             .collect();
 
         // 5c. BATCH fetch approved leave requests for holiday-leave status detection
         let leave_date_set = crate::services::attendance_utils::build_leave_date_set(
-            &self.pool, workspace_id, &emp_ids, start_date, end_date,
+            &self.pool,
+            workspace_id,
+            &emp_ids,
+            start_date,
+            end_date,
         )
         .await
         .map_err(AppError::Sqlx)?;
@@ -255,7 +269,8 @@ impl ReportService {
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
             // Pre-group entries by date for O(1) per-date lookup
-            let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
+            let entries_by_date =
+                crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
             for daily in emp_sched.schedules {
                 let date = daily.date;
@@ -273,24 +288,28 @@ impl ReportService {
                     .last()
                     .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
 
-                let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
-                    work_unit_minutes: 30,
-                    rounding_policy: "floor".to_string(),
-                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                });
+                let emp_attendance_rules = attendance_rules_map
+                    .get(&emp_sched.employee_id)
+                    .cloned()
+                    .unwrap_or(crate::models::AttendanceRules {
+                        work_unit_minutes: 30,
+                        rounding_policy: "floor".to_string(),
+                        early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                    });
 
-                let (std_work_units, ot_work_units) = self.calculate_day_units(
-                    day_entries,
-                    &daily,
-                    date,
-                    tz,
-                    emp_sched.employee_id,
-                    workspace.id,
-                    emp_attendance_rules.early_arrival_strategy,
-                    emp_attendance_rules.work_unit_minutes,
-                    &emp_attendance_rules.rounding_policy,
-                )
-                .await;
+                let (std_work_units, ot_work_units) = self
+                    .calculate_day_units(
+                        day_entries,
+                        &daily,
+                        date,
+                        tz,
+                        emp_sched.employee_id,
+                        workspace.id,
+                        emp_attendance_rules.early_arrival_strategy,
+                        emp_attendance_rules.work_unit_minutes,
+                        &emp_attendance_rules.rounding_policy,
+                    )
+                    .await;
 
                 // --- STATUS DETERMINATION (using shared attendance_utils) ---
                 let holiday_entry = holidays_map.get(&date);
@@ -352,12 +371,11 @@ impl ReportService {
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
                     std_work_units,
                     ot_work_units,
-                    ot_claim_status: ot_status_map
-                        .get(&(emp_sched.employee_id, date))
-                        .cloned(),
+                    ot_claim_status: ot_status_map.get(&(emp_sched.employee_id, date)).cloned(),
                     status,
                     is_holiday: is_hol,
-                    is_unscheduled: status == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
+                    is_unscheduled: status
+                        == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
                     holiday_name: holiday_entry.map(|h| h.name.clone()),
                     generation_metadata: combined_metadata,
                 });
@@ -400,7 +418,9 @@ impl ReportService {
         use std::collections::HashMap;
 
         // 0. Get Workspace Settings
-        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository {
+            pool: self.pool.clone(),
+        };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
@@ -420,21 +440,20 @@ impl ReportService {
         // NameDesc -> ORDER BY full_name DESC; all others -> ORDER BY full_name ASC
         let sort_desc = matches!(sort, Some(AttendanceReportSort::NameDesc));
 
-        let (paginated_employees, total_employees) =
-            employee::get_paginated_employee_ids(
-                &self.pool,
-                workspace_id,
-                employee_ids.as_ref(),
-                department_id,
-                page,
-                limit,
-                sort_desc,
-            )
-            .await
-            .map_err(|e| {
-                tracing::error!("Error fetching paginated employees: {}", e);
-                AppError::Internal("Internal error".into())
-            })?;
+        let (paginated_employees, total_employees) = employee::get_paginated_employee_ids(
+            &self.pool,
+            workspace_id,
+            employee_ids.as_ref(),
+            department_id,
+            page,
+            limit,
+            sort_desc,
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Error fetching paginated employees: {}", e);
+            AppError::Internal("Internal error".into())
+        })?;
 
         // Early return if no employees
         if paginated_employees.is_empty() {
@@ -450,21 +469,16 @@ impl ReportService {
         let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
 
         // 3. Get schedules ONLY for paginated employees
-        let schedules = self.roster_repo.get_workspace_schedules(
-            None,
-            workspace_id,
-            start_date,
-            end_date,
-            Some(&emp_ids),
-        )
-        .await
-        .map_err(AppError::Sqlx)?;
+        let schedules = self
+            .roster_repo
+            .get_workspace_schedules(None, workspace_id, start_date, end_date, Some(&emp_ids))
+            .await
+            .map_err(AppError::Sqlx)?;
 
         // 4. Convert dates to UTC for time entry query
-        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
-            tz, start_date, end_date,
-        )
-        .ok_or(AppError::Validation("Invalid request".into()))?;
+        let (start_dt, end_dt) =
+            crate::services::attendance_utils::date_range_to_utc_checked(tz, start_date, end_date)
+                .ok_or(AppError::Validation("Invalid request".into()))?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
@@ -524,16 +538,20 @@ impl ReportService {
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
 
-            let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: "floor".to_string(),
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-            });
+            let emp_attendance_rules = attendance_rules_map
+                .get(&emp_sched.employee_id)
+                .cloned()
+                .unwrap_or(crate::models::AttendanceRules {
+                    work_unit_minutes: 30,
+                    rounding_policy: "floor".to_string(),
+                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                });
             let mut employee_total_std = 0i32;
             let mut employee_total_ot = 0i32;
 
             // Pre-group entries by date for O(1) per-date lookup
-            let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
+            let entries_by_date =
+                crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
             // Calculate for each day (same logic as get_daily_attendance_report)
             for daily in &emp_sched.schedules {
@@ -545,24 +563,28 @@ impl ReportService {
                     .map(|v| v.as_slice())
                     .unwrap_or(&[]);
 
-                let (std_units, ot_units) = self.calculate_day_units(
-                    day_entries,
-                    daily,
-                    date,
-                    tz,
-                    emp_sched.employee_id,
-                    workspace.id,
-                    emp_attendance_rules.early_arrival_strategy,
-                    emp_attendance_rules.work_unit_minutes,
-                    &emp_attendance_rules.rounding_policy,
-                )
-                .await;
+                let (std_units, ot_units) = self
+                    .calculate_day_units(
+                        day_entries,
+                        daily,
+                        date,
+                        tz,
+                        emp_sched.employee_id,
+                        workspace.id,
+                        emp_attendance_rules.early_arrival_strategy,
+                        emp_attendance_rules.work_unit_minutes,
+                        &emp_attendance_rules.rounding_policy,
+                    )
+                    .await;
 
-                    employee_total_std += std_units;
-                    employee_total_ot += ot_units;
+                employee_total_std += std_units;
+                employee_total_ot += ot_units;
             }
 
-            employee_totals.insert(emp_sched.employee_id, (employee_total_std, employee_total_ot));
+            employee_totals.insert(
+                emp_sched.employee_id,
+                (employee_total_std, employee_total_ot),
+            );
         }
 
         // 8. Build results from paginated employees (preserve order)
@@ -587,12 +609,14 @@ impl ReportService {
                 AttendanceReportSort::NameAsc | AttendanceReportSort::NameDesc => {
                     // Already sorted from DB - no action needed
                 }
-                AttendanceReportSort::WorkHoursAsc => {
-                    results.sort_by(|a, b| (a.total_std_units + a.total_ot_units).cmp(&(b.total_std_units + b.total_ot_units)))
-                }
-                AttendanceReportSort::WorkHoursDesc => {
-                    results.sort_by(|a, b| (b.total_std_units + b.total_ot_units).cmp(&(a.total_std_units + a.total_ot_units)))
-                }
+                AttendanceReportSort::WorkHoursAsc => results.sort_by(|a, b| {
+                    (a.total_std_units + a.total_ot_units)
+                        .cmp(&(b.total_std_units + b.total_ot_units))
+                }),
+                AttendanceReportSort::WorkHoursDesc => results.sort_by(|a, b| {
+                    (b.total_std_units + b.total_ot_units)
+                        .cmp(&(a.total_std_units + a.total_ot_units))
+                }),
                 AttendanceReportSort::LeaveDaysAsc => {
                     results.sort_by(|a, b| a.total_leave_days.cmp(&b.total_leave_days))
                 }
@@ -605,12 +629,14 @@ impl ReportService {
                 AttendanceReportSort::OtHoursDesc => {
                     results.sort_by(|a, b| b.total_ot_units.cmp(&a.total_ot_units))
                 }
-                AttendanceReportSort::TotalHoursAsc => {
-                    results.sort_by(|a, b| (a.total_std_units + a.total_ot_units).cmp(&(b.total_std_units + b.total_ot_units)))
-                }
-                AttendanceReportSort::TotalHoursDesc => {
-                    results.sort_by(|a, b| (b.total_std_units + b.total_ot_units).cmp(&(a.total_std_units + a.total_ot_units)))
-                }
+                AttendanceReportSort::TotalHoursAsc => results.sort_by(|a, b| {
+                    (a.total_std_units + a.total_ot_units)
+                        .cmp(&(b.total_std_units + b.total_ot_units))
+                }),
+                AttendanceReportSort::TotalHoursDesc => results.sort_by(|a, b| {
+                    (b.total_std_units + b.total_ot_units)
+                        .cmp(&(a.total_std_units + a.total_ot_units))
+                }),
             }
         }
 
@@ -632,10 +658,7 @@ mod tests {
     use chrono::{NaiveDate, NaiveTime, TimeZone};
 
     /// Helper: build a DailyAttendanceReport with the specified punch-in and shift presence.
-    fn make_report(
-        has_punch_in: bool,
-        has_shift: bool,
-    ) -> DailyAttendanceReport {
+    fn make_report(has_punch_in: bool, has_shift: bool) -> DailyAttendanceReport {
         let date = NaiveDate::from_ymd_opt(2026, 3, 12).unwrap();
         let punch_in = if has_punch_in {
             Some(chrono::Utc.with_ymd_and_hms(2026, 3, 12, 8, 0, 0).unwrap())
@@ -785,8 +808,7 @@ mod tests {
         json_value.as_object_mut().unwrap().remove("is_unscheduled");
         assert!(json_value.get("is_unscheduled").is_none());
 
-        let decoded: DailyAttendanceReport =
-            serde_json::from_value(json_value).unwrap();
+        let decoded: DailyAttendanceReport = serde_json::from_value(json_value).unwrap();
 
         assert!(
             !decoded.is_unscheduled,

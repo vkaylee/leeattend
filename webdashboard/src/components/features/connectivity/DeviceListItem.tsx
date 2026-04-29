@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useTickingDeviceTime } from "@/hooks/useTickingDeviceTime";
-import { useTranslation } from "react-i18next";
+
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Cpu,
   Globe,
@@ -17,18 +17,24 @@ import {
   Activity,
   Clock
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Modal from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
+
+import { useDeviceInfo, devicesKeys } from "@/hooks/use-devices";
+import { useTickingDeviceTime } from "@/hooks/useTickingDeviceTime";
 import { Device, DeviceInfo, DeviceStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/Toast";
-import Modal from "@/components/ui/Modal";
-import { useDeviceInfo, devicesKeys } from "@/hooks/use-devices";
-import { useQueryClient } from "@tanstack/react-query";
+
+
+
 
 interface DeviceListItemProps {
   device: Device;

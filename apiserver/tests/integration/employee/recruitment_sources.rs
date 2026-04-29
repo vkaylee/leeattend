@@ -83,7 +83,11 @@ async fn test_recruitment_source_crud_lifecycle() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let list = body_json(resp).await;
-    assert!(list.as_array().unwrap().iter().any(|s| s["name"].as_str().unwrap() == "LinkedIn"));
+    assert!(list
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|s| s["name"].as_str().unwrap() == "LinkedIn"));
 
     // 3. Update recruitment source
     let update_body = serde_json::json!({
@@ -172,8 +176,18 @@ async fn test_recruitment_source_rbac_member_forbidden() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("member@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let body = serde_json::json!({ "source_type": "direct", "name": "Unauthorized Source" });
     let resp = app

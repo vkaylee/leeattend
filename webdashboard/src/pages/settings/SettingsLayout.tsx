@@ -1,7 +1,4 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
-import { ROUTES } from "@/lib/routes";
-import { useTranslation } from "react-i18next";
-import { useMyPermissions } from "@/hooks/use-permissions";
 import {
   Building2,
   Users,
@@ -20,6 +17,11 @@ import {
   UserCog,
   Settings
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { useMyPermissions } from "@/hooks/use-permissions";
+import { ROUTES } from "@/lib/routes";
+
 
 function NavGroup({ title, items, isActive }: { title: string, items: { path: string, label: string, icon: React.ReactNode, description: string }[], isActive: (path: string) => boolean }) {
   return (
@@ -199,7 +201,7 @@ export default function SettingsLayout() {
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                {t("common.settings")}
+                {t("common.settings.title")}
               </h2>
               <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">
                 {t("settings.layout.control_panel")}

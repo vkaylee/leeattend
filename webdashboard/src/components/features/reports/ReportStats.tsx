@@ -1,6 +1,7 @@
 import { FileBarChart, Users2, Clock } from "lucide-react";
-import { formatUnitsToHours } from "@/lib/utils/attendance";
+
 import { AttendanceSummary, DailyAttendanceReport } from "@/lib/api";
+import { formatUnitsToHours } from "@/lib/utils/attendance";
 
 interface ReportStatsProps {
   reportType: "summary" | "daily";

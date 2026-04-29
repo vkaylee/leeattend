@@ -18,10 +18,7 @@ mod tests {
 
     #[derive(Deserialize, Debug)]
     struct TestStruct {
-        #[serde(
-            default,
-            deserialize_with = "super::deserialize_option_option"
-        )]
+        #[serde(default, deserialize_with = "super::deserialize_option_option")]
         value: Option<Option<String>>,
     }
 
@@ -59,10 +56,7 @@ mod tests {
 
     #[derive(Deserialize, Debug)]
     struct TestNumeric {
-        #[serde(
-            default,
-            deserialize_with = "super::deserialize_option_option"
-        )]
+        #[serde(default, deserialize_with = "super::deserialize_option_option")]
         count: Option<Option<i32>>,
     }
 

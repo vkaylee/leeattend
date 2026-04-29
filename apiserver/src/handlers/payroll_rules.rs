@@ -11,7 +11,10 @@ use uuid::Uuid;
 use crate::{
     errors::AppError,
     handlers::common::MemberContext,
-    models::{PayrollRuleAssignment, PayrollRuleDefinition, PayrollRuleTier, enums::{AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo}},
+    models::{
+        enums::{AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo},
+        PayrollRuleAssignment, PayrollRuleDefinition, PayrollRuleTier,
+    },
     repositories::PayrollRuleRepository,
     AppState,
 };
@@ -74,7 +77,8 @@ pub async fn get_payroll_rule_definitions(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> Result<Json<Vec<PayrollRuleDefinition>>, AppError> {
-    let defs = PayrollRuleRepository::get_definitions(state.infra.db.api(), ctx.workspace_id).await?;
+    let defs =
+        PayrollRuleRepository::get_definitions(state.infra.db.api(), ctx.workspace_id).await?;
     Ok(Json(defs))
 }
 
@@ -85,7 +89,7 @@ pub async fn create_payroll_rule_tier(
 ) -> Result<Json<PayrollRuleTier>, AppError> {
     // Note: A robust system should verify that `rule_id` belongs to `ws_id`.
     // In our repository pattern we might either check that first, or pass ws_id down.
-    
+
     let tier = PayrollRuleRepository::create_tier(
         state.infra.db.api(),
         rule_id,
@@ -134,7 +138,12 @@ pub async fn get_payroll_rule_assignments(
     ctx: MemberContext,
     Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<Vec<PayrollRuleAssignment>>, AppError> {
-    let assignments = PayrollRuleRepository::get_assignments_for_rule(state.infra.db.api(), ctx.workspace_id, rule_id).await?;
+    let assignments = PayrollRuleRepository::get_assignments_for_rule(
+        state.infra.db.api(),
+        ctx.workspace_id,
+        rule_id,
+    )
+    .await?;
     Ok(Json(assignments))
 }
 
@@ -143,7 +152,13 @@ pub async fn delete_payroll_rule_assignment(
     ctx: MemberContext,
     Path((_ws_id, rule_id, assignment_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<Json<()>, AppError> {
-    PayrollRuleRepository::delete_assignment(state.infra.db.api(), ctx.workspace_id, rule_id, assignment_id).await?;
+    PayrollRuleRepository::delete_assignment(
+        state.infra.db.api(),
+        ctx.workspace_id,
+        rule_id,
+        assignment_id,
+    )
+    .await?;
     Ok(Json(()))
 }
 

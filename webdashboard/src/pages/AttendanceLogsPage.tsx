@@ -1,14 +1,8 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import React from "react";
-import { useTranslation } from "react-i18next";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+
 import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { fetchRawAttendanceLogs, fetchEmployees, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
-import { RawAttendanceLog, Employee } from "@/lib/api/types";
+import { useNavigate, Link, useSearch } from "@tanstack/react-router";
 import { format, endOfMonth } from "date-fns";
-import FloatingRecordBadge from "@/components/common/FloatingRecordBadge";
-import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import {
   Download,
   Calendar,
@@ -22,20 +16,30 @@ import {
   Trash2,
   Link2,
   Check,
-  Loader2
+  Loader2, BarChart3 
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import FloatingRecordBadge from "@/components/common/FloatingRecordBadge";
+import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
 import Button from "@/components/ui/Button";
+
 import StatusBadge from "@/components/ui/StatusBadge";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { fetchRawAttendanceLogs, fetchEmployees, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
+import { RawAttendanceLog, Employee } from "@/lib/api/types";
+
+
+import { cn } from "@/lib/utils";
+
 import { LABEL_BASE } from "@/components/ui/FormField";
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 import { RecordedLogsTable } from "@/components/features/attendance/RecordedLogsTable";
 import { StagingLogsTable } from "@/components/features/attendance/StagingLogsTable";
 import PermissionGate from "@/components/common/PermissionGate";
-import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import { useNavigate, Link, useSearch } from "@tanstack/react-router";
-import { BarChart3 } from "lucide-react";
 import { TableSkeleton } from "@/components/common/TableSkeleton";
 
 type TabType = "recorded" | "unknown";

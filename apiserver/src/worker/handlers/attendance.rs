@@ -14,9 +14,9 @@ use uuid::Uuid;
 use crate::cache::{CacheManager, CachedWorkspaceConfig, RosterCache};
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
-use crate::queue::{Job, JobPayload, RedisPool, ReportPublisher, JobQueue, ReportType};
-use crate::repositories::time_entry_repository;
+use crate::queue::{Job, JobPayload, JobQueue, RedisPool, ReportPublisher, ReportType};
 use crate::repositories::roster::RosterRepository;
+use crate::repositories::time_entry_repository;
 use crate::services::AttendanceCalculator;
 
 /// Handler for attendance report jobs.
@@ -36,7 +36,12 @@ impl AttendanceHandler {
     ) -> Result<(), String> {
         let payload = match &job.payload {
             JobPayload::AttendanceReport(p) => p,
-            _ => return Err(format!("Expected AttendanceReport payload, got {:?}", job.task_type)),
+            _ => {
+                return Err(format!(
+                    "Expected AttendanceReport payload, got {:?}",
+                    job.task_type
+                ))
+            }
         };
         let employee_ids = &payload.employee_ids;
         let start_date = payload.date_range.start;
@@ -63,10 +68,9 @@ impl AttendanceHandler {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace_config.timezone);
 
         // 2. Convert dates to UTC for time entry query
-        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
-            tz, start_date, end_date,
-        )
-        .ok_or("Invalid or ambiguous date range")?;
+        let (start_dt, end_dt) =
+            crate::services::attendance_utils::date_range_to_utc_checked(tz, start_date, end_date)
+                .ok_or("Invalid or ambiguous date range")?;
 
         // 3. Fetch schedules AND time entries in parallel (biggest latency win)
         let roster_repo = crate::repositories::roster::SqlxRosterRepository::new(pool.clone());
@@ -87,13 +91,12 @@ impl AttendanceHandler {
             )
         );
 
-        let schedules = schedules_result
-            .map_err(|e| format!("Failed to fetch schedules: {e}"))?;
+        let schedules = schedules_result.map_err(|e| format!("Failed to fetch schedules: {e}"))?;
 
         let t_fetch = t0.elapsed();
 
-        let entries_map = entries_result
-            .map_err(|e| format!("Failed to fetch time entries: {e}"))?;
+        let entries_map =
+            entries_result.map_err(|e| format!("Failed to fetch time entries: {e}"))?;
 
         // 5. Calculate based on report type
         let result_json = match payload.config.report_type {
@@ -145,11 +148,7 @@ impl AttendanceHandler {
         let publisher = ReportPublisher::new(redis.clone());
 
         publisher
-            .publish_chunk(
-                job.parent_job_id,
-                job.batch_index,
-                metadata.total_batches,
-            )
+            .publish_chunk(job.parent_job_id, job.batch_index, metadata.total_batches)
             .await
             .map_err(|e| format!("Failed to publish chunk: {e}"))?;
 
@@ -258,14 +257,18 @@ impl AttendanceHandler {
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
 
-            let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: "floor".to_string(),
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-            });
+            let emp_attendance_rules = attendance_rules_map
+                .get(&emp_sched.employee_id)
+                .cloned()
+                .unwrap_or(crate::models::AttendanceRules {
+                    work_unit_minutes: 30,
+                    rounding_policy: "floor".to_string(),
+                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                });
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
-            let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
+            let entries_by_date =
+                crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
@@ -403,14 +406,18 @@ impl AttendanceHandler {
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
 
-            let emp_attendance_rules = attendance_rules_map.get(&emp_sched.employee_id).cloned().unwrap_or(crate::models::AttendanceRules {
-                work_unit_minutes: 30,
-                rounding_policy: "floor".to_string(),
-                early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-            });
+            let emp_attendance_rules = attendance_rules_map
+                .get(&emp_sched.employee_id)
+                .cloned()
+                .unwrap_or(crate::models::AttendanceRules {
+                    work_unit_minutes: 30,
+                    rounding_policy: "floor".to_string(),
+                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                });
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
-            let entries_by_date = crate::services::attendance_utils::group_entries_by_date(entries, tz);
+            let entries_by_date =
+                crate::services::attendance_utils::group_entries_by_date(entries, tz);
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
@@ -549,7 +556,8 @@ impl AttendanceHandler {
                     ot_claim_status: None,
                     status,
                     is_holiday: false,
-                    is_unscheduled: status == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
+                    is_unscheduled: status
+                        == crate::services::attendance_utils::AttendanceStatus::Unscheduled,
                     holiday_name: None,
                     generation_metadata: combined_metadata,
                 });
@@ -564,7 +572,9 @@ impl AttendanceHandler {
 mod tests {
     use super::*;
     use crate::models::DailyAttendanceReport;
-    use crate::services::attendance_utils::{AttendanceStatus, DailyStatusInput, determine_daily_status};
+    use crate::services::attendance_utils::{
+        determine_daily_status, AttendanceStatus, DailyStatusInput,
+    };
     use chrono::NaiveTime;
 
     #[test]
@@ -721,7 +731,10 @@ mod tests {
         let decoded: Vec<DailyAttendanceReport> = serde_json::from_str(&json).unwrap();
 
         assert_eq!(decoded.len(), 1);
-        assert_eq!(decoded[0].status, crate::services::attendance_utils::AttendanceStatus::Absent);
+        assert_eq!(
+            decoded[0].status,
+            crate::services::attendance_utils::AttendanceStatus::Absent
+        );
         assert_eq!(decoded[0].std_work_units, 0);
         assert_eq!(decoded[0].ot_work_units, 0);
     }
@@ -802,7 +815,8 @@ mod tests {
         let entries = vec![entry_jan15_early, entry_jan15_morning, entry_jan16];
 
         // Pre-group using shared utility (same as calculate_summary/calculate_detail)
-        let entries_by_date = crate::services::attendance_utils::group_entries_by_date(&entries, tz);
+        let entries_by_date =
+            crate::services::attendance_utils::group_entries_by_date(&entries, tz);
 
         let jan15 = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
         let jan16 = NaiveDate::from_ymd_opt(2026, 1, 16).unwrap();
@@ -840,7 +854,8 @@ mod tests {
             .collect();
 
         // Pre-group approach using shared utility
-        let entries_by_date = crate::services::attendance_utils::group_entries_by_date(&entries, tz);
+        let entries_by_date =
+            crate::services::attendance_utils::group_entries_by_date(&entries, tz);
 
         // Filter approach (old) — for each target date, scan all entries
         for day in 1..=5 {
@@ -861,13 +876,17 @@ mod tests {
         let tz: Tz = "UTC".parse().unwrap();
         let entries: Vec<TimeEntry> = vec![];
 
-        let entries_by_date = crate::services::attendance_utils::group_entries_by_date(&entries, tz);
+        let entries_by_date =
+            crate::services::attendance_utils::group_entries_by_date(&entries, tz);
 
         assert!(entries_by_date.is_empty());
 
         // Looking up any date returns empty
         let jan1 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
-        let day_entries = entries_by_date.get(&jan1).map(|v| v.as_slice()).unwrap_or(&[]);
+        let day_entries = entries_by_date
+            .get(&jan1)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[]);
         assert!(day_entries.is_empty());
     }
 
@@ -875,7 +894,10 @@ mod tests {
     fn test_slow_attendance_batch_threshold_is_5_seconds() {
         // The per-phase timing breakdown threshold is 5 seconds.
         let fast = std::time::Duration::from_secs(4);
-        assert!(fast.as_secs() <= 5, "4s batch should not trigger breakdown log");
+        assert!(
+            fast.as_secs() <= 5,
+            "4s batch should not trigger breakdown log"
+        );
 
         let slow = std::time::Duration::from_secs(6);
         assert!(slow.as_secs() > 5, "6s batch should trigger breakdown log");
@@ -919,7 +941,10 @@ mod tests {
         let t_total = std::time::Duration::from_millis(198_100);
 
         let entries_ms = (t_entries - t_schedules).as_millis() as u64;
-        assert_eq!(entries_ms, 198_000, "Should identify entries fetch as the bottleneck");
+        assert_eq!(
+            entries_ms, 198_000,
+            "Should identify entries fetch as the bottleneck"
+        );
 
         // Calc phase should be small
         let calc_ms = (t_store - t_entries).as_millis() as u64;

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+
 import { useTranslation } from "react-i18next";
 import {
     BarChart,
@@ -13,6 +14,7 @@ import {
     Tooltip,
     Legend,
 } from "recharts";
+
 import { useTurnoverAnalytics } from "@/hooks/use-dashboard";
 
 type TabKey = "tenure" | "source" | "department";

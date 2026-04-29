@@ -1,7 +1,9 @@
+import React from "react";
+
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+
 import ConfirmDialog from "../ConfirmDialog";
-import React from "react";
 
 // Mock react-i18next
 vi.mock("react-i18next", () => ({

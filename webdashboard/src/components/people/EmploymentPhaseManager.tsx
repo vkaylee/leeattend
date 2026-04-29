@@ -1,11 +1,14 @@
 import React, { useState } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle2, CircleDashed, Users, Trash2 } from "lucide-react";
-import { fetchEmploymentPhases, createEmploymentPhase } from "@/lib/api/employees";
-import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "react-i18next";
-import { EmploymentPhaseDefinition } from "@/lib/api/types";
+
 import Modal from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
+
+import { fetchEmploymentPhases, createEmploymentPhase } from "@/lib/api/employees";
+import { EmploymentPhaseDefinition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface Props {

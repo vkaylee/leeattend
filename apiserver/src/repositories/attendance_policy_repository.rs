@@ -124,14 +124,17 @@ impl AttendancePolicyRepository for SqlxAttendancePolicyRepository {
         effective_time: DateTime<Utc>,
     ) -> Result<std::collections::HashMap<Uuid, AttendancePolicyVersion>, sqlx::Error> {
         let mut result = std::collections::HashMap::new();
-        
+
         // Very basic N+1 for now, easily optimizable later if needed, since batch size is small (50)
         for &employee_id in employee_ids {
-            if let Some(pv) = self.get_employee_effective_policy(workspace_id, employee_id, effective_time).await? {
+            if let Some(pv) = self
+                .get_employee_effective_policy(workspace_id, employee_id, effective_time)
+                .await?
+            {
                 result.insert(employee_id, pv);
             }
         }
-        
+
         Ok(result)
     }
 }

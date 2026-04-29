@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import RecruitmentSourceChart from "../RecruitmentSourceChart";
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import * as dashboardHooks from "@/hooks/use-dashboard";
+
+import RecruitmentSourceChart from "../RecruitmentSourceChart";
 
 vi.mock("@/hooks/use-dashboard", () => ({
     useRecruitmentSourceBreakdown: vi.fn(),

@@ -1,11 +1,14 @@
+import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import PermissionManagementModal from "../features/settings/PermissionManagementModal";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../ui/Toast";
+
 import * as api from "../../lib/api";
-import React from "react";
+import PermissionManagementModal from "../features/settings/PermissionManagementModal";
+import { ToastProvider } from "../ui/Toast";
+
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({

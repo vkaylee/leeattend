@@ -1,10 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AssignPolicyModal } from "../AssignPolicyModal";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import * as api from "../../../lib/api";
 import { ToastProvider } from "../../ui/Toast";
+import { AssignPolicyModal } from "../AssignPolicyModal";
 
 // Mock the API library
 vi.mock("../../../lib/api", () => ({

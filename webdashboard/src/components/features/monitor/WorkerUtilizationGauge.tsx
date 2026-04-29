@@ -1,8 +1,10 @@
+import { Zap, Coffee } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
-import type { UtilizationData } from "@/hooks/use-monitor-charts";
-import { Zap, Coffee } from "lucide-react";
+
 import { cn } from "@/lib/utils";
+
+import type { UtilizationData } from "@/hooks/use-monitor-charts";
 
 interface Props {
   data: UtilizationData;

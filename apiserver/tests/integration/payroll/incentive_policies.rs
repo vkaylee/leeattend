@@ -119,7 +119,8 @@ async fn test_incentive_policy_create_and_list() {
     assert_eq!(list.as_array().unwrap().len(), 1);
     assert_eq!(list[0]["name"], "Test Incentive");
     assert_eq!(list[0]["tiers"].as_array().unwrap().len(), 1);
-}#[tokio::test]
+}
+#[tokio::test]
 async fn test_incentive_policy_delete() {
     let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;

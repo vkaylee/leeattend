@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import UnexcusedAbsencesChart from "../UnexcusedAbsencesChart";
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import * as dashboardHooks from "@/hooks/use-dashboard";
+
+import UnexcusedAbsencesChart from "../UnexcusedAbsencesChart";
 
 // Mock the dashboard hook
 vi.mock("@/hooks/use-dashboard", () => ({

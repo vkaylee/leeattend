@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Sparkles, 
@@ -13,9 +13,12 @@ import {
   Target,
   Clock
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { fetchIncentivePolicies, createIncentivePolicy, deleteIncentivePolicy } from "@/lib/api/payroll";
+import { useTranslation } from "react-i18next";
+
 import { useToast } from "@/components/ui/Toast";
+
+import { fetchIncentivePolicies, createIncentivePolicy, deleteIncentivePolicy } from "@/lib/api/payroll";
+import { cn } from "@/lib/utils";
 
 interface BonusPolicyManagerProps {
   wsId: string;

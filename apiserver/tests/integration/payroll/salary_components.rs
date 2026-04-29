@@ -86,7 +86,11 @@ async fn test_salary_component_crud_lifecycle() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let list = body_json(resp).await;
-    assert!(list.as_array().unwrap().iter().any(|c| c["code"].as_str().unwrap() == "HOUSE"));
+    assert!(list
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|c| c["code"].as_str().unwrap() == "HOUSE"));
 
     // 3. Create employee and assign salary component
     let emp_id = factory.employee().with_workspace(ws_id).create().await;

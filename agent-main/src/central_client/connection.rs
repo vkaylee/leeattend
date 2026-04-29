@@ -1,21 +1,17 @@
+use futures_util::{SinkExt, StreamExt};
+use log::{error, info, warn};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use futures_util::{ SinkExt, StreamExt };
-use log::{error, info, warn};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, timeout};
 use tokio_tungstenite::{
-    connect_async,
-    tungstenite::client::IntoClientRequest,
-    tungstenite::http::HeaderValue,
-    tungstenite::Message,
-    MaybeTlsStream,
-    WebSocketStream,
+    MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message,
+    tungstenite::client::IntoClientRequest, tungstenite::http::HeaderValue,
 };
 
-use crate::models::{CentralMessage, AttendanceData};
 use crate::hybrid_database::HybridDatabase;
+use crate::models::{AttendanceData, CentralMessage};
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -53,11 +49,36 @@ pub struct CentralClient {
 
 #[allow(clippy::collapsible_if)]
 impl CentralClient {
-    pub fn new(url: String, agent_id: String, token: String, hybrid_db: HybridDatabase, inflight_timeout_secs: u64, command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>, device_locks: DeviceLocks, time_sync: Arc<TimeSync>) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
+    pub fn new(
+        url: String,
+        agent_id: String,
+        token: String,
+        hybrid_db: HybridDatabase,
+        inflight_timeout_secs: u64,
+        command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>,
+        device_locks: DeviceLocks,
+        time_sync: Arc<TimeSync>,
+    ) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
         let (tx, rx) = mpsc::channel(100);
         let (reload_tx, reload_rx) = mpsc::channel(1);
         let is_connected = Arc::new(AtomicBool::new(false));
-        (Self { url, agent_id, token, hybrid_db, inflight_timeout_secs, tx, reload_tx, is_connected, command_registry, device_locks, time_sync }, rx, reload_rx)
+        (
+            Self {
+                url,
+                agent_id,
+                token,
+                hybrid_db,
+                inflight_timeout_secs,
+                tx,
+                reload_tx,
+                is_connected,
+                command_registry,
+                device_locks,
+                time_sync,
+            },
+            rx,
+            reload_rx,
+        )
     }
 
     pub fn get_tx(&self) -> mpsc::Sender<CentralMessage> {
@@ -107,15 +128,23 @@ impl CentralClient {
 
                 if let Ok(moved) = sync_hybrid.store().move_expired_logs_to_dlq(max_retries) {
                     if moved > 0 {
-                        warn!("⚠️ Moved {moved} expired logs to dead letter queue (max_retries={max_retries})");
+                        warn!(
+                            "⚠️ Moved {moved} expired logs to dead letter queue (max_retries={max_retries})"
+                        );
                     }
                 }
 
                 // Periodic stale in-flight reset (every 60 seconds)
                 if last_stale_check.elapsed() >= Duration::from_secs(60) {
-                    if let Ok(reset_count) = sync_hybrid.store().reset_stale_syncing(inflight_timeout_secs as i64) {
+                    if let Ok(reset_count) = sync_hybrid
+                        .store()
+                        .reset_stale_syncing(inflight_timeout_secs as i64)
+                    {
                         if reset_count > 0 {
-                            warn!("⚠️ Reset {reset_count} stale in-flight logs (>{}s)", inflight_timeout_secs);
+                            warn!(
+                                "⚠️ Reset {reset_count} stale in-flight logs (>{}s)",
+                                inflight_timeout_secs
+                            );
                         }
                     }
                     last_stale_check = Instant::now();
@@ -124,19 +153,23 @@ impl CentralClient {
                 // Read from memory
                 let limit = 500;
                 let start = Instant::now();
-                let logs = sync_hybrid.get_unsynced_logs(limit).await.unwrap_or_default();
+                let logs = sync_hybrid
+                    .get_unsynced_logs(limit)
+                    .await
+                    .unwrap_or_default();
                 let count = logs.len();
 
                 if count > 0 {
                     // Classify logs: new (updated_at IS NULL) vs retry (updated_at IS NOT NULL)
-
 
                     // Calculate stats for better visibility
                     let stats_str = calculate_sync_stats(&logs);
 
                     let total_pending = sync_hybrid.count_unsynced_logs().await;
 
-                    info!("📤 Syncing {count} logs to central server ({stats_str} | Pending: {total_pending})...");
+                    info!(
+                        "📤 Syncing {count} logs to central server ({stats_str} | Pending: {total_pending})..."
+                    );
 
                     // Mark in-flight in memory
                     let log_ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
@@ -180,13 +213,13 @@ impl CentralClient {
                 // No separate monitoring needed
 
                 let sleep_duration = if count == 0 {
-                    Duration::from_millis(500)  // Idle: check every 500ms
+                    Duration::from_millis(500) // Idle: check every 500ms
                 } else if unsynced_count > 1000 {
-                    Duration::from_millis(50)   // Backlogged: drain fast
+                    Duration::from_millis(50) // Backlogged: drain fast
                 } else if unsynced_count > 100 {
-                    Duration::from_millis(100)  // Moderate: drain
+                    Duration::from_millis(100) // Moderate: drain
                 } else {
-                    Duration::from_millis(200)  // Normal: balanced
+                    Duration::from_millis(200) // Normal: balanced
                 };
 
                 sleep(sleep_duration).await;
@@ -218,7 +251,9 @@ impl CentralClient {
 
             loop {
                 let delay = manager.get_delay();
-                if delay > Duration::from_secs(0) { sleep(delay).await; }
+                if delay > Duration::from_secs(0) {
+                    sleep(delay).await;
+                }
 
                 // Take the receiver; if unavailable, connection is unrecoverable
                 let rx = match rx_opt.take() {
@@ -266,7 +301,15 @@ impl CentralClient {
                             while let Some(msg) = read.next().await {
                                 match msg {
                                     Ok(Message::Text(text)) => {
-                                        handle_incoming_text(&text, &read_hybrid, &read_reload_tx, &read_tx, &read_device_locks, &read_time).await;
+                                        handle_incoming_text(
+                                            &text,
+                                            &read_hybrid,
+                                            &read_reload_tx,
+                                            &read_tx,
+                                            &read_device_locks,
+                                            &read_time,
+                                        )
+                                        .await;
                                     }
                                     Ok(Message::Ping(_)) => {
                                         // Pong is handled automatically by tungstenite
@@ -342,19 +385,32 @@ impl CentralClient {
     }
 }
 
-async fn connect_central(url: &str, agent_id: &str, token: &str) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, tokio_tungstenite::tungstenite::handshake::client::Response), Box<dyn std::error::Error + Send + Sync>> {
+async fn connect_central(
+    url: &str,
+    agent_id: &str,
+    token: &str,
+) -> Result<
+    (
+        WebSocketStream<MaybeTlsStream<TcpStream>>,
+        tokio_tungstenite::tungstenite::handshake::client::Response,
+    ),
+    Box<dyn std::error::Error + Send + Sync>,
+> {
     let mut request = url.into_client_request()?;
-    request.headers_mut().insert("X-Agent-Id", HeaderValue::from_str(agent_id)?);
-    request.headers_mut().insert("X-Token", HeaderValue::from_str(token)?);
+    request
+        .headers_mut()
+        .insert("X-Agent-Id", HeaderValue::from_str(agent_id)?);
+    request
+        .headers_mut()
+        .insert("X-Token", HeaderValue::from_str(token)?);
 
     // Apply connection timeout to prevent indefinite hangs
     let connect_future = connect_async(request);
-    let (ws_stream, response) = timeout(
-        Duration::from_secs(CONNECTION_TIMEOUT_SECS),
-        connect_future
-    ).await
-        .map_err(|_| format!("Connection timeout after {CONNECTION_TIMEOUT_SECS} seconds"))?
-        .map_err(|e| format!("WebSocket connection error: {e}"))?;
+    let (ws_stream, response) =
+        timeout(Duration::from_secs(CONNECTION_TIMEOUT_SECS), connect_future)
+            .await
+            .map_err(|_| format!("Connection timeout after {CONNECTION_TIMEOUT_SECS} seconds"))?
+            .map_err(|e| format!("WebSocket connection error: {e}"))?;
 
     Ok((ws_stream, response))
 }

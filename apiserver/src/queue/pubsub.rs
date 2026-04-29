@@ -183,7 +183,8 @@ impl ReportPublisher {
         let mut conn = self.pool.conn();
         let channel = Self::channel_name(job_id);
         #[allow(clippy::expect_used)]
-        let json = serde_json::to_string(message).expect("StreamMessage serialization should not fail");
+        let json =
+            serde_json::to_string(message).expect("StreamMessage serialization should not fail");
 
         tracing::debug!(
             job_id = %job_id,
@@ -328,7 +329,11 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         let obj = parsed.as_object().unwrap();
         let keys: Vec<&String> = obj.keys().collect();
-        assert_eq!(keys.len(), 3, "CHUNK should have exactly 3 fields, got: {keys:?}");
+        assert_eq!(
+            keys.len(),
+            3,
+            "CHUNK should have exactly 3 fields, got: {keys:?}"
+        );
         assert!(obj.contains_key("type"));
         assert!(obj.contains_key("batch_index"));
         assert!(obj.contains_key("total_batches"));

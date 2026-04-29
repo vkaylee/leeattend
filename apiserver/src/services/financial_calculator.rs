@@ -163,7 +163,11 @@ impl FinancialCalculator {
         segment_snapshots: &[SegmentSnapshot],
     ) -> Result<DeductionsResult, AppError> {
         let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
-            pool, employee_id, start_date, end_date, workspace_id,
+            pool,
+            employee_id,
+            start_date,
+            end_date,
+            workspace_id,
         )
         .await
         .map_err(|e| {
@@ -263,8 +267,11 @@ impl FinancialCalculator {
             overtime_pay_amount: total_overtime_pay,
             deductions_amount,
             holiday_work_premium_amount: total_holiday_work_premium,
-            net_pay_amount: total_base_pay + total_overtime_pay + total_incentive_amount
-                + total_holiday_work_premium - deductions_amount,
+            net_pay_amount: total_base_pay
+                + total_overtime_pay
+                + total_incentive_amount
+                + total_holiday_work_premium
+                - deductions_amount,
             standard_units: total_std_units,
             overtime_units: total_ot_units,
             status: "draft".to_string(),
@@ -280,7 +287,8 @@ mod tests {
 
     #[test]
     fn test_daily_rate_normal() {
-        let rate = FinancialCalculator::calculate_daily_rate(Decimal::from(26000), Decimal::from(26));
+        let rate =
+            FinancialCalculator::calculate_daily_rate(Decimal::from(26000), Decimal::from(26));
         assert_eq!(rate, Decimal::from(1000));
     }
 
@@ -293,7 +301,9 @@ mod tests {
     #[test]
     fn test_hourly_rate_normal() {
         let rate = FinancialCalculator::calculate_hourly_rate(
-            Decimal::from(26000), Decimal::from(26), Decimal::from(8),
+            Decimal::from(26000),
+            Decimal::from(26),
+            Decimal::from(8),
         );
         assert_eq!(rate, Decimal::from(125));
     }
@@ -301,7 +311,9 @@ mod tests {
     #[test]
     fn test_hourly_rate_zero_days() {
         let rate = FinancialCalculator::calculate_hourly_rate(
-            Decimal::from(26000), Decimal::ZERO, Decimal::from(8),
+            Decimal::from(26000),
+            Decimal::ZERO,
+            Decimal::from(8),
         );
         assert_eq!(rate, Decimal::ZERO);
     }
@@ -309,16 +321,17 @@ mod tests {
     #[test]
     fn test_hourly_rate_zero_hours() {
         let rate = FinancialCalculator::calculate_hourly_rate(
-            Decimal::from(26000), Decimal::from(26), Decimal::ZERO,
+            Decimal::from(26000),
+            Decimal::from(26),
+            Decimal::ZERO,
         );
         assert_eq!(rate, Decimal::ZERO);
     }
 
     #[test]
     fn test_apply_ot_cap_no_cap() {
-        let (units, pay) = FinancialCalculator::apply_ot_cap(
-            10, Decimal::from(5000), Decimal::from(100), 30,
-        );
+        let (units, pay) =
+            FinancialCalculator::apply_ot_cap(10, Decimal::from(5000), Decimal::from(100), 30);
         assert_eq!(units, 10);
         assert_eq!(pay, Decimal::from(5000));
     }
@@ -326,18 +339,16 @@ mod tests {
     #[test]
     fn test_apply_ot_cap_capped() {
         // 10 units at 30min = 300min = 5h; cap at 2h = 120min = 4 units
-        let (units, pay) = FinancialCalculator::apply_ot_cap(
-            10, Decimal::from(5000), Decimal::from(2), 30,
-        );
+        let (units, pay) =
+            FinancialCalculator::apply_ot_cap(10, Decimal::from(5000), Decimal::from(2), 30);
         assert_eq!(units, 4);
         assert_eq!(pay, Decimal::from(2000));
     }
 
     #[test]
     fn test_apply_ot_cap_zero_units() {
-        let (units, pay) = FinancialCalculator::apply_ot_cap(
-            0, Decimal::ZERO, Decimal::from(10), 30,
-        );
+        let (units, pay) =
+            FinancialCalculator::apply_ot_cap(0, Decimal::ZERO, Decimal::from(10), 30);
         assert_eq!(units, 0);
         assert_eq!(pay, Decimal::ZERO);
     }
@@ -353,13 +364,13 @@ mod tests {
             emp,
             start,
             end,
-            Decimal::from(10000),  // base
-            Decimal::from(2000),   // OT
-            Decimal::from(500),    // holiday premium
-            Decimal::from(300),    // incentive
-            Decimal::from(800),    // deductions
-            26,                     // std units
-            10,                     // OT units
+            Decimal::from(10000), // base
+            Decimal::from(2000),  // OT
+            Decimal::from(500),   // holiday premium
+            Decimal::from(300),   // incentive
+            Decimal::from(800),   // deductions
+            26,                   // std units
+            10,                   // OT units
         );
 
         assert_eq!(slip.employee_id, emp);
@@ -384,9 +395,16 @@ mod tests {
 
         let slip = FinancialCalculator::assemble_payslip(
             Uuid::new_v4(),
-            emp, start, end,
-            Decimal::ZERO, Decimal::ZERO, Decimal::ZERO,
-            Decimal::ZERO, Decimal::ZERO, 0, 0,
+            emp,
+            start,
+            end,
+            Decimal::ZERO,
+            Decimal::ZERO,
+            Decimal::ZERO,
+            Decimal::ZERO,
+            Decimal::ZERO,
+            0,
+            0,
         );
 
         assert_eq!(slip.net_pay_amount, Decimal::ZERO);
@@ -422,7 +440,9 @@ mod tests {
     fn test_hourly_rate_fractional() {
         // 10000 / 22 days / 8 hours = 56.818...
         let rate = FinancialCalculator::calculate_hourly_rate(
-            Decimal::from(10000), Decimal::from(22), Decimal::from(8),
+            Decimal::from(10000),
+            Decimal::from(22),
+            Decimal::from(8),
         );
         // Just verify it's > 0 and reasonable
         assert!(rate > Decimal::ZERO);
@@ -431,9 +451,8 @@ mod tests {
 
     #[test]
     fn test_hourly_rate_both_zero() {
-        let rate = FinancialCalculator::calculate_hourly_rate(
-            Decimal::ZERO, Decimal::ZERO, Decimal::ZERO,
-        );
+        let rate =
+            FinancialCalculator::calculate_hourly_rate(Decimal::ZERO, Decimal::ZERO, Decimal::ZERO);
         assert_eq!(rate, Decimal::ZERO);
     }
 
@@ -444,9 +463,8 @@ mod tests {
     #[test]
     fn test_apply_ot_cap_exact_boundary() {
         // 4 units at 30min = 120min = 2h; cap at exactly 2h → no reduction
-        let (units, pay) = FinancialCalculator::apply_ot_cap(
-            4, Decimal::from(2000), Decimal::from(2), 30,
-        );
+        let (units, pay) =
+            FinancialCalculator::apply_ot_cap(4, Decimal::from(2000), Decimal::from(2), 30);
         assert_eq!(units, 4);
         assert_eq!(pay, Decimal::from(2000));
     }
@@ -454,9 +472,8 @@ mod tests {
     #[test]
     fn test_apply_ot_cap_one_over() {
         // 5 units at 30min = 150min = 2.5h; cap at 2h = 120min = 4 units
-        let (units, pay) = FinancialCalculator::apply_ot_cap(
-            5, Decimal::from(5000), Decimal::from(2), 30,
-        );
+        let (units, pay) =
+            FinancialCalculator::apply_ot_cap(5, Decimal::from(5000), Decimal::from(2), 30);
         assert_eq!(units, 4);
         // pay proportional: 5000 * 4/5 = 4000
         assert_eq!(pay, Decimal::from(4000));
@@ -465,9 +482,8 @@ mod tests {
     #[test]
     fn test_apply_ot_cap_15min_units() {
         // 20 units at 15min = 300min = 5h; cap at 3h = 180min = 12 units
-        let (units, pay) = FinancialCalculator::apply_ot_cap(
-            20, Decimal::from(10000), Decimal::from(3), 15,
-        );
+        let (units, pay) =
+            FinancialCalculator::apply_ot_cap(20, Decimal::from(10000), Decimal::from(3), 15);
         assert_eq!(units, 12);
         // pay: 10000 * 12/20 = 6000
         assert_eq!(pay, Decimal::from(6000));
@@ -485,13 +501,16 @@ mod tests {
 
         let slip = FinancialCalculator::assemble_payslip(
             Uuid::new_v4(),
-            emp, start, end,
-            Decimal::from(1000),   // base
-            Decimal::ZERO,         // OT
-            Decimal::ZERO,         // holiday premium
-            Decimal::ZERO,         // incentive
-            Decimal::from(3000),   // deductions > income
-            10, 0,
+            emp,
+            start,
+            end,
+            Decimal::from(1000), // base
+            Decimal::ZERO,       // OT
+            Decimal::ZERO,       // holiday premium
+            Decimal::ZERO,       // incentive
+            Decimal::from(3000), // deductions > income
+            10,
+            0,
         );
 
         // net = 1000 + 0 + 0 + 0 - 3000 = -2000
@@ -506,13 +525,16 @@ mod tests {
 
         let slip = FinancialCalculator::assemble_payslip(
             Uuid::new_v4(),
-            emp, start, end,
-            Decimal::from(20000),  // base
-            Decimal::from(5000),   // OT
-            Decimal::from(2000),   // holiday
-            Decimal::from(3000),   // incentive
-            Decimal::from(1000),   // deductions
-            160, 40,
+            emp,
+            start,
+            end,
+            Decimal::from(20000), // base
+            Decimal::from(5000),  // OT
+            Decimal::from(2000),  // holiday
+            Decimal::from(3000),  // incentive
+            Decimal::from(1000),  // deductions
+            160,
+            40,
         );
 
         // net = 20000 + 5000 + 3000 + 2000 - 1000 = 29000
@@ -530,9 +552,8 @@ mod tests {
     #[test]
     fn test_daily_rate_fractional_result() {
         // 10000 / 22 = 454.545...
-        let rate = FinancialCalculator::calculate_daily_rate(
-            Decimal::from(10000), Decimal::from(22),
-        );
+        let rate =
+            FinancialCalculator::calculate_daily_rate(Decimal::from(10000), Decimal::from(22));
         assert!(rate > Decimal::from(454));
         assert!(rate < Decimal::from(455));
     }
@@ -541,9 +562,9 @@ mod tests {
     fn test_daily_rate_large_values() {
         // Very large salary
         let rate = FinancialCalculator::calculate_daily_rate(
-            Decimal::from(100_000_000), Decimal::from(26),
+            Decimal::from(100_000_000),
+            Decimal::from(26),
         );
         assert!(rate > Decimal::ZERO);
     }
 }
-

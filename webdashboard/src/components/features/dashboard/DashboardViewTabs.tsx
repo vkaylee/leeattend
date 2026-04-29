@@ -1,11 +1,13 @@
-import { useTranslation } from "react-i18next";
 import {
     BarChart3,
     LineChart,
     LayoutGrid,
     Plus,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import { cn } from "@/lib/utils";
+
 import type { DashboardView } from "@/hooks/use-dashboard-layout";
 
 interface DashboardViewTabsProps {

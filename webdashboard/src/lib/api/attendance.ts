@@ -12,7 +12,7 @@ import {
   ReportExportJob,
   CreateReportExportRequest,
   CreateReportExportResponse,
-  WorkerMonitorStats,
+  WorkerMonitorStats, AttendanceDailySummary 
 } from "./types";
 
 export async function punchIn(
@@ -373,7 +373,6 @@ export async function adminConfirmAttendance(
 
 // --- OT Claim & Approval ---
 
-import { AttendanceDailySummary } from "./types";
 
 export async function claimOt(
   wsId: string,

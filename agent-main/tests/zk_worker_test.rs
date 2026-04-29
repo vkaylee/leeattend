@@ -1,23 +1,23 @@
-use agent::zk_worker::ZkWorker;
 use agent::worker::Worker;
+use agent::zk_worker::ZkWorker;
 
 #[tokio::test]
 async fn test_zk_worker_timeout_logic() {
     // This test verifies that the ZkWorker handles timeouts gracefully.
     // Since we cannot easily mock the internal ZK struct without dependency injection,
     // we will test the public API behaviors we can control or simulate.
-    
+
     // Ideally, we would refactor ZkWorker to take a trait for ZK operations,
     // allowing us to mock the device responses.
     // For now, we can verify that basic instantiation works and that
     // connecting to an unreachable IP returns the expected timeout/error.
-    
+
     let mut worker = ZkWorker::new(None, None, 60, 60);
-    
+
     // Test connection to a local closed port should fail immediately (Connection refused)
     // This verifies the failure path without waiting for a long TCP timeout.
-    let result = worker.connect("127.0.0.1", 54321).await; 
-    
+    let result = worker.connect("127.0.0.1", 54321).await;
+
     assert!(result.is_err());
     let err = result.err().unwrap();
     // It might be "Connection timed out" or "No route to host" depending on OS
@@ -29,9 +29,12 @@ async fn test_zk_worker_timeout_logic() {
 #[tokio::test]
 async fn test_zk_worker_ping_without_connection() {
     let mut worker = ZkWorker::new(None, None, 60, 60);
-    
+
     // No connect() called — ZK is None
-    assert!(!worker.ping().await, "Ping should return false without active connection");
+    assert!(
+        !worker.ping().await,
+        "Ping should return false without active connection"
+    );
 }
 
 /// Test that disconnect() is safe to call without prior connect.
@@ -40,7 +43,7 @@ async fn test_zk_worker_ping_without_connection() {
 #[tokio::test]
 async fn test_zk_worker_disconnect_without_connect() {
     let mut worker = ZkWorker::new(None, None, 60, 60);
-    
+
     // Should not panic
     worker.disconnect().await;
 }
@@ -50,7 +53,7 @@ async fn test_zk_worker_disconnect_without_connect() {
 #[tokio::test]
 async fn test_zk_worker_disconnect_idempotent() {
     let mut worker = ZkWorker::new(None, None, 60, 60);
-    
+
     // Multiple disconnects without connect — all should be no-ops
     worker.disconnect().await;
     worker.disconnect().await;
@@ -62,13 +65,16 @@ async fn test_zk_worker_disconnect_idempotent() {
 #[tokio::test]
 async fn test_zk_worker_ping_after_failed_connect() {
     let mut worker = ZkWorker::new(None, None, 60, 60);
-    
+
     // Attempt connection to unreachable port — will fail
     let result = worker.connect("127.0.0.1", 54321).await;
     assert!(result.is_err());
-    
+
     // Ping should return false — no active ZK instance
-    assert!(!worker.ping().await, "Ping should return false after failed connect");
+    assert!(
+        !worker.ping().await,
+        "Ping should return false after failed connect"
+    );
 }
 
 /// Test ZkWorker with password parameter.
@@ -76,7 +82,7 @@ async fn test_zk_worker_ping_after_failed_connect() {
 #[tokio::test]
 async fn test_zk_worker_ping_with_password_no_connect() {
     let mut worker = ZkWorker::new(Some(12345), None, 60, 60);
-    
+
     // Not connected — should be false regardless of password
     assert!(!worker.ping().await);
     worker.disconnect().await; // no-op
@@ -87,7 +93,7 @@ async fn test_zk_worker_ping_with_password_no_connect() {
 #[tokio::test]
 async fn test_zk_worker_with_legacy_checksum() {
     let mut worker = ZkWorker::new(None, Some(true), 60, 60);
-    
+
     // Not connected — should be false
     assert!(!worker.ping().await);
     worker.disconnect().await;
@@ -97,7 +103,7 @@ async fn test_zk_worker_with_legacy_checksum() {
 #[tokio::test]
 async fn test_zk_worker_with_modern_checksum() {
     let mut worker = ZkWorker::new(None, Some(false), 60, 60);
-    
+
     assert!(!worker.ping().await);
     worker.disconnect().await;
 }
@@ -108,8 +114,11 @@ async fn test_zk_worker_with_modern_checksum() {
 #[tokio::test]
 async fn test_zk_worker_detected_checksum_none_before_connect() {
     let worker = ZkWorker::new(None, None, 60, 60);
-    assert_eq!(worker.detected_checksum_mode(), None,
-               "Should be None before connect");
+    assert_eq!(
+        worker.detected_checksum_mode(),
+        None,
+        "Should be None before connect"
+    );
 }
 
 /// Test that detected_checksum_mode() returns None after a failed connection.
@@ -118,14 +127,20 @@ async fn test_zk_worker_detected_checksum_none_before_connect() {
 async fn test_zk_worker_detected_checksum_none_after_failed_connect() {
     let mut worker = ZkWorker::new(None, None, 60, 60);
     let _ = worker.connect("127.0.0.1", 54321).await;
-    assert_eq!(worker.detected_checksum_mode(), None,
-               "Should be None after failed connect — no handshake completed");
+    assert_eq!(
+        worker.detected_checksum_mode(),
+        None,
+        "Should be None after failed connect — no handshake completed"
+    );
 }
 
 /// Test that detected_checksum_mode() returns None even with preset checksum but no connect.
 #[tokio::test]
 async fn test_zk_worker_detected_checksum_with_preset_no_connect() {
     let worker = ZkWorker::new(None, Some(true), 60, 60);
-    assert_eq!(worker.detected_checksum_mode(), None,
-               "Preset checksum != detected; detected requires successful connect");
+    assert_eq!(
+        worker.detected_checksum_mode(),
+        None,
+        "Preset checksum != detected; detected requires successful connect"
+    );
 }

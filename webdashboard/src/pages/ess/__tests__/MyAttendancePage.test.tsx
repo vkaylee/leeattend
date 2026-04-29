@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import MyAttendancePage from "../MyAttendancePage";
+
 import { useMyAttendance } from "@/hooks/use-ess";
+
+import MyAttendancePage from "../MyAttendancePage";
 
 // Mock hooks
 vi.mock("@/hooks/use-ess", () => ({

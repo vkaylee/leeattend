@@ -1,6 +1,8 @@
 import React from 'react';
+
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { cn } from "@/lib/utils";
 
 interface PaginationControlsProps {

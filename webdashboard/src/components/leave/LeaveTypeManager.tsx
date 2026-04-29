@@ -1,11 +1,14 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Wallet, AlertTriangle, Pencil, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import Modal from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
+
 import { fetchLeaveTypes, updateLeaveTypeConfig, createLeaveType, deleteLeaveType } from "@/lib/api/leaves";
 import { LeaveType, LeaveTypeConfig } from "@/lib/api/types";
-import { Wallet, AlertTriangle, Pencil, Plus, Trash2 } from "lucide-react";
-import { useToast } from "@/components/ui/Toast";
-import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 
 interface LeaveTypeManagerProps {

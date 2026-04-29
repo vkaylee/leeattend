@@ -15,7 +15,12 @@ fn test_normalize_employee_id_direct() {
 #[tokio::test]
 async fn test_employee_id_stored_with_leading_zeros_smoke() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+    hybrid
+        .store()
+        .upsert_device(
+            "device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456,
+        )
+        .unwrap();
 
     let data = AttendanceData {
         user_id: "0058".to_string(),
@@ -23,7 +28,10 @@ async fn test_employee_id_stored_with_leading_zeros_smoke() {
         status: Some(1),
         punch: Some(0),
     };
-    hybrid.save_raw_attendance("device1".into(), data).await.unwrap();
+    hybrid
+        .save_raw_attendance("device1".into(), data)
+        .await
+        .unwrap();
 
     let logs = hybrid.get_unsynced_logs(1).await.unwrap();
     assert_eq!(logs.len(), 1);
@@ -37,11 +45,20 @@ async fn test_employee_id_stored_with_leading_zeros_smoke() {
 #[tokio::test]
 async fn test_multiple_employee_id_formats() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+    hybrid
+        .store()
+        .upsert_device(
+            "device1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456,
+        )
+        .unwrap();
 
     let test_cases = vec![
-        ("0001", "1"), ("0026", "26"), ("0058", "58"),
-        ("0100", "100"), ("1234", "1234"), ("0000", "0"),
+        ("0001", "1"),
+        ("0026", "26"),
+        ("0058", "58"),
+        ("0100", "100"),
+        ("1234", "1234"),
+        ("0000", "0"),
     ];
 
     for (original_id, _) in &test_cases {
@@ -57,8 +74,16 @@ async fn test_multiple_employee_id_formats() {
     let logs = hybrid.get_unsynced_logs(10).await.unwrap();
     for log in &logs {
         let normalized = normalize_employee_id(&log.user_id);
-        let expected = test_cases.iter().find(|(orig, _)| *orig == log.user_id).unwrap().1;
-        assert_eq!(normalized, expected, "ID {} should normalize to {}", log.user_id, expected);
+        let expected = test_cases
+            .iter()
+            .find(|(orig, _)| *orig == log.user_id)
+            .unwrap()
+            .1;
+        assert_eq!(
+            normalized, expected,
+            "ID {} should normalize to {}",
+            log.user_id, expected
+        );
     }
 }
 

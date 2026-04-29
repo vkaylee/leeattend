@@ -39,7 +39,11 @@ async fn test_cache_aside_repeated_requests_succeed() {
         .oneshot(member_list_request(ws_id, owner_id))
         .await
         .unwrap();
-    assert_eq!(r1.status(), StatusCode::OK, "First request (cache miss) should succeed");
+    assert_eq!(
+        r1.status(),
+        StatusCode::OK,
+        "First request (cache miss) should succeed"
+    );
 
     // Second request — cache hit
     let r2 = app
@@ -47,7 +51,11 @@ async fn test_cache_aside_repeated_requests_succeed() {
         .oneshot(member_list_request(ws_id, owner_id))
         .await
         .unwrap();
-    assert_eq!(r2.status(), StatusCode::OK, "Second request (cache hit) should succeed");
+    assert_eq!(
+        r2.status(),
+        StatusCode::OK,
+        "Second request (cache hit) should succeed"
+    );
 }
 
 /// After updating a member's primary role, the permission cache for that user
@@ -62,8 +70,7 @@ async fn test_cache_invalidation_on_member_role_update() {
 
     // Create a member with 'member' role
     let member_id = factory.user().create().await;
-    let member_role_id =
-        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
+    let member_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
     factory.add_member(ws_id, member_id, member_role_id).await;
 
     // Warm the cache — member makes a request
@@ -76,8 +83,7 @@ async fn test_cache_invalidation_on_member_role_update() {
     let _status_before = r1.status();
 
     // Owner updates member's role to 'admin'
-    let admin_role_id =
-        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap();
+    let admin_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap();
     let update_body = serde_json::json!({ "role_id": admin_role_id });
 
     let r_update = app
@@ -85,9 +91,7 @@ async fn test_cache_invalidation_on_member_role_update() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!(
-                    "/api/workspaces/{ws_id}/members/{member_id}"
-                ))
+                .uri(format!("/api/workspaces/{ws_id}/members/{member_id}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", owner_id.to_string())
@@ -137,8 +141,7 @@ async fn test_cache_invalidation_on_extra_permission_grant() {
     let ws_id: Uuid = factory.workspace().create_with_owner(owner_id).await;
 
     let member_id = factory.user().create().await;
-    let member_role_id =
-        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
+    let member_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
     factory.add_member(ws_id, member_id, member_role_id).await;
 
     // Warm the cache
@@ -200,8 +203,7 @@ async fn test_cache_invalidation_on_extra_permission_revoke() {
     let ws_id: Uuid = factory.workspace().create_with_owner(owner_id).await;
 
     let member_id = factory.user().create().await;
-    let member_role_id =
-        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
+    let member_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
     factory.add_member(ws_id, member_id, member_role_id).await;
 
     // Grant permission first
@@ -332,7 +334,9 @@ async fn test_cache_invalidation_on_role_permissions_update() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/workspaces/{ws_id}/roles/{role_id}/permissions"))
+                .uri(format!(
+                    "/api/workspaces/{ws_id}/roles/{role_id}/permissions"
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", owner_id.to_string())
@@ -369,8 +373,7 @@ async fn test_cache_invalidation_on_member_removal() {
     let ws_id: Uuid = factory.workspace().create_with_owner(owner_id).await;
 
     let member_id = factory.user().create().await;
-    let member_role_id =
-        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
+    let member_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
     factory.add_member(ws_id, member_id, member_role_id).await;
 
     // Warm cache for member

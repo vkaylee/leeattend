@@ -118,7 +118,8 @@ impl From<ReportError> for AppError {
 /// Get coordinator from state or return 503 Service Unavailable.
 fn get_coordinator(state: &AppState) -> AppResult<&ReportCoordinator> {
     state
-        .reports.coordinator
+        .reports
+        .coordinator
         .as_ref()
         .map(|c| c.as_ref())
         .ok_or_else(|| {
@@ -234,7 +235,8 @@ pub async fn get_job_status(
 
     // Verify job belongs to this workspace
     let redis = state
-        .infra.redis
+        .infra
+        .redis
         .as_ref()
         .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
     let queue = crate::queue::JobQueue::new(redis.clone());
@@ -275,7 +277,8 @@ pub async fn download_report(
 
     // Get Redis pool for workspace validation
     let redis = state
-        .infra.redis
+        .infra
+        .redis
         .as_ref()
         .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
 
@@ -355,7 +358,8 @@ pub async fn cancel_job(
     // Verify job belongs to this workspace
     let queue = crate::queue::JobQueue::new(
         state
-            .infra.redis
+            .infra
+            .redis
             .as_ref()
             .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?
             .clone(),

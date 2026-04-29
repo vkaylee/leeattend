@@ -37,7 +37,8 @@ pub async fn list_policies(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimePolicy>>> {
     let policies =
-        OvertimePolicyRepository::get_policy_definitions(state.infra.db.api(), ctx.workspace_id).await?;
+        OvertimePolicyRepository::get_policy_definitions(state.infra.db.api(), ctx.workspace_id)
+            .await?;
     Ok(Json(policies))
 }
 
@@ -46,9 +47,13 @@ pub async fn get_policy(
     Path((_, policy_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<(OvertimePolicy, Vec<OvertimeRule>)>> {
-    let result = OvertimePolicyRepository::get_policy_with_rules(state.infra.db.api(), ctx.workspace_id, policy_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Policy not found".to_string()))?;
+    let result = OvertimePolicyRepository::get_policy_with_rules(
+        state.infra.db.api(),
+        ctx.workspace_id,
+        policy_id,
+    )
+    .await?
+    .ok_or_else(|| AppError::NotFound("Policy not found".to_string()))?;
     Ok(Json(result))
 }
 

@@ -1,8 +1,10 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+
 import { History, Zap, ShieldCheck } from "lucide-react";
-import { AssignmentHistory as AssignmentHistoryType, Employee } from "../../lib/api";
+import { useTranslation } from "react-i18next";
+
 import { useDateTimeFormatter } from "../../hooks/use-datetime";
+import { AssignmentHistory as AssignmentHistoryType, Employee } from "../../lib/api";
 
 interface AssignmentHistoryProps {
   history: AssignmentHistoryType[] | undefined;

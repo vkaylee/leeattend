@@ -17,14 +17,14 @@ fi
 leeattend_run_lint() {
     local filter="${1:-}"
     
-    local BACKEND_CMD="cargo clippy --workspace -- -D warnings"
+    local BACKEND_CMD="cargo clippy --workspace -- -D warnings && cargo fmt --all -- --check"
     local WEB_LINT_CMD="npm run lint"
     local WEB_TYPECHECK_CMD="npm run type-check"
     local SYNC_API_CMD="./scripts/sync-api.sh"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # Lint requires DB with migrations (sqlx verifies queries at compile time)
-        BACKEND_CMD="$DOCKER_COMPOSE_CMD exec -T -w /workspace apiserver_test bash -c \"cargo clippy --workspace -- -D warnings\" </dev/null"
+        BACKEND_CMD="$DOCKER_COMPOSE_CMD exec -T -w /workspace apiserver_test bash -c \"cargo clippy --workspace -- -D warnings && cargo fmt --all -- --check\" </dev/null"
         WEB_LINT_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run lint </dev/null"
         WEB_TYPECHECK_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run type-check </dev/null"
         

@@ -19,10 +19,10 @@ pub async fn get_recruitment_sources(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSource>>> {
     let sources = state
-        .employees.service
+        .employees
+        .service
         .get_recruitment_sources(workspace_id)
-        .await
-        ?;
+        .await?;
     Ok(Json(sources))
 }
 
@@ -33,10 +33,10 @@ pub async fn create_recruitment_source(
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::RecruitmentManage)?;
     let source = state
-        .employees.service
+        .employees
+        .service
         .create_recruitment_source(ctx.workspace_id, req)
-        .await
-        ?;
+        .await?;
     Ok((StatusCode::CREATED, Json(source)))
 }
 
@@ -48,7 +48,8 @@ pub async fn update_recruitment_source(
 ) -> AppResult<Json<RecruitmentSource>> {
     ctx.require_permission(Permission::RecruitmentManage)?;
     let source = state
-        .employees.service
+        .employees
+        .service
         .update_recruitment_source(id, ctx.workspace_id, req)
         .await?;
     Ok(Json(source))
@@ -61,10 +62,10 @@ pub async fn delete_recruitment_source(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::RecruitmentManage)?;
     state
-        .employees.service
+        .employees
+        .service
         .delete_recruitment_source(id, ctx.workspace_id)
-        .await
-        ?;
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -74,7 +75,8 @@ pub async fn get_recruitment_source_breakdown(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<RecruitmentSourceBreakdown>>> {
     let breakdown = state
-        .employees.service
+        .employees
+        .service
         .get_recruitment_source_breakdown(workspace_id)
         .await?;
     Ok(Json(breakdown))
@@ -97,10 +99,10 @@ pub async fn get_turnover_analytics(
         .unwrap_or(today);
 
     let analytics = state
-        .employees.service
+        .employees
+        .service
         .get_turnover_analytics(workspace_id, start, end)
-        .await
-        ?;
+        .await?;
     Ok(Json(analytics))
 }
 

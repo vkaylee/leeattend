@@ -341,19 +341,19 @@ pub async fn ess_get_my_leave_requests(
 // --- Shift Swap ESS Endpoints (Phase 2) ---
 
 use crate::models::shift_swap::{
-    EssCreateShiftSwapRequest, RespondShiftSwapRequest, ShiftSwapRequest,
-    ShiftSwapRequestWithNames,
+    EssCreateShiftSwapRequest, RespondShiftSwapRequest, ShiftSwapRequest, ShiftSwapRequestWithNames,
 };
-
 
 /// GET /ess/shift-swaps — list swap requests where I am requester or target
 pub async fn ess_get_my_shift_swaps(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
 ) -> AppResult<Json<Vec<ShiftSwapRequestWithNames>>> {
-    let swaps = state.shifts.swap_service.get_employee_swaps(employee.employee_id, employee.workspace_id)
-        .await
-        ?;
+    let swaps = state
+        .shifts
+        .swap_service
+        .get_employee_swaps(employee.employee_id, employee.workspace_id)
+        .await?;
 
     Ok(Json(swaps))
 }
@@ -364,14 +364,16 @@ pub async fn ess_create_shift_swap(
     employee: EmployeeContext,
     Json(req): Json<EssCreateShiftSwapRequest>,
 ) -> AppResult<(StatusCode, Json<ShiftSwapRequest>)> {
-    let swap = state.shifts.swap_service.create_ess_swap(
-        employee.workspace_id,
-        employee.employee_id,
-        employee.user_id,
-        req,
-    )
-    .await
-    ?;
+    let swap = state
+        .shifts
+        .swap_service
+        .create_ess_swap(
+            employee.workspace_id,
+            employee.employee_id,
+            employee.user_id,
+            req,
+        )
+        .await?;
 
     Ok((StatusCode::CREATED, Json(swap)))
 }
@@ -383,9 +385,11 @@ pub async fn ess_respond_to_swap(
     Path(id): Path<Uuid>,
     Json(req): Json<RespondShiftSwapRequest>,
 ) -> AppResult<StatusCode> {
-    state.shifts.swap_service.respond_to_swap(employee.workspace_id, employee.employee_id, id, req.accept)
-        .await
-        ?;
+    state
+        .shifts
+        .swap_service
+        .respond_to_swap(employee.workspace_id, employee.employee_id, id, req.accept)
+        .await?;
 
     Ok(StatusCode::OK)
 }
@@ -396,9 +400,11 @@ pub async fn ess_cancel_swap(
     employee: EmployeeContext,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    state.shifts.swap_service.cancel_swap(employee.workspace_id, employee.employee_id, id)
-        .await
-        ?;
+    state
+        .shifts
+        .swap_service
+        .cancel_swap(employee.workspace_id, employee.employee_id, id)
+        .await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -4,7 +4,7 @@
  */
 
 import { API_BASE_URL } from "./config";
-import { apiFetch } from "./helpers";
+import { apiFetch, getCurrentWorkspaceId, getCurrentUserId  } from "./helpers";
 import {
   MyProfileResponse,
   EmployeeProfile,
@@ -15,7 +15,7 @@ import {
   TimeEntry,
   Payslip,
   UpdateProfileRequest,
-  CreateEmergencyContactRequest,
+  CreateEmergencyContactRequest, AttendanceDailySummary 
 } from "./types";
 
 // --- Profile ---
@@ -179,8 +179,6 @@ export async function fetchEssLeaveRequests(): Promise<LeaveRequest[]> {
 // --- OT Claim (ESS Wrapper) ---
 
 import { claimOt, fetchAttendanceSummaries } from "./attendance";
-import { AttendanceDailySummary } from "./types";
-import { getCurrentWorkspaceId, getCurrentUserId } from "./helpers";
 
 // This requires fetching the employee ID first or having the backend resolve it from token.
 // The backend handler for claimOt expects `employeeId` in path.

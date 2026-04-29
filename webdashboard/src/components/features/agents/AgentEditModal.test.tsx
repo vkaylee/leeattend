@@ -1,10 +1,12 @@
 import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import AgentEditModal from "./AgentEditModal";
+
+import * as agentsHook from "@/hooks/use-agents";
 import * as api from "@/lib/api";
 import { agentFactory } from "@/test/factories";
 import { renderWithClient } from "@/test/utils";
-import * as agentsHook from "@/hooks/use-agents";
+
+import AgentEditModal from "./AgentEditModal";
 
 // Mock the API
 vi.mock("@/lib/api", async () => {

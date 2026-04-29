@@ -1,4 +1,3 @@
-
 #[derive(Clone, Debug)]
 pub struct WorkerConfig {
     pub id: String,
@@ -18,8 +17,10 @@ impl WorkerConfig {
     /// persisted per-device — including it causes false restarts on every
     /// ConfigPush after first connect (None→Some(detected) diff).
     pub fn connection_changed(&self, other: &WorkerConfig) -> bool {
-        self.ip != other.ip || self.port != other.port
-            || self.brand != other.brand || self.password != other.password
+        self.ip != other.ip
+            || self.port != other.port
+            || self.brand != other.brand
+            || self.password != other.password
     }
 }
 
@@ -30,8 +31,12 @@ mod tests {
     #[test]
     fn test_connection_changed() {
         let base = WorkerConfig {
-            id: "dev1".into(), name: "Office".into(), brand: "zkteco".into(),
-            ip: "192.168.1.1".into(), port: 4370, password: None,
+            id: "dev1".into(),
+            name: "Office".into(),
+            brand: "zkteco".into(),
+            ip: "192.168.1.1".into(),
+            port: 4370,
+            password: None,
             use_legacy_checksum: None,
         };
 

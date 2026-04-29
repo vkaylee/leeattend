@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Pencil, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays, Calculator, Loader2, Calendar } from "lucide-react";
-import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "../lib/api";
-import { Combobox } from "@/components/ui/Combobox";
-import Modal from "@/components/ui/Modal";
-import Button from "@/components/ui/Button";
-import FormField, { LABEL_BASE } from "@/components/ui/FormField";
+import { useTranslation } from "react-i18next";
+
+
 import TemporalConfigTable from "@/components/common/TemporalConfigTable";
+import Button from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
+import FormField, { LABEL_BASE } from "@/components/ui/FormField";
+import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { cn } from "@/lib/utils";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
+
 import { useConfirm } from "@/hooks/use-confirm";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { cn } from "@/lib/utils";
+
+import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "../lib/api";
 
 export default function DepartmentsPage() {
   const { t } = useTranslation();

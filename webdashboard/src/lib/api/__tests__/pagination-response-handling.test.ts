@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { PaginatedResponse } from "../types";
+
 import { fetchEmployees, searchEmployees } from "../employees";
 import { fetchWorkspacePayslips } from "../payroll";
+import { PaginatedResponse } from "../types";
 
 /**
  * Comprehensive test suite for pagination response handling.

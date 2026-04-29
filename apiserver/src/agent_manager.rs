@@ -103,11 +103,18 @@ impl PresenceStore for RedisPool {
         {
             Ok(Ok(c)) => c,
             Ok(Err(e)) => {
-                tracing::warn!("Redis connection failed for presence (agent {}): {}", agent_id, e);
+                tracing::warn!(
+                    "Redis connection failed for presence (agent {}): {}",
+                    agent_id,
+                    e
+                );
                 return;
             }
             Err(_) => {
-                tracing::warn!("Redis connection timed out for presence (agent {})", agent_id);
+                tracing::warn!(
+                    "Redis connection timed out for presence (agent {})",
+                    agent_id
+                );
                 return;
             }
         };

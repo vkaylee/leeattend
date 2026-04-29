@@ -35,16 +35,28 @@ async fn test_import_csv_with_line_errors() {
         .unwrap();
     tokio::fs::write(&file_path, csv_content).await.unwrap();
 
-    let te_repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let import_repo: std::sync::Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> = std::sync::Arc::new(apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
+    let te_repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        pool.clone(),
+    ));
+    let import_repo: std::sync::Arc<
+        dyn apiserver::repositories::import_job_repository::ImportJobRepository,
+    > = std::sync::Arc::new(
+        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()),
+    );
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
-    let employee_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> = std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
-    let job_id = AttendanceImportService::new(import_repo, adj_repo, employee_repo, te_repo, pool.clone(), None).batch_import_from_file(
-        ws_id,
-        user_id,
-        file_path,
-        "log".to_string(),
+    let employee_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
+        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
+            pool.clone(),
+        ));
+    let job_id = AttendanceImportService::new(
+        import_repo,
+        adj_repo,
+        employee_repo,
+        te_repo,
+        pool.clone(),
+        None,
     )
+    .batch_import_from_file(ws_id, user_id, file_path, "log".to_string())
     .await
     .unwrap();
 

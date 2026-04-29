@@ -18,9 +18,11 @@ pub async fn get_salary_components(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<SalaryComponentDefinition>>> {
-    let components = state.payroll.repo.get_salary_component_definitions(workspace_id,
-    )
-    .await?;
+    let components = state
+        .payroll
+        .repo
+        .get_salary_component_definitions(workspace_id)
+        .await?;
 
     Ok(Json(components))
 }
@@ -30,13 +32,17 @@ pub async fn create_salary_component(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<CreateSalaryComponentRequest>,
 ) -> AppResult<(StatusCode, Json<SalaryComponentDefinition>)> {
-    let component = state.payroll.repo.create_salary_component_definition(workspace_id,
-        req.name,
-        req.code,
-        req.is_base_for_ot,
-        req.is_taxable,
-    )
-    .await?;
+    let component = state
+        .payroll
+        .repo
+        .create_salary_component_definition(
+            workspace_id,
+            req.name,
+            req.code,
+            req.is_base_for_ot,
+            req.is_taxable,
+        )
+        .await?;
 
     Ok((StatusCode::CREATED, Json(component)))
 }
@@ -48,10 +54,11 @@ pub async fn get_employee_salary_components(
 ) -> AppResult<Json<Vec<serde_json::Value>>> {
     // Note: This returns latest components for effective_date = now
     let now = chrono::Utc::now().date_naive();
-    let components = state.payroll.repo.get_employee_salary_components(workspace_id, employee_id,
-        now,
-    )
-    .await?;
+    let components = state
+        .payroll
+        .repo
+        .get_employee_salary_components(workspace_id, employee_id, now)
+        .await?;
 
     // Flatten the tuple (Component, Definition) for response
     let response: Vec<_> = components
@@ -80,12 +87,16 @@ pub async fn assign_employee_salary_component(
     MemberContext { .. }: MemberContext,
     Json(req): Json<AssignSalaryComponentRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeeSalaryComponent>)> {
-    let component = state.payroll.repo.assign_employee_salary_component(employee_id,
-        req.component_definition_id,
-        req.amount,
-        req.effective_date,
-    )
-    .await?;
+    let component = state
+        .payroll
+        .repo
+        .assign_employee_salary_component(
+            employee_id,
+            req.component_definition_id,
+            req.amount,
+            req.effective_date,
+        )
+        .await?;
 
     Ok((StatusCode::CREATED, Json(component)))
 }

@@ -27,25 +27,59 @@ async fn test_process_log_success_with_timezone() {
 
     // 2. Process a naive timestamp (8 AM VN should be 1 AM UTC)
     let punch_time_raw = "2026-01-23 08:00:00";
-    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(repo, std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone()));
-    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> = std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
-    let rl_repo: std::sync::Arc<dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(apiserver::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
-    let st_repo: std::sync::Arc<dyn apiserver::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(apiserver::repositories::staging_log_repository::SqlxStagingLogRepository::new(pool.clone()));
+    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        pool.clone(),
+    ));
+    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
+        repo,
+        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+            pool.clone(),
+        )),
+        pool.clone(),
+    ));
+    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
+        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
+            pool.clone(),
+        ));
+    let rl_repo: std::sync::Arc<
+        dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
+    > = std::sync::Arc::new(
+        apiserver::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(
+            pool.clone(),
+        ),
+    );
+    let st_repo: std::sync::Arc<
+        dyn apiserver::repositories::staging_log_repository::StagingLogRepository,
+    > = std::sync::Arc::new(
+        apiserver::repositories::staging_log_repository::SqlxStagingLogRepository::new(
+            pool.clone(),
+        ),
+    );
     let er_repo: std::sync::Arc<dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(apiserver::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
-    let (service, _) = AttendanceLogService::new(pool.clone(), pairing, 100, 10, 1000, emp_repo, rl_repo, st_repo, er_repo);
-    let result = service.process_log(
-        workspace_id,
-        "EMP_VN_001",
-        punch_time_raw,
-        LogSource::Device,
-        Some("DEV_01".to_string()),
-        None,
-        "Asia/Ho_Chi_Minh",
-        Some("YYYY-MM-DD"),
-        Some("24h"),
-    )
-    .await;
+    let (service, _) = AttendanceLogService::new(
+        pool.clone(),
+        pairing,
+        100,
+        10,
+        1000,
+        emp_repo,
+        rl_repo,
+        st_repo,
+        er_repo,
+    );
+    let result = service
+        .process_log(
+            workspace_id,
+            "EMP_VN_001",
+            punch_time_raw,
+            LogSource::Device,
+            Some("DEV_01".to_string()),
+            None,
+            "Asia/Ho_Chi_Minh",
+            Some("YYYY-MM-DD"),
+            Some("24h"),
+        )
+        .await;
 
     assert!(result.is_ok());
     assert!(result.unwrap());
@@ -86,60 +120,96 @@ async fn test_same_second_punch_with_different_status_allowed() {
 
     let punch_time_raw = "2026-01-23 08:00:00";
 
-    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(repo, std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone()));
-    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> = std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
-    let rl_repo: std::sync::Arc<dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository> = std::sync::Arc::new(apiserver::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(pool.clone()));
-    let st_repo: std::sync::Arc<dyn apiserver::repositories::staging_log_repository::StagingLogRepository> = std::sync::Arc::new(apiserver::repositories::staging_log_repository::SqlxStagingLogRepository::new(pool.clone()));
+    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        pool.clone(),
+    ));
+    let pairing = std::sync::Arc::new(apiserver::services::pairing_service::PairingService::new(
+        repo,
+        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+            pool.clone(),
+        )),
+        pool.clone(),
+    ));
+    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
+        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
+            pool.clone(),
+        ));
+    let rl_repo: std::sync::Arc<
+        dyn apiserver::repositories::raw_attendance_log_repository::RawAttendanceLogRepository,
+    > = std::sync::Arc::new(
+        apiserver::repositories::raw_attendance_log_repository::SqlxRawAttendanceLogRepository::new(
+            pool.clone(),
+        ),
+    );
+    let st_repo: std::sync::Arc<
+        dyn apiserver::repositories::staging_log_repository::StagingLogRepository,
+    > = std::sync::Arc::new(
+        apiserver::repositories::staging_log_repository::SqlxStagingLogRepository::new(
+            pool.clone(),
+        ),
+    );
     let er_repo: std::sync::Arc<dyn apiserver::repositories::attendance_log_error_repository::AttendanceLogErrorRepository> = std::sync::Arc::new(apiserver::repositories::attendance_log_error_repository::SqlxAttendanceLogErrorRepository::new(pool.clone()));
-    let (service, _) = AttendanceLogService::new(pool.clone(), pairing, 100, 10, 1000, emp_repo, rl_repo, st_repo, er_repo);
+    let (service, _) = AttendanceLogService::new(
+        pool.clone(),
+        pairing,
+        100,
+        10,
+        1000,
+        emp_repo,
+        rl_repo,
+        st_repo,
+        er_repo,
+    );
 
     // 1. First punch (check-in)
-    let res1 = service.process_log(
-        workspace_id,
-        "EMP001",
-        punch_time_raw,
-        LogSource::Device,
-        Some("DEV_01".to_string()),
-        Some(serde_json::json!({"punch": 0, "status": 1})),
-        "UTC",
-        Some("YYYY-MM-DD"),
-        Some("24h"),
-    )
-    .await;
+    let res1 = service
+        .process_log(
+            workspace_id,
+            "EMP001",
+            punch_time_raw,
+            LogSource::Device,
+            Some("DEV_01".to_string()),
+            Some(serde_json::json!({"punch": 0, "status": 1})),
+            "UTC",
+            Some("YYYY-MM-DD"),
+            Some("24h"),
+        )
+        .await;
     assert!(res1.unwrap(), "First log should be saved");
 
     // 2. Second punch at EXACTLY same time but different status (check-out)
-    let res2 = service.process_log(
-        workspace_id,
-        "EMP001",
-        punch_time_raw,
-        LogSource::Device,
-        Some("DEV_01".to_string()),
-        Some(serde_json::json!({"punch": 1, "status": 1})),
-        "UTC",
-        Some("YYYY-MM-DD"),
-        Some("24h"),
-    )
-    .await;
+    let res2 = service
+        .process_log(
+            workspace_id,
+            "EMP001",
+            punch_time_raw,
+            LogSource::Device,
+            Some("DEV_01".to_string()),
+            Some(serde_json::json!({"punch": 1, "status": 1})),
+            "UTC",
+            Some("YYYY-MM-DD"),
+            Some("24h"),
+        )
+        .await;
     assert!(
         res2.unwrap(),
         "Second log at same second with different punch should be saved"
     );
 
     // 3. Exact duplicate (same time, punch, status) - should be skipped
-    let res3 = service.process_log(
-        workspace_id,
-        "EMP001",
-        punch_time_raw,
-        LogSource::Device,
-        Some("DEV_01".to_string()),
-        Some(serde_json::json!({"punch": 0, "status": 1})),
-        "UTC",
-        Some("YYYY-MM-DD"),
-        Some("24h"),
-    )
-    .await;
+    let res3 = service
+        .process_log(
+            workspace_id,
+            "EMP001",
+            punch_time_raw,
+            LogSource::Device,
+            Some("DEV_01".to_string()),
+            Some(serde_json::json!({"punch": 0, "status": 1})),
+            "UTC",
+            Some("YYYY-MM-DD"),
+            Some("24h"),
+        )
+        .await;
     assert!(
         !res3.unwrap(),
         "Exact duplicate should be skipped (Ok(false))"

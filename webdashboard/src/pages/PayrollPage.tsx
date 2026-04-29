@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { 
   Calculator, 
@@ -14,8 +14,30 @@ import {
   Filter,
   MoreVertical
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import { MonthYearPicker } from "@/components/common/MonthYearPicker";
+import AdjustmentDrawer from "@/components/payroll/AdjustmentDrawer";
+import BatchCalculationModal from "@/components/payroll/BatchCalculationModal";
+import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
+import PayrollSummaryTable from "@/components/payroll/PayrollSummaryTable";
+import PayrollTable from "@/components/payroll/PayrollTable";
+import PayrollDetailDrawer from "@/components/payroll/PayrollDetailDrawer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Modal from "@/components/ui/Modal";
+
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { cn } from "@/lib/utils";
+
+import { useToast } from "../components/ui/Toast";
 import {
   fetchEmployees,
   searchEmployees,
@@ -26,24 +48,6 @@ import {
   fetchWorkspaceAttendanceAdjustments,
   Employee,
 } from "../lib/api";
-import { useToast } from "../components/ui/Toast";
-import Modal from "@/components/ui/Modal";
-import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
-import { EmployeeSearch } from "@/components/common/EmployeeSearch";
-import PayrollTable from "@/components/payroll/PayrollTable";
-import AdjustmentDrawer from "@/components/payroll/AdjustmentDrawer";
-import BatchCalculationModal from "@/components/payroll/BatchCalculationModal";
-import PayrollSummaryTable from "@/components/payroll/PayrollSummaryTable";
-import PayrollDetailDrawer from "@/components/payroll/PayrollDetailDrawer";
-import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export default function PayrollPage() {
   const { t } = useTranslation();

@@ -1,13 +1,16 @@
-import path from "node:path";
-import react from "@vitejs/plugin-react";
-import { defineConfig, ConfigEnv, Plugin } from "vite";
-import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
-import fs from "node:fs";
-import net from "node:net";
-import { fileURLToPath } from "node:url";
-import { IncomingMessage, ServerResponse } from "node:http";
-import { visualizer } from "rollup-plugin-visualizer";
 import { execSync } from "node:child_process";
+import fs from "node:fs";
+import { IncomingMessage, ServerResponse } from "node:http";
+import net from "node:net";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
+import react from "@vitejs/plugin-react";
+import { visualizer } from "rollup-plugin-visualizer";
+import { defineConfig, ConfigEnv, Plugin } from "vite";
+
+
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

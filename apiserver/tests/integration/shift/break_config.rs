@@ -10,7 +10,8 @@ use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_create_shift_with_fixed_break() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
@@ -43,17 +44,20 @@ async fn test_create_shift_with_fixed_break() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
-    
-    let body = axum::body::to_bytes(response.into_body(), 10000).await.unwrap();
+
+    let body = axum::body::to_bytes(response.into_body(), 10000)
+        .await
+        .unwrap();
     let created_shift: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    
+
     assert_eq!(created_shift["name"], "Fixed Break Shift");
-    assert_eq!(created_shift["break_start"], "12:00:00"); 
+    assert_eq!(created_shift["break_start"], "12:00:00");
 }
 
 #[tokio::test]
 async fn test_create_shift_with_flexible_break() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;

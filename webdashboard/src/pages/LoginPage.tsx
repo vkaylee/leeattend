@@ -1,6 +1,11 @@
+import { useState, useEffect } from "react";
+
 import { useNavigate, Link, useLocation } from "@tanstack/react-router";
-import { ROUTES } from "@/lib/routes";
 import { useTranslation } from "react-i18next";
+
+import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
+
 import { useProfile } from "@/hooks/use-profile";
 import {
   setCurrentUserId,
@@ -9,10 +14,7 @@ import {
   setRefreshToken,
   login as apiLogin,
 } from "@/lib/api";
-import { useState, useEffect } from "react";
-
-import Button from "@/components/ui/Button";
-import { LABEL_BASE } from "@/components/ui/FormField";
+import { ROUTES } from "@/lib/routes";
 
 export default function LoginPage() {
   const { t } = useTranslation();

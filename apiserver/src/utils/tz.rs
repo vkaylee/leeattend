@@ -109,9 +109,7 @@ pub fn local_to_tz(
             let shifted = naive + Duration::hours(1);
             tz.from_local_datetime(&shifted)
                 .single()
-                .ok_or_else(|| {
-                    sqlx::Error::Protocol("Cannot resolve DST gap".to_string())
-                })
+                .ok_or_else(|| sqlx::Error::Protocol("Cannot resolve DST gap".to_string()))
         }
     }
 }
@@ -184,7 +182,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 16).expect("valid date"),
-            8, 0, 0,
+            8,
+            0,
+            0,
         );
         assert!(result.is_ok());
         let dt = result.expect("should be ok");
@@ -198,7 +198,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date"),
-            0, 0, 0,
+            0,
+            0,
+            0,
         );
         assert!(result.is_ok());
         let dt = result.expect("should be ok");
@@ -213,7 +215,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date"),
-            23, 59, 59,
+            23,
+            59,
+            59,
         );
         assert!(result.is_ok());
         let dt = result.expect("should be ok");
@@ -228,10 +232,14 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date"),
-            25, 0, 0,
+            25,
+            0,
+            0,
         );
         assert!(result.is_err());
-        assert!(result.expect_err("should be error").contains("Invalid time"));
+        assert!(result
+            .expect_err("should be error")
+            .contains("Invalid time"));
     }
 
     #[test]
@@ -242,7 +250,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid date"),
-            2, 30, 0,
+            2,
+            30,
+            0,
         );
         // Should succeed by shifting forward
         assert!(result.is_ok(), "DST gap should be resolved by shifting");
@@ -260,7 +270,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid date"),
-            1, 30, 0,
+            1,
+            30,
+            0,
         );
         assert!(result.is_ok(), "Ambiguous time should resolve to first");
         let dt = result.expect("should be ok");
@@ -276,7 +288,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid date"),
-            0, 0, 0,
+            0,
+            0,
+            0,
         );
         assert!(result.is_ok());
         // January = GMT (UTC+0), so midnight London = midnight UTC
@@ -287,7 +301,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid date"),
-            9, 0, 0,
+            9,
+            0,
+            0,
         );
         assert!(result.is_ok());
         // 09:00 JST = 00:00 UTC
@@ -302,7 +318,9 @@ mod tests {
         let result = local_to_utc_sqlx(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 16).expect("valid date"),
-            8, 0, 0,
+            8,
+            0,
+            0,
         );
         assert!(result.is_ok());
     }
@@ -313,10 +331,15 @@ mod tests {
         let result = local_to_utc_sqlx(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            25, 0, 0,
+            25,
+            0,
+            0,
         );
         assert!(result.is_err());
-        assert!(matches!(result.expect_err("should be sqlx error"), sqlx::Error::Protocol(_)));
+        assert!(matches!(
+            result.expect_err("should be sqlx error"),
+            sqlx::Error::Protocol(_)
+        ));
     }
 
     // === local_to_tz ===
@@ -327,7 +350,9 @@ mod tests {
         let result = local_to_tz(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 16).expect("valid date"),
-            8, 0, 0,
+            8,
+            0,
+            0,
         );
         assert!(result.is_ok());
         let dt = result.expect("should be ok");
@@ -342,7 +367,9 @@ mod tests {
         let result = local_to_tz(
             &tz,
             NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid date"),
-            2, 30, 0,
+            2,
+            30,
+            0,
         );
         assert!(result.is_ok(), "DST gap should be resolved");
     }
@@ -353,7 +380,9 @@ mod tests {
         let result = local_to_tz(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            25, 0, 0,
+            25,
+            0,
+            0,
         );
         assert!(result.is_err());
     }
@@ -370,7 +399,10 @@ mod tests {
         assert!(result.is_ok());
         let dt = result.expect("should be ok");
         // 00:00 VN (UTC+7) = 17:00 previous day UTC
-        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 2, 28).expect("valid date"));
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 2, 28).expect("valid date")
+        );
         assert_eq!(dt.hour(), 17);
         assert_eq!(dt.minute(), 0);
     }
@@ -385,7 +417,10 @@ mod tests {
         assert!(result.is_ok());
         let dt = result.expect("should be ok");
         // 23:59:59 VN (UTC+7) = 16:59:59 same day UTC
-        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date"));
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date")
+        );
         assert_eq!(dt.hour(), 16);
         assert_eq!(dt.minute(), 59);
         assert_eq!(dt.second(), 59);
@@ -476,7 +511,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 3, 29).expect("valid date"),
-            2, 30, 0,
+            2,
+            30,
+            0,
         );
         assert!(result.is_ok(), "European DST gap should be resolved");
         let dt = result.expect("should be ok");
@@ -493,7 +530,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 10, 25).expect("valid date"),
-            2, 30, 0,
+            2,
+            30,
+            0,
         );
         assert!(result.is_ok(), "Ambiguous time should resolve");
         // Should pick first occurrence (CEST, UTC+2)
@@ -510,7 +549,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 10, 4).expect("valid date"),
-            2, 30, 0,
+            2,
+            30,
+            0,
         );
         assert!(result.is_ok(), "Australian DST gap should be resolved");
     }
@@ -525,10 +566,15 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid date"),
-            23, 0, 0,
+            23,
+            0,
+            0,
         );
         let dt = result.expect("should be ok");
-        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2026, 1, 16).expect("valid date"));
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 1, 16).expect("valid date")
+        );
         assert_eq!(dt.hour(), 7);
     }
 
@@ -540,7 +586,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid date"),
-            12, 0, 0,
+            12,
+            0,
+            0,
         );
         let dt = result.expect("should be ok");
         assert_eq!(dt.hour(), 6);
@@ -556,7 +604,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2028, 2, 29).expect("valid date"),
-            10, 0, 0,
+            10,
+            0,
+            0,
         );
         assert!(result.is_ok());
         let dt = result.expect("should be ok");
@@ -571,10 +621,15 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2025, 12, 31).expect("valid date"),
-            23, 0, 0,
+            23,
+            0,
+            0,
         );
         let dt = result.expect("should be ok");
-        assert_eq!(dt.date_naive(), NaiveDate::from_ymd_opt(2025, 12, 31).expect("valid date"));
+        assert_eq!(
+            dt.date_naive(),
+            NaiveDate::from_ymd_opt(2025, 12, 31).expect("valid date")
+        );
         assert_eq!(dt.hour(), 16);
     }
 
@@ -586,7 +641,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            23, 59, 59,
+            23,
+            59,
+            59,
         );
         assert!(result.is_ok());
     }
@@ -597,7 +654,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            12, 0, 60,
+            12,
+            0,
+            60,
         );
         assert!(result.is_err());
     }
@@ -608,7 +667,9 @@ mod tests {
         let result = local_to_utc(
             &tz,
             NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
-            12, 61, 0,
+            12,
+            61,
+            0,
         );
         assert!(result.is_err());
     }
@@ -621,9 +682,14 @@ mod tests {
         let result = local_to_utc_sqlx(
             &tz,
             NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid date"),
-            2, 30, 0,
+            2,
+            30,
+            0,
         );
-        assert!(result.is_ok(), "DST gap should be resolved via sqlx variant");
+        assert!(
+            result.is_ok(),
+            "DST gap should be resolved via sqlx variant"
+        );
     }
 
     #[test]
@@ -632,9 +698,14 @@ mod tests {
         let result = local_to_utc_sqlx(
             &tz,
             NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid date"),
-            1, 30, 0,
+            1,
+            30,
+            0,
         );
-        assert!(result.is_ok(), "Ambiguous time should be resolved via sqlx variant");
+        assert!(
+            result.is_ok(),
+            "Ambiguous time should be resolved via sqlx variant"
+        );
     }
 
     // --- local_to_tz: more edge cases ---
@@ -645,7 +716,9 @@ mod tests {
         let result = local_to_tz(
             &tz,
             NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid date"),
-            1, 30, 0,
+            1,
+            30,
+            0,
         );
         assert!(result.is_ok());
         let dt = result.expect("should be ok");
@@ -662,7 +735,9 @@ mod tests {
         let result = local_to_tz(
             &tz,
             NaiveDate::from_ymd_opt(2026, 7, 15).expect("valid date"),
-            14, 30, 0,
+            14,
+            30,
+            0,
         );
         let dt = result.expect("should be ok");
         assert_eq!(dt.hour(), 14);
@@ -705,7 +780,10 @@ mod tests {
         let tz: Tz = "America/New_York".parse().expect("valid tz");
         let date = NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid date");
         let result = start_of_day_utc(&tz, date);
-        assert!(result.is_ok(), "Start of day on DST spring-forward should work");
+        assert!(
+            result.is_ok(),
+            "Start of day on DST spring-forward should work"
+        );
         let dt = result.expect("should be ok");
         // Midnight EST (UTC-5) = 05:00 UTC
         assert_eq!(dt.hour(), 5);
@@ -716,7 +794,10 @@ mod tests {
         let tz: Tz = "America/New_York".parse().expect("valid tz");
         let date = NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid date");
         let result = end_of_day_utc(&tz, date);
-        assert!(result.is_ok(), "End of day on DST spring-forward should work");
+        assert!(
+            result.is_ok(),
+            "End of day on DST spring-forward should work"
+        );
         let dt = result.expect("should be ok");
         // 23:59:59 EDT (UTC-4) = 03:59:59 next day UTC
         assert_eq!(dt.hour(), 3);
@@ -733,7 +814,10 @@ mod tests {
         let spring = NaiveDate::from_ymd_opt(2026, 3, 8).expect("valid date");
         let start = start_of_day_utc(&tz, spring).expect("valid");
         let end = end_of_day_utc(&tz, spring).expect("valid");
-        assert!(start < end, "Start must be before end on spring-forward day");
+        assert!(
+            start < end,
+            "Start must be before end on spring-forward day"
+        );
 
         // Fall back day
         let fall = NaiveDate::from_ymd_opt(2026, 11, 1).expect("valid date");
@@ -749,16 +833,15 @@ mod tests {
         // For the same date, start_of_day(UTC+14) should be earlier than start_of_day(UTC-12)
         let date = NaiveDate::from_ymd_opt(2026, 6, 15).expect("valid date");
 
-        let tokyo = start_of_day_utc(
-            &"Asia/Tokyo".parse().expect("valid tz"),
-            date,
-        ).expect("valid");
-        let ny = start_of_day_utc(
-            &"America/New_York".parse().expect("valid tz"),
-            date,
-        ).expect("valid");
+        let tokyo =
+            start_of_day_utc(&"Asia/Tokyo".parse().expect("valid tz"), date).expect("valid");
+        let ny =
+            start_of_day_utc(&"America/New_York".parse().expect("valid tz"), date).expect("valid");
 
         // Tokyo midnight (UTC+9) happens much earlier than NY midnight (UTC-4)
-        assert!(tokyo < ny, "Tokyo start of day should be before NY start of day");
+        assert!(
+            tokyo < ny,
+            "Tokyo start of day should be before NY start of day"
+        );
     }
 }

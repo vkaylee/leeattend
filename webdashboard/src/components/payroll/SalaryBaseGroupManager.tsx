@@ -1,13 +1,16 @@
 import { useState } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Loader2, Database, Info, Plus, X } from "lucide-react";
+
+import { useToast } from "@/components/ui/Toast";
+
 import { 
   fetchSalaryBaseGroups, 
   fetchSalaryComponents,
   assignComponentToSalaryBase,
   unassignComponentFromSalaryBase
 } from "@/lib/api/payroll";
-import { useToast } from "@/components/ui/Toast";
-import { Loader2, Database, Info, Plus, X } from "lucide-react";
 
 export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
   const queryClient = useQueryClient();

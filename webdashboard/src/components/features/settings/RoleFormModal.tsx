@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
-import Modal from "@/components/ui/Modal";
-import Button from "@/components/ui/Button";
-import { useTranslation } from "react-i18next";
-import { useWorkspaceRoles } from "@/hooks/use-workspace";
+
 import { Shield, ShieldAlert, ShieldCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
+
+import { useWorkspaceRoles } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
 interface RoleFormModalProps {

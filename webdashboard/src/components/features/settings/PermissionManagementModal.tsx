@@ -1,11 +1,15 @@
 import { useState } from "react";
+
+import { X, KeyRound, Plus, Trash2, Clock, Search } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { X, KeyRound, Plus, Trash2, Clock, Search } from "lucide-react";
-import { useMemberPermissions } from "@/hooks/use-workspace";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useConfirm } from "@/hooks/use-confirm";
+
 import Modal from "@/components/ui/Modal";
+
+import { useConfirm } from "@/hooks/use-confirm";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useMemberPermissions } from "@/hooks/use-workspace";
+
 
 interface PermissionManagementModalProps {
     userId: string | null;

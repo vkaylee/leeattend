@@ -1,10 +1,12 @@
+import React from "react";
+
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import LoginPage from "../LoginPage";
-import * as api from "../../lib/api";
-import React from "react";
+
 import i18n from "../../i18n/config";
+import * as api from "../../lib/api";
+import LoginPage from "../LoginPage";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({

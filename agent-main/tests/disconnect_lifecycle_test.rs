@@ -7,11 +7,11 @@ use agent::worker::Worker;
 #[tokio::test]
 async fn test_mock_worker_disconnect_succeeds() {
     let mut worker = MockWorker::new();
-    
+
     // Connect first
     let connected = worker.connect("127.0.0.1", 4370).await.unwrap();
     assert!(connected);
-    
+
     // Disconnect should complete without panic or error
     worker.disconnect().await;
 }
@@ -22,7 +22,7 @@ async fn test_mock_worker_disconnect_succeeds() {
 async fn test_mock_worker_disconnect_idempotent() {
     let mut worker = MockWorker::new();
     worker.connect("127.0.0.1", 4370).await.unwrap();
-    
+
     // Disconnect multiple times — must not panic
     worker.disconnect().await;
     worker.disconnect().await;
@@ -34,19 +34,19 @@ async fn test_mock_worker_disconnect_idempotent() {
 #[tokio::test]
 async fn test_worker_lifecycle_connect_operations_disconnect_smoke() {
     let mut worker = MockWorker::new();
-    
+
     // Connect
     let connected = worker.connect("127.0.0.1", 4370).await.unwrap();
     assert!(connected);
-    
+
     // Operations
     let time_sync = TimeSync::new();
     let info = worker.get_info(&time_sync).await.unwrap();
     assert!(info.get("firmware").is_some());
-    
+
     let logs = worker.get_attendance_logs().await.unwrap();
     assert!(!logs.is_empty());
-    
+
     // Disconnect
     worker.disconnect().await;
 }
@@ -57,7 +57,7 @@ async fn test_worker_lifecycle_connect_operations_disconnect_smoke() {
 #[tokio::test]
 async fn test_disconnect_without_connect() {
     let mut worker = MockWorker::new();
-    
+
     // Disconnect without prior connect — should not panic
     worker.disconnect().await;
 }
@@ -70,13 +70,16 @@ async fn test_operations_after_disconnect_on_mock() {
     let mut worker = MockWorker::new();
     worker.connect("127.0.0.1", 4370).await.unwrap();
     worker.disconnect().await;
-    
+
     // MockWorker doesn't track connection state, so these still succeed.
     // But this test documents the expected lifecycle pattern.
     // For ZkWorker, these would fail with "Device not connected" after disconnect.
     let time_sync = TimeSync::new();
     let result = worker.get_info(&time_sync).await;
-    assert!(result.is_ok(), "MockWorker should still return data (stateless)");
+    assert!(
+        result.is_ok(),
+        "MockWorker should still return data (stateless)"
+    );
 }
 
 // === Ping Lifecycle Tests ===
@@ -87,8 +90,11 @@ async fn test_operations_after_disconnect_on_mock() {
 async fn test_mock_worker_ping_returns_true() {
     let mut worker = MockWorker::new();
     worker.connect("127.0.0.1", 4370).await.unwrap();
-    
-    assert!(worker.ping().await, "MockWorker ping should always return true");
+
+    assert!(
+        worker.ping().await,
+        "MockWorker ping should always return true"
+    );
 }
 
 /// Test that ping() is safe to call before connect.
@@ -96,9 +102,12 @@ async fn test_mock_worker_ping_returns_true() {
 #[tokio::test]
 async fn test_mock_worker_ping_before_connect() {
     let mut worker = MockWorker::new();
-    
+
     // MockWorker has no real connection state, ping is always true
-    assert!(worker.ping().await, "MockWorker ping before connect should return true");
+    assert!(
+        worker.ping().await,
+        "MockWorker ping before connect should return true"
+    );
 }
 
 /// Test ping() after disconnect is still safe on MockWorker.
@@ -108,9 +117,12 @@ async fn test_mock_worker_ping_after_disconnect() {
     let mut worker = MockWorker::new();
     worker.connect("127.0.0.1", 4370).await.unwrap();
     worker.disconnect().await;
-    
+
     // MockWorker is stateless — always true
-    assert!(worker.ping().await, "MockWorker ping after disconnect should still return true (stateless)");
+    assert!(
+        worker.ping().await,
+        "MockWorker ping after disconnect should still return true (stateless)"
+    );
 }
 
 /// Test full lifecycle with ping as heartbeat:
@@ -118,28 +130,28 @@ async fn test_mock_worker_ping_after_disconnect() {
 #[tokio::test]
 async fn test_full_lifecycle_with_ping_heartbeat() {
     let mut worker = MockWorker::new();
-    
+
     // Connect
     worker.connect("127.0.0.1", 4370).await.unwrap();
-    
+
     // Heartbeat 1
     assert!(worker.ping().await, "Ping should succeed after connect");
-    
+
     // Operation 1
     let time_sync = TimeSync::new();
     let info = worker.get_info(&time_sync).await.unwrap();
     assert!(info.get("firmware").is_some());
-    
+
     // Heartbeat 2
     assert!(worker.ping().await, "Ping should succeed after get_info");
-    
+
     // Operation 2
     let logs = worker.get_attendance_logs().await.unwrap();
     assert!(!logs.is_empty());
-    
+
     // Heartbeat 3
     assert!(worker.ping().await, "Ping should succeed after get_logs");
-    
+
     // Disconnect
     worker.disconnect().await;
 }
@@ -150,11 +162,11 @@ async fn test_full_lifecycle_with_ping_heartbeat() {
 async fn test_repeated_pings_stability() {
     let mut worker = MockWorker::new();
     worker.connect("127.0.0.1", 4370).await.unwrap();
-    
+
     for i in 0..100 {
         assert!(worker.ping().await, "Ping failed on iteration {i}");
     }
-    
+
     worker.disconnect().await;
 }
 
@@ -165,11 +177,23 @@ async fn test_repeated_pings_stability() {
 #[tokio::test]
 async fn test_mock_worker_detected_checksum_is_none() {
     let mut worker = MockWorker::new();
-    assert_eq!(worker.detected_checksum_mode(), None, "MockWorker should return None before connect");
-    
+    assert_eq!(
+        worker.detected_checksum_mode(),
+        None,
+        "MockWorker should return None before connect"
+    );
+
     worker.connect("127.0.0.1", 4370).await.unwrap();
-    assert_eq!(worker.detected_checksum_mode(), None, "MockWorker should return None after connect");
-    
+    assert_eq!(
+        worker.detected_checksum_mode(),
+        None,
+        "MockWorker should return None after connect"
+    );
+
     worker.disconnect().await;
-    assert_eq!(worker.detected_checksum_mode(), None, "MockWorker should return None after disconnect");
+    assert_eq!(
+        worker.detected_checksum_mode(),
+        None,
+        "MockWorker should return None after disconnect"
+    );
 }

@@ -15,7 +15,9 @@ use sqlx::PgPool;
 /// ```
 pub trait PoolBacked: Send + Sync {
     /// Construct this repository from a database pool.
-    fn from_pool(pool: PgPool) -> Self where Self: Sized;
+    fn from_pool(pool: PgPool) -> Self
+    where
+        Self: Sized;
     /// Access the underlying connection pool.
     fn pool(&self) -> &PgPool;
 }
@@ -39,23 +41,25 @@ pub use roster::{RosterRepository, SqlxRosterRepository};
 pub mod shift_repository;
 pub mod shift_swap_repository;
 pub mod time_entry_repository;
-pub use time_entry_repository::{TimeEntryRepository, SqlxTimeEntryRepository};
-pub mod user_repository;
-pub mod working_pattern_repository;
-pub mod workspace_repository;
+pub use time_entry_repository::{SqlxTimeEntryRepository, TimeEntryRepository};
 pub mod employment_phase_repository;
 pub mod payroll_rule_repository;
 pub mod salary_base_repository;
+pub mod user_repository;
+pub mod working_pattern_repository;
+pub mod workspace_repository;
 
 pub use agent_repository::{AgentRepository, SqlxAgentRepository};
-pub use workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 pub use employment_phase_repository::EmploymentPhaseRepository;
 pub use payroll_rule_repository::PayrollRuleRepository;
+pub use workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 pub mod attendance_log_error_repository;
+pub mod audit_log_repository;
 pub mod leave_policy_repository;
 pub mod overtime_policy_repository;
 pub mod staging_log_repository;
-pub mod audit_log_repository;
 pub use audit_log_repository::{AuditLogRepository, SqlxAuditLogRepository};
 pub mod attendance_policy_repository;
-pub use attendance_policy_repository::{AttendancePolicyRepository, SqlxAttendancePolicyRepository};
+pub use attendance_policy_repository::{
+    AttendancePolicyRepository, SqlxAttendancePolicyRepository,
+};

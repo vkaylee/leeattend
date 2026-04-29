@@ -27,12 +27,9 @@ impl PolicyResolver {
         date: NaiveDate,
     ) -> Result<StandardMonthConfig, sqlx::Error> {
         // 1. Check Individual Override (Highest Priority)
-        let emp_config = crate::repositories::employee::get_employee_payroll_config_at(
-            pool,
-            employee_id,
-            date,
-        )
-        .await?;
+        let emp_config =
+            crate::repositories::employee::get_employee_payroll_config_at(pool, employee_id, date)
+                .await?;
 
         if let Some(config) = emp_config {
             return Ok(StandardMonthConfig {
@@ -106,12 +103,10 @@ impl PolicyResolver {
         let repo = SqlxAttendancePolicyRepository::from_pool(pool.clone());
         // Convert NaiveDate to UTC start of day
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
-        
-        let policy_version = repo.get_employee_effective_policy(
-            workspace_id,
-            employee_id,
-            effective_time
-        ).await?;
+
+        let policy_version = repo
+            .get_employee_effective_policy(workspace_id, employee_id, effective_time)
+            .await?;
 
         // Fallback if no policy found
         if let Some(pv) = policy_version {
@@ -137,23 +132,24 @@ impl PolicyResolver {
 
         let repo = SqlxAttendancePolicyRepository::from_pool(pool.clone());
         let effective_time = date.and_hms_opt(0, 0, 0).unwrap_or_default().and_utc();
-        
-        let versions = repo.get_employee_effective_policies_batch(
-            workspace_id,
-            employee_ids,
-            effective_time
-        ).await?;
+
+        let versions = repo
+            .get_employee_effective_policies_batch(workspace_id, employee_ids, effective_time)
+            .await?;
 
         let mut result = std::collections::HashMap::with_capacity(employee_ids.len());
         for &id in employee_ids {
             if let Some(pv) = versions.get(&id) {
                 result.insert(id, pv.rules.0.clone());
             } else {
-                result.insert(id, AttendanceRules {
-                    work_unit_minutes: 30,
-                    rounding_policy: "floor".to_string(),
-                    early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
-                });
+                result.insert(
+                    id,
+                    AttendanceRules {
+                        work_unit_minutes: 30,
+                        rounding_policy: "floor".to_string(),
+                        early_arrival_strategy: crate::models::EarlyArrivalStrategy::Block,
+                    },
+                );
             }
         }
 
@@ -167,8 +163,8 @@ impl PolicyResolver {
         date: NaiveDate,
     ) -> Result<PolicyRules, sqlx::Error> {
         // 1. Get Attendance Policy rules
-        let attendance_rules = Self::resolve_attendance_policy(pool, employee_id, workspace_id, date).await?;
-
+        let attendance_rules =
+            Self::resolve_attendance_policy(pool, employee_id, workspace_id, date).await?;
 
         // 2. Get Employee Special Conditions
         let conditions =
@@ -341,9 +337,7 @@ impl PolicyResolver {
         let mut rules = Self::resolve_attendance_rules(pool, employee_id, workspace_id, date)
             .await
             .unwrap_or(PolicyRules {
-                grace_period_minutes: overrides
-                    .grace_period_minutes
-                    .unwrap_or(0),
+                grace_period_minutes: overrides.grace_period_minutes.unwrap_or(0),
                 authorized_early_leave_minutes: 0,
                 is_early_leave_paid: false,
                 early_arrival_strategy: overrides.early_arrival_strategy,
@@ -387,7 +381,13 @@ pub struct ShiftPolicyOverrides {
 mod tests {
     use super::*;
 
-    fn mock_condition(type_: &str, minute_allowance: i32, is_paid: bool, start: NaiveDate, end: Option<NaiveDate>) -> WorkingCondition {
+    fn mock_condition(
+        type_: &str,
+        minute_allowance: i32,
+        is_paid: bool,
+        start: NaiveDate,
+        end: Option<NaiveDate>,
+    ) -> WorkingCondition {
         WorkingCondition {
             id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
@@ -408,7 +408,9 @@ mod tests {
     #[test]
     fn test_build_rules_no_conditions() {
         let rules = PolicyResolver::build_rules_from_conditions(
-            &[], d(2026, 3, 1), EarlyArrivalStrategy::Allow,
+            &[],
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(rules.grace_period_minutes, 15);
         assert_eq!(rules.authorized_early_leave_minutes, 0);
@@ -418,11 +420,11 @@ mod tests {
 
     #[test]
     fn test_build_rules_early_leave() {
-        let conds = vec![
-            mock_condition("EARLY_LEAVE", 60, true, d(2026, 1, 1), None),
-        ];
+        let conds = vec![mock_condition("EARLY_LEAVE", 60, true, d(2026, 1, 1), None)];
         let rules = PolicyResolver::build_rules_from_conditions(
-            &conds, d(2026, 3, 1), EarlyArrivalStrategy::Allow,
+            &conds,
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(rules.authorized_early_leave_minutes, 60);
         assert!(rules.is_early_leave_paid);
@@ -431,23 +433,36 @@ mod tests {
     #[test]
     fn test_build_rules_early_arrival_strategy_preserved() {
         let rules = PolicyResolver::build_rules_from_conditions(
-            &[], d(2026, 3, 1), EarlyArrivalStrategy::Clamp,
+            &[],
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Clamp,
         );
         assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Clamp);
 
         let rules_block = PolicyResolver::build_rules_from_conditions(
-            &[], d(2026, 3, 1), EarlyArrivalStrategy::Block,
+            &[],
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Block,
         );
-        assert_eq!(rules_block.early_arrival_strategy, EarlyArrivalStrategy::Block);
+        assert_eq!(
+            rules_block.early_arrival_strategy,
+            EarlyArrivalStrategy::Block
+        );
     }
 
     #[test]
     fn test_build_rules_breastfeeding_always_paid() {
-        let conds = vec![
-            mock_condition("BREASTFEEDING", 45, false, d(2026, 1, 1), None),
-        ];
+        let conds = vec![mock_condition(
+            "BREASTFEEDING",
+            45,
+            false,
+            d(2026, 1, 1),
+            None,
+        )];
         let rules = PolicyResolver::build_rules_from_conditions(
-            &conds, d(2026, 3, 1), EarlyArrivalStrategy::Allow,
+            &conds,
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(rules.authorized_early_leave_minutes, 45);
         assert!(rules.is_early_leave_paid); // always true for BREASTFEEDING
@@ -460,30 +475,38 @@ mod tests {
             mock_condition("BREASTFEEDING", 60, false, d(2026, 1, 1), None),
         ];
         let rules = PolicyResolver::build_rules_from_conditions(
-            &conds, d(2026, 3, 1), EarlyArrivalStrategy::Allow,
+            &conds,
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(rules.authorized_early_leave_minutes, 60);
     }
 
     #[test]
     fn test_build_rules_expired_condition_ignored() {
-        let conds = vec![
-            mock_condition("EARLY_LEAVE", 60, true, d(2026, 1, 1), Some(d(2026, 2, 28))),
-        ];
+        let conds = vec![mock_condition(
+            "EARLY_LEAVE",
+            60,
+            true,
+            d(2026, 1, 1),
+            Some(d(2026, 2, 28)),
+        )];
         // Date after expiry
         let rules = PolicyResolver::build_rules_from_conditions(
-            &conds, d(2026, 3, 1), EarlyArrivalStrategy::Allow,
+            &conds,
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(rules.authorized_early_leave_minutes, 0); // expired, not applied
     }
 
     #[test]
     fn test_build_rules_future_condition_ignored() {
-        let conds = vec![
-            mock_condition("EARLY_LEAVE", 60, true, d(2026, 4, 1), None),
-        ];
+        let conds = vec![mock_condition("EARLY_LEAVE", 60, true, d(2026, 4, 1), None)];
         let rules = PolicyResolver::build_rules_from_conditions(
-            &conds, d(2026, 3, 1), EarlyArrivalStrategy::Allow,
+            &conds,
+            d(2026, 3, 1),
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(rules.authorized_early_leave_minutes, 0); // not yet active
     }
@@ -511,9 +534,17 @@ mod tests {
         };
 
         // Simulate the override logic from resolve_with_shift_overrides
-        if let Some(gp) = ov.grace_period_minutes { if gp > 0 { rules.grace_period_minutes = gp; } }
-        if let Some(bad) = ov.is_break_auto_deduct { rules.is_break_auto_deduct = bad; }
-        if let Some(aeo) = ov.allow_early_ot { rules.allow_early_ot = aeo; }
+        if let Some(gp) = ov.grace_period_minutes {
+            if gp > 0 {
+                rules.grace_period_minutes = gp;
+            }
+        }
+        if let Some(bad) = ov.is_break_auto_deduct {
+            rules.is_break_auto_deduct = bad;
+        }
+        if let Some(aeo) = ov.allow_early_ot {
+            rules.allow_early_ot = aeo;
+        }
         rules.is_break_overtime = ov.is_break_overtime;
 
         assert_eq!(rules.grace_period_minutes, 30);
@@ -542,14 +573,22 @@ mod tests {
             is_break_overtime: false,
         };
 
-        if let Some(gp) = ov.grace_period_minutes { if gp > 0 { rules.grace_period_minutes = gp; } }
-        if let Some(bad) = ov.is_break_auto_deduct { rules.is_break_auto_deduct = bad; }
-        if let Some(aeo) = ov.allow_early_ot { rules.allow_early_ot = aeo; }
+        if let Some(gp) = ov.grace_period_minutes {
+            if gp > 0 {
+                rules.grace_period_minutes = gp;
+            }
+        }
+        if let Some(bad) = ov.is_break_auto_deduct {
+            rules.is_break_auto_deduct = bad;
+        }
+        if let Some(aeo) = ov.allow_early_ot {
+            rules.allow_early_ot = aeo;
+        }
         rules.is_break_overtime = ov.is_break_overtime;
 
         assert_eq!(rules.grace_period_minutes, 15); // unchanged
-        assert!(rules.is_break_auto_deduct);         // unchanged
-        assert!(!rules.allow_early_ot);               // unchanged
+        assert!(rules.is_break_auto_deduct); // unchanged
+        assert!(!rules.allow_early_ot); // unchanged
     }
 
     #[test]
@@ -572,7 +611,11 @@ mod tests {
             is_break_overtime: false,
         };
 
-        if let Some(gp) = ov.grace_period_minutes { if gp > 0 { rules.grace_period_minutes = gp; } }
+        if let Some(gp) = ov.grace_period_minutes {
+            if gp > 0 {
+                rules.grace_period_minutes = gp;
+            }
+        }
 
         assert_eq!(rules.grace_period_minutes, 15); // zero not applied
     }

@@ -129,8 +129,9 @@ impl AttendanceCalculator {
                     };
                     let late_in = DateTime::max(punch_in.clone(), end.clone());
                     if effective_punch_out > late_in {
-                        buckets.late_ot_minutes =
-                            effective_punch_out.signed_duration_since(late_in).num_minutes() as i32;
+                        buckets.late_ot_minutes = effective_punch_out
+                            .signed_duration_since(late_in)
+                            .num_minutes() as i32;
                     }
                 }
             }
@@ -301,19 +302,43 @@ mod tests {
         rules.allow_early_ot = true;
 
         // Case 1: Within grace -> No OT
-        let b1 =
-            AttendanceCalculator::calculate_buckets(dt(7, 15), dt(17, 0), start, end, 0, 0, &rules, None);
+        let b1 = AttendanceCalculator::calculate_buckets(
+            dt(7, 15),
+            dt(17, 0),
+            start,
+            end,
+            0,
+            0,
+            &rules,
+            None,
+        );
         assert_eq!(b1.early_ot_minutes, 0);
 
         // Case 2: Before grace -> Full OT
-        let b2 =
-            AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules, None);
+        let b2 = AttendanceCalculator::calculate_buckets(
+            dt(6, 45),
+            dt(17, 0),
+            start,
+            end,
+            0,
+            0,
+            &rules,
+            None,
+        );
         assert_eq!(b2.early_ot_minutes, 45);
 
         // Case 3: Clamp
         rules.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
-        let b3 =
-            AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules, None);
+        let b3 = AttendanceCalculator::calculate_buckets(
+            dt(6, 45),
+            dt(17, 0),
+            start,
+            end,
+            0,
+            0,
+            &rules,
+            None,
+        );
         assert_eq!(b3.early_ot_minutes, 30);
     }
 
@@ -326,13 +351,29 @@ mod tests {
         rules.is_early_leave_paid = true;
 
         // Exit 30m early -> Paid as full day
-        let b1 =
-            AttendanceCalculator::calculate_buckets(dt(8, 0), dt(16, 30), start, end, 0, 0, &rules, None);
+        let b1 = AttendanceCalculator::calculate_buckets(
+            dt(8, 0),
+            dt(16, 30),
+            start,
+            end,
+            0,
+            0,
+            &rules,
+            None,
+        );
         assert_eq!(b1.standard_minutes, 540);
 
         // Exit 90m early -> Not paid
-        let b2 =
-            AttendanceCalculator::calculate_buckets(dt(8, 0), dt(15, 30), start, end, 0, 0, &rules, None);
+        let b2 = AttendanceCalculator::calculate_buckets(
+            dt(8, 0),
+            dt(15, 30),
+            start,
+            end,
+            0,
+            0,
+            &rules,
+            None,
+        );
         assert_eq!(b2.standard_minutes, 450);
     }
 
@@ -387,10 +428,17 @@ mod tests {
         let ceiling = Some(dt(13, 0));
 
         let b = AttendanceCalculator::calculate_buckets(
-            dt(8, 0), dt(13, 30), start, end, 0, 0, &mock_rules(), ceiling,
+            dt(8, 0),
+            dt(13, 30),
+            start,
+            end,
+            0,
+            0,
+            &mock_rules(),
+            ceiling,
         );
         assert_eq!(b.standard_minutes, 240); // 08:00-12:00 = 4h
-        assert_eq!(b.late_ot_minutes, 60);   // 12:00-13:00 (capped, not 90)
+        assert_eq!(b.late_ot_minutes, 60); // 12:00-13:00 (capped, not 90)
     }
 
     #[test]
@@ -400,7 +448,14 @@ mod tests {
         let end = Some(dt(12, 0));
 
         let b = AttendanceCalculator::calculate_buckets(
-            dt(8, 0), dt(13, 30), start, end, 0, 0, &mock_rules(), None,
+            dt(8, 0),
+            dt(13, 30),
+            start,
+            end,
+            0,
+            0,
+            &mock_rules(),
+            None,
         );
         assert_eq!(b.standard_minutes, 240);
         assert_eq!(b.late_ot_minutes, 90); // 12:00-13:30 = 90min (no cap)
@@ -415,7 +470,14 @@ mod tests {
         let ceiling = Some(dt(13, 0));
 
         let b = AttendanceCalculator::calculate_buckets(
-            dt(8, 0), dt(13, 0), start, end, 0, 0, &mock_rules(), ceiling,
+            dt(8, 0),
+            dt(13, 0),
+            start,
+            end,
+            0,
+            0,
+            &mock_rules(),
+            ceiling,
         );
         assert_eq!(b.standard_minutes, 240);
         assert_eq!(b.late_ot_minutes, 60); // 12:00-13:00 = full gap
@@ -535,8 +597,14 @@ mod tests {
     #[test]
     fn test_punch_out_before_punch_in_returns_zero() {
         let b = AttendanceCalculator::calculate_buckets(
-            dt(17, 0), dt(8, 0), Some(dt(8, 0)), Some(dt(17, 0)),
-            60, 0, &mock_rules(), None,
+            dt(17, 0),
+            dt(8, 0),
+            Some(dt(8, 0)),
+            Some(dt(17, 0)),
+            60,
+            0,
+            &mock_rules(),
+            None,
         );
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -546,8 +614,14 @@ mod tests {
     #[test]
     fn test_punch_out_equals_punch_in_returns_zero() {
         let b = AttendanceCalculator::calculate_buckets(
-            dt(8, 0), dt(8, 0), Some(dt(8, 0)), Some(dt(17, 0)),
-            0, 0, &mock_rules(), None,
+            dt(8, 0),
+            dt(8, 0),
+            Some(dt(8, 0)),
+            Some(dt(17, 0)),
+            0,
+            0,
+            &mock_rules(),
+            None,
         );
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -561,8 +635,14 @@ mod tests {
     #[test]
     fn test_no_shift_all_standard() {
         let b = AttendanceCalculator::calculate_buckets(
-            dt(6, 0), dt(18, 0), None, None,
-            0, 0, &mock_rules(), None,
+            dt(6, 0),
+            dt(18, 0),
+            None,
+            None,
+            0,
+            0,
+            &mock_rules(),
+            None,
         );
         // 12 hours = 720 minutes, all standard
         assert_eq!(b.standard_minutes, 720);
@@ -573,8 +653,14 @@ mod tests {
     #[test]
     fn test_no_shift_short_session() {
         let b = AttendanceCalculator::calculate_buckets(
-            dt(9, 0), dt(9, 15), None, None,
-            0, 0, &mock_rules(), None,
+            dt(9, 0),
+            dt(9, 15),
+            None,
+            None,
+            0,
+            0,
+            &mock_rules(),
+            None,
         );
         assert_eq!(b.standard_minutes, 15);
     }
@@ -591,17 +677,25 @@ mod tests {
 
         // Simulate an employee who punched 08:00→17:00 but has NO shift
         let (std, ot) = AttendanceCalculator::calculate_daily_units(
-            dt(8, 0), dt(17, 0),
-            None, None, // no shift boundaries
-            0, 0,       // no break
-            30, "floor",
-            &rules, None,
+            dt(8, 0),
+            dt(17, 0),
+            None,
+            None, // no shift boundaries
+            0,
+            0, // no break
+            30,
+            "floor",
+            &rules,
+            None,
         );
 
         // Without the report guard, the calculator happily returns 18 standard units
         // (540 min / 30 = 18) and 0 OT.  The report_service guard prevents this
         // from reaching final reports when the day is a roster day-off.
-        assert_eq!(std, 18, "calculator gives 18 std units without shift — report guard needed");
+        assert_eq!(
+            std, 18,
+            "calculator gives 18 std units without shift — report guard needed"
+        );
         assert_eq!(ot, 0, "no shift boundaries means no OT");
     }
 
@@ -614,11 +708,16 @@ mod tests {
         rules.is_break_auto_deduct = true;
 
         let (std, ot) = AttendanceCalculator::calculate_daily_units(
-            dt(8, 0), dt(17, 0),
-            None, None,
-            60, 0,  // 60-min scheduled break, no actual break logged
-            30, "floor",
-            &rules, None,
+            dt(8, 0),
+            dt(17, 0),
+            None,
+            None,
+            60,
+            0, // 60-min scheduled break, no actual break logged
+            30,
+            "floor",
+            &rules,
+            None,
         );
 
         // Break deduction is only applied inside the shift-boundary branch.
@@ -635,11 +734,16 @@ mod tests {
 
         // Walk past device at 07:55, walk again at 08:00 → 5-min session
         let (std, ot) = AttendanceCalculator::calculate_daily_units(
-            dt(7, 55), dt(8, 0),
-            None, None,
-            0, 0,
-            30, "floor", // 5 / 30 = 0.17 → floor = 0
-            &rules, None,
+            dt(7, 55),
+            dt(8, 0),
+            None,
+            None,
+            0,
+            0,
+            30,
+            "floor", // 5 / 30 = 0.17 → floor = 0
+            &rules,
+            None,
         );
 
         assert_eq!(std, 0, "5-min accidental session rounds to 0 units");
@@ -662,11 +766,18 @@ mod tests {
             // Since dt() uses 2026-01-01, and end is auto-extended by +1 day,
             // we simulate punch_out as 2026-01-02 06:00
             Utc.from_local_datetime(
-                &chrono::NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()
+                &chrono::NaiveDate::from_ymd_opt(2026, 1, 2)
+                    .unwrap()
                     .and_time(chrono::NaiveTime::from_hms_opt(6, 0, 0).unwrap()),
-            ).single().unwrap(),
-            start, end,
-            0, 0, &mock_rules(), None,
+            )
+            .single()
+            .unwrap(),
+            start,
+            end,
+            0,
+            0,
+            &mock_rules(),
+            None,
         );
         // 22:00 → 06:00+1 = 480 min standard
         assert_eq!(b.standard_minutes, 480);
@@ -745,8 +856,14 @@ mod tests {
     fn test_early_arrival_no_ot_when_disabled() {
         let rules = mock_rules(); // allow_early_ot = false
         let b = AttendanceCalculator::calculate_buckets(
-            dt(6, 0), dt(17, 0), Some(dt(8, 0)), Some(dt(17, 0)),
-            0, 0, &rules, None,
+            dt(6, 0),
+            dt(17, 0),
+            Some(dt(8, 0)),
+            Some(dt(17, 0)),
+            0,
+            0,
+            &rules,
+            None,
         );
         // Punch in 2h early, but allow_early_ot = false → no early OT
         assert_eq!(b.early_ot_minutes, 0);
@@ -761,8 +878,14 @@ mod tests {
     #[test]
     fn test_late_ot_uncapped() {
         let b = AttendanceCalculator::calculate_buckets(
-            dt(8, 0), dt(20, 0), Some(dt(8, 0)), Some(dt(17, 0)),
-            0, 0, &mock_rules(), None,
+            dt(8, 0),
+            dt(20, 0),
+            Some(dt(8, 0)),
+            Some(dt(17, 0)),
+            0,
+            0,
+            &mock_rules(),
+            None,
         );
         // Standard: 08→17 = 540, Late OT: 17→20 = 180
         assert_eq!(b.standard_minutes, 540);
@@ -776,8 +899,14 @@ mod tests {
     #[test]
     fn test_partial_shift_late_in_early_out() {
         let b = AttendanceCalculator::calculate_buckets(
-            dt(9, 30), dt(15, 0), Some(dt(8, 0)), Some(dt(17, 0)),
-            0, 0, &mock_rules(), None,
+            dt(9, 30),
+            dt(15, 0),
+            Some(dt(8, 0)),
+            Some(dt(17, 0)),
+            0,
+            0,
+            &mock_rules(),
+            None,
         );
         // Standard: intersection [9:30, 15:00] ∩ [8:00, 17:00] = 330 min
         assert_eq!(b.standard_minutes, 330);
@@ -795,8 +924,14 @@ mod tests {
         rules.allow_early_ot = true;
 
         let b = AttendanceCalculator::calculate_buckets(
-            dt(6, 0), dt(20, 0), Some(dt(8, 0)), Some(dt(17, 0)),
-            0, 0, &rules, None,
+            dt(6, 0),
+            dt(20, 0),
+            Some(dt(8, 0)),
+            Some(dt(17, 0)),
+            0,
+            0,
+            &rules,
+            None,
         );
         // Early OT: 06:00→08:00 = 120 min
         assert_eq!(b.early_ot_minutes, 120);
@@ -816,9 +951,16 @@ mod tests {
         rules.allow_early_ot = true;
 
         let (std, ot) = AttendanceCalculator::calculate_daily_units(
-            dt(7, 0), dt(19, 0),
-            Some(dt(8, 0)), Some(dt(17, 0)),
-            60, 0, 30, "floor", &rules, None,
+            dt(7, 0),
+            dt(19, 0),
+            Some(dt(8, 0)),
+            Some(dt(17, 0)),
+            60,
+            0,
+            30,
+            "floor",
+            &rules,
+            None,
         );
         // Standard: 540 min - 0 break = 540 min; floor(540/30) = 18 units
         assert_eq!(std, 18);
@@ -833,9 +975,16 @@ mod tests {
         rules.is_break_auto_deduct = true;
 
         let (std, ot) = AttendanceCalculator::calculate_daily_units(
-            dt(7, 0), dt(19, 0),
-            Some(dt(8, 0)), Some(dt(17, 0)),
-            60, 0, 30, "floor", &rules, None,
+            dt(7, 0),
+            dt(19, 0),
+            Some(dt(8, 0)),
+            Some(dt(17, 0)),
+            60,
+            0,
+            30,
+            "floor",
+            &rules,
+            None,
         );
         // Standard: 540 - 60 break = 480 min; floor(480/30) = 16
         assert_eq!(std, 16);

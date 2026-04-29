@@ -1,3 +1,4 @@
+import { PieChart as PieChartIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
     PieChart,
@@ -7,7 +8,7 @@ import {
     Tooltip,
     Legend,
 } from "recharts";
-import { PieChart as PieChartIcon } from "lucide-react";
+
 import { useLeaveTypesBreakdown } from "@/hooks/use-dashboard";
 
 const LEAVE_COLORS = [

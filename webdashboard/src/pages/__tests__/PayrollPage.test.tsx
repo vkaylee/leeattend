@@ -1,11 +1,12 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import PayrollPage from '../PayrollPage';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { ToastProvider } from '../../components/ui/Toast';
 import * as api from '../../lib/api';
+import PayrollPage from '../PayrollPage';
 
 // Partially mock the API library
 vi.mock('../../lib/api', async () => {

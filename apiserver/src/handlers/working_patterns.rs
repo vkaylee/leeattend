@@ -25,7 +25,8 @@ pub async fn create_pattern(
     Json(req): Json<CreateWorkingPatternRequest>,
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::PatternsCreate)?;
-    let pattern = service::create_working_pattern(state.infra.db.api(), ctx.workspace_id, req).await?;
+    let pattern =
+        service::create_working_pattern(state.infra.db.api(), ctx.workspace_id, req).await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -58,7 +59,8 @@ pub async fn assign_pattern(
     Json(req): Json<AssignPatternRequest>,
 ) -> AppResult<Json<EmployeeWorkingPattern>> {
     ctx.require_permission(Permission::PatternsAssign)?;
-    let assignment = service::assign_pattern(state.infra.db.api(), ctx.workspace_id, employee_id, req).await?;
+    let assignment =
+        service::assign_pattern(state.infra.db.api(), ctx.workspace_id, employee_id, req).await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -87,7 +89,9 @@ pub async fn get_employee_pattern_history(
     Path((_, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeWorkingPattern>>> {
-    let history = service::get_employee_pattern_history(state.infra.db.api(), ctx.workspace_id, employee_id).await?;
+    let history =
+        service::get_employee_pattern_history(state.infra.db.api(), ctx.workspace_id, employee_id)
+            .await?;
     Ok(Json(history))
 }
 

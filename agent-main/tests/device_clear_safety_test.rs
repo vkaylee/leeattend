@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 #[tokio::test]
 async fn test_device_logs_never_cleared() {
@@ -38,9 +38,11 @@ async fn test_device_logs_never_cleared() {
 
     // Assert: Logs were NEVER cleared
     let clears = clear_count.load(Ordering::SeqCst);
-    assert_eq!(clears, 0, "Device logs should NEVER be cleared (safety requirement)");
+    assert_eq!(
+        clears, 0,
+        "Device logs should NEVER be cleared (safety requirement)"
+    );
 }
-
 
 #[tokio::test]
 async fn test_polling_loop_never_calls_clear() {
@@ -79,8 +81,14 @@ async fn test_polling_loop_never_calls_clear() {
     assert!(call_history.contains(&"device.get_logs".to_string()));
 
     // Assert: Exactly 3 polling cycles
-    let connect_count = call_history.iter().filter(|&m| m == "device.connect").count();
-    let get_logs_count = call_history.iter().filter(|&m| m == "device.get_logs").count();
+    let connect_count = call_history
+        .iter()
+        .filter(|&m| m == "device.connect")
+        .count();
+    let get_logs_count = call_history
+        .iter()
+        .filter(|&m| m == "device.get_logs")
+        .count();
     assert_eq!(connect_count, 3);
     assert_eq!(get_logs_count, 3);
 }

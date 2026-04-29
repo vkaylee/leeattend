@@ -1,4 +1,7 @@
-use axum::{routing::{delete, get, patch, post, put}, Router};
+use axum::{
+    routing::{delete, get, patch, post, put},
+    Router,
+};
 use std::sync::Arc;
 
 use crate::handlers;
@@ -96,8 +99,7 @@ pub fn router() -> Router<Arc<AppState>> {
         // Holidays
         .route(
             "/workspaces/:ws_id/holidays",
-            get(handlers::holidays::list_holidays)
-                .post(handlers::holidays::create_holiday),
+            get(handlers::holidays::list_holidays).post(handlers::holidays::create_holiday),
         )
         .route(
             "/workspaces/:ws_id/holidays/:id",

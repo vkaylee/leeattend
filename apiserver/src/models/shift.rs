@@ -191,7 +191,10 @@ mod tests {
         let req: UpdateShiftRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "Morning Updated");
         assert!(req.is_correction);
-        assert_eq!(req.effective_date, Some(NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()));
+        assert_eq!(
+            req.effective_date,
+            Some(NaiveDate::from_ymd_opt(2026, 4, 1).unwrap())
+        );
     }
 
     #[test]
@@ -266,7 +269,10 @@ mod tests {
         }"#;
         let req: AssignShiftRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.start_date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap());
-        assert_eq!(req.end_date, Some(NaiveDate::from_ymd_opt(2026, 12, 31).unwrap()));
+        assert_eq!(
+            req.end_date,
+            Some(NaiveDate::from_ymd_opt(2026, 12, 31).unwrap())
+        );
     }
 
     #[test]

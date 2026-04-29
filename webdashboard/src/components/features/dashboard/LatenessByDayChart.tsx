@@ -1,3 +1,4 @@
+import { CalendarClock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
     BarChart,
@@ -11,7 +12,7 @@ import {
     Line,
     ComposedChart,
 } from "recharts";
-import { CalendarClock } from "lucide-react";
+
 import { useLatenessByDay } from "@/hooks/use-dashboard";
 
 const COLORS = {

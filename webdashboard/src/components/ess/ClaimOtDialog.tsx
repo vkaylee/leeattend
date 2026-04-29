@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Clock, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { AttendanceDailySummary } from "@/lib/api/types";
+
 import { useSubmitOtClaim } from "@/hooks/use-ess";
+import { AttendanceDailySummary } from "@/lib/api/types";
 
 interface ClaimOtDialogProps {
   open: boolean;

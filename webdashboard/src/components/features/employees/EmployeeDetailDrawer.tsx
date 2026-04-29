@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useTranslation } from "react-i18next";
+
 import {
     Trash2,
     Building2,
@@ -9,12 +9,18 @@ import {
     Pencil,
     Calendar as CalendarIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import Sheet from "@/components/ui/Sheet";
-import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
-import WorkingConditionConfig from "@/components/employees/WorkingConditionConfig";
-import type { Employee, Department } from "@/lib/api";
+import { useTranslation } from "react-i18next";
+
 import PermissionGate from "@/components/common/PermissionGate";
+import WorkingConditionConfig from "@/components/employees/WorkingConditionConfig";
+import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
+import Sheet from "@/components/ui/Sheet";
+
+import { cn } from "@/lib/utils";
+
+
+import type { Employee, Department } from "@/lib/api";
+
 
 type DetailTabType = "profile" | "salary" | "history" | "policies";
 const TAB_ORDER: DetailTabType[] = ["profile", "salary", "policies", "history"];

@@ -1,10 +1,15 @@
+import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import EmployeeSalaryConfig from "../EmployeeSalaryConfig";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { ToastProvider } from "@/components/ui/Toast";
+
 import * as api from "@/lib/api/payroll";
-import React from "react";
+
+import EmployeeSalaryConfig from "../EmployeeSalaryConfig";
+
 
 // Mock API
 vi.mock("@/lib/api/payroll", () => ({

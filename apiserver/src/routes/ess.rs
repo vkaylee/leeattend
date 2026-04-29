@@ -1,4 +1,7 @@
-use axum::{routing::{delete, get, put}, Router};
+use axum::{
+    routing::{delete, get, put},
+    Router,
+};
 use std::sync::Arc;
 
 use crate::handlers;
@@ -33,8 +36,7 @@ pub fn router() -> Router<Arc<AppState>> {
         // ESS Shift Swap routes
         .route(
             "/ess/shift-swaps",
-            get(handlers::ess::ess_get_my_shift_swaps)
-                .post(handlers::ess::ess_create_shift_swap),
+            get(handlers::ess::ess_get_my_shift_swaps).post(handlers::ess::ess_create_shift_swap),
         )
         .route(
             "/ess/shift-swaps/:id/respond",

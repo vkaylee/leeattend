@@ -1,5 +1,6 @@
-import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
+
+import { test } from "./worker-orchestrator";
 
 test.describe.skip("Registration Flow", () => {
   test.skip("should register a new user and login", async ({ page, baseURL }) => {

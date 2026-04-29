@@ -11,10 +11,10 @@ pub mod redb_store;
 pub mod retry;
 pub mod utils;
 
-pub mod worker_processor;
 pub mod mock_worker;
 pub mod worker;
+pub mod worker_processor;
 
-pub mod zk_worker;
-pub mod time_sync;
 pub mod orchestrator;
+pub mod time_sync;
+pub mod zk_worker;

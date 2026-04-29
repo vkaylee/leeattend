@@ -1,6 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+
 import WidgetRenderer from "../WidgetRenderer";
+
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
 // Mock all lazy-loaded chart components

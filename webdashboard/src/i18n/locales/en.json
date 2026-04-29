@@ -73,7 +73,8 @@
         "block_desc": "Only allow punching in within the shift's Grace Period.",
         "clamp": "Clamp Early OT",
         "clamp_desc": "Allow early punch-in but only count OT within the shift's Grace Period."
-      }
+      },
+      "please_wait_minutes": "Please wait a few minutes for changes to take effect."
     },
     "members": {
       "title": "Members & Roles",
@@ -100,7 +101,8 @@
           "update_primary_error": "Error updating primary role.",
           "assign_error": "Error assigning role.",
           "revoke_error": "Error revoking role."
-        }
+        },
+        "subtitle": "Personnel permissions"
       },
       "permissions": {
         "modal_title": "Manage Permissions",
@@ -1136,7 +1138,17 @@
       }
     },
     "columns": "Columns",
-    "custom": "Custom"
+    "custom": "Custom",
+    "billing": "Billing",
+    "danger_zone": "Danger Zone",
+    "destructive_operations": "Destructive Operations",
+    "holidays": "Holidays",
+    "overview": "Overview",
+    "permissions": "Permissions",
+    "public_holidays": "Public Holidays",
+    "security_events": "Security Events",
+    "set": "Set",
+    "assign": "Assign"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1329,7 +1341,9 @@
     "display_name": "Display Name",
     "confirm_password": "Confirm Password",
     "already_have_account": "Already have an account?",
-    "login": "Login",
+    "login": {
+      "title": "Login"
+    },
     "register_title": "Create new account",
     "register_btn": "Register Account",
     "password_mismatch": "Passwords do not match",
@@ -1407,7 +1421,11 @@
       "duration": "Duration",
       "status": "Status",
       "generation_info": "Processing Info (Traceability)",
-      "no_data": "No attendance data found for this month."
+      "no_data": "No attendance data found for this month.",
+      "ot_status": "Overtime",
+      "active_status": "Active",
+      "system_ot_suffix": "(System OT)",
+      "claim_btn": "Claim OT"
     },
     "ot": {
       "claim_title": "Claim Overtime",
@@ -1769,7 +1787,9 @@
     "messages": {
       "loading": "Loading logs...",
       "no_data": "No punch logs found.",
-      "no_unknown_logs": "No unidentified logs"
+      "no_unknown_logs": "No unidentified logs",
+      "no_data_hint": "Try adjusting your date range filter or selecting a different employee to find what you're looking for.",
+      "all_matched": "All punch logs have been matched to employees."
     },
     "modal": {
       "import_title": "Import punch logs from file"
@@ -2753,7 +2773,8 @@
       "time_desc": "Configure shifts, rosters and attendance rules.",
       "payroll_desc": "Manage standard work days and formulas.",
       "connectivity_desc": "Manage device connections and network.",
-      "leave": "Leave Management"
+      "leave": "Leave Management",
+      "billing_desc": "Manage billing and subscriptions."
     },
     "navigation": "Navigation",
     "admin_only": "Administrators only",
@@ -2796,6 +2817,16 @@
         "effective_date": "Effective Date",
         "created_at": "Created At"
       }
+    },
+    "layout": {
+      "access": "Access",
+      "control_panel": "Control Panel",
+      "operations": "Operations",
+      "security_system": "Security & System",
+      "workspace": "Workspace"
+    },
+    "tabs": {
+      "members": "Members"
     }
   },
   "holidays": {
@@ -3062,6 +3093,63 @@
       "entries": "entries",
       "previous": "Previous",
       "next": "Next"
+    }
+  },
+  "leave": {
+    "policy": {
+      "confirm_delete": "Are you sure you want to delete this policy?"
+    },
+    "request": {
+      "create": "Leave Request Created",
+      "approve": "Leave Request Approved"
+    }
+  },
+  "status_active_caps": "ACTIVE",
+  "status_off": "OFF",
+  "status_expired": "EXPIRED",
+  "workspace": {
+    "roles": {
+      "title": "Workspace Roles"
+    }
+  },
+  "attendance": {
+    "log": {
+      "create": "Attendance Log Created"
+    },
+    "shift_swap": {
+      "request": "Shift Swap Requested"
+    }
+  },
+  "system_roles": {
+    "title": "Platform Administrators",
+    "subtitle": "Manage system-level roles that bypass workspace boundaries",
+    "assign_to_user": "Assign to user",
+    "no_users": "No users assigned to this role.",
+    "system_label": "System",
+    "grant_privileges": "Grant system-level privileges to a user",
+    "user_id_label": "User ID (UUID)",
+    "revoke_role": "Revoke role",
+    "assigned_users": "Assigned Users",
+    "assignees_count": "{{count}} Assignees",
+    "assigned_date": "Assigned: {{date}}",
+    "descriptions": {
+      "platform_admin": "Full platform access. Can manage workspaces, global settings, and other system roles.",
+      "support": "Read-only access to infrastructure monitoring and cross-workspace support data.",
+      "billing_admin": "Manage platform billing, subscriptions, and quotas across all workspaces.",
+      "default": "System level role."
+    },
+    "modal": {
+      "assign_title": "Assign {{role}} Role",
+      "submit_btn": "Assign Role",
+      "assigning": "Assigning..."
+    },
+    "confirm": {
+      "revoke_title": "Revoke System Role",
+      "revoke_message": "Are you sure you want to revoke this system role? This may lock the user out of system-level access."
+    },
+    "messages": {
+      "assign_error": "Failed to assign role",
+      "revoke_error": "Failed to revoke role"
     }
   }
 }

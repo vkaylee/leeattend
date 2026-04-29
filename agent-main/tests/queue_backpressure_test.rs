@@ -1,7 +1,7 @@
-use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use tokio::sync::mpsc;
+use tokio::time::{Duration, sleep};
 
 #[tokio::test]
 async fn test_queue_backpressure_behavior() {
@@ -20,20 +20,23 @@ async fn test_queue_backpressure_behavior() {
     });
 
     let start = std::time::Instant::now();
-    
+
     // Send 1st item: immediately accepted and taken by consumer (async task)
-    tx.send(1).await.unwrap(); 
-    
+    tx.send(1).await.unwrap();
+
     // Send 2nd item: fits in the 1-slot buffer
-    tx.send(2).await.unwrap(); 
-    
+    tx.send(2).await.unwrap();
+
     // Send 3rd item: BUFFER FULL. Must wait for consumer to finish 1st item.
     tx.send(3).await.unwrap();
     let elapsed = start.elapsed();
-    
-    assert!(elapsed >= Duration::from_millis(200), "Producer should have blocked until consumer finished 1st item. Elapsed: {elapsed:?}");
-    
+
+    assert!(
+        elapsed >= Duration::from_millis(200),
+        "Producer should have blocked until consumer finished 1st item. Elapsed: {elapsed:?}"
+    );
+
     assert_eq!(processed_count.load(Ordering::SeqCst), 1);
-    
+
     println!("✅ Backpressure verified: Producer blocked correctly at slot limit.");
 }

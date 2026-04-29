@@ -1,4 +1,4 @@
-import { useTranslation } from "react-i18next";
+import { formatDistanceToNow } from "date-fns";
 import {
   Activity,
   Server,
@@ -15,14 +15,17 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
-import { useWorkerMonitor, MONITOR_REFETCH_INTERVAL_S } from "@/hooks/use-worker-monitor";
-import { useMonitorStream } from "@/hooks/use-monitor-stream";
-import { useWorkerUtilization, useQueuePressure, useJobStatusDistribution } from "@/hooks/use-monitor-charts";
-import WorkerUtilizationGauge from "@/components/features/monitor/WorkerUtilizationGauge";
-import QueuePressureChart from "@/components/features/monitor/QueuePressureChart";
+import { useTranslation } from "react-i18next";
+
 import JobStatusDistributionChart from "@/components/features/monitor/JobStatusDistributionChart";
+import QueuePressureChart from "@/components/features/monitor/QueuePressureChart";
+import WorkerUtilizationGauge from "@/components/features/monitor/WorkerUtilizationGauge";
+
+import { useWorkerUtilization, useQueuePressure, useJobStatusDistribution } from "@/hooks/use-monitor-charts";
+import { useMonitorStream } from "@/hooks/use-monitor-stream";
+import { useWorkerMonitor, MONITOR_REFETCH_INTERVAL_S } from "@/hooks/use-worker-monitor";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+
 
 export default function WorkerMonitorPage() {
   const { t } = useTranslation();

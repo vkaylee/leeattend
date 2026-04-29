@@ -1,7 +1,9 @@
+import React from "react";
+
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
+
 import FloatingRecordBadge from "../FloatingRecordBadge";
-import React from "react";
 
 describe("FloatingRecordBadge", () => {
     it("renders loaded and total counts", () => {

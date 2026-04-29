@@ -1,9 +1,13 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { LeaveBalanceDetailModal } from '../LeaveBalanceDetailModal';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import * as api from '@/lib/api';
 import React from 'react';
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
+import * as api from '@/lib/api';
+
+import { LeaveBalanceDetailModal } from '../LeaveBalanceDetailModal';
+
 
 // Mock react-dom BEFORE imports that might use it
 vi.mock('react-dom', () => ({

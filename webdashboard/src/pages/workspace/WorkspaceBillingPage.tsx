@@ -1,6 +1,7 @@
-import PageHeader from "@/components/ui/PageHeader";
 import { CreditCard } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function WorkspaceBillingPage() {
   const { t } = useTranslation();

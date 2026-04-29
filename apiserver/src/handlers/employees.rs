@@ -21,10 +21,10 @@ pub async fn get_working_conditions(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<WorkingCondition>>> {
     let conditions = state
-        .employees.service
+        .employees
+        .service
         .get_working_conditions(id, workspace_id)
-        .await
-        ?;
+        .await?;
     Ok(Json(conditions))
 }
 
@@ -37,10 +37,10 @@ pub async fn create_working_condition(
     let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let cond = state
-        .employees.service
+        .employees
+        .service
         .create_working_condition(id, ctx.workspace_id, req)
-        .await
-        ?;
+        .await?;
     Ok((StatusCode::CREATED, Json(cond)))
 }
 
@@ -52,10 +52,10 @@ pub async fn delete_working_condition(
     let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     state
-        .employees.service
+        .employees
+        .service
         .delete_working_condition(id, ctx.workspace_id, cond_id)
-        .await
-        ?;
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -68,16 +68,29 @@ pub async fn get_employees(
 ) -> AppResult<Json<PaginatedResponse<Employee>>> {
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
-    let department_ids: Option<Vec<Uuid>> = query.department_id
+    let department_ids: Option<Vec<Uuid>> = query
+        .department_id
         .as_deref()
         .filter(|s| !s.is_empty())
-        .map(|s| s.split(',').filter_map(|id| id.trim().parse::<Uuid>().ok()).collect())
+        .map(|s| {
+            s.split(',')
+                .filter_map(|id| id.trim().parse::<Uuid>().ok())
+                .collect()
+        })
         .filter(|v: &Vec<Uuid>| !v.is_empty());
     let (data, total) = state
-        .employees.service
-        .get_all_employees(workspace_id, query.q, page, limit, query.sort_by, query.sort_dir, department_ids)
-        .await
-        ?;
+        .employees
+        .service
+        .get_all_employees(
+            workspace_id,
+            query.q,
+            page,
+            limit,
+            query.sort_by,
+            query.sort_dir,
+            department_ids,
+        )
+        .await?;
 
     Ok(Json(PaginatedResponse {
         data,
@@ -93,7 +106,8 @@ pub async fn get_employee(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Employee>> {
     let employee = state
-        .employees.service
+        .employees
+        .service
         .get_employee_by_id(id, workspace_id)
         .await
         .map_err(|_| AppError::NotFound("Employee not found".to_string()))?;
@@ -108,10 +122,10 @@ pub async fn create_employee(
     // Since a new employee has no department yet, a scoped-only user cannot create employees.
     ctx.require_scoped_permission(Permission::EmployeesCreate, None)?;
     let employee = state
-        .employees.service
+        .employees
+        .service
         .create_employee(ctx.workspace_id, req)
-        .await
-        ?;
+        .await?;
     Ok((StatusCode::CREATED, Json(employee)))
 }
 
@@ -124,10 +138,10 @@ pub async fn update_employee(
     let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::EmployeesUpdate, target_dept_id)?;
     let employee = state
-        .employees.service
+        .employees
+        .service
         .update_employee(id, ctx.workspace_id, req)
-        .await
-        ?;
+        .await?;
     Ok(Json(employee))
 }
 
@@ -140,7 +154,8 @@ pub async fn delete_employee(
     ctx.require_scoped_permission(Permission::EmployeesDelete, target_dept_id)?;
     let workspace_id = ctx.workspace_id;
     state
-        .employees.service
+        .employees
+        .service
         .delete_employee(id, workspace_id)
         .await
         .map_err(|_| AppError::NotFound("Employee not found".to_string()))?;
@@ -153,10 +168,10 @@ pub async fn get_employee_history(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<EmploymentPeriod>>> {
     let history = state
-        .employees.service
+        .employees
+        .service
         .get_employment_history(id, workspace_id)
-        .await
-        ?;
+        .await?;
     Ok(Json(history))
 }
 
@@ -169,10 +184,10 @@ pub async fn rehire_employee(
     let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::EmployeesRehire, target_dept_id)?;
     let employee = state
-        .employees.service
+        .employees
+        .service
         .rehire_employee(id, ctx.workspace_id, req)
-        .await
-        ?;
+        .await?;
     Ok(Json(employee))
 }
 
@@ -182,10 +197,10 @@ pub async fn get_employee_department_history(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeDepartmentHistory>>> {
     let history = state
-        .employees.service
+        .employees
+        .service
         .get_department_history(id, workspace_id)
-        .await
-        ?;
+        .await?;
     Ok(Json(history))
 }
 
@@ -198,9 +213,9 @@ pub async fn transfer_employee(
     let target_dept_id = common::current_department_id(&state, ctx.workspace_id, id).await;
     ctx.require_scoped_permission(Permission::DepartmentsTransfer, target_dept_id)?;
     let history = state
-        .employees.service
+        .employees
+        .service
         .transfer_employee(id, ctx.workspace_id, req)
-        .await
-        ?;
+        .await?;
     Ok(Json(history))
 }

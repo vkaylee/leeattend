@@ -1,14 +1,18 @@
 import React, { useState } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle2, CircleDashed, FileText, Trash2, Percent, Calculator } from "lucide-react";
-import { fetchPayrollRules, createPayrollRule, fetchSalaryBaseGroups } from "@/lib/api/payroll";
-import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "react-i18next";
-import { PayrollRuleDefinition } from "@/lib/api/types";
+
 import Modal from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
+
+import { fetchPayrollRules, createPayrollRule, fetchSalaryBaseGroups } from "@/lib/api/payroll";
+import { PayrollRuleDefinition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
-import RuleTierManager from "./RuleTierManager";
+
 import RuleAssignmentManager from "./RuleAssignmentManager";
+import RuleTierManager from "./RuleTierManager";
 
 interface Props {
   wsId: string;

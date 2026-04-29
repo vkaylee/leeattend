@@ -1,6 +1,7 @@
 import React from "react";
+
 import { Calendar, CalendarRange, Building2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import SearchBox from "@/components/common/SearchBox";
 import {
@@ -8,6 +9,9 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+import { cn } from "@/lib/utils";
+
 import type { Department } from "@/lib/api/types";
 
 interface ReportFiltersProps {

@@ -57,50 +57,158 @@ mod tests {
     /// documented reason. Code reviewers should scrutinize additions.
     const ALLOWLIST: &[(&str, &str, &str)] = &[
         // Auth: agent_id comes from verified WebSocket token, not user input
-        ("agent_repository.rs", "authorized_agents", "agent lookup by verified token ID"),
-        ("agent_repository.rs", "devices", "device lookup by authenticated agent_id"),
+        (
+            "agent_repository.rs",
+            "authorized_agents",
+            "agent lookup by verified token ID",
+        ),
+        (
+            "agent_repository.rs",
+            "devices",
+            "device lookup by authenticated agent_id",
+        ),
         // Roster CRUD: employee_id already validated from MemberContext (workspace-scoped)
-        ("roster_crud.rs", "shift_rosters", "employee_id from MemberContext"),
+        (
+            "roster_crud.rs",
+            "shift_rosters",
+            "employee_id from MemberContext",
+        ),
         // Leave request repo: queries by employee_id from workspace-validated handlers
-        ("leave_request_repository.rs", "leave_requests", "employee_id from workspace-validated context"),
-        ("leave_request_repository.rs", "leave_balances", "employee_id from workspace-validated context"),
+        (
+            "leave_request_repository.rs",
+            "leave_requests",
+            "employee_id from workspace-validated context",
+        ),
+        (
+            "leave_request_repository.rs",
+            "leave_balances",
+            "employee_id from workspace-validated context",
+        ),
         // Payslip segment/incentive: accessed via payslip_id (already workspace-scoped)
-        ("payroll_repository.rs", "payslip_segments", "payslip_id from workspace-scoped payslip"),
-        ("payroll_repository.rs", "payslip_incentives", "payslip_id from workspace-scoped payslip"),
-        ("payroll_repository.rs", "payroll_incentive_tiers", "policy_id from workspace-scoped policy"),
+        (
+            "payroll_repository.rs",
+            "payslip_segments",
+            "payslip_id from workspace-scoped payslip",
+        ),
+        (
+            "payroll_repository.rs",
+            "payslip_incentives",
+            "payslip_id from workspace-scoped payslip",
+        ),
+        (
+            "payroll_repository.rs",
+            "payroll_incentive_tiers",
+            "policy_id from workspace-scoped policy",
+        ),
         // Employee salary components: joined with salary_component_definitions.workspace_id
-        ("payroll_repository.rs", "employee_salary_components", "joined with scd.workspace_id filter"),
+        (
+            "payroll_repository.rs",
+            "employee_salary_components",
+            "joined with scd.workspace_id filter",
+        ),
         // Import service: uses job_id which is workspace-scoped
-        ("attendance_import_service.rs", "attendance_import_jobs", "job_id from workspace-scoped context"),
-        ("attendance_import_service.rs", "raw_attendance_logs", "import job already workspace-scoped"),
-        ("attendance_import_service.rs", "employees", "employee lookup within import job context"),
+        (
+            "attendance_import_service.rs",
+            "attendance_import_jobs",
+            "job_id from workspace-scoped context",
+        ),
+        (
+            "attendance_import_service.rs",
+            "raw_attendance_logs",
+            "import job already workspace-scoped",
+        ),
+        (
+            "attendance_import_service.rs",
+            "employees",
+            "employee lookup within import job context",
+        ),
         // Workspace service: operates on workspace creation/management
-        ("workspace_service.rs", "workspace_members", "workspace creation/management context"),
+        (
+            "workspace_service.rs",
+            "workspace_members",
+            "workspace creation/management context",
+        ),
         // Pairing service: already has workspace_id in scope but queries by employee_id
-        ("pairing_service.rs", "attendance_daily_summaries", "workspace_id added to all queries"),
-        ("pairing_service.rs", "raw_attendance_logs", "workspace_id passed from handler context"),
+        (
+            "pairing_service.rs",
+            "attendance_daily_summaries",
+            "workspace_id added to all queries",
+        ),
+        (
+            "pairing_service.rs",
+            "raw_attendance_logs",
+            "workspace_id passed from handler context",
+        ),
         // Holiday leave service: workspace_id from authenticated context
-        ("holiday_leave_service.rs", "leave_requests", "workspace context from handler"),
-        ("holiday_leave_service.rs", "leave_balances", "workspace context from handler"),
+        (
+            "holiday_leave_service.rs",
+            "leave_requests",
+            "workspace context from handler",
+        ),
+        (
+            "holiday_leave_service.rs",
+            "leave_balances",
+            "workspace context from handler",
+        ),
         // Department repo: some queries via department_id which has workspace FK
-        ("department_repository.rs", "employee_department_history", "department_id has workspace FK"),
-        ("department_repository.rs", "department_payroll_configs", "department_id has workspace FK"),
+        (
+            "department_repository.rs",
+            "employee_department_history",
+            "department_id has workspace FK",
+        ),
+        (
+            "department_repository.rs",
+            "department_payroll_configs",
+            "department_id has workspace FK",
+        ),
         // Shift-related: some queries by shift_id which already belongs to a workspace
-        ("shift_repository.rs", "employee_shifts", "shift_id has workspace FK"),
+        (
+            "shift_repository.rs",
+            "employee_shifts",
+            "shift_id has workspace FK",
+        ),
         // Time entry repo: some internal utility queries
-        ("time_entry_repository.rs", "attendance_adjustment_requests", "time_entry_id from workspace-scoped entry"),
+        (
+            "time_entry_repository.rs",
+            "attendance_adjustment_requests",
+            "time_entry_id from workspace-scoped entry",
+        ),
         // Overtime rules: accessed via policy_id which is workspace-scoped
-        ("overtime_repository.rs", "overtime_rules", "policy_id from workspace-scoped policy"),
+        (
+            "overtime_repository.rs",
+            "overtime_rules",
+            "policy_id from workspace-scoped policy",
+        ),
         // Leave balance repo: employee_id from workspace-validated context
-        ("leave_balance_repository.rs", "leave_balances", "employee_id from workspace-validated handler"),
+        (
+            "leave_balance_repository.rs",
+            "leave_balances",
+            "employee_id from workspace-validated handler",
+        ),
         // Core queries: employee/department payroll configs via FK
-        ("core_queries.rs", "employee_payroll_configs", "employee_id has workspace FK via employees"),
+        (
+            "core_queries.rs",
+            "employee_payroll_configs",
+            "employee_id has workspace FK via employees",
+        ),
         // Attendance handler: leave lookups via employee_id from MemberContext
-        ("attendance.rs", "leave_requests", "employee_id from workspace-validated MemberContext"),
+        (
+            "attendance.rs",
+            "leave_requests",
+            "employee_id from workspace-validated MemberContext",
+        ),
         // Leave accrual service: internal accrual logic, employee_id FK-scoped
-        ("leave_accrual_service.rs", "leave_balances", "employee_id from workspace-scoped accrual job"),
+        (
+            "leave_accrual_service.rs",
+            "leave_balances",
+            "employee_id from workspace-scoped accrual job",
+        ),
         // Report service: employee-level leave aggregation
-        ("report_service.rs", "leave_requests", "employee_id from workspace-validated report context"),
+        (
+            "report_service.rs",
+            "leave_requests",
+            "employee_id from workspace-validated report context",
+        ),
     ];
 
     /// Extract SQL string literals from Rust source code.
@@ -149,8 +257,10 @@ mod tests {
 
     fn has_sql_keyword(s: &str) -> bool {
         let upper = s.to_uppercase();
-        upper.contains("SELECT") || upper.contains("INSERT INTO")
-            || upper.contains("UPDATE ") || upper.contains("DELETE FROM")
+        upper.contains("SELECT")
+            || upper.contains("INSERT INTO")
+            || upper.contains("UPDATE ")
+            || upper.contains("DELETE FROM")
     }
 
     /// Check if a SQL string references a tenant-scoped table.
@@ -189,9 +299,9 @@ mod tests {
     }
 
     fn is_allowlisted(file_name: &str, table: &str) -> bool {
-        ALLOWLIST.iter().any(|(f, t, _)| {
-            file_name.ends_with(f) && *t == table
-        })
+        ALLOWLIST
+            .iter()
+            .any(|(f, t, _)| file_name.ends_with(f) && *t == table)
     }
 
     fn get_rs_files(dir: &PathBuf) -> Vec<PathBuf> {
@@ -213,7 +323,11 @@ mod tests {
     fn all_tenant_queries_must_include_workspace_id() {
         // Resolve the source directory relative to the test binary
         let src_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
-        assert!(src_dir.exists(), "Source directory not found: {:?}", src_dir);
+        assert!(
+            src_dir.exists(),
+            "Source directory not found: {:?}",
+            src_dir
+        );
 
         let rs_files = get_rs_files(&src_dir);
         assert!(!rs_files.is_empty(), "No .rs files found in {:?}", src_dir);
@@ -295,9 +409,12 @@ mod tests {
                         "employee_salary_components",
                         "employee_department_history",
                         "overtime_rules",
-                    ].contains(table),
+                    ]
+                    .contains(table),
                 "ALLOWLIST entry ({}, {}) references unknown table. Reason: {}",
-                file, table, reason
+                file,
+                table,
+                reason
             );
         }
     }
@@ -312,7 +429,10 @@ mod tests {
     const CONTEXT_ALLOWLIST: &[(&str, &str)] = &[
         // Admin-level workspace CRUD: user is authenticated, ws_id from URL
         // is validated against user's workspace list in the handler
-        ("workspaces/crud.rs", "workspace CRUD by authenticated admin"),
+        (
+            "workspaces/crud.rs",
+            "workspace CRUD by authenticated admin",
+        ),
         // Debug/dev endpoints: only available in debug builds
         ("debug.rs", "dev-only endpoints, compiled out in release"),
     ];
@@ -342,7 +462,11 @@ mod tests {
         let handlers_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("src")
             .join("handlers");
-        assert!(handlers_dir.exists(), "Handlers directory not found: {:?}", handlers_dir);
+        assert!(
+            handlers_dir.exists(),
+            "Handlers directory not found: {:?}",
+            handlers_dir
+        );
 
         let rs_files = get_rs_files(&handlers_dir);
         assert!(!rs_files.is_empty(), "No handler .rs files found");
@@ -353,7 +477,11 @@ mod tests {
         for file_path in &rs_files {
             let content = fs::read_to_string(file_path).expect("Failed to read file");
             let rel_path = file_path
-                .strip_prefix(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src").join("handlers"))
+                .strip_prefix(
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                        .join("src")
+                        .join("handlers"),
+                )
                 .unwrap_or(file_path.as_path())
                 .to_str()
                 .unwrap_or("");
@@ -386,8 +514,8 @@ mod tests {
 
                 if has_path_ws {
                     // Ignore if the variable is prefixed with _ (intentionally unused)
-                    let is_unused = line_trimmed.contains("_ws_id")
-                        || line_trimmed.contains("_workspace_id");
+                    let is_unused =
+                        line_trimmed.contains("_ws_id") || line_trimmed.contains("_workspace_id");
                     if is_unused {
                         continue;
                     }
@@ -447,13 +575,20 @@ mod tests {
         for file_path in &rs_files {
             let content = fs::read_to_string(file_path).expect("Failed to read file");
             let rel_path = file_path
-                .strip_prefix(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src").join("handlers"))
+                .strip_prefix(
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                        .join("src")
+                        .join("handlers"),
+                )
                 .unwrap_or(file_path.as_path())
                 .to_str()
                 .unwrap_or("");
             let file_name = file_path.file_name().unwrap().to_str().unwrap();
 
-            if file_name == "workspace_id_guard.rs" || file_name == "common.rs" || file_name == "mod.rs" {
+            if file_name == "workspace_id_guard.rs"
+                || file_name == "common.rs"
+                || file_name == "mod.rs"
+            {
                 continue;
             }
 
@@ -465,8 +600,7 @@ mod tests {
                 // This is hard to detect statically, so instead we look for
                 // explicit workspace_id in Query parameters
                 let has_query_ws = line_trimmed.contains("Query<")
-                    && (line_trimmed.contains("workspace_id")
-                        || line_trimmed.contains("ws_id"));
+                    && (line_trimmed.contains("workspace_id") || line_trimmed.contains("ws_id"));
 
                 if has_query_ws {
                     violations.push(format!(

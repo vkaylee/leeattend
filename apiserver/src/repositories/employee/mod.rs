@@ -11,9 +11,9 @@ mod core_queries;
 mod recruitment_queries;
 
 // Re-export free functions so existing callers (e.g. services) keep working.
+pub use analytics_queries::*;
 pub use core_queries::*;
 pub use recruitment_queries::*;
-pub use analytics_queries::*;
 
 use async_trait::async_trait;
 use chrono::NaiveDate;
@@ -69,10 +69,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         department_id: Option<Vec<Uuid>>,
     ) -> Result<(Vec<Employee>, i64), sqlx::Error>;
 
-    async fn get_active_employees(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<Employee>, sqlx::Error>;
+    async fn get_active_employees(&self, workspace_id: Uuid) -> Result<Vec<Employee>, sqlx::Error>;
 
     async fn get_active_employee_ids(
         &self,
@@ -103,11 +100,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         is_active: Option<bool>,
     ) -> Result<Option<Employee>, sqlx::Error>;
 
-    async fn delete_employee(
-        &self,
-        id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<u64, sqlx::Error>;
+    async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, sqlx::Error>;
 
     async fn get_working_conditions(
         &self,
@@ -132,10 +125,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         employee_id: Uuid,
     ) -> Result<Vec<EmploymentPeriod>, sqlx::Error>;
 
-    async fn create_employment_period(
-        &self,
-        period: &EmploymentPeriod,
-    ) -> Result<(), sqlx::Error>;
+    async fn create_employment_period(&self, period: &EmploymentPeriod) -> Result<(), sqlx::Error>;
 
     async fn get_existing_employee_ids_by_numbers(
         &self,
@@ -233,7 +223,9 @@ pub struct SqlxEmployeeRepository {
 }
 
 impl SqlxEmployeeRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
@@ -272,13 +264,20 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         sort_dir: Option<String>,
         department_id: Option<Vec<Uuid>>,
     ) -> Result<(Vec<Employee>, i64), sqlx::Error> {
-        core_queries::get_all_employees(&self.pool, workspace_id, search_query, page, limit, sort_by, sort_dir, department_id).await
+        core_queries::get_all_employees(
+            &self.pool,
+            workspace_id,
+            search_query,
+            page,
+            limit,
+            sort_by,
+            sort_dir,
+            department_id,
+        )
+        .await
     }
 
-    async fn get_active_employees(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<Employee>, sqlx::Error> {
+    async fn get_active_employees(&self, workspace_id: Uuid) -> Result<Vec<Employee>, sqlx::Error> {
         core_queries::get_active_employees(&self.pool, workspace_id).await
     }
 
@@ -339,11 +338,7 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         .await
     }
 
-    async fn delete_employee(
-        &self,
-        id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<u64, sqlx::Error> {
+    async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, sqlx::Error> {
         core_queries::delete_employee(&self.pool, id, workspace_id).await
     }
 
@@ -378,10 +373,7 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         core_queries::get_employment_history(&self.pool, workspace_id, employee_id).await
     }
 
-    async fn create_employment_period(
-        &self,
-        period: &EmploymentPeriod,
-    ) -> Result<(), sqlx::Error> {
+    async fn create_employment_period(&self, period: &EmploymentPeriod) -> Result<(), sqlx::Error> {
         core_queries::create_employment_period(&self.pool, period).await
     }
 
@@ -390,7 +382,8 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         workspace_id: Uuid,
         id_numbers: &[String],
     ) -> Result<Vec<String>, sqlx::Error> {
-        core_queries::get_existing_employee_ids_by_numbers(&self.pool, workspace_id, id_numbers).await
+        core_queries::get_existing_employee_ids_by_numbers(&self.pool, workspace_id, id_numbers)
+            .await
     }
 
     async fn upsert_employee_payroll_config(
@@ -423,7 +416,12 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         employee_id: Uuid,
         recruitment_source_id: Option<Uuid>,
     ) -> Result<(), sqlx::Error> {
-        recruitment_queries::set_employee_recruitment_source(&self.pool, employee_id, recruitment_source_id).await
+        recruitment_queries::set_employee_recruitment_source(
+            &self.pool,
+            employee_id,
+            recruitment_source_id,
+        )
+        .await
     }
 
     async fn create_recruitment_source(
@@ -501,7 +499,8 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<TurnoverAnalytics, sqlx::Error> {
-        analytics_queries::get_turnover_analytics(&self.pool, workspace_id, start_date, end_date).await
+        analytics_queries::get_turnover_analytics(&self.pool, workspace_id, start_date, end_date)
+            .await
     }
 
     async fn get_managed_departments(
@@ -515,7 +514,7 @@ impl EmployeeRepository for SqlxEmployeeRepository {
             FROM employees e
             JOIN employee_department_history edh ON e.id = edh.employee_id
             WHERE e.workspace_id = $1 AND e.user_id = $2
-            "#
+            "#,
         )
         .bind(workspace_id)
         .bind(user_id)
@@ -546,6 +545,10 @@ impl EmployeeRepository for SqlxEmployeeRepository {
 }
 
 impl super::PoolBacked for SqlxEmployeeRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
-    fn pool(&self) -> &sqlx::PgPool { &self.pool }
+    fn from_pool(pool: sqlx::PgPool) -> Self {
+        Self::new(pool)
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }

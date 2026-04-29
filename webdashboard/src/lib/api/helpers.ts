@@ -1,5 +1,6 @@
-import { API_BASE_URL } from "./config";
 import { ROUTES } from "@/lib/routes";
+
+import { API_BASE_URL } from "./config";
 
 export function getAccessToken(): string | null {
   return localStorage.getItem("access_token");

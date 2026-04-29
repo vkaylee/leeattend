@@ -1,6 +1,8 @@
 import { Page } from '@playwright/test';
-import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS, MOCK_AGENTS, MOCK_DEVICES_INITIAL } from './mock-data';
+
 import { Device } from '../../src/lib/api/types';
+
+import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS, MOCK_AGENTS, MOCK_DEVICES_INITIAL } from './mock-data';
 
 // --- Stateful mock stores (reset per page via setupApiMocks) ---
 let devices: Device[];

@@ -1,10 +1,12 @@
+import React from "react";
+
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import React from "react";
 
 vi.unmock("@/components/ui/Combobox");
 
 import { Combobox } from "./Combobox";
+
 import { Command } from "cmdk";
 
 vi.mock("@radix-ui/react-popover", () => ({

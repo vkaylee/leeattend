@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
 
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
@@ -37,9 +39,9 @@ vi.mock("recharts", () => ({
     ),
 }));
 
-import WorkerUtilizationGauge from "../WorkerUtilizationGauge";
-import QueuePressureChart from "../QueuePressureChart";
 import JobStatusDistributionChart from "../JobStatusDistributionChart";
+import QueuePressureChart from "../QueuePressureChart";
+import WorkerUtilizationGauge from "../WorkerUtilizationGauge";
 
 const renderWithProviders = (component: React.ReactElement) => {
     const queryClient = new QueryClient({

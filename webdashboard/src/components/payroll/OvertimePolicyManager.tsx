@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Calculator, 
@@ -8,10 +8,14 @@ import {
   Calendar,
   AlertCircle
 } from 'lucide-react';
-import OvertimeRuleEditor from './OvertimeRuleEditor';
-import AssignOvertimePolicyModal from './AssignOvertimePolicyModal';
-import { fetchOvertimePolicies, createOvertimePolicy, fetchOvertimePolicy } from '@/lib/api/payroll';
+import { useTranslation } from 'react-i18next';
+
 import { useToast } from '@/components/ui/Toast';
+
+import { fetchOvertimePolicies, createOvertimePolicy, fetchOvertimePolicy } from '@/lib/api/payroll';
+
+import AssignOvertimePolicyModal from './AssignOvertimePolicyModal';
+import OvertimeRuleEditor from './OvertimeRuleEditor';
 
 interface OvertimePolicyManagerProps {
   wsId: string;

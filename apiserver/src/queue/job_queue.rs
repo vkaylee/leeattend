@@ -43,12 +43,18 @@ pub struct JobQueue {
 impl JobQueue {
     /// Create a new JobQueue with the given Redis pool.
     pub fn new(pool: RedisPool) -> Self {
-        Self { pool, namespace: "".to_string() }
+        Self {
+            pool,
+            namespace: "".to_string(),
+        }
     }
 
     /// Create a new JobQueue with a specific namespace (mainly for isolated testing).
     pub fn with_namespace(pool: RedisPool, namespace: &str) -> Self {
-        Self { pool, namespace: namespace.to_string() }
+        Self {
+            pool,
+            namespace: namespace.to_string(),
+        }
     }
 
     /// Get the high priority queue key.
@@ -121,10 +127,7 @@ impl JobQueue {
     /// * `Ok(Some(job))` - A job was dequeued
     /// * `Ok(None)` - Timeout reached, no job available
     /// * `Err(e)` - Redis error
-    pub async fn dequeue_job(
-        &self,
-        timeout_secs: f64,
-    ) -> Result<Option<Job>, redis::RedisError> {
+    pub async fn dequeue_job(&self, timeout_secs: f64) -> Result<Option<Job>, redis::RedisError> {
         // Validate timeout value (Redis protocol requires valid positive number)
         if !timeout_secs.is_finite() || timeout_secs < 0.0 {
             return Err(redis::RedisError::from((
@@ -589,7 +592,10 @@ impl JobQueue {
 
     /// List recent jobs by scanning all metadata keys in Redis.
     /// Returns up to `limit` most recent jobs, sorted by `created_at` descending.
-    pub async fn list_recent_jobs(&self, limit: usize) -> Result<Vec<JobMetadata>, redis::RedisError> {
+    pub async fn list_recent_jobs(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<JobMetadata>, redis::RedisError> {
         let mut conn = self.pool.conn();
         let pattern = format!("{META_PREFIX}*");
 
@@ -636,4 +642,3 @@ impl JobQueue {
 #[cfg(test)]
 #[path = "job_queue_tests.rs"]
 mod job_queue_tests;
-

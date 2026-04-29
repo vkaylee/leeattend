@@ -54,10 +54,7 @@ impl ShiftService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn get_workspace_shifts(
-        &self,
-        workspace_id: Uuid,
-    ) -> Result<Vec<Shift>, AppError> {
+    pub async fn get_workspace_shifts(&self, workspace_id: Uuid) -> Result<Vec<Shift>, AppError> {
         shift_repository::get_workspace_shifts(&self.pool, workspace_id)
             .await
             .map_err(AppError::Sqlx)
@@ -172,7 +169,9 @@ impl ShiftService {
         {
             Ok(_) => Ok(()),
             Err(sqlx::Error::Database(e)) if e.constraint() == Some("uq_employee_shift_start") => {
-                Err(AppError::Conflict("Shift assignment already exists for this date".into()))
+                Err(AppError::Conflict(
+                    "Shift assignment already exists for this date".into(),
+                ))
             }
             Err(e) => Err(AppError::Sqlx(e)),
         }

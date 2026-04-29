@@ -1,6 +1,8 @@
 import React from 'react';
+
 import { FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { HierarchyLegend, HierarchyStep } from '../common/HierarchyLegend';
 
 interface PayrollPriorityLegendProps {

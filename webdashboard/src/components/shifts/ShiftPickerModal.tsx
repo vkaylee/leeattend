@@ -1,9 +1,12 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+
 import { Clock, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import Modal from "@/components/ui/Modal";
-import { Shift } from "@/lib/api";
+
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { Shift } from "@/lib/api";
 
 interface ShiftPickerModalProps {
   isOpen: boolean;

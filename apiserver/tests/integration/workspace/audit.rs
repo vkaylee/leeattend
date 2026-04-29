@@ -73,8 +73,18 @@ async fn test_get_audit_logs_with_role_action() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     // Create a member and assign an extra role (this creates audit log entries)
-    let member_id = factory.user().with_email("audited@example.com").create().await;
-    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("audited@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let expires_at = chrono::Utc::now() + chrono::Duration::hours(1);
     let body = serde_json::json!({
@@ -110,7 +120,9 @@ async fn test_get_audit_logs_with_role_action() {
     let result = body_json(resp).await;
     assert!(result["total"].as_i64().unwrap() >= 1);
     let logs = result["data"].as_array().unwrap();
-    assert!(logs.iter().any(|l| l["action"].as_str().unwrap() == "assign_extra_role"));
+    assert!(logs
+        .iter()
+        .any(|l| l["action"].as_str().unwrap() == "assign_extra_role"));
 }
 
 #[tokio::test]
@@ -121,8 +133,18 @@ async fn test_get_audit_logs_rbac_member_forbidden() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    let member_id = factory.user().with_email("regular@example.com").create().await;
-    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("regular@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let resp = app
         .clone()
@@ -146,7 +168,11 @@ async fn test_audit_log_on_primary_role_update() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    let member_id = factory.user().with_email("audited_primary@example.com").create().await;
+    let member_id = factory
+        .user()
+        .with_email("audited_primary@example.com")
+        .create()
+        .await;
     let old_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(); // Member
     factory.add_member(ws_id, member_id, old_role_id).await;
 
@@ -154,7 +180,7 @@ async fn test_audit_log_on_primary_role_update() {
     let body = serde_json::json!({
         "role_id": new_role_id.to_string(),
     });
-    
+
     // Update the role
     let resp = app
         .clone()
@@ -182,16 +208,28 @@ async fn test_audit_log_on_primary_role_update() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    
+
     let result = body_json(resp).await;
     let logs = result["data"].as_array().unwrap();
-    
+
     // Find our specific update event
-    let update_log = logs.iter().find(|l| l["action"].as_str().unwrap() == "update_member_role").expect("Audit log not found");
-    
+    let update_log = logs
+        .iter()
+        .find(|l| l["action"].as_str().unwrap() == "update_member_role")
+        .expect("Audit log not found");
+
     // Check old and new role ids exist in details
     let details = &update_log["details"];
-    assert_eq!(details["old_role_id"].as_str().unwrap(), old_role_id.to_string());
-    assert_eq!(details["new_role_id"].as_str().unwrap(), new_role_id.to_string());
-    assert_eq!(update_log["target_user_id"].as_str().unwrap(), member_id.to_string());
+    assert_eq!(
+        details["old_role_id"].as_str().unwrap(),
+        old_role_id.to_string()
+    );
+    assert_eq!(
+        details["new_role_id"].as_str().unwrap(),
+        new_role_id.to_string()
+    );
+    assert_eq!(
+        update_log["target_user_id"].as_str().unwrap(),
+        member_id.to_string()
+    );
 }

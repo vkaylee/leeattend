@@ -13,7 +13,6 @@ use tokio::time::{interval, timeout};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
-
 use crate::models::{LogSource, RawAttendanceLog};
 use crate::repositories::{employee, raw_attendance_log_repository};
 use crate::services::pairing_service::PairingService;
@@ -64,19 +63,15 @@ impl AgentLogEntry {
     /// PostgreSQL jsonb columns reject \u0000 escape sequences.
     pub fn sanitize_json_value(value: serde_json::Value) -> serde_json::Value {
         match value {
-            serde_json::Value::String(s) => {
-                serde_json::Value::String(s.replace('\0', ""))
-            }
+            serde_json::Value::String(s) => serde_json::Value::String(s.replace('\0', "")),
             serde_json::Value::Array(arr) => {
                 serde_json::Value::Array(arr.into_iter().map(Self::sanitize_json_value).collect())
             }
-            serde_json::Value::Object(map) => {
-                serde_json::Value::Object(
-                    map.into_iter()
-                        .map(|(k, v)| (k.replace('\0', ""), Self::sanitize_json_value(v)))
-                        .collect(),
-                )
-            }
+            serde_json::Value::Object(map) => serde_json::Value::Object(
+                map.into_iter()
+                    .map(|(k, v)| (k.replace('\0', ""), Self::sanitize_json_value(v)))
+                    .collect(),
+            ),
             other => other, // Number, Bool, Null are fine
         }
     }
@@ -174,7 +169,11 @@ pub async fn run_log_worker(
 }
 
 /// Process a batch of log entries: parse, insert, and trigger pairing
-async fn process_batch(pool: &PgPool, pairing_service: &PairingService, batch: &mut Vec<AgentLogEntry>) {
+async fn process_batch(
+    pool: &PgPool,
+    pairing_service: &PairingService,
+    batch: &mut Vec<AgentLogEntry>,
+) {
     if batch.is_empty() {
         return;
     }
@@ -239,24 +238,19 @@ async fn process_batch(pool: &PgPool, pairing_service: &PairingService, batch: &
 /// Parse a raw log entry into a validated RawAttendanceLog
 async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedLogEntry, String> {
     // Resolve employee_id from employee_id_number
-    let employee = match employee::find_by_number(
-        pool,
-        entry.workspace_id,
-        &entry.employee_id_number,
-    )
-    .await
-    {
-        Ok(Some(emp)) => emp,
-        Ok(None) => {
-            return Err(format!(
-                "Employee not found: {} in workspace {}",
-                entry.employee_id_number, entry.workspace_id
-            ));
-        }
-        Err(e) => {
-            return Err(format!("Database error finding employee: {e}"));
-        }
-    };
+    let employee =
+        match employee::find_by_number(pool, entry.workspace_id, &entry.employee_id_number).await {
+            Ok(Some(emp)) => emp,
+            Ok(None) => {
+                return Err(format!(
+                    "Employee not found: {} in workspace {}",
+                    entry.employee_id_number, entry.workspace_id
+                ));
+            }
+            Err(e) => {
+                return Err(format!("Database error finding employee: {e}"));
+            }
+        };
 
     // Parse punch_time with workspace timezone
     let punch_time = parse_datetime_with_tz(
@@ -272,7 +266,8 @@ async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedL
         )
     })?;
 
-    let (punch, status) = crate::services::attendance_utils::extract_punch_status(entry.raw_data.as_ref());
+    let (punch, status) =
+        crate::services::attendance_utils::extract_punch_status(entry.raw_data.as_ref());
 
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),
@@ -472,4 +467,3 @@ mod tests {
         assert!(buffer.is_closed());
     }
 }
-

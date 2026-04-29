@@ -67,47 +67,53 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         (data["user_id"].as_str(), data["timestamp"].as_str())
                                     {
                                         // Try async enqueue via Redis; fall back to sync processing
-                                        let result = if let Some(ref redis) = state_clone.infra.redis {
-                                            // Async path: enqueue to Redis for worker processing
-                                            use crate::queue::{Job, JobPayload, JobPriority, JobQueue, LogIngestionPayload, TaskType};
-                                            let payload = LogIngestionPayload {
-                                                workspace_id,
-                                                employee_id_number: user_id_number.to_string(),
-                                                punch_time_raw: punch_time_str.to_string(),
-                                                device_id: Some(device_id.to_string()),
-                                                raw_data: Some(data.clone()),
-                                                timezone: ws_tz.clone(),
-                                                date_fmt: ws_date_fmt.clone(),
-                                                time_fmt: ws_time_fmt.clone(),
+                                        let result =
+                                            if let Some(ref redis) = state_clone.infra.redis {
+                                                // Async path: enqueue to Redis for worker processing
+                                                use crate::queue::{
+                                                    Job, JobPayload, JobPriority, JobQueue,
+                                                    LogIngestionPayload, TaskType,
+                                                };
+                                                let payload = LogIngestionPayload {
+                                                    workspace_id,
+                                                    employee_id_number: user_id_number.to_string(),
+                                                    punch_time_raw: punch_time_str.to_string(),
+                                                    device_id: Some(device_id.to_string()),
+                                                    raw_data: Some(data.clone()),
+                                                    timezone: ws_tz.clone(),
+                                                    date_fmt: ws_date_fmt.clone(),
+                                                    time_fmt: ws_time_fmt.clone(),
+                                                };
+                                                let job = Job::with_priority(
+                                                    uuid::Uuid::new_v4(),
+                                                    0,
+                                                    TaskType::LogIngestion,
+                                                    workspace_id,
+                                                    JobPayload::LogIngestion(payload),
+                                                    JobPriority::Low,
+                                                );
+                                                let queue = JobQueue::new(redis.clone());
+                                                queue.enqueue_single(job).await.map_err(|e| {
+                                                    format!("Redis enqueue failed: {e}")
+                                                })
+                                            } else {
+                                                // Fallback: synchronous processing (no Redis)
+                                                let entry = AgentLogEntry::new(
+                                                    workspace_id,
+                                                    user_id_number.to_string(),
+                                                    punch_time_str.to_string(),
+                                                    Some(device_id.to_string()),
+                                                    Some(data.clone()),
+                                                    ws_tz.clone(),
+                                                    ws_date_fmt.clone(),
+                                                    ws_time_fmt.clone(),
+                                                );
+                                                state_clone
+                                                    .attendance
+                                                    .log_service
+                                                    .ingest_agent_log(entry)
+                                                    .await
                                             };
-                                            let job = Job::with_priority(
-                                                uuid::Uuid::new_v4(),
-                                                0,
-                                                TaskType::LogIngestion,
-                                                workspace_id,
-                                                JobPayload::LogIngestion(payload),
-                                                JobPriority::Low,
-                                            );
-                                            let queue = JobQueue::new(redis.clone());
-                                            queue.enqueue_single(job).await
-                                                .map_err(|e| format!("Redis enqueue failed: {e}"))
-                                        } else {
-                                            // Fallback: synchronous processing (no Redis)
-                                            let entry = AgentLogEntry::new(
-                                                workspace_id,
-                                                user_id_number.to_string(),
-                                                punch_time_str.to_string(),
-                                                Some(device_id.to_string()),
-                                                Some(data.clone()),
-                                                ws_tz.clone(),
-                                                ws_date_fmt.clone(),
-                                                ws_time_fmt.clone(),
-                                            );
-                                            state_clone
-                                                .attendance.log_service
-                                                .ingest_agent_log(entry)
-                                                .await
-                                        };
                                         if let Some(msg_id) = v["msg_id"].as_str() {
                                             let (status, message) = match result {
                                                 Ok(_) => ("success", None),
@@ -137,7 +143,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 // Ensure agent updates only their own timestamp
                                 if id == agent_id {
                                     state_clone
-                                        .agents.manager
+                                        .agents
+                                        .manager
                                         .record_heartbeat(id.to_string())
                                         .await;
 
@@ -164,7 +171,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
                                         // Fetch workspace config for timezone aware parsing
                                         if let Ok(Some(ws)) = state_clone
-                                            .core.workspace_repo
+                                            .core
+                                            .workspace_repo
                                             .get_workspace_by_id(workspace_id)
                                             .await
                                         {
@@ -175,17 +183,20 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         }
 
                                         state_clone
-                                            .agents.manager
+                                            .agents
+                                            .manager
                                             .add_agent(agent_id.clone(), tx.clone())
                                             .await;
 
                                         let _ = state_clone
-                                            .agents.service
+                                            .agents
+                                            .service
                                             .update_last_ip(&agent_id, "websocket_conn")
                                             .await;
 
                                         let _ = state_clone
-                                            .agents.service
+                                            .agents
+                                            .service
                                             .notify_config_update(&agent_id)
                                             .await;
                                     }
@@ -349,7 +360,8 @@ pub async fn send_command(
     };
 
     state
-        .agents.manager
+        .agents
+        .manager
         .send_command(&agent_id, command)
         .await
         .map_err(AppError::NotFound)?;
@@ -407,7 +419,8 @@ pub async fn create_device(
     .await?;
 
     let _ = state
-        .agents.service
+        .agents
+        .service
         .notify_config_update(&req.agent_id)
         .await;
 
@@ -433,7 +446,11 @@ pub async fn update_device(
     let port = req.port.unwrap_or(current_device.port);
     let is_enabled = req.is_enabled.unwrap_or(current_device.is_enabled);
     let brand = req.brand.unwrap_or(current_device.brand);
-    let password = if req.password.is_some() { req.password } else { current_device.password };
+    let password = if req.password.is_some() {
+        req.password
+    } else {
+        current_device.password
+    };
     let timezone = req.timezone.unwrap_or(current_device.timezone);
 
     sqlx::query(
@@ -452,7 +469,8 @@ pub async fn update_device(
     .await?;
 
     let _ = state
-        .agents.service
+        .agents
+        .service
         .notify_config_update(&current_device.agent_id)
         .await;
 
@@ -687,7 +705,8 @@ pub async fn get_device_info_on_demand(
             .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
 
     let info = state
-        .agents.manager
+        .agents
+        .manager
         .get_device_info(&device.agent_id, &device.id.to_string())
         .await
         .map_err(AppError::Internal)?;

@@ -59,7 +59,11 @@ where
     .await
 }
 
-pub async fn get_shift_by_id(pool: &PgPool, workspace_id: Uuid, id: Uuid) -> Result<Option<Shift>, sqlx::Error> {
+pub async fn get_shift_by_id(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<Shift>, sqlx::Error> {
     query_as!(
         Shift,
         r#"SELECT 
@@ -146,7 +150,11 @@ pub async fn update_shift_direct(
     .await
 }
 
-pub async fn archive_shift<'a, E>(executor: E, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>
+pub async fn archive_shift<'a, E>(
+    executor: E,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<(), sqlx::Error>
 where
     E: Executor<'a, Database = Postgres>,
 {

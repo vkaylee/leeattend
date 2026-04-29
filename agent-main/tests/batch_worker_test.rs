@@ -4,17 +4,27 @@ use agent::models::AttendanceData;
 #[tokio::test]
 async fn test_batch_worker_inserts_records_smoke() {
     let hybrid = HybridDatabase::new(":memory:", 1000, 90).expect("DB setup failed");
-    hybrid.store().upsert_device("D1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+    hybrid
+        .store()
+        .upsert_device(
+            "D1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true, 123456,
+        )
+        .unwrap();
 
     // Simulate batch worker: accumulate and insert
-    let items: Vec<(String, AttendanceData)> = (0..3).map(|i| {
-        ("D1".to_string(), AttendanceData {
-            user_id: format!("U{i}"),
-            timestamp: format!("2026-01-01 10:00:0{i}"),
-            status: Some(1),
-            punch: Some(1),
+    let items: Vec<(String, AttendanceData)> = (0..3)
+        .map(|i| {
+            (
+                "D1".to_string(),
+                AttendanceData {
+                    user_id: format!("U{i}"),
+                    timestamp: format!("2026-01-01 10:00:0{i}"),
+                    status: Some(1),
+                    punch: Some(1),
+                },
+            )
         })
-    }).collect();
+        .collect();
 
     for (device_id, data) in items {
         hybrid.save_raw_attendance(device_id, data).await.unwrap();

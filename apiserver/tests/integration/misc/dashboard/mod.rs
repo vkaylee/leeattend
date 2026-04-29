@@ -40,11 +40,7 @@ async fn test_peak_times_returns_slots_with_time_entries() {
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let today = Utc::now().date_naive();
     let punch_in = today.and_hms_opt(8, 15, 0).unwrap().and_utc();
@@ -79,17 +75,18 @@ async fn test_peak_times_returns_slots_with_time_entries() {
 
     // Verify check-in slot
     let has_checkin_slot = body.iter().any(|s| {
-        s["time_slot"].as_str().unwrap() == "08:00-08:30"
-            && s["check_in"].as_i64().unwrap() > 0
+        s["time_slot"].as_str().unwrap() == "08:00-08:30" && s["check_in"].as_i64().unwrap() > 0
     });
     assert!(has_checkin_slot, "Expected a check-in in 08:00-08:30 slot");
 
     // Verify check-out slot
     let has_checkout_slot = body.iter().any(|s| {
-        s["time_slot"].as_str().unwrap() == "17:30-18:00"
-            && s["check_out"].as_i64().unwrap() > 0
+        s["time_slot"].as_str().unwrap() == "17:30-18:00" && s["check_out"].as_i64().unwrap() > 0
     });
-    assert!(has_checkout_slot, "Expected a check-out in 17:30-18:00 slot");
+    assert!(
+        has_checkout_slot,
+        "Expected a check-out in 17:30-18:00 slot"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -112,7 +109,10 @@ async fn test_leave_types_returns_empty_when_no_leave() {
 
     assert_eq!(res.status(), reqwest::StatusCode::OK);
     let body: Vec<serde_json::Value> = res.json().await.unwrap();
-    assert!(body.is_empty(), "Expected empty array when no approved leave");
+    assert!(
+        body.is_empty(),
+        "Expected empty array when no approved leave"
+    );
 }
 
 #[tokio::test]
@@ -122,11 +122,7 @@ async fn test_leave_types_returns_breakdown_with_data() {
     let client = reqwest::Client::new();
     let pool = _db.pool();
 
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let today = Utc::now().date_naive();
 
@@ -138,13 +134,12 @@ async fn test_leave_types_returns_breakdown_with_data() {
     .await
     .unwrap();
 
-    let sick_type_id: Uuid = sqlx::query_scalar(
-        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'sick'",
-    )
-    .bind(ws_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let sick_type_id: Uuid =
+        sqlx::query_scalar("SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'sick'")
+            .bind(ws_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
 
     // Create approved leave requests this month (keep within current month)
     factory
@@ -193,11 +188,20 @@ async fn test_leave_types_returns_breakdown_with_data() {
         assert!(item["count"].as_i64().unwrap() > 0);
     }
 
-    let type_names: Vec<&str> = body.iter()
+    let type_names: Vec<&str> = body
+        .iter()
         .map(|item| item["leave_type"].as_str().unwrap())
         .collect();
-    assert!(type_names.contains(&"Vacation"), "Expected Vacation in breakdown, got: {:?}", type_names);
-    assert!(type_names.contains(&"Sick Leave"), "Expected Sick Leave in breakdown, got: {:?}", type_names);
+    assert!(
+        type_names.contains(&"Vacation"),
+        "Expected Vacation in breakdown, got: {:?}",
+        type_names
+    );
+    assert!(
+        type_names.contains(&"Sick Leave"),
+        "Expected Sick Leave in breakdown, got: {:?}",
+        type_names
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -229,11 +233,7 @@ async fn test_lateness_by_day_returns_data_with_late_entries() {
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let today = Utc::now().date_naive();
 
@@ -281,18 +281,26 @@ async fn test_lateness_by_day_returns_data_with_late_entries() {
         let day = item["day"].as_str().unwrap();
         assert!(
             ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].contains(&day),
-            "Day '{}' is not a valid day name", day
+            "Day '{}' is not a valid day name",
+            day
         );
     }
 
-    let total_late: i64 = body.iter()
+    let total_late: i64 = body
+        .iter()
         .map(|item| item["late_count"].as_i64().unwrap())
         .sum();
-    assert!(total_late >= 1, "Expected at least 1 late count, got {total_late}");
+    assert!(
+        total_late >= 1,
+        "Expected at least 1 late count, got {total_late}"
+    );
 
     let first = &body[0];
     let avg = first["avg_late_minutes"].as_f64().unwrap();
-    assert!(avg > 20.0 && avg < 40.0, "Expected avg_late_minutes near 30, got {avg}");
+    assert!(
+        avg > 20.0 && avg < 40.0,
+        "Expected avg_late_minutes near 30, got {avg}"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -315,7 +323,10 @@ async fn test_unexcused_absences_returns_empty_when_no_employees() {
 
     assert_eq!(res.status(), reqwest::StatusCode::OK);
     let body: Vec<serde_json::Value> = res.json().await.unwrap();
-    assert!(body.is_empty(), "Expected empty array when no employees with departments");
+    assert!(
+        body.is_empty(),
+        "Expected empty array when no employees with departments"
+    );
 }
 
 #[tokio::test]
@@ -325,17 +336,9 @@ async fn test_unexcused_absences_returns_data_with_absent_employees() {
     let client = reqwest::Client::new();
     let pool = _db.pool();
 
-    let dept_id = factory
-        .department()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let dept_id = factory.department().with_workspace(ws_id).create().await;
 
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let today = Utc::now().date_naive();
 
@@ -371,7 +374,10 @@ async fn test_unexcused_absences_returns_data_with_absent_employees() {
 
     assert_eq!(res.status(), reqwest::StatusCode::OK);
     let body: Vec<serde_json::Value> = res.json().await.unwrap();
-    assert!(!body.is_empty(), "Expected non-empty unexcused absences data");
+    assert!(
+        !body.is_empty(),
+        "Expected non-empty unexcused absences data"
+    );
 
     // Check response structure
     for item in &body {
@@ -384,10 +390,14 @@ async fn test_unexcused_absences_returns_data_with_absent_employees() {
     }
 
     // The employee should show up as unexcused
-    let total_unexcused: i64 = body.iter()
+    let total_unexcused: i64 = body
+        .iter()
         .map(|item| item["unexcused_count"].as_i64().unwrap())
         .sum();
-    assert!(total_unexcused > 0, "Expected at least 1 unexcused absence, got {total_unexcused}");
+    assert!(
+        total_unexcused > 0,
+        "Expected at least 1 unexcused absence, got {total_unexcused}"
+    );
 }
 
 #[tokio::test]
@@ -401,7 +411,9 @@ async fn test_unexcused_absences_supports_date_range_query() {
     let end = today.format("%Y-%m-%d").to_string();
 
     let res = client
-        .get(format!("{address}/api/dashboard/unexcused-absences?start_date={start}&end_date={end}"))
+        .get(format!(
+            "{address}/api/dashboard/unexcused-absences?start_date={start}&end_date={end}"
+        ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -421,17 +433,9 @@ async fn test_unexcused_absences_group_by_employee() {
     let client = reqwest::Client::new();
     let pool = _db.pool();
 
-    let dept_id = factory
-        .department()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let dept_id = factory.department().with_workspace(ws_id).create().await;
 
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let today = Utc::now().date_naive();
 
@@ -456,7 +460,9 @@ async fn test_unexcused_absences_group_by_employee() {
         .await;
 
     let res = client
-        .get(format!("{address}/api/dashboard/unexcused-absences?group_by=employee"))
+        .get(format!(
+            "{address}/api/dashboard/unexcused-absences?group_by=employee"
+        ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -469,8 +475,14 @@ async fn test_unexcused_absences_group_by_employee() {
 
     // Check employee-specific fields are present
     for item in &body {
-        assert!(item["employee_id"].is_string(), "Expected employee_id in group_by=employee response");
-        assert!(item["employee_name"].is_string(), "Expected employee_name in group_by=employee response");
+        assert!(
+            item["employee_id"].is_string(),
+            "Expected employee_id in group_by=employee response"
+        );
+        assert!(
+            item["employee_name"].is_string(),
+            "Expected employee_name in group_by=employee response"
+        );
         assert!(item["department_id"].is_string());
         assert!(item["department_name"].is_string());
         assert!(item["unexcused_count"].is_number());
@@ -484,11 +496,7 @@ async fn test_unexcused_absences_includes_employees_without_department() {
     let client = reqwest::Client::new();
 
     // Create employee WITHOUT assigning to any department
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let today = Utc::now().date_naive();
     // Assign a shift so they are expected to work today
@@ -513,17 +521,27 @@ async fn test_unexcused_absences_includes_employees_without_department() {
 
     assert_eq!(res.status(), reqwest::StatusCode::OK);
     let body: Vec<serde_json::Value> = res.json().await.unwrap();
-    assert!(!body.is_empty(), "Expected data for employee without department");
+    assert!(
+        !body.is_empty(),
+        "Expected data for employee without department"
+    );
 
-    let has_unassigned = body.iter().any(|item| {
-        item["department_name"].as_str().unwrap() == "Unassigned"
-    });
-    assert!(has_unassigned, "Expected 'Unassigned' department for employee without department, got: {:?}",
-        body.iter().map(|i| i["department_name"].as_str().unwrap()).collect::<Vec<_>>());
+    let has_unassigned = body
+        .iter()
+        .any(|item| item["department_name"].as_str().unwrap() == "Unassigned");
+    assert!(
+        has_unassigned,
+        "Expected 'Unassigned' department for employee without department, got: {:?}",
+        body.iter()
+            .map(|i| i["department_name"].as_str().unwrap())
+            .collect::<Vec<_>>()
+    );
 
     // group_by=employee — should also include this employee
     let res2 = client
-        .get(format!("{address}/api/dashboard/unexcused-absences?group_by=employee"))
+        .get(format!(
+            "{address}/api/dashboard/unexcused-absences?group_by=employee"
+        ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -532,12 +550,18 @@ async fn test_unexcused_absences_includes_employees_without_department() {
 
     assert_eq!(res2.status(), reqwest::StatusCode::OK);
     let body2: Vec<serde_json::Value> = res2.json().await.unwrap();
-    assert!(!body2.is_empty(), "Expected employee-level data for unassigned employee");
+    assert!(
+        !body2.is_empty(),
+        "Expected employee-level data for unassigned employee"
+    );
 
-    let has_employee_fields = body2.iter().all(|item| {
-        item["employee_id"].is_string() && item["employee_name"].is_string()
-    });
-    assert!(has_employee_fields, "Expected employee fields in group_by=employee response");
+    let has_employee_fields = body2
+        .iter()
+        .all(|item| item["employee_id"].is_string() && item["employee_name"].is_string());
+    assert!(
+        has_employee_fields,
+        "Expected employee fields in group_by=employee response"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -585,11 +609,7 @@ async fn test_attendance_trend_includes_present_and_late() {
     let client = reqwest::Client::new();
     let pool = _db.pool();
 
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let today = Utc::now().date_naive();
 
@@ -641,11 +661,21 @@ async fn test_attendance_trend_includes_present_and_late() {
 
     // Find today's entry — should have present=1 and late=1
     let today_str = today.format("%Y-%m-%d").to_string();
-    let today_point = body.iter().find(|p| p["date"].as_str().unwrap() == today_str);
+    let today_point = body
+        .iter()
+        .find(|p| p["date"].as_str().unwrap() == today_str);
     assert!(today_point.is_some(), "Expected today in trend data");
     let today_point = today_point.unwrap();
-    assert_eq!(today_point["present"].as_i64().unwrap(), 1, "Expected 1 present");
-    assert_eq!(today_point["late"].as_i64().unwrap(), 1, "Expected 1 late (uses shift_rosters join)");
+    assert_eq!(
+        today_point["present"].as_i64().unwrap(),
+        1,
+        "Expected 1 present"
+    );
+    assert_eq!(
+        today_point["late"].as_i64().unwrap(),
+        1,
+        "Expected 1 late (uses shift_rosters join)"
+    );
 }
 
 #[tokio::test]
@@ -654,11 +684,7 @@ async fn test_attendance_trend_late_via_employee_shifts() {
         spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
-    let emp_id = factory
-        .employee()
-        .with_workspace(ws_id)
-        .create()
-        .await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let today = Utc::now().date_naive();
 
@@ -700,12 +726,19 @@ async fn test_attendance_trend_late_via_employee_shifts() {
 
     // Find today's entry — should have present=1 and late=1
     let today_str = today.format("%Y-%m-%d").to_string();
-    let today_point = body.iter().find(|p| p["date"].as_str().unwrap() == today_str);
+    let today_point = body
+        .iter()
+        .find(|p| p["date"].as_str().unwrap() == today_str);
     assert!(today_point.is_some(), "Expected today in trend data");
     let today_point = today_point.unwrap();
-    assert_eq!(today_point["present"].as_i64().unwrap(), 1, "Expected 1 present");
     assert_eq!(
-        today_point["late"].as_i64().unwrap(), 1,
+        today_point["present"].as_i64().unwrap(),
+        1,
+        "Expected 1 present"
+    );
+    assert_eq!(
+        today_point["late"].as_i64().unwrap(),
+        1,
         "Expected 1 late via employee_shifts (6-priority chain)"
     );
 }
@@ -788,7 +821,10 @@ async fn test_department_attendance_returns_data_with_present_employees() {
 
     // The employee should show as on_time (no shift_rosters entry → late=0, on_time=present)
     let total_on_time: i64 = body.iter().map(|i| i["on_time"].as_i64().unwrap()).sum();
-    assert!(total_on_time >= 1, "Expected at least 1 on_time, got {total_on_time}");
+    assert!(
+        total_on_time >= 1,
+        "Expected at least 1 on_time, got {total_on_time}"
+    );
 }
 
 #[tokio::test]
@@ -798,7 +834,9 @@ async fn test_department_attendance_supports_week_range() {
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{address}/api/dashboard/department-attendance?range=week"))
+        .get(format!(
+            "{address}/api/dashboard/department-attendance?range=week"
+        ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", ws_id.to_string())
         .send()
@@ -834,7 +872,10 @@ async fn test_workspace_stats_returns_all_fields() {
     assert!(body["total_employees"].is_number());
     assert!(body["present_today"].is_number());
     assert!(body["pending_leave_requests"].is_number());
-    assert!(body["estimated_monthly_payroll"].is_string() || body["estimated_monthly_payroll"].is_number());
+    assert!(
+        body["estimated_monthly_payroll"].is_string()
+            || body["estimated_monthly_payroll"].is_number()
+    );
     assert!(body["late_today"].is_number());
     assert!(body["absent_today"].is_number());
     assert!(body["on_leave_today"].is_number());
@@ -933,7 +974,8 @@ async fn test_workspace_stats_detects_late_today() {
     let body: serde_json::Value = res.json().await.unwrap();
     assert_eq!(body["present_today"].as_i64().unwrap(), 1);
     assert_eq!(
-        body["late_today"].as_i64().unwrap(), 1,
+        body["late_today"].as_i64().unwrap(),
+        1,
         "Expected late_today=1 (exercises shift_rosters join)"
     );
 }
@@ -958,7 +1000,10 @@ async fn test_overtime_trend_returns_empty_with_no_data() {
 
     assert_eq!(res.status(), reqwest::StatusCode::OK);
     let body: Vec<serde_json::Value> = res.json().await.unwrap();
-    assert!(body.is_empty(), "Expected empty when no attendance summaries");
+    assert!(
+        body.is_empty(),
+        "Expected empty when no attendance summaries"
+    );
 }
 
 #[tokio::test]
@@ -1004,6 +1049,12 @@ async fn test_overtime_trend_returns_correct_structure() {
     // 60 min = 1.0 hours, 30 min = 0.5 hours
     let system_ot = point["system_ot_hours"].as_f64().unwrap();
     let approved_ot = point["approved_ot_hours"].as_f64().unwrap();
-    assert!((system_ot - 1.0).abs() < 0.01, "Expected system_ot_hours=1.0, got {system_ot}");
-    assert!((approved_ot - 0.5).abs() < 0.01, "Expected approved_ot_hours=0.5, got {approved_ot}");
+    assert!(
+        (system_ot - 1.0).abs() < 0.01,
+        "Expected system_ot_hours=1.0, got {system_ot}"
+    );
+    assert!(
+        (approved_ot - 0.5).abs() < 0.01,
+        "Expected approved_ot_hours=0.5, got {approved_ot}"
+    );
 }

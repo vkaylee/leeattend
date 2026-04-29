@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+
 import { ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { cn } from '@/lib/utils';
 
 export interface HierarchyStep {

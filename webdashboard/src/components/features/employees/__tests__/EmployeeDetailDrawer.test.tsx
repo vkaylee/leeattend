@@ -1,10 +1,14 @@
+import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import React from "react";
+
 import EmployeeDetailDrawer from "../EmployeeDetailDrawer";
+
 import type { Employee } from "@/lib/api";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 
 // Mock scroll methods not available in jsdom
 Element.prototype.scrollIntoView = vi.fn();

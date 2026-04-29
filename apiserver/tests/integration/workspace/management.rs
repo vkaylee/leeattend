@@ -18,7 +18,11 @@ async fn test_workspace_creation_and_membership_smoke() {
     let client = reqwest::Client::new();
 
     // 0. A regular user (no system role) must get 403 on POST /workspaces.
-    let regular_user = factory.user().with_email("regular@example.com").create().await;
+    let regular_user = factory
+        .user()
+        .with_email("regular@example.com")
+        .create()
+        .await;
     let deny = client
         .post(format!("{address}/api/workspaces"))
         .header("X-User-Id", regular_user.to_string())
@@ -26,14 +30,17 @@ async fn test_workspace_creation_and_membership_smoke() {
         .send()
         .await
         .unwrap();
-    assert_eq!(deny.status(), reqwest::StatusCode::FORBIDDEN,
-        "Regular user without platform_admin must be denied");
+    assert_eq!(
+        deny.status(),
+        reqwest::StatusCode::FORBIDDEN,
+        "Regular user without platform_admin must be denied"
+    );
 
     // 1. Grant the owner platform_admin system role directly in the DB.
     sqlx::query(
         "INSERT INTO user_system_roles (user_id, role_id, assigned_by)
          SELECT $1, id, $1 FROM system_roles WHERE name = 'platform_admin'
-         ON CONFLICT DO NOTHING"
+         ON CONFLICT DO NOTHING",
     )
     .bind(user_id)
     .execute(&factory.pool)
@@ -49,8 +56,11 @@ async fn test_workspace_creation_and_membership_smoke() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), reqwest::StatusCode::OK,
-        "PlatformAdmin must be able to create workspace");
+    assert_eq!(
+        response.status(),
+        reqwest::StatusCode::OK,
+        "PlatformAdmin must be able to create workspace"
+    );
     let workspace: serde_json::Value = response.json().await.unwrap();
     let ws_id = workspace["id"].as_str().unwrap();
 
@@ -64,17 +74,19 @@ async fn test_workspace_creation_and_membership_smoke() {
 
     assert_eq!(response.status(), reqwest::StatusCode::OK);
     let members: Vec<serde_json::Value> = response.json().await.unwrap();
-    assert!(members
-        .iter()
-        .any(|m| m["user_id"] == user_id.to_string() 
-            && m["role_id"] == "a0000000-0000-0000-0000-000000000001"
-            && m["extra_role_ids"].as_array().map_or(false, |arr| arr.is_empty())));
+    assert!(members.iter().any(|m| m["user_id"] == user_id.to_string()
+        && m["role_id"] == "a0000000-0000-0000-0000-000000000001"
+        && m["extra_role_ids"]
+            .as_array()
+            .map_or(false, |arr| arr.is_empty())));
 
     // 4. Assign an extra role
     let extra_role_id = "a0000000-0000-0000-0000-000000000002"; // admin role
     let future_date = chrono::Utc::now() + chrono::Duration::days(365);
     let res = client
-        .post(format!("{address}/api/workspaces/{ws_id}/members/{user_id}/roles"))
+        .post(format!(
+            "{address}/api/workspaces/{ws_id}/members/{user_id}/roles"
+        ))
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({
             "role_id": extra_role_id,
@@ -95,13 +107,12 @@ async fn test_workspace_creation_and_membership_smoke() {
 
     assert_eq!(response.status(), reqwest::StatusCode::OK);
     let members: Vec<serde_json::Value> = response.json().await.unwrap();
-    assert!(members
-        .iter()
-        .any(|m| m["user_id"] == user_id.to_string() 
-            && m["role_id"] == "a0000000-0000-0000-0000-000000000001"
-            && m["extra_role_ids"].as_array().map_or(false, |arr| arr.contains(&serde_json::json!(extra_role_id)))));
+    assert!(members.iter().any(|m| m["user_id"] == user_id.to_string()
+        && m["role_id"] == "a0000000-0000-0000-0000-000000000001"
+        && m["extra_role_ids"]
+            .as_array()
+            .map_or(false, |arr| arr.contains(&serde_json::json!(extra_role_id)))));
 }
-
 
 #[tokio::test]
 async fn test_create_workspace_with_non_existent_user() {
@@ -119,10 +130,7 @@ async fn test_create_workspace_with_non_existent_user() {
         .unwrap();
 
     // After RBAC: non-existent user has no system roles → 403 before reaching creation logic
-    assert_eq!(
-        response.status(),
-        reqwest::StatusCode::FORBIDDEN
-    );
+    assert_eq!(response.status(), reqwest::StatusCode::FORBIDDEN);
 }
 
 #[tokio::test]
@@ -134,7 +142,11 @@ async fn test_workspace_rbac_flow() {
     let member_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(owner_id).await;
     factory
-        .add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
         .await;
 
     // 1. Member tries to change roles (Forbidden)
@@ -186,19 +198,33 @@ async fn test_workspace_repository_directly() {
     let user_id: Uuid = factory.user().create().await;
     let ws = repo.create_workspace("Test WS").await.unwrap();
 
-    repo.add_member(ws.id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap())
-        .await
-        .unwrap();
+    repo.add_member(
+        ws.id,
+        user_id,
+        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap(),
+    )
+    .await
+    .unwrap();
 
     let role = repo.find_primary_role(ws.id, user_id).await.unwrap();
-    assert_eq!(role.unwrap(), uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap());
+    assert_eq!(
+        role.unwrap(),
+        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap()
+    );
 
     // Update
-    repo.update_member_role(ws.id, user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
-        .await
-        .unwrap();
+    repo.update_member_role(
+        ws.id,
+        user_id,
+        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+    )
+    .await
+    .unwrap();
     let role = repo.find_primary_role(ws.id, user_id).await.unwrap();
-    assert_eq!(role.unwrap(), uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap());
+    assert_eq!(
+        role.unwrap(),
+        uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()
+    );
 
     // Remove
     repo.remove_member(ws.id, user_id).await.unwrap();

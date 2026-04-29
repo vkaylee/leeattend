@@ -1,4 +1,3 @@
-
 //! Worker Monitoring API Handlers
 //!
 //! Provides real-time monitoring endpoints for distributed worker system.
@@ -73,7 +72,8 @@ pub struct MonitorOverviewResponse {
 /// Shared logic: fetch the full monitor overview from Redis.
 async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverviewResponse> {
     let redis = state
-        .infra.redis
+        .infra
+        .redis
         .as_ref()
         .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
 
@@ -101,7 +101,10 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
     let stale_cutoff = now - TimeDelta::seconds(STALE_THRESHOLD_SECS);
 
     let (active_workers, idle_workers, workers) = if !worker_keys.is_empty() {
-        let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_else(|e| { tracing::warn!(error = %e, "Redis MGET failed for worker heartbeats"); vec![] });
+        let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "Redis MGET failed for worker heartbeats");
+            vec![]
+        });
         filter_stale_workers(values, stale_cutoff)
     } else {
         (0, 0, Vec::new())
@@ -111,7 +114,10 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
 
     // 5. Get recent job metadata
     let queue = crate::queue::JobQueue::new(redis.clone());
-    let recent_jobs = queue.list_recent_jobs(50).await.unwrap_or_else(|e| { tracing::warn!(error = %e, "Failed to list recent jobs"); vec![] });
+    let recent_jobs = queue.list_recent_jobs(50).await.unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "Failed to list recent jobs");
+        vec![]
+    });
 
     Ok(MonitorOverviewResponse {
         pending_tasks,
@@ -152,9 +158,7 @@ pub async fn monitor_stream_sse(
     let interval = tokio::time::interval(Duration::from_secs(SSE_INTERVAL_SECS));
     let stream = tokio_stream::wrappers::IntervalStream::new(interval);
 
-    let event_stream = stream
-        .map(move |_| state.clone())
-        .then(|state| async move {
+    let event_stream = stream.map(move |_| state.clone()).then(|state| async move {
         match fetch_overview_data(&state).await {
             Ok(data) => {
                 let json = serde_json::to_string(&data).unwrap_or_default();

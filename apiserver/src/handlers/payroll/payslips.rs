@@ -12,7 +12,7 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     BatchCalculatePayrollRequest, BatchCalculatePayrollResponse, IncentiveEvaluationResult,
-    Payslip, PayslipSegment, SalaryComponentWithDefinition, PayslipRuleEvaluation,
+    Payslip, PayslipRuleEvaluation, PayslipSegment, SalaryComponentWithDefinition,
 };
 use crate::AppState;
 
@@ -46,7 +46,8 @@ pub async fn calculate_batch_payroll(
 ) -> AppResult<Json<BatchCalculatePayrollResponse>> {
     ctx.require_permission(Permission::PayrollCalculate)?;
     let response = state
-        .payroll.service
+        .payroll
+        .service
         .calculate_batch_payslips(req.employee_ids, ctx.workspace_id, req.year, req.month)
         .await;
     Ok(Json(response))
@@ -71,11 +72,11 @@ pub async fn get_workspace_payslips(
         .and_then(|d| d.pred_opt())
         .ok_or_else(|| AppError::Validation("Invalid date range".to_string()))?;
 
-    let payslips = state.payroll.repo.get_payslips_by_workspace_period(ctx.workspace_id,
-        start_date,
-        end_date,
-    )
-    .await?;
+    let payslips = state
+        .payroll
+        .repo
+        .get_payslips_by_workspace_period(ctx.workspace_id, start_date, end_date)
+        .await?;
 
     Ok(Json(payslips))
 }
@@ -91,27 +92,29 @@ pub async fn calculate_payroll(
 ) -> AppResult<Json<FullPayslipResponse>> {
     ctx.require_permission(Permission::PayrollCalculate)?;
     let payslip = state
-        .payroll.service
+        .payroll
+        .service
         .calculate_monthly_payslip(employee_id, ctx.workspace_id, query.year, query.month)
-        .await
-        ?;
+        .await?;
 
     // Fetch segments and incentives
-    let segments =
-        state.payroll.repo.get_payslip_segments(payslip.id)
-            .await?;
-    let incentives =
-        state.payroll.repo.get_payslip_incentives(payslip.id)
-            .await?;
-    let rule_evaluations =
-        state.payroll.repo.get_payslip_rule_evaluations(payslip.id)
-            .await?;
+    let segments = state.payroll.repo.get_payslip_segments(payslip.id).await?;
+    let incentives = state
+        .payroll
+        .repo
+        .get_payslip_incentives(payslip.id)
+        .await?;
+    let rule_evaluations = state
+        .payroll
+        .repo
+        .get_payslip_rule_evaluations(payslip.id)
+        .await?;
 
     // Fetch salary components at the period start date
-    let salary_components =
-        state.payroll.repo.get_employee_salary_components(ctx.workspace_id, employee_id,
-            payslip.period_start,
-        )
+    let salary_components = state
+        .payroll
+        .repo
+        .get_employee_salary_components(ctx.workspace_id, employee_id, payslip.period_start)
         .await?
         .into_iter()
         .map(|(component, definition)| SalaryComponentWithDefinition {
@@ -150,27 +153,27 @@ pub async fn get_employee_payslips(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<FullPayslipResponse>>> {
     ctx.require_permission(Permission::PayrollRead)?;
-    let payslips =
-        state.payroll.repo.get_payslips_by_employee(ctx.workspace_id, employee_id)
-            .await?;
+    let payslips = state
+        .payroll
+        .repo
+        .get_payslips_by_employee(ctx.workspace_id, employee_id)
+        .await?;
 
     let mut responses = Vec::new();
     for p in payslips {
-        let segments =
-            state.payroll.repo.get_payslip_segments(p.id)
-                .await?;
-        let incentives =
-            state.payroll.repo.get_payslip_incentives(p.id)
-                .await?;
-        let rule_evaluations =
-            state.payroll.repo.get_payslip_rule_evaluations(p.id)
-                .await?;
+        let segments = state.payroll.repo.get_payslip_segments(p.id).await?;
+        let incentives = state.payroll.repo.get_payslip_incentives(p.id).await?;
+        let rule_evaluations = state
+            .payroll
+            .repo
+            .get_payslip_rule_evaluations(p.id)
+            .await?;
 
         // Fetch salary components at the period start date
-        let salary_components =
-            state.payroll.repo.get_employee_salary_components(ctx.workspace_id, employee_id,
-                p.period_start,
-            )
+        let salary_components = state
+            .payroll
+            .repo
+            .get_employee_salary_components(ctx.workspace_id, employee_id, p.period_start)
             .await?
             .into_iter()
             .map(|(component, definition)| SalaryComponentWithDefinition {

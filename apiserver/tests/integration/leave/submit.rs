@@ -58,16 +58,41 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
     // Setup: owner, workspace, department
     let owner_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
-    let dept_id = factory.department().with_workspace(ws_id).with_name("Engineering").create().await;
+    let dept_id = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Engineering")
+        .create()
+        .await;
 
     // TeamLead user + employee record in same department
-    let tl_user_id = factory.user().with_email("teamlead@test.com").create().await;
-    factory.add_member(ws_id, tl_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap()).await;
-    let tl_emp_id = factory.employee().with_workspace(ws_id).with_user(tl_user_id).create().await;
+    let tl_user_id = factory
+        .user()
+        .with_email("teamlead@test.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            tl_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap(),
+        )
+        .await;
+    let tl_emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(tl_user_id)
+        .create()
+        .await;
     assign_to_department(&factory.pool, tl_emp_id, dept_id).await;
 
     // Target employee in same department
-    let emp_id = factory.employee().with_workspace(ws_id).with_full_name("Nguyen Van A").create().await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Nguyen Van A")
+        .create()
+        .await;
     assign_to_department(&factory.pool, emp_id, dept_id).await;
 
     // Get vacation leave type
@@ -104,7 +129,9 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
 
     // Should be pre_approved (auto-approved by TeamLead)
@@ -121,17 +148,43 @@ async fn test_teamlead_submit_other_dept_forbidden() {
 
     let owner_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
-    let dept_eng = factory.department().with_workspace(ws_id).with_name("Engineering").create().await;
-    let dept_sales = factory.department().with_workspace(ws_id).with_name("Sales").create().await;
+    let dept_eng = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Engineering")
+        .create()
+        .await;
+    let dept_sales = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Sales")
+        .create()
+        .await;
 
     // TeamLead in Engineering
     let tl_user_id = factory.user().with_email("tl_eng@test.com").create().await;
-    factory.add_member(ws_id, tl_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap()).await;
-    let tl_emp_id = factory.employee().with_workspace(ws_id).with_user(tl_user_id).create().await;
+    factory
+        .add_member(
+            ws_id,
+            tl_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap(),
+        )
+        .await;
+    let tl_emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(tl_user_id)
+        .create()
+        .await;
     assign_to_department(&factory.pool, tl_emp_id, dept_eng).await;
 
     // Employee in Sales (different department)
-    let emp_id = factory.employee().with_workspace(ws_id).with_full_name("Le Van B").create().await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Le Van B")
+        .create()
+        .await;
     assign_to_department(&factory.pool, emp_id, dept_sales).await;
 
     let vacation_id: Uuid = sqlx::query_scalar!(
@@ -180,9 +233,20 @@ async fn test_hr_submit_stays_pending() {
 
     // HR Manager (global scope — managed_department_ids = None)
     let hr_user_id = factory.user().with_email("hr@test.com").create().await;
-    factory.add_member(ws_id, hr_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000003").unwrap()).await;
+    factory
+        .add_member(
+            ws_id,
+            hr_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000003").unwrap(),
+        )
+        .await;
 
-    let emp_id = factory.employee().with_workspace(ws_id).with_full_name("Tran Van C").create().await;
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Tran Van C")
+        .create()
+        .await;
 
     let vacation_id: Uuid = sqlx::query_scalar!(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
@@ -216,7 +280,9 @@ async fn test_hr_submit_stays_pending() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
 
     // HR has global scope → auto_approve = true (has LeaveRequestsApprove globally)
@@ -236,7 +302,13 @@ async fn test_employee_submit_forbidden() {
 
     // Regular member (no LeaveRequestsSubmit permission)
     let member_user_id = factory.user().with_email("member@test.com").create().await;
-    factory.add_member(ws_id, member_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    factory
+        .add_member(
+            ws_id,
+            member_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 

@@ -64,14 +64,24 @@ impl LeaveImportMessages {
             leave_type_not_found_tpl: "Leave type '{}' does not exist",
             error_sheet_name: "Error Rows",
             error_headers: [
-                "Row", "Emp ID", "Leave Type", "Start Date",
-                "End Date", "Reason", "Duration Type", "❌ Error",
+                "Row",
+                "Emp ID",
+                "Leave Type",
+                "Start Date",
+                "End Date",
+                "Reason",
+                "Duration Type",
+                "❌ Error",
             ],
             template_sheet_name: "Entry Template",
             template_ref_sheet_name: "Leave Types List",
             template_headers: [
-                "Emp ID", "Leave Type (code)", "Start Date",
-                "End Date", "Reason", "Duration Type",
+                "Emp ID",
+                "Leave Type (code)",
+                "Start Date",
+                "End Date",
+                "Reason",
+                "Duration Type",
             ],
             template_example_reason_1: "Family matter",
             template_example_reason_2: "Doctor appointment",
@@ -100,14 +110,24 @@ impl LeaveImportMessages {
             leave_type_not_found_tpl: "Loại nghỉ '{}' không tồn tại",
             error_sheet_name: "Dòng lỗi",
             error_headers: [
-                "Dòng", "Mã NV", "Loại nghỉ", "Ngày bắt đầu",
-                "Ngày kết thúc", "Lý do", "Loại thời gian", "❌ Lỗi",
+                "Dòng",
+                "Mã NV",
+                "Loại nghỉ",
+                "Ngày bắt đầu",
+                "Ngày kết thúc",
+                "Lý do",
+                "Loại thời gian",
+                "❌ Lỗi",
             ],
             template_sheet_name: "Mẫu nhập",
             template_ref_sheet_name: "Danh sách loại nghỉ",
             template_headers: [
-                "Mã NV", "Loại nghỉ (code)", "Ngày bắt đầu",
-                "Ngày kết thúc", "Lý do", "Loại thời gian",
+                "Mã NV",
+                "Loại nghỉ (code)",
+                "Ngày bắt đầu",
+                "Ngày kết thúc",
+                "Lý do",
+                "Loại thời gian",
             ],
             template_example_reason_1: "Việc gia đình",
             template_example_reason_2: "Khám bệnh",
@@ -136,14 +156,24 @@ impl LeaveImportMessages {
             leave_type_not_found_tpl: "假期类型 '{}' 不存在",
             error_sheet_name: "错误行",
             error_headers: [
-                "行号", "员工编号", "假期类型", "开始日期",
-                "结束日期", "原因", "时长类型", "❌ 错误",
+                "行号",
+                "员工编号",
+                "假期类型",
+                "开始日期",
+                "结束日期",
+                "原因",
+                "时长类型",
+                "❌ 错误",
             ],
             template_sheet_name: "输入模板",
             template_ref_sheet_name: "假期类型列表",
             template_headers: [
-                "员工编号", "假期类型(code)", "开始日期",
-                "结束日期", "原因", "时长类型",
+                "员工编号",
+                "假期类型(code)",
+                "开始日期",
+                "结束日期",
+                "原因",
+                "时长类型",
             ],
             template_example_reason_1: "家庭事务",
             template_example_reason_2: "看病",
@@ -232,6 +262,133 @@ impl AttendanceImportMessages {
     }
 }
 
+/// Localized labels for Excel report output (Summary + Detail sheets).
+pub struct ExcelReportMessages {
+    // Sheet names
+    pub summary_sheet_name: &'static str,
+    pub timesheet_sheet_name: &'static str,
+    pub raw_details_sheet_name: &'static str,
+
+    // Title templates (use {workspace} placeholder)
+    pub summary_title_tpl: &'static str,
+    pub timesheet_title_tpl: &'static str,
+    pub raw_details_title_tpl: &'static str,
+    pub period_label: &'static str,
+
+    // Summary headers
+    pub summary_headers: [&'static str; 4],
+
+    // Timesheet matrix headers
+    pub timesheet_emp_id_header: &'static str,
+    pub timesheet_emp_header: &'static str,
+
+    // Raw details headers
+    pub detail_headers: [&'static str; 12],
+}
+
+impl ExcelReportMessages {
+    /// Return messages for the given language code.
+    pub fn for_lang(lang: &str) -> Self {
+        match lang {
+            "vi" => Self::vi(),
+            "zh" => Self::zh(),
+            _ => Self::en(),
+        }
+    }
+
+    fn en() -> Self {
+        Self {
+            summary_sheet_name: "Summary",
+            timesheet_sheet_name: "Timesheet View",
+            raw_details_sheet_name: "Raw Details",
+            summary_title_tpl: "Attendance Summary Report - {workspace}",
+            timesheet_title_tpl: "Timesheet View - {workspace}",
+            raw_details_title_tpl: "Raw Details - {workspace}",
+            period_label: "Period: {start} to {end}",
+            summary_headers: ["Employee Name", "Std Units", "OT Units", "Total Leave Days"],
+            timesheet_emp_id_header: "Employee ID",
+            timesheet_emp_header: "Employee",
+            detail_headers: [
+                "Date",
+                "Employee ID",
+                "Employee Name",
+                "Scheduled Start",
+                "Scheduled End",
+                "Actual In",
+                "Actual Out",
+                "Std Units",
+                "OT Units",
+                "OT Status",
+                "Status",
+                "Holiday",
+            ],
+        }
+    }
+
+    fn vi() -> Self {
+        Self {
+            summary_sheet_name: "Tổng hợp",
+            timesheet_sheet_name: "Bảng chấm công",
+            raw_details_sheet_name: "Chi tiết",
+            summary_title_tpl: "Báo cáo tổng hợp chấm công - {workspace}",
+            timesheet_title_tpl: "Bảng chấm công - {workspace}",
+            raw_details_title_tpl: "Chi tiết chấm công - {workspace}",
+            period_label: "Kỳ: {start} đến {end}",
+            summary_headers: [
+                "Tên nhân viên",
+                "Giờ công chuẩn",
+                "Giờ tăng ca",
+                "Tổng ngày nghỉ",
+            ],
+            timesheet_emp_id_header: "Mã NV",
+            timesheet_emp_header: "Nhân viên",
+            detail_headers: [
+                "Ngày",
+                "Mã NV",
+                "Tên nhân viên",
+                "Giờ bắt đầu",
+                "Giờ kết thúc",
+                "Giờ vào thực tế",
+                "Giờ ra thực tế",
+                "Giờ chuẩn",
+                "Giờ tăng ca",
+                "Trạng thái TC",
+                "Trạng thái",
+                "Ngày lễ",
+            ],
+        }
+    }
+
+    fn zh() -> Self {
+        Self {
+            summary_sheet_name: "汇总",
+            timesheet_sheet_name: "考勤表",
+            raw_details_sheet_name: "明细",
+            summary_title_tpl: "考勤汇总报表 - {workspace}",
+            timesheet_title_tpl: "考勤表 - {workspace}",
+            raw_details_title_tpl: "考勤明细 - {workspace}",
+            period_label: "期间: {start} 至 {end}",
+            summary_headers: ["员工姓名", "标准工时", "加班工时", "请假天数"],
+            timesheet_emp_id_header: "员工编号",
+            timesheet_emp_header: "员工",
+            detail_headers: [
+                "日期",
+                "员工编号",
+                "员工姓名",
+                "排班开始",
+                "排班结束",
+                "实际签到",
+                "实际签退",
+                "标准工时",
+                "加班工时",
+                "加班状态",
+                "状态",
+                "节假日",
+            ],
+        }
+    }
+}
+
 /// Simple template-style string replacement for message formatting.
 /// Replaces `{key}` placeholders with provided values.
 pub fn fmt_msg(template: &str, replacements: &[(&str, &str)]) -> String {
@@ -257,14 +414,20 @@ mod tests {
     #[test]
     fn test_fmt_msg_multiple() {
         assert_eq!(
-            fmt_msg("Row {line} (Emp {emp}): Error", &[("line", "5"), ("emp", "NV001")]),
+            fmt_msg(
+                "Row {line} (Emp {emp}): Error",
+                &[("line", "5"), ("emp", "NV001")]
+            ),
             "Row 5 (Emp NV001): Error"
         );
     }
 
     #[test]
     fn test_fmt_msg_no_match() {
-        assert_eq!(fmt_msg("No placeholders here", &[("x", "y")]), "No placeholders here");
+        assert_eq!(
+            fmt_msg("No placeholders here", &[("x", "y")]),
+            "No placeholders here"
+        );
     }
 
     #[test]
@@ -313,5 +476,63 @@ mod tests {
         let msgs = AttendanceImportMessages::for_lang("zh");
         let result = fmt_msg(msgs.missing_employee_id, &[("line", "7")]);
         assert_eq!(result, "第7行: 缺少员工编号");
+    }
+
+    // ── ExcelReportMessages tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_excel_report_messages_en() {
+        let msgs = ExcelReportMessages::for_lang("en");
+        assert_eq!(msgs.summary_sheet_name, "Summary");
+        assert_eq!(msgs.timesheet_sheet_name, "Timesheet View");
+        assert_eq!(msgs.raw_details_sheet_name, "Raw Details");
+        assert_eq!(msgs.summary_headers[0], "Employee Name");
+        assert_eq!(msgs.detail_headers[0], "Date");
+        assert_eq!(msgs.detail_headers.len(), 12);
+    }
+
+    #[test]
+    fn test_excel_report_messages_vi() {
+        let msgs = ExcelReportMessages::for_lang("vi");
+        assert_eq!(msgs.summary_sheet_name, "Tổng hợp");
+        assert_eq!(msgs.timesheet_sheet_name, "Bảng chấm công");
+        assert_eq!(msgs.summary_headers[0], "Tên nhân viên");
+        assert_eq!(msgs.timesheet_emp_header, "Nhân viên");
+    }
+
+    #[test]
+    fn test_excel_report_messages_zh() {
+        let msgs = ExcelReportMessages::for_lang("zh");
+        assert_eq!(msgs.summary_sheet_name, "汇总");
+        assert_eq!(msgs.timesheet_sheet_name, "考勤表");
+        assert_eq!(msgs.summary_headers[0], "员工姓名");
+        assert_eq!(msgs.timesheet_emp_header, "员工");
+    }
+
+    #[test]
+    fn test_excel_report_messages_unknown_defaults_to_en() {
+        let msgs = ExcelReportMessages::for_lang("ja");
+        assert_eq!(msgs.summary_sheet_name, "Summary");
+        assert_eq!(msgs.timesheet_emp_id_header, "Employee ID");
+    }
+
+    #[test]
+    fn test_excel_report_messages_title_template() {
+        let msgs = ExcelReportMessages::for_lang("vi");
+        let title = msgs.summary_title_tpl.replace("{workspace}", "Công ty ABC");
+        assert_eq!(title, "Báo cáo tổng hợp chấm công - Công ty ABC");
+    }
+
+    #[test]
+    fn test_excel_report_messages_period_template() {
+        let msgs = ExcelReportMessages::for_lang("en");
+        let period = fmt_msg(
+            &msgs
+                .period_label
+                .replace("{start}", "2026-01-01")
+                .replace("{end}", "2026-01-31"),
+            &[],
+        );
+        assert_eq!(period, "Period: 2026-01-01 to 2026-01-31");
     }
 }

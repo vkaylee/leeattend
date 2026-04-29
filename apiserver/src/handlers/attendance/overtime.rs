@@ -28,10 +28,12 @@ pub async fn claim_ot(
     Json(req): Json<ClaimOtRequest>,
 ) -> AppResult<StatusCode> {
     // 1. Verify ownership (Employee can only claim for themselves) or has OvertimeClaim permission
-    let employee =
-        state.employees.repo.get_employee_by_id(employee_id, ctx.workspace_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
+    let employee = state
+        .employees
+        .repo
+        .get_employee_by_id(employee_id, ctx.workspace_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
     if let Some(uid) = employee.user_id {
         if uid != ctx.user_id {
@@ -43,7 +45,8 @@ pub async fn claim_ot(
     }
 
     state
-        .attendance.summary_service
+        .attendance
+        .summary_service
         .claim_ot(
             ctx.workspace_id,
             employee_id,
@@ -52,7 +55,7 @@ pub async fn claim_ot(
             req.reason,
         )
         .await
-    .map_err(|e| AppError::Validation(format!("Claim OT Error: {e}")))?;
+        .map_err(|e| AppError::Validation(format!("Claim OT Error: {e}")))?;
 
     Ok(StatusCode::OK)
 }
@@ -72,7 +75,8 @@ pub async fn approve_ot(
     Json(req): Json<ApproveOtRequest>,
 ) -> AppResult<StatusCode> {
     // RBAC: Only users with OvertimeApprove permission, scoped to department if TeamLead
-    let target_dept_id = crate::handlers::common::current_department_id(&state, ctx.workspace_id, employee_id).await;
+    let target_dept_id =
+        crate::handlers::common::current_department_id(&state, ctx.workspace_id, employee_id).await;
 
     ctx.require_scoped_permission(Permission::OvertimeApprove, target_dept_id)?;
 
@@ -83,7 +87,8 @@ pub async fn approve_ot(
     };
 
     state
-        .attendance.summary_service
+        .attendance
+        .summary_service
         .approve_ot(
             ctx.workspace_id,
             employee_id,
@@ -93,7 +98,7 @@ pub async fn approve_ot(
             status_enum,
         )
         .await
-    .map_err(|e| AppError::Validation(format!("Approve OT Error: {e}")))?;
+        .map_err(|e| AppError::Validation(format!("Approve OT Error: {e}")))?;
 
     Ok(StatusCode::OK)
 }

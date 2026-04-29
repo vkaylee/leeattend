@@ -9,10 +9,10 @@ use crate::errors::AppError;
 use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
 use crate::repositories::employee;
 
+use crate::repositories::roster::RosterRepository;
 use crate::repositories::shift_repository;
 use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 use crate::repositories::TimeEntryRepository;
-use crate::repositories::roster::RosterRepository;
 
 pub struct TimeTrackingService {
     repo: Arc<dyn TimeEntryRepository>,
@@ -22,8 +22,16 @@ pub struct TimeTrackingService {
 }
 
 impl TimeTrackingService {
-    pub fn new(repo: Arc<dyn TimeEntryRepository>, roster_repo: Arc<dyn RosterRepository>, pool: PgPool) -> Self {
-        Self { repo, roster_repo, pool }
+    pub fn new(
+        repo: Arc<dyn TimeEntryRepository>,
+        roster_repo: Arc<dyn RosterRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self {
+            repo,
+            roster_repo,
+            pool,
+        }
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -43,7 +51,9 @@ impl TimeTrackingService {
         }
 
         // Get Workspace Timezone
-        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository {
+            pool: self.pool.clone(),
+        };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
@@ -68,7 +78,9 @@ impl TimeTrackingService {
         let today = local_now.date_naive();
 
         // 1. Identify effective shift
-        let (shift_id, _) = self.roster_repo.get_effective_shift(workspace_id, req.employee_id, today)
+        let (shift_id, _) = self
+            .roster_repo
+            .get_effective_shift(workspace_id, req.employee_id, today)
             .await
             .map_err(AppError::Sqlx)?;
 
@@ -88,12 +100,15 @@ impl TimeTrackingService {
                 let shift_start = today.and_time(start_time);
                 let earliest_punch = shift_start - chrono::Duration::minutes(grace_minutes as i64);
 
-                let rules = crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
-                    &self.pool,
-                    req.employee_id,
-                    workspace_id,
-                    today,
-                ).await.map_err(AppError::Sqlx)?;
+                let rules =
+                    crate::domain::policy::resolver::PolicyResolver::resolve_attendance_rules(
+                        &self.pool,
+                        req.employee_id,
+                        workspace_id,
+                        today,
+                    )
+                    .await
+                    .map_err(AppError::Sqlx)?;
 
                 if rules.early_arrival_strategy == crate::models::EarlyArrivalStrategy::Block
                     && local_now.naive_local() < earliest_punch
@@ -170,14 +185,20 @@ impl TimeTrackingService {
             .map_err(AppError::Sqlx)?;
 
         // Recalculate summary
-        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository {
+            pool: self.pool.clone(),
+        };
         if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
-                self.repo.clone(), self.roster_repo.clone(), self.pool.clone(),
+                self.repo.clone(),
+                self.roster_repo.clone(),
+                self.pool.clone(),
             );
-            let _ = summary_svc.recalculate_daily_summary(workspace_id, employee_id, local_date).await;
+            let _ = summary_svc
+                .recalculate_daily_summary(workspace_id, employee_id, local_date)
+                .await;
         }
 
         Ok(entry)
@@ -221,7 +242,9 @@ impl TimeTrackingService {
         let _ = employee::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
-            .ok_or(AppError::Forbidden("Employee does not belong to workspace".into()))?;
+            .ok_or(AppError::Forbidden(
+                "Employee does not belong to workspace".into(),
+            ))?;
 
         if let Some(t) = req.punch_in_time {
             entry.punch_in_time = t;
@@ -247,25 +270,27 @@ impl TimeTrackingService {
             .map_err(AppError::Sqlx)?;
 
         // Recalculate summary
-        let workspace_repo = SqlxWorkspaceRepository { pool: self.pool.clone() };
+        let workspace_repo = SqlxWorkspaceRepository {
+            pool: self.pool.clone(),
+        };
         if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
-                self.repo.clone(), self.roster_repo.clone(), self.pool.clone(),
+                self.repo.clone(),
+                self.roster_repo.clone(),
+                self.pool.clone(),
             );
-            let _ = summary_svc.recalculate_daily_summary(workspace_id, entry.employee_id, local_date).await;
+            let _ = summary_svc
+                .recalculate_daily_summary(workspace_id, entry.employee_id, local_date)
+                .await;
         }
 
         Ok(entry)
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn delete_time_entry(
-        &self,
-        workspace_id: Uuid,
-        id: Uuid,
-    ) -> Result<(), AppError> {
+    pub async fn delete_time_entry(&self, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
         let entry = self
             .repo
             .get_time_entry_by_id(workspace_id, id)
@@ -277,7 +302,9 @@ impl TimeTrackingService {
         let _ = employee::get_employee_by_id(&self.pool, entry.employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
-            .ok_or(AppError::Forbidden("Employee does not belong to workspace".into()))?;
+            .ok_or(AppError::Forbidden(
+                "Employee does not belong to workspace".into(),
+            ))?;
 
         self.repo
             .delete_time_entry(workspace_id, id)

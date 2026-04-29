@@ -1,6 +1,6 @@
+use log::{info, warn};
 use std::fs;
 use std::path::Path;
-use log::{info, warn};
 
 const CRASH_MARKER_FILE: &str = ".agent_running";
 
@@ -45,9 +45,11 @@ impl CrashMarker {
             chrono::Utc::now().to_rfc3339()
         );
         if let Some(parent) = Path::new(&self.path).parent()
-            && !parent.as_os_str().is_empty() && parent != Path::new("") {
-                fs::create_dir_all(parent)?;
-            }
+            && !parent.as_os_str().is_empty()
+            && parent != Path::new("")
+        {
+            fs::create_dir_all(parent)?;
+        }
         fs::write(&self.path, content)
     }
 
@@ -60,7 +62,9 @@ impl CrashMarker {
 }
 
 /// Recover from crash by resetting in-flight logs
-pub fn recover_from_crash(store: &crate::redb_store::RedbStore) -> Result<u64, crate::redb_store::StoreError> {
+pub fn recover_from_crash(
+    store: &crate::redb_store::RedbStore,
+) -> Result<u64, crate::redb_store::StoreError> {
     info!("Crash recovery: Resetting in-flight logs...");
 
     let reset_count = store.reset_syncing_status()?;

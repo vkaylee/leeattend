@@ -1,14 +1,18 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { Coins, Calculator, FileText, Blocks, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
-import SalaryComponentManager from "@/components/payroll/SalaryComponentManager";
-import PayrollSettingsSection from "@/components/payroll/PayrollSettingsSection";
+import { useTranslation } from "react-i18next";
+
+
 import BonusPolicyManager from "@/components/payroll/BonusPolicyManager";
 import OvertimePolicyManager from "@/components/payroll/OvertimePolicyManager";
 import PayrollRulesManager from "@/components/payroll/PayrollRulesManager";
+import PayrollSettingsSection from "@/components/payroll/PayrollSettingsSection";
 import SalaryBaseGroupManager from "@/components/payroll/SalaryBaseGroupManager";
+import SalaryComponentManager from "@/components/payroll/SalaryComponentManager";
+
 import { getCurrentWorkspaceId } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 type TabType = "policy" | "components" | "bases" | "incentives" | "overtime" | "statutory_rules";
 

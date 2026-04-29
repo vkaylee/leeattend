@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { format, startOfToday } from "date-fns";
 import {
   Plus,
   Trash2,
@@ -16,6 +18,18 @@ import {
   Search,
   X
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import Button from "@/components/ui/Button";
+import FormField, { LABEL_BASE, INPUT_BASE } from "@/components/ui/FormField";
+import Modal from "@/components/ui/Modal";
+import StatusBadge from "@/components/ui/StatusBadge";
+
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { cn } from "@/lib/utils";
+
+import { useToast } from "../components/ui/Toast";
 import {
   fetchWorkingPatterns,
   createWorkingPattern,
@@ -29,16 +43,6 @@ import {
   Shift,
   Employee
 } from "../lib/api";
-import { useToast } from "../components/ui/Toast";
-import Modal from "@/components/ui/Modal";
-import { format, startOfToday } from "date-fns";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { Link } from "@tanstack/react-router";
-import { EmployeeSearch } from "@/components/common/EmployeeSearch";
-import { cn } from "@/lib/utils";
-import Button from "@/components/ui/Button";
-import StatusBadge from "@/components/ui/StatusBadge";
-import FormField, { LABEL_BASE, INPUT_BASE } from "@/components/ui/FormField";
 
 export default function WorkingPatternsPage() {
   const { t } = useTranslation();

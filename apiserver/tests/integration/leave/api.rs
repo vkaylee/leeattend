@@ -156,7 +156,7 @@ async fn test_workspace_leave_balances_filtering() {
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
-    
+
     // emp_1 will have a balance
     let emp_1: Uuid = factory.employee().with_workspace(ws_id).create().await;
     // emp_2 will NOT have a balance and NO policy
@@ -198,9 +198,9 @@ async fn test_workspace_leave_balances_filtering() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-        
+
     let res: PaginatedResponse<WorkspaceLeaveBalance> = serde_json::from_slice(&body).unwrap();
-    
+
     // Verify emp_1 is included
     assert!(res.data.iter().any(|b| b.employee_id == emp_1));
     // Verify emp_2 is filtered out (has no balance or policy)

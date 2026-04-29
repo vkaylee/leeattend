@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import PageHeader from "@/components/ui/PageHeader";
+
+import { Link } from "@tanstack/react-router";
 import { 
   ShieldAlert, 
   Shield, 
@@ -15,13 +16,15 @@ import {
   ChevronRight,
   PlusCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useWorkspaceRoles } from "@/hooks/use-workspace";
-import RoleFormModal from "@/components/features/settings/RoleFormModal";
-import { Link } from "@tanstack/react-router";
-import PermissionGate from "@/components/common/PermissionGate";
 import { useTranslation } from "react-i18next";
+
+import PermissionGate from "@/components/common/PermissionGate";
+import RoleFormModal from "@/components/features/settings/RoleFormModal";
+import PageHeader from "@/components/ui/PageHeader";
+
 import { useConfirm } from "@/hooks/use-confirm";
+import { useWorkspaceRoles } from "@/hooks/use-workspace";
+import { cn } from "@/lib/utils";
 
 // No mock roles needed
 

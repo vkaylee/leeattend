@@ -170,7 +170,11 @@ async fn test_rbac_member_cannot_invite() {
         .create()
         .await;
     factory
-        .add_member(workspace_id, member_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
+        .add_member(
+            workspace_id,
+            member_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
         .await;
 
     // 3. Try to invite someone as this member

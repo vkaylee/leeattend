@@ -3,8 +3,10 @@
  * Provides data fetching and mutations for ESS features
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import {
   fetchMyProfile,
   updateMyProfile,
@@ -22,7 +24,7 @@ import {
   getCurrentWorkspaceId,
   UpdateProfileRequest,
   CreateEmergencyContactRequest,
-  AttendanceParams,
+  AttendanceParams, fetchMyAttendanceSummaries, submitMyOtClaim 
 } from "@/lib/api";
 
 // Query Keys
@@ -245,7 +247,6 @@ export function useMyClock() {
 
 // --- OT Hooks ---
 
-import { fetchMyAttendanceSummaries, submitMyOtClaim } from "@/lib/api";
 
 export function useMyAttendanceSummaries(start: string, end: string) {
   const query = useQuery({

@@ -73,7 +73,8 @@
         "block_desc": "仅允许在班次的宽限期内打卡。",
         "clamp": "限制提前加班",
         "clamp_desc": "允许提前打卡，但仅计算班次宽限期内的加班费。"
-      }
+      },
+      "please_wait_minutes": "请等待几分钟以使更改生效。"
     },
     "members": {
       "roles": {
@@ -98,7 +99,8 @@
           "update_primary_error": "更新主要角色时出错。",
           "assign_error": "分配角色时出错。",
           "revoke_error": "撤销角色时出错。"
-        }
+        },
+        "subtitle": "人员权限"
       },
       "permissions": {
         "modal_title": "管理权限",
@@ -619,9 +621,9 @@
       "assignees_count": "{{count}} 名被分配者",
       "assigned_date": "分配日期：{{date}}",
       "descriptions": {
-        "platform_admin": "拥有完整的平台访问权限。可以管理工作空间、全局设置和其他系统角色。",
-        "support": "只读访问权限，用于监控基础设施和跨工作区的支持数据。",
-        "billing_admin": "管理所有工作空间的平台计费、订阅和配额。",
+        "platform_admin": "完整的平台访问权限。可以管理工作区、全局设置和其他系统角色。",
+        "support": "对基础架构监控和跨工作区支持数据的只读访问。",
+        "billing_admin": "管理所有工作区的平台账单、订阅和配额。",
         "default": "系统级角色。"
       },
       "modal": {
@@ -1136,7 +1138,17 @@
       }
     },
     "columns": "列",
-    "custom": "自定义"
+    "custom": "自定义",
+    "billing": "账单",
+    "danger_zone": "危险区域",
+    "destructive_operations": "破坏性操作",
+    "holidays": "假期",
+    "overview": "概览",
+    "permissions": "权限",
+    "public_holidays": "公共假期",
+    "security_events": "安全事件",
+    "set": "设置",
+    "assign": "分配"
   },
   "dashboard": {
     "title": "仪表板",
@@ -1329,7 +1341,9 @@
     "display_name": "显示名称",
     "confirm_password": "确认密码",
     "already_have_account": "已经有账号？",
-    "login": "登录",
+    "login": {
+      "title": "登录"
+    },
     "register_title": "创建新账号",
     "register_btn": "注册账号",
     "password_mismatch": "密码不匹配",
@@ -1407,7 +1421,11 @@
       "duration": "时长",
       "status": "状态",
       "generation_info": "处理信息（溯源）",
-      "no_data": "本月未找到考勤数据。"
+      "no_data": "本月未找到考勤数据。",
+      "ot_status": "加班",
+      "active_status": "活跃",
+      "system_ot_suffix": "（系统加班）",
+      "claim_btn": "申请加班"
     },
     "ot": {
       "claim_title": "申请加班",
@@ -1769,7 +1787,9 @@
     "messages": {
       "loading": "正在加载日志...",
       "no_data": "未找到打卡日志。",
-      "no_unknown_logs": "没有未识别的记录"
+      "no_unknown_logs": "没有未识别的记录",
+      "no_data_hint": "尝试调整日期范围筛选器或选择其他员工来查找您要查找的内容。",
+      "all_matched": "所有打卡记录均已与员工匹配。"
     },
     "modal": {
       "import_title": "从文件导入打卡记录"
@@ -2750,7 +2770,8 @@
       "time_desc": "配置班次、排班和考勤规则。",
       "payroll_desc": "管理标准工作日和公式。",
       "connectivity_desc": "管理设备连接和网络。",
-      "leave": "休假管理"
+      "leave": "休假管理",
+      "billing_desc": "管理账单和订阅。"
     },
     "navigation": "导航",
     "admin_only": "仅限管理员",
@@ -2793,6 +2814,16 @@
         "effective_date": "生效日期",
         "created_at": "创建于"
       }
+    },
+    "layout": {
+      "access": "访问",
+      "control_panel": "控制面板",
+      "operations": "操作",
+      "security_system": "安全与系统",
+      "workspace": "工作区"
+    },
+    "tabs": {
+      "members": "成员"
     }
   },
   "holidays": {
@@ -3063,5 +3094,62 @@
       "previous": "上一页",
       "next": "下一页"
     }
-  }
+  },
+  "leave": {
+    "policy": {
+      "confirm_delete": "您确定要删除此政策吗？"
+    },
+    "request": {
+      "create": "创建请假申请",
+      "approve": "批准请假申请"
+    }
+  },
+  "workspace": {
+    "roles": {
+      "title": "工作区角色"
+    }
+  },
+  "attendance": {
+    "log": {
+      "create": "创建考勤记录"
+    },
+    "shift_swap": {
+      "request": "申请换班"
+    }
+  },
+  "system_roles": {
+    "title": "平台管理员",
+    "subtitle": "管理超越工作区边界的系统级角色",
+    "assign_to_user": "分配给用户",
+    "no_users": "没有用户分配到此角色。",
+    "system_label": "系统",
+    "grant_privileges": "向用户授予系统级权限",
+    "user_id_label": "用户ID（UUID）",
+    "revoke_role": "撤销角色",
+    "assigned_users": "已分配用户",
+    "assignees_count": "{{count}} 被分配者",
+    "assigned_date": "分配时间：{{date}}",
+    "descriptions": {
+      "platform_admin": "完整的平台访问权限。可以管理工作区、全局设置和其他系统角色。",
+      "support": "对基础架构监控和跨工作区支持数据的只读访问。",
+      "billing_admin": "管理所有工作区的平台账单、订阅和配额。",
+      "default": "系统级角色。"
+    },
+    "modal": {
+      "assign_title": "分配 {{role}} 角色",
+      "submit_btn": "分配角色",
+      "assigning": "分配中..."
+    },
+    "confirm": {
+      "revoke_title": "撤销系统角色",
+      "revoke_message": "您确定要撤销此系统角色吗？这可能会使该用户无法访问系统级功能。"
+    },
+    "messages": {
+      "assign_error": "分配角色失败",
+      "revoke_error": "撤销角色失败"
+    }
+  },
+  "status_active_caps": "活动",
+  "status_off": "休息",
+  "status_expired": "已过期"
 }

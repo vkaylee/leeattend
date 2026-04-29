@@ -10,9 +10,7 @@
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::shift_swap::{
-    ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus,
-};
+use apiserver::models::shift_swap::{ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus};
 use apiserver::models::ShiftRoster;
 use chrono::{NaiveDate, Utc};
 use reqwest::StatusCode;
@@ -688,6 +686,9 @@ async fn test_shift_swap_stats() {
 
     let stats: serde_json::Value = stats_res.json().await.unwrap();
     assert_eq!(stats["approved"], 1, "Should have 1 approved swap");
-    assert_eq!(stats["approved_this_month"], 1, "Should count in current month");
+    assert_eq!(
+        stats["approved_this_month"], 1,
+        "Should count in current month"
+    );
     assert_eq!(stats["pending_admin"], 0, "No pending after approval");
 }

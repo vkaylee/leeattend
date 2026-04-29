@@ -10,6 +10,7 @@ use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
 use std::collections::BTreeMap;
 
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
+use crate::services::import_messages::ExcelReportMessages;
 
 /// Excel file content type for HTTP responses.
 pub const EXCEL_CONTENT_TYPE: &str =
@@ -37,12 +38,10 @@ impl ExcelWriter {
         summaries: &[AttendanceSummary],
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
-    ) -> Result<Vec<u8>, String> {
+        msgs: &ExcelReportMessages,
+    ) -> crate::errors::AppResult<Vec<u8>> {
         let mut workbook = Workbook::new();
-        let worksheet = workbook
-            .add_worksheet()
-            .set_name("Summary")
-            .map_err(|e| e.to_string())?;
+        let worksheet = workbook.add_worksheet().set_name(msgs.summary_sheet_name)?;
 
         let title_format = Format::new()
             .set_bold()
@@ -61,63 +60,57 @@ impl ExcelWriter {
 
         let number_format = Format::new().set_align(FormatAlign::Right);
 
-        worksheet
-            .write_string_with_format(
-                0,
-                0,
-                format!("Attendance Summary Report - {workspace_name}"),
-                &title_format,
-            )
-            .map_err(|e| e.to_string())?;
+        worksheet.write_string_with_format(
+            0,
+            0,
+            msgs.summary_title_tpl
+                .replace("{workspace}", workspace_name),
+            &title_format,
+        )?;
 
-        worksheet
-            .write_string_with_format(
-                1,
-                0,
-                format!("Period: {} to {}", date_range.0, date_range.1),
-                &subtitle_format,
-            )
-            .map_err(|e| e.to_string())?;
+        worksheet.write_string_with_format(
+            1,
+            0,
+            format_period_label(msgs.period_label, date_range),
+            &subtitle_format,
+        )?;
 
-        let headers = ["Employee Name", "Std Units", "OT Units", "Total Leave Days"];
+        let headers = msgs.summary_headers;
         for (col, header) in headers.iter().enumerate() {
-            worksheet
-                .write_string_with_format(3, col as u16, *header, &header_format)
-                .map_err(|e| e.to_string())?;
+            worksheet.write_string_with_format(3, col as u16, *header, &header_format)?;
         }
 
         for (idx, summary) in summaries.iter().enumerate() {
             let row = (idx + 4) as u32;
-            worksheet
-                .write_string(row, 0, &summary.employee_name)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_number_with_format(row, 1, summary.total_std_units as f64, &number_format)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_number_with_format(row, 2, summary.total_ot_units as f64, &number_format)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_number_with_format(row, 3, summary.total_leave_days as f64, &number_format)
-                .map_err(|e| e.to_string())?;
+            worksheet.write_string(row, 0, &summary.employee_name)?;
+            worksheet.write_number_with_format(
+                row,
+                1,
+                summary.total_std_units as f64,
+                &number_format,
+            )?;
+            worksheet.write_number_with_format(
+                row,
+                2,
+                summary.total_ot_units as f64,
+                &number_format,
+            )?;
+            worksheet.write_number_with_format(
+                row,
+                3,
+                summary.total_leave_days as f64,
+                &number_format,
+            )?;
         }
 
-        worksheet
-            .set_column_width(0, 35)
-            .map_err(|e| e.to_string())?;
-        worksheet
-            .set_column_width(1, 15)
-            .map_err(|e| e.to_string())?;
-        worksheet
-            .set_column_width(2, 15)
-            .map_err(|e| e.to_string())?;
-        worksheet
-            .set_column_width(3, 18)
-            .map_err(|e| e.to_string())?;
+        worksheet.set_column_width(0, 35)?;
+        worksheet.set_column_width(1, 15)?;
+        worksheet.set_column_width(2, 15)?;
+        worksheet.set_column_width(3, 18)?;
 
         workbook
             .save_to_buffer()
-            .map_err(|e| format!("Excel write error: {e}"))
+            .map_err(|e| crate::errors::AppError::Internal(format!("Excel write error: {e}")))
     }
 
     /// Multi-sheet detail report: "Timesheet View" (matrix) + "Raw Details" (list).
@@ -127,14 +120,23 @@ impl ExcelWriter {
         date_range: (NaiveDate, NaiveDate),
         timezone: &str,
         work_unit_minutes: i32,
-    ) -> Result<Vec<u8>, String> {
+        msgs: &ExcelReportMessages,
+    ) -> crate::errors::AppResult<Vec<u8>> {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(timezone);
         let mut workbook = Workbook::new();
-        Self::write_timesheet_matrix(&mut workbook, reports, workspace_name, date_range, tz, work_unit_minutes)?;
-        Self::write_raw_details(&mut workbook, reports, workspace_name, date_range, tz)?;
+        Self::write_timesheet_matrix(
+            &mut workbook,
+            reports,
+            workspace_name,
+            date_range,
+            tz,
+            work_unit_minutes,
+            msgs,
+        )?;
+        Self::write_raw_details(&mut workbook, reports, workspace_name, date_range, tz, msgs)?;
         workbook
             .save_to_buffer()
-            .map_err(|e| format!("Excel write error: {e}"))
+            .map_err(|e| crate::errors::AppError::Internal(format!("Excel write error: {e}")))
     }
 
     /// Sheet 1 "Timesheet View": Matrix — rows = employees (sorted), cols = days.
@@ -148,11 +150,11 @@ impl ExcelWriter {
         date_range: (NaiveDate, NaiveDate),
         tz: Tz,
         work_unit_minutes: i32,
-    ) -> Result<(), String> {
+        msgs: &ExcelReportMessages,
+    ) -> crate::errors::AppResult<()> {
         let worksheet = workbook
             .add_worksheet()
-            .set_name("Timesheet View")
-            .map_err(|e| e.to_string())?;
+            .set_name(msgs.timesheet_sheet_name)?;
 
         let title_fmt = Format::new()
             .set_bold()
@@ -175,22 +177,19 @@ impl ExcelWriter {
             .set_background_color(Color::RGB(0xC8E6C9)); // light green for holidays
 
         // Title (row 0) and subtitle (row 1)
-        worksheet
-            .write_string_with_format(
-                0,
-                0,
-                format!("Timesheet View - {workspace_name}"),
-                &title_fmt,
-            )
-            .map_err(|e| e.to_string())?;
-        worksheet
-            .write_string_with_format(
-                1,
-                0,
-                format!("Period: {} to {}", date_range.0, date_range.1),
-                &subtitle_fmt,
-            )
-            .map_err(|e| e.to_string())?;
+        worksheet.write_string_with_format(
+            0,
+            0,
+            msgs.timesheet_title_tpl
+                .replace("{workspace}", workspace_name),
+            &title_fmt,
+        )?;
+        worksheet.write_string_with_format(
+            1,
+            0,
+            format_period_label(msgs.period_label, date_range),
+            &subtitle_fmt,
+        )?;
 
         // Date columns: start_date .. end_date inclusive
         let mut dates: Vec<NaiveDate> = Vec::new();
@@ -205,40 +204,72 @@ impl ExcelWriter {
         #[allow(clippy::type_complexity)]
         let mut emp_days: BTreeMap<
             &str,
-            (String, BTreeMap<NaiveDate, (i32, i32, Option<DateTime<Utc>>, Option<DateTime<Utc>>, Option<chrono::NaiveTime>, Option<chrono::NaiveTime>, Option<String>, bool)>),
+            (
+                String,
+                BTreeMap<
+                    NaiveDate,
+                    (
+                        i32,
+                        i32,
+                        Option<DateTime<Utc>>,
+                        Option<DateTime<Utc>>,
+                        Option<chrono::NaiveTime>,
+                        Option<chrono::NaiveTime>,
+                        Option<String>,
+                        bool,
+                    ),
+                >,
+            ),
         > = BTreeMap::new();
         for r in reports {
             let entry = emp_days
                 .entry(r.employee_name.as_str())
                 .or_insert_with(|| (r.employee_id_number.clone(), BTreeMap::new()));
-            entry.1.insert(r.date, (r.std_work_units, r.ot_work_units, r.actual_punch_in, r.actual_punch_out, r.scheduled_start, r.scheduled_end, r.shift_symbol.clone(), r.is_holiday));
+            entry.1.insert(
+                r.date,
+                (
+                    r.std_work_units,
+                    r.ot_work_units,
+                    r.actual_punch_in,
+                    r.actual_punch_out,
+                    r.scheduled_start,
+                    r.scheduled_end,
+                    r.shift_symbol.clone(),
+                    r.is_holiday,
+                ),
+            );
         }
 
-        // Header row (row 3): "Employee ID" | "Employee" | day numbers
-        worksheet
-            .write_string_with_format(3, 0, "Employee ID", &header_fmt)
-            .map_err(|e| e.to_string())?;
-        worksheet
-            .write_string_with_format(3, 1, "Employee", &header_fmt)
-            .map_err(|e| e.to_string())?;
+        // Header row (row 3): Employee ID | Employee | day numbers
+        worksheet.write_string_with_format(3, 0, msgs.timesheet_emp_id_header, &header_fmt)?;
+        worksheet.write_string_with_format(3, 1, msgs.timesheet_emp_header, &header_fmt)?;
         for (i, date) in dates.iter().enumerate() {
-            worksheet
-                .write_string_with_format(3, (i + 2) as u16, date.day().to_string(), &header_fmt)
-                .map_err(|e| e.to_string())?;
+            worksheet.write_string_with_format(
+                3,
+                (i + 2) as u16,
+                date.day().to_string(),
+                &header_fmt,
+            )?;
         }
 
         // Data rows (row 4+)
         for (row_idx, (name, (emp_id_number, day_map))) in emp_days.iter().enumerate() {
             let row = (row_idx + 4) as u32;
-            worksheet
-                .write_string(row, 0, emp_id_number.as_str())
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string(row, 1, *name)
-                .map_err(|e| e.to_string())?;
+            worksheet.write_string(row, 0, emp_id_number.as_str())?;
+            worksheet.write_string(row, 1, *name)?;
 
             for (day_idx, date) in dates.iter().enumerate() {
-                if let Some(&(std_u, ot_u, punch_in_utc, punch_out_utc, sched_start, sched_end, ref shift_sym, is_hol)) = day_map.get(date) {
+                if let Some(&(
+                    std_u,
+                    ot_u,
+                    punch_in_utc,
+                    punch_out_utc,
+                    sched_start,
+                    sched_end,
+                    ref shift_sym,
+                    is_hol,
+                )) = day_map.get(date)
+                {
                     // Symbol prefix: "S8" → "S8", None → ""
                     let prefix = shift_sym.as_deref().unwrap_or("");
 
@@ -276,7 +307,14 @@ impl ExcelWriter {
                     };
 
                     let ot_h = units_to_hours(ot_u, work_unit_minutes);
-                    let text = format!("{}{}/{}/{}/{}", prefix, fmt_h(std_h), fmt_h(late_h), fmt_h(early_leave_h), fmt_h(ot_h));
+                    let text = format!(
+                        "{}{}/{}/{}/{}",
+                        prefix,
+                        fmt_h(std_h),
+                        fmt_h(late_h),
+                        fmt_h(early_leave_h),
+                        fmt_h(ot_h)
+                    );
                     let fmt = if is_hol {
                         &holiday_fmt
                     } else if ot_u > 0 {
@@ -284,9 +322,7 @@ impl ExcelWriter {
                     } else {
                         &cell_fmt
                     };
-                    worksheet
-                        .write_string_with_format(row, (day_idx + 2) as u16, &text, fmt)
-                        .map_err(|e| e.to_string())?;
+                    worksheet.write_string_with_format(row, (day_idx + 2) as u16, &text, fmt)?;
                 }
             }
         }
@@ -307,11 +343,11 @@ impl ExcelWriter {
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
         tz: Tz,
-    ) -> Result<(), String> {
+        msgs: &ExcelReportMessages,
+    ) -> crate::errors::AppResult<()> {
         let worksheet = workbook
             .add_worksheet()
-            .set_name("Raw Details")
-            .map_err(|e| e.to_string())?;
+            .set_name(msgs.raw_details_sheet_name)?;
 
         let title_fmt = Format::new()
             .set_bold()
@@ -347,82 +383,59 @@ impl ExcelWriter {
             .set_align(FormatAlign::Center)
             .set_background_color(Color::RGB(0xFFE0B2)); // light orange
 
-        worksheet
-            .write_string_with_format(0, 0, format!("Raw Details - {workspace_name}"), &title_fmt)
-            .map_err(|e| e.to_string())?;
-        worksheet
-            .write_string_with_format(
-                1,
-                0,
-                format!("Period: {} to {}", date_range.0, date_range.1),
-                &subtitle_fmt,
-            )
-            .map_err(|e| e.to_string())?;
+        worksheet.write_string_with_format(
+            0,
+            0,
+            msgs.raw_details_title_tpl
+                .replace("{workspace}", workspace_name),
+            &title_fmt,
+        )?;
+        worksheet.write_string_with_format(
+            1,
+            0,
+            format_period_label(msgs.period_label, date_range),
+            &subtitle_fmt,
+        )?;
 
         // Headers (row 3)
-        let headers = [
-            "Date",
-            "Employee ID",
-            "Employee Name",
-            "Scheduled Start",
-            "Scheduled End",
-            "Actual In",
-            "Actual Out",
-            "Std Units",
-            "OT Units",
-            "OT Status",
-            "Status",
-            "Holiday",
-        ];
+        let headers = msgs.detail_headers;
         for (col, header) in headers.iter().enumerate() {
-            worksheet
-                .write_string_with_format(3, col as u16, *header, &header_fmt)
-                .map_err(|e| e.to_string())?;
+            worksheet.write_string_with_format(3, col as u16, *header, &header_fmt)?;
         }
 
         // Data rows (row 4+)
         for (idx, report) in reports.iter().enumerate() {
             let row = (idx + 4) as u32;
-            worksheet
-                .write_string(row, 0, report.date.to_string())
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string(row, 1, &report.employee_id_number)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string(row, 2, &report.employee_name)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string_with_format(row, 3, format_time(report.scheduled_start), &time_fmt)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string_with_format(row, 4, format_time(report.scheduled_end), &time_fmt)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string_with_format(
-                    row,
-                    5,
-                    format_datetime(report.actual_punch_in, tz),
-                    &time_fmt,
-                )
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string_with_format(
-                    row,
-                    6,
-                    format_datetime(report.actual_punch_out, tz),
-                    &time_fmt,
-                )
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_number(row, 7, report.std_work_units as f64)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_number(row, 8, report.ot_work_units as f64)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string(row, 9, report.ot_claim_status.as_deref().unwrap_or("-"))
-                .map_err(|e| e.to_string())?;
+            worksheet.write_string(row, 0, report.date.to_string())?;
+            worksheet.write_string(row, 1, &report.employee_id_number)?;
+            worksheet.write_string(row, 2, &report.employee_name)?;
+            worksheet.write_string_with_format(
+                row,
+                3,
+                format_time(report.scheduled_start),
+                &time_fmt,
+            )?;
+            worksheet.write_string_with_format(
+                row,
+                4,
+                format_time(report.scheduled_end),
+                &time_fmt,
+            )?;
+            worksheet.write_string_with_format(
+                row,
+                5,
+                format_datetime(report.actual_punch_in, tz),
+                &time_fmt,
+            )?;
+            worksheet.write_string_with_format(
+                row,
+                6,
+                format_datetime(report.actual_punch_out, tz),
+                &time_fmt,
+            )?;
+            worksheet.write_number(row, 7, report.std_work_units as f64)?;
+            worksheet.write_number(row, 8, report.ot_work_units as f64)?;
+            worksheet.write_string(row, 9, report.ot_claim_status.as_deref().unwrap_or("-"))?;
 
             let status_fmt = match report.status.as_str() {
                 "present" => &status_present,
@@ -433,18 +446,10 @@ impl ExcelWriter {
                 "holiday_work" => &status_holiday_work,
                 _ => &time_fmt,
             };
-            worksheet
-                .write_string_with_format(row, 10, report.status.as_str(), status_fmt)
-                .map_err(|e| e.to_string())?;
+            worksheet.write_string_with_format(row, 10, report.status.as_str(), status_fmt)?;
 
             // Holiday column (col 11)
-            worksheet
-                .write_string(
-                    row,
-                    11,
-                    report.holiday_name.as_deref().unwrap_or(""),
-                )
-                .map_err(|e| e.to_string())?;
+            worksheet.write_string(row, 11, report.holiday_name.as_deref().unwrap_or(""))?;
         }
 
         // Auto-fit all column widths to content
@@ -452,6 +457,12 @@ impl ExcelWriter {
 
         Ok(())
     }
+}
+
+/// Format period label from template with start/end dates.
+fn format_period_label(tpl: &str, date_range: (NaiveDate, NaiveDate)) -> String {
+    tpl.replace("{start}", &date_range.0.to_string())
+        .replace("{end}", &date_range.1.to_string())
 }
 
 /// Format optional NaiveTime to HH:MM string.
@@ -481,6 +492,11 @@ mod tests {
     use chrono::{NaiveDate, NaiveTime};
     use uuid::Uuid;
 
+    /// Helper: default English messages for test convenience.
+    fn en_msgs() -> ExcelReportMessages {
+        ExcelReportMessages::for_lang("en")
+    }
+
     #[test]
     fn test_write_summary_empty() -> Result<(), Box<dyn std::error::Error>> {
         let result = ExcelWriter::write_summary(
@@ -490,6 +506,7 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("Invalid start date")?,
                 NaiveDate::from_ymd_opt(2026, 1, 31).ok_or("Invalid end date")?,
             ),
+            &en_msgs(),
         );
         assert!(result.is_ok());
         let data = result?;
@@ -562,6 +579,7 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("Invalid start date")?,
                 NaiveDate::from_ymd_opt(2026, 1, 31).ok_or("Invalid end date")?,
             ),
+            &en_msgs(),
         );
         assert!(result.is_ok());
         assert!(result?.len() > 100);
@@ -579,6 +597,7 @@ mod tests {
             ),
             "UTC",
             30,
+            &en_msgs(),
         );
         assert!(result.is_ok());
         let data = result?;
@@ -671,6 +690,7 @@ mod tests {
             ),
             "Asia/Ho_Chi_Minh",
             30,
+            &en_msgs(),
         );
         assert!(result.is_ok());
         let data = result?;
@@ -701,14 +721,19 @@ mod tests {
         let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
 
         let result = format_datetime(Some(utc_time), tz);
-        assert_eq!(result, "08:00", "UTC 01:00 should display as 08:00 in UTC+7");
+        assert_eq!(
+            result, "08:00",
+            "UTC 01:00 should display as 08:00 in UTC+7"
+        );
     }
 
     /// Verify UTC timezone produces unchanged time.
     #[test]
     fn test_format_datetime_utc_unchanged() {
         use chrono::TimeZone;
-        let utc_time = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 14, 30, 0).unwrap();
+        let utc_time = chrono::Utc
+            .with_ymd_and_hms(2026, 1, 15, 14, 30, 0)
+            .unwrap();
 
         let result = format_datetime(Some(utc_time), chrono_tz::UTC);
         assert_eq!(result, "14:30");
@@ -723,7 +748,10 @@ mod tests {
         let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
 
         let result = format_datetime(Some(utc_time), tz);
-        assert_eq!(result, "04:00", "UTC 21:00 should display as 04:00 in UTC+7");
+        assert_eq!(
+            result, "04:00",
+            "UTC 21:00 should display as 04:00 in UTC+7"
+        );
     }
 
     /// Test negative offset timezone (US/Eastern = UTC-5).
@@ -735,7 +763,10 @@ mod tests {
         let tz: chrono_tz::Tz = "US/Eastern".parse().unwrap();
 
         let result = format_datetime(Some(utc_time), tz);
-        assert_eq!(result, "10:00", "UTC 15:00 should display as 10:00 in US/Eastern");
+        assert_eq!(
+            result, "10:00",
+            "UTC 15:00 should display as 10:00 in US/Eastern"
+        );
     }
 
     /// Test write_detail accepts timezone string and produces valid Excel.
@@ -771,11 +802,19 @@ mod tests {
         );
 
         // Valid timezone
-        let result = ExcelWriter::write_detail(&reports, "W", date_range, "Asia/Ho_Chi_Minh", 30);
+        let result = ExcelWriter::write_detail(
+            &reports,
+            "W",
+            date_range,
+            "Asia/Ho_Chi_Minh",
+            30,
+            &en_msgs(),
+        );
         assert!(result.is_ok());
 
         // Invalid timezone falls back to UTC (shouldn't panic)
-        let result = ExcelWriter::write_detail(&reports, "W", date_range, "Invalid/TZ", 30);
+        let result =
+            ExcelWriter::write_detail(&reports, "W", date_range, "Invalid/TZ", 30, &en_msgs());
         assert!(result.is_ok());
 
         Ok(())
@@ -856,15 +895,16 @@ mod tests {
 
     /// write_detail với punch_in trễ 1 phút: cell phải hiển thị đúng format
     #[test]
-    fn test_write_detail_cell_format_with_late_punch_in() -> Result<(), Box<dyn std::error::Error>> {
-        use chrono::{TimeZone, NaiveTime};
+    fn test_write_detail_cell_format_with_late_punch_in() -> Result<(), Box<dyn std::error::Error>>
+    {
+        use chrono::{NaiveTime, TimeZone};
 
         // Shift 08:00-17:00, punch in at 08:01 UTC (= 15:01 Ho_Chi_Minh? No, use UTC tz for simplicity)
         // Use UTC tz so UTC time = local time
         let scheduled_start = NaiveTime::from_hms_opt(8, 0, 0).ok_or("time")?;
-        let scheduled_end   = NaiveTime::from_hms_opt(17, 0, 0).ok_or("time")?;
+        let scheduled_end = NaiveTime::from_hms_opt(17, 0, 0).ok_or("time")?;
         // Punch in 08:01 UTC, punch out 17:00 UTC
-        let punch_in  = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 1, 0).unwrap();
+        let punch_in = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 8, 1, 0).unwrap();
         let punch_out = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 17, 0, 0).unwrap();
 
         let reports = vec![DailyAttendanceReport {
@@ -901,7 +941,7 @@ mod tests {
         // early_leave: 0 min → "0"
         // std: 16*30/60 = 8h → "8"
         // Format: "8/0.5/0/0"
-        let result = ExcelWriter::write_detail(&reports, "W", date_range, "UTC", 30);
+        let result = ExcelWriter::write_detail(&reports, "W", date_range, "UTC", 30, &en_msgs());
         assert!(result.is_ok(), "write_detail should succeed");
         // Verify it's a valid xlsx (starts with PK magic bytes)
         assert_eq!(&result.unwrap()[0..2], b"PK");
@@ -983,7 +1023,8 @@ mod tests {
 
     /// write_detail với nhiều nhân viên có employee_id_number khác nhau → excel hợp lệ.
     #[test]
-    fn test_write_detail_multiple_employees_with_id_numbers() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_write_detail_multiple_employees_with_id_numbers(
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let date = NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("d")?;
         let make = |name: &str, id_number: &str, std_u: i32| DailyAttendanceReport {
             date,
@@ -1011,11 +1052,18 @@ mod tests {
 
         let reports = vec![
             make("Nguyen Van A", "NV001", 16),
-            make("Tran Thi B",   "NV002", 14),
-            make("Le Van C",     "NV003", 16),
+            make("Tran Thi B", "NV002", 14),
+            make("Le Van C", "NV003", 16),
         ];
 
-        let result = ExcelWriter::write_detail(&reports, "Cong Ty XYZ", (date, date), "Asia/Ho_Chi_Minh", 30);
+        let result = ExcelWriter::write_detail(
+            &reports,
+            "Cong Ty XYZ",
+            (date, date),
+            "Asia/Ho_Chi_Minh",
+            30,
+            &en_msgs(),
+        );
         assert!(result.is_ok(), "write_detail failed: {:?}", result.err());
         assert_eq!(&result.unwrap()[0..2], b"PK");
         Ok(())
@@ -1075,7 +1123,14 @@ mod tests {
         let late_h = 0.0_f64;
         let early_leave_h = 0.0_f64;
         let ot_h = 0.0_f64;
-        let text = format!("{}{}/{}/{}/{}", prefix, fmt_h(std_h), fmt_h(late_h), fmt_h(early_leave_h), fmt_h(ot_h));
+        let text = format!(
+            "{}{}/{}/{}/{}",
+            prefix,
+            fmt_h(std_h),
+            fmt_h(late_h),
+            fmt_h(early_leave_h),
+            fmt_h(ot_h)
+        );
         assert_eq!(text, "S88/0/0/0");
     }
 
@@ -1088,7 +1143,14 @@ mod tests {
         let late_h = 0.0_f64;
         let early_leave_h = 0.0_f64;
         let ot_h = 0.0_f64;
-        let text = format!("{}{}/{}/{}/{}", prefix, fmt_h(std_h), fmt_h(late_h), fmt_h(early_leave_h), fmt_h(ot_h));
+        let text = format!(
+            "{}{}/{}/{}/{}",
+            prefix,
+            fmt_h(std_h),
+            fmt_h(late_h),
+            fmt_h(early_leave_h),
+            fmt_h(ot_h)
+        );
         assert_eq!(text, "8/0/0/0");
     }
 
@@ -1098,7 +1160,14 @@ mod tests {
         let shift_sym: Option<String> = Some("".to_string());
         let prefix = shift_sym.as_deref().unwrap_or("");
         let std_h = 8.0_f64;
-        let text = format!("{}{}/{}/{}/{}", prefix, fmt_h(std_h), fmt_h(0.0), fmt_h(0.0), fmt_h(0.0));
+        let text = format!(
+            "{}{}/{}/{}/{}",
+            prefix,
+            fmt_h(std_h),
+            fmt_h(0.0),
+            fmt_h(0.0),
+            fmt_h(0.0)
+        );
         assert_eq!(text, "8/0/0/0");
     }
 
@@ -1108,8 +1177,15 @@ mod tests {
         let prefix = "N8";
         let work_unit_minutes = 30_i32;
         let std_h = (16_i32 as f64 * work_unit_minutes as f64) / 60.0; // 8h
-        let ot_h = (4_i32 as f64 * work_unit_minutes as f64) / 60.0;   // 2h
-        let text = format!("{}{}/{}/{}/{}", prefix, fmt_h(std_h), fmt_h(0.0), fmt_h(0.0), fmt_h(ot_h));
+        let ot_h = (4_i32 as f64 * work_unit_minutes as f64) / 60.0; // 2h
+        let text = format!(
+            "{}{}/{}/{}/{}",
+            prefix,
+            fmt_h(std_h),
+            fmt_h(0.0),
+            fmt_h(0.0),
+            fmt_h(ot_h)
+        );
         assert_eq!(text, "N88/0/0/2");
     }
 
@@ -1118,7 +1194,14 @@ mod tests {
     fn test_cell_format_decimal_hours_with_symbol() {
         let prefix = "FX";
         let std_h = 7.5_f64;
-        let text = format!("{}{}/{}/{}/{}", prefix, fmt_h(std_h), fmt_h(0.5), fmt_h(0.0), fmt_h(0.0));
+        let text = format!(
+            "{}{}/{}/{}/{}",
+            prefix,
+            fmt_h(std_h),
+            fmt_h(0.5),
+            fmt_h(0.0),
+            fmt_h(0.0)
+        );
         assert_eq!(text, "FX7.5/0.5/0/0");
     }
 

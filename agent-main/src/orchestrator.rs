@@ -1,27 +1,32 @@
-use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
-use tokio::task::JoinHandle;
-use std::time::Instant;
+use crate::adaptive_polling::AdaptivePollingState;
+use crate::central_client::connection::DeviceLocks;
+use crate::config::Config;
+use crate::crash_recovery::{CrashMarker, recover_from_crash};
+use crate::hybrid_database::HybridDatabase;
+use crate::mock_worker;
+use crate::models;
+use crate::retry::{
+    SIDECAR_MAX_RETRY_COUNT, SIDECAR_STABILITY_THRESHOLD_SECS, get_sidecar_retry_delay,
+};
+use crate::utils::update_metadata_from_info;
+use crate::worker::Worker;
+use crate::worker_processor::WorkerConfig;
+use crate::zk_worker;
+use dashmap::DashMap;
+use log::{debug, error, info, warn};
+use rand::Rng;
+use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
-use tokio::time::{sleep, Duration};
-use crate::hybrid_database::HybridDatabase;
-use crate::models;
-use crate::worker_processor::WorkerConfig;
-use crate::retry::{get_sidecar_retry_delay, SIDECAR_MAX_RETRY_COUNT, SIDECAR_STABILITY_THRESHOLD_SECS};
-use crate::crash_recovery::{CrashMarker, recover_from_crash};
-use crate::adaptive_polling::AdaptivePollingState;
-use crate::config::Config;
-use serde_json::json;
-use log::{debug, info, error, warn};
-use rand::Rng;
+use std::sync::{
+    Arc,
+    atomic::{AtomicU64, Ordering},
+};
+use std::time::Instant;
+use tokio::sync::{Semaphore, mpsc};
+use tokio::task::JoinHandle;
+use tokio::time::{Duration, sleep};
 use tokio_util::sync::CancellationToken;
-use tokio::sync::{mpsc, Semaphore};
-use dashmap::DashMap;
-use crate::worker::Worker;
-use crate::zk_worker;
-use crate::mock_worker;
-use crate::central_client::connection::DeviceLocks;
-use crate::utils::update_metadata_from_info;
 
 /// Shared context passed to every spawned worker.
 #[derive(Clone)]
@@ -51,11 +56,11 @@ pub struct Orchestrator {
 impl Orchestrator {
     pub fn new(config: Config) -> Result<Self, Box<dyn std::error::Error>> {
         let crash_marker = CrashMarker::new(&config.database_url);
-        
+
         let hybrid_db = HybridDatabase::new(
-            &config.database_url, 
-            config.max_memory_logs, 
-            config.signature_ttl_days
+            &config.database_url,
+            config.max_memory_logs,
+            config.signature_ttl_days,
         )?;
 
         Ok(Self {
@@ -70,7 +75,7 @@ impl Orchestrator {
         self.config.show_summary();
         self.handle_crash_recovery()?;
         self.setup_signal_handlers();
-        
+
         // Clear startup config
         if let Err(e) = self.hybrid_db.store().clear_startup_config() {
             warn!("Failed to clear startup config: {e}");
@@ -85,7 +90,7 @@ impl Orchestrator {
         let command_registry = Arc::new(DashMap::new());
         let device_locks: DeviceLocks = Arc::new(DashMap::new());
         let time_sync = Arc::new(crate::time_sync::TimeSync::new());
-        
+
         // Setup central client
         let (central_client, central_rx, mut reload_rx) = crate::central_client::CentralClient::new(
             self.config.central_server_url.clone(),
@@ -106,7 +111,10 @@ impl Orchestrator {
         self.start_signature_eviction_worker();
 
         let mut semaphore = Arc::new(Semaphore::new(current_max_workers));
-        let mut worker_registry: HashMap<String, (WorkerConfig, CancellationToken, JoinHandle<()>)> = HashMap::new();
+        let mut worker_registry: HashMap<
+            String,
+            (WorkerConfig, CancellationToken, JoinHandle<()>),
+        > = HashMap::new();
 
         let mut worker_ctx = WorkerContext {
             log_tx: log_tx.clone(),
@@ -166,24 +174,24 @@ impl Orchestrator {
             if let Some(info) = self.crash_marker.read_crash_info() {
                 warn!("Previous session info:\n{info}");
             }
-            
+
             let recovered = recover_from_crash(self.hybrid_db.store())?;
             info!("✅ Crash recovery complete: {recovered} logs reset");
         }
-        
+
         if let Err(e) = self.crash_marker.write() {
             warn!("Failed to write crash marker: {e}");
         }
-        
+
         Ok(())
     }
 
     fn setup_signal_handlers(&self) {
         let cloned_token = self.cancel_token.clone();
         tokio::spawn(async move {
-            let mut sigterm = tokio::signal::unix::signal(
-                tokio::signal::unix::SignalKind::terminate(),
-            ).expect("Failed to register SIGTERM handler");
+            let mut sigterm =
+                tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                    .expect("Failed to register SIGTERM handler");
 
             tokio::select! {
                 _ = tokio::signal::ctrl_c() => {
@@ -235,7 +243,7 @@ impl Orchestrator {
             }
             info!("💾 DB Writer Worker stopped");
         });
-        
+
         log_tx
     }
 
@@ -311,17 +319,21 @@ impl Orchestrator {
     }
 
     fn load_initial_devices(
-        &self, 
+        &self,
         worker_registry: &mut HashMap<String, (WorkerConfig, CancellationToken, JoinHandle<()>)>,
         worker_ctx: &WorkerContext,
-        current_max_workers: usize
+        current_max_workers: usize,
     ) {
         match self.hybrid_db.store().get_active_devices() {
             Ok(devices) => {
                 if devices.is_empty() {
                     warn!("No active devices found in database. Waiting for config push...");
                 } else {
-                    info!("📡 Found {} devices, max {} concurrent workers", devices.len(), current_max_workers);
+                    info!(
+                        "📡 Found {} devices, max {} concurrent workers",
+                        devices.len(),
+                        current_max_workers
+                    );
                 }
                 for d in &devices {
                     let wc = to_worker_config(d);
@@ -344,11 +356,17 @@ impl Orchestrator {
         semaphore: &mut Arc<Semaphore>,
     ) {
         // Check if max_workers changed
-        if let Ok(Some(s)) = self.hybrid_db.store().get_agent_config("max_concurrent_workers")
+        if let Ok(Some(s)) = self
+            .hybrid_db
+            .store()
+            .get_agent_config("max_concurrent_workers")
             && let Ok(new_val) = s.parse::<usize>()
             && new_val != *current_max_workers
         {
-            info!("⚡ Max Workers changed: {} -> {new_val}. Full restart required.", current_max_workers);
+            info!(
+                "⚡ Max Workers changed: {} -> {new_val}. Full restart required.",
+                current_max_workers
+            );
             *current_max_workers = new_val;
             let mut handles = Vec::new();
             for (id, (_, token, handle)) in worker_registry.drain() {
@@ -357,20 +375,26 @@ impl Orchestrator {
                 handles.push(handle);
             }
             // Wait for all workers to actually stop before resizing semaphore
-            let _ = tokio::time::timeout(
-                Duration::from_secs(5),
-                futures::future::join_all(handles),
-            ).await;
+            let _ =
+                tokio::time::timeout(Duration::from_secs(5), futures::future::join_all(handles))
+                    .await;
             *semaphore = Arc::new(Semaphore::new(*current_max_workers));
             worker_ctx.semaphore = semaphore.clone();
         }
         // Check if success_cooldown_secs changed
-        if let Ok(Some(s)) = self.hybrid_db.store().get_agent_config("success_cooldown_secs")
+        if let Ok(Some(s)) = self
+            .hybrid_db
+            .store()
+            .get_agent_config("success_cooldown_secs")
             && let Ok(new_val) = s.parse::<u64>()
             && new_val != worker_ctx.success_cooldown_secs.load(Ordering::Relaxed)
         {
-            let old_val = worker_ctx.success_cooldown_secs.swap(new_val, Ordering::Relaxed);
-            info!("⚡ Success Cooldown changed: {old_val}s -> {new_val}s (live-applied to all workers)");
+            let old_val = worker_ctx
+                .success_cooldown_secs
+                .swap(new_val, Ordering::Relaxed);
+            info!(
+                "⚡ Success Cooldown changed: {old_val}s -> {new_val}s (live-applied to all workers)"
+            );
         }
 
         // Load new device list
@@ -382,7 +406,8 @@ impl Orchestrator {
             }
         };
 
-        let new_configs: HashMap<String, WorkerConfig> = new_devices.iter()
+        let new_configs: HashMap<String, WorkerConfig> = new_devices
+            .iter()
             .map(|d| (d.id.clone(), to_worker_config(d)))
             .collect();
 
@@ -420,7 +445,10 @@ impl Orchestrator {
                 let _ = tokio::time::timeout(Duration::from_secs(5), old_handle).await;
             }
             let new_config = &new_configs[id];
-            info!("🔄 [{}] Config changed (ip/port/brand/password), restarting worker", new_config.name);
+            info!(
+                "🔄 [{}] Config changed (ip/port/brand/password), restarting worker",
+                new_config.name
+            );
             let token = CancellationToken::new();
             let handle = spawn_worker(new_config.clone(), worker_ctx.clone(), token.clone());
             worker_registry.insert(id.clone(), (new_config.clone(), token, handle));
@@ -429,7 +457,10 @@ impl Orchestrator {
         // Apply: spawn new devices
         for id in &to_add {
             let new_config = &new_configs[id];
-            info!("➕ [{}] New device detected, spawning worker ({})", new_config.name, new_config.ip);
+            info!(
+                "➕ [{}] New device detected, spawning worker ({})",
+                new_config.name, new_config.ip
+            );
             let token = CancellationToken::new();
             let handle = spawn_worker(new_config.clone(), worker_ctx.clone(), token.clone());
             worker_registry.insert(id.clone(), (new_config.clone(), token, handle));
@@ -471,7 +502,10 @@ pub fn spawn_worker(
     let zk_connect_timeout_secs = ctx.zk_connect_timeout_secs;
 
     tokio::spawn(async move {
-        info!("[{}] Device Polling Loop started ({})", config.name, config.ip);
+        info!(
+            "[{}] Device Polling Loop started ({})",
+            config.name, config.ip
+        );
 
         // Stagger startup: random delay 0-2s per worker to prevent thundering herd
         let stagger = Duration::from_millis(rand::thread_rng().gen_range(0..2000));
@@ -490,7 +524,10 @@ pub fn spawn_worker(
         while !token.is_cancelled() {
             if retry_count > 0 {
                 let delay = get_sidecar_retry_delay(retry_count);
-                warn!("[{}] Retry {}/{}, waiting {:?}...", config.name, retry_count, SIDECAR_MAX_RETRY_COUNT, delay);
+                warn!(
+                    "[{}] Retry {}/{}, waiting {:?}...",
+                    config.name, retry_count, SIDECAR_MAX_RETRY_COUNT, delay
+                );
                 sleep(delay).await;
             }
 
@@ -498,14 +535,18 @@ pub fn spawn_worker(
             let _connect_permit = match sem.acquire().await {
                 Ok(p) => p,
                 Err(_) => {
-                    error!("[{}] Semaphore closed during connect phase, stopping worker", config.name);
+                    error!(
+                        "[{}] Semaphore closed during connect phase, stopping worker",
+                        config.name
+                    );
                     return;
                 }
             };
 
             // Device lock covers connect + initial get_info to prevent
             // commands from racing with the connection setup phase.
-            let connect_device_lock = device_locks.entry(config.id.clone())
+            let connect_device_lock = device_locks
+                .entry(config.id.clone())
                 .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
                 .clone();
             let _connect_device_guard = connect_device_lock.lock().await;
@@ -515,7 +556,12 @@ pub fn spawn_worker(
             } else {
                 // Apply global legacy checksum if set, otherwise use per-device config
                 let checksum = config.use_legacy_checksum.or(zk_legacy_checksum);
-                Box::new(zk_worker::ZkWorker::new(config.password, checksum, zk_connect_timeout_secs, ctx.inflight_timeout_secs))
+                Box::new(zk_worker::ZkWorker::new(
+                    config.password,
+                    checksum,
+                    zk_connect_timeout_secs,
+                    ctx.inflight_timeout_secs,
+                ))
             };
 
             info!("[{}] Worker ready (permit acquired).", config.name);
@@ -531,20 +577,37 @@ pub fn spawn_worker(
 
             // Smart checksum memory: persist detected mode for future connects
             if let Some(detected) = worker_impl.detected_checksum_mode() {
-                if let Err(e) = hybrid_db.store().update_device_checksum(&config.id, detected) {
-                    warn!("[{}] Failed to persist detected checksum: {}", config.name, e);
+                if let Err(e) = hybrid_db
+                    .store()
+                    .update_device_checksum(&config.id, detected)
+                {
+                    warn!(
+                        "[{}] Failed to persist detected checksum: {}",
+                        config.name, e
+                    );
                 } else {
-                    debug!("[{}] Persisted detected checksum: {}",
-                           config.name, if detected { "legacy" } else { "modern" });
+                    debug!(
+                        "[{}] Persisted detected checksum: {}",
+                        config.name,
+                        if detected { "legacy" } else { "modern" }
+                    );
                 }
             }
 
             match worker_impl.get_info(ctx.time_sync.as_ref()).await {
                 Ok(info) => {
-                    update_metadata_from_info(hybrid_db.store(), &config.id, &info, ctx.time_sync.corrected_timestamp());
+                    update_metadata_from_info(
+                        hybrid_db.store(),
+                        &config.id,
+                        &info,
+                        ctx.time_sync.corrected_timestamp(),
+                    );
                 }
                 Err(e) => {
-                    warn!("[{}] Initial get_info failed: {}, disconnecting and retrying...", config.name, e);
+                    warn!(
+                        "[{}] Initial get_info failed: {}, disconnecting and retrying...",
+                        config.name, e
+                    );
                     worker_impl.disconnect().await;
                     drop(_connect_device_guard);
                     drop(_connect_permit);
@@ -561,7 +624,8 @@ pub fn spawn_worker(
             let mut seen_logs: HashSet<u64> = HashSet::with_capacity(100_000);
             const SEEN_LOGS_CAP: usize = 200_000;
 
-            let mut polling_state = AdaptivePollingState::with_cooldown(success_cooldown.load(Ordering::Relaxed));
+            let mut polling_state =
+                AdaptivePollingState::with_cooldown(success_cooldown.load(Ordering::Relaxed));
             let mut poll_count = 0;
             let mut proactive_cooldown = false;
 
@@ -571,8 +635,10 @@ pub fn spawn_worker(
 
                 // Check connection lifetime — force reconnect if exceeded
                 if connected_at.elapsed() >= Duration::from_secs(connection_max_lifetime) {
-                    info!("[{}] Connection lifetime exceeded ({}s), reconnecting...",
-                          config.name, connection_max_lifetime);
+                    info!(
+                        "[{}] Connection lifetime exceeded ({}s), reconnecting...",
+                        config.name, connection_max_lifetime
+                    );
                     break;
                 }
 
@@ -584,7 +650,8 @@ pub fn spawn_worker(
                     }
                 };
 
-                let device_lock = device_locks.entry(config.id.clone())
+                let device_lock = device_locks
+                    .entry(config.id.clone())
                     .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
                     .clone();
                 let _device_guard = device_lock.lock().await;
@@ -594,50 +661,77 @@ pub fn spawn_worker(
                 if poll_count % 5 == 1 {
                     match worker_impl.get_info(ctx.time_sync.as_ref()).await {
                         Ok(mut info) => {
-                            update_metadata_from_info(hybrid_db.store(), &config.id, &info, ctx.time_sync.corrected_timestamp());
+                            update_metadata_from_info(
+                                hybrid_db.store(),
+                                &config.id,
+                                &info,
+                                ctx.time_sync.corrected_timestamp(),
+                            );
 
-                            if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&config.id) {
+                            if info["logs_count"].as_i64() == Some(-1)
+                                && let Ok(Some(meta)) =
+                                    hybrid_db.store().get_device_metadata(&config.id)
+                            {
                                 info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
                                 info["users_count"] = json!(meta.users_count.unwrap_or(0));
                             }
                         }
                         Err(e) => {
-                            error!("[{}] Periodic get_info failed: {}, disconnecting...", config.name, e);
+                            error!(
+                                "[{}] Periodic get_info failed: {}, disconnecting...",
+                                config.name, e
+                            );
                             break;
                         }
                     }
                 }
 
-
-
                 // Heartbeat: lightweight ping before heavy fetch to detect silent UDP loss
                 if !worker_impl.ping().await {
-                    warn!("[{}] Heartbeat ping failed, connection lost — reconnecting...", config.name);
+                    warn!(
+                        "[{}] Heartbeat ping failed, connection lost — reconnecting...",
+                        config.name
+                    );
                     break;
                 }
 
                 match worker_impl.get_attendance_logs().await {
                     Ok(logs_vec) => {
                         if let Some(since) = stable_since
-                            && since.elapsed() >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS) && retry_count > 0 {
-                                info!("[{}] Connection stable for {}s, resetting retry count", config.name, SIDECAR_STABILITY_THRESHOLD_SECS);
-                                retry_count = 0;
-                            }
+                            && since.elapsed()
+                                >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS)
+                            && retry_count > 0
+                        {
+                            info!(
+                                "[{}] Connection stable for {}s, resetting retry count",
+                                config.name, SIDECAR_STABILITY_THRESHOLD_SECS
+                            );
+                            retry_count = 0;
+                        }
 
                         let mut new_count = 0;
                         {
                             let fetched_count = logs_vec.len();
                             let mut duplicate_count = 0;
 
-                            let _ = hybrid_db.store().update_device_counts(&config.id, -1, fetched_count as i64, ctx.time_sync.corrected_timestamp());
+                            let _ = hybrid_db.store().update_device_counts(
+                                &config.id,
+                                -1,
+                                fetched_count as i64,
+                                ctx.time_sync.corrected_timestamp(),
+                            );
 
                             #[allow(unused_variables)]
                             let mut quick_info = json!({
                                 "logs_count": fetched_count,
                             });
-                            if let Ok(Some(meta)) = hybrid_db.store().get_device_metadata(&config.id) {
+                            if let Ok(Some(meta)) =
+                                hybrid_db.store().get_device_metadata(&config.id)
+                            {
                                 quick_info["users_count"] = json!(meta.users_count.unwrap_or(0));
-                                if let Some(mac) = meta.mac { quick_info["mac"] = json!(mac); }
+                                if let Some(mac) = meta.mac {
+                                    quick_info["mac"] = json!(mac);
+                                }
                             }
 
                             if !logs_vec.is_empty() {
@@ -648,8 +742,13 @@ pub fn spawn_worker(
                                     let key = hasher.finish();
 
                                     if seen_logs.insert(key) {
-                                        if let Err(e) = log_tx.send((worker_id.clone(), attendance)).await {
-                                            error!("[{}] Failed to send attendance log: {}", config.name, e);
+                                        if let Err(e) =
+                                            log_tx.send((worker_id.clone(), attendance)).await
+                                        {
+                                            error!(
+                                                "[{}] Failed to send attendance log: {}",
+                                                config.name, e
+                                            );
                                         }
                                         new_count += 1;
                                     } else {
@@ -660,30 +759,48 @@ pub fn spawn_worker(
                                 if seen_logs.len() > SEEN_LOGS_CAP {
                                     seen_logs.clear();
                                     seen_logs.shrink_to(100_000);
-                                    info!("[{}] Cleared seen_logs cache (>{} entries)", config.name, SEEN_LOGS_CAP);
+                                    info!(
+                                        "[{}] Cleared seen_logs cache (>{} entries)",
+                                        config.name, SEEN_LOGS_CAP
+                                    );
                                 }
 
                                 if duplicate_count > 0 {
-                                    info!("[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
-                                            config.name, fetched_count, new_count, duplicate_count, polling_state.interval());
+                                    info!(
+                                        "[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
+                                        config.name,
+                                        fetched_count,
+                                        new_count,
+                                        duplicate_count,
+                                        polling_state.interval()
+                                    );
                                 } else {
-                                    info!("[{}] Fetched {} logs [interval: {}s]", config.name, fetched_count, polling_state.interval());
+                                    info!(
+                                        "[{}] Fetched {} logs [interval: {}s]",
+                                        config.name,
+                                        fetched_count,
+                                        polling_state.interval()
+                                    );
                                 }
                             }
                         }
 
                         let (new_interval, changed) = polling_state.update(new_count > 0);
                         if changed && new_count == 0 {
-                            debug!("[{}] No new data for {} polls, increasing interval: {}s",
-                                  config.name, polling_state.consecutive_no_new_data, new_interval);
+                            debug!(
+                                "[{}] No new data for {} polls, increasing interval: {}s",
+                                config.name, polling_state.consecutive_no_new_data, new_interval
+                            );
                         }
 
                         // Proactive disconnect: if cooldown interval exceeds session-safe
                         // limit, disconnect device to free connection slot, sleep, then
                         // reconnect via outer loop.
                         if polling_state.needs_disconnect() {
-                            info!("[{}] Cooldown {}s, disconnecting to free device slot...",
-                                  config.name, new_interval);
+                            info!(
+                                "[{}] Cooldown {}s, disconnecting to free device slot...",
+                                config.name, new_interval
+                            );
                             drop(_device_guard);
                             drop(_permit);
                             worker_impl.disconnect().await;
@@ -692,7 +809,8 @@ pub fn spawn_worker(
                                 _ = sleep(Duration::from_secs(new_interval)) => {}
                             }
                             // Reset interval to base for fresh reconnect
-                            polling_state.current_interval_secs = crate::adaptive_polling::BASE_POLL_INTERVAL_SECS;
+                            polling_state.current_interval_secs =
+                                crate::adaptive_polling::BASE_POLL_INTERVAL_SECS;
                             polling_state.consecutive_no_new_data = 0;
                             proactive_cooldown = true;
                             break; // → outer loop reconnects cleanly
@@ -706,7 +824,8 @@ pub fn spawn_worker(
 
                 drop(_device_guard);
                 drop(_permit);
-                let capped_interval = std::cmp::min(polling_state.interval(), SESSION_SAFE_INTERVAL_SECS);
+                let capped_interval =
+                    std::cmp::min(polling_state.interval(), SESSION_SAFE_INTERVAL_SECS);
                 // Cancel-aware sleep: respond to shutdown immediately instead of
                 // sleeping the full interval while new worker is waiting
                 tokio::select! {
@@ -726,11 +845,15 @@ pub fn spawn_worker(
 
                 // Reconnect frequency monitoring
                 let now = Instant::now();
-                reconnect_timestamps.retain(|ts| now.duration_since(*ts).as_secs() < RECONNECT_WINDOW_SECS);
+                reconnect_timestamps
+                    .retain(|ts| now.duration_since(*ts).as_secs() < RECONNECT_WINDOW_SECS);
                 reconnect_timestamps.push(now);
                 if reconnect_timestamps.len() >= RECONNECT_WARN_THRESHOLD {
-                    warn!("⚠️ [{}] High reconnect frequency: {} reconnects in the last hour — possible firmware or network issue",
-                          config.name, reconnect_timestamps.len());
+                    warn!(
+                        "⚠️ [{}] High reconnect frequency: {} reconnects in the last hour — possible firmware or network issue",
+                        config.name,
+                        reconnect_timestamps.len()
+                    );
                 }
             } else if proactive_cooldown {
                 info!("[{}] Cooldown complete, reconnecting...", config.name);

@@ -10,7 +10,8 @@ use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_shift_versioning_update() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
@@ -42,7 +43,9 @@ async fn test_shift_versioning_update() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let body = axum::body::to_bytes(response.into_body(), 10000).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), 10000)
+        .await
+        .unwrap();
     let created_shift: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let shift_id = created_shift["id"].as_str().unwrap();
 
@@ -64,7 +67,10 @@ async fn test_shift_versioning_update() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/workspaces/{}/shifts/{}", workspace_id, shift_id))
+                .uri(format!(
+                    "/api/workspaces/{}/shifts/{}",
+                    workspace_id, shift_id
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())

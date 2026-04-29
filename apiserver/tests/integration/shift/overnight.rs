@@ -14,18 +14,24 @@ async fn test_overnight_shift_pairing() {
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().with_timezone("Asia/Ho_Chi_Minh").create_with_owner(user_id).await;
+    let ws_id = factory
+        .workspace()
+        .with_timezone("Asia/Ho_Chi_Minh")
+        .create_with_owner(user_id)
+        .await;
     let employee_id = factory.employee().with_workspace(ws_id).create().await;
 
     // 1. Overnight Shift: 22:00 -> 06:00
-    let shift_id = factory.shift()
+    let shift_id = factory
+        .shift()
         .with_workspace(ws_id)
         .with_name("Night Shift")
         .with_times(
             NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
-            NaiveTime::from_hms_opt(6, 0, 0).unwrap()
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
         )
-        .create().await;
+        .create()
+        .await;
 
     let shift_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
 
@@ -36,8 +42,20 @@ async fn test_overnight_shift_pairing() {
 
     // 2. Insert Logs
     let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
-    let punch_in_utc = tz.from_local_datetime(&shift_date.and_hms_opt(21, 55, 0).unwrap()).single().unwrap().with_timezone(&Utc);
-    let punch_out_utc = tz.from_local_datetime(&(shift_date + Duration::days(1)).and_hms_opt(6, 5, 0).unwrap()).single().unwrap().with_timezone(&Utc);
+    let punch_in_utc = tz
+        .from_local_datetime(&shift_date.and_hms_opt(21, 55, 0).unwrap())
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out_utc = tz
+        .from_local_datetime(
+            &(shift_date + Duration::days(1))
+                .and_hms_opt(6, 5, 0)
+                .unwrap(),
+        )
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
 
     sqlx::query("INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source) VALUES ($1, $2, $3, $4, $5)")
         .bind(Uuid::new_v4()).bind(ws_id).bind(employee_id).bind(punch_in_utc).bind(LogSource::Device as LogSource)
@@ -48,8 +66,19 @@ async fn test_overnight_shift_pairing() {
         .execute(&pool).await.unwrap();
 
     // 3. Process Pairing
-    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    apiserver::services::pairing_service::PairingService::new(repo, std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone()).reprocess_daily_attendance(ws_id, employee_id, shift_date, tz).await.unwrap();
+    let repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        pool.clone(),
+    ));
+    apiserver::services::pairing_service::PairingService::new(
+        repo,
+        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+            pool.clone(),
+        )),
+        pool.clone(),
+    )
+    .reprocess_daily_attendance(ws_id, employee_id, shift_date, tz)
+    .await
+    .unwrap();
 
     // 4. Verify
     let entry = sqlx::query!("SELECT punch_in_time, punch_out_time, duration_minutes FROM time_entries WHERE employee_id = $1", employee_id)

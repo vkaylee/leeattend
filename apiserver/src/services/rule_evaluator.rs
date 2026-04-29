@@ -156,30 +156,60 @@ mod tests {
             None,
         );
 
-        assert!(RuleEvaluator::matches(&make_ctx(None, "EMP001", vec![]), &rule));
-        assert!(RuleEvaluator::matches(&make_ctx(None, "EMP002", vec![]), &rule));
-        assert!(!RuleEvaluator::matches(&make_ctx(None, "EMP999", vec![]), &rule));
+        assert!(RuleEvaluator::matches(
+            &make_ctx(None, "EMP001", vec![]),
+            &rule
+        ));
+        assert!(RuleEvaluator::matches(
+            &make_ctx(None, "EMP002", vec![]),
+            &rule
+        ));
+        assert!(!RuleEvaluator::matches(
+            &make_ctx(None, "EMP999", vec![]),
+            &rule
+        ));
     }
 
     #[test]
     fn test_matches_tag_intersection() {
-        let rule = make_rule("Tag Rule", 1, None, None, Some(vec!["vip".into(), "night".into()]));
+        let rule = make_rule(
+            "Tag Rule",
+            1,
+            None,
+            None,
+            Some(vec!["vip".into(), "night".into()]),
+        );
 
         // Employee has one matching tag
-        assert!(RuleEvaluator::matches(&make_ctx(None, "EMP001", vec!["vip"]), &rule));
+        assert!(RuleEvaluator::matches(
+            &make_ctx(None, "EMP001", vec!["vip"]),
+            &rule
+        ));
         // Employee has different matching tag
-        assert!(RuleEvaluator::matches(&make_ctx(None, "EMP001", vec!["night", "other"]), &rule));
+        assert!(RuleEvaluator::matches(
+            &make_ctx(None, "EMP001", vec!["night", "other"]),
+            &rule
+        ));
         // Employee has no matching tags
-        assert!(!RuleEvaluator::matches(&make_ctx(None, "EMP001", vec!["day"]), &rule));
+        assert!(!RuleEvaluator::matches(
+            &make_ctx(None, "EMP001", vec!["day"]),
+            &rule
+        ));
         // Employee has no tags
-        assert!(!RuleEvaluator::matches(&make_ctx(None, "EMP001", vec![]), &rule));
+        assert!(!RuleEvaluator::matches(
+            &make_ctx(None, "EMP001", vec![]),
+            &rule
+        ));
     }
 
     #[test]
     fn test_matches_empty_tags_is_catch_all() {
         let rule = make_rule("Empty Tags", 1, None, None, Some(vec![]));
         // Empty tag list means "no tag restriction"
-        assert!(RuleEvaluator::matches(&make_ctx(None, "EMP001", vec![]), &rule));
+        assert!(RuleEvaluator::matches(
+            &make_ctx(None, "EMP001", vec![]),
+            &rule
+        ));
     }
 
     #[test]
@@ -194,13 +224,25 @@ mod tests {
         );
 
         // All match
-        assert!(RuleEvaluator::matches(&make_ctx(Some(dept_id), "EMP001", vec!["vip"]), &rule));
+        assert!(RuleEvaluator::matches(
+            &make_ctx(Some(dept_id), "EMP001", vec!["vip"]),
+            &rule
+        ));
         // Dept mismatch
-        assert!(!RuleEvaluator::matches(&make_ctx(Some(Uuid::new_v4()), "EMP001", vec!["vip"]), &rule));
+        assert!(!RuleEvaluator::matches(
+            &make_ctx(Some(Uuid::new_v4()), "EMP001", vec!["vip"]),
+            &rule
+        ));
         // ID mismatch
-        assert!(!RuleEvaluator::matches(&make_ctx(Some(dept_id), "EMP999", vec!["vip"]), &rule));
+        assert!(!RuleEvaluator::matches(
+            &make_ctx(Some(dept_id), "EMP999", vec!["vip"]),
+            &rule
+        ));
         // Tag mismatch
-        assert!(!RuleEvaluator::matches(&make_ctx(Some(dept_id), "EMP001", vec!["day"]), &rule));
+        assert!(!RuleEvaluator::matches(
+            &make_ctx(Some(dept_id), "EMP001", vec!["day"]),
+            &rule
+        ));
     }
 
     // --- resolve_rule() tests ---
@@ -279,7 +321,11 @@ mod tests {
         assert_eq!(winner.unwrap().name, "Only Rule");
         assert_eq!(traces.len(), 1);
         assert_eq!(traces[0].status, "applied");
-        assert!(traces[0].reason.as_ref().unwrap().contains("Highest priority"));
+        assert!(traces[0]
+            .reason
+            .as_ref()
+            .unwrap()
+            .contains("Highest priority"));
     }
 
     #[test]
@@ -296,7 +342,13 @@ mod tests {
         // Rules are evaluated in array order (not by priority number)
         let dept_id = Uuid::new_v4();
         let rules = vec![
-            make_rule("Specific", 1, Some(dept_id), Some(vec!["EMP001".into()]), None),
+            make_rule(
+                "Specific",
+                1,
+                Some(dept_id),
+                Some(vec!["EMP001".into()]),
+                None,
+            ),
             make_rule("General", 2, None, None, None),
         ];
         let ctx = make_ctx(Some(dept_id), "EMP001", vec![]);
@@ -308,7 +360,13 @@ mod tests {
     fn test_resolve_rule_general_fallback_when_specific_fails() {
         let dept_id = Uuid::new_v4();
         let rules = vec![
-            make_rule("Specific", 1, Some(dept_id), Some(vec!["EMP999".into()]), None),
+            make_rule(
+                "Specific",
+                1,
+                Some(dept_id),
+                Some(vec!["EMP999".into()]),
+                None,
+            ),
             make_rule("General", 2, None, None, None),
         ];
         let ctx = make_ctx(Some(dept_id), "EMP001", vec![]);
@@ -335,9 +393,17 @@ mod tests {
 
     #[test]
     fn test_matches_multiple_tags_only_one_needed() {
-        let rule = make_rule("Multi Tag", 1, None, None, Some(vec!["a".into(), "b".into(), "c".into()]));
+        let rule = make_rule(
+            "Multi Tag",
+            1,
+            None,
+            None,
+            Some(vec!["a".into(), "b".into(), "c".into()]),
+        );
         // Employee has only tag "b" — should still match (intersection: at least one)
-        assert!(RuleEvaluator::matches(&make_ctx(None, "EMP001", vec!["b"]), &rule));
+        assert!(RuleEvaluator::matches(
+            &make_ctx(None, "EMP001", vec!["b"]),
+            &rule
+        ));
     }
 }
-

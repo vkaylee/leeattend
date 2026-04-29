@@ -1,12 +1,13 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { test as base, expect } from '@playwright/test';
-import { LoginPage } from './pom/LoginPage';
-import { Sidebar } from './pom/Sidebar';
-import { EmployeesPage } from './pom/EmployeesPage';
-import { ConnectivityPage } from './pom/ConnectivityPage';
-import { DevicesPage } from './pom/DevicesPage';
+
 import { setupApiMocks } from './mocks/api-intercept';
 import { MOCK_USER, MOCK_WORKSPACE } from './mocks/mock-data';
+import { ConnectivityPage } from './pom/ConnectivityPage';
+import { DevicesPage } from './pom/DevicesPage';
+import { EmployeesPage } from './pom/EmployeesPage';
+import { LoginPage } from './pom/LoginPage';
+import { Sidebar } from './pom/Sidebar';
 
 export { expect };
 

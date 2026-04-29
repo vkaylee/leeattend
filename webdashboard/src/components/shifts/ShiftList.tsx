@@ -1,8 +1,10 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+
 import { ChevronRight, Clock, Zap, Pencil, Trash2 } from "lucide-react";
-import { Shift } from "../../lib/api";
+import { useTranslation } from "react-i18next";
+
 import { useDateTimeFormatter } from "../../hooks/use-datetime";
+import { Shift } from "../../lib/api";
 
 interface ShiftListProps {
   shifts: Shift[] | undefined;

@@ -6,8 +6,8 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use std::time::Duration;
+use tokio::sync::Mutex;
 
 use chrono::{NaiveDate, NaiveTime, Utc};
 use moka::future::Cache;
@@ -178,10 +178,11 @@ pub async fn build_roster_data(
     )
     .fetch_all(pool);
 
-    let q6 = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(
-        pool,
-        workspace_id,
-    );
+    let q6 =
+        crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(
+            pool,
+            workspace_id,
+        );
 
     let q7 = sqlx::query!(
         r#"
@@ -224,16 +225,37 @@ pub async fn build_roster_data(
         Vec<_>,
         Vec<crate::models::AssignmentRule>,
         Vec<_>,
-        Vec<_>
+        Vec<_>,
     ) = tokio::try_join!(
         async { q1.await.map_err(|e: sqlx::Error| format!("shifts: {e}")) },
-        async { q2.await.map_err(|e: sqlx::Error| format!("fixed_assignments: {e}")) },
-        async { q3.await.map_err(|e: sqlx::Error| format!("pattern_assignments: {e}")) },
-        async { q4.await.map_err(|e: sqlx::Error| format!("dept_patterns: {e}")) },
-        async { q5.await.map_err(|e: sqlx::Error| format!("dept_fixed_shifts: {e}")) },
-        async { q6.await.map_err(|e: sqlx::Error| format!("active_rules: {e}")) },
-        async { q7.await.map_err(|e: sqlx::Error| format!("rule_patterns: {e}")) },
-        async { q8.await.map_err(|e: sqlx::Error| format!("dept_history: {e}")) },
+        async {
+            q2.await
+                .map_err(|e: sqlx::Error| format!("fixed_assignments: {e}"))
+        },
+        async {
+            q3.await
+                .map_err(|e: sqlx::Error| format!("pattern_assignments: {e}"))
+        },
+        async {
+            q4.await
+                .map_err(|e: sqlx::Error| format!("dept_patterns: {e}"))
+        },
+        async {
+            q5.await
+                .map_err(|e: sqlx::Error| format!("dept_fixed_shifts: {e}"))
+        },
+        async {
+            q6.await
+                .map_err(|e: sqlx::Error| format!("active_rules: {e}"))
+        },
+        async {
+            q7.await
+                .map_err(|e: sqlx::Error| format!("rule_patterns: {e}"))
+        },
+        async {
+            q8.await
+                .map_err(|e: sqlx::Error| format!("dept_history: {e}"))
+        },
     )?;
 
     // Transform rows into lookup structures
@@ -310,7 +332,10 @@ pub async fn build_roster_data(
 
     let mut rule_patterns: HashMap<(Uuid, i32), Vec<Option<Uuid>>> = HashMap::new();
     for r in rule_pattern_rows {
-        rule_patterns.entry((r.pattern_id, r.day_of_week)).or_default().push(r.shift_id);
+        rule_patterns
+            .entry((r.pattern_id, r.day_of_week))
+            .or_default()
+            .push(r.shift_id);
     }
 
     let mut dept_history: HashMap<Uuid, Vec<RosterDeptHistory>> = HashMap::new();
@@ -466,11 +491,7 @@ impl RosterCache {
             let result = build_roster_data(pool, workspace_id).await;
 
             // Remove ourselves from the inflight map and retrieve the sender.
-            let sender = self
-                .inflight
-                .lock()
-                .await
-                .remove(&workspace_id);
+            let sender = self.inflight.lock().await.remove(&workspace_id);
 
             // Notify all followers (ignore error if no receivers remain).
             if let Some(sender) = sender {
@@ -653,7 +674,10 @@ mod tests {
         let mut rule_patterns: HashMap<(Uuid, i32), Vec<Option<Uuid>>> = HashMap::new();
 
         let shift_id = Some(Uuid::new_v4());
-        rule_patterns.entry((pattern_id, 1)).or_default().push(shift_id);
+        rule_patterns
+            .entry((pattern_id, 1))
+            .or_default()
+            .push(shift_id);
         rule_patterns.entry((pattern_id, 2)).or_default().push(None);
 
         assert_eq!(rule_patterns[&(pattern_id, 1)], vec![shift_id]);

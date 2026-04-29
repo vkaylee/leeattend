@@ -1,17 +1,21 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
-import { useMyProfile, useMyClock } from "@/hooks/use-ess";
-import { useToast } from "@/components/ui/Toast";
-import { fetchWorkspace, getCurrentWorkspaceId, submitAttendanceAdjustment } from "@/lib/api";
-import { toUTCISO } from "@/lib/datetime";
-import { PunchCard } from "@/components/time-tracking/PunchCard";
-import { TimeEntryRow } from "@/components/time-tracking/TimeEntryRow";
+import { useTranslation } from "react-i18next";
+
 import {
   AdjustmentRequestModal,
   AdjustmentData,
 } from "@/components/time-tracking/AdjustmentRequestModal";
+import { PunchCard } from "@/components/time-tracking/PunchCard";
+import { TimeEntryRow } from "@/components/time-tracking/TimeEntryRow";
+import { useToast } from "@/components/ui/Toast";
+
+import { useMyProfile, useMyClock } from "@/hooks/use-ess";
+import { fetchWorkspace, getCurrentWorkspaceId, submitAttendanceAdjustment } from "@/lib/api";
+import { toUTCISO } from "@/lib/datetime";
+
 
 export default function MyClockPage() {
   const { t } = useTranslation();

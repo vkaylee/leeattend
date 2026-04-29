@@ -10,10 +10,10 @@ use axum::{
     http::request::Parts,
     Json,
 };
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
-use serde::{Deserialize, Serialize};
 
 // --- Extractors ---
 
@@ -83,9 +83,7 @@ impl MemberContext {
         if self.has_permission(perm) {
             Ok(())
         } else {
-            Err(AppError::Forbidden(format!(
-                "Missing permission: {perm:?}"
-            )))
+            Err(AppError::Forbidden(format!("Missing permission: {perm:?}")))
         }
     }
 
@@ -124,7 +122,8 @@ impl MemberContext {
         let has_perm = perms.iter().any(|&p| self.has_permission(p));
         if !has_perm {
             return Err(AppError::Forbidden(format!(
-                "Missing any of permissions: {:?}", perms
+                "Missing any of permissions: {:?}",
+                perms
             )));
         }
 
@@ -227,7 +226,8 @@ impl MemberContext {
     ) -> Result<CachedMemberContext, String> {
         // 1. Fetch Primary Role
         let primary_role = app_state
-            .core.workspace_repo
+            .core
+            .workspace_repo
             .find_primary_role(workspace_id, user_id)
             .await
             .map_err(|e| e.to_string())?
@@ -235,7 +235,8 @@ impl MemberContext {
 
         // 2. Fetch Active Extra Roles
         let all_extra_roles = app_state
-            .core.workspace_repo
+            .core
+            .workspace_repo
             .find_extra_roles(workspace_id, user_id)
             .await
             .map_err(|e| e.to_string())?;
@@ -250,7 +251,7 @@ impl MemberContext {
 
         // Compute effective permissions from all roles via DB
         let db_perms = sqlx::query_scalar::<_, String>(
-            "SELECT permission_name FROM workspace_role_permissions WHERE role_id = ANY($1)"
+            "SELECT permission_name FROM workspace_role_permissions WHERE role_id = ANY($1)",
         )
         .bind(&roles)
         .fetch_all(app_state.infra.db.api())
@@ -308,7 +309,10 @@ impl MemberContext {
 
         Ok(CachedMemberContext {
             roles,
-            permissions: permissions.into_iter().map(|p| p.to_str_permission().to_string()).collect(),
+            permissions: permissions
+                .into_iter()
+                .map(|p| p.to_str_permission().to_string())
+                .collect(),
             managed_department_ids,
         })
     }
@@ -392,7 +396,11 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
-    fn make_ctx(roles: Vec<Uuid>, perms: HashSet<Permission>, managed: Option<HashSet<Uuid>>) -> MemberContext {
+    fn make_ctx(
+        roles: Vec<Uuid>,
+        perms: HashSet<Permission>,
+        managed: Option<HashSet<Uuid>>,
+    ) -> MemberContext {
         MemberContext {
             user_id: Uuid::new_v4(),
             workspace_id: Uuid::new_v4(),
@@ -453,7 +461,9 @@ mod tests {
         // managed_department_ids = None means global scope
         let ctx = make_ctx(vec![], perms, None);
         let dept_id = Uuid::new_v4();
-        assert!(ctx.require_scoped_permission(Permission::EmployeesRead, Some(dept_id)).is_ok());
+        assert!(ctx
+            .require_scoped_permission(Permission::EmployeesRead, Some(dept_id))
+            .is_ok());
     }
 
     #[test]
@@ -464,7 +474,9 @@ mod tests {
         let mut managed = HashSet::new();
         managed.insert(dept_id);
         let ctx = make_ctx(vec![], perms, Some(managed));
-        assert!(ctx.require_scoped_permission(Permission::EmployeesRead, Some(dept_id)).is_ok());
+        assert!(ctx
+            .require_scoped_permission(Permission::EmployeesRead, Some(dept_id))
+            .is_ok());
     }
 
     #[test]
@@ -474,7 +486,9 @@ mod tests {
         let managed = HashSet::from([Uuid::new_v4()]);
         let ctx = make_ctx(vec![], perms, Some(managed));
         let other_dept = Uuid::new_v4();
-        assert!(ctx.require_scoped_permission(Permission::EmployeesRead, Some(other_dept)).is_err());
+        assert!(ctx
+            .require_scoped_permission(Permission::EmployeesRead, Some(other_dept))
+            .is_err());
     }
 
     #[test]
@@ -484,7 +498,9 @@ mod tests {
         let managed = HashSet::from([Uuid::new_v4()]);
         let ctx = make_ctx(vec![], perms, Some(managed));
         // target_department_id = None with scoped permissions → Forbidden
-        assert!(ctx.require_scoped_permission(Permission::EmployeesRead, None).is_err());
+        assert!(ctx
+            .require_scoped_permission(Permission::EmployeesRead, None)
+            .is_err());
     }
 
     #[test]
@@ -494,7 +510,9 @@ mod tests {
         let ctx = make_ctx(vec![], perms, None);
         let dept_id = Uuid::new_v4();
         let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1];
-        assert!(ctx.require_any_scoped_permission(&any_perms, Some(dept_id)).is_ok());
+        assert!(ctx
+            .require_any_scoped_permission(&any_perms, Some(dept_id))
+            .is_ok());
     }
 
     #[test]
@@ -505,8 +523,14 @@ mod tests {
         let mut managed = HashSet::new();
         managed.insert(dept_id);
         let ctx = make_ctx(vec![], perms, Some(managed));
-        let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1, Permission::LeaveApproveL2];
-        assert!(ctx.require_any_scoped_permission(&any_perms, Some(dept_id)).is_ok());
+        let any_perms = [
+            Permission::LeaveRequestsApprove,
+            Permission::LeaveApproveL1,
+            Permission::LeaveApproveL2,
+        ];
+        assert!(ctx
+            .require_any_scoped_permission(&any_perms, Some(dept_id))
+            .is_ok());
     }
 
     #[test]
@@ -517,7 +541,9 @@ mod tests {
         let ctx = make_ctx(vec![], perms, Some(managed));
         let other_dept = Uuid::new_v4();
         let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1];
-        assert!(ctx.require_any_scoped_permission(&any_perms, Some(other_dept)).is_err());
+        assert!(ctx
+            .require_any_scoped_permission(&any_perms, Some(other_dept))
+            .is_err());
     }
 
     #[test]
@@ -526,7 +552,9 @@ mod tests {
         perms.insert(Permission::EmployeesRead); // Has a different permission
         let ctx = make_ctx(vec![], perms, None);
         let any_perms = [Permission::LeaveRequestsApprove, Permission::LeaveApproveL1];
-        assert!(ctx.require_any_scoped_permission(&any_perms, Some(Uuid::new_v4())).is_err());
+        assert!(ctx
+            .require_any_scoped_permission(&any_perms, Some(Uuid::new_v4()))
+            .is_err());
     }
 
     #[test]

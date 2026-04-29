@@ -7,10 +7,13 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }));
-import PayrollTable from "../PayrollTable";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../ui/Toast";
 import { Payslip } from "@/lib/api/types";
+
+import { ToastProvider } from "../../ui/Toast";
+import PayrollTable from "../PayrollTable";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import React from "react";
 
 vi.mock("@/hooks/use-permissions", () => ({

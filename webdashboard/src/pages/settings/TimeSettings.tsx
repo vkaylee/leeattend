@@ -1,17 +1,21 @@
 import { useState, useEffect } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Calculator, Save, ShieldAlert, Settings2, LayoutGrid, Zap, RefreshCw, AlertTriangle, Plus, History, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/Toast";
-import Button from "@/components/ui/Button";
-import Modal from "@/components/ui/Modal";
-import { LABEL_BASE } from "@/components/ui/FormField";
-import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace, reprocessAllAttendance, fetchGenericJobStatus, fetchDefaultAttendanceRules, updateDefaultAttendanceRules, fetchAttendancePolicyVersions, AttendanceRules, AttendancePolicyVersion, UpdateAttendanceRulesRequest } from "@/lib/api";
-import { Combobox } from "@/components/ui/Combobox";
 import { useTranslation } from "react-i18next";
-import WorkingPatternsPage from "@/pages/WorkingPatternsPage";
-import AssignmentRulesPage from "@/pages/AssignmentRulesPage";
+
 import { PolicyAssignmentsSection } from "@/components/features/attendance/PolicyAssignmentsSection";
+import Button from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
+import { LABEL_BASE } from "@/components/ui/FormField";
+import Modal from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
+
+import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace, reprocessAllAttendance, fetchGenericJobStatus, fetchDefaultAttendanceRules, updateDefaultAttendanceRules, fetchAttendancePolicyVersions, AttendanceRules, AttendancePolicyVersion, UpdateAttendanceRulesRequest } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import AssignmentRulesPage from "@/pages/AssignmentRulesPage";
+import WorkingPatternsPage from "@/pages/WorkingPatternsPage";
+
 
 export default function TimeSettings() {
   const wsId = getCurrentWorkspaceId();

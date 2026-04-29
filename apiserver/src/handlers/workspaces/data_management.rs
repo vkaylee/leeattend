@@ -5,7 +5,6 @@ use axum::{
 use serde::Deserialize;
 use std::sync::Arc;
 
-
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::AppState;

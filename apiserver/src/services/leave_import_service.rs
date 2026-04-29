@@ -11,11 +11,12 @@ use std::io::Cursor;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::models::{LeaveDurationType, SubmitLeaveRequest};
 use crate::repositories::leave_balance_repository::SqlxLeaveBalanceRepository;
 use crate::repositories::leave_request_repository::SqlxLeaveRequestRepository;
 use crate::repositories::roster::SqlxRosterRepository;
-use crate::repositories::{SqlxEmployeeRepository, EmployeeRepository};
+use crate::repositories::{EmployeeRepository, SqlxEmployeeRepository};
 use crate::services::import_messages::LeaveImportMessages;
 use crate::services::leave_service::LeaveService;
 
@@ -69,15 +70,15 @@ impl LeaveImportService {
         user_id: Uuid,
         file_path: &str,
         auto_approve: bool,
-    ) -> Result<LeaveImportResult, String> {
+    ) -> AppResult<LeaveImportResult> {
         // Read file
         let file_bytes = tokio::fs::read(file_path)
             .await
-            .map_err(|e| format!("Failed to read file: {e}"))?;
+            .map_err(|e| AppError::Internal(format!("Failed to read file: {e}")))?;
 
         // Fetch workspace language for i18n messages
         let lang = sqlx::query_scalar::<_, String>(
-            "SELECT default_language FROM workspaces WHERE id = $1"
+            "SELECT default_language FROM workspaces WHERE id = $1",
         )
         .bind(workspace_id)
         .fetch_optional(&self.pool)
@@ -91,7 +92,7 @@ impl LeaveImportService {
         let (pending_rows, mut errors) = self.parse_file(&file_bytes, &msgs);
 
         if pending_rows.is_empty() && errors.is_empty() {
-            return Err(msgs.file_empty.to_string());
+            return Err(AppError::Validation(msgs.file_empty.to_string()));
         }
 
         // Build leave service for submission
@@ -127,7 +128,9 @@ impl LeaveImportService {
                         end_date_raw: row.end_date.to_string(),
                         reason: row.reason.clone().unwrap_or_default(),
                         duration_type_raw: format!("{:?}", row.duration_type),
-                        error_message: msgs.employee_not_found_tpl.replace("{}", &row.employee_id_number),
+                        error_message: msgs
+                            .employee_not_found_tpl
+                            .replace("{}", &row.employee_id_number),
                     });
                     continue;
                 }
@@ -145,7 +148,9 @@ impl LeaveImportService {
                         end_date_raw: row.end_date.to_string(),
                         reason: row.reason.clone().unwrap_or_default(),
                         duration_type_raw: format!("{:?}", row.duration_type),
-                        error_message: msgs.leave_type_not_found_tpl.replace("{}", &row.leave_type_code),
+                        error_message: msgs
+                            .leave_type_not_found_tpl
+                            .replace("{}", &row.leave_type_code),
                     });
                     continue;
                 }
@@ -222,7 +227,11 @@ impl LeaveImportService {
     }
 
     /// Parse file bytes into pending rows and parse-time errors.
-    fn parse_file(&self, file_bytes: &[u8], msgs: &LeaveImportMessages) -> (Vec<PendingLeaveRow>, Vec<ErrorRow>) {
+    fn parse_file(
+        &self,
+        file_bytes: &[u8],
+        msgs: &LeaveImportMessages,
+    ) -> (Vec<PendingLeaveRow>, Vec<ErrorRow>) {
         let mut pending = Vec::new();
         let mut errors = Vec::new();
 
@@ -358,7 +367,11 @@ impl LeaveImportService {
                 leave_type_code: leave_code,
                 start_date,
                 end_date,
-                reason: if reason.is_empty() { None } else { Some(reason) },
+                reason: if reason.is_empty() {
+                    None
+                } else {
+                    Some(reason)
+                },
                 duration_type,
             });
         }
@@ -461,7 +474,11 @@ impl LeaveImportService {
                 leave_type_code: leave_code,
                 start_date,
                 end_date,
-                reason: if reason.is_empty() { None } else { Some(reason) },
+                reason: if reason.is_empty() {
+                    None
+                } else {
+                    Some(reason)
+                },
                 duration_type,
             });
         }
@@ -471,14 +488,14 @@ impl LeaveImportService {
     async fn load_employee_map(
         &self,
         workspace_id: Uuid,
-    ) -> Result<std::collections::HashMap<String, Uuid>, String> {
+    ) -> AppResult<std::collections::HashMap<String, Uuid>> {
         let rows = sqlx::query!(
             "SELECT id, employee_id_number FROM employees WHERE workspace_id = $1",
             workspace_id
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| format!("Failed to load employees: {e}"))?;
+        .map_err(|e| AppError::Internal(format!("Failed to load employees: {e}")))?;
 
         let mut map = std::collections::HashMap::new();
         for row in rows {
@@ -491,14 +508,14 @@ impl LeaveImportService {
     async fn load_leave_type_map(
         &self,
         workspace_id: Uuid,
-    ) -> Result<std::collections::HashMap<String, Uuid>, String> {
+    ) -> AppResult<std::collections::HashMap<String, Uuid>> {
         let rows = sqlx::query!(
             "SELECT id, code FROM leave_types WHERE workspace_id = $1",
             workspace_id
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| format!("Failed to load leave types: {e}"))?;
+        .map_err(|e| AppError::Internal(format!("Failed to load leave types: {e}")))?;
 
         let mut map = std::collections::HashMap::new();
         for row in rows {
@@ -508,12 +525,12 @@ impl LeaveImportService {
     }
 
     /// Generate an error Excel file containing failed rows with error descriptions.
-    pub(crate) fn generate_error_excel(errors: &[ErrorRow], msgs: &LeaveImportMessages) -> Result<Vec<u8>, String> {
+    pub(crate) fn generate_error_excel(
+        errors: &[ErrorRow],
+        msgs: &LeaveImportMessages,
+    ) -> AppResult<Vec<u8>> {
         let mut workbook = Workbook::new();
-        let sheet = workbook
-            .add_worksheet()
-            .set_name(msgs.error_sheet_name)
-            .map_err(|e| e.to_string())?;
+        let sheet = workbook.add_worksheet().set_name(msgs.error_sheet_name)?;
 
         let header_fmt = Format::new()
             .set_bold()
@@ -528,37 +545,32 @@ impl LeaveImportService {
         let headers = msgs.error_headers;
 
         for (col, header) in headers.iter().enumerate() {
-            sheet
-                .write_string_with_format(0, col as u16, *header, &header_fmt)
-                .map_err(|e| e.to_string())?;
+            sheet.write_string_with_format(0, col as u16, *header, &header_fmt)?;
         }
 
         for (idx, err) in errors.iter().enumerate() {
             let row = (idx + 1) as u32;
-            sheet.write_number(row, 0, err.line_number as f64).map_err(|e| e.to_string())?;
-            sheet.write_string(row, 1, &err.employee_id_number).map_err(|e| e.to_string())?;
-            sheet.write_string(row, 2, &err.leave_type_code).map_err(|e| e.to_string())?;
-            sheet.write_string(row, 3, &err.start_date_raw).map_err(|e| e.to_string())?;
-            sheet.write_string(row, 4, &err.end_date_raw).map_err(|e| e.to_string())?;
-            sheet.write_string(row, 5, &err.reason).map_err(|e| e.to_string())?;
-            sheet.write_string(row, 6, &err.duration_type_raw).map_err(|e| e.to_string())?;
-            sheet
-                .write_string_with_format(row, 7, &err.error_message, &error_fmt)
-                .map_err(|e| e.to_string())?;
+            sheet.write_number(row, 0, err.line_number as f64)?;
+            sheet.write_string(row, 1, &err.employee_id_number)?;
+            sheet.write_string(row, 2, &err.leave_type_code)?;
+            sheet.write_string(row, 3, &err.start_date_raw)?;
+            sheet.write_string(row, 4, &err.end_date_raw)?;
+            sheet.write_string(row, 5, &err.reason)?;
+            sheet.write_string(row, 6, &err.duration_type_raw)?;
+            sheet.write_string_with_format(row, 7, &err.error_message, &error_fmt)?;
         }
 
         sheet.autofit();
 
-        workbook
-            .save_to_buffer()
-            .map_err(|e| format!("Excel write error: {e}"))
+        let buffer = workbook.save_to_buffer()?;
+        Ok(buffer)
     }
 
     /// Generate a template Excel for HR to fill in.
     pub fn generate_template(
         leave_types: &[(String, String)], // (code, name) pairs
-        lang: &str, // requested language code (e.g., "en", "vi", "zh")
-    ) -> Result<Vec<u8>, String> {
+        lang: &str,                       // requested language code (e.g., "en", "vi", "zh")
+    ) -> AppResult<Vec<u8>> {
         let msgs = LeaveImportMessages::for_lang(lang);
 
         let sheet1_name = msgs.template_sheet_name;
@@ -577,10 +589,7 @@ impl LeaveImportService {
         let mut workbook = Workbook::new();
 
         // Sheet 1: Template
-        let sheet = workbook
-            .add_worksheet()
-            .set_name(sheet1_name)
-            .map_err(|e| e.to_string())?;
+        let sheet = workbook.add_worksheet().set_name(sheet1_name)?;
 
         let header_fmt = Format::new()
             .set_bold()
@@ -593,38 +602,41 @@ impl LeaveImportService {
             .set_font_color(Color::RGB(0x757575));
 
         for (col, header) in headers.iter().enumerate() {
-            sheet
-                .write_string_with_format(0, col as u16, *header, &header_fmt)
-                .map_err(|e| e.to_string())?;
+            sheet.write_string_with_format(0, col as u16, *header, &header_fmt)?;
         }
 
         // Example rows
         let first_code = leave_types.first().map(|(c, _)| c.as_str()).unwrap_or("AL");
         let examples = [
             [
-                "NV001", first_code, "2026-04-01", "2026-04-02", ex_reason1, "full_day",
+                "NV001",
+                first_code,
+                "2026-04-01",
+                "2026-04-02",
+                ex_reason1,
+                "full_day",
             ],
             [
-                "NV002", first_code, "2026-04-05", "2026-04-05", ex_reason2, "first_half",
+                "NV002",
+                first_code,
+                "2026-04-05",
+                "2026-04-05",
+                ex_reason2,
+                "first_half",
             ],
         ];
 
         for (row_idx, example) in examples.iter().enumerate() {
             let row = (row_idx + 1) as u32;
             for (col, val) in example.iter().enumerate() {
-                sheet
-                    .write_string_with_format(row, col as u16, *val, &example_fmt)
-                    .map_err(|e| e.to_string())?;
+                sheet.write_string_with_format(row, col as u16, *val, &example_fmt)?;
             }
         }
 
         sheet.autofit();
 
         // Sheet 2: Leave type codes
-        let ref_sheet = workbook
-            .add_worksheet()
-            .set_name(sheet2_name)
-            .map_err(|e| e.to_string())?;
+        let ref_sheet = workbook.add_worksheet().set_name(sheet2_name)?;
 
         let ref_header_fmt = Format::new()
             .set_bold()
@@ -632,26 +644,18 @@ impl LeaveImportService {
             .set_background_color(Color::RGB(0x2E7D32))
             .set_font_color(Color::RGB(0xFFFFFF));
 
-        ref_sheet
-            .write_string_with_format(0, 0, ref_header_code, &ref_header_fmt)
-            .map_err(|e| e.to_string())?;
-        ref_sheet
-            .write_string_with_format(0, 1, ref_header_name, &ref_header_fmt)
-            .map_err(|e| e.to_string())?;
+        ref_sheet.write_string_with_format(0, 0, ref_header_code, &ref_header_fmt)?;
+        ref_sheet.write_string_with_format(0, 1, ref_header_name, &ref_header_fmt)?;
 
         for (idx, (code, name)) in leave_types.iter().enumerate() {
             let row = (idx + 1) as u32;
-            ref_sheet.write_string(row, 0, code).map_err(|e| e.to_string())?;
-            ref_sheet.write_string(row, 1, name).map_err(|e| e.to_string())?;
+            ref_sheet.write_string(row, 0, code)?;
+            ref_sheet.write_string(row, 1, name)?;
         }
 
         // Duration type reference
-        ref_sheet
-            .write_string_with_format(0, 3, ref_header_duration, &ref_header_fmt)
-            .map_err(|e| e.to_string())?;
-        ref_sheet
-            .write_string_with_format(0, 4, ref_header_desc, &ref_header_fmt)
-            .map_err(|e| e.to_string())?;
+        ref_sheet.write_string_with_format(0, 3, ref_header_duration, &ref_header_fmt)?;
+        ref_sheet.write_string_with_format(0, 4, ref_header_desc, &ref_header_fmt)?;
 
         let duration_types = [
             ("full_day", desc_full),
@@ -660,15 +664,14 @@ impl LeaveImportService {
         ];
         for (idx, (code, desc)) in duration_types.iter().enumerate() {
             let row = (idx + 1) as u32;
-            ref_sheet.write_string(row, 3, *code).map_err(|e| e.to_string())?;
-            ref_sheet.write_string(row, 4, *desc).map_err(|e| e.to_string())?;
+            ref_sheet.write_string(row, 3, *code)?;
+            ref_sheet.write_string(row, 4, *desc)?;
         }
 
         ref_sheet.autofit();
 
-        workbook
-            .save_to_buffer()
-            .map_err(|e| format!("Excel write error: {e}"))
+        let buffer = workbook.save_to_buffer()?;
+        Ok(buffer)
     }
 }
 
@@ -738,8 +741,8 @@ fn parse_duration_type(s: &str) -> LeaveDurationType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::NaiveDate;
     use crate::services::import_messages::LeaveImportMessages;
+    use chrono::NaiveDate;
 
     /// Vietnamese messages (matches the original hardcoded strings for test backwards-compat).
     fn msgs_vi() -> LeaveImportMessages {
@@ -834,37 +837,70 @@ mod tests {
 
     #[test]
     fn test_parse_duration_type_first_half() {
-        assert_eq!(parse_duration_type("first_half"), LeaveDurationType::FirstHalf);
+        assert_eq!(
+            parse_duration_type("first_half"),
+            LeaveDurationType::FirstHalf
+        );
         assert_eq!(parse_duration_type("half_am"), LeaveDurationType::FirstHalf);
         assert_eq!(parse_duration_type("sáng"), LeaveDurationType::FirstHalf);
     }
 
     #[test]
     fn test_parse_duration_type_second_half() {
-        assert_eq!(parse_duration_type("second_half"), LeaveDurationType::SecondHalf);
-        assert_eq!(parse_duration_type("half_pm"), LeaveDurationType::SecondHalf);
+        assert_eq!(
+            parse_duration_type("second_half"),
+            LeaveDurationType::SecondHalf
+        );
+        assert_eq!(
+            parse_duration_type("half_pm"),
+            LeaveDurationType::SecondHalf
+        );
         assert_eq!(parse_duration_type("chiều"), LeaveDurationType::SecondHalf);
     }
 
     #[test]
     fn test_parse_duration_type_custom_hours() {
-        assert_eq!(parse_duration_type("custom_hours"), LeaveDurationType::CustomHours);
-        assert_eq!(parse_duration_type("custom"), LeaveDurationType::CustomHours);
-        assert_eq!(parse_duration_type("CUSTOM"), LeaveDurationType::CustomHours);
+        assert_eq!(
+            parse_duration_type("custom_hours"),
+            LeaveDurationType::CustomHours
+        );
+        assert_eq!(
+            parse_duration_type("custom"),
+            LeaveDurationType::CustomHours
+        );
+        assert_eq!(
+            parse_duration_type("CUSTOM"),
+            LeaveDurationType::CustomHours
+        );
     }
 
     #[test]
     fn test_parse_duration_type_case_insensitive() {
-        assert_eq!(parse_duration_type("FIRST_HALF"), LeaveDurationType::FirstHalf);
+        assert_eq!(
+            parse_duration_type("FIRST_HALF"),
+            LeaveDurationType::FirstHalf
+        );
         assert_eq!(parse_duration_type("Full_Day"), LeaveDurationType::FullDay);
-        assert_eq!(parse_duration_type("SECOND_HALF"), LeaveDurationType::SecondHalf);
-        assert_eq!(parse_duration_type("Custom_Hours"), LeaveDurationType::CustomHours);
+        assert_eq!(
+            parse_duration_type("SECOND_HALF"),
+            LeaveDurationType::SecondHalf
+        );
+        assert_eq!(
+            parse_duration_type("Custom_Hours"),
+            LeaveDurationType::CustomHours
+        );
     }
 
     #[test]
     fn test_parse_duration_type_with_whitespace() {
-        assert_eq!(parse_duration_type("  first_half  "), LeaveDurationType::FirstHalf);
-        assert_eq!(parse_duration_type("  second_half  "), LeaveDurationType::SecondHalf);
+        assert_eq!(
+            parse_duration_type("  first_half  "),
+            LeaveDurationType::FirstHalf
+        );
+        assert_eq!(
+            parse_duration_type("  second_half  "),
+            LeaveDurationType::SecondHalf
+        );
     }
 
     // ---- cell_to_string tests ----
@@ -872,7 +908,10 @@ mod tests {
     #[test]
     fn test_cell_to_string_string() {
         assert_eq!(cell_to_string(Some(&Data::String("NV001".into()))), "NV001");
-        assert_eq!(cell_to_string(Some(&Data::String("  NV002  ".into()))), "NV002");
+        assert_eq!(
+            cell_to_string(Some(&Data::String("  NV002  ".into()))),
+            "NV002"
+        );
     }
 
     #[test]
@@ -947,18 +986,16 @@ mod tests {
     #[test]
     fn test_generate_error_excel_roundtrip_verification() {
         // Generate error Excel → re-parse with calamine → verify content
-        let errors = vec![
-            ErrorRow {
-                line_number: 2,
-                employee_id_number: "EMP001".to_string(),
-                leave_type_code: "AL".to_string(),
-                start_date_raw: "2026-04-01".to_string(),
-                end_date_raw: "2026-04-02".to_string(),
-                reason: "Sick".to_string(),
-                duration_type_raw: "full_day".to_string(),
-                error_message: "Employee not found".to_string(),
-            },
-        ];
+        let errors = vec![ErrorRow {
+            line_number: 2,
+            employee_id_number: "EMP001".to_string(),
+            leave_type_code: "AL".to_string(),
+            start_date_raw: "2026-04-01".to_string(),
+            end_date_raw: "2026-04-02".to_string(),
+            reason: "Sick".to_string(),
+            duration_type_raw: "full_day".to_string(),
+            error_message: "Employee not found".to_string(),
+        }];
 
         let bytes = LeaveImportService::generate_error_excel(&errors, &msgs_vi()).unwrap();
 
@@ -967,7 +1004,10 @@ mod tests {
         let range = workbook.worksheet_range_at(0).unwrap().unwrap();
 
         // Row 0 = header, Row 1 = first error
-        assert!(range.rows().count() >= 2, "Should have header + at least 1 data row");
+        assert!(
+            range.rows().count() >= 2,
+            "Should have header + at least 1 data row"
+        );
 
         // Verify header
         let header = range.rows().next().unwrap();
@@ -1068,9 +1108,7 @@ mod tests {
 
     #[test]
     fn test_generate_template_example_uses_first_leave_type() {
-        let leave_types = vec![
-            ("CUSTOM".to_string(), "Custom Leave".to_string()),
-        ];
+        let leave_types = vec![("CUSTOM".to_string(), "Custom Leave".to_string())];
 
         let bytes = LeaveImportService::generate_template(&leave_types, "vi").unwrap();
         let mut workbook: Xlsx<_> = Xlsx::new(Cursor::new(&bytes)).expect("parse");
@@ -1097,8 +1135,14 @@ mod tests {
         assert_eq!(errors.len(), 0);
         assert_eq!(pending[0].employee_id_number, "NV001");
         assert_eq!(pending[0].leave_type_code, "AL");
-        assert_eq!(pending[0].start_date, NaiveDate::from_ymd_opt(2026, 3, 25).unwrap());
-        assert_eq!(pending[0].end_date, NaiveDate::from_ymd_opt(2026, 3, 26).unwrap());
+        assert_eq!(
+            pending[0].start_date,
+            NaiveDate::from_ymd_opt(2026, 3, 25).unwrap()
+        );
+        assert_eq!(
+            pending[0].end_date,
+            NaiveDate::from_ymd_opt(2026, 3, 26).unwrap()
+        );
         assert_eq!(pending[0].reason, Some("Việc gia đình".to_string()));
         assert_eq!(pending[0].duration_type, LeaveDurationType::FullDay);
         assert_eq!(pending[1].duration_type, LeaveDurationType::FirstHalf);
@@ -1273,7 +1317,10 @@ mod tests {
         }
         let num_rows = rows.len() as u32;
         let num_cols = rows.first().map_or(0, |r| r.len()) as u32;
-        let mut range = calamine::Range::new((0, 0), (num_rows.saturating_sub(1), num_cols.saturating_sub(1)));
+        let mut range = calamine::Range::new(
+            (0, 0),
+            (num_rows.saturating_sub(1), num_cols.saturating_sub(1)),
+        );
         for (r, row) in rows.iter().enumerate() {
             for (c, val) in row.iter().enumerate() {
                 range.set_value((r as u32, c as u32), val.clone());
@@ -1315,8 +1362,14 @@ mod tests {
         assert_eq!(errors.len(), 0);
         assert_eq!(pending[0].employee_id_number, "NV001");
         assert_eq!(pending[0].leave_type_code, "AL");
-        assert_eq!(pending[0].start_date, NaiveDate::from_ymd_opt(2026, 3, 25).unwrap());
-        assert_eq!(pending[0].end_date, NaiveDate::from_ymd_opt(2026, 3, 26).unwrap());
+        assert_eq!(
+            pending[0].start_date,
+            NaiveDate::from_ymd_opt(2026, 3, 25).unwrap()
+        );
+        assert_eq!(
+            pending[0].end_date,
+            NaiveDate::from_ymd_opt(2026, 3, 26).unwrap()
+        );
         assert_eq!(pending[0].reason, Some("Việc gia đình".to_string()));
         assert_eq!(pending[0].duration_type, LeaveDurationType::FullDay);
     }
@@ -1433,14 +1486,23 @@ mod tests {
 
         assert_eq!(pending.len(), 0);
         assert_eq!(errors.len(), 1);
-        assert!(errors[0].error_message.contains("Ngày kết thúc phải >= ngày bắt đầu"));
+        assert!(errors[0]
+            .error_message
+            .contains("Ngày kết thúc phải >= ngày bắt đầu"));
     }
 
     #[test]
     fn test_parse_excel_range_empty_rows_skipped() {
         let range = make_range(vec![
             header_row(),
-            vec![Data::Empty, Data::Empty, Data::Empty, Data::Empty, Data::Empty, Data::Empty],
+            vec![
+                Data::Empty,
+                Data::Empty,
+                Data::Empty,
+                Data::Empty,
+                Data::Empty,
+                Data::Empty,
+            ],
             vec![
                 Data::String("NV001".into()),
                 Data::String("AL".into()),
@@ -1530,7 +1592,7 @@ mod tests {
         LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
 
         assert_eq!(pending.len(), 2); // NV001 + NV003
-        assert_eq!(errors.len(), 2);  // missing emp + bad date
+        assert_eq!(errors.len(), 2); // missing emp + bad date
         assert_eq!(pending[0].employee_id_number, "NV001");
         assert_eq!(pending[1].employee_id_number, "NV003");
         assert_eq!(pending[1].reason, None); // Empty reason → None
@@ -1636,4 +1698,3 @@ mod tests {
         let _debug = format!("{row:?}");
     }
 }
-

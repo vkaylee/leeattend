@@ -75,11 +75,16 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
         .await;
 
     // Trigger recalculation directly via service
-    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary(
-        workspace_id,
-        emp,
-        today,
+    apiserver::services::AttendanceSummaryService::new(
+        std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+            pool.clone(),
+        )),
+        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+            pool.clone(),
+        )),
+        pool.clone(),
     )
+    .recalculate_daily_summary(workspace_id, emp, today)
     .await
     .expect("Recalculate failed");
 
@@ -96,7 +101,10 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
 
     assert!(row.is_some(), "Summary record should exist");
     let summary = row.unwrap();
-    assert!(summary.is_holiday, "is_holiday should be true for a holiday");
+    assert!(
+        summary.is_holiday,
+        "is_holiday should be true for a holiday"
+    );
     assert_eq!(summary.holiday_name.as_deref(), Some("Ngày Quốc khánh"));
     assert!(summary.actual_work_minutes > 0, "Should have work minutes");
 }

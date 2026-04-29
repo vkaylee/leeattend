@@ -99,7 +99,12 @@ pub async fn assign_extra_role(
 
     if let Some(redis_pool) = state.infra.redis.clone() {
         let cache = crate::cache::RedisCache::new(redis_pool);
-        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+        let _ = cache
+            .delete(&format!(
+                "cache:auth:permissions:{}:{}",
+                ctx.workspace_id, user_id
+            ))
+            .await;
     }
 
     Ok((StatusCode::CREATED, Json(extra_role)))
@@ -134,7 +139,12 @@ pub async fn revoke_extra_role(
 
         if let Some(redis_pool) = state.infra.redis.clone() {
             let cache = crate::cache::RedisCache::new(redis_pool);
-            let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+            let _ = cache
+                .delete(&format!(
+                    "cache:auth:permissions:{}:{}",
+                    ctx.workspace_id, user_id
+                ))
+                .await;
         }
 
         Ok(StatusCode::NO_CONTENT)
@@ -213,20 +223,26 @@ pub async fn delete_workspace_role(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::MembersRolesManage)?;
 
-    let res = sqlx::query("DELETE FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false")
-        .bind(role_id)
-        .bind(ctx.workspace_id)
-        .execute(state.infra.db.api())
-        .await?;
+    let res = sqlx::query(
+        "DELETE FROM workspace_roles WHERE id = $1 AND workspace_id = $2 AND is_system = false",
+    )
+    .bind(role_id)
+    .bind(ctx.workspace_id)
+    .execute(state.infra.db.api())
+    .await?;
 
     if res.rows_affected() > 0 {
         if let Some(redis_pool) = state.infra.redis.clone() {
             let cache = crate::cache::RedisCache::new(redis_pool);
-            let _ = cache.delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id)).await;
+            let _ = cache
+                .delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id))
+                .await;
         }
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(AppError::NotFound("Role not found or is a system role".to_string()))
+        Err(AppError::NotFound(
+            "Role not found or is a system role".to_string(),
+        ))
     }
 }
 
@@ -266,7 +282,9 @@ pub async fn update_role_permissions(
     .await?;
 
     if !role_exists {
-        return Err(AppError::NotFound("Role not found or is a system role".to_string()));
+        return Err(AppError::NotFound(
+            "Role not found or is a system role".to_string(),
+        ));
     }
 
     let mut tx = state.infra.db.api().begin().await?;
@@ -277,18 +295,22 @@ pub async fn update_role_permissions(
         .await?;
 
     for perm in req.permissions {
-        sqlx::query("INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, $2)")
-            .bind(role_id)
-            .bind(perm)
-            .execute(&mut *tx)
-            .await?;
+        sqlx::query(
+            "INSERT INTO workspace_role_permissions (role_id, permission_name) VALUES ($1, $2)",
+        )
+        .bind(role_id)
+        .bind(perm)
+        .execute(&mut *tx)
+        .await?;
     }
 
     tx.commit().await?;
 
     if let Some(redis_pool) = state.infra.redis.clone() {
         let cache = crate::cache::RedisCache::new(redis_pool);
-        let _ = cache.delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id)).await;
+        let _ = cache
+            .delete_pattern(&format!("cache:auth:permissions:{}:*", ctx.workspace_id))
+            .await;
     }
 
     Ok(StatusCode::OK)
@@ -330,7 +352,8 @@ mod tests {
         let req: CreateWorkspaceRoleRequest = serde_json::from_str(json).unwrap();
         assert!(req.description.is_none());
 
-        let json_with_desc = r#"{"name": "Viewer", "color": "gray", "description": "Read-only access"}"#;
+        let json_with_desc =
+            r#"{"name": "Viewer", "color": "gray", "description": "Read-only access"}"#;
         let req2: CreateWorkspaceRoleRequest = serde_json::from_str(json_with_desc).unwrap();
         assert_eq!(req2.description.as_deref(), Some("Read-only access"));
     }
@@ -407,7 +430,10 @@ mod tests {
         // Owner, Admin, HrManager, ShiftManager → no department restriction.
         let scope_types = vec![RoleScopeType::Global];
         let result = compute_managed_dept_ids(&scope_types, vec![uuid::Uuid::new_v4()]);
-        assert!(result.is_none(), "Global roles must yield None (unrestricted) scope");
+        assert!(
+            result.is_none(),
+            "Global roles must yield None (unrestricted) scope"
+        );
     }
 
     #[test]
@@ -425,7 +451,10 @@ mod tests {
         // the global flag takes precedence — user gets full access.
         let scope_types = vec![RoleScopeType::Scoped, RoleScopeType::Global];
         let result = compute_managed_dept_ids(&scope_types, vec![uuid::Uuid::new_v4()]);
-        assert!(result.is_none(), "Any global role must override scoped roles");
+        assert!(
+            result.is_none(),
+            "Any global role must override scoped roles"
+        );
     }
 
     #[test]
@@ -478,13 +507,13 @@ mod tests {
         // This prevents attackers from sending "SUPERADMIN" and accidentally getting
         // the From<String> fallback that bypasses strict JSON validation.
         let invalid_values = [
-            r#""GLOBAL""#,    // uppercase — wrong case
-            r#""Global""#,    // PascalCase
-            r#""admin""#,     // a role name, not a scope
-            r#""owner""#,     // ditto
-            r#""""#,          // empty string
-            r#""unknown""#,   // arbitrary value
-            r#""superadmin""# // injection attempt
+            r#""GLOBAL""#,     // uppercase — wrong case
+            r#""Global""#,     // PascalCase
+            r#""admin""#,      // a role name, not a scope
+            r#""owner""#,      // ditto
+            r#""""#,           // empty string
+            r#""unknown""#,    // arbitrary value
+            r#""superadmin""#, // injection attempt
         ];
         for invalid in invalid_values {
             let json = format!(r#"{{"name": "R", "color": "b", "scope_type": {invalid}}}"#);
@@ -520,13 +549,28 @@ mod tests {
     fn test_scope_type_from_string_case_sensitivity() {
         // `From<String>` is used when reading from DB adapter results.
         // Only exact lowercase snake_case must succeed; anything else falls back to Scoped.
-        assert_eq!(RoleScopeType::from("global".to_string()), RoleScopeType::Global);
-        assert_eq!(RoleScopeType::from("scoped".to_string()), RoleScopeType::Scoped);
+        assert_eq!(
+            RoleScopeType::from("global".to_string()),
+            RoleScopeType::Global
+        );
+        assert_eq!(
+            RoleScopeType::from("scoped".to_string()),
+            RoleScopeType::Scoped
+        );
 
         // Wrong case → safe fallback (not a panic, not Global)
-        assert_eq!(RoleScopeType::from("GLOBAL".to_string()), RoleScopeType::Scoped);
-        assert_eq!(RoleScopeType::from("Global".to_string()), RoleScopeType::Scoped);
-        assert_eq!(RoleScopeType::from("SCOPED".to_string()), RoleScopeType::Scoped);
+        assert_eq!(
+            RoleScopeType::from("GLOBAL".to_string()),
+            RoleScopeType::Scoped
+        );
+        assert_eq!(
+            RoleScopeType::from("Global".to_string()),
+            RoleScopeType::Scoped
+        );
+        assert_eq!(
+            RoleScopeType::from("SCOPED".to_string()),
+            RoleScopeType::Scoped
+        );
     }
 
     #[test]
@@ -554,7 +598,10 @@ mod tests {
         let req: UpdateRolePermissionsRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.permissions.len(), 3, "Vec preserves duplicates");
         assert_eq!(
-            req.permissions.iter().filter(|p| p.as_str() == "employees:read").count(),
+            req.permissions
+                .iter()
+                .filter(|p| p.as_str() == "employees:read")
+                .count(),
             2
         );
     }
@@ -571,7 +618,11 @@ mod tests {
 
         let json = serde_json::json!({"permissions": all_perms}).to_string();
         let req: UpdateRolePermissionsRequest = serde_json::from_str(&json).unwrap();
-        assert_eq!(req.permissions.len(), 89, "All 89 permissions must be accepted");
+        assert_eq!(
+            req.permissions.len(),
+            89,
+            "All 89 permissions must be accepted"
+        );
     }
 
     #[test]
@@ -582,7 +633,11 @@ mod tests {
         // This test documents this intentional design decision.
         let json = r#"{"permissions": ["nonexistent:permission", "fake:action"]}"#;
         let req: UpdateRolePermissionsRequest = serde_json::from_str(json).unwrap();
-        assert_eq!(req.permissions.len(), 2, "Unknown perms pass struct validation");
+        assert_eq!(
+            req.permissions.len(),
+            2,
+            "Unknown perms pass struct validation"
+        );
     }
 
     // ── Edge Cases: scope decision with edge-case role lists ─────────────────
@@ -600,7 +655,10 @@ mod tests {
         // Having many scoped roles must not accumulate into global access.
         let many_scoped = vec![RoleScopeType::Scoped; 20];
         let result = compute_managed_dept_ids(&many_scoped, vec![uuid::Uuid::new_v4()]);
-        assert!(result.is_some(), "20 Scoped roles must not yield Global scope");
+        assert!(
+            result.is_some(),
+            "20 Scoped roles must not yield Global scope"
+        );
     }
 
     #[test]
@@ -610,7 +668,10 @@ mod tests {
         let mut roles = vec![RoleScopeType::Scoped; 10];
         roles.push(RoleScopeType::Global);
         let result = compute_managed_dept_ids(&roles, vec![uuid::Uuid::new_v4()]);
-        assert!(result.is_none(), "Single Global among many Scoped must yield None");
+        assert!(
+            result.is_none(),
+            "Single Global among many Scoped must yield None"
+        );
     }
 
     #[test]
@@ -621,7 +682,11 @@ mod tests {
         let duplicated_depts = vec![dept, dept, dept];
         let result = compute_managed_dept_ids(&[RoleScopeType::Scoped], duplicated_depts);
         let set = result.unwrap();
-        assert_eq!(set.len(), 1, "Duplicate dept IDs must be deduplicated in HashSet");
+        assert_eq!(
+            set.len(),
+            1,
+            "Duplicate dept IDs must be deduplicated in HashSet"
+        );
         assert!(set.contains(&dept));
     }
 
@@ -654,7 +719,10 @@ mod tests {
     fn test_create_role_request_whitespace_only_name_parses() {
         let json = r#"{"name": "   ", "color": "blue"}"#;
         let req: CreateWorkspaceRoleRequest = serde_json::from_str(json).unwrap();
-        assert!(req.name.trim().is_empty(), "Whitespace name must be caught in handler validation");
+        assert!(
+            req.name.trim().is_empty(),
+            "Whitespace name must be caught in handler validation"
+        );
     }
 
     #[test]

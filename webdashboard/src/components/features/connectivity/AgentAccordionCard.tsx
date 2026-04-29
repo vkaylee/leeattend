@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   ChevronRight,
@@ -9,10 +8,16 @@ import {
   HardDrive,
   Plus
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { useToast } from "@/components/ui/Toast";
+
+import { useConfirm } from "@/hooks/use-confirm";
 import { AuthorizedAgent, Device, DeviceStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/Toast";
-import { useConfirm } from "@/hooks/use-confirm";
+
+
+
 import DeviceListItem from "./DeviceListItem";
 
 interface AgentAccordionCardProps {

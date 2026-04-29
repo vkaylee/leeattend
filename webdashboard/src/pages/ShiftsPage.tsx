@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { format, addDays } from "date-fns";
 import {
   CalendarRange,
   Plus,
@@ -9,6 +11,11 @@ import {
   List,
   Zap
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import { useToast } from "@/components/ui/Toast";
+
 import {
   fetchEmployees,
   fetchShifts,
@@ -32,20 +39,18 @@ import {
   EmployeeSchedule,
   Employee
 } from "@/lib/api/types";
-import { useToast } from "@/components/ui/Toast";
-import { format, addDays } from "date-fns";
-import { EmployeeSearch } from "@/components/common/EmployeeSearch";
-import { ShiftList } from "../components/shifts/ShiftList";
+import { ROUTES } from "@/lib/routes";
+
 import { AssignmentHistory } from "../components/shifts/AssignmentHistory";
-import { PriorityLegend } from "../components/shifts/PriorityLegend";
 import { CreateShiftModal } from "../components/shifts/CreateShiftModal";
 import { EditShiftModal } from "../components/shifts/EditShiftModal";
+import { PatternAssignmentForm } from "../components/shifts/PatternAssignmentForm";
+import { PriorityLegend } from "../components/shifts/PriorityLegend";
+import { ShiftList } from "../components/shifts/ShiftList";
 import { ShiftPickerModal } from "../components/shifts/ShiftPickerModal";
 import { WeeklyRosterGrid } from "../components/shifts/WeeklyRosterGrid";
-import { PatternAssignmentForm } from "../components/shifts/PatternAssignmentForm";
 
-import { Link } from "@tanstack/react-router";
-import { ROUTES } from "@/lib/routes";
+
 
 type TabType = "weekly-roster" | "assignments" | "directory";
 

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+
 import * as Popover from '@radix-ui/react-popover';
 import { Info, CheckCircle2, AlertCircle, Shield, Building2, User, Zap, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { ScheduleTrace } from '../../lib/api/types';
 import { cn } from '../../lib/utils';
 

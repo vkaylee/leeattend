@@ -1,22 +1,36 @@
-
 use crate::redb_store::RedbStore;
 
 /// Extract device metadata fields from a serde_json info object and persist.
 /// Centralises the 10-field unwrap_or("N/A") pattern.
-pub fn update_metadata_from_info(store: &RedbStore, device_id: &str, info: &serde_json::Value, now_ts: i64) {
+pub fn update_metadata_from_info(
+    store: &RedbStore,
+    device_id: &str,
+    info: &serde_json::Value,
+    now_ts: i64,
+) {
     if let Some(obj) = info.as_object() {
         let _ = store.update_device_metadata(
             device_id,
             obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
             obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
-            obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
-            obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
+            obj.get("firmware")
+                .and_then(|v| v.as_str())
+                .unwrap_or("N/A"),
+            obj.get("platform")
+                .and_then(|v| v.as_str())
+                .unwrap_or("N/A"),
             obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
             obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
             obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
-            obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-            obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
-            obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A"),
+            obj.get("users_capacity")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0),
+            obj.get("logs_capacity")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0),
+            obj.get("device_time")
+                .and_then(|v| v.as_str())
+                .unwrap_or("N/A"),
             now_ts,
         );
     }
@@ -112,7 +126,19 @@ mod tests {
     #[test]
     fn test_update_metadata_full_info() {
         let store = make_store();
-        store.upsert_device("dev1", "Office", "192.168.1.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+        store
+            .upsert_device(
+                "dev1",
+                "Office",
+                "192.168.1.1",
+                4370,
+                "zkteco",
+                "UTC",
+                None,
+                true,
+                123456,
+            )
+            .unwrap();
 
         let info = serde_json::json!({
             "mac": "AA:BB:CC:DD:EE:FF",
@@ -145,7 +171,11 @@ mod tests {
     #[test]
     fn test_update_metadata_partial_info_defaults_to_na() {
         let store = make_store();
-        store.upsert_device("dev2", "Lobby", "10.0.0.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+        store
+            .upsert_device(
+                "dev2", "Lobby", "10.0.0.1", 4370, "zkteco", "UTC", None, true, 123456,
+            )
+            .unwrap();
 
         // Only mac and serial present — other fields should default to N/A / 0
         let info = serde_json::json!({
@@ -168,7 +198,11 @@ mod tests {
     #[test]
     fn test_update_metadata_empty_object_sets_defaults() {
         let store = make_store();
-        store.upsert_device("dev3", "Gate", "10.0.0.2", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+        store
+            .upsert_device(
+                "dev3", "Gate", "10.0.0.2", 4370, "zkteco", "UTC", None, true, 123456,
+            )
+            .unwrap();
 
         let info = serde_json::json!({});
         update_metadata_from_info(&store, "dev3", &info, 123456);
@@ -182,7 +216,11 @@ mod tests {
     #[test]
     fn test_update_metadata_non_object_is_noop() {
         let store = make_store();
-        store.upsert_device("dev4", "Door", "10.0.0.3", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+        store
+            .upsert_device(
+                "dev4", "Door", "10.0.0.3", 4370, "zkteco", "UTC", None, true, 123456,
+            )
+            .unwrap();
 
         // Array, string, null — none are objects, so nothing should be updated
         update_metadata_from_info(&store, "dev4", &serde_json::json!([1, 2, 3]), 123456);

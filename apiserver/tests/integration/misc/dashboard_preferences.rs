@@ -19,7 +19,7 @@ async fn test_get_dashboard_preferences_returns_defaults() {
 
     assert_eq!(res.status(), reqwest::StatusCode::OK);
     let body: serde_json::Value = res.json().await.unwrap();
-    
+
     // Should return defaults (nil UUID, overview active view, etc.)
     assert_eq!(body["id"].as_str().unwrap(), Uuid::nil().to_string());
     assert_eq!(body["active_view"].as_str().unwrap(), "overview");
@@ -52,13 +52,19 @@ async fn test_update_dashboard_preferences_upserts_and_returns_updated() {
 
     assert_eq!(res.status(), reqwest::StatusCode::OK);
     let body: serde_json::Value = res.json().await.unwrap();
-    
+
     // Check that ID is now a real UUID (not nil)
     let pref_id = body["id"].as_str().unwrap();
     assert_ne!(pref_id, Uuid::nil().to_string());
     assert_eq!(body["active_view"].as_str().unwrap(), "attendance");
-    assert_eq!(body["visible_widgets"]["peak_times"].as_bool().unwrap(), true);
-    assert_eq!(body["collapsed_sections"]["charts"].as_bool().unwrap(), true);
+    assert_eq!(
+        body["visible_widgets"]["peak_times"].as_bool().unwrap(),
+        true
+    );
+    assert_eq!(
+        body["collapsed_sections"]["charts"].as_bool().unwrap(),
+        true
+    );
 
     // 2. GET again should return the persisted data
     let res2 = client

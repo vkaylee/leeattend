@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { useQuery } from '@tanstack/react-query';
 import { User, X } from 'lucide-react';
-import { Combobox } from '../ui/Combobox';
+import { useTranslation } from 'react-i18next';
+
 import { useDebounce } from '../../hooks/use-debounce';
 import { searchEmployees } from '../../lib/api';
 import { Employee } from '../../lib/api/types';
+import { Combobox } from '../ui/Combobox';
 
 interface EmployeeSearchProps {
   workspaceId: string;

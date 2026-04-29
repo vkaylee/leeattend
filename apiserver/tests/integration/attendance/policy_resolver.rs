@@ -1,9 +1,9 @@
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::domain::policy::resolver::PolicyResolver;
 use apiserver::models::EarlyArrivalStrategy;
 use chrono::NaiveDate;
 use uuid::Uuid;
-use crate::common::db::TestDatabase;
-use crate::common::factory::TestFactory;
 
 #[tokio::test]
 async fn test_resolve_attendance_policy_hierarchy() {
@@ -15,10 +15,13 @@ async fn test_resolve_attendance_policy_hierarchy() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     // Clean up auto-generated policies
-    sqlx::query!("DELETE FROM attendance_policies WHERE workspace_id = $1", ws_id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query!(
+        "DELETE FROM attendance_policies WHERE workspace_id = $1",
+        ws_id
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     // 1. Create a department
     let dept_id = Uuid::new_v4();
@@ -32,10 +35,21 @@ async fn test_resolve_attendance_policy_hierarchy() {
     .unwrap();
 
     // 2. Create an employee
-    let user_id = factory.user().with_email("test_resolver@example.com").create().await;
-    factory.add_member(ws_id, user_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let user_id = factory
+        .user()
+        .with_email("test_resolver@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            user_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
-    let employee_id = factory.employee()
+    let employee_id = factory
+        .employee()
         .with_workspace(ws_id)
         .with_user(user_id)
         .create()
@@ -66,7 +80,9 @@ async fn test_resolve_attendance_policy_hierarchy() {
         serde_json::json!({ "work_unit_minutes": 10, "rounding_policy": "floor", "early_arrival_strategy": "block" })
     ).execute(&pool).await.unwrap();
 
-    let rules = PolicyResolver::resolve_attendance_policy(&pool, employee_id, ws_id, test_date).await.unwrap();
+    let rules = PolicyResolver::resolve_attendance_policy(&pool, employee_id, ws_id, test_date)
+        .await
+        .unwrap();
     assert_eq!(rules.work_unit_minutes, 10);
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Block);
 
@@ -88,7 +104,9 @@ async fn test_resolve_attendance_policy_hierarchy() {
         group_policy_id, dept_id
     ).execute(&pool).await.unwrap();
 
-    let rules = PolicyResolver::resolve_attendance_policy(&pool, employee_id, ws_id, test_date).await.unwrap();
+    let rules = PolicyResolver::resolve_attendance_policy(&pool, employee_id, ws_id, test_date)
+        .await
+        .unwrap();
     assert_eq!(rules.work_unit_minutes, 20, "Should inherit from GROUP");
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Allow);
 
@@ -110,7 +128,9 @@ async fn test_resolve_attendance_policy_hierarchy() {
         user_policy_id, employee_id
     ).execute(&pool).await.unwrap();
 
-    let rules = PolicyResolver::resolve_attendance_policy(&pool, employee_id, ws_id, test_date).await.unwrap();
+    let rules = PolicyResolver::resolve_attendance_policy(&pool, employee_id, ws_id, test_date)
+        .await
+        .unwrap();
     assert_eq!(rules.work_unit_minutes, 30, "Should be overridden by USER");
     assert_eq!(rules.early_arrival_strategy, EarlyArrivalStrategy::Clamp);
 }

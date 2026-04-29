@@ -1,4 +1,3 @@
-
 use axum::{
     extract::{Multipart, Path, Query, State},
     http::StatusCode,
@@ -19,7 +18,6 @@ use crate::models::{
     UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
 };
 
-
 use crate::{AppState, UserId};
 
 // --- Leave Handlers ---
@@ -31,26 +29,30 @@ pub async fn submit_leave_request(
     Json(req): Json<SubmitLeaveRequest>,
 ) -> AppResult<(StatusCode, Json<LeaveRequest>)> {
     // Look up employee's department for scoped permission check
-    let target_dept_id = crate::handlers::common::current_department_id(
-        &state, ctx.workspace_id, req.employee_id,
-    ).await;
+    let target_dept_id =
+        crate::handlers::common::current_department_id(&state, ctx.workspace_id, req.employee_id)
+            .await;
 
     // Require submit permission scoped to the employee's department
     ctx.require_scoped_permission(Permission::LeaveRequestsSubmit, target_dept_id)?;
 
     // Auto-approve if submitter also has approve permission for this department
     let can_auto_approve = ctx
-        .require_any_scoped_permission(&[Permission::LeaveRequestsApprove, Permission::LeaveApproveL1, Permission::LeaveApproveL2], target_dept_id)
+        .require_any_scoped_permission(
+            &[
+                Permission::LeaveRequestsApprove,
+                Permission::LeaveApproveL1,
+                Permission::LeaveApproveL2,
+            ],
+            target_dept_id,
+        )
         .is_ok();
 
-    let request = state.leaves.service.submit_leave_request(
-        ctx.workspace_id,
-        user_id,
-        req,
-        can_auto_approve,
-    )
-    .await
-    ?;
+    let request = state
+        .leaves
+        .service
+        .submit_leave_request(ctx.workspace_id, user_id, req, can_auto_approve)
+        .await?;
 
     Ok((StatusCode::CREATED, Json(request)))
 }
@@ -71,18 +73,27 @@ pub async fn approve_leave_request(
         WHERE lr.id = $1 AND e.workspace_id = $2
         ORDER BY edh.effective_date DESC 
         LIMIT 1
-        "#
-    ).bind(id).bind(ctx.workspace_id).fetch_optional(state.infra.db.api()).await.unwrap_or(None);
-
-    ctx.require_any_scoped_permission(&[Permission::LeaveRequestsApprove, Permission::LeaveApproveL1, Permission::LeaveApproveL2], target_dept_id)?;
-    state.leaves.service.approve_leave_request(
-        ctx.workspace_id,
-        user_id,
-        id,
-        req,
+        "#,
     )
+    .bind(id)
+    .bind(ctx.workspace_id)
+    .fetch_optional(state.infra.db.api())
     .await
-    ?;
+    .unwrap_or(None);
+
+    ctx.require_any_scoped_permission(
+        &[
+            Permission::LeaveRequestsApprove,
+            Permission::LeaveApproveL1,
+            Permission::LeaveApproveL2,
+        ],
+        target_dept_id,
+    )?;
+    state
+        .leaves
+        .service
+        .approve_leave_request(ctx.workspace_id, user_id, id, req)
+        .await?;
 
     Ok(StatusCode::OK)
 }
@@ -93,9 +104,11 @@ pub async fn get_my_leave_requests(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
-    let requests =
-        state.leaves.request_repo.get_employee_leave_requests(ctx.workspace_id, id)
-            .await?;
+    let requests = state
+        .leaves
+        .request_repo
+        .get_employee_leave_requests(ctx.workspace_id, id)
+        .await?;
     Ok(Json(requests))
 }
 
@@ -106,13 +119,11 @@ pub async fn get_workspace_leave_balances(
 ) -> AppResult<Json<PaginatedResponse<WorkspaceLeaveBalance>>> {
     ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = params.year.unwrap_or_else(|| Utc::now().year());
-    let balances = state.leaves.service.get_workspace_balances(
-        ctx.workspace_id,
-        year,
-        params,
-    )
-    .await
-    ?;
+    let balances = state
+        .leaves
+        .service
+        .get_workspace_balances(ctx.workspace_id, year, params)
+        .await?;
 
     Ok(Json(balances))
 }
@@ -123,11 +134,11 @@ pub async fn get_employee_leave_balances(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<EmployeeLeaveBalance>>> {
     let year = Utc::now().year();
-    let balances = state.leaves.service.get_employee_balances(
-        ctx.workspace_id, emp_id, year,
-    )
-    .await
-    ?;
+    let balances = state
+        .leaves
+        .service
+        .get_employee_balances(ctx.workspace_id, emp_id, year)
+        .await?;
 
     Ok(Json(balances))
 }
@@ -143,21 +154,19 @@ pub async fn get_workspace_leave_requests(
     Query(query): Query<LeaveStatusQuery>,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     ctx.require_permission(Permission::LeaveRequestsRead)?;
-    let mut requests = state.leaves.service.get_workspace_leave_requests(
-        ctx.workspace_id,
-        query.status,
-    )
-    .await
-    ?;
+    let mut requests = state
+        .leaves
+        .service
+        .get_workspace_leave_requests(ctx.workspace_id, query.status)
+        .await?;
 
     // When filtering by Approved, also include PreApproved requests
     if query.status == Some(LeaveStatus::Approved) {
-        let pre_approved = state.leaves.service.get_workspace_leave_requests(
-            ctx.workspace_id,
-            Some(LeaveStatus::PreApproved),
-        )
-        .await
-        ?;
+        let pre_approved = state
+            .leaves
+            .service
+            .get_workspace_leave_requests(ctx.workspace_id, Some(LeaveStatus::PreApproved))
+            .await?;
         requests.extend(pre_approved);
         requests.sort_by(|a, b| b.created_at.cmp(&a.created_at));
     }
@@ -179,14 +188,11 @@ pub async fn get_employee_leave_history(
     // Allow admins to see anyone's history; non-admins can only access via employee self-service
     ctx.require_permission(Permission::LeaveBalancesRead)?;
     let year = Utc::now().year();
-    let history = state.leaves.service.get_employee_leave_history(
-        ctx.workspace_id,
-        emp_id,
-        year,
-        query.leave_type_id,
-    )
-    .await
-    ?;
+    let history = state
+        .leaves
+        .service
+        .get_employee_leave_history(ctx.workspace_id, emp_id, year, query.leave_type_id)
+        .await?;
 
     Ok(Json(history))
 }
@@ -198,9 +204,11 @@ pub async fn adjust_leave_balance(
     Json(req): Json<AdjustBalanceRequest>,
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::LeaveBalancesAdjust)?;
-    state.leaves.service.adjust_balance(ctx.workspace_id, emp_id, req)
-        .await
-        ?;
+    state
+        .leaves
+        .service
+        .adjust_balance(ctx.workspace_id, emp_id, req)
+        .await?;
 
     Ok(StatusCode::OK)
 }
@@ -212,13 +220,17 @@ pub async fn create_leave_policy(
 ) -> AppResult<(StatusCode, Json<LeavePolicyDefinition>)> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let policy = state.leaves.policy_repo.create_policy_definition(ctx.workspace_id,
-        &req.name,
-        req.description.as_deref(),
-        req.leave_type_id,
-        req.rule_config,
-    )
-    .await?;
+    let policy = state
+        .leaves
+        .policy_repo
+        .create_policy_definition(
+            ctx.workspace_id,
+            &req.name,
+            req.description.as_deref(),
+            req.leave_type_id,
+            req.rule_config,
+        )
+        .await?;
 
     Ok((StatusCode::CREATED, Json(policy)))
 }
@@ -231,14 +243,18 @@ pub async fn update_leave_policy(
 ) -> AppResult<Json<LeavePolicyDefinition>> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let policy = state.leaves.policy_repo.update_policy_definition(policy_id,
-        ctx.workspace_id,
-        req.name.as_deref(),
-        req.description.as_deref(),
-        req.leave_type_id,
-        req.rule_config,
-    )
-    .await?;
+    let policy = state
+        .leaves
+        .policy_repo
+        .update_policy_definition(
+            policy_id,
+            ctx.workspace_id,
+            req.name.as_deref(),
+            req.description.as_deref(),
+            req.leave_type_id,
+            req.rule_config,
+        )
+        .await?;
 
     Ok(Json(policy))
 }
@@ -250,9 +266,11 @@ pub async fn delete_leave_policy(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
-    let rows =
-        state.leaves.policy_repo.delete_policy_definition(policy_id, ctx.workspace_id)
-            .await?;
+    let rows = state
+        .leaves
+        .policy_repo
+        .delete_policy_definition(policy_id, ctx.workspace_id)
+        .await?;
 
     if rows > 0 {
         Ok(StatusCode::NO_CONTENT)
@@ -265,7 +283,11 @@ pub async fn get_leave_policies(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeavePolicyDefinition>>> {
-    let policies = state.leaves.policy_repo.get_policy_definitions(ctx.workspace_id).await?;
+    let policies = state
+        .leaves
+        .policy_repo
+        .get_policy_definitions(ctx.workspace_id)
+        .await?;
     Ok(Json(policies))
 }
 
@@ -287,7 +309,11 @@ pub async fn assign_leave_policy(
         created_at: chrono::Utc::now(),
     };
 
-    let saved = state.leaves.policy_repo.create_policy_assignment(&assignment).await?;
+    let saved = state
+        .leaves
+        .policy_repo
+        .create_policy_assignment(&assignment)
+        .await?;
     Ok((StatusCode::CREATED, Json(saved)))
 }
 
@@ -315,8 +341,8 @@ pub async fn trigger_accrual_run(
 
     // Try to enqueue as background job if Redis is available
     if let Some(ref redis) = state.infra.redis {
-        use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
         use crate::queue::JobQueue;
+        use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
 
         let queue = JobQueue::new(redis.clone());
         let parent_id = Uuid::new_v4();
@@ -337,13 +363,15 @@ pub async fn trigger_accrual_run(
             None, // No report type for leave accrual
         );
 
-        queue.create_job_metadata(&meta).await.map_err(|e| {
-            AppError::Internal(format!("Failed to create job metadata: {e}"))
-        })?;
+        queue
+            .create_job_metadata(&meta)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to create job metadata: {e}")))?;
 
-        queue.enqueue_jobs(vec![job]).await.map_err(|e| {
-            AppError::Internal(format!("Failed to enqueue accrual job: {e}"))
-        })?;
+        queue
+            .enqueue_jobs(vec![job])
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to enqueue accrual job: {e}")))?;
 
         Ok((
             StatusCode::ACCEPTED,
@@ -355,8 +383,11 @@ pub async fn trigger_accrual_run(
         ))
     } else {
         // Fallback: synchronous processing (no Redis)
-        let logs = state.leaves.accrual_service.process_workspace_accruals(ctx.workspace_id, date, true)
-                .await?;
+        let logs = state
+            .leaves
+            .accrual_service
+            .process_workspace_accruals(ctx.workspace_id, date, true)
+            .await?;
 
         Ok((
             StatusCode::OK,
@@ -384,16 +415,19 @@ pub async fn get_job_status(
     State(state): State<Arc<AppState>>,
     _ctx: MemberContext,
 ) -> AppResult<Json<JobStatusResponse>> {
-    let redis = state.infra.redis.as_ref().ok_or_else(|| {
-        AppError::Internal("Redis not available".to_string())
-    })?;
+    let redis = state
+        .infra
+        .redis
+        .as_ref()
+        .ok_or_else(|| AppError::Internal("Redis not available".to_string()))?;
 
     use crate::queue::JobQueue;
     let queue = JobQueue::new(redis.clone());
 
-    let meta = queue.get_job_metadata(job_id).await.map_err(|e| {
-        AppError::Internal(format!("Failed to get job metadata: {e}"))
-    })?;
+    let meta = queue
+        .get_job_metadata(job_id)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to get job metadata: {e}")))?;
 
     match meta {
         Some(m) => Ok(Json(JobStatusResponse {
@@ -414,9 +448,11 @@ pub async fn get_leave_policy_assignments(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<crate::models::LeavePolicyAssignmentDetail>>> {
     ctx.require_permission(Permission::LeavePoliciesManage)?;
-    let assignments = state.leaves.policy_repo.get_policy_assignments(ctx.workspace_id,
-    )
-    .await?;
+    let assignments = state
+        .leaves
+        .policy_repo
+        .get_policy_assignments(ctx.workspace_id)
+        .await?;
     Ok(Json(assignments))
 }
 
@@ -451,7 +487,9 @@ pub async fn upload_leave_excel(
                 .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
 
             if data.len() > MAX_FILE_SIZE {
-                return Err(AppError::Validation("File too large (max 10MB)".to_string()));
+                return Err(AppError::Validation(
+                    "File too large (max 10MB)".to_string(),
+                ));
             }
 
             let dir = "storage/imports";
@@ -465,8 +503,8 @@ pub async fn upload_leave_excel(
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
 
     // Check auto-approve permission
-    let auto_approve = ctx.has_permission(Permission::LeaveRequestsApprove) 
-        || ctx.has_permission(Permission::LeaveApproveL1) 
+    let auto_approve = ctx.has_permission(Permission::LeaveRequestsApprove)
+        || ctx.has_permission(Permission::LeaveApproveL1)
         || ctx.has_permission(Permission::LeaveApproveL2);
 
     // Create import job record in DB
@@ -486,16 +524,19 @@ pub async fn upload_leave_excel(
     };
 
     {
-        use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+        use crate::repositories::import_job_repository::{
+            ImportJobRepository, SqlxImportJobRepository,
+        };
         let import_repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
-        import_repo.create_job(&import_job).await.map_err(|e| {
-            AppError::Internal(format!("Failed to create import job: {e}"))
-        })?;
+        import_repo
+            .create_job(&import_job)
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to create import job: {e}")))?;
     }
 
     // Try Redis queue, fallback to sync
     if let Some(redis) = &state.infra.redis {
-        use crate::queue::{Job, JobPayload, LeaveImportPayload, TaskType, JobQueue};
+        use crate::queue::{Job, JobPayload, JobQueue, LeaveImportPayload, TaskType};
 
         let payload = LeaveImportPayload {
             file_path: path,
@@ -513,46 +554,59 @@ pub async fn upload_leave_excel(
         );
 
         let queue = JobQueue::new(redis.clone());
-        queue.enqueue_jobs(vec![job]).await.map_err(|e| {
-            AppError::Internal(format!("Failed to enqueue leave import job: {e}"))
-        })?;
+        queue
+            .enqueue_jobs(vec![job])
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to enqueue leave import job: {e}")))?;
     } else {
         // Sync fallback: process in background via tokio::spawn
         let pool = state.infra.db.api().clone();
         let ws_id = ctx.workspace_id;
         let file = path;
         tokio::spawn(async move {
-            let service = crate::services::leave_import_service::LeaveImportService::new(pool.clone());
-            let result = service.process_import(import_job_id, ws_id, user_id, &file, auto_approve).await;
+            let service =
+                crate::services::leave_import_service::LeaveImportService::new(pool.clone());
+            let result = service
+                .process_import(import_job_id, ws_id, user_id, &file, auto_approve)
+                .await;
 
-            use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+            use crate::repositories::import_job_repository::{
+                ImportJobRepository, SqlxImportJobRepository,
+            };
             let repo = SqlxImportJobRepository::new(pool);
 
             match result {
                 Ok(r) => {
                     let error_log = if r.error_count > 0 {
-                        Some(serde_json::json!({
-                            "success_count": r.success_count,
-                            "error_count": r.error_count,
-                            "error_file_path": r.error_file_path,
-                        }).to_string())
+                        Some(
+                            serde_json::json!({
+                                "success_count": r.success_count,
+                                "error_count": r.error_count,
+                                "error_file_path": r.error_file_path,
+                            })
+                            .to_string(),
+                        )
                     } else {
                         None
                     };
-                    let _ = repo.update_job_progress(
-                        import_job_id,
-                        r.success_count,
-                        crate::models::ImportJobStatus::Completed,
-                        error_log,
-                    ).await;
+                    let _ = repo
+                        .update_job_progress(
+                            import_job_id,
+                            r.success_count,
+                            crate::models::ImportJobStatus::Completed,
+                            error_log,
+                        )
+                        .await;
                 }
                 Err(msg) => {
-                    let _ = repo.update_job_progress(
-                        import_job_id,
-                        0,
-                        crate::models::ImportJobStatus::Failed,
-                        Some(msg),
-                    ).await;
+                    let _ = repo
+                        .update_job_progress(
+                            import_job_id,
+                            0,
+                            crate::models::ImportJobStatus::Failed,
+                            Some(msg.to_string()),
+                        )
+                        .await;
                 }
             }
         });
@@ -572,10 +626,15 @@ pub async fn get_latest_leave_import(
 ) -> AppResult<Json<serde_json::Value>> {
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+    use crate::repositories::import_job_repository::{
+        ImportJobRepository, SqlxImportJobRepository,
+    };
     let repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
 
-    match repo.get_latest_job(ctx.workspace_id, Some("leave_import".to_string())).await {
+    match repo
+        .get_latest_job(ctx.workspace_id, Some("leave_import".to_string()))
+        .await
+    {
         Ok(Some(job)) => Ok(Json(serde_json::json!({
             "id": job.id.to_string(),
             "status": serde_json::to_value(job.status)
@@ -589,7 +648,9 @@ pub async fn get_latest_leave_import(
             "updated_at": job.updated_at.to_rfc3339(),
         }))),
         Ok(None) => Ok(Json(serde_json::json!(null))),
-        Err(e) => Err(AppError::Internal(format!("Failed to get latest import job: {e}"))),
+        Err(e) => Err(AppError::Internal(format!(
+            "Failed to get latest import job: {e}"
+        ))),
     }
 }
 
@@ -602,18 +663,26 @@ pub async fn download_leave_import_errors(
 ) -> AppResult<axum::response::Response> {
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    use crate::repositories::import_job_repository::{ImportJobRepository, SqlxImportJobRepository};
+    use crate::repositories::import_job_repository::{
+        ImportJobRepository, SqlxImportJobRepository,
+    };
     let repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
 
-    let job = repo.get_job_by_id(job_id).await
+    let job = repo
+        .get_job_by_id(job_id)
+        .await
         .map_err(|e| AppError::Internal(format!("DB error: {e}")))?
         .ok_or_else(|| AppError::NotFound("Import job not found".to_string()))?;
 
     // Extract error file path from error_log JSON
-    let error_file_path = job.error_log
+    let error_file_path = job
+        .error_log
         .as_ref()
         .and_then(|log| serde_json::from_str::<serde_json::Value>(log).ok())
-        .and_then(|v| v.get("error_file_path").and_then(|p| p.as_str().map(String::from)))
+        .and_then(|v| {
+            v.get("error_file_path")
+                .and_then(|p| p.as_str().map(String::from))
+        })
         .ok_or_else(|| AppError::NotFound("No error file available for this import".to_string()))?;
 
     let bytes = tokio::fs::read(&error_file_path)
@@ -623,8 +692,14 @@ pub async fn download_leave_import_errors(
     use axum::http::header;
 
     axum::response::Response::builder()
-        .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"leave_import_{job_id}_errors.xlsx\""))
+        .header(
+            header::CONTENT_TYPE,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"leave_import_{job_id}_errors.xlsx\""),
+        )
         .body(axum::body::Body::from(bytes))
         .map_err(|e| AppError::Internal(format!("Failed to build response: {e}")))
 }
@@ -656,14 +731,23 @@ pub async fn download_leave_import_template(
     .collect();
 
     let lang = query.lang.as_deref().unwrap_or("en");
-    let bytes = crate::services::leave_import_service::LeaveImportService::generate_template(&leave_types, lang)
-        .map_err(|e| AppError::Internal(format!("Failed to generate template: {e}")))?;
+    let bytes = crate::services::leave_import_service::LeaveImportService::generate_template(
+        &leave_types,
+        lang,
+    )
+    .map_err(|e| AppError::Internal(format!("Failed to generate template: {e}")))?;
 
     use axum::http::header;
 
     axum::response::Response::builder()
-        .header(header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        .header(header::CONTENT_DISPOSITION, "attachment; filename=\"leave_import_template.xlsx\"")
+        .header(
+            header::CONTENT_TYPE,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        .header(
+            header::CONTENT_DISPOSITION,
+            "attachment; filename=\"leave_import_template.xlsx\"",
+        )
         .body(axum::body::Body::from(bytes))
         .map_err(|e| AppError::Internal(format!("Failed to build response: {e}")))
 }

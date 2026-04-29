@@ -2,8 +2,7 @@ use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::models::ImportJobStatus;
 use apiserver::repositories::{
-    employee, import_job_repository, raw_attendance_log_repository,
-    staging_log_repository,
+    employee, import_job_repository, raw_attendance_log_repository, staging_log_repository,
 };
 use apiserver::services::AttendanceImportService;
 use chrono::Utc;
@@ -47,18 +46,24 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     tokio::fs::create_dir_all("storage/test_imports").await?;
     tokio::fs::write(&file_path, csv_content).await?;
 
-    let te_repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let import_repo: std::sync::Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> = std::sync::Arc::new(apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
+    let te_repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        pool.clone(),
+    ));
+    let import_repo: std::sync::Arc<
+        dyn apiserver::repositories::import_job_repository::ImportJobRepository,
+    > = std::sync::Arc::new(
+        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()),
+    );
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
-    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> = std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
-    let job_id = AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone(), None).batch_import_from_file(
-        ws_id,
-        user_id,
-        file_path,
-        "employee".to_string(),
-    )
-    .await
-    .map_err(|s| format!("Import failed with status: {}", s))?;
+    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
+        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
+            pool.clone(),
+        ));
+    let job_id =
+        AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone(), None)
+            .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
+            .await
+            .map_err(|s| format!("Import failed with status: {}", s))?;
 
     // Wait for job completion
     let mut job_finished = false;
@@ -152,18 +157,24 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     tokio::fs::create_dir_all("storage/test_imports").await?;
     tokio::fs::write(&file_path, csv_content).await?;
 
-    let te_repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-    let import_repo: std::sync::Arc<dyn apiserver::repositories::import_job_repository::ImportJobRepository> = std::sync::Arc::new(apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()));
+    let te_repo = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+        pool.clone(),
+    ));
+    let import_repo: std::sync::Arc<
+        dyn apiserver::repositories::import_job_repository::ImportJobRepository,
+    > = std::sync::Arc::new(
+        apiserver::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()),
+    );
     let adj_repo: std::sync::Arc<dyn apiserver::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = std::sync::Arc::new(apiserver::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()));
-    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> = std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(pool.clone()));
-    let job_id = AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone(), None).batch_import_from_file(
-        ws_id,
-        user_id,
-        file_path,
-        "employee".to_string(),
-    )
-    .await
-    .map_err(|s| format!("Import failed with status: {}", s))?;
+    let emp_repo: std::sync::Arc<dyn apiserver::repositories::EmployeeRepository> =
+        std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
+            pool.clone(),
+        ));
+    let job_id =
+        AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone(), None)
+            .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
+            .await
+            .map_err(|s| format!("Import failed with status: {}", s))?;
 
     // Wait for job completion
     let mut job_finished = false;

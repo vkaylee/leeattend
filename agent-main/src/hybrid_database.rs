@@ -1,7 +1,7 @@
-use crate::redb_store::{RedbStore, StoredLog, StoreError};
 use crate::models::AttendanceData;
-use std::sync::Arc;
+use crate::redb_store::{RedbStore, StoreError, StoredLog};
 use log::info;
+use std::sync::Arc;
 
 /// HybridDatabase — now a thin wrapper around RedbStore.
 /// Maintains the same public API for backward compatibility.
@@ -15,12 +15,19 @@ impl HybridDatabase {
     /// Create a new HybridDatabase backed by Redb.
     /// `db_path` is the path to the Redb file (or ":memory:" for testing).
     /// `_max_memory_logs` is kept for API compat but ignored (Redb manages its own cache).
-    pub fn new(db_path: &str, _max_memory_logs: usize, signature_ttl_days: i64) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(
+        db_path: &str,
+        _max_memory_logs: usize,
+        signature_ttl_days: i64,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         // Convert SQLite-style URLs to plain paths for Redb
         let redb_path = Self::normalize_path(db_path);
-        let store = RedbStore::new(&redb_path, signature_ttl_days)
-            .map_err(|e| -> Box<dyn std::error::Error> { Box::new(std::io::Error::other(e.to_string())) })?;
-        Ok(Self { store: Arc::new(store) })
+        let store = RedbStore::new(&redb_path, signature_ttl_days).map_err(
+            |e| -> Box<dyn std::error::Error> { Box::new(std::io::Error::other(e.to_string())) },
+        )?;
+        Ok(Self {
+            store: Arc::new(store),
+        })
     }
 
     /// Get direct access to the underlying RedbStore.
@@ -45,53 +52,67 @@ impl HybridDatabase {
     }
 
     /// Save attendance — converts local time to UTC and inserts into Redb.
-    pub async fn save_raw_attendance(&self, device_id: String, data: AttendanceData) -> Result<i64, StoreError> {
+    pub async fn save_raw_attendance(
+        &self,
+        device_id: String,
+        data: AttendanceData,
+    ) -> Result<i64, StoreError> {
         let store = self.store.clone();
         tokio::task::spawn_blocking(move || {
             let tz = store.get_device_timezone(&device_id)?;
             let timestamp_utc = RedbStore::parse_local_to_utc_timestamp(&data.timestamp, tz)
                 .map_err(|_| StoreError::InvalidTimestamp)?;
             store.insert(&device_id, &data, timestamp_utc)
-        }).await.map_err(|e| StoreError::Internal(e.to_string()))?
+        })
+        .await
+        .map_err(|e| StoreError::Internal(e.to_string()))?
     }
 
     /// Batch save — converts timestamps and inserts into Redb.
-    pub async fn save_raw_attendance_batch(&self, batch: Vec<(Arc<String>, AttendanceData)>) -> Result<usize, StoreError> {
+    pub async fn save_raw_attendance_batch(
+        &self,
+        batch: Vec<(Arc<String>, AttendanceData)>,
+    ) -> Result<usize, StoreError> {
         let store = self.store.clone();
         tokio::task::spawn_blocking(move || {
             let mut batch_with_ts: Vec<(String, AttendanceData, i64)> = Vec::new();
             for (device_id, data) in batch {
-                let tz = store.get_device_timezone(&device_id).unwrap_or(chrono_tz::UTC);
+                let tz = store
+                    .get_device_timezone(&device_id)
+                    .unwrap_or(chrono_tz::UTC);
                 if let Ok(ts) = RedbStore::parse_local_to_utc_timestamp(&data.timestamp, tz) {
                     batch_with_ts.push((device_id.to_string(), data, ts));
                 }
             }
             store.insert_batch(&batch_with_ts)
-        }).await.map_err(|e| StoreError::Internal(e.to_string()))?
+        })
+        .await
+        .map_err(|e| StoreError::Internal(e.to_string()))?
     }
 
     /// Get unsynced logs from Redb.
     pub async fn get_unsynced_logs(&self, limit: usize) -> Result<Vec<StoredLog>, StoreError> {
         let store = self.store.clone();
-        tokio::task::spawn_blocking(move || {
-            store.get_unsynced(limit)
-        }).await.map_err(|e| StoreError::Internal(e.to_string()))?
+        tokio::task::spawn_blocking(move || store.get_unsynced(limit))
+            .await
+            .map_err(|e| StoreError::Internal(e.to_string()))?
     }
 
     /// Count unsynced logs.
     pub async fn count_unsynced_logs(&self) -> usize {
         let store = self.store.clone();
-        tokio::task::spawn_blocking(move || {
-            store.count_unsynced().unwrap_or(0)
-        }).await.unwrap_or(0)
+        tokio::task::spawn_blocking(move || store.count_unsynced().unwrap_or(0))
+            .await
+            .unwrap_or(0)
     }
 
     /// Mark logs as in-flight.
     pub async fn mark_in_flight(&self, ids: Vec<i64>) {
         let store = self.store.clone();
-        if let Err(e) = tokio::task::spawn_blocking(move || {
-            store.mark_in_flight(&ids)
-        }).await.unwrap_or(Err(StoreError::Internal("Task paniced".into()))) {
+        if let Err(e) = tokio::task::spawn_blocking(move || store.mark_in_flight(&ids))
+            .await
+            .unwrap_or(Err(StoreError::Internal("Task paniced".into())))
+        {
             log::error!("Failed to mark logs as in-flight: {e}");
         }
     }
@@ -111,22 +132,26 @@ impl HybridDatabase {
     /// Mark synced by composite key (for ACK handling).
     pub async fn mark_synced_by_key(&self, composite_key: String) -> bool {
         let store = self.store.clone();
-        tokio::task::spawn_blocking(move || store.mark_synced_by_key(&composite_key)).await.unwrap_or(false)
+        tokio::task::spawn_blocking(move || store.mark_synced_by_key(&composite_key))
+            .await
+            .unwrap_or(false)
     }
 
     /// Reset to unsynced by composite key (for failed ACK).
     pub async fn reset_to_unsynced_by_key(&self, composite_key: String) -> bool {
         let store = self.store.clone();
-        tokio::task::spawn_blocking(move || store.reset_to_unsynced_by_key(&composite_key)).await.unwrap_or(false)
+        tokio::task::spawn_blocking(move || store.reset_to_unsynced_by_key(&composite_key))
+            .await
+            .unwrap_or(false)
     }
 
     /// Evict signatures older than TTL. Returns (evicted, before, after).
     pub async fn evict_old_signatures(&self) -> (usize, usize, usize) {
         let store = self.store.clone();
-        tokio::task::spawn_blocking(move || store.evict_old_signatures().unwrap_or((0, 0, 0))).await.unwrap_or((0, 0, 0))
+        tokio::task::spawn_blocking(move || store.evict_old_signatures().unwrap_or((0, 0, 0)))
+            .await
+            .unwrap_or((0, 0, 0))
     }
-
-
 
     /// Unload device memory — removes signatures and logs for disabled device.
     pub async fn unload_device_memory(&self, device_id: String) -> Result<(), StoreError> {
@@ -135,7 +160,9 @@ impl HybridDatabase {
             let removed = store.remove_signatures_for_device(&device_id)?;
             info!("HybridDatabase: Unloaded {removed} entries for disabled device '{device_id}'");
             Ok(())
-        }).await.map_err(|e| StoreError::Internal(e.to_string()))?
+        })
+        .await
+        .map_err(|e| StoreError::Internal(e.to_string()))?
     }
 }
 
@@ -155,7 +182,19 @@ mod tests {
     fn setup_db() -> HybridDatabase {
         let db = HybridDatabase::new(":memory:", 1000, 90).unwrap();
         // Setup a device with UTC timezone for test
-        db.store().upsert_device("DEV001", "Test Device", "192.168.1.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+        db.store()
+            .upsert_device(
+                "DEV001",
+                "Test Device",
+                "192.168.1.1",
+                4370,
+                "zkteco",
+                "UTC",
+                None,
+                true,
+                123456,
+            )
+            .unwrap();
         db
     }
 
@@ -229,9 +268,18 @@ mod tests {
     async fn test_batch_insert() {
         let db = setup_db();
         let batch = vec![
-            (Arc::new("DEV001".to_string()), make_attendance("user1", "2025-06-01 08:00:00")),
-            (Arc::new("DEV001".to_string()), make_attendance("user2", "2025-06-01 08:01:00")),
-            (Arc::new("DEV001".to_string()), make_attendance("user1", "2025-06-01 08:00:00")), // duplicate
+            (
+                Arc::new("DEV001".to_string()),
+                make_attendance("user1", "2025-06-01 08:00:00"),
+            ),
+            (
+                Arc::new("DEV001".to_string()),
+                make_attendance("user2", "2025-06-01 08:01:00"),
+            ),
+            (
+                Arc::new("DEV001".to_string()),
+                make_attendance("user1", "2025-06-01 08:00:00"),
+            ), // duplicate
         ];
 
         let inserted = db.save_raw_attendance_batch(batch).await.unwrap();
@@ -242,9 +290,24 @@ mod tests {
     #[tokio::test]
     async fn test_fifo_ordering() {
         let db = setup_db();
-        db.save_raw_attendance("DEV001".into(), make_attendance("user1", "2025-06-01 08:00:00")).await.unwrap();
-        db.save_raw_attendance("DEV001".into(), make_attendance("user2", "2025-06-01 08:01:00")).await.unwrap();
-        db.save_raw_attendance("DEV001".into(), make_attendance("user3", "2025-06-01 08:02:00")).await.unwrap();
+        db.save_raw_attendance(
+            "DEV001".into(),
+            make_attendance("user1", "2025-06-01 08:00:00"),
+        )
+        .await
+        .unwrap();
+        db.save_raw_attendance(
+            "DEV001".into(),
+            make_attendance("user2", "2025-06-01 08:01:00"),
+        )
+        .await
+        .unwrap();
+        db.save_raw_attendance(
+            "DEV001".into(),
+            make_attendance("user3", "2025-06-01 08:02:00"),
+        )
+        .await
+        .unwrap();
 
         let logs = db.get_unsynced_logs(10).await.unwrap();
         assert_eq!(logs.len(), 3);
@@ -256,8 +319,32 @@ mod tests {
     fn test_device_management() {
         let db = HybridDatabase::new(":memory:", 1000, 90).unwrap();
 
-        db.store().upsert_device("DEV001", "Device 1", "192.168.1.1", 4370, "zkteco", "Asia/Ho_Chi_Minh", None, true, 123456).unwrap();
-        db.store().upsert_device("DEV002", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", None, false, 123456).unwrap();
+        db.store()
+            .upsert_device(
+                "DEV001",
+                "Device 1",
+                "192.168.1.1",
+                4370,
+                "zkteco",
+                "Asia/Ho_Chi_Minh",
+                None,
+                true,
+                123456,
+            )
+            .unwrap();
+        db.store()
+            .upsert_device(
+                "DEV002",
+                "Device 2",
+                "192.168.1.2",
+                4370,
+                "zkteco",
+                "UTC",
+                None,
+                false,
+                123456,
+            )
+            .unwrap();
 
         let active = db.store().get_active_devices().unwrap();
         assert_eq!(active.len(), 1);
@@ -268,8 +355,13 @@ mod tests {
     fn test_agent_config() {
         let db = HybridDatabase::new(":memory:", 1000, 90).unwrap();
 
-        db.store().upsert_agent_config("max_concurrent_workers", "5").unwrap();
-        let val = db.store().get_agent_config("max_concurrent_workers").unwrap();
+        db.store()
+            .upsert_agent_config("max_concurrent_workers", "5")
+            .unwrap();
+        let val = db
+            .store()
+            .get_agent_config("max_concurrent_workers")
+            .unwrap();
         assert_eq!(val, Some("5".to_string()));
 
         let missing = db.store().get_agent_config("nonexistent").unwrap();
@@ -279,7 +371,19 @@ mod tests {
     #[tokio::test]
     async fn test_eviction() {
         let db = HybridDatabase::new(":memory:", 1000, 1).unwrap(); // 1 day TTL
-        db.store().upsert_device("DEV001", "Test", "192.168.1.1", 4370, "zkteco", "UTC", None, true, 123456).unwrap();
+        db.store()
+            .upsert_device(
+                "DEV001",
+                "Test",
+                "192.168.1.1",
+                4370,
+                "zkteco",
+                "UTC",
+                None,
+                true,
+                123456,
+            )
+            .unwrap();
 
         // Insert log with current timestamp (within TTL)
         let data = make_attendance("user1", "2025-06-01 08:00:00");

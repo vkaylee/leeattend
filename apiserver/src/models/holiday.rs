@@ -73,8 +73,6 @@ pub enum HolidayOvernightStrategy {
     ByMajorityHours,
 }
 
-
-
 impl std::fmt::Display for HolidayOvernightStrategy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -153,7 +151,9 @@ mod tests {
     fn test_holiday_overnight_strategy_from_str_invalid() {
         let result = HolidayOvernightStrategy::from_str("invalid_strategy");
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Unknown holiday overnight strategy"));
+        assert!(result
+            .unwrap_err()
+            .contains("Unknown holiday overnight strategy"));
     }
 
     #[test]

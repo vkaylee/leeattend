@@ -1,7 +1,9 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import DailyReportTable from "../DailyReportTable";
+
 import { DailyAttendanceReport } from "@/lib/api";
+
+import DailyReportTable from "../DailyReportTable";
 
 describe("DailyReportTable", () => {
     const mockT = (key: string) => key;

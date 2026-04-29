@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+
 import { useMyPermissions } from "@/hooks/use-permissions";
 
 interface PermissionGateProps {

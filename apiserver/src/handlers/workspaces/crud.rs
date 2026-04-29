@@ -14,8 +14,8 @@ use crate::handlers::system_auth::SystemContext;
 use crate::models::enums::SystemRoleType;
 use crate::models::{
     AttendanceTrendPoint, CreateWorkspaceRequest, DepartmentAttendancePoint, LatenessByDay,
-    LeaveTypeBreakdown, OvertimeTrendPoint, PeakTimeSlot, UnexcusedAbsencesPoint, UpdateWorkspaceRequest, Workspace,
-    WorkspaceStats,
+    LeaveTypeBreakdown, OvertimeTrendPoint, PeakTimeSlot, UnexcusedAbsencesPoint,
+    UpdateWorkspaceRequest, Workspace, WorkspaceStats,
 };
 
 use crate::{AppState, UserId};
@@ -27,13 +27,11 @@ pub async fn get_attendance_trend(
     let today = Utc::now().date_naive();
 
     // Fetch workspace timezone for correct UTC→local conversion
-    let tz_str: String = sqlx::query_scalar(
-        "SELECT timezone FROM workspaces WHERE id = $1",
-    )
-    .bind(workspace_id)
-    .fetch_one(state.infra.db.reader())
-    .await
-    .unwrap_or_else(|_| "UTC".to_string());
+    let tz_str: String = sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
+        .bind(workspace_id)
+        .fetch_one(state.infra.db.reader())
+        .await
+        .unwrap_or_else(|_| "UTC".to_string());
 
     // Main query: present + on_leave per day (uses only guaranteed tables)
     #[derive(Debug, sqlx::FromRow)]
@@ -333,13 +331,11 @@ pub async fn get_department_attendance(
     // Late per department (only for "today")
     let late_map: std::collections::HashMap<Uuid, i64> = if range == "today" {
         // Fetch workspace timezone for correct UTC→local conversion
-        let tz_str: String = sqlx::query_scalar(
-            "SELECT timezone FROM workspaces WHERE id = $1",
-        )
-        .bind(workspace_id)
-        .fetch_one(state.infra.db.reader())
-        .await
-        .unwrap_or_else(|_| "UTC".to_string());
+        let tz_str: String = sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
+            .bind(workspace_id)
+            .fetch_one(state.infra.db.reader())
+            .await
+            .unwrap_or_else(|_| "UTC".to_string());
 
         #[derive(Debug, sqlx::FromRow)]
         struct LateRow {
@@ -458,10 +454,10 @@ pub async fn get_unexcused_absences(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(params): Query<UnexcusedAbsencesQuery>,
 ) -> AppResult<Json<Vec<UnexcusedAbsencesPoint>>> {
-        use crate::repositories::workspace_repository::WorkspaceRepository;
+    use crate::repositories::workspace_repository::WorkspaceRepository;
     use crate::repositories::SqlxWorkspaceRepository;
     use crate::services::attendance_utils::{
-        self, AttendanceStatus, DailyStatusInput, determine_daily_status,
+        self, determine_daily_status, AttendanceStatus, DailyStatusInput,
     };
     use chrono_tz::Tz;
     use std::collections::HashMap;
@@ -482,7 +478,9 @@ pub async fn get_unexcused_absences(
     let group_by = params.group_by.unwrap_or_else(|| "department".to_string());
 
     // 1. Get workspace timezone
-    let workspace_repo = SqlxWorkspaceRepository { pool: state.infra.db.reader().clone() };
+    let workspace_repo = SqlxWorkspaceRepository {
+        pool: state.infra.db.reader().clone(),
+    };
     let workspace = workspace_repo
         .get_workspace_by_id(workspace_id)
         .await
@@ -492,30 +490,39 @@ pub async fn get_unexcused_absences(
     let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
     // 2. Get schedules for ALL active employees (reuses 6-priority chain logic)
-    let schedules = state.shifts.roster_repo.get_workspace_schedules(
-        state.infra.roster_cache.as_deref(),
-        workspace_id,
-        start_date,
-        end_date,
-        None, // all employees
-    )
-    .await
-    .map_err(|e| AppError::Internal(format!("Error fetching schedules: {e}")))?;
+    let schedules = state
+        .shifts
+        .roster_repo
+        .get_workspace_schedules(
+            state.infra.roster_cache.as_deref(),
+            workspace_id,
+            start_date,
+            end_date,
+            None, // all employees
+        )
+        .await
+        .map_err(|e| AppError::Internal(format!("Error fetching schedules: {e}")))?;
 
     // 3. Batch-fetch time entries (using shared date_range_to_utc)
     let emp_ids: Vec<Uuid> = schedules.iter().map(|s| s.employee_id).collect();
     let (start_dt, end_dt) = attendance_utils::date_range_to_utc(tz, start_date, end_date);
 
-    let entries_map = state.attendance.time_entry_repo.get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt,
-    )
-    .await
-    .map_err(|e| AppError::Internal(format!("Error fetching time entries: {e}")))?;
+    let entries_map = state
+        .attendance
+        .time_entry_repo
+        .get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt)
+        .await
+        .map_err(|e| AppError::Internal(format!("Error fetching time entries: {e}")))?;
 
     // 4. Holiday info is already embedded in EffectiveSchedule.is_holiday from get_workspace_schedules.
 
     // 5. Batch-fetch approved leave requests (using shared build_leave_date_set)
     let leave_date_set = attendance_utils::build_leave_date_set(
-        state.infra.db.reader(), workspace_id, &emp_ids, start_date, end_date,
+        state.infra.db.reader(),
+        workspace_id,
+        &emp_ids,
+        start_date,
+        end_date,
     )
     .await
     .map_err(|e| AppError::Internal(format!("Error fetching leave requests: {e}")))?;
@@ -612,8 +619,7 @@ pub async fn get_unexcused_absences(
                     unexcused += 1;
 
                     // Consecutive: days after last punch-in without leave
-                    let is_after_last_punch = last_present_date
-                        .is_none_or(|lpd| date > lpd);
+                    let is_after_last_punch = last_present_date.is_none_or(|lpd| date > lpd);
                     if is_after_last_punch {
                         consecutive += 1;
                     }
@@ -621,14 +627,17 @@ pub async fn get_unexcused_absences(
             }
         }
 
-        emp_stats.insert(emp_sched.employee_id, EmployeeStats {
-            employee_name: emp_sched.full_name.clone(),
-            department_id: dept_id,
-            department_name: dept_name,
-            unexcused_count: unexcused,
-            total_absent_count: total_absent,
-            consecutive_count: consecutive,
-        });
+        emp_stats.insert(
+            emp_sched.employee_id,
+            EmployeeStats {
+                employee_name: emp_sched.full_name.clone(),
+                department_id: dept_id,
+                department_name: dept_name,
+                unexcused_count: unexcused,
+                total_absent_count: total_absent,
+                consecutive_count: consecutive,
+            },
+        );
     }
 
     // 8. Build result based on group_by
@@ -664,24 +673,25 @@ pub async fn get_unexcused_absences(
 
         let mut result: Vec<UnexcusedAbsencesPoint> = dept_agg
             .into_iter()
-            .map(|((dept_id, dept_name), (unexcused, total_absent, consecutive))| {
-                UnexcusedAbsencesPoint {
-                    department_id: dept_id,
-                    department_name: dept_name,
-                    employee_id: None,
-                    employee_name: None,
-                    unexcused_count: unexcused,
-                    consecutive_count: consecutive,
-                    total_absent_count: total_absent,
-                    total_leave_count: 0,
-                }
-            })
+            .map(
+                |((dept_id, dept_name), (unexcused, total_absent, consecutive))| {
+                    UnexcusedAbsencesPoint {
+                        department_id: dept_id,
+                        department_name: dept_name,
+                        employee_id: None,
+                        employee_name: None,
+                        unexcused_count: unexcused,
+                        consecutive_count: consecutive,
+                        total_absent_count: total_absent,
+                        total_leave_count: 0,
+                    }
+                },
+            )
             .collect();
         result.sort_by(|a, b| b.unexcused_count.cmp(&a.unexcused_count));
         Ok(Json(result))
     }
 }
-
 
 pub async fn get_overtime_trend(
     State(state): State<Arc<AppState>>,
@@ -713,7 +723,10 @@ pub async fn get_overtime_trend(
     .bind(today)
     .fetch_all(state.infra.db.reader())
     .await
-    .unwrap_or_else(|e| { tracing::warn!(error = %e, "overtime trend query failed, degrading gracefully"); vec![] });
+    .unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "overtime trend query failed, degrading gracefully");
+        vec![]
+    });
 
     let trend: Vec<OvertimeTrendPoint> = rows
         .into_iter()
@@ -741,13 +754,11 @@ pub async fn get_workspace_stats(
     .unwrap_or(0);
 
     // Fetch workspace timezone for correct UTC→local conversion
-    let tz_str: String = sqlx::query_scalar(
-        "SELECT timezone FROM workspaces WHERE id = $1",
-    )
-    .bind(workspace_id)
-    .fetch_one(state.infra.db.reader())
-    .await
-    .unwrap_or_else(|_| "UTC".to_string());
+    let tz_str: String = sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
+        .bind(workspace_id)
+        .fetch_one(state.infra.db.reader())
+        .await
+        .unwrap_or_else(|_| "UTC".to_string());
 
     // 2. Present Today (Employees with at least one punch-in today)
     let today = Utc::now().date_naive();
@@ -1180,7 +1191,10 @@ pub async fn get_leave_types_breakdown(
     .bind(workspace_id)
     .fetch_all(state.infra.db.reader())
     .await
-    .unwrap_or_else(|e| { tracing::warn!(error = %e, "leave types query failed, degrading gracefully"); vec![] });
+    .unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "leave types query failed, degrading gracefully");
+        vec![]
+    });
 
     let result: Vec<LeaveTypeBreakdown> = rows
         .into_iter()
@@ -1202,13 +1216,11 @@ pub async fn get_lateness_by_day(
     let today = Utc::now().date_naive();
 
     // Fetch workspace timezone for correct UTC→local conversion
-    let tz_str: String = sqlx::query_scalar(
-        "SELECT timezone FROM workspaces WHERE id = $1",
-    )
-    .bind(workspace_id)
-    .fetch_one(state.infra.db.reader())
-    .await
-    .unwrap_or_else(|_| "UTC".to_string());
+    let tz_str: String = sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
+        .bind(workspace_id)
+        .fetch_one(state.infra.db.reader())
+        .await
+        .unwrap_or_else(|_| "UTC".to_string());
 
     #[derive(Debug, sqlx::FromRow)]
     struct DayRow {
@@ -1316,7 +1328,8 @@ pub async fn get_workspace_by_id(
     UserId(_user_id): UserId,
 ) -> AppResult<Json<Workspace>> {
     let workspace = state
-        .core.workspace_repo
+        .core
+        .workspace_repo
         .get_workspace_by_id(ws_id)
         .await
         .map_err(AppError::Internal)?
@@ -1335,7 +1348,10 @@ pub async fn create_workspace(
 ) -> AppResult<Json<Workspace>> {
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
-    state.core.workspace_service.create_workspace(&req.name, ctx.user_id)
+    state
+        .core
+        .workspace_service
+        .create_workspace(&req.name, ctx.user_id)
         .await
         .map(Json)
         .map_err(AppError::from)
@@ -1347,18 +1363,21 @@ pub async fn update_workspace(
     Json(req): Json<UpdateWorkspaceRequest>,
 ) -> AppResult<Json<Workspace>> {
     ctx.require_permission(Permission::WorkspaceSettingsWrite)?;
-    state.core.workspace_service.update_workspace(
-        ctx.workspace_id,
-        req.name,
-        req.date_format,
-        req.time_format,
-        req.timezone,
-        req.theme_primary_color,
-        req.default_language,
-        req.holiday_overnight_strategy,
-        req.default_holiday_ot_multiplier,
-    )
-    .await
-    .map(Json)
-    .map_err(AppError::from)
+    state
+        .core
+        .workspace_service
+        .update_workspace(
+            ctx.workspace_id,
+            req.name,
+            req.date_format,
+            req.time_format,
+            req.timezone,
+            req.theme_primary_color,
+            req.default_language,
+            req.holiday_overnight_strategy,
+            req.default_holiday_ot_multiplier,
+        )
+        .await
+        .map(Json)
+        .map_err(AppError::from)
 }

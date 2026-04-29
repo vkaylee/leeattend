@@ -61,7 +61,8 @@ pub async fn get_employment_phase_definitions(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> Result<Json<Vec<EmploymentPhaseDefinition>>, AppError> {
-    let defs = EmploymentPhaseRepository::get_definitions(state.infra.db.api(), ctx.workspace_id).await?;
+    let defs =
+        EmploymentPhaseRepository::get_definitions(state.infra.db.api(), ctx.workspace_id).await?;
     Ok(Json(defs))
 }
 

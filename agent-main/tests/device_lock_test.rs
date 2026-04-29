@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
-use tokio::sync::Mutex;
-use tokio::time::{sleep, Duration, Instant};
 use dashmap::DashMap;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use tokio::sync::Mutex;
+use tokio::time::{Duration, Instant, sleep};
 
 /// Type matching the production DeviceLocks definition
 type DeviceLocks = Arc<DashMap<String, Arc<Mutex<()>>>>;
@@ -13,7 +13,8 @@ fn create_device_locks() -> DeviceLocks {
 
 /// Helper: acquire device lock (same pattern as main.rs)
 fn get_device_lock(locks: &DeviceLocks, device_id: &str) -> Arc<Mutex<()>> {
-    locks.entry(device_id.to_string())
+    locks
+        .entry(device_id.to_string())
         .or_insert_with(|| Arc::new(Mutex::new(())))
         .clone()
 }
@@ -66,8 +67,14 @@ async fn test_same_device_operations_serialized() {
 
     // Max concurrent on same device should be 1 (serialized)
     let max = max_concurrent.load(Ordering::SeqCst);
-    assert_eq!(max, 1, "Same-device ops must be serialized, but max concurrent was {max}");
-    assert!(!violation.load(Ordering::SeqCst), "Concurrent access violation detected on same device");
+    assert_eq!(
+        max, 1,
+        "Same-device ops must be serialized, but max concurrent was {max}"
+    );
+    assert!(
+        !violation.load(Ordering::SeqCst),
+        "Concurrent access violation detected on same device"
+    );
 }
 
 /// Test that operations on DIFFERENT devices can run concurrently.
@@ -105,7 +112,10 @@ async fn test_different_devices_run_concurrently() {
     }
 
     let max = max_concurrent.load(Ordering::SeqCst);
-    assert!(max >= 2, "Different devices should run concurrently, but max concurrent was {max}");
+    assert!(
+        max >= 2,
+        "Different devices should run concurrently, but max concurrent was {max}"
+    );
 }
 
 /// Test that a "remote command" targeting a device waits for the "polling" task
@@ -181,7 +191,11 @@ async fn test_lock_released_after_operation() {
         // _guard drops here, releasing lock
     }
 
-    assert_eq!(ops_completed.load(Ordering::SeqCst), 3, "All 3 operations should complete");
+    assert_eq!(
+        ops_completed.load(Ordering::SeqCst),
+        3,
+        "All 3 operations should complete"
+    );
 }
 
 /// Test that device lock entries are lazily created (only when accessed).
@@ -221,6 +235,7 @@ async fn test_uncontested_lock_latency() {
     // 100 uncontested lock acquisitions should be well under 50ms
     assert!(
         elapsed < Duration::from_millis(50),
-        "Uncontested locks should be near-instant, took {:?}", elapsed
+        "Uncontested locks should be near-instant, took {:?}",
+        elapsed
     );
 }

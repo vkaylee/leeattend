@@ -38,8 +38,7 @@ impl Drop for PortFileGuard {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Check for openapi generation flag before everything else
     if std::env::args().any(|arg| arg == "gen-openapi") {
-        let openapi_json = ApiDoc::openapi()
-            .to_pretty_json()?;
+        let openapi_json = ApiDoc::openapi().to_pretty_json()?;
         println!("{openapi_json}");
         return Ok(());
     }
@@ -109,8 +108,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         listener.ok_or("Could not find an available port")?
     };
 
-    let actual_addr = listener
-        .local_addr()?;
+    let actual_addr = listener.local_addr()?;
     if std::fs::write(&port_file_name, actual_addr.port().to_string()).is_ok() {
         tracing::info!("Actual listening on {}", actual_addr);
     }
@@ -152,7 +150,9 @@ async fn init_redis() -> Option<RedisPool> {
     let url = match std::env::var("REDIS_URL") {
         Ok(u) => u,
         Err(_) => {
-            tracing::info!("REDIS_URL not set, distributed processing and presence tracking disabled");
+            tracing::info!(
+                "REDIS_URL not set, distributed processing and presence tracking disabled"
+            );
             return None;
         }
     };

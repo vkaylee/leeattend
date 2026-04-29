@@ -13,11 +13,7 @@ impl WorkspaceService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn create_workspace(
-        &self,
-        name: &str,
-        owner_id: Uuid,
-    ) -> Result<Workspace, String> {
+    pub async fn create_workspace(&self, name: &str, owner_id: Uuid) -> Result<Workspace, String> {
         let db = &self.pool;
         // Kiểm tra user có tồn tại không trước khi bắt đầu transaction
         let user_exists: bool =
@@ -40,11 +36,11 @@ impl WorkspaceService {
                 .await
                 .map_err(|e| e.to_string())?;
 
-        let owner_role_id = Uuid::parse_str("a0000000-0000-0000-0000-000000000001")
-            .map_err(|e| e.to_string())?;
+        let owner_role_id =
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000001").map_err(|e| e.to_string())?;
 
         sqlx::query(
-        "INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3)",
+            "INSERT INTO workspace_members (workspace_id, user_id, role_id) VALUES ($1, $2, $3)",
         )
         .bind(workspace.id)
         .bind(owner_id)

@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import { useDebug } from "../../context/DebugContext";
+
+import { useQueryClient } from "@tanstack/react-query";
 import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserPlus, UserMinus } from "lucide-react";
+
+import { useDebug } from "../../context/DebugContext";
 import { debugApi, ClearDbGroup } from "../../lib/api/debug";
 import { getCurrentWorkspaceId } from "../../lib/api/helpers";
-import { useQueryClient } from "@tanstack/react-query";
+
 
 type DebugTab = "identity" | "time" | "database";
 

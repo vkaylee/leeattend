@@ -1,3 +1,4 @@
+import { BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
     BarChart,
@@ -9,7 +10,7 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-import { BarChart3 } from "lucide-react";
+
 import { usePeakTimes } from "@/hooks/use-dashboard";
 
 const COLORS = {

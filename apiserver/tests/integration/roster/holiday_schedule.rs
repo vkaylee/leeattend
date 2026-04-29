@@ -58,7 +58,7 @@ async fn test_schedule_shows_holiday_metadata() {
 
     assert_eq!(res.status(), StatusCode::OK);
     let schedules: Vec<EmployeeSchedule> = res.json().await.unwrap();
-    
+
     // 3. Verification
     assert_eq!(schedules.len(), 1);
     let emp_sched = &schedules[0];
@@ -72,7 +72,11 @@ async fn test_schedule_shows_holiday_metadata() {
 
     // Assert holiday metadata is correctly populated
     assert!(holiday_sched.is_holiday, "is_holiday should be true");
-    assert_eq!(holiday_sched.holiday_name, Some("Labor Day".to_string()), "holiday_name should match");
+    assert_eq!(
+        holiday_sched.holiday_name,
+        Some("Labor Day".to_string()),
+        "holiday_name should match"
+    );
 
     // Find a non-holiday schedule
     let regular_date = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
@@ -83,6 +87,12 @@ async fn test_schedule_shows_holiday_metadata() {
         .expect("Schedule for regular date should exist");
 
     // Assert holiday metadata is default/false for non-holidays
-    assert!(!regular_sched.is_holiday, "is_holiday should be false for regular days");
-    assert_eq!(regular_sched.holiday_name, None, "holiday_name should be None for regular days");
+    assert!(
+        !regular_sched.is_holiday,
+        "is_holiday should be false for regular days"
+    );
+    assert_eq!(
+        regular_sched.holiday_name, None,
+        "holiday_name should be None for regular days"
+    );
 }

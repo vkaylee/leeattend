@@ -20,7 +20,11 @@ pub struct EmployeeService {
 }
 
 impl EmployeeService {
-    pub fn new(repo: Arc<dyn EmployeeRepository>, pool: PgPool, redis: Option<crate::queue::RedisPool>) -> Self {
+    pub fn new(
+        repo: Arc<dyn EmployeeRepository>,
+        pool: PgPool,
+        redis: Option<crate::queue::RedisPool>,
+    ) -> Self {
         Self { repo, pool, redis }
     }
 
@@ -156,7 +160,11 @@ impl EmployeeService {
                 }),
             );
             if let Err(e) = queue.enqueue_jobs(vec![claim_job]).await {
-                tracing::warn!("Failed to enqueue claim-staged-logs for new employee {}: {}", employee.id, e);
+                tracing::warn!(
+                    "Failed to enqueue claim-staged-logs for new employee {}: {}",
+                    employee.id,
+                    e
+                );
             }
         }
 
@@ -271,7 +279,15 @@ impl EmployeeService {
         department_id: Option<Vec<Uuid>>,
     ) -> Result<(Vec<Employee>, i64), AppError> {
         self.repo
-            .get_all_employees(workspace_id, search_query, page, limit, sort_by, sort_dir, department_id)
+            .get_all_employees(
+                workspace_id,
+                search_query,
+                page,
+                limit,
+                sort_by,
+                sort_dir,
+                department_id,
+            )
             .await
             .map_err(AppError::Sqlx)
     }
@@ -326,14 +342,20 @@ impl EmployeeService {
                     0,
                     crate::queue::TaskType::ClaimStagedLogs,
                     workspace_id,
-                    crate::queue::JobPayload::ClaimStagedLogs(crate::queue::ClaimStagedLogsPayload {
-                        workspace_id,
-                        employee_id: id,
-                        employee_id_number: normalized,
-                    }),
+                    crate::queue::JobPayload::ClaimStagedLogs(
+                        crate::queue::ClaimStagedLogsPayload {
+                            workspace_id,
+                            employee_id: id,
+                            employee_id_number: normalized,
+                        },
+                    ),
                 );
                 if let Err(e) = queue.enqueue_jobs(vec![claim_job]).await {
-                    tracing::warn!("Failed to enqueue claim-staged-logs for updated employee {}: {}", id, e);
+                    tracing::warn!(
+                        "Failed to enqueue claim-staged-logs for updated employee {}: {}",
+                        id,
+                        e
+                    );
                 }
             }
         }
@@ -437,11 +459,7 @@ impl EmployeeService {
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn delete_employee(
-        &self,
-        id: Uuid,
-        workspace_id: Uuid,
-    ) -> Result<(), AppError> {
+    pub async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<(), AppError> {
         let rows_affected = self
             .repo
             .delete_employee(id, workspace_id)

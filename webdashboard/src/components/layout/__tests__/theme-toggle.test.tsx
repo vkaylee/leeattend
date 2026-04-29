@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
@@ -8,8 +9,10 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }));
 import { DarkModeContext } from '@/context/dark-mode-context-definition';
-import type { ThemeMode } from '@/hooks/use-dark-mode';
+
 import Navbar from '../Navbar';
+
+import type { ThemeMode } from '@/hooks/use-dark-mode';
 
 // Mock dependencies that Navbar's children need
 vi.mock('@/components/ui/LanguageSwitcher', () => ({

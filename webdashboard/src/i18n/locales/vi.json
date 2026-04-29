@@ -73,7 +73,8 @@
         "block_desc": "Chỉ cho phép chấm công trong khoảng thời gian Grace Period của ca.",
         "clamp": "Giới hạn OT sớm (Clamp)",
         "clamp_desc": "Cho phép chấm công sớm nhưng chỉ tính OT tối đa theo Grace Period của ca."
-      }
+      },
+      "please_wait_minutes": "Vui lòng chờ vài phút để các thay đổi có hiệu lực."
     },
     "members": {
       "roles": {
@@ -98,7 +99,8 @@
           "update_primary_error": "Lỗi khi cập nhật vai trò chính.",
           "assign_error": "Lỗi khi chỉ định vai trò.",
           "revoke_error": "Lỗi khi thu hồi vai trò."
-        }
+        },
+        "subtitle": "Phân quyền nhân sự"
       },
       "permissions": {
         "modal_title": "Quản lý Quyền hạn",
@@ -1104,7 +1106,49 @@
       }
     },
     "columns": "Cột",
-    "custom": "Tùy chỉnh"
+    "custom": "Tùy chỉnh",
+    "billing": "Thanh toán",
+    "danger_zone": "Vùng nguy hiểm",
+    "destructive_operations": "Thao tác phá hủy",
+    "holidays": "Ngày lễ",
+    "overview": "Tổng quan",
+    "permissions": "Quyền hạn",
+    "public_holidays": "Ngày lễ quốc gia",
+    "security_events": "Sự kiện bảo mật",
+    "set": "Đặt",
+    "assign": "Gán",
+    "system_roles": {
+      "messages": {
+        "assign_error": "Không thể gán vai trò",
+        "revoke_error": "Không thể thu hồi vai trò"
+      },
+      "confirm": {
+        "revoke_title": "Thu hồi Vai trò Hệ thống",
+        "revoke_message": "Bạn có chắc chắn muốn thu hồi vai trò hệ thống này? Hành động này có thể khóa người dùng khỏi quyền truy cập cấp hệ thống."
+      },
+      "title": "Quản trị viên Nền tảng",
+      "subtitle": "Quản lý các vai trò cấp hệ thống vượt qua ranh giới workspace",
+      "system_label": "Hệ thống",
+      "assignees_count": "{{count}} người được gán",
+      "assign_to_user": "Gán cho người dùng",
+      "assigned_users": "Người dùng được gán",
+      "no_users": "Chưa có người dùng nào được gán vai trò này.",
+      "assigned_date": "Đã gán: {{date}}",
+      "revoke_role": "Thu hồi vai trò",
+      "modal": {
+        "assign_title": "Gán Vai trò {{role}}",
+        "assigning": "Đang gán...",
+        "submit_btn": "Gán Vai trò"
+      },
+      "grant_privileges": "Cấp đặc quyền cấp hệ thống cho người dùng",
+      "user_id_label": "ID người dùng (UUID)",
+      "descriptions": {
+        "platform_admin": "Toàn quyền nền tảng. Có thể quản lý workspace, cài đặt toàn cục và các vai trò hệ thống khác.",
+        "support": "Chỉ xem dữ liệu theo dõi cơ sở hạ tầng và hỗ trợ đa workspace.",
+        "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace.",
+        "default": "Vai trò cấp hệ thống."
+      }
+    }
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -1297,7 +1341,9 @@
     "display_name": "Tên hiển thị",
     "confirm_password": "Xác nhận mật khẩu",
     "already_have_account": "Đã có tài khoản?",
-    "login": "Đăng nhập",
+    "login": {
+      "title": "Đăng nhập"
+    },
     "register_title": "Tạo tài khoản mới",
     "register_btn": "Đăng ký tài khoản",
     "password_mismatch": "Mật khẩu không khớp",
@@ -1375,7 +1421,11 @@
       "duration": "Thời lượng",
       "status": "Trạng thái",
       "generation_info": "Thông tin xử lý (Truy xuất nguồn gốc)",
-      "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này."
+      "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này.",
+      "ot_status": "Làm thêm giờ",
+      "active_status": "Đang làm việc",
+      "system_ot_suffix": "(Làm thêm hệ thống)",
+      "claim_btn": "Yêu cầu tính OT"
     },
     "ot": {
       "claim_title": "Xác nhận Tăng ca",
@@ -1737,7 +1787,9 @@
     "messages": {
       "loading": "Đang tải nhật ký...",
       "no_data": "Không tìm thấy dữ liệu quẹt thẻ nào.",
-      "no_unknown_logs": "Không có bản ghi chưa xác định"
+      "no_unknown_logs": "Không có bản ghi chưa xác định",
+      "no_data_hint": "Hãy thử điều chỉnh bộ lọc khoảng thời gian hoặc chọn nhân viên khác để tìm kiếm.",
+      "all_matched": "Tất cả bản ghi chấm công đã được khớp với nhân viên."
     },
     "modal": {
       "import_title": "Nhập nhật ký quẹt thẻ từ file"
@@ -2718,7 +2770,8 @@
       "time_desc": "Cấu hình ca làm việc, lịch trình và quy tắc chấm công.",
       "payroll_desc": "Quản lý ngày công chuẩn và công thức tính lương.",
       "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
-      "leave": "Quản lý nghỉ phép"
+      "leave": "Quản lý nghỉ phép",
+      "billing_desc": "Quản lý thanh toán và gói đăng ký."
     },
     "navigation": "Điều hướng",
     "admin_only": "Chỉ dành cho quản trị viên",
@@ -2761,6 +2814,16 @@
         "effective_date": "Ngày hiệu lực",
         "created_at": "Ngày tạo"
       }
+    },
+    "layout": {
+      "access": "Truy cập",
+      "control_panel": "Bảng điều khiển",
+      "operations": "Vận hành",
+      "security_system": "Bảo mật & Hệ thống",
+      "workspace": "Không gian làm việc"
+    },
+    "tabs": {
+      "members": "Thành viên"
     }
   },
   "holidays": {
@@ -3031,5 +3094,62 @@
       "previous": "Trước",
       "next": "Tiếp"
     }
-  }
+  },
+  "leave": {
+    "policy": {
+      "confirm_delete": "Bạn có chắc chắn muốn xóa chính sách này?"
+    },
+    "request": {
+      "create": "Tạo Yêu cầu Nghỉ phép",
+      "approve": "Duyệt Yêu cầu Nghỉ phép"
+    }
+  },
+  "workspace": {
+    "roles": {
+      "title": "Vai trò Workspace"
+    }
+  },
+  "attendance": {
+    "log": {
+      "create": "Tạo Bản ghi Chấm công"
+    },
+    "shift_swap": {
+      "request": "Yêu cầu Đổi ca"
+    }
+  },
+  "system_roles": {
+    "title": "Quản trị viên Nền tảng",
+    "subtitle": "Quản lý các vai trò cấp hệ thống vượt qua ranh giới workspace",
+    "assign_to_user": "Gán cho người dùng",
+    "no_users": "Chưa có người dùng nào được gán vai trò này.",
+    "system_label": "Hệ thống",
+    "grant_privileges": "Cấp đặc quyền cấp hệ thống cho người dùng",
+    "user_id_label": "ID người dùng (UUID)",
+    "revoke_role": "Thu hồi vai trò",
+    "assigned_users": "Người dùng được gán",
+    "assignees_count": "{{count}} người được gán",
+    "assigned_date": "Đã gán: {{date}}",
+    "descriptions": {
+      "platform_admin": "Toàn quyền nền tảng. Có thể quản lý workspace, cài đặt toàn cục và các vai trò hệ thống khác.",
+      "support": "Chỉ xem dữ liệu theo dõi cơ sở hạ tầng và hỗ trợ đa workspace.",
+      "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace.",
+      "default": "Vai trò cấp hệ thống."
+    },
+    "modal": {
+      "assign_title": "Gán Vai trò {{role}}",
+      "submit_btn": "Gán Vai trò",
+      "assigning": "Đang gán..."
+    },
+    "confirm": {
+      "revoke_title": "Thu hồi Vai trò Hệ thống",
+      "revoke_message": "Bạn có chắc chắn muốn thu hồi vai trò hệ thống này? Hành động này có thể khóa người dùng khỏi quyền truy cập cấp hệ thống."
+    },
+    "messages": {
+      "assign_error": "Không thể gán vai trò",
+      "revoke_error": "Không thể thu hồi vai trò"
+    }
+  },
+  "status_active_caps": "ĐANG HOẠT ĐỘNG",
+  "status_off": "NGHỈ",
+  "status_expired": "HẾT HẠN"
 }

@@ -32,21 +32,24 @@ pub async fn get_attendance_logs(
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
-    let logs = state.attendance.time_entry_repo.get_paginated_logs(workspace_id,
-        query.employee_id,
-        query.from,
-        query.to,
-        limit,
-        offset,
-    )
-    .await?;
+    let logs = state
+        .attendance
+        .time_entry_repo
+        .get_paginated_logs(
+            workspace_id,
+            query.employee_id,
+            query.from,
+            query.to,
+            limit,
+            offset,
+        )
+        .await?;
 
-    let total = state.attendance.time_entry_repo.count_logs(workspace_id,
-        query.employee_id,
-        query.from,
-        query.to,
-    )
-    .await?;
+    let total = state
+        .attendance
+        .time_entry_repo
+        .count_logs(workspace_id, query.employee_id, query.from, query.to)
+        .await?;
 
     Ok(Json(serde_json::json!({
         "data": logs,
@@ -65,21 +68,24 @@ pub async fn get_raw_attendance_logs(
     let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
-    let logs = state.attendance.raw_log_repo.get_paginated_raw_logs(workspace_id,
-        query.employee_id,
-        query.from,
-        query.to,
-        limit,
-        offset,
-    )
-    .await?;
+    let logs = state
+        .attendance
+        .raw_log_repo
+        .get_paginated_raw_logs(
+            workspace_id,
+            query.employee_id,
+            query.from,
+            query.to,
+            limit,
+            offset,
+        )
+        .await?;
 
-    let total = state.attendance.raw_log_repo.count_raw_logs(workspace_id,
-        query.employee_id,
-        query.from,
-        query.to,
-    )
-    .await?;
+    let total = state
+        .attendance
+        .raw_log_repo
+        .count_raw_logs(workspace_id, query.employee_id, query.from, query.to)
+        .await?;
 
     Ok(Json(serde_json::json!({
         "data": logs,
@@ -133,15 +139,11 @@ pub async fn force_reprocess_attendance(
     let mut curr_date = query.start_date;
     while curr_date <= query.end_date {
         state
-            .attendance.pairing_service
-            .reprocess_daily_attendance(
-                ctx.workspace_id,
-                employee_id,
-                curr_date,
-                tz,
-            )
+            .attendance
+            .pairing_service
+            .reprocess_daily_attendance(ctx.workspace_id, employee_id, curr_date, tz)
             .await
-        .map_err(|e| AppError::from(format!("Processing failed for {curr_date}: {e}")))?;
+            .map_err(|e| AppError::from(format!("Processing failed for {curr_date}: {e}")))?;
 
         if let Some(next) = curr_date.succ_opt() {
             curr_date = next;
@@ -199,7 +201,9 @@ pub async fn force_reprocess_all_attendance(
     );
 
     if employees.is_empty() {
-        return Err(AppError::Validation("No active employees found".to_string()));
+        return Err(AppError::Validation(
+            "No active employees found".to_string(),
+        ));
     }
 
     let parent_job_id = uuid::Uuid::new_v4();
@@ -238,15 +242,13 @@ pub async fn force_reprocess_all_attendance(
                 idx as u32,
                 crate::queue::TaskType::ReprocessAttendance,
                 ctx.workspace_id,
-                crate::queue::JobPayload::ReprocessAttendance(
-                    crate::queue::ReprocessPayload {
-                        employee_id: emp.id,
-                        date_range: crate::queue::DateRange {
-                            start: query.start_date,
-                            end: query.end_date,
-                        },
+                crate::queue::JobPayload::ReprocessAttendance(crate::queue::ReprocessPayload {
+                    employee_id: emp.id,
+                    date_range: crate::queue::DateRange {
+                        start: query.start_date,
+                        end: query.end_date,
                     },
-                ),
+                }),
                 crate::queue::JobPriority::Normal,
             )
         })

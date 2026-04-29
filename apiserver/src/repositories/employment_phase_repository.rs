@@ -36,11 +36,18 @@ impl EmploymentPhaseRepository {
         .await
         .map_err(|e| {
             if let sqlx::Error::Database(db_err) = &e {
-                if db_err.constraint() == Some("employment_phase_definitions_workspace_id_name_key") {
-                    return AppError::Validation("Phase definition with this name already exists in the workspace.".to_string());
+                if db_err.constraint() == Some("employment_phase_definitions_workspace_id_name_key")
+                {
+                    return AppError::Validation(
+                        "Phase definition with this name already exists in the workspace."
+                            .to_string(),
+                    );
                 }
             }
-            AppError::Internal(format!("Failed to create employment phase definition: {}", e))
+            AppError::Internal(format!(
+                "Failed to create employment phase definition: {}",
+                e
+            ))
         })?;
 
         Ok(row)
@@ -61,7 +68,12 @@ impl EmploymentPhaseRepository {
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to fetch employment phase definitions: {}", e)))?;
+        .map_err(|e| {
+            AppError::Internal(format!(
+                "Failed to fetch employment phase definitions: {}",
+                e
+            ))
+        })?;
 
         Ok(rows)
     }

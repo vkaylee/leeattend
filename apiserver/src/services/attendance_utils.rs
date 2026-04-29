@@ -197,10 +197,10 @@ pub fn date_range_to_utc(
     start_date: NaiveDate,
     end_date: NaiveDate,
 ) -> (DateTime<Utc>, DateTime<Utc>) {
-    let start_dt = crate::utils::tz::start_of_day_utc(&tz, start_date)
-        .expect("valid start-of-day conversion");
-    let end_dt = crate::utils::tz::end_of_day_utc(&tz, end_date)
-        .expect("valid end-of-day conversion");
+    let start_dt =
+        crate::utils::tz::start_of_day_utc(&tz, start_date).expect("valid start-of-day conversion");
+    let end_dt =
+        crate::utils::tz::end_of_day_utc(&tz, end_date).expect("valid end-of-day conversion");
     (start_dt, end_dt)
 }
 
@@ -364,7 +364,10 @@ mod tests {
             has_shift: false,
             is_on_leave: false,
         };
-        assert_eq!(determine_daily_status(&input), AttendanceStatus::Unscheduled);
+        assert_eq!(
+            determine_daily_status(&input),
+            AttendanceStatus::Unscheduled
+        );
     }
 
     #[test]
@@ -407,7 +410,10 @@ mod tests {
             has_shift: true,
             is_on_leave: false,
         };
-        assert_eq!(determine_daily_status(&input), AttendanceStatus::HolidayWork);
+        assert_eq!(
+            determine_daily_status(&input),
+            AttendanceStatus::HolidayWork
+        );
     }
 
     #[test]
@@ -421,7 +427,10 @@ mod tests {
             has_shift: true,
             is_on_leave: false,
         };
-        assert_eq!(determine_daily_status(&input), AttendanceStatus::HolidayPaid);
+        assert_eq!(
+            determine_daily_status(&input),
+            AttendanceStatus::HolidayPaid
+        );
     }
 
     #[test]
@@ -435,7 +444,10 @@ mod tests {
             has_shift: true,
             is_on_leave: false,
         };
-        assert_eq!(determine_daily_status(&input), AttendanceStatus::HolidayUnpaid);
+        assert_eq!(
+            determine_daily_status(&input),
+            AttendanceStatus::HolidayUnpaid
+        );
     }
 
     #[test]
@@ -449,7 +461,10 @@ mod tests {
             has_shift: true,
             is_on_leave: true,
         };
-        assert_eq!(determine_daily_status(&input), AttendanceStatus::HolidayLeave);
+        assert_eq!(
+            determine_daily_status(&input),
+            AttendanceStatus::HolidayLeave
+        );
     }
 
     #[test]
@@ -509,12 +524,24 @@ mod tests {
 
         // Asia/Ho_Chi_Minh = UTC+7
         // 2026-03-01 00:00:00 +7 = 2026-02-28 17:00:00 UTC
-        assert_eq!(start_dt.date_naive(), NaiveDate::from_ymd_opt(2026, 2, 28).expect("valid date"));
-        assert_eq!(start_dt.time(), NaiveTime::from_hms_opt(17, 0, 0).expect("valid time"));
+        assert_eq!(
+            start_dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 2, 28).expect("valid date")
+        );
+        assert_eq!(
+            start_dt.time(),
+            NaiveTime::from_hms_opt(17, 0, 0).expect("valid time")
+        );
 
         // 2026-03-03 23:59:59 +7 = 2026-03-03 16:59:59 UTC
-        assert_eq!(end_dt.date_naive(), NaiveDate::from_ymd_opt(2026, 3, 3).expect("valid date"));
-        assert_eq!(end_dt.time(), NaiveTime::from_hms_opt(16, 59, 59).expect("valid time"));
+        assert_eq!(
+            end_dt.date_naive(),
+            NaiveDate::from_ymd_opt(2026, 3, 3).expect("valid date")
+        );
+        assert_eq!(
+            end_dt.time(),
+            NaiveTime::from_hms_opt(16, 59, 59).expect("valid time")
+        );
     }
 
     #[test]
@@ -525,9 +552,15 @@ mod tests {
         let (start_dt, end_dt) = date_range_to_utc(tz, date, date);
 
         assert_eq!(start_dt.date_naive(), date);
-        assert_eq!(start_dt.time(), NaiveTime::from_hms_opt(0, 0, 0).expect("valid time"));
+        assert_eq!(
+            start_dt.time(),
+            NaiveTime::from_hms_opt(0, 0, 0).expect("valid time")
+        );
         assert_eq!(end_dt.date_naive(), date);
-        assert_eq!(end_dt.time(), NaiveTime::from_hms_opt(23, 59, 59).expect("valid time"));
+        assert_eq!(
+            end_dt.time(),
+            NaiveTime::from_hms_opt(23, 59, 59).expect("valid time")
+        );
     }
 
     // ===== is_unexcused edge cases =====

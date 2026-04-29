@@ -1,9 +1,13 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { PolicyAssignmentsSection } from "../PolicyAssignmentsSection";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import * as api from "@/lib/api";
+
 import { ToastProvider } from "@/components/ui/Toast";
+
+import * as api from "@/lib/api";
+
+import { PolicyAssignmentsSection } from "../PolicyAssignmentsSection";
+
 
 // Mock API
 vi.mock("@/lib/api", () => ({
@@ -54,11 +58,11 @@ describe("PolicyAssignmentsSection", () => {
     renderWithProviders(<PolicyAssignmentsSection wsId={mockWsId} />);
     
     // Header should be rendered
-    expect(await screen.findByText(/Overrides & Exceptions/i)).toBeDefined();
+    expect(await screen.findByText(/attendance_policy_overrides.title/i)).toBeDefined();
     
     // Wait for the empty state
     await waitFor(() => {
-      expect(screen.getByText(/No active overrides/i)).toBeDefined();
+      expect(screen.getByText(/attendance_policy_overrides.empty_state.title/i)).toBeDefined();
     });
   });
 
@@ -81,7 +85,7 @@ describe("PolicyAssignmentsSection", () => {
     
     // Name resolved from mock departments
     expect(await screen.findByText(/Engineering/i)).toBeDefined();
-    const depts = await screen.findAllByText(/DEPARTMENT/i);
+    const depts = await screen.findAllByText(/attendance_policy_overrides.labels.department/i);
     expect(depts.length).toBeGreaterThan(0);
   });
 
@@ -91,12 +95,12 @@ describe("PolicyAssignmentsSection", () => {
     renderWithProviders(<PolicyAssignmentsSection wsId={mockWsId} />);
     
     // Click ADD OVERRIDE button
-    const addBtn = await screen.findByText(/ADD OVERRIDE/i);
+    const addBtn = await screen.findByText(/attendance_policy_overrides.add_button/i);
     fireEvent.click(addBtn);
     
     // Wait for drawer to open
     await waitFor(() => {
-      expect(screen.getByText(/Add Policy Override/i)).toBeDefined();
+      expect(screen.getByText(/attendance_policy_overrides.drawer.add_title/i)).toBeDefined();
     });
 
     // Select Department type
@@ -104,7 +108,7 @@ describe("PolicyAssignmentsSection", () => {
     fireEvent.click(deptBtn);
 
     // Save override
-    const saveBtn = screen.getByText(/SAVE OVERRIDE/i);
+    const saveBtn = screen.getByText(/attendance_policy_overrides.drawer.save_button/i);
     fireEvent.click(saveBtn);
     
     // The validation should prevent save since no target is selected

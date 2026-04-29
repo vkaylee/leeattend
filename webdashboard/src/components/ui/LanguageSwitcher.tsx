@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { ChevronDown, Check, Globe } from 'lucide-react';
+
 import * as Popover from '@radix-ui/react-popover';
-import { cn } from '@/lib/utils';
+import { ChevronDown, Check, Globe } from 'lucide-react';
+
 import { useLanguage, type SupportedLanguage } from '@/hooks/use-language';
+import { cn } from '@/lib/utils';
 
 interface LanguageSwitcherProps {
   /** Compact mode: show only flag icon */

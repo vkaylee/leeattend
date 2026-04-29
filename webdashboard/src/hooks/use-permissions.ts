@@ -1,6 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import { fetchMyPermissions, getCurrentWorkspaceId } from "@/lib/api";
 import { useCallback } from "react";
+
+import { useQuery } from "@tanstack/react-query";
+
+import { fetchMyPermissions, getCurrentWorkspaceId } from "@/lib/api";
 
 export const myPermissionsKey = (wsId: string) =>
     ["my-permissions", wsId] as const;

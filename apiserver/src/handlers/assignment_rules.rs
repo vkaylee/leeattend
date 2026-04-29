@@ -31,7 +31,8 @@ pub async fn create_assignment_rule(
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
-    let rule = AssignmentRuleRepository::create_rule(state.infra.db.api(), ctx.workspace_id, &req).await?;
+    let rule =
+        AssignmentRuleRepository::create_rule(state.infra.db.api(), ctx.workspace_id, &req).await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -48,7 +49,13 @@ pub async fn update_assignment_rule(
 ) -> AppResult<Json<AssignmentRule>> {
     ctx.require_permission(Permission::AssignmentRulesManage)?;
 
-    let rule = AssignmentRuleRepository::update_rule(state.infra.db.api(), ctx.workspace_id, rule_id, &req).await?;
+    let rule = AssignmentRuleRepository::update_rule(
+        state.infra.db.api(),
+        ctx.workspace_id,
+        rule_id,
+        &req,
+    )
+    .await?;
 
     if let Some(cache) = &state.infra.roster_cache {
         cache.invalidate(ctx.workspace_id).await;

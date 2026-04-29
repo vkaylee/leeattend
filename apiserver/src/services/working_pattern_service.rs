@@ -47,7 +47,10 @@ pub async fn create_working_pattern(
     let mut day_shifts: HashMap<i32, Vec<Uuid>> = HashMap::new();
     for detail in &req.details {
         if let Some(shift_id) = detail.shift_id {
-            day_shifts.entry(detail.day_of_week).or_default().push(shift_id);
+            day_shifts
+                .entry(detail.day_of_week)
+                .or_default()
+                .push(shift_id);
         }
     }
 
@@ -166,7 +169,11 @@ pub async fn get_employee_pattern_history(
 }
 
 #[tracing::instrument(skip_all, err)]
-pub async fn delete_working_pattern(pool: &PgPool, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), sqlx::Error> {
+pub async fn delete_working_pattern(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    pattern_id: Uuid,
+) -> Result<(), sqlx::Error> {
     repo::delete_pattern(pool, workspace_id, pattern_id).await
 }
 

@@ -1,8 +1,8 @@
 use crate::worker::Worker;
 use async_trait::async_trait;
+use log::{debug, error, info, warn};
 use rustzk::ZK;
 use serde_json::Value;
-use log::{info, warn, debug, error};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -43,7 +43,12 @@ pub struct ZkWorker {
 }
 
 impl ZkWorker {
-    pub fn new(password: Option<u32>, use_legacy_checksum: Option<bool>, connect_timeout_secs: u64, inflight_timeout_secs: u64) -> Self {
+    pub fn new(
+        password: Option<u32>,
+        use_legacy_checksum: Option<bool>,
+        connect_timeout_secs: u64,
+        inflight_timeout_secs: u64,
+    ) -> Self {
         Self {
             zk: Arc::new(Mutex::new(None)),
             ip: String::new(),
@@ -65,13 +70,17 @@ impl ZkWorker {
 
 #[async_trait]
 impl Worker for ZkWorker {
-    async fn connect(&mut self, ip: &str, port: u16) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    async fn connect(
+        &mut self,
+        ip: &str,
+        port: u16,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         info!("[{ip}] Connecting to ZK device...");
-        
+
         self.ip = ip.to_string();
         let ip_clone = self.ip.clone();
         let mut zk = ZK::new(&ip_clone, port);
-        
+
         if let Some(pwd) = self.password {
             zk.set_password(pwd);
         }
@@ -79,13 +88,15 @@ impl Worker for ZkWorker {
         // Skip checksum auto-detect if configured (saves 5-10s per connect)
         if let Some(legacy) = self.use_legacy_checksum {
             zk.set_legacy_checksum(legacy);
-            debug!("[{ip}] Checksum mode set to {} (skipping auto-detect)",
-                   if legacy { "legacy" } else { "modern" });
+            debug!(
+                "[{ip}] Checksum mode set to {} (skipping auto-detect)",
+                if legacy { "legacy" } else { "modern" }
+            );
         }
 
         let join_handle = tokio::task::spawn_blocking(move || {
-            let res = zk.connect(rustzk::ZKProtocol::Auto); 
-            
+            let res = zk.connect(rustzk::ZKProtocol::Auto);
+
             // If connected successfully, fetch static info immediately
             let static_info = if res.is_ok() {
                 let mac = zk.get_mac().ok();
@@ -93,13 +104,21 @@ impl Worker for ZkWorker {
                 let firmware = zk.get_firmware_version().ok();
                 let platform = zk.get_platform().ok();
                 let device_name = zk.get_device_name().ok();
-                
+
                 // Read capacities
                 let _ = zk.read_sizes();
                 let users_cap = Some(zk.users_cap() as usize);
                 let logs_cap = Some(zk.records_cap() as usize);
-                
-                Some((mac, serial, firmware, platform, device_name, users_cap, logs_cap))
+
+                Some((
+                    mac,
+                    serial,
+                    firmware,
+                    platform,
+                    device_name,
+                    users_cap,
+                    logs_cap,
+                ))
             } else {
                 None
             };
@@ -107,69 +126,86 @@ impl Worker for ZkWorker {
             (zk, res, static_info)
         });
 
-        match tokio::time::timeout(Duration::from_secs(self.connect_timeout_secs), join_handle).await {
+        match tokio::time::timeout(Duration::from_secs(self.connect_timeout_secs), join_handle)
+            .await
+        {
             Ok(Ok((zk_instance, Ok(_), static_info))) => {
-                 // Capture detected checksum mode BEFORE moving ZK into mutex
-                 let detected = zk_instance.use_legacy_checksum();
-                 self.detected_checksum = Some(detected);
-                 if self.use_legacy_checksum.is_none() {
-                     info!("[{ip}] Auto-detected checksum: {} (will be remembered for next connect)",
-                           if detected { "legacy" } else { "modern" });
-                 }
+                // Capture detected checksum mode BEFORE moving ZK into mutex
+                let detected = zk_instance.use_legacy_checksum();
+                self.detected_checksum = Some(detected);
+                if self.use_legacy_checksum.is_none() {
+                    info!(
+                        "[{ip}] Auto-detected checksum: {} (will be remembered for next connect)",
+                        if detected { "legacy" } else { "modern" }
+                    );
+                }
 
-                 // Store ZK in Arc<Mutex>
-                 if let Ok(mut guard) = self.zk.lock() {
-                     *guard = Some(zk_instance);
-                 }
-                 
-                 // Cache static info
-                 if let Some((mac, serial, firmware, platform, device_name, users_cap, logs_cap)) = static_info {
-                     self.mac = mac;
-                     self.serial = serial;
-                     self.firmware = firmware;
-                     self.platform = platform;
-                     self.device_name = device_name;
-                     self.users_capacity = users_cap;
-                     self.logs_capacity = logs_cap;
-                     
-                     info!("✅ [{ip}] Connected & cached info: MAC={:?}, Serial={:?}", self.mac, self.serial);
-                 } else {
-                     info!("✅ [{ip}] Successfully connected to ZK device (no static info)");
-                 }
-                 
-                 Ok(true)
+                // Store ZK in Arc<Mutex>
+                if let Ok(mut guard) = self.zk.lock() {
+                    *guard = Some(zk_instance);
+                }
+
+                // Cache static info
+                if let Some((mac, serial, firmware, platform, device_name, users_cap, logs_cap)) =
+                    static_info
+                {
+                    self.mac = mac;
+                    self.serial = serial;
+                    self.firmware = firmware;
+                    self.platform = platform;
+                    self.device_name = device_name;
+                    self.users_capacity = users_cap;
+                    self.logs_capacity = logs_cap;
+
+                    info!(
+                        "✅ [{ip}] Connected & cached info: MAC={:?}, Serial={:?}",
+                        self.mac, self.serial
+                    );
+                } else {
+                    info!("✅ [{ip}] Successfully connected to ZK device (no static info)");
+                }
+
+                Ok(true)
             }
             Ok(Ok((_, Err(e), _))) => {
                 let msg = format!("❌ [{ip}] Device connection failed: {e}");
                 warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
-            },
+            }
             Ok(Err(e)) => {
                 let msg = format!("❌ [{ip}] Task join error: {e}");
                 error!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
-            },
+            }
             Err(_) => {
                 // TIMEOUT — blocking thread still running with ZK instance.
                 // Abort it so the ZK gets dropped (triggers rustzk cleanup).
                 // Note: spawn_blocking tasks cannot be truly aborted, but
                 // the ZK will be dropped when the thread eventually finishes.
-                warn!("⚠️ [{ip}] Connection timed out after 20s — blocking thread may still be running");
+                warn!(
+                    "⚠️ [{ip}] Connection timed out after 20s — blocking thread may still be running"
+                );
                 let msg = format!("❌ [{ip}] Connection timed out after 20s");
                 Err(Box::new(ZkError { message: msg }))
             }
         }
     }
 
-    async fn get_attendance_logs(&mut self) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_attendance_logs(
+        &mut self,
+    ) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>> {
         let ip = self.ip.clone();
         let zk_arc = self.zk.clone();
 
         // Verify connection exists before spawning thread
         {
-            let guard = zk_arc.lock().map_err(|_| ZkError { message: "Mutex poisoned".to_string() })?;
+            let guard = zk_arc.lock().map_err(|_| ZkError {
+                message: "Mutex poisoned".to_string(),
+            })?;
             if guard.is_none() {
-                return Err(Box::new(ZkError { message: "Device not connected".to_string() }));
+                return Err(Box::new(ZkError {
+                    message: "Device not connected".to_string(),
+                }));
             }
         }
 
@@ -182,22 +218,24 @@ impl Worker for ZkWorker {
             Ok::<_, String>(logs)
         });
 
-        match tokio::time::timeout(Duration::from_secs(self.inflight_timeout_secs), join_handle).await {
+        match tokio::time::timeout(Duration::from_secs(self.inflight_timeout_secs), join_handle)
+            .await
+        {
             Ok(Ok(Ok(logs))) => {
                 debug!("[{ip}] Successfully fetched {} logs", logs.len());
 
                 // Optimization: Pre-allocate vector
                 let mut models_logs = Vec::with_capacity(logs.len());
-                
+
                 for log in logs {
                     models_logs.push(crate::models::AttendanceData {
                         user_id: log.user_id,
-                        timestamp: log.timestamp.to_string().replace("T", " "), 
+                        timestamp: log.timestamp.to_string().replace("T", " "),
                         status: Some(log.status as i32),
                         punch: Some(log.punch as i32),
                     });
                 }
-                
+
                 Ok(models_logs)
             }
             Ok(Ok(Err(e))) => {
@@ -222,33 +260,45 @@ impl Worker for ZkWorker {
                 tokio::task::spawn_blocking(move || {
                     // Wait for blocking thread to release lock, then take & disconnect
                     if let Ok(mut guard) = cleanup_arc.lock()
-                        && let Some(mut zk) = guard.take() {
-                            warn!("[{cleanup_ip}] Force-disconnecting after get_logs timeout ({cleanup_timeout}s)");
-                            let _ = zk.disconnect();
-                        }
+                        && let Some(mut zk) = guard.take()
+                    {
+                        warn!(
+                            "[{cleanup_ip}] Force-disconnecting after get_logs timeout ({cleanup_timeout}s)"
+                        );
+                        let _ = zk.disconnect();
+                    }
                 });
                 // Mark our local ZK as gone so outer disconnect() is a no-op
                 if let Ok(mut guard) = self.zk.try_lock() {
                     let _ = guard.take();
                 }
                 let timeout_secs = self.inflight_timeout_secs;
-                let msg = format!("[{ip}] Getting logs timed out after {timeout_secs}s — force-disconnect scheduled");
+                let msg = format!(
+                    "[{ip}] Getting logs timed out after {timeout_secs}s — force-disconnect scheduled"
+                );
                 warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
             }
         }
     }
 
-    async fn get_info(&mut self, time_sync: &crate::time_sync::TimeSync) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_info(
+        &mut self,
+        time_sync: &crate::time_sync::TimeSync,
+    ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         let ip = self.ip.clone();
         let ip_thread = ip.clone();
         let zk_arc = self.zk.clone();
 
         // Verify connection exists before spawning thread
         {
-            let guard = zk_arc.lock().map_err(|_| ZkError { message: "Mutex poisoned".to_string() })?;
+            let guard = zk_arc.lock().map_err(|_| ZkError {
+                message: "Mutex poisoned".to_string(),
+            })?;
             if guard.is_none() {
-                return Err(Box::new(ZkError { message: "Device not connected".to_string() }));
+                return Err(Box::new(ZkError {
+                    message: "Device not connected".to_string(),
+                }));
             }
         }
 
@@ -269,22 +319,20 @@ impl Worker for ZkWorker {
             // Only fetch dynamic checks: get_time and read_sizes (for current counts)
             debug!("[{ip_thread}] Starting read_sizes (dynamic)...");
             let (users_count, logs_count) = match zk.read_sizes() {
-                Ok(_) => {
-                    (zk.users() as usize, zk.records() as usize)
-                },
+                Ok(_) => (zk.users() as usize, zk.records() as usize),
                 Err(e) => {
                     warn!("[{ip_thread}] read_sizes failed: {e:?}");
                     (0, 0)
                 }
             };
-            
+
             debug!("[{ip_thread}] Starting get_time...");
             let time = match zk.get_time() {
                 Ok(t) => {
                     let s = t.naive_local().to_string().replace("T", " ");
                     debug!("[{ip_thread}] get_time success: {s}");
                     s
-                },
+                }
                 Err(e) => {
                     debug!("[{ip_thread}] get_time unavailable: {e:?}");
                     "N/A".to_string()
@@ -304,15 +352,13 @@ impl Worker for ZkWorker {
                 "hw_name": cached_name,
                 "last_sync": last_sync_time
             });
-            
+
             // Mutex unlocked here when guard drops
             Ok::<_, String>(info)
         });
 
         match tokio::time::timeout(Duration::from_secs(30), join_handle).await {
-            Ok(Ok(Ok(info))) => {
-                Ok(info)
-            }
+            Ok(Ok(Ok(info))) => Ok(info),
             Ok(Ok(Err(e))) => Err(Box::new(ZkError {
                 message: format!("[{ip}] get_info operation failed: {e}"),
             })),
@@ -326,16 +372,19 @@ impl Worker for ZkWorker {
                 let cleanup_ip = self.ip.clone();
                 tokio::task::spawn_blocking(move || {
                     if let Ok(mut guard) = cleanup_arc.lock()
-                        && let Some(mut zk) = guard.take() {
-                            warn!("[{cleanup_ip}] Force-disconnecting after get_info timeout (30s)");
-                            let _ = zk.disconnect();
-                        }
+                        && let Some(mut zk) = guard.take()
+                    {
+                        warn!("[{cleanup_ip}] Force-disconnecting after get_info timeout (30s)");
+                        let _ = zk.disconnect();
+                    }
                 });
                 // Try to clear local ZK so outer disconnect() is a no-op
                 if let Ok(mut guard) = self.zk.try_lock() {
                     let _ = guard.take();
                 }
-                let msg = format!("[{ip}] Getting device info timed out after 30s — force-disconnect scheduled");
+                let msg = format!(
+                    "[{ip}] Getting device info timed out after 30s — force-disconnect scheduled"
+                );
                 warn!("{msg}");
                 Err(Box::new(ZkError { message: msg }))
             }
@@ -383,11 +432,13 @@ impl Worker for ZkWorker {
         let ip = self.ip.clone();
         let _ = tokio::task::spawn_blocking(move || {
             if let Ok(mut guard) = zk_arc.lock()
-                && let Some(mut zk) = guard.take() {
-                    info!("[{ip}] Explicitly disconnecting from ZK device...");
-                    let _ = zk.disconnect();
-                }
-        }).await;
+                && let Some(mut zk) = guard.take()
+            {
+                info!("[{ip}] Explicitly disconnecting from ZK device...");
+                let _ = zk.disconnect();
+            }
+        })
+        .await;
     }
 
     fn detected_checksum_mode(&self) -> Option<bool> {
@@ -407,13 +458,17 @@ mod tests {
 
     #[test]
     fn test_zk_error_display() {
-        let err = ZkError { message: "connection timeout".into() };
+        let err = ZkError {
+            message: "connection timeout".into(),
+        };
         assert_eq!(format!("{err}"), "connection timeout");
     }
 
     #[test]
     fn test_zk_error_debug() {
-        let err = ZkError { message: "test".into() };
+        let err = ZkError {
+            message: "test".into(),
+        };
         let debug = format!("{err:?}");
         assert!(debug.contains("ZkError"));
         assert!(debug.contains("test"));
@@ -421,7 +476,9 @@ mod tests {
 
     #[test]
     fn test_zk_error_is_std_error() {
-        let err = ZkError { message: "x".into() };
+        let err = ZkError {
+            message: "x".into(),
+        };
         let _: &dyn std::error::Error = &err;
     }
 

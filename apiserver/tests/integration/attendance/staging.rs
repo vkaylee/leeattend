@@ -124,7 +124,7 @@ async fn test_staging_log_with_real_data() {
     sqlx::query(
         r#"INSERT INTO attendance_staging_logs 
            (id, workspace_id, raw_user_id, punch_time, fingerprint, status, created_at)
-           VALUES ($1, $2, 'unknown_user_99', NOW(), 'test_fp_001', 'pending', NOW())"#
+           VALUES ($1, $2, 'unknown_user_99', NOW(), 'test_fp_001', 'pending', NOW())"#,
     )
     .bind(log_id)
     .bind(ws_id)
@@ -187,8 +187,18 @@ async fn test_staging_log_rbac_member_forbidden() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("member@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let resp = app
         .clone()

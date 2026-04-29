@@ -231,8 +231,13 @@ mod tests {
             sick_leave_days: 0.0,
             late_early_count: 1, // Holiday late NOT excluded
         };
-        let result_old = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_without_exclusion).unwrap();
-        assert_eq!(result_old.amount, Decimal::from(50000), "Without exclusion: Tier 2 (50k)");
+        let result_old =
+            PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_without_exclusion).unwrap();
+        assert_eq!(
+            result_old.amount,
+            Decimal::from(50000),
+            "Without exclusion: Tier 2 (50k)"
+        );
 
         // After WF7: late_early_count = 0 (holiday late excluded) → Tier 1 (150k)
         let ctx_with_exclusion = IncentiveContext {
@@ -242,8 +247,13 @@ mod tests {
             sick_leave_days: 0.0,
             late_early_count: 0, // Holiday late excluded by payroll_service.rs
         };
-        let result_new = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_with_exclusion).unwrap();
-        assert_eq!(result_new.amount, Decimal::from(150000), "With exclusion: Tier 1 (150k)");
+        let result_new =
+            PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_with_exclusion).unwrap();
+        assert_eq!(
+            result_new.amount,
+            Decimal::from(150000),
+            "With exclusion: Tier 1 (150k)"
+        );
 
         // The difference is 100k — excluding holidays from late count matters!
         assert_eq!(
@@ -487,22 +497,28 @@ mod tests {
 
         // Should return an Err because base_amount is NaN
         let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx);
-        assert!(res.is_err(), "Evaluating an invalid float should return an error");
+        assert!(
+            res.is_err(),
+            "Evaluating an invalid float should return an error"
+        );
         let err = res.unwrap_err();
         assert!(matches!(err, crate::errors::AppError::Internal(_)));
-        
+
         // Also test invalid tier payout_amount
         let policy2 = PayrollIncentivePolicy {
             base_amount: 100_000.0,
             ..policy.clone()
         };
-        
+
         let tiers_invalid = vec![IncentiveTier {
             payout_amount: f64::INFINITY,
             ..tiers[0].clone()
         }];
-        
+
         let res2 = PayrollEvaluator::evaluate_policy(&policy2, &tiers_invalid, &ctx);
-        assert!(res2.is_err(), "Evaluating an invalid tier float should return an error");
+        assert!(
+            res2.is_err(),
+            "Evaluating an invalid tier float should return an error"
+        );
     }
 }

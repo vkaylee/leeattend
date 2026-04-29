@@ -93,7 +93,9 @@ async fn test_leave_type_crud_lifecycle() {
     assert_eq!(resp.status(), StatusCode::OK);
     let list = body_json(resp).await;
     let types = list.as_array().unwrap();
-    assert!(types.iter().any(|t| t["code"].as_str().unwrap() == "compassionate"));
+    assert!(types
+        .iter()
+        .any(|t| t["code"].as_str().unwrap() == "compassionate"));
 
     // 3. Update config
     let update_body = serde_json::json!({
@@ -198,8 +200,18 @@ async fn test_leave_type_rbac_member_forbidden() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     // Create a member without LeaveTypesManage permission
-    let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("member@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     // Member tries to create a leave type — should get 403
     let create_body = serde_json::json!({

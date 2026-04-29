@@ -2,9 +2,9 @@ use axum::{
     extract::{Path, State},
     Json,
 };
+use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::Utc;
 
 use crate::{
     domain::permissions::Permission,
@@ -43,7 +43,7 @@ pub async fn get_default_attendance_rules(
 ) -> AppResult<Json<AttendanceRules>> {
     // 1. Get default policy ID
     let policy_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true LIMIT 1"
+        "SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true LIMIT 1",
     )
     .bind(workspace_id)
     .fetch_optional(state.infra.db.reader())
@@ -66,7 +66,7 @@ pub async fn get_default_attendance_rules(
         WHERE policy_id = $1 
         ORDER BY valid_from DESC 
         LIMIT 1
-        "#
+        "#,
     )
     .bind(policy_id)
     .fetch_optional(state.infra.db.reader())
@@ -89,7 +89,7 @@ pub async fn list_default_attendance_policy_versions(
     Path(_ws_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<AttendancePolicyVersionResponse>>> {
     let policy_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true LIMIT 1"
+        "SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true LIMIT 1",
     )
     .bind(workspace_id)
     .fetch_optional(state.infra.db.reader())
@@ -100,13 +100,23 @@ pub async fn list_default_attendance_policy_versions(
         None => return Ok(Json(vec![])),
     };
 
-    let rows = sqlx::query_as::<_, (Uuid, sqlx::types::Json<AttendanceRules>, chrono::DateTime<Utc>, Option<chrono::DateTime<Utc>>, Option<Uuid>, chrono::DateTime<Utc>)>(
+    let rows = sqlx::query_as::<
+        _,
+        (
+            Uuid,
+            sqlx::types::Json<AttendanceRules>,
+            chrono::DateTime<Utc>,
+            Option<chrono::DateTime<Utc>>,
+            Option<Uuid>,
+            chrono::DateTime<Utc>,
+        ),
+    >(
         r#"
         SELECT id, rules, valid_from, valid_to, created_by, created_at
         FROM attendance_policy_versions
         WHERE policy_id = $1
         ORDER BY valid_from DESC
-        "#
+        "#,
     )
     .bind(policy_id)
     .fetch_all(state.infra.db.reader())
@@ -114,18 +124,20 @@ pub async fn list_default_attendance_policy_versions(
 
     let versions: Vec<AttendancePolicyVersionResponse> = rows
         .into_iter()
-        .map(|(id, rules, valid_from, valid_to, created_by, created_at)| {
-            AttendancePolicyVersionResponse {
-                id: id.to_string(),
-                work_unit_minutes: rules.0.work_unit_minutes,
-                rounding_policy: rules.0.rounding_policy,
-                early_arrival_strategy: rules.0.early_arrival_strategy,
-                valid_from: valid_from.to_rfc3339(),
-                valid_to: valid_to.map(|v| v.to_rfc3339()),
-                created_by: created_by.map(|u| u.to_string()),
-                created_at: created_at.to_rfc3339(),
-            }
-        })
+        .map(
+            |(id, rules, valid_from, valid_to, created_by, created_at)| {
+                AttendancePolicyVersionResponse {
+                    id: id.to_string(),
+                    work_unit_minutes: rules.0.work_unit_minutes,
+                    rounding_policy: rules.0.rounding_policy,
+                    early_arrival_strategy: rules.0.early_arrival_strategy,
+                    valid_from: valid_from.to_rfc3339(),
+                    valid_to: valid_to.map(|v| v.to_rfc3339()),
+                    created_by: created_by.map(|u| u.to_string()),
+                    created_at: created_at.to_rfc3339(),
+                }
+            },
+        )
         .collect();
 
     Ok(Json(versions))
@@ -143,7 +155,7 @@ pub async fn update_default_attendance_rules(
 
     // 1. Get default policy ID, if not exists create one
     let policy_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true LIMIT 1"
+        "SELECT id FROM attendance_policies WHERE workspace_id = $1 AND is_default = true LIMIT 1",
     )
     .bind(ctx.workspace_id)
     .fetch_optional(&mut *tx)
@@ -173,7 +185,7 @@ pub async fn update_default_attendance_rules(
         WHERE policy_id = $1 
         ORDER BY valid_from DESC 
         LIMIT 1
-        "#
+        "#,
     )
     .bind(policy_id)
     .fetch_optional(&mut *tx)
@@ -212,7 +224,11 @@ pub async fn update_default_attendance_rules(
                             .ok_or_else(|| "Invalid time".to_string())
                     })
             })
-            .map_err(|_| AppError::Validation("Invalid valid_from date format. Use ISO 8601 or YYYY-MM-DD.".into()))?,
+            .map_err(|_| {
+                AppError::Validation(
+                    "Invalid valid_from date format. Use ISO 8601 or YYYY-MM-DD.".into(),
+                )
+            })?,
         None => Utc::now(),
     };
 

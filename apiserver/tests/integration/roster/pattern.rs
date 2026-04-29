@@ -69,8 +69,9 @@ async fn test_roster_pattern_resolution() {
         .unwrap();
 
     // Check assignment
-    let assignments = working_pattern_repository::get_employee_pattern_history(&pool, workspace_id, employee_id)
-        .await
-        .unwrap();
+    let assignments =
+        working_pattern_repository::get_employee_pattern_history(&pool, workspace_id, employee_id)
+            .await
+            .unwrap();
     assert_eq!(assignments.len(), 1);
 }

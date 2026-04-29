@@ -10,8 +10,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::queue::{
-    DateRange, Job, JobMetadata, JobPayload, JobPriority, JobQueue, JobStatus, MergePayload, RedisPool,
-    ReportConfig, ReportPayload, ReportType, TaskType,
+    DateRange, Job, JobMetadata, JobPayload, JobPriority, JobQueue, JobStatus, MergePayload,
+    RedisPool, ReportConfig, ReportPayload, ReportType, TaskType,
 };
 use crate::repositories::employee;
 

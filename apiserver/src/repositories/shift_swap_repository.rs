@@ -1,5 +1,5 @@
+use crate::models::shift_swap::{ShiftSwapRequest, ShiftSwapRequestWithNames, ShiftSwapStatus};
 use async_trait::async_trait;
-use crate::models::shift_swap::{ShiftSwapRequestWithNames, ShiftSwapRequest, ShiftSwapStatus};
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -9,13 +9,45 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 #[async_trait]
 pub trait ShiftSwapRepository: super::PoolBacked + Send + Sync {
-    async fn create_swap_request(&self, request: &ShiftSwapRequest) -> Result<ShiftSwapRequest, sqlx::Error>;
-    async fn get_swap_request_by_id(&self, id: Uuid, workspace_id: Uuid) -> Result<Option<ShiftSwapRequest>, sqlx::Error>;
-    async fn get_workspace_swaps(&self, workspace_id: Uuid, status_filter: Option<ShiftSwapStatus>) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error>;
-    async fn update_swap_status(&self, id: Uuid, workspace_id: Uuid, status: ShiftSwapStatus, approver_id: Option<Uuid>) -> Result<(), sqlx::Error>;
-    async fn get_employee_swaps(&self, employee_id: Uuid, workspace_id: Uuid) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error>;
-    async fn has_active_swap(&self, workspace_id: Uuid, requester_id: Uuid, target_id: Uuid, swap_date: chrono::NaiveDate) -> Result<bool, sqlx::Error>;
-    async fn has_approved_swap_on_date(&self, workspace_id: Uuid, employee_id: Uuid, swap_date: chrono::NaiveDate) -> Result<bool, sqlx::Error>;
+    async fn create_swap_request(
+        &self,
+        request: &ShiftSwapRequest,
+    ) -> Result<ShiftSwapRequest, sqlx::Error>;
+    async fn get_swap_request_by_id(
+        &self,
+        id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Option<ShiftSwapRequest>, sqlx::Error>;
+    async fn get_workspace_swaps(
+        &self,
+        workspace_id: Uuid,
+        status_filter: Option<ShiftSwapStatus>,
+    ) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error>;
+    async fn update_swap_status(
+        &self,
+        id: Uuid,
+        workspace_id: Uuid,
+        status: ShiftSwapStatus,
+        approver_id: Option<Uuid>,
+    ) -> Result<(), sqlx::Error>;
+    async fn get_employee_swaps(
+        &self,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error>;
+    async fn has_active_swap(
+        &self,
+        workspace_id: Uuid,
+        requester_id: Uuid,
+        target_id: Uuid,
+        swap_date: chrono::NaiveDate,
+    ) -> Result<bool, sqlx::Error>;
+    async fn has_approved_swap_on_date(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        swap_date: chrono::NaiveDate,
+    ) -> Result<bool, sqlx::Error>;
     async fn get_workspace_swap_stats(&self, workspace_id: Uuid) -> Result<SwapStats, sqlx::Error>;
 }
 
@@ -27,30 +59,64 @@ pub struct SqlxShiftSwapRepository {
 }
 
 impl SqlxShiftSwapRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
 impl ShiftSwapRepository for SqlxShiftSwapRepository {
-    async fn create_swap_request(&self, request: &ShiftSwapRequest) -> Result<ShiftSwapRequest, sqlx::Error> {
+    async fn create_swap_request(
+        &self,
+        request: &ShiftSwapRequest,
+    ) -> Result<ShiftSwapRequest, sqlx::Error> {
         create_swap_request(&self.pool, request).await
     }
-    async fn get_swap_request_by_id(&self, id: Uuid, workspace_id: Uuid) -> Result<Option<ShiftSwapRequest>, sqlx::Error> {
+    async fn get_swap_request_by_id(
+        &self,
+        id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Option<ShiftSwapRequest>, sqlx::Error> {
         get_swap_request_by_id(&self.pool, id, workspace_id).await
     }
-    async fn get_workspace_swaps(&self, workspace_id: Uuid, status_filter: Option<ShiftSwapStatus>) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error> {
+    async fn get_workspace_swaps(
+        &self,
+        workspace_id: Uuid,
+        status_filter: Option<ShiftSwapStatus>,
+    ) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error> {
         get_workspace_swaps(&self.pool, workspace_id, status_filter).await
     }
-    async fn update_swap_status(&self, id: Uuid, workspace_id: Uuid, status: ShiftSwapStatus, approver_id: Option<Uuid>) -> Result<(), sqlx::Error> {
+    async fn update_swap_status(
+        &self,
+        id: Uuid,
+        workspace_id: Uuid,
+        status: ShiftSwapStatus,
+        approver_id: Option<Uuid>,
+    ) -> Result<(), sqlx::Error> {
         update_swap_status(&self.pool, id, workspace_id, status, approver_id).await
     }
-    async fn get_employee_swaps(&self, employee_id: Uuid, workspace_id: Uuid) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error> {
+    async fn get_employee_swaps(
+        &self,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error> {
         get_employee_swaps(&self.pool, employee_id, workspace_id).await
     }
-    async fn has_active_swap(&self, workspace_id: Uuid, requester_id: Uuid, target_id: Uuid, swap_date: chrono::NaiveDate) -> Result<bool, sqlx::Error> {
+    async fn has_active_swap(
+        &self,
+        workspace_id: Uuid,
+        requester_id: Uuid,
+        target_id: Uuid,
+        swap_date: chrono::NaiveDate,
+    ) -> Result<bool, sqlx::Error> {
         has_active_swap(&self.pool, workspace_id, requester_id, target_id, swap_date).await
     }
-    async fn has_approved_swap_on_date(&self, workspace_id: Uuid, employee_id: Uuid, swap_date: chrono::NaiveDate) -> Result<bool, sqlx::Error> {
+    async fn has_approved_swap_on_date(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        swap_date: chrono::NaiveDate,
+    ) -> Result<bool, sqlx::Error> {
         has_approved_swap_on_date(&self.pool, workspace_id, employee_id, swap_date).await
     }
     async fn get_workspace_swap_stats(&self, workspace_id: Uuid) -> Result<SwapStats, sqlx::Error> {
@@ -276,6 +342,10 @@ pub async fn get_workspace_swap_stats(
 }
 
 impl super::PoolBacked for SqlxShiftSwapRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
-    fn pool(&self) -> &sqlx::PgPool { &self.pool }
+    fn from_pool(pool: sqlx::PgPool) -> Self {
+        Self::new(pool)
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }

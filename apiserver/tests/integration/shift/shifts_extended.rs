@@ -143,8 +143,18 @@ async fn test_delete_roster_rbac_member_forbidden() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("member@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let resp = app
         .clone()
@@ -168,8 +178,18 @@ async fn test_create_shift_rbac_member_forbidden() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("member@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let body = serde_json::json!({
         "name": "Night Shift",

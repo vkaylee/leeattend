@@ -1,9 +1,11 @@
 import React, { useEffect } from "react";
-import { useTranslation } from "react-i18next";
+
 import { Navigate, Outlet, useLocation } from "@tanstack/react-router";
-import { ROUTES } from "@/lib/routes";
-import { getCurrentUserId, clearAuthSession } from "@/lib/api";
+import { useTranslation } from "react-i18next";
+
 import { useProfile } from "@/hooks/use-profile";
+import { getCurrentUserId, clearAuthSession } from "@/lib/api";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * AuthGuard: Bảo vệ các routes yêu cầu đăng nhập.

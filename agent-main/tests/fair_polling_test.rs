@@ -1,7 +1,7 @@
-use tokio::sync::Semaphore;
-use tokio::time::{sleep, Duration};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use tokio::sync::Semaphore;
+use tokio::time::{Duration, sleep};
 
 /// Test that semaphore-based polling achieves fair round-robin scheduling.
 /// With max_workers=1 and 2 devices, both should get roughly equal turns.
@@ -89,10 +89,7 @@ async fn test_unfair_polling_without_release() {
         // Try to poll multiple times - but blocked by A holding permit
         for _ in 0..5 {
             // This will block until A releases permit
-            let result = tokio::time::timeout(
-                Duration::from_millis(25),
-                sem_b.acquire()
-            ).await;
+            let result = tokio::time::timeout(Duration::from_millis(25), sem_b.acquire()).await;
 
             if let Ok(Ok(_permit)) = result {
                 polls_b.fetch_add(1, Ordering::SeqCst);
@@ -109,7 +106,10 @@ async fn test_unfair_polling_without_release() {
     // A should have polled 5 times
     // B should have polled fewer times (starved during A's run)
     assert_eq!(a_count, 5, "Device A completed all its polls");
-    assert!(b_count < 5, "Device B was starved (got {b_count} polls, should be < 5)");
+    assert!(
+        b_count < 5,
+        "Device B was starved (got {b_count} polls, should be < 5)"
+    );
 
     println!("✅ Unfair polling verified: A={a_count}, B={b_count} (B starved as expected)");
 }

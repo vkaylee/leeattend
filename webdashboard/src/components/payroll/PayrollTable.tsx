@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import * as Popover from '@radix-ui/react-popover';
 import { 
   CheckCircle2, 
@@ -15,16 +15,17 @@ import {
   ArrowDownRight,
   Calendar,
   AlertTriangle,
-  Sparkles
+  Sparkles, FileText 
 } from "lucide-react";
-import { Payslip, AttendanceAdjustmentRequest, PayrollSegment } from "@/lib/api/types";
-import { Employee, Workspace } from "@/lib/api/types";
-import PayslipModal from "./PayslipModal";
-import { FileText } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyPermissions } from "@/hooks/use-permissions";
-import { PayrollPriorityLegend } from "./PayrollPriorityLegend";
+import { Employee, Workspace, Payslip, AttendanceAdjustmentRequest, PayrollSegment  } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+
+import { PayrollPriorityLegend } from "./PayrollPriorityLegend";
+import PayslipModal from "./PayslipModal";
 
 interface PayrollTableProps {
   employee: Employee | null;

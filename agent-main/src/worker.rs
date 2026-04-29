@@ -3,9 +3,18 @@ use serde_json::Value;
 
 #[async_trait]
 pub trait Worker: Send + Sync {
-    async fn connect(&mut self, ip: &str, port: u16) -> Result<bool, Box<dyn std::error::Error + Send + Sync>>;
-    async fn get_attendance_logs(&mut self) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>>;
-    async fn get_info(&mut self, time_sync: &crate::time_sync::TimeSync) -> Result<Value, Box<dyn std::error::Error + Send + Sync>>;
+    async fn connect(
+        &mut self,
+        ip: &str,
+        port: u16,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>>;
+    async fn get_attendance_logs(
+        &mut self,
+    ) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>>;
+    async fn get_info(
+        &mut self,
+        time_sync: &crate::time_sync::TimeSync,
+    ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>>;
     /// Lightweight connection probe — returns `true` if device is still reachable.
     /// Used as heartbeat to detect silent UDP session loss between poll cycles.
     /// Implementations should use a cheap operation (e.g. `get_time()`) with a short timeout.
@@ -19,4 +28,3 @@ pub trait Worker: Send + Sync {
     /// Used by the orchestrator to persist the detected mode per device for future connects.
     fn detected_checksum_mode(&self) -> Option<bool>;
 }
-

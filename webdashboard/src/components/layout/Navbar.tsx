@@ -1,13 +1,17 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+
 import { useLocation } from "@tanstack/react-router";
 import { Menu, ChevronRight as BreadcrumbSeparator, Bell, ChevronLeft, ChevronRight, Sun, Moon, Monitor } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ROUTES } from "@/lib/routes";
+import { useTranslation } from "react-i18next";
+
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
-import type { ThemeMode } from "@/hooks/use-dark-mode";
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { ROUTES } from "@/lib/routes";
+import { cn } from "@/lib/utils";
+
+import type { ThemeMode } from "@/hooks/use-dark-mode";
 
 interface NavbarProps {
   currentWorkspaceName: string;

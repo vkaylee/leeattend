@@ -1,22 +1,30 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
+
 import viLocale from "../i18n/locales/vi.json";
 
 // Helper to resolve nested keys
-const resolveKey = (key: string, obj: any): string => {
+const resolveKey = (key: string, obj: any, vars?: Record<string, any>): string => {
   let result = key.split('.').reduce((o, i) => o?.[i], obj);
   if (!result && key.startsWith('common.')) {
     const fallbackKey = key.substring(7);
     result = fallbackKey.split('.').reduce((o, i) => o?.[i], obj);
   }
-  if (!result) console.warn(`Missing key in test mock: ${key}`);
-  return result || key;
+  if (!result) {
+    console.warn(`Missing key in test mock: ${key}`);
+    return key;
+  }
+  // Handle i18next-style {{variable}} interpolation
+  if (vars && typeof result === 'string') {
+    return result.replace(/\{\{(\w+)\}\}/g, (_, varName) => vars[varName] ?? `{{${varName}}}`);
+  }
+  return result;
 };
 
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => resolveKey(key, viLocale),
+    t: (key: string, vars?: Record<string, any>) => resolveKey(key, viLocale, vars),
     i18n: {
       changeLanguage: () => Promise.resolve(),
       language: 'vi',

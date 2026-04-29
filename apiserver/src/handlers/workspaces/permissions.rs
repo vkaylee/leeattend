@@ -83,7 +83,12 @@ pub async fn assign_extra_permission(
 
     if let Some(redis_pool) = state.infra.redis.clone() {
         let cache = crate::cache::RedisCache::new(redis_pool);
-        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+        let _ = cache
+            .delete(&format!(
+                "cache:auth:permissions:{}:{}",
+                ctx.workspace_id, user_id
+            ))
+            .await;
     }
 
     Ok((StatusCode::CREATED, Json(perm)))
@@ -119,10 +124,15 @@ pub async fn revoke_extra_permission(
             &headers,
         )
         .await;
-        
+
         if let Some(redis_pool) = state.infra.redis.clone() {
             let cache = crate::cache::RedisCache::new(redis_pool);
-            let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+            let _ = cache
+                .delete(&format!(
+                    "cache:auth:permissions:{}:{}",
+                    ctx.workspace_id, user_id
+                ))
+                .await;
         }
 
         Ok(StatusCode::NO_CONTENT)
@@ -133,9 +143,7 @@ pub async fn revoke_extra_permission(
 
 /// GET /workspaces/:ws_id/permissions/available
 /// List all available permission strings.
-pub async fn get_available_permissions(
-    ctx: MemberContext,
-) -> AppResult<Json<Vec<&'static str>>> {
+pub async fn get_available_permissions(ctx: MemberContext) -> AppResult<Json<Vec<&'static str>>> {
     ctx.require_permission(Permission::MembersRolesManage)?;
     Ok(Json(Permission::all_permission_strings()))
 }

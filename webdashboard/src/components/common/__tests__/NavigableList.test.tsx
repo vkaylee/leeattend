@@ -1,8 +1,11 @@
+import React from "react";
+
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import React from "react";
+
 import NavigableList from "../NavigableList";
+
 import type { NavigableListColumn } from "../NavigableList";
 
 // Mock IntersectionObserver for jsdom

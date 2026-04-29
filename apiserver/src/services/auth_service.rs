@@ -137,7 +137,7 @@ impl AuthService {
         let system_roles: Vec<String> = sqlx::query_scalar(
             "SELECT sr.name FROM user_system_roles usr \
              JOIN system_roles sr ON sr.id = usr.role_id \
-             WHERE usr.user_id = $1"
+             WHERE usr.user_id = $1",
         )
         .bind(user.id)
         .fetch_all(&self.pool)

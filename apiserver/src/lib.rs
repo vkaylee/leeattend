@@ -71,6 +71,7 @@
 )]
 
 pub mod agent_manager;
+pub mod app_builder;
 pub mod cache;
 pub mod db_pool;
 pub mod dev_initialization;
@@ -78,6 +79,7 @@ pub mod domain;
 pub mod errors;
 pub mod handlers;
 pub mod models;
+pub mod mw;
 pub mod openapi;
 pub mod queue;
 pub mod repositories;
@@ -86,8 +88,6 @@ pub mod services;
 pub mod state;
 pub mod utils;
 pub mod worker;
-pub mod mw;
-pub mod app_builder;
 #[cfg(test)]
 mod workspace_id_guard;
 
@@ -98,8 +98,8 @@ use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
 pub use crate::state::{
-    AppState, AgentState, AttendanceState, CoreState, EmployeeState,
-    InfraState, LeaveState, PayrollState, ReportState, ShiftState,
+    AgentState, AppState, AttendanceState, CoreState, EmployeeState, InfraState, LeaveState,
+    PayrollState, ReportState, ShiftState,
 };
 
 mod ax_auth {
@@ -143,7 +143,9 @@ mod ax_auth {
                     if let Some(token) = auth_str.strip_prefix("Bearer ") {
                         let app_state = Arc::<AppState>::from_ref(state);
 
-                        if let Ok(user_id) = AuthService::verify_token(token, &app_state.core.jwt_secret) {
+                        if let Ok(user_id) =
+                            AuthService::verify_token(token, &app_state.core.jwt_secret)
+                        {
                             return Ok(Self(user_id));
                         }
                     }
@@ -157,7 +159,9 @@ mod ax_auth {
                         let cookie = cookie.trim();
                         if let Some(token) = cookie.strip_prefix("access_token=") {
                             let app_state = Arc::<AppState>::from_ref(state);
-                            if let Ok(user_id) = AuthService::verify_token(token, &app_state.core.jwt_secret) {
+                            if let Ok(user_id) =
+                                AuthService::verify_token(token, &app_state.core.jwt_secret)
+                            {
                                 return Ok(Self(user_id));
                             }
                         }
@@ -281,7 +285,9 @@ mod tests {
     #[test]
     fn test_parse_allowed_origins() {
         // Test multiple valid origins with mixed spacing
-        let origins = parse_allowed_origins("http://localhost:3000, https://hrm.vlee.dev ,http://localhost:3001");
+        let origins = parse_allowed_origins(
+            "http://localhost:3000, https://hrm.vlee.dev ,http://localhost:3001",
+        );
         assert_eq!(origins.len(), 3);
         assert_eq!(origins[0].to_str().unwrap(), "http://localhost:3000");
         assert_eq!(origins[1].to_str().unwrap(), "https://hrm.vlee.dev");
@@ -297,7 +303,8 @@ mod tests {
         assert_eq!(origins[0].to_str().unwrap(), "http://localhost:3000");
 
         // Test invalid origin format (e.g. invalid chars in header value)
-        let origins = parse_allowed_origins("http://localhost:3000, invalid\norigin, https://hrm.vlee.dev");
+        let origins =
+            parse_allowed_origins("http://localhost:3000, invalid\norigin, https://hrm.vlee.dev");
         // "invalid\norigin" will fail HeaderValue parsing because of newline, so it's ignored
         assert_eq!(origins.len(), 2);
         assert_eq!(origins[0].to_str().unwrap(), "http://localhost:3000");

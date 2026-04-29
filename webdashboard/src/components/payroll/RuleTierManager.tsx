@@ -1,9 +1,12 @@
 import React, { useState } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Save, X, LayoutList } from "lucide-react";
-import { fetchPayrollRuleTiers, createPayrollRuleTier } from "@/lib/api/payroll";
-import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "react-i18next";
+
+import { useToast } from "@/components/ui/Toast";
+
+import { fetchPayrollRuleTiers, createPayrollRuleTier } from "@/lib/api/payroll";
 import { PayrollRuleTier } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 

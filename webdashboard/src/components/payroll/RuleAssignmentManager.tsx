@@ -1,21 +1,25 @@
 import React, { useState } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Building, Building2, Plus, Trash2, Calendar,
   Globe, ChevronDown, Shield, Clock, Sliders,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import Modal from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
+
+import { fetchDepartments } from "@/lib/api/departments";
 import {
   fetchPayrollRuleAssignments,
   createPayrollRuleAssignment,
   deletePayrollRuleAssignment,
 } from "@/lib/api/payroll";
-import { fetchDepartments } from "@/lib/api/departments";
-import { useToast } from "@/components/ui/Toast";
-import { useTranslation } from "react-i18next";
 import { PayrollRuleAssignment, Department } from "@/lib/api/types";
-import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { cn } from "@/lib/utils";
-import Modal from "@/components/ui/Modal";
+
 
 interface Props {
   wsId: string;

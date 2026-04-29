@@ -1,10 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import ShiftsPage from "../ShiftsPage";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import * as api from "../../lib/api";
+
 import { ToastProvider } from "../../components/ui/Toast";
+import * as api from "../../lib/api";
+import ShiftsPage from "../ShiftsPage";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({

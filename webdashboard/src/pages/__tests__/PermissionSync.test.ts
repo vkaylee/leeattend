@@ -8,6 +8,7 @@
  * without updating the other.
  */
 import { describe, it, expect } from "vitest";
+
 import { permissionGroups } from "../../lib/permission-groups";
 
 /**

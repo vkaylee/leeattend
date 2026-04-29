@@ -1,10 +1,13 @@
 import React from 'react';
+
 import { Clock, CalendarRange } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { RawAttendanceLog } from '@/lib/api/types';
-import StatusBadge from '@/components/ui/StatusBadge';
+
 import InfiniteScrollSentinel from '@/components/common/InfiniteScrollSentinel';
 import { TableSkeleton } from '@/components/common/TableSkeleton';
+import StatusBadge from '@/components/ui/StatusBadge';
+
+import { RawAttendanceLog } from '@/lib/api/types';
 
 interface RecordedLogsTableProps {
   logs: RawAttendanceLog[];

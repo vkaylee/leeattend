@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[async_trait]
 pub trait AuditLogRepository: super::PoolBacked + Send + Sync {
     async fn create_log(&self, config: &AuditLog) -> Result<AuditLog, sqlx::Error>;
-    
+
     // Retrieves audit logs for a workspace, ordered by created_at DESC
     async fn find_by_workspace(
         &self,
@@ -24,7 +24,9 @@ pub struct SqlxAuditLogRepository {
 }
 
 impl SqlxAuditLogRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
@@ -62,7 +64,8 @@ impl AuditLogRepository for SqlxAuditLogRepository {
         start_date: Option<chrono::DateTime<chrono::Utc>>,
         end_date: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<(Vec<AuditLog>, i64), sqlx::Error> {
-        let mut count_qb: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new("SELECT count(*) FROM audit_logs WHERE workspace_id = ");
+        let mut count_qb: sqlx::QueryBuilder<sqlx::Postgres> =
+            sqlx::QueryBuilder::new("SELECT count(*) FROM audit_logs WHERE workspace_id = ");
         count_qb.push_bind(workspace_id);
 
         if let Some(ref a) = action {
@@ -102,13 +105,20 @@ impl AuditLogRepository for SqlxAuditLogRepository {
         qb.push(" OFFSET ");
         qb.push_bind(offset);
 
-        let logs = qb.build_query_as::<AuditLog>().fetch_all(&self.pool).await?;
+        let logs = qb
+            .build_query_as::<AuditLog>()
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok((logs, count))
     }
 }
 
 impl super::PoolBacked for SqlxAuditLogRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
-    fn pool(&self) -> &sqlx::PgPool { &self.pool }
+    fn from_pool(pool: sqlx::PgPool) -> Self {
+        Self { pool }
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }

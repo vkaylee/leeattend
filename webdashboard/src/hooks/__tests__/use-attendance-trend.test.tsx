@@ -1,8 +1,10 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useAttendanceTrend } from "../use-dashboard";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import * as api from "@/lib/api";
+
+import { useAttendanceTrend } from "../use-dashboard";
 
 // Mock the API module
 vi.mock("@/lib/api", async () => {

@@ -1,11 +1,13 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { ToastProvider } from "../../components/ui/Toast";
-import PayrollPage from "../PayrollPage";
+import * as api from "../../lib/api";
 import AttendanceLogsPage from "../AttendanceLogsPage";
 import LeaveRequestsPage from "../LeaveRequestsPage";
-import * as api from "../../lib/api";
+import PayrollPage from "../PayrollPage";
+
 import type { PaginatedResponse, Employee } from "../../lib/api/types";
 
 /**

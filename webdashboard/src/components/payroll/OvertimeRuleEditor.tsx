@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, 
@@ -11,10 +11,14 @@ import {
   Hash,
   Percent
 } from 'lucide-react';
-import { OvertimeRule } from "@/lib/api/types";
-import { addOvertimeRule } from '@/lib/api/payroll';
-import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+
 import { useToast } from '@/components/ui/Toast';
+
+import { addOvertimeRule } from '@/lib/api/payroll';
+import { OvertimeRule } from "@/lib/api/types";
+import { cn } from '@/lib/utils';
+
 
 interface OvertimeRuleEditorProps {
   wsId: string;

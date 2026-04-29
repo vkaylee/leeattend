@@ -1,9 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchPayrollSettings, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
-import { useToast } from "@/components/ui/Toast";
-import { useTranslation } from "react-i18next";
-import TemporalConfigTable from "../common/TemporalConfigTable";
 import { ShieldAlert, Clock } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { useToast } from "@/components/ui/Toast";
+
+import { fetchPayrollSettings, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
+
+import TemporalConfigTable from "../common/TemporalConfigTable";
+
 
 interface Props {
   wsId: string;

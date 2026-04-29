@@ -1,11 +1,11 @@
 //! Tests for payroll auto-credit of paid holidays
 
-use std::sync::Arc;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::services::payroll_service::PayrollService;
 use chrono::{NaiveDate, TimeZone, Utc};
 use rust_decimal::Decimal;
+use std::sync::Arc;
 
 #[tokio::test]
 async fn test_payroll_credits_paid_holiday() {
@@ -85,24 +85,57 @@ async fn test_payroll_credits_paid_holiday() {
         .await;
 
     // 5. Calculate Payroll for May 2026
-    let payslip =
-        {
-            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
-            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
-            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
-            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
-            PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone())
-        }.calculate_monthly_payslip( employee_id, workspace_id, 2026, 5)
-            .await
-            .unwrap();
+    let payslip = {
+        let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
+            std::sync::Arc::new(
+                apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(
+                    pool.clone(),
+                ),
+            );
+        let dr: std::sync::Arc<
+            dyn apiserver::repositories::department_repository::DepartmentRepository,
+        > = std::sync::Arc::new(
+            apiserver::repositories::department_repository::SqlxDepartmentRepository::new(
+                pool.clone(),
+            ),
+        );
+        let tr: std::sync::Arc<
+            dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
+        > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+            pool.clone(),
+        ));
+        let wr: std::sync::Arc<
+            dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
+        > = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+            pool: pool.clone(),
+        });
+        let hr: std::sync::Arc<
+            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
+        > = std::sync::Arc::new(
+            apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
+        );
+        PayrollService::new(
+            pr,
+            dr,
+            tr,
+            wr,
+            hr,
+            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                pool.clone(),
+            )),
+            pool.clone(),
+        )
+    }
+    .calculate_monthly_payslip(employee_id, workspace_id, 2026, 5)
+    .await
+    .unwrap();
 
     // Verification
     // Worked 1 actual day (8 hours) -> standard_units: 8
     // + Auto-credited 1 paid holiday (8 hours) -> standard_units: 8
     // Total standard units should be 16 (equivalent to 2 work days).
     assert_eq!(payslip.standard_units, 16);
-    
+
     // Dailyrate = 100.
     // 2 standard days = Pay = 200.
     assert_eq!(payslip.base_pay_amount.round_dp(2), Decimal::from(200));

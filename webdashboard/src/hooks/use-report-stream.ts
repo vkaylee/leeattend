@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import type {
-  StreamMessage,
-  StreamStatus,
-  ChunkMessage,
-} from "@/types/report-stream";
+
+import { API_BASE_URL } from "@/lib/api/config";
 import {
   getAccessToken,
   getRefreshToken,
@@ -13,8 +10,13 @@ import {
   setRefreshToken,
   clearAuthSession,
 } from "@/lib/api/helpers";
-import { API_BASE_URL } from "@/lib/api/config";
 import { ROUTES } from "@/lib/routes";
+
+import type {
+  StreamMessage,
+  StreamStatus,
+  ChunkMessage,
+} from "@/types/report-stream";
 
 interface UseReportStreamOptions {
   jobId: string | null;

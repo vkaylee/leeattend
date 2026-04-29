@@ -18,9 +18,7 @@ pub enum HolidayLeaveResult {
         leave_type_name: String,
     },
     /// Employee has no remaining leave — unpaid day.
-    Unpaid {
-        employee_id: Uuid,
-    },
+    Unpaid { employee_id: Uuid },
 }
 
 // ---------------------------------------------------------------------------
@@ -29,13 +27,52 @@ pub enum HolidayLeaveResult {
 #[async_trait]
 #[allow(clippy::too_many_arguments)]
 pub trait HolidayRepositoryTrait: super::PoolBacked + Send + Sync {
-    async fn list(&self, workspace_id: Uuid, year: Option<i32>) -> Result<Vec<Holiday>, sqlx::Error>;
-    async fn get_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Holiday>, sqlx::Error>;
-    async fn create_holiday(&self, workspace_id: Uuid, name: &str, date: NaiveDate, holiday_type: &str, is_paid: bool, leave_type_id: Option<Uuid>, ot_multiplier: Option<rust_decimal::Decimal>, description: Option<&str>, work_threshold_percent: Option<i32>, is_credit_on_work: bool) -> Result<Holiday, sqlx::Error>;
-    async fn update_holiday(&self, workspace_id: Uuid, id: Uuid, name: Option<&str>, date: Option<NaiveDate>, holiday_type: Option<&str>, is_paid: Option<bool>, leave_type_id: Option<Uuid>, ot_multiplier: Option<rust_decimal::Decimal>, description: Option<&str>, work_threshold_percent: Option<i32>, is_credit_on_work: Option<bool>) -> Result<Option<Holiday>, sqlx::Error>;
+    async fn list(
+        &self,
+        workspace_id: Uuid,
+        year: Option<i32>,
+    ) -> Result<Vec<Holiday>, sqlx::Error>;
+    async fn get_by_id(&self, workspace_id: Uuid, id: Uuid)
+        -> Result<Option<Holiday>, sqlx::Error>;
+    async fn create_holiday(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+        date: NaiveDate,
+        holiday_type: &str,
+        is_paid: bool,
+        leave_type_id: Option<Uuid>,
+        ot_multiplier: Option<rust_decimal::Decimal>,
+        description: Option<&str>,
+        work_threshold_percent: Option<i32>,
+        is_credit_on_work: bool,
+    ) -> Result<Holiday, sqlx::Error>;
+    async fn update_holiday(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        name: Option<&str>,
+        date: Option<NaiveDate>,
+        holiday_type: Option<&str>,
+        is_paid: Option<bool>,
+        leave_type_id: Option<Uuid>,
+        ot_multiplier: Option<rust_decimal::Decimal>,
+        description: Option<&str>,
+        work_threshold_percent: Option<i32>,
+        is_credit_on_work: Option<bool>,
+    ) -> Result<Option<Holiday>, sqlx::Error>;
     async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, sqlx::Error>;
-    async fn get_holidays_in_range(&self, workspace_id: Uuid, start_date: NaiveDate, end_date: NaiveDate) -> Result<HashMap<NaiveDate, Holiday>, sqlx::Error>;
-    async fn is_holiday(&self, workspace_id: Uuid, date: NaiveDate) -> Result<Option<Holiday>, sqlx::Error>;
+    async fn get_holidays_in_range(
+        &self,
+        workspace_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<HashMap<NaiveDate, Holiday>, sqlx::Error>;
+    async fn is_holiday(
+        &self,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Option<Holiday>, sqlx::Error>;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,32 +83,104 @@ pub struct SqlxHolidayRepository {
 }
 
 impl SqlxHolidayRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
 impl HolidayRepositoryTrait for SqlxHolidayRepository {
-    async fn list(&self, workspace_id: Uuid, year: Option<i32>) -> Result<Vec<Holiday>, sqlx::Error> {
+    async fn list(
+        &self,
+        workspace_id: Uuid,
+        year: Option<i32>,
+    ) -> Result<Vec<Holiday>, sqlx::Error> {
         HolidayRepository::list(&self.pool, workspace_id, year).await
     }
-    async fn get_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<Holiday>, sqlx::Error> {
+    async fn get_by_id(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+    ) -> Result<Option<Holiday>, sqlx::Error> {
         HolidayRepository::get_by_id(&self.pool, workspace_id, id).await
     }
     #[allow(clippy::too_many_arguments)]
-    async fn create_holiday(&self, workspace_id: Uuid, name: &str, date: NaiveDate, holiday_type: &str, is_paid: bool, leave_type_id: Option<Uuid>, ot_multiplier: Option<rust_decimal::Decimal>, description: Option<&str>, work_threshold_percent: Option<i32>, is_credit_on_work: bool) -> Result<Holiday, sqlx::Error> {
-        HolidayRepository::create(&self.pool, workspace_id, name, date, holiday_type, is_paid, leave_type_id, ot_multiplier, description, work_threshold_percent, is_credit_on_work).await
+    async fn create_holiday(
+        &self,
+        workspace_id: Uuid,
+        name: &str,
+        date: NaiveDate,
+        holiday_type: &str,
+        is_paid: bool,
+        leave_type_id: Option<Uuid>,
+        ot_multiplier: Option<rust_decimal::Decimal>,
+        description: Option<&str>,
+        work_threshold_percent: Option<i32>,
+        is_credit_on_work: bool,
+    ) -> Result<Holiday, sqlx::Error> {
+        HolidayRepository::create(
+            &self.pool,
+            workspace_id,
+            name,
+            date,
+            holiday_type,
+            is_paid,
+            leave_type_id,
+            ot_multiplier,
+            description,
+            work_threshold_percent,
+            is_credit_on_work,
+        )
+        .await
     }
     #[allow(clippy::too_many_arguments)]
-    async fn update_holiday(&self, workspace_id: Uuid, id: Uuid, name: Option<&str>, date: Option<NaiveDate>, holiday_type: Option<&str>, is_paid: Option<bool>, leave_type_id: Option<Uuid>, ot_multiplier: Option<rust_decimal::Decimal>, description: Option<&str>, work_threshold_percent: Option<i32>, is_credit_on_work: Option<bool>) -> Result<Option<Holiday>, sqlx::Error> {
-        HolidayRepository::update(&self.pool, workspace_id, id, name, date, holiday_type, is_paid, leave_type_id, ot_multiplier, description, work_threshold_percent, is_credit_on_work).await
+    async fn update_holiday(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        name: Option<&str>,
+        date: Option<NaiveDate>,
+        holiday_type: Option<&str>,
+        is_paid: Option<bool>,
+        leave_type_id: Option<Uuid>,
+        ot_multiplier: Option<rust_decimal::Decimal>,
+        description: Option<&str>,
+        work_threshold_percent: Option<i32>,
+        is_credit_on_work: Option<bool>,
+    ) -> Result<Option<Holiday>, sqlx::Error> {
+        HolidayRepository::update(
+            &self.pool,
+            workspace_id,
+            id,
+            name,
+            date,
+            holiday_type,
+            is_paid,
+            leave_type_id,
+            ot_multiplier,
+            description,
+            work_threshold_percent,
+            is_credit_on_work,
+        )
+        .await
     }
     async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, sqlx::Error> {
         HolidayRepository::delete(&self.pool, workspace_id, id).await
     }
-    async fn get_holidays_in_range(&self, workspace_id: Uuid, start_date: NaiveDate, end_date: NaiveDate) -> Result<HashMap<NaiveDate, Holiday>, sqlx::Error> {
-        HolidayRepository::get_holidays_in_range(&self.pool, workspace_id, start_date, end_date).await
+    async fn get_holidays_in_range(
+        &self,
+        workspace_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<HashMap<NaiveDate, Holiday>, sqlx::Error> {
+        HolidayRepository::get_holidays_in_range(&self.pool, workspace_id, start_date, end_date)
+            .await
     }
-    async fn is_holiday(&self, workspace_id: Uuid, date: NaiveDate) -> Result<Option<Holiday>, sqlx::Error> {
+    async fn is_holiday(
+        &self,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Option<Holiday>, sqlx::Error> {
         HolidayRepository::is_holiday(&self.pool, workspace_id, date).await
     }
 }
@@ -81,7 +190,6 @@ impl HolidayRepositoryTrait for SqlxHolidayRepository {
 pub struct HolidayRepository;
 
 impl HolidayRepository {
-
     /// Lists all holidays for a workspace, optionally filtered by year.
     pub async fn list(
         pool: &PgPool,
@@ -117,13 +225,11 @@ impl HolidayRepository {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<Holiday>, sqlx::Error> {
-        sqlx::query_as::<_, Holiday>(
-            "SELECT * FROM holidays WHERE id = $1 AND workspace_id = $2",
-        )
-        .bind(id)
-        .bind(workspace_id)
-        .fetch_optional(pool)
-        .await
+        sqlx::query_as::<_, Holiday>("SELECT * FROM holidays WHERE id = $1 AND workspace_id = $2")
+            .bind(id)
+            .bind(workspace_id)
+            .fetch_optional(pool)
+            .await
     }
 
     /// Creates a new holiday. Returns error if (workspace_id, date) already exists.
@@ -208,11 +314,7 @@ impl HolidayRepository {
     }
 
     /// Deletes a holiday by ID. Returns true if a row was deleted.
-    pub async fn delete(
-        pool: &PgPool,
-        workspace_id: Uuid,
-        id: Uuid,
-    ) -> Result<bool, sqlx::Error> {
+    pub async fn delete(pool: &PgPool, workspace_id: Uuid, id: Uuid) -> Result<bool, sqlx::Error> {
         let result = sqlx::query("DELETE FROM holidays WHERE id = $1 AND workspace_id = $2")
             .bind(id)
             .bind(workspace_id)
@@ -263,6 +365,10 @@ impl HolidayRepository {
 }
 
 impl super::PoolBacked for SqlxHolidayRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
-    fn pool(&self) -> &sqlx::PgPool { &self.pool }
+    fn from_pool(pool: sqlx::PgPool) -> Self {
+        Self::new(pool)
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }

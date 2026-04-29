@@ -1,12 +1,14 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { Employee, Payslip, Workspace } from '@/lib/api/types';
-import { useDateTimeFormatter } from '@/hooks/use-datetime';
+
 import { 
   Building2, 
   CalendarDays, 
   ShieldCheck
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
+import { useDateTimeFormatter } from '@/hooks/use-datetime';
+import { Employee, Payslip, Workspace } from '@/lib/api/types';
 
 interface PayslipDocumentProps {
   employee: Employee;

@@ -114,7 +114,11 @@ impl DbPools {
         };
 
         tracing::info!("All database pools connected successfully");
-        Self { api, worker, reader }
+        Self {
+            api,
+            worker,
+            reader,
+        }
     }
 
     /// Get the API pool — use for HTTP request handlers.
@@ -197,7 +201,10 @@ mod tests {
     fn test_env_parse_with_default() {
         assert_eq!(env_parse::<u32>("NONEXISTENT_VAR_12345_TEST", 42), 42);
         assert_eq!(env_parse::<u64>("NONEXISTENT_VAR_12345_TEST", 42), 42);
-        assert_eq!(env_parse::<String>("NONEXISTENT_VAR_12345_TEST", "fallback".to_string()), "fallback");
+        assert_eq!(
+            env_parse::<String>("NONEXISTENT_VAR_12345_TEST", "fallback".to_string()),
+            "fallback"
+        );
     }
 
     #[test]
@@ -294,10 +301,16 @@ mod tests {
     fn test_empty_reader_url_treated_as_none() {
         // Simulate DATABASE_READER_URL="" (set but empty)
         let reader_url = Some("".to_string()).filter(|s| !s.trim().is_empty());
-        assert!(reader_url.is_none(), "Empty reader URL should be treated as None");
+        assert!(
+            reader_url.is_none(),
+            "Empty reader URL should be treated as None"
+        );
 
         let reader_url = Some("  ".to_string()).filter(|s| !s.trim().is_empty());
-        assert!(reader_url.is_none(), "Whitespace-only reader URL should be treated as None");
+        assert!(
+            reader_url.is_none(),
+            "Whitespace-only reader URL should be treated as None"
+        );
     }
 
     // ── Pool assignment contract tests ────────────────────────────
@@ -317,9 +330,15 @@ mod tests {
         let worker_timeout = 30u64;
 
         // Contract: API pool must handle more concurrent connections
-        assert!(api_max >= 4 * worker_max, "API should have ≥4x worker connections");
+        assert!(
+            api_max >= 4 * worker_max,
+            "API should have ≥4x worker connections"
+        );
         // Contract: Worker pool must be more patient for long-running jobs
-        assert!(worker_timeout >= 5 * api_timeout, "Worker should have ≥5x API timeout");
+        assert!(
+            worker_timeout >= 5 * api_timeout,
+            "Worker should have ≥5x API timeout"
+        );
     }
 
     #[test]

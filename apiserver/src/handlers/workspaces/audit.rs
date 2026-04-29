@@ -5,7 +5,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-
 use crate::domain::audit::AuditLog;
 use crate::domain::permissions::Permission;
 use crate::errors::AppResult;
@@ -42,8 +41,16 @@ pub async fn get_audit_logs(
     let offset = (page - 1) * limit;
 
     let (logs, total) = state
-        .core.audit_repo
-        .find_by_workspace(ctx.workspace_id, limit, offset, params.action, params.start_date, params.end_date)
+        .core
+        .audit_repo
+        .find_by_workspace(
+            ctx.workspace_id,
+            limit,
+            offset,
+            params.action,
+            params.start_date,
+            params.end_date,
+        )
         .await?;
 
     Ok(Json(PaginatedAuditLogs {

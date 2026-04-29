@@ -37,7 +37,9 @@ pub async fn get_attendance_report(
             .filter_map(|id| Uuid::parse_str(id).ok())
             .collect::<Vec<Uuid>>()
     });
-    let department_id = params.get("department_id").and_then(|s| Uuid::parse_str(s).ok());
+    let department_id = params
+        .get("department_id")
+        .and_then(|s| Uuid::parse_str(s).ok());
 
     let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d")
         .map_err(|_| AppError::Validation("Invalid start_date format".to_string()))?;
@@ -46,7 +48,8 @@ pub async fn get_attendance_report(
 
     if report_type == "daily" {
         let report = state
-            .reports.service
+            .reports
+            .service
             .get_daily_attendance_report(
                 workspace_id,
                 start_date,
@@ -56,15 +59,15 @@ pub async fn get_attendance_report(
                 employee_ids,
                 department_id,
             )
-            .await
-        ?;
+            .await?;
 
         Ok(Json(
             serde_json::to_value(report).map_err(|e| AppError::from(e.to_string()))?,
         ))
     } else {
         let summary = state
-            .reports.service
+            .reports
+            .service
             .get_workspace_attendance_summary(
                 workspace_id,
                 start_date,
@@ -75,8 +78,7 @@ pub async fn get_attendance_report(
                 employee_ids,
                 department_id,
             )
-            .await
-        ?;
+            .await?;
 
         Ok(Json(
             serde_json::to_value(summary).map_err(|e| AppError::from(e.to_string()))?,

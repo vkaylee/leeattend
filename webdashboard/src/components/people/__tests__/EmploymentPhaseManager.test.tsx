@@ -1,10 +1,15 @@
+import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import EmploymentPhaseManager from "../EmploymentPhaseManager";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { ToastProvider } from "@/components/ui/Toast";
+
 import * as api from "@/lib/api/employees";
-import React from "react";
+
+import EmploymentPhaseManager from "../EmploymentPhaseManager";
+
 
 // Mock API
 vi.mock("@/lib/api/employees", () => ({

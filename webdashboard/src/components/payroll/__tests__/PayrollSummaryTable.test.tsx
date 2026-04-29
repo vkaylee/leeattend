@@ -7,8 +7,9 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }));
-import PayrollSummaryTable from "../PayrollSummaryTable";
 import { Employee, Payslip } from "@/lib/api/types";
+
+import PayrollSummaryTable from "../PayrollSummaryTable";
 
 // Mock i18next
 vi.mock("react-i18next", () => ({

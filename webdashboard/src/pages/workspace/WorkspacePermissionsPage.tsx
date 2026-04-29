@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import PageHeader from "@/components/ui/PageHeader";
+import React, { useState, useEffect, useRef  } from "react";
+
 import { 
   KeyRound,
   Save,
@@ -9,10 +9,8 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useWorkspaceRoles, useWorkspacePermissionsMatrix } from "@/hooks/use-workspace";
-import { updateRolePermissions, getCurrentWorkspaceId } from "@/lib/api";
-import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+
 import PermissionGate from "@/components/common/PermissionGate";
 import { 
   DropdownMenu, 
@@ -22,9 +20,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
+import PageHeader from "@/components/ui/PageHeader";
+
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { useWorkspaceRoles, useWorkspacePermissionsMatrix } from "@/hooks/use-workspace";
+import { updateRolePermissions, getCurrentWorkspaceId } from "@/lib/api";
 import { permissionGroups } from "@/lib/permission-groups";
-import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+
 
 export default function WorkspacePermissionsPage() {
   const { t } = useTranslation();

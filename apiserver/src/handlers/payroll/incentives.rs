@@ -18,14 +18,15 @@ pub async fn get_incentive_policies(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<PayrollIncentivePolicyResponse>>> {
-    let policies = state.payroll.repo.get_active_incentive_policies(workspace_id,
-    )
-    .await?;
+    let policies = state
+        .payroll
+        .repo
+        .get_active_incentive_policies(workspace_id)
+        .await?;
 
     let mut response = Vec::new();
     for policy in policies {
-        let tiers = state.payroll.repo.get_policy_tiers(policy.id)
-            .await?;
+        let tiers = state.payroll.repo.get_policy_tiers(policy.id).await?;
         response.push(PayrollIncentivePolicyResponse { policy, tiers });
     }
     Ok(Json(response))

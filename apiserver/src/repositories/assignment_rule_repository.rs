@@ -12,10 +12,22 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 #[async_trait]
 pub trait AssignmentRuleRepositoryTrait: super::PoolBacked + Send + Sync {
-    async fn create_rule(&self, workspace_id: Uuid, req: &CreateAssignmentRuleRequest) -> Result<AssignmentRule, sqlx::Error>;
+    async fn create_rule(
+        &self,
+        workspace_id: Uuid,
+        req: &CreateAssignmentRuleRequest,
+    ) -> Result<AssignmentRule, sqlx::Error>;
     async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, sqlx::Error>;
-    async fn get_active_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, sqlx::Error>;
-    async fn update_rule(&self, workspace_id: Uuid, id: Uuid, req: &UpdateAssignmentRuleRequest) -> Result<AssignmentRule, sqlx::Error>;
+    async fn get_active_rules(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<AssignmentRule>, sqlx::Error>;
+    async fn update_rule(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        req: &UpdateAssignmentRuleRequest,
+    ) -> Result<AssignmentRule, sqlx::Error>;
     async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>;
 }
 
@@ -27,21 +39,35 @@ pub struct SqlxAssignmentRuleRepository {
 }
 
 impl SqlxAssignmentRuleRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
 impl AssignmentRuleRepositoryTrait for SqlxAssignmentRuleRepository {
-    async fn create_rule(&self, workspace_id: Uuid, req: &CreateAssignmentRuleRequest) -> Result<AssignmentRule, sqlx::Error> {
+    async fn create_rule(
+        &self,
+        workspace_id: Uuid,
+        req: &CreateAssignmentRuleRequest,
+    ) -> Result<AssignmentRule, sqlx::Error> {
         AssignmentRuleRepository::create_rule(&self.pool, workspace_id, req).await
     }
     async fn get_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, sqlx::Error> {
         AssignmentRuleRepository::get_rules(&self.pool, workspace_id).await
     }
-    async fn get_active_rules(&self, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, sqlx::Error> {
+    async fn get_active_rules(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<AssignmentRule>, sqlx::Error> {
         AssignmentRuleRepository::get_active_rules(&self.pool, workspace_id).await
     }
-    async fn update_rule(&self, workspace_id: Uuid, id: Uuid, req: &UpdateAssignmentRuleRequest) -> Result<AssignmentRule, sqlx::Error> {
+    async fn update_rule(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        req: &UpdateAssignmentRuleRequest,
+    ) -> Result<AssignmentRule, sqlx::Error> {
         AssignmentRuleRepository::update_rule(&self.pool, workspace_id, id, req).await
     }
     async fn delete_rule(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
@@ -53,7 +79,6 @@ impl AssignmentRuleRepositoryTrait for SqlxAssignmentRuleRepository {
 pub struct AssignmentRuleRepository;
 
 impl AssignmentRuleRepository {
-
     pub async fn create_rule(
         pool: &PgPool,
         workspace_id: Uuid,
@@ -152,15 +177,27 @@ impl AssignmentRuleRepository {
         Ok(rule)
     }
 
-    pub async fn delete_rule(pool: &PgPool, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
-        sqlx::query!("DELETE FROM assignment_rules WHERE id = $1 AND workspace_id = $2", id, workspace_id)
-            .execute(pool)
-            .await?;
+    pub async fn delete_rule(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        id: Uuid,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "DELETE FROM assignment_rules WHERE id = $1 AND workspace_id = $2",
+            id,
+            workspace_id
+        )
+        .execute(pool)
+        .await?;
         Ok(())
     }
 }
 
 impl super::PoolBacked for SqlxAssignmentRuleRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
-    fn pool(&self) -> &sqlx::PgPool { &self.pool }
+    fn from_pool(pool: sqlx::PgPool) -> Self {
+        Self::new(pool)
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }

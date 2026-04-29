@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
-import type { JobStatusCount } from "@/hooks/use-monitor-charts";
+
 import { cn } from "@/lib/utils";
+
+import type { JobStatusCount } from "@/hooks/use-monitor-charts";
 
 interface Props {
   data: JobStatusCount[];

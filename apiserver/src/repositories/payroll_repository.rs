@@ -21,10 +21,7 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
     ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error>;
 
-    async fn get_policy_tiers(
-        &self,
-        policy_id: Uuid,
-    ) -> Result<Vec<IncentiveTier>, sqlx::Error>;
+    async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, sqlx::Error>;
 
     async fn create_payslip_incentive(
         &self,
@@ -153,81 +150,201 @@ pub struct SqlxPayrollRepository {
 }
 
 impl SqlxPayrollRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
 impl PayrollRepository for SqlxPayrollRepository {
-    async fn get_active_incentive_policies(&self, workspace_id: Uuid) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
+    async fn get_active_incentive_policies(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
         get_active_incentive_policies(&self.pool, workspace_id).await
     }
     async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, sqlx::Error> {
         get_policy_tiers(&self.pool, policy_id).await
     }
-    async fn create_payslip_incentive(&self, payslip_id: Uuid, result: &IncentiveEvaluationResult) -> Result<(), sqlx::Error> {
+    async fn create_payslip_incentive(
+        &self,
+        payslip_id: Uuid,
+        result: &IncentiveEvaluationResult,
+    ) -> Result<(), sqlx::Error> {
         create_payslip_incentive(&self.pool, payslip_id, result).await
     }
-    async fn get_payslip_incentives(&self, payslip_id: Uuid) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error> {
+    async fn get_payslip_incentives(
+        &self,
+        payslip_id: Uuid,
+    ) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error> {
         get_payslip_incentives(&self.pool, payslip_id).await
     }
-    async fn create_payslip_rule_evaluation(&self, payslip_id: Uuid, rule_code: String, amount: Decimal) -> Result<(), sqlx::Error> {
+    async fn create_payslip_rule_evaluation(
+        &self,
+        payslip_id: Uuid,
+        rule_code: String,
+        amount: Decimal,
+    ) -> Result<(), sqlx::Error> {
         create_payslip_rule_evaluation(&self.pool, payslip_id, rule_code, amount).await
     }
-    async fn get_payslip_rule_evaluations(&self, payslip_id: Uuid) -> Result<Vec<crate::models::PayslipRuleEvaluation>, sqlx::Error> {
+    async fn get_payslip_rule_evaluations(
+        &self,
+        payslip_id: Uuid,
+    ) -> Result<Vec<crate::models::PayslipRuleEvaluation>, sqlx::Error> {
         get_payslip_rule_evaluations(&self.pool, payslip_id).await
     }
-    async fn get_payroll_settings(&self, workspace_id: Uuid) -> Result<Option<PayrollSettings>, sqlx::Error> {
+    async fn get_payroll_settings(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Option<PayrollSettings>, sqlx::Error> {
         get_payroll_settings(&self.pool, workspace_id).await
     }
-    async fn get_payroll_settings_at(&self, workspace_id: Uuid, date: NaiveDate) -> Result<Option<PayrollSettings>, sqlx::Error> {
+    async fn get_payroll_settings_at(
+        &self,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<Option<PayrollSettings>, sqlx::Error> {
         get_payroll_settings_at(&self.pool, workspace_id, date).await
     }
     #[allow(clippy::too_many_arguments)]
     async fn update_payroll_settings(
-        &self, workspace_id: Uuid, std_working_day_mode: String, fixed_std_days: Decimal,
-        working_days_per_week: i32, hours_per_day: Decimal, max_ot_hours_per_day: Option<Decimal>,
-        max_ot_hours_per_month: Option<Decimal>, effective_date: NaiveDate,
+        &self,
+        workspace_id: Uuid,
+        std_working_day_mode: String,
+        fixed_std_days: Decimal,
+        working_days_per_week: i32,
+        hours_per_day: Decimal,
+        max_ot_hours_per_day: Option<Decimal>,
+        max_ot_hours_per_month: Option<Decimal>,
+        effective_date: NaiveDate,
     ) -> Result<PayrollSettings, sqlx::Error> {
-        update_payroll_settings(&self.pool, workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, max_ot_hours_per_day, max_ot_hours_per_month, effective_date).await
+        update_payroll_settings(
+            &self.pool,
+            workspace_id,
+            std_working_day_mode,
+            fixed_std_days,
+            working_days_per_week,
+            hours_per_day,
+            max_ot_hours_per_day,
+            max_ot_hours_per_month,
+            effective_date,
+        )
+        .await
     }
-    async fn get_salary_component_definitions(&self, workspace_id: Uuid) -> Result<Vec<SalaryComponentDefinition>, sqlx::Error> {
+    async fn get_salary_component_definitions(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<SalaryComponentDefinition>, sqlx::Error> {
         get_salary_component_definitions(&self.pool, workspace_id).await
     }
-    async fn create_salary_component_definition(&self, workspace_id: Uuid, name: String, code: String, is_base_for_ot: bool, is_taxable: bool) -> Result<SalaryComponentDefinition, sqlx::Error> {
-        create_salary_component_definition(&self.pool, workspace_id, name, code, is_base_for_ot, is_taxable).await
+    async fn create_salary_component_definition(
+        &self,
+        workspace_id: Uuid,
+        name: String,
+        code: String,
+        is_base_for_ot: bool,
+        is_taxable: bool,
+    ) -> Result<SalaryComponentDefinition, sqlx::Error> {
+        create_salary_component_definition(
+            &self.pool,
+            workspace_id,
+            name,
+            code,
+            is_base_for_ot,
+            is_taxable,
+        )
+        .await
     }
-    async fn assign_employee_salary_component(&self, employee_id: Uuid, component_definition_id: Uuid, amount: Decimal, effective_date: NaiveDate) -> Result<EmployeeSalaryComponent, sqlx::Error> {
-        assign_employee_salary_component(&self.pool, employee_id, component_definition_id, amount, effective_date).await
+    async fn assign_employee_salary_component(
+        &self,
+        employee_id: Uuid,
+        component_definition_id: Uuid,
+        amount: Decimal,
+        effective_date: NaiveDate,
+    ) -> Result<EmployeeSalaryComponent, sqlx::Error> {
+        assign_employee_salary_component(
+            &self.pool,
+            employee_id,
+            component_definition_id,
+            amount,
+            effective_date,
+        )
+        .await
     }
-    async fn get_employee_salary_components(&self, workspace_id: Uuid, employee_id: Uuid, reference_date: NaiveDate) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+    async fn get_employee_salary_components(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        reference_date: NaiveDate,
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
         get_employee_salary_components(&self.pool, workspace_id, employee_id, reference_date).await
     }
     async fn create_payslip(&self, payslip: &Payslip) -> Result<Payslip, sqlx::Error> {
         create_payslip(&self.pool, payslip).await
     }
-    async fn get_payslips_by_employee(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Vec<Payslip>, sqlx::Error> {
+    async fn get_payslips_by_employee(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Vec<Payslip>, sqlx::Error> {
         get_payslips_by_employee(&self.pool, workspace_id, employee_id).await
     }
-    async fn get_payslips_by_workspace_period(&self, workspace_id: Uuid, period_start: NaiveDate, period_end: NaiveDate) -> Result<Vec<Payslip>, sqlx::Error> {
+    async fn get_payslips_by_workspace_period(
+        &self,
+        workspace_id: Uuid,
+        period_start: NaiveDate,
+        period_end: NaiveDate,
+    ) -> Result<Vec<Payslip>, sqlx::Error> {
         get_payslips_by_workspace_period(&self.pool, workspace_id, period_start, period_end).await
     }
-    async fn get_salary_components_history(&self, workspace_id: Uuid, employee_id: Uuid, start_date: NaiveDate, end_date: NaiveDate) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
-        get_salary_components_history(&self.pool, workspace_id, employee_id, start_date, end_date).await
+    async fn get_salary_components_history(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+        get_salary_components_history(&self.pool, workspace_id, employee_id, start_date, end_date)
+            .await
     }
     #[allow(clippy::too_many_arguments)]
     async fn create_payslip_segment(
-        &self, payslip_id: Uuid, start_date: NaiveDate, end_date: NaiveDate,
-        department_id: Option<Uuid>, applied_base_salary: Decimal, applied_std_days: Decimal,
-        hours_per_day: Decimal, actual_work_days: Decimal, paid_work_days: Decimal,
-        amount: Decimal, std_days_source: Option<String>,
+        &self,
+        payslip_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        department_id: Option<Uuid>,
+        applied_base_salary: Decimal,
+        applied_std_days: Decimal,
+        hours_per_day: Decimal,
+        actual_work_days: Decimal,
+        paid_work_days: Decimal,
+        amount: Decimal,
+        std_days_source: Option<String>,
     ) -> Result<(), sqlx::Error> {
-        create_payslip_segment(&self.pool, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, hours_per_day, actual_work_days, paid_work_days, amount, std_days_source).await
+        create_payslip_segment(
+            &self.pool,
+            payslip_id,
+            start_date,
+            end_date,
+            department_id,
+            applied_base_salary,
+            applied_std_days,
+            hours_per_day,
+            actual_work_days,
+            paid_work_days,
+            amount,
+            std_days_source,
+        )
+        .await
     }
-    async fn get_payslip_segments(&self, payslip_id: Uuid) -> Result<Vec<PayslipSegment>, sqlx::Error> {
+    async fn get_payslip_segments(
+        &self,
+        payslip_id: Uuid,
+    ) -> Result<Vec<PayslipSegment>, sqlx::Error> {
         get_payslip_segments(&self.pool, payslip_id).await
     }
 }
-
 
 pub async fn get_active_incentive_policies(
     pool: &PgPool,
@@ -290,10 +407,18 @@ pub async fn create_payslip_incentive(
     payslip_id: Uuid,
     result: &IncentiveEvaluationResult,
 ) -> Result<(), sqlx::Error> {
-    let amount_f64 = result.amount.to_f64()
-        .ok_or_else(|| sqlx::Error::Protocol(format!("Decimal→f64 overflow for incentive amount: {}", result.amount)))?;
-    let standard_amount_f64 = result.standard_amount.to_f64()
-        .ok_or_else(|| sqlx::Error::Protocol(format!("Decimal→f64 overflow for standard_amount: {}", result.standard_amount)))?;
+    let amount_f64 = result.amount.to_f64().ok_or_else(|| {
+        sqlx::Error::Protocol(format!(
+            "Decimal→f64 overflow for incentive amount: {}",
+            result.amount
+        ))
+    })?;
+    let standard_amount_f64 = result.standard_amount.to_f64().ok_or_else(|| {
+        sqlx::Error::Protocol(format!(
+            "Decimal→f64 overflow for standard_amount: {}",
+            result.standard_amount
+        ))
+    })?;
     sqlx::query(
         r#"INSERT INTO payslip_incentives (payslip_id, policy_name, amount, tier_id, standard_amount)
            VALUES ($1, $2, $3, $4, $5)"#,
@@ -324,10 +449,18 @@ pub async fn get_payslip_incentives(
         .map(|row| -> Result<IncentiveEvaluationResult, sqlx::Error> {
             Ok(IncentiveEvaluationResult {
                 policy_name: row.get("policy_name"),
-                amount: Decimal::from_f64(row.get("amount"))
-                    .ok_or_else(|| sqlx::Error::Protocol("f64→Decimal conversion failed for incentive amount".into()))?,
-                standard_amount: Decimal::from_f64(row.get("standard_amount"))
-                    .ok_or_else(|| sqlx::Error::Protocol("f64→Decimal conversion failed for standard_amount".into()))?,
+                amount: Decimal::from_f64(row.get("amount")).ok_or_else(|| {
+                    sqlx::Error::Protocol(
+                        "f64→Decimal conversion failed for incentive amount".into(),
+                    )
+                })?,
+                standard_amount: Decimal::from_f64(row.get("standard_amount")).ok_or_else(
+                    || {
+                        sqlx::Error::Protocol(
+                            "f64→Decimal conversion failed for standard_amount".into(),
+                        )
+                    },
+                )?,
                 tier_id: row.get("tier_id"),
             })
         })
@@ -731,8 +864,12 @@ pub async fn get_payslip_segments(
 }
 
 impl super::PoolBacked for SqlxPayrollRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
-    fn pool(&self) -> &sqlx::PgPool { &self.pool }
+    fn from_pool(pool: sqlx::PgPool) -> Self {
+        Self::new(pool)
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }
 
 #[cfg(test)]
@@ -748,9 +885,9 @@ mod tests {
     fn test_decimal_to_f64_normal_values() {
         let values = [
             Decimal::ZERO,
-            Decimal::new(1_500_000_00, 2),  // 1,500,000.00
-            Decimal::new(999_999_99, 2),    // 9,999,99.99
-            Decimal::new(-500_00, 2),       // -500.00
+            Decimal::new(1_500_000_00, 2), // 1,500,000.00
+            Decimal::new(999_999_99, 2),   // 9,999,99.99
+            Decimal::new(-500_00, 2),      // -500.00
         ];
         for val in values {
             assert!(
@@ -783,9 +920,18 @@ mod tests {
     /// Without proper error handling, this would silently zero out a payslip amount.
     #[test]
     fn test_f64_nan_infinity_fail_to_decimal() {
-        assert!(Decimal::from_f64(f64::NAN).is_none(), "NaN must not silently become Decimal::ZERO");
-        assert!(Decimal::from_f64(f64::INFINITY).is_none(), "Infinity must not silently become Decimal::ZERO");
-        assert!(Decimal::from_f64(f64::NEG_INFINITY).is_none(), "Negative infinity must not silently become Decimal::ZERO");
+        assert!(
+            Decimal::from_f64(f64::NAN).is_none(),
+            "NaN must not silently become Decimal::ZERO"
+        );
+        assert!(
+            Decimal::from_f64(f64::INFINITY).is_none(),
+            "Infinity must not silently become Decimal::ZERO"
+        );
+        assert!(
+            Decimal::from_f64(f64::NEG_INFINITY).is_none(),
+            "Negative infinity must not silently become Decimal::ZERO"
+        );
     }
 
     /// Simulates the error path in `create_payslip_incentive` — ensures the
@@ -800,8 +946,12 @@ mod tests {
         };
 
         // Normal case should succeed
-        let ok = result.amount.to_f64()
-            .ok_or_else(|| format!("Decimal→f64 overflow for incentive amount: {}", result.amount));
+        let ok = result.amount.to_f64().ok_or_else(|| {
+            format!(
+                "Decimal→f64 overflow for incentive amount: {}",
+                result.amount
+            )
+        });
         assert!(ok.is_ok(), "Normal Decimal should convert to f64");
 
         // Verify the error message format for the f64→Decimal path (NaN from DB)
@@ -816,7 +966,7 @@ mod tests {
     fn test_create_payslip_incentive_normal_amounts_pass() {
         let result = IncentiveEvaluationResult {
             policy_name: "Monthly Bonus".to_string(),
-            amount: Decimal::new(5_000_000_00, 2),     // 5,000,000.00 VND
+            amount: Decimal::new(5_000_000_00, 2), // 5,000,000.00 VND
             standard_amount: Decimal::new(5_000_000_00, 2),
             tier_id: None,
         };
@@ -836,7 +986,9 @@ mod tests {
         assert!(
             diff < Decimal::new(1, 2),
             "Roundtrip precision loss too large: original={}, back={}, diff={}",
-            original, back, diff
+            original,
+            back,
+            diff
         );
     }
 }

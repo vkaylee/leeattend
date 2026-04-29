@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { History } from "lucide-react";
-import Modal from "@/components/ui/Modal";
-import { TimeEntry } from "@/lib/api";
+
 import { format } from "date-fns";
+import { History } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import Modal from "@/components/ui/Modal";
+
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { TimeEntry } from "@/lib/api";
 
 interface AdjustmentRequestModalProps {
   isOpen: boolean;

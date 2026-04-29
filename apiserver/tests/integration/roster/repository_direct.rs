@@ -6,8 +6,8 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{RosterItem, ShiftRoster};
 use apiserver::models::enums::AssignmentHistoryType;
+use apiserver::models::{RosterItem, ShiftRoster};
 use apiserver::repositories::roster;
 use chrono::{NaiveDate, Utc};
 use uuid::Uuid;
@@ -28,7 +28,12 @@ async fn test_upsert_roster_insert_and_update() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
-    let shift_id = factory.shift().with_workspace(ws_id).with_name("Morning").create().await;
+    let shift_id = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_name("Morning")
+        .create()
+        .await;
     let date = NaiveDate::from_ymd_opt(2026, 3, 10).unwrap();
 
     // Insert
@@ -49,7 +54,12 @@ async fn test_upsert_roster_insert_and_update() {
     assert_eq!(inserted.notes.as_deref(), Some("Initial"));
 
     // Update (same employee + date → ON CONFLICT)
-    let shift_id2 = factory.shift().with_workspace(ws_id).with_name("Evening").create().await;
+    let shift_id2 = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_name("Evening")
+        .create()
+        .await;
     let roster_update = ShiftRoster {
         id: Uuid::new_v4(), // different ID, but same (employee_id, date) conflict key
         employee_id: emp_id,
@@ -87,7 +97,10 @@ async fn test_upsert_roster_day_off() {
         updated_at: Utc::now(),
     };
     let inserted = roster::upsert_roster(&pool, &roster_off).await.unwrap();
-    assert!(inserted.shift_id.is_none(), "Day off should have None shift_id");
+    assert!(
+        inserted.shift_id.is_none(),
+        "Day off should have None shift_id"
+    );
 }
 
 // ── Get Employee Rosters ────────────────────────────────────────────
@@ -185,7 +198,10 @@ async fn test_delete_roster() {
     let remaining = roster::get_employee_rosters(&pool, emp_id, start, end)
         .await
         .unwrap();
-    assert!(remaining.is_empty(), "Deleted roster should not be returned");
+    assert!(
+        remaining.is_empty(),
+        "Deleted roster should not be returned"
+    );
 }
 
 #[tokio::test]
@@ -210,8 +226,18 @@ async fn test_bulk_upsert_roster() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
-    let shift_a = factory.shift().with_workspace(ws_id).with_name("Shift A").create().await;
-    let shift_b = factory.shift().with_workspace(ws_id).with_name("Shift B").create().await;
+    let shift_a = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_name("Shift A")
+        .create()
+        .await;
+    let shift_b = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_name("Shift B")
+        .create()
+        .await;
 
     let items = vec![
         RosterItem {
@@ -231,7 +257,9 @@ async fn test_bulk_upsert_roster() {
         },
     ];
 
-    roster::bulk_upsert_roster(&pool, emp_id, items).await.unwrap();
+    roster::bulk_upsert_roster(&pool, emp_id, items)
+        .await
+        .unwrap();
 
     let start = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
@@ -241,7 +269,10 @@ async fn test_bulk_upsert_roster() {
     assert_eq!(rosters.len(), 3);
     assert_eq!(rosters[0].shift_id, Some(shift_a));
     assert_eq!(rosters[1].shift_id, Some(shift_b));
-    assert!(rosters[2].shift_id.is_none(), "Third entry should be day off");
+    assert!(
+        rosters[2].shift_id.is_none(),
+        "Third entry should be day off"
+    );
 }
 
 #[tokio::test]
@@ -251,8 +282,18 @@ async fn test_bulk_upsert_overwrites_existing() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
-    let shift_old = factory.shift().with_workspace(ws_id).with_name("Old").create().await;
-    let shift_new = factory.shift().with_workspace(ws_id).with_name("New").create().await;
+    let shift_old = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_name("Old")
+        .create()
+        .await;
+    let shift_new = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_name("New")
+        .create()
+        .await;
     let date = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
 
     // Insert first entry
@@ -274,7 +315,9 @@ async fn test_bulk_upsert_overwrites_existing() {
         shift_id: Some(shift_new),
         notes: Some("Overwritten".to_string()),
     }];
-    roster::bulk_upsert_roster(&pool, emp_id, items).await.unwrap();
+    roster::bulk_upsert_roster(&pool, emp_id, items)
+        .await
+        .unwrap();
 
     let start = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
     let end = NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
@@ -282,7 +325,11 @@ async fn test_bulk_upsert_overwrites_existing() {
         .await
         .unwrap();
     assert_eq!(rosters.len(), 1);
-    assert_eq!(rosters[0].shift_id, Some(shift_new), "Shift should be overwritten");
+    assert_eq!(
+        rosters[0].shift_id,
+        Some(shift_new),
+        "Shift should be overwritten"
+    );
 }
 
 // ── Assignment History ──────────────────────────────────────────────
@@ -294,7 +341,12 @@ async fn test_get_assignment_history_includes_roster_entries() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
-    let shift_id = factory.shift().with_workspace(ws_id).with_name("Test Shift").create().await;
+    let shift_id = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_name("Test Shift")
+        .create()
+        .await;
 
     // Create a roster entry
     let r = ShiftRoster {
@@ -309,8 +361,13 @@ async fn test_get_assignment_history_includes_roster_entries() {
     };
     roster::upsert_roster(&pool, &r).await.unwrap();
 
-    let history = roster::get_assignment_history(&pool, ws_id, 100).await.unwrap();
-    assert!(!history.is_empty(), "History should contain the roster entry");
+    let history = roster::get_assignment_history(&pool, ws_id, 100)
+        .await
+        .unwrap();
+    assert!(
+        !history.is_empty(),
+        "History should contain the roster entry"
+    );
 
     // Find the roster entry in history
     let roster_entry = history
@@ -327,7 +384,9 @@ async fn test_get_assignment_history_empty_workspace() {
     let pool = test_db.pool();
 
     let ws_id = factory.workspace().create().await;
-    let history = roster::get_assignment_history(&pool, ws_id, 100).await.unwrap();
+    let history = roster::get_assignment_history(&pool, ws_id, 100)
+        .await
+        .unwrap();
     assert!(history.is_empty());
 }
 
@@ -355,7 +414,9 @@ async fn test_get_assignment_history_respects_limit() {
         roster::upsert_roster(&pool, &r).await.unwrap();
     }
 
-    let history = roster::get_assignment_history(&pool, ws_id, 3).await.unwrap();
+    let history = roster::get_assignment_history(&pool, ws_id, 3)
+        .await
+        .unwrap();
     assert_eq!(history.len(), 3, "Should respect the limit parameter");
 }
 
@@ -368,7 +429,12 @@ async fn test_get_effective_shift_from_roster() {
 
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
-    let shift_id = factory.shift().with_workspace(ws_id).with_name("Morning").create().await;
+    let shift_id = factory
+        .shift()
+        .with_workspace(ws_id)
+        .with_name("Morning")
+        .create()
+        .await;
     let date = NaiveDate::from_ymd_opt(2026, 3, 10).unwrap();
 
     // Assign via roster (P1 — highest priority)
@@ -384,8 +450,9 @@ async fn test_get_effective_shift_from_roster() {
     };
     roster::upsert_roster(&pool, &r).await.unwrap();
 
-    let (resolved_shift, traces) =
-        roster::get_effective_shift(&pool, ws_id, emp_id, date).await.unwrap();
+    let (resolved_shift, traces) = roster::get_effective_shift(&pool, ws_id, emp_id, date)
+        .await
+        .unwrap();
     assert_eq!(resolved_shift, Some(shift_id));
     assert_eq!(traces.len(), 1);
     assert_eq!(traces[0].rule_name, "Manual Roster");
@@ -401,8 +468,9 @@ async fn test_get_effective_shift_no_assignment_returns_none() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
     let date = NaiveDate::from_ymd_opt(2026, 6, 1).unwrap();
 
-    let (resolved_shift, traces) =
-        roster::get_effective_shift(&pool, ws_id, emp_id, date).await.unwrap();
+    let (resolved_shift, traces) = roster::get_effective_shift(&pool, ws_id, emp_id, date)
+        .await
+        .unwrap();
     assert!(resolved_shift.is_none(), "No assignment → None");
     assert!(traces.is_empty(), "No traces when nothing matched");
 }
@@ -425,8 +493,9 @@ async fn test_get_effective_shift_fixed_assignment() {
         .await;
 
     let date = NaiveDate::from_ymd_opt(2026, 3, 10).unwrap();
-    let (resolved_shift, traces) =
-        roster::get_effective_shift(&pool, ws_id, emp_id, date).await.unwrap();
+    let (resolved_shift, traces) = roster::get_effective_shift(&pool, ws_id, emp_id, date)
+        .await
+        .unwrap();
     assert_eq!(resolved_shift, Some(shift_id));
     assert_eq!(traces[0].rule_name, "Fixed Assignment");
     assert_eq!(traces[0].priority, 20);

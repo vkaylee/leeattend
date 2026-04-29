@@ -190,7 +190,10 @@ mod tests {
             Some("DD/MM/YYYY"),
             Some("24h"),
         );
-        assert!(res.is_ok(), "Ambiguous time should be resolved via delegation");
+        assert!(
+            res.is_ok(),
+            "Ambiguous time should be resolved via delegation"
+        );
         let dt = res.expect("should be ok");
         // First occurrence: EDT (UTC-4) → 05:30 UTC
         assert_eq!(dt.hour(), 5);

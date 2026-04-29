@@ -26,12 +26,17 @@ pub async fn create_shift_swap(
     UserId(user_id): UserId,
     ctx: MemberContext,
     Json(req): Json<CreateShiftSwapRequest>,
-) -> AppResult<(StatusCode, Json<crate::models::shift_swap::ShiftSwapRequest>)> {
+) -> AppResult<(
+    StatusCode,
+    Json<crate::models::shift_swap::ShiftSwapRequest>,
+)> {
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
-    let swap = state.shifts.swap_service.create_swap(ctx.workspace_id, user_id, req)
-        .await
-        ?;
+    let swap = state
+        .shifts
+        .swap_service
+        .create_swap(ctx.workspace_id, user_id, req)
+        .await?;
 
     Ok((StatusCode::CREATED, Json(swap)))
 }
@@ -52,9 +57,11 @@ pub async fn list_shift_swaps(
 ) -> AppResult<Json<Vec<ShiftSwapRequestWithNames>>> {
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
-    let swaps =
-        state.shifts.swap_service.get_workspace_swaps(ctx.workspace_id, query.status)
-            .await?;
+    let swaps = state
+        .shifts
+        .swap_service
+        .get_workspace_swaps(ctx.workspace_id, query.status)
+        .await?;
 
     Ok(Json(swaps))
 }
@@ -72,9 +79,11 @@ pub async fn approve_shift_swap(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::ShiftSwapsApprove)?;
 
-    state.shifts.swap_service.approve_swap(ctx.workspace_id, user_id, id, req.status)
-        .await
-        ?;
+    state
+        .shifts
+        .swap_service
+        .approve_swap(ctx.workspace_id, user_id, id, req.status)
+        .await?;
 
     Ok(StatusCode::OK)
 }
@@ -89,9 +98,10 @@ pub async fn get_shift_swap_stats(
 ) -> AppResult<Json<crate::repositories::shift_swap_repository::SwapStats>> {
     ctx.require_permission(Permission::ShiftSwapsManage)?;
 
-    let stats =
-        state.shifts.swap_repo.get_workspace_swap_stats(ctx.workspace_id,
-        )
+    let stats = state
+        .shifts
+        .swap_repo
+        .get_workspace_swap_stats(ctx.workspace_id)
         .await
         .map_err(|e| {
             AppError::from((

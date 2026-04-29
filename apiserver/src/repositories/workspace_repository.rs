@@ -52,7 +52,9 @@ pub struct SqlxWorkspaceRepository {
 }
 
 impl SqlxWorkspaceRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
@@ -185,6 +187,10 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
 }
 
 impl super::PoolBacked for SqlxWorkspaceRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self { pool } }
-    fn pool(&self) -> &sqlx::PgPool { &self.pool }
+    fn from_pool(pool: sqlx::PgPool) -> Self {
+        Self { pool }
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }

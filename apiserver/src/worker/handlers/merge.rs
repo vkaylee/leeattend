@@ -7,8 +7,10 @@ use chrono::{NaiveDate, Utc};
 use sqlx::PgPool;
 use tracing::{info, warn};
 
+use crate::errors::{AppError, AppResult};
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
-use crate::queue::{Job, JobStatus, RedisPool, ReportPublisher, JobQueue, ReportType};
+use crate::queue::{Job, JobQueue, JobStatus, RedisPool, ReportPublisher, ReportType};
+use crate::services::import_messages::ExcelReportMessages;
 use crate::services::ExcelWriter;
 
 /// Presigned URL validity duration - no longer used, kept for backward compatibility.
@@ -35,6 +37,18 @@ impl MergeHandler {
         job: &Job,
         redis: &RedisPool,
     ) -> Result<(), String> {
+        match Self::handle_inner(pool, queue, job, redis).await {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    async fn handle_inner(
+        pool: &PgPool,
+        queue: &JobQueue,
+        job: &Job,
+        redis: &RedisPool,
+    ) -> AppResult<()> {
         let parent_job_id = job.parent_job_id;
         let t0 = std::time::Instant::now();
 
@@ -47,18 +61,18 @@ impl MergeHandler {
         let meta = queue
             .get_job_metadata(parent_job_id)
             .await
-            .map_err(|e| format!("Failed to get job metadata: {e}"))?
-            .ok_or("Job metadata not found")?;
+            .map_err(|e| AppError::Internal(format!("Failed to get job metadata: {e}")))?
+            .ok_or(AppError::NotFound("Job metadata not found".to_string()))?;
 
         // 2. Fetch all batch results from Redis
         let batch_results = queue
             .get_all_results(parent_job_id)
             .await
-            .map_err(|e| format!("Failed to get batch results: {e}"))?;
+            .map_err(|e| AppError::Internal(format!("Failed to get batch results: {e}")))?;
 
         if batch_results.is_empty() {
             warn!(parent_job_id = %parent_job_id, "No batch results found for merge");
-            return Err("No batch results to merge".to_string());
+            return Err(AppError::Internal("No batch results to merge".to_string()));
         }
 
         info!(
@@ -69,8 +83,10 @@ impl MergeHandler {
 
         let t_fetch = t0.elapsed();
 
-        // 3. Get workspace name and timezone for Excel title
-        let (workspace_name, workspace_tz) = Self::get_workspace_info(pool, meta.workspace_id).await;
+        // 3. Get workspace name, timezone, and language for Excel title/i18n
+        let (workspace_name, workspace_tz, workspace_lang) =
+            Self::get_workspace_info(pool, meta.workspace_id).await;
+        let excel_msgs = ExcelReportMessages::for_lang(&workspace_lang);
 
         // 4. Get date range
         let date_range = meta
@@ -95,6 +111,7 @@ impl MergeHandler {
                 &workspace_name,
                 date_range,
                 parent_job_id,
+                &excel_msgs,
             )?,
             Some(ReportType::Detail) => {
                 let work_unit_minutes = job
@@ -108,10 +125,13 @@ impl MergeHandler {
                     parent_job_id,
                     &workspace_tz,
                     work_unit_minutes,
+                    &excel_msgs,
                 )?
             }
             None => {
-                return Err("Merge job missing report type".to_string());
+                return Err(AppError::Internal(
+                    "No ReportType specified in metadata".to_string(),
+                ));
             }
         };
 
@@ -204,7 +224,8 @@ impl MergeHandler {
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
         parent_job_id: uuid::Uuid,
-    ) -> Result<(Vec<u8>, String, usize), String> {
+        msgs: &ExcelReportMessages,
+    ) -> AppResult<(Vec<u8>, String, usize)> {
         let mut all_summaries: Vec<AttendanceSummary> = Vec::new();
 
         for (batch_key, json) in batch_results {
@@ -222,7 +243,8 @@ impl MergeHandler {
         );
 
         // Generate Excel
-        let excel_data = ExcelWriter::write_summary(&all_summaries, workspace_name, date_range)?;
+        let excel_data =
+            ExcelWriter::write_summary(&all_summaries, workspace_name, date_range, msgs)?;
 
         let total_records = all_summaries.len();
 
@@ -243,7 +265,8 @@ impl MergeHandler {
         parent_job_id: uuid::Uuid,
         timezone: &str,
         work_unit_minutes: i32,
-    ) -> Result<(Vec<u8>, String, usize), String> {
+        msgs: &ExcelReportMessages,
+    ) -> AppResult<(Vec<u8>, String, usize)> {
         let mut all_reports: Vec<DailyAttendanceReport> = Vec::new();
 
         for (batch_key, json) in batch_results {
@@ -262,7 +285,14 @@ impl MergeHandler {
         info!(total_records = all_reports.len(), "Merged detail results");
 
         // Generate Excel
-        let excel_data = ExcelWriter::write_detail(&all_reports, workspace_name, date_range, timezone, work_unit_minutes)?;
+        let excel_data = ExcelWriter::write_detail(
+            &all_reports,
+            workspace_name,
+            date_range,
+            timezone,
+            work_unit_minutes,
+            msgs,
+        )?;
 
         let total_records = all_reports.len();
 
@@ -275,17 +305,20 @@ impl MergeHandler {
         Ok((excel_data, file_name, total_records))
     }
 
-    /// Get workspace name and timezone from database.
-    async fn get_workspace_info(pool: &PgPool, workspace_id: uuid::Uuid) -> (String, String) {
+    /// Get workspace name, timezone, and default language from database.
+    async fn get_workspace_info(
+        pool: &PgPool,
+        workspace_id: uuid::Uuid,
+    ) -> (String, String, String) {
         match sqlx::query!(
-            "SELECT name, timezone FROM workspaces WHERE id = $1",
+            "SELECT name, timezone, default_language FROM workspaces WHERE id = $1",
             workspace_id
         )
         .fetch_optional(pool)
         .await
         {
-            Ok(Some(row)) => (row.name, row.timezone),
-            _ => ("Workspace".to_string(), "UTC".to_string()),
+            Ok(Some(row)) => (row.name, row.timezone, row.default_language),
+            _ => ("Workspace".to_string(), "UTC".to_string(), "en".to_string()),
         }
     }
 }
@@ -294,6 +327,10 @@ impl MergeHandler {
 mod tests {
     use super::*;
     use uuid::Uuid;
+
+    fn en_msgs() -> ExcelReportMessages {
+        ExcelReportMessages::for_lang("en")
+    }
 
     #[test]
     fn test_merge_summary_empty_batches() {
@@ -310,6 +347,7 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
             ),
             Uuid::new_v4(),
+            &en_msgs(),
         );
 
         assert!(result.is_ok());
@@ -357,6 +395,7 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
             ),
             Uuid::new_v4(),
+            &en_msgs(),
         );
 
         assert!(result.is_ok());
@@ -432,6 +471,7 @@ mod tests {
             Uuid::new_v4(),
             "UTC",
             30,
+            &en_msgs(),
         );
 
         assert!(result.is_ok());
@@ -450,10 +490,11 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
             ),
             Uuid::new_v4(),
+            &en_msgs(),
         );
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Parse error"));
+        assert!(result.unwrap_err().to_string().contains("Parse error"));
     }
 
     /// Optimization #9: total_records must equal the actual number of deserialized records,
@@ -488,15 +529,25 @@ mod tests {
         }];
 
         let batch_results = vec![
-            ("batch_00000".to_string(), serde_json::to_string(&s1).unwrap()),
-            ("batch_00001".to_string(), serde_json::to_string(&s2).unwrap()),
+            (
+                "batch_00000".to_string(),
+                serde_json::to_string(&s1).unwrap(),
+            ),
+            (
+                "batch_00001".to_string(),
+                serde_json::to_string(&s2).unwrap(),
+            ),
         ];
 
         let (_, _, total_records) = MergeHandler::merge_summary_results(
             &batch_results,
             "W",
-            (NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()),
+            (
+                NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+            ),
             Uuid::new_v4(),
+            &en_msgs(),
         )
         .unwrap();
 
@@ -530,21 +581,35 @@ mod tests {
             generation_metadata: None,
         };
 
-        let b1 = vec![make_report("Alice", 1), make_report("Alice", 2), make_report("Bob", 1)];
+        let b1 = vec![
+            make_report("Alice", 1),
+            make_report("Alice", 2),
+            make_report("Bob", 1),
+        ];
         let b2 = vec![make_report("Charlie", 1)];
 
         let batch_results = vec![
-            ("batch_00000".to_string(), serde_json::to_string(&b1).unwrap()),
-            ("batch_00001".to_string(), serde_json::to_string(&b2).unwrap()),
+            (
+                "batch_00000".to_string(),
+                serde_json::to_string(&b1).unwrap(),
+            ),
+            (
+                "batch_00001".to_string(),
+                serde_json::to_string(&b2).unwrap(),
+            ),
         ];
 
         let (_, _, total_records) = MergeHandler::merge_detail_results(
             &batch_results,
             "W",
-            (NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()),
+            (
+                NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+            ),
             Uuid::new_v4(),
             "UTC",
             30,
+            &en_msgs(),
         )
         .unwrap();
 

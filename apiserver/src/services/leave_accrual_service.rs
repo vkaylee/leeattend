@@ -24,7 +24,12 @@ impl LeaveAccrualService {
         leave_policy_repo: Arc<dyn LeavePolicyRepository>,
         pool: PgPool,
     ) -> Self {
-        Self { employee_repo, department_repo, leave_policy_repo, pool }
+        Self {
+            employee_repo,
+            department_repo,
+            leave_policy_repo,
+            pool,
+        }
     }
 
     /// Pure function to calculate how much leave should be accrued for a given policy and employee state.
@@ -222,10 +227,19 @@ impl LeaveAccrualService {
                     let mut m = from.month();
                     // If from is after the 1st, start from 1st of from's month only if it's >= from
                     while let Some(d) = NaiveDate::from_ymd_opt(y, m, 1) {
-                            if d > to { break; }
-                            if d >= from { dates.push(d); }
-                            // Next month
-                            if m == 12 { m = 1; y += 1; } else { m += 1; }
+                        if d > to {
+                            break;
+                        }
+                        if d >= from {
+                            dates.push(d);
+                        }
+                        // Next month
+                        if m == 12 {
+                            m = 1;
+                            y += 1;
+                        } else {
+                            m += 1;
+                        }
                     }
                 } else {
                     // Last day of each month
@@ -236,8 +250,12 @@ impl LeaveAccrualService {
                         let next_y = if m == 12 { y + 1 } else { y };
                         if let Some(first_next) = NaiveDate::from_ymd_opt(next_y, next_m, 1) {
                             if let Some(last_day) = first_next.pred_opt() {
-                                if last_day > to { break; }
-                                if last_day >= from { dates.push(last_day); }
+                                if last_day > to {
+                                    break;
+                                }
+                                if last_day >= from {
+                                    dates.push(last_day);
+                                }
                             }
                         }
                         m = next_m;
@@ -263,16 +281,21 @@ impl LeaveAccrualService {
                             // Last day of quarter month
                             let next_m = if qm == 12 { 1 } else { qm + 1 };
                             let next_y = if qm == 12 { y + 1 } else { y };
-                            NaiveDate::from_ymd_opt(next_y, next_m, 1)
-                                .and_then(|d| d.pred_opt())
+                            NaiveDate::from_ymd_opt(next_y, next_m, 1).and_then(|d| d.pred_opt())
                         };
                         if let Some(d) = d {
-                            if d > to { return dates; }
-                            if d >= from { dates.push(d); }
+                            if d > to {
+                                return dates;
+                            }
+                            if d >= from {
+                                dates.push(d);
+                            }
                         }
                     }
                     y += 1;
-                    if y > to.year() + 1 { break; }
+                    if y > to.year() + 1 {
+                        break;
+                    }
                 }
             }
             AccrualFrequency::Yearly => {
@@ -284,11 +307,17 @@ impl LeaveAccrualService {
                         NaiveDate::from_ymd_opt(y, 12, 31)
                     };
                     if let Some(d) = d {
-                        if d > to { break; }
-                        if d >= from { dates.push(d); }
+                        if d > to {
+                            break;
+                        }
+                        if d >= from {
+                            dates.push(d);
+                        }
                     }
                     y += 1;
-                    if y > to.year() + 1 { break; }
+                    if y > to.year() + 1 {
+                        break;
+                    }
                 }
             }
         }
@@ -363,8 +392,8 @@ impl LeaveAccrualService {
             let overlap_end = std::cmp::min(req.end_date, range_end);
             let mut curr = overlap_start;
             while curr <= overlap_end {
-                let month_key = NaiveDate::from_ymd_opt(curr.year(), curr.month(), 1)
-                    .unwrap_or(curr);
+                let month_key =
+                    NaiveDate::from_ymd_opt(curr.year(), curr.month(), 1).unwrap_or(curr);
                 *result.entry(month_key).or_insert(0) += 1;
                 if let Some(next) = curr.succ_opt() {
                     curr = next;
@@ -397,18 +426,24 @@ impl LeaveAccrualService {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         // Get all active employees
-        let employees = self.employee_repo.get_active_employees(workspace_id).await?;
+        let employees = self
+            .employee_repo
+            .get_active_employees(workspace_id)
+            .await?;
         let mut all_logs = Vec::new();
 
         for emp in employees {
             // Resolve policy for employee
-            let dept_hist = self.department_repo.get_current_department(workspace_id, emp.id)
+            let dept_hist = self
+                .department_repo
+                .get_current_department(workspace_id, emp.id)
                 .await
                 .ok()
                 .flatten();
 
-            if let Some((policy, assignment_id, _leave_type_code)) =
-                self.leave_policy_repo.find_active_assignment_for_employee(
+            if let Some((policy, assignment_id, _leave_type_code)) = self
+                .leave_policy_repo
+                .find_active_assignment_for_employee(
                     workspace_id,
                     emp.id,
                     dept_hist.map(|d| d.department_id),
@@ -447,12 +482,8 @@ impl LeaveAccrualService {
                     && config.accrual_timing == "start_of_period"
                 {
                     if assignment.effective_from.month() == 1 {
-                        NaiveDate::from_ymd_opt(
-                            assignment.effective_from.year() - 1,
-                            12,
-                            1,
-                        )
-                        .unwrap_or(assignment.effective_from)
+                        NaiveDate::from_ymd_opt(assignment.effective_from.year() - 1, 12, 1)
+                            .unwrap_or(assignment.effective_from)
                     } else {
                         NaiveDate::from_ymd_opt(
                             assignment.effective_from.year(),
@@ -479,8 +510,10 @@ impl LeaveAccrualService {
                 };
 
                 // Pre-fetch employment history once per employee
-                let periods =
-                    self.employee_repo.get_employment_history(emp.workspace_id, emp.id).await?;
+                let periods = self
+                    .employee_repo
+                    .get_employment_history(emp.workspace_id, emp.id)
+                    .await?;
 
                 for accrual_date in accrual_dates {
                     let months_service =
@@ -493,7 +526,11 @@ impl LeaveAccrualService {
                             if accrual_date.month() == 1 {
                                 NaiveDate::from_ymd_opt(accrual_date.year() - 1, 12, 1)
                             } else {
-                                NaiveDate::from_ymd_opt(accrual_date.year(), accrual_date.month() - 1, 1)
+                                NaiveDate::from_ymd_opt(
+                                    accrual_date.year(),
+                                    accrual_date.month() - 1,
+                                    1,
+                                )
                             }
                         } else {
                             NaiveDate::from_ymd_opt(accrual_date.year(), accrual_date.month(), 1)
@@ -505,14 +542,16 @@ impl LeaveAccrualService {
                         20.0 // Default: skip threshold check
                     };
 
-                    let amount =
-                        Self::calculate_accrual_amount(config, months_service, work_days);
+                    let amount = Self::calculate_accrual_amount(config, months_service, work_days);
 
                     if amount > 0.0 {
                         use rust_decimal::prelude::FromPrimitive;
                         let decimal_amount =
                             rust_decimal::Decimal::from_f64(amount).ok_or_else(|| {
-                                tracing::error!(amount, "Invalid f64 for leave accrual Decimal conversion");
+                                tracing::error!(
+                                    amount,
+                                    "Invalid f64 for leave accrual Decimal conversion"
+                                );
                                 sqlx::Error::Protocol(format!("Cannot convert {amount} to Decimal"))
                             })?;
 
@@ -622,7 +661,6 @@ impl LeaveAccrualService {
 }
 
 use crate::utils::chrono_helpers::local_to_utc_sqlx as local_to_utc;
-
 
 #[cfg(test)]
 mod tests {
@@ -747,7 +785,14 @@ mod tests {
     #[test]
     fn test_should_run_accrual_quarterly_start() {
         // Quarter starts: Jan 1, Apr 1, Jul 1, Oct 1
-        for &(m, d, expected) in &[(1u32, 1u32, true), (4, 1, true), (7, 1, true), (10, 1, true), (2, 1, false), (1, 5, false)] {
+        for &(m, d, expected) in &[
+            (1u32, 1u32, true),
+            (4, 1, true),
+            (7, 1, true),
+            (10, 1, true),
+            (2, 1, false),
+            (1, 5, false),
+        ] {
             assert_eq!(
                 LeaveAccrualService::should_run_accrual(
                     &AccrualFrequency::Quarterly,
@@ -794,10 +839,8 @@ mod tests {
     fn test_seniority_single_period_no_termination() {
         // Hired 2025-01-01, as_of 2026-01-01 → ~12 months (365 days / 30 ≈ 12)
         let periods = vec![mock_period(nd(2025, 1, 1), None)];
-        let months = LeaveAccrualService::calculate_total_months_seniority(
-            &periods,
-            nd(2026, 1, 1),
-        );
+        let months =
+            LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2026, 1, 1));
         // 366 days (2025 not a leap year but 2025-01-01 to 2026-01-01 = 365 days +1 = 366 / 30 = 12)
         assert_eq!(months, 12);
     }
@@ -806,10 +849,8 @@ mod tests {
     fn test_seniority_terminated_before_as_of() {
         // Hired 2024-01-01, terminated 2024-06-30 → 181 days / 30 = 6 months
         let periods = vec![mock_period(nd(2024, 1, 1), Some(nd(2024, 6, 30)))];
-        let months = LeaveAccrualService::calculate_total_months_seniority(
-            &periods,
-            nd(2026, 1, 1),
-        );
+        let months =
+            LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2026, 1, 1));
         assert_eq!(months, 6);
     }
 
@@ -817,10 +858,8 @@ mod tests {
     fn test_seniority_future_hire_date_excluded() {
         // Hired in the future → 0 months
         let periods = vec![mock_period(nd(2030, 1, 1), None)];
-        let months = LeaveAccrualService::calculate_total_months_seniority(
-            &periods,
-            nd(2026, 1, 1),
-        );
+        let months =
+            LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2026, 1, 1));
         assert_eq!(months, 0);
     }
 
@@ -833,13 +872,14 @@ mod tests {
             mock_period(nd(2020, 1, 1), Some(nd(2021, 1, 1))),
             mock_period(nd(2022, 1, 1), None),
         ];
-        let months = LeaveAccrualService::calculate_total_months_seniority(
-            &periods,
-            nd(2022, 7, 1),
-        );
+        let months =
+            LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2022, 7, 1));
         // Phase 1: 366+1 = 367 days ≈ 12 months
         // Phase 2: 181 days ≈ 6 months
-        assert!(months >= 17 && months <= 18, "Expected 17-18 months, got {months}");
+        assert!(
+            months >= 17 && months <= 18,
+            "Expected 17-18 months, got {months}"
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -973,10 +1013,7 @@ mod tests {
 
     #[test]
     fn test_seniority_empty_periods() {
-        let months = LeaveAccrualService::calculate_total_months_seniority(
-            &[],
-            nd(2026, 1, 1),
-        );
+        let months = LeaveAccrualService::calculate_total_months_seniority(&[], nd(2026, 1, 1));
         assert_eq!(months, 0);
     }
 
@@ -984,10 +1021,8 @@ mod tests {
     fn test_seniority_same_day_hire_and_as_of() {
         // Hired today, as_of today → 1 day / 30 = 0 months
         let periods = vec![mock_period(nd(2026, 1, 1), None)];
-        let months = LeaveAccrualService::calculate_total_months_seniority(
-            &periods,
-            nd(2026, 1, 1),
-        );
+        let months =
+            LeaveAccrualService::calculate_total_months_seniority(&periods, nd(2026, 1, 1));
         assert_eq!(months, 0); // 1 day / 30 = 0
     }
 
@@ -1018,9 +1053,18 @@ mod tests {
             accrual_amount: 1.0,
             accrual_timing: "start_of_period".to_string(),
             seniority_bonus: vec![
-                SeniorityBonus { months: 6, bonus_amount: 0.25 },
-                SeniorityBonus { months: 12, bonus_amount: 0.5 },
-                SeniorityBonus { months: 24, bonus_amount: 1.0 },
+                SeniorityBonus {
+                    months: 6,
+                    bonus_amount: 0.25,
+                },
+                SeniorityBonus {
+                    months: 12,
+                    bonus_amount: 0.5,
+                },
+                SeniorityBonus {
+                    months: 24,
+                    bonus_amount: 1.0,
+                },
             ],
             carry_over_limit: None,
             max_balance: None,
@@ -1062,4 +1106,3 @@ mod tests {
         assert_eq!(dates[3], nd(2026, 12, 31));
     }
 }
-

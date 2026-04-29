@@ -2,7 +2,9 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::enums::{AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo};
+use crate::models::enums::{
+    AssigneeType, PayrollCalculationMethod, PayrollRuleCategory, RuleAppliesTo,
+};
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct PayrollRuleDefinition {

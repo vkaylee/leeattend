@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 #[tokio::test]
 async fn test_db_writer_singleton_guard() {
@@ -29,7 +29,11 @@ async fn test_db_writer_singleton_guard() {
     sleep(Duration::from_millis(200)).await;
 
     // Assert only one worker was spawned
-    assert_eq!(spawn_count.load(Ordering::SeqCst), 1, "Only one DB writer should be spawned");
+    assert_eq!(
+        spawn_count.load(Ordering::SeqCst),
+        1,
+        "Only one DB writer should be spawned"
+    );
 }
 
 #[tokio::test]
@@ -48,12 +52,18 @@ async fn test_db_writer_channel_survives_reload() {
 
     // Simulate workers sending across "restart"
     for i in 1..=10 {
-        log_tx.send((format!("device_{i}"), format!("data_{i}"))).await.unwrap();
+        log_tx
+            .send((format!("device_{i}"), format!("data_{i}")))
+            .await
+            .unwrap();
     }
 
     // Simulate restart (new workers use same channel)
     for i in 11..=20 {
-        log_tx.send((format!("device_{i}"), format!("data_{i}"))).await.unwrap();
+        log_tx
+            .send((format!("device_{i}"), format!("data_{i}")))
+            .await
+            .unwrap();
     }
 
     // Close channel
@@ -63,7 +73,10 @@ async fn test_db_writer_channel_survives_reload() {
     let received_count = writer_handle.await.unwrap();
 
     // Assert all messages received across restart
-    assert_eq!(received_count, 20, "DB writer should receive all messages across restart");
+    assert_eq!(
+        received_count, 20,
+        "DB writer should receive all messages across restart"
+    );
 }
 
 #[tokio::test]

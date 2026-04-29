@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
+
+import { describe, it, expect } from "vitest";
 
 describe("performance budget", () => {
   const distDir = resolve(__dirname, "../../../dist/assets");

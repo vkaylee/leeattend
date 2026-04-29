@@ -72,7 +72,13 @@ async fn test_handler_claims_staged_logs_for_employee() {
 
     // 4. Verify raw log was created for this employee
     let raw_logs = raw_attendance_log_repository::get_paginated_raw_logs(
-        &pool, ws_id, Some(emp_id), None, None, 10, 0,
+        &pool,
+        ws_id,
+        Some(emp_id),
+        None,
+        None,
+        10,
+        0,
     )
     .await
     .unwrap();
@@ -174,7 +180,13 @@ async fn test_handler_claims_multiple_staged_logs() {
     assert_eq!(pending_after, 0, "All staged logs should be claimed");
 
     let raw_logs = raw_attendance_log_repository::get_paginated_raw_logs(
-        &pool, ws_id, Some(emp_id), None, None, 10, 0,
+        &pool,
+        ws_id,
+        Some(emp_id),
+        None,
+        None,
+        10,
+        0,
     )
     .await
     .unwrap();
@@ -254,7 +266,13 @@ async fn test_handler_only_claims_matching_employee() {
 
     // Employee A should have a raw log
     let raw_logs_a = raw_attendance_log_repository::get_paginated_raw_logs(
-        &pool, ws_id, Some(emp_a_id), None, None, 10, 0,
+        &pool,
+        ws_id,
+        Some(emp_a_id),
+        None,
+        None,
+        10,
+        0,
     )
     .await
     .unwrap();

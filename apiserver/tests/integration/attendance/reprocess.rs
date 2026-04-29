@@ -172,13 +172,21 @@ async fn test_force_reprocess_all_attendance_api() {
         .await
         .unwrap();
     let body_json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
-    let parent_job_id = body_json["job_id"].as_str().unwrap().parse::<Uuid>().unwrap();
+    let parent_job_id = body_json["job_id"]
+        .as_str()
+        .unwrap()
+        .parse::<Uuid>()
+        .unwrap();
 
     // 4. Verify job metadata was created correctly
     let redis = _state.infra.redis.as_ref().unwrap();
     let queue = apiserver::queue::JobQueue::new(redis.clone());
 
-    let meta = queue.get_job_metadata(parent_job_id).await.unwrap().expect("Job metadata must exist");
+    let meta = queue
+        .get_job_metadata(parent_job_id)
+        .await
+        .unwrap()
+        .expect("Job metadata must exist");
     assert_eq!(meta.total_batches, 2);
     assert_eq!(meta.status, apiserver::queue::JobStatus::Pending);
 
@@ -186,22 +194,21 @@ async fn test_force_reprocess_all_attendance_api() {
     //    The background Docker worker may consume the queued jobs but processes them
     //    against a different DB. We construct identical jobs and process them directly
     //    against the test's isolated DB to verify the handler logic.
-    let coordinator = apiserver::services::ReportCoordinator::new(redis.clone(), _state.infra.db.api().clone());
+    let coordinator =
+        apiserver::services::ReportCoordinator::new(redis.clone(), _state.infra.db.api().clone());
     for (idx, emp_id) in [emp_id_1, emp_id_2].iter().enumerate() {
         let job = apiserver::queue::Job::with_priority(
             parent_job_id,
             idx as u32,
             apiserver::queue::TaskType::ReprocessAttendance,
             ws_id,
-            apiserver::queue::JobPayload::ReprocessAttendance(
-                apiserver::queue::ReprocessPayload {
-                    employee_id: *emp_id,
-                    date_range: apiserver::queue::DateRange {
-                        start: base_date,
-                        end: base_date,
-                    },
+            apiserver::queue::JobPayload::ReprocessAttendance(apiserver::queue::ReprocessPayload {
+                employee_id: *emp_id,
+                date_range: apiserver::queue::DateRange {
+                    start: base_date,
+                    end: base_date,
                 },
-            ),
+            }),
             apiserver::queue::JobPriority::Normal,
         );
 
@@ -213,11 +220,18 @@ async fn test_force_reprocess_all_attendance_api() {
         .await
         .unwrap();
 
-        coordinator.on_batch_complete(parent_job_id, idx as u32, true).await.unwrap();
+        coordinator
+            .on_batch_complete(parent_job_id, idx as u32, true)
+            .await
+            .unwrap();
     }
 
     // 6. Verify job status is now Completed
-    let meta = queue.get_job_metadata(parent_job_id).await.unwrap().unwrap();
+    let meta = queue
+        .get_job_metadata(parent_job_id)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(meta.status, apiserver::queue::JobStatus::Completed);
 
     // 7. Verify time_entries are now created correctly for both employees
@@ -230,7 +244,11 @@ async fn test_force_reprocess_all_attendance_api() {
         .await
         .unwrap();
 
-        assert_eq!(entries.len(), 1, "One time entry should have been created for employee");
+        assert_eq!(
+            entries.len(),
+            1,
+            "One time entry should have been created for employee"
+        );
         assert_eq!(entries[0].punch_in_time, start_time);
         assert_eq!(entries[0].punch_out_time, Some(end_time));
     }

@@ -2,7 +2,9 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::enums::{AccrualFrequency, LeaveDurationType, LeaveStatus, LeaveTransactionType};
+use crate::models::enums::{
+    AccrualFrequency, LeaveDurationType, LeaveStatus, LeaveTransactionType,
+};
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct LeaveRequest {
@@ -431,4 +433,3 @@ mod tests {
         assert!(req.rule_config.is_none());
     }
 }
-

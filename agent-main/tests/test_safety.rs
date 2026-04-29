@@ -1,11 +1,11 @@
-use tokio::sync::Semaphore;
 use std::sync::Arc;
+use tokio::sync::Semaphore;
 
 #[tokio::test]
 async fn test_semaphore_safety_pattern() {
     let sem = Arc::new(Semaphore::new(1));
     let sem_clone = sem.clone();
-    
+
     // Simulate the logic we just implemented
     let handle = tokio::spawn(async move {
         // This simulates our worker loop
@@ -24,7 +24,10 @@ async fn test_semaphore_safety_pattern() {
 
     // Close the semaphore to trigger the exit
     sem.close();
-    
+
     let result = handle.await.unwrap();
-    assert_eq!(result, "safe_exit", "Worker should exit safely when semaphore is closed, not panic");
+    assert_eq!(
+        result, "safe_exit",
+        "Worker should exit safely when semaphore is closed, not panic"
+    );
 }

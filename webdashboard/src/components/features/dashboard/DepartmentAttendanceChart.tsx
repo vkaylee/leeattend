@@ -1,4 +1,6 @@
 import { useState } from "react";
+
+import { Building2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
     BarChart,
@@ -10,7 +12,7 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-import { Building2 } from "lucide-react";
+
 import { useDepartmentAttendance } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 

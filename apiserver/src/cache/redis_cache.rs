@@ -85,7 +85,8 @@ impl RedisCache {
     /// Delete keys matching a pattern.
     pub async fn delete_pattern(&self, pattern: &str) -> Result<(), String> {
         let mut conn = self.pool.conn();
-        let keys: Vec<String> = conn.keys(pattern)
+        let keys: Vec<String> = conn
+            .keys(pattern)
             .await
             .map_err(|e| format!("Redis KEYS error: {e}"))?;
 
@@ -93,7 +94,11 @@ impl RedisCache {
             conn.del::<_, ()>(&keys)
                 .await
                 .map_err(|e| format!("Redis DEL error: {e}"))?;
-            debug!(pattern = pattern, count = keys.len(), "Pattern cache invalidated");
+            debug!(
+                pattern = pattern,
+                count = keys.len(),
+                "Pattern cache invalidated"
+            );
         }
         Ok(())
     }
@@ -214,14 +219,21 @@ mod tests {
         let workspace_id = uuid::Uuid::new_v4();
         let pattern = format!("cache:auth:permissions:{workspace_id}:*");
 
-        assert!(pattern.ends_with(":*"), "Pattern must use wildcard for user segment");
+        assert!(
+            pattern.ends_with(":*"),
+            "Pattern must use wildcard for user segment"
+        );
         assert!(pattern.contains(&workspace_id.to_string()));
     }
 
     #[test]
     fn test_rbac_ttl_is_one_hour() {
         let ttl = Duration::from_secs(3600);
-        assert_eq!(ttl.as_secs(), 3600, "RBAC permission cache TTL must be 1 hour");
+        assert_eq!(
+            ttl.as_secs(),
+            3600,
+            "RBAC permission cache TTL must be 1 hour"
+        );
     }
 
     #[test]
@@ -250,7 +262,10 @@ mod tests {
         assert!(decoded.permissions.contains(&"employees:read".to_string()));
         assert!(decoded.permissions.contains(&"shifts:create".to_string()));
         assert!(decoded.permissions.contains(&"attendance:read".to_string()));
-        assert_eq!(decoded.managed_department_ids, original.managed_department_ids);
+        assert_eq!(
+            decoded.managed_department_ids,
+            original.managed_department_ids
+        );
     }
 
     #[test]
@@ -266,7 +281,10 @@ mod tests {
         let json = serde_json::to_string(&ctx).unwrap();
         let decoded: CachedMemberContext = serde_json::from_str(&json).unwrap();
 
-        assert!(decoded.managed_department_ids.is_none(), "Global managers should have None for managed_department_ids");
+        assert!(
+            decoded.managed_department_ids.is_none(),
+            "Global managers should have None for managed_department_ids"
+        );
     }
 
     #[test]

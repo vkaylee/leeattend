@@ -50,11 +50,13 @@ pub fn resolve_effective_shift_from_data(
         .pattern_assignments
         .get(&employee_id)
         .map(|v| {
-            v.iter().filter(|a| {
-                a.start_date <= date
-                    && a.end_date.is_none_or(|ed| ed >= date)
-                    && a.day_of_week == dow
-            }).collect()
+            v.iter()
+                .filter(|a| {
+                    a.start_date <= date
+                        && a.end_date.is_none_or(|ed| ed >= date)
+                        && a.day_of_week == dow
+                })
+                .collect()
         })
         .unwrap_or_default();
 
@@ -66,7 +68,11 @@ pub fn resolve_effective_shift_from_data(
             status: "applied".to_string(),
             reason: Some("Assigned via individual working pattern".to_string()),
         });
-        return (patterns.iter().map(|p| p.shift_id).collect(), "pattern".to_string(), traces);
+        return (
+            patterns.iter().map(|p| p.shift_id).collect(),
+            "pattern".to_string(),
+            traces,
+        );
     }
 
     // P3: Dynamic Assignment Rules
@@ -99,7 +105,11 @@ pub fn resolve_effective_shift_from_data(
     let dept_ps: Vec<_> = roster_data
         .dept_patterns
         .get(&employee_id)
-        .map(|v| v.iter().filter(|a| a.effective_date <= date && a.day_of_week == dow).collect())
+        .map(|v| {
+            v.iter()
+                .filter(|a| a.effective_date <= date && a.day_of_week == dow)
+                .collect()
+        })
         .unwrap_or_default();
 
     if !dept_ps.is_empty() {
@@ -110,7 +120,11 @@ pub fn resolve_effective_shift_from_data(
             status: "applied".to_string(),
             reason: Some("Inherited from department default pattern".to_string()),
         });
-        return (dept_ps.iter().map(|dp| dp.shift_id).collect(), "department_pattern".to_string(), traces);
+        return (
+            dept_ps.iter().map(|dp| dp.shift_id).collect(),
+            "department_pattern".to_string(),
+            traces,
+        );
     }
 
     // P5: Fixed Assignment (Individual)
@@ -147,7 +161,11 @@ pub fn resolve_effective_shift_from_data(
             status: "applied".to_string(),
             reason: Some("Inherited from department default shift".to_string()),
         });
-        return (vec![Some(df.shift_id)], "department_fixed".to_string(), traces);
+        return (
+            vec![Some(df.shift_id)],
+            "department_fixed".to_string(),
+            traces,
+        );
     }
 
     (vec![None], "none".to_string(), traces)
@@ -157,8 +175,8 @@ pub fn resolve_effective_shift_from_data(
 mod tests {
     use super::*;
     use crate::cache::{
-        RosterData, RosterDeptFixedShift, RosterDeptPattern,
-        RosterFixedAssignment, RosterPatternEntry,
+        RosterData, RosterDeptFixedShift, RosterDeptPattern, RosterFixedAssignment,
+        RosterPatternEntry,
     };
     use chrono::NaiveDate;
     use std::sync::Arc;
@@ -373,7 +391,11 @@ mod tests {
             target_date,
         );
 
-        assert_eq!(shift_ids.len(), 2, "Rule split shift should return 2 shifts");
+        assert_eq!(
+            shift_ids.len(),
+            2,
+            "Rule split shift should return 2 shifts"
+        );
         assert_eq!(shift_ids, vec![Some(shift_morning), Some(shift_afternoon)]);
         assert_eq!(source, "assignment_rule");
     }
@@ -417,7 +439,11 @@ mod tests {
             target_date,
         );
 
-        assert_eq!(shift_ids.len(), 2, "Dept split shift should return 2 shifts");
+        assert_eq!(
+            shift_ids.len(),
+            2,
+            "Dept split shift should return 2 shifts"
+        );
         assert_eq!(shift_ids, vec![Some(shift_morning), Some(shift_afternoon)]);
         assert_eq!(source, "department_pattern");
     }
@@ -558,7 +584,11 @@ mod tests {
             target_date,
         );
 
-        assert_eq!(shift, vec![Some(roster_shift)], "P1 roster should beat P5 and P6");
+        assert_eq!(
+            shift,
+            vec![Some(roster_shift)],
+            "P1 roster should beat P5 and P6"
+        );
         assert_eq!(source, "roster");
     }
 

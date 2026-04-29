@@ -1,8 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
-import { ScheduleTracePopover } from "../ScheduleTracePopover";
+
 import { ScheduleTrace } from "@/lib/api/types";
+
+import { ScheduleTracePopover } from "../ScheduleTracePopover";
 
 // Mock translation locally to ensure we test against keys, not translated values
 vi.mock("react-i18next", () => ({

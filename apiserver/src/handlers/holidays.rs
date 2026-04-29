@@ -12,7 +12,7 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{CreateHolidayRequest, Holiday, UpdateHolidayRequest};
-use crate::repositories::holiday_repository::{HolidayRepository, HolidayLeaveResult};
+use crate::repositories::holiday_repository::{HolidayLeaveResult, HolidayRepository};
 
 use crate::AppState;
 
@@ -144,12 +144,12 @@ pub async fn process_holiday_leave(
         .map_err(|e| AppError::Internal(e.to_string()))?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
-    let results = state.leaves.holiday_leave_service.process_holiday_leave(
-        ctx.workspace_id,
-        &holiday,
-    )
-    .await
-    .map_err(AppError::Internal)?;
+    let results = state
+        .leaves
+        .holiday_leave_service
+        .process_holiday_leave(ctx.workspace_id, &holiday)
+        .await
+        .map_err(AppError::Internal)?;
 
     Ok(Json(results))
 }

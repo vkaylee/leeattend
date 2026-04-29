@@ -2,9 +2,9 @@ use axum::{
     extract::{Path, State},
     Json,
 };
+use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::Utc;
 
 use crate::{
     domain::permissions::Permission,
@@ -64,14 +64,17 @@ pub async fn list_policy_assignments(
     .fetch_all(state.infra.db.reader())
     .await?;
 
-    let assignments = rows.into_iter().map(|row| PolicyAssignmentResponse {
-        id: row.id.to_string(),
-        target_type: row.target_type,
-        target_id: row.target_id.to_string(),
-        valid_from: row.valid_from.to_rfc3339(),
-        valid_to: row.valid_to.map(|d| d.to_rfc3339()),
-        rules: row.rules.0,
-    }).collect();
+    let assignments = rows
+        .into_iter()
+        .map(|row| PolicyAssignmentResponse {
+            id: row.id.to_string(),
+            target_type: row.target_type,
+            target_id: row.target_id.to_string(),
+            valid_from: row.valid_from.to_rfc3339(),
+            valid_to: row.valid_to.map(|d| d.to_rfc3339()),
+            rules: row.rules.0,
+        })
+        .collect();
 
     Ok(Json(assignments))
 }
@@ -126,7 +129,6 @@ pub async fn upsert_policy_assignment(
         .bind(policy_id)
         .execute(&mut *tx)
         .await?;
-
     } else {
         // Create new policy
         policy_id = Uuid::new_v4();

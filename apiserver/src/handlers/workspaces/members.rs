@@ -10,7 +10,9 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{AddMemberRequest, WorkspaceMemberDetail, WorkspaceMemberDetailResponse, MemberExtraRole};
+use crate::models::{
+    AddMemberRequest, MemberExtraRole, WorkspaceMemberDetail, WorkspaceMemberDetailResponse,
+};
 use crate::services::audit_service::AuditHelper;
 use crate::AppState;
 
@@ -34,7 +36,7 @@ pub async fn get_workspace_members(
     .await?;
 
     let extra_roles = sqlx::query_as::<_, MemberExtraRole>(
-        "SELECT * FROM member_extra_roles WHERE workspace_id = $1 AND expires_at > NOW()"
+        "SELECT * FROM member_extra_roles WHERE workspace_id = $1 AND expires_at > NOW()",
     )
     .bind(workspace_id)
     .fetch_all(state.infra.db.api())
@@ -95,7 +97,12 @@ pub async fn add_workspace_member(
 
     if let Some(redis_pool) = state.infra.redis.clone() {
         let cache = crate::cache::RedisCache::new(redis_pool);
-        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+        let _ = cache
+            .delete(&format!(
+                "cache:auth:permissions:{}:{}",
+                ctx.workspace_id, user_id
+            ))
+            .await;
     }
 
     Ok(StatusCode::CREATED)
@@ -118,7 +125,8 @@ pub async fn update_workspace_member_role(
         .unwrap_or(None);
 
     state
-        .core.workspace_repo
+        .core
+        .workspace_repo
         .update_member_role(ctx.workspace_id, user_id, req.role_id)
         .await
         .map_err(AppError::from)?;
@@ -130,9 +138,9 @@ pub async fn update_workspace_member_role(
         Some(user_id),
         None,
         "update_member_role",
-        Some(serde_json::json!({ 
+        Some(serde_json::json!({
             "old_role_id": old_role_id,
-            "new_role_id": req.role_id 
+            "new_role_id": req.role_id
         })),
         &headers,
     )
@@ -140,7 +148,12 @@ pub async fn update_workspace_member_role(
 
     if let Some(redis_pool) = state.infra.redis.clone() {
         let cache = crate::cache::RedisCache::new(redis_pool);
-        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+        let _ = cache
+            .delete(&format!(
+                "cache:auth:permissions:{}:{}",
+                ctx.workspace_id, user_id
+            ))
+            .await;
     }
 
     Ok(StatusCode::OK)
@@ -162,7 +175,8 @@ pub async fn remove_workspace_member(
     }
 
     state
-        .core.workspace_repo
+        .core
+        .workspace_repo
         .remove_member(ctx.workspace_id, user_id)
         .await
         .map_err(AppError::from)?;
@@ -181,7 +195,12 @@ pub async fn remove_workspace_member(
 
     if let Some(redis_pool) = state.infra.redis.clone() {
         let cache = crate::cache::RedisCache::new(redis_pool);
-        let _ = cache.delete(&format!("cache:auth:permissions:{}:{}", ctx.workspace_id, user_id)).await;
+        let _ = cache
+            .delete(&format!(
+                "cache:auth:permissions:{}:{}",
+                ctx.workspace_id, user_id
+            ))
+            .await;
     }
 
     Ok(StatusCode::NO_CONTENT)

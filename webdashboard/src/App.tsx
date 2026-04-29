@@ -1,12 +1,13 @@
-import { RouterProvider } from "@tanstack/react-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { DebugProvider } from "./context/DebugContext";
-import { DarkModeProvider } from "./context/DarkModeContext";
-import { createAppRouter } from "./router";
 import * as Sentry from "@sentry/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider } from "@tanstack/react-router";
+
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { NewVersionBanner } from "./components/common/NewVersionBanner";
+import { DarkModeProvider } from "./context/DarkModeContext";
+import { DebugProvider } from "./context/DebugContext";
 import { useVersionCheck } from "./hooks/use-version-check";
+import { createAppRouter } from "./router";
 
 console.log("🚀 [LeeAttend] Bundle initialized at:", new Date().toISOString());
 

@@ -1,16 +1,6 @@
 import { useState } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
-import { 
-  fetchPolicyAssignments, 
-  upsertPolicyAssignment, 
-  deletePolicyAssignment, 
-  fetchDepartments, 
-  fetchEmployees,
-  PolicyAssignmentResponse,
-  Department,
-  Employee
-} from "@/lib/api";
 import { 
   Building2, 
   User, 
@@ -25,13 +15,26 @@ import {
   ChevronRight,
   Filter
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+
+
 import Button from "@/components/ui/Button";
-import { LABEL_BASE } from "@/components/ui/FormField";
 import { Combobox } from "@/components/ui/Combobox";
-import { useToast } from "@/components/ui/Toast";
+import { LABEL_BASE } from "@/components/ui/FormField";
 import Sheet from "@/components/ui/Sheet";
-import { UpsertPolicyAssignmentRequest } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
+
+import { 
+  fetchPolicyAssignments, 
+  upsertPolicyAssignment, 
+  deletePolicyAssignment, 
+  fetchDepartments, 
+  fetchEmployees,
+  PolicyAssignmentResponse,
+  Department,
+  Employee, UpsertPolicyAssignmentRequest 
+} from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 // We'll build a slide-over later, but for now let's structure the table.
 

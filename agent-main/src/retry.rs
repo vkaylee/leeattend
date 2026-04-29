@@ -55,7 +55,10 @@ mod tests {
     fn test_first_retry_is_around_2_seconds() {
         // First retry (count=1): base is 2^1 = 2s, with jitter 1.5s-2.5s
         let delay = get_sidecar_retry_delay(1);
-        assert!(delay.as_secs() >= 1, "Delay should be >= 1s (2s - 25% jitter, min 2s)");
+        assert!(
+            delay.as_secs() >= 1,
+            "Delay should be >= 1s (2s - 25% jitter, min 2s)"
+        );
         assert!(delay.as_secs() <= 2, "Delay should be <= 2s");
     }
 
@@ -67,12 +70,15 @@ mod tests {
         let mut sum_high: u64 = 0;
 
         for _ in 0..10 {
-            sum_low += get_sidecar_retry_delay(2).as_secs();  // base 4s
+            sum_low += get_sidecar_retry_delay(2).as_secs(); // base 4s
             sum_high += get_sidecar_retry_delay(5).as_secs(); // base 32s
         }
 
         // Average of higher retry should be significantly larger
-        assert!(sum_high > sum_low, "Higher retry count should produce larger delays");
+        assert!(
+            sum_high > sum_low,
+            "Higher retry count should produce larger delays"
+        );
     }
 
     #[test]
@@ -80,8 +86,14 @@ mod tests {
         // Even with high retry count, delay should not exceed 60s (+25% jitter = 75s max)
         for _ in 0..20 {
             let delay = get_sidecar_retry_delay(100);
-            assert!(delay.as_secs() <= 75, "Delay should be <= 75s (60s + 25% jitter)");
-            assert!(delay.as_secs() >= 45, "Delay should be >= 45s (60s - 25% jitter)");
+            assert!(
+                delay.as_secs() <= 75,
+                "Delay should be <= 75s (60s + 25% jitter)"
+            );
+            assert!(
+                delay.as_secs() >= 45,
+                "Delay should be >= 45s (60s - 25% jitter)"
+            );
         }
     }
 
@@ -106,7 +118,10 @@ mod tests {
         let first = delays[0];
         let has_variation = delays.iter().any(|&d| d != first);
         // Note: This could theoretically fail if RNG produces same values, but very unlikely
-        assert!(has_variation || delays.len() < 2, "Jitter should produce variation in delays");
+        assert!(
+            has_variation || delays.len() < 2,
+            "Jitter should produce variation in delays"
+        );
     }
 
     #[test]

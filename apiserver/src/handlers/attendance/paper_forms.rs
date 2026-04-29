@@ -36,10 +36,12 @@ pub async fn enter_paper_ot(
     ctx.require_permission(Permission::OvertimePaperUpload)?;
 
     // 2. Validate employee exists in workspace
-    let _employee =
-        state.employees.repo.get_employee_by_id(employee_id, ctx.workspace_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
+    let _employee = state
+        .employees
+        .repo
+        .get_employee_by_id(employee_id, ctx.workspace_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
     // 3. Validate minutes
     if req.claimed_minutes <= 0 {
@@ -50,7 +52,8 @@ pub async fn enter_paper_ot(
 
     // 4. Call service
     let result = state
-        .attendance.summary_service
+        .attendance
+        .summary_service
         .enter_paper_ot(
             ctx.workspace_id,
             employee_id,
@@ -218,10 +221,11 @@ pub async fn bulk_upload_paper_ot(
         seen_keys.insert(key);
 
         // Find employee by employee_id_number
-        let employee = match state.employees.repo.get_employee_by_id_number(&employee_id_str,
-            ctx.workspace_id,
-        )
-        .await
+        let employee = match state
+            .employees
+            .repo
+            .get_employee_by_id_number(&employee_id_str, ctx.workspace_id)
+            .await
         {
             Ok(Some(emp)) => emp,
             Ok(None) => {
@@ -268,7 +272,8 @@ pub async fn bulk_upload_paper_ot(
 
         // Call enter_paper_ot service
         match state
-            .attendance.summary_service
+            .attendance
+            .summary_service
             .enter_paper_ot(
                 ctx.workspace_id,
                 employee.id,

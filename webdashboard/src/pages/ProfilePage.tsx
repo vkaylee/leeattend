@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
+
 import { useNavigate } from "@tanstack/react-router";
-import { ROUTES } from "@/lib/routes";
-import { useToast } from "../components/ui/Toast";
 import {
   User as UserIcon,
   Mail,
@@ -14,15 +13,21 @@ import {
   Globe,
   RefreshCw,
 } from "lucide-react";
-import { useProfile } from "@/hooks/use-profile";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useTheme } from "@/hooks/use-theme";
 import { useTranslation } from "react-i18next";
-import { Combobox } from "@/components/ui/Combobox";
-import { changePassword, clearAuthSession } from "@/lib/api";
-import { cn } from "@/lib/utils";
+
 import Button from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
 import { LABEL_BASE } from "@/components/ui/FormField";
+
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useProfile } from "@/hooks/use-profile";
+import { useTheme } from "@/hooks/use-theme";
+import { changePassword, clearAuthSession } from "@/lib/api";
+import { ROUTES } from "@/lib/routes";
+import { cn } from "@/lib/utils";
+
+
+import { useToast } from "../components/ui/Toast";
 
 type TabType = "profile" | "personalization" | "security";
 

@@ -1,11 +1,11 @@
 use crate::errors::AppError;
+use crate::models::enums::{PayrollCalculationMethod, PayrollRuleCategory};
+use crate::models::PayrollRuleTier;
 use chrono::NaiveDate;
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::models::PayrollRuleTier;
-use crate::models::enums::{PayrollCalculationMethod, PayrollRuleCategory};
 
 pub struct PayrollRuleEvaluator;
 
@@ -71,16 +71,23 @@ impl PayrollRuleEvaluator {
         let mut results = Vec::new();
 
         for assignment in assignments {
-            let config = assignment.override_config.unwrap_or(assignment.default_config);
+            let config = assignment
+                .override_config
+                .unwrap_or(assignment.default_config);
             let mut amount = Decimal::ZERO;
 
             match assignment.calculation_method {
                 PayrollCalculationMethod::Percentage => {
-                    let base_type = config.get("base").or_else(|| config.get("base_type")).and_then(|v| v.as_str()).unwrap_or("gross");
+                    let base_type = config
+                        .get("base")
+                        .or_else(|| config.get("base_type"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("gross");
                     let current_base = base_values.get(base_type).copied().unwrap_or(Decimal::ZERO);
 
                     if let Some(rate_val) = config.get("rate").and_then(|r| r.as_f64()) {
-                        let rate = Decimal::from_f64(rate_val).unwrap_or(Decimal::ZERO) / Decimal::from(100);
+                        let rate = Decimal::from_f64(rate_val).unwrap_or(Decimal::ZERO)
+                            / Decimal::from(100);
                         amount = current_base * rate;
 
                         if let Some(cap_val) = config.get("cap_amount").and_then(|c| c.as_f64()) {
@@ -106,7 +113,11 @@ impl PayrollRuleEvaluator {
                     .await
                     .map_err(|e| AppError::Internal(format!("Failed to fetch tiers: {}", e)))?;
 
-                    let base_type = config.get("base").or_else(|| config.get("base_type")).and_then(|v| v.as_str()).unwrap_or("gross");
+                    let base_type = config
+                        .get("base")
+                        .or_else(|| config.get("base_type"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("gross");
                     let current_base = base_values.get(base_type).copied().unwrap_or(Decimal::ZERO);
 
                     let remaining = current_base;
@@ -124,7 +135,8 @@ impl PayrollRuleEvaluator {
                         };
 
                         if taxable_in_tier > Decimal::ZERO {
-                            amount += (taxable_in_tier * tier.rate) / Decimal::from(100) + tier.fixed_amount;
+                            amount += (taxable_in_tier * tier.rate) / Decimal::from(100)
+                                + tier.fixed_amount;
                         }
                     }
                 }

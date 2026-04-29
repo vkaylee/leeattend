@@ -59,22 +59,37 @@ pub fn print_help() {
     println!();
 }
 
-pub fn handle_failed_logs_command(store: &RedbStore, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    let limit = if args.len() > 2 { args[2].parse::<usize>().unwrap_or(50) } else { 50 };
+pub fn handle_failed_logs_command(
+    store: &RedbStore,
+    args: &[String],
+) -> Result<(), Box<dyn std::error::Error>> {
+    let limit = if args.len() > 2 {
+        args[2].parse::<usize>().unwrap_or(50)
+    } else {
+        50
+    };
 
     let all_logs = store.get_all_logs()?;
-    let failed_logs: Vec<_> = all_logs.iter()
+    let failed_logs: Vec<_> = all_logs
+        .iter()
         .filter(|l| l.is_synced == 0 && l.updated_at.is_some())
         .take(limit)
         .collect();
-    let total_count = all_logs.iter().filter(|l| l.is_synced == 0 && l.updated_at.is_some()).count();
+    let total_count = all_logs
+        .iter()
+        .filter(|l| l.is_synced == 0 && l.updated_at.is_some())
+        .count();
 
     println!();
     println!("╔══════════════════════════════════════════════════════════════════════════════╗");
     println!("║                          FAILED SYNC LOGS REPORT                             ║");
     println!("╚══════════════════════════════════════════════════════════════════════════════╝");
     println!();
-    println!("Total failed logs: {} (showing top {})", total_count, failed_logs.len());
+    println!(
+        "Total failed logs: {} (showing top {})",
+        total_count,
+        failed_logs.len()
+    );
     println!();
 
     if failed_logs.is_empty() {
@@ -91,12 +106,24 @@ pub fn handle_failed_logs_command(store: &RedbStore, args: &[String]) -> Result<
         let ts_str = chrono::DateTime::from_timestamp(log.timestamp, 0)
             .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
             .unwrap_or_else(|| format!("invalid_{}", log.timestamp));
-        let status_str = log.status.map(|s| s.to_string()).unwrap_or_else(|| "NULL".into());
-        let punch_str = log.punch.map(|p| p.to_string()).unwrap_or_else(|| "NULL".into());
+        let status_str = log
+            .status
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "NULL".into());
+        let punch_str = log
+            .punch
+            .map(|p| p.to_string())
+            .unwrap_or_else(|| "NULL".into());
 
-        println!("│ {:7} │ {:10} │ {:10} │ {:19} │ {:6} │ {:5} │",
-            log.id, truncate(&log.device_id, 10), truncate(&log.user_id, 10),
-            truncate(&ts_str, 19), truncate(&status_str, 6), truncate(&punch_str, 5));
+        println!(
+            "│ {:7} │ {:10} │ {:10} │ {:19} │ {:6} │ {:5} │",
+            log.id,
+            truncate(&log.device_id, 10),
+            truncate(&log.user_id, 10),
+            truncate(&ts_str, 19),
+            truncate(&status_str, 6),
+            truncate(&punch_str, 5)
+        );
     }
 
     println!("└─────────┴────────────┴────────────┴─────────────────────┴────────┴───────┘");
@@ -104,8 +131,15 @@ pub fn handle_failed_logs_command(store: &RedbStore, args: &[String]) -> Result<
     Ok(())
 }
 
-pub fn handle_dlq_command(store: &RedbStore, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    let limit = if args.len() > 2 { args[2].parse::<usize>().unwrap_or(50) } else { 50 };
+pub fn handle_dlq_command(
+    store: &RedbStore,
+    args: &[String],
+) -> Result<(), Box<dyn std::error::Error>> {
+    let limit = if args.len() > 2 {
+        args[2].parse::<usize>().unwrap_or(50)
+    } else {
+        50
+    };
 
     let failed_logs = store.get_failed_logs()?;
     let dlq_count = failed_logs.len();
@@ -116,7 +150,11 @@ pub fn handle_dlq_command(store: &RedbStore, args: &[String]) -> Result<(), Box<
     println!("║                      DEAD LETTER QUEUE (DLQ) REPORT                         ║");
     println!("╚══════════════════════════════════════════════════════════════════════════════╝");
     println!();
-    println!("Total DLQ entries: {} (showing top {})", dlq_count, shown.len());
+    println!(
+        "Total DLQ entries: {} (showing top {})",
+        dlq_count,
+        shown.len()
+    );
     println!();
 
     if shown.is_empty() {
@@ -125,22 +163,35 @@ pub fn handle_dlq_command(store: &RedbStore, args: &[String]) -> Result<(), Box<
         return Ok(());
     }
 
-    println!("┌────────┬───────────┬───────────┬──────────────────┬────────┬────────────────────────┐");
-    println!("│ ID     │ Device    │ User ID   │ Failed At        │ Retries│ Failure Reason         │");
-    println!("├────────┼───────────┼───────────┼──────────────────┼────────┼────────────────────────┤");
+    println!(
+        "┌────────┬───────────┬───────────┬──────────────────┬────────┬────────────────────────┐"
+    );
+    println!(
+        "│ ID     │ Device    │ User ID   │ Failed At        │ Retries│ Failure Reason         │"
+    );
+    println!(
+        "├────────┼───────────┼───────────┼──────────────────┼────────┼────────────────────────┤"
+    );
 
     for log in &shown {
         let failed_display = chrono::DateTime::from_timestamp(log.failed_at, 0)
             .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
             .unwrap_or_else(|| "unknown".into());
 
-        println!("│ {:6} │ {:9} │ {:9} │ {:16} │ {:6} │ {:22} │",
-            log.id, truncate(&log.device_id, 9), truncate(&log.user_id, 9),
-            truncate(&failed_display, 16), log.retry_attempts,
-            truncate(&log.failure_reason, 22));
+        println!(
+            "│ {:6} │ {:9} │ {:9} │ {:16} │ {:6} │ {:22} │",
+            log.id,
+            truncate(&log.device_id, 9),
+            truncate(&log.user_id, 9),
+            truncate(&failed_display, 16),
+            log.retry_attempts,
+            truncate(&log.failure_reason, 22)
+        );
     }
 
-    println!("└────────┴───────────┴───────────┴──────────────────┴────────┴────────────────────────┘");
+    println!(
+        "└────────┴───────────┴───────────┴──────────────────┴────────┴────────────────────────┘"
+    );
     println!();
     Ok(())
 }
@@ -159,8 +210,12 @@ pub fn handle_dlq_stats_command(store: &RedbStore) -> Result<(), Box<dyn std::er
     for log in &failed_logs {
         *by_reason.entry(log.failure_reason.clone()).or_insert(0) += 1;
         *by_device.entry(log.device_id.clone()).or_insert(0) += 1;
-        if now - log.failed_at < 86400 { recent_24h += 1; }
-        if now - log.failed_at < 3600 { recent_1h += 1; }
+        if now - log.failed_at < 86400 {
+            recent_24h += 1;
+        }
+        if now - log.failed_at < 3600 {
+            recent_1h += 1;
+        }
     }
 
     let mut reason_sorted: Vec<_> = by_reason.into_iter().collect();
@@ -192,7 +247,12 @@ pub fn handle_dlq_stats_command(store: &RedbStore) -> Result<(), Box<dyn std::er
 
     for (reason, count) in &reason_sorted {
         let percent = (*count as f64 / total_dlq as f64) * 100.0;
-        println!("│ {:43} │ {:6} │ {:6.1}% │", truncate(reason, 43), count, percent);
+        println!(
+            "│ {:43} │ {:6} │ {:6.1}% │",
+            truncate(reason, 43),
+            count,
+            percent
+        );
     }
     println!("└─────────────────────────────────────────────┴────────┴─────────┘");
     println!();
@@ -204,7 +264,12 @@ pub fn handle_dlq_stats_command(store: &RedbStore) -> Result<(), Box<dyn std::er
         println!("├──────────────────────────┼────────┼─────────┤");
         for (device, count) in &device_sorted {
             let percent = (*count as f64 / total_dlq as f64) * 100.0;
-            println!("│ {:24} │ {:6} │ {:6.1}% │", truncate(device, 24), count, percent);
+            println!(
+                "│ {:24} │ {:6} │ {:6.1}% │",
+                truncate(device, 24),
+                count,
+                percent
+            );
         }
         println!("└──────────────────────────┴────────┴─────────┘");
         println!();
@@ -223,16 +288,29 @@ pub fn handle_dlq_stats_command(store: &RedbStore) -> Result<(), Box<dyn std::er
     Ok(())
 }
 
-pub fn handle_config_command(store: &RedbStore, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+pub fn handle_config_command(
+    store: &RedbStore,
+    args: &[String],
+) -> Result<(), Box<dyn std::error::Error>> {
     if args.len() == 2 {
         println!();
-        println!("╔══════════════════════════════════════════════════════════════════════════════╗");
-        println!("║                          AGENT CONFIGURATION                                 ║");
-        println!("╚══════════════════════════════════════════════════════════════════════════════╝");
+        println!(
+            "╔══════════════════════════════════════════════════════════════════════════════╗"
+        );
+        println!(
+            "║                          AGENT CONFIGURATION                                 ║"
+        );
+        println!(
+            "╚══════════════════════════════════════════════════════════════════════════════╝"
+        );
         println!();
 
         // Show known config keys
-        let keys = &["max_retry_count", "retry_ttl_minutes", "max_concurrent_workers"];
+        let keys = &[
+            "max_retry_count",
+            "retry_ttl_minutes",
+            "max_concurrent_workers",
+        ];
         let mut found = false;
         for key in keys {
             if let Ok(Some(val)) = store.get_agent_config(key) {
@@ -249,7 +327,9 @@ pub fn handle_config_command(store: &RedbStore, args: &[String]) -> Result<(), B
         println!();
     } else if args.len() == 3 {
         let key = &args[2];
-        let value = store.get_agent_config(key).map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
+        let value = store
+            .get_agent_config(key)
+            .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
         println!();
         match value {
             Some(v) => println!("{key} = {v}"),
@@ -259,7 +339,9 @@ pub fn handle_config_command(store: &RedbStore, args: &[String]) -> Result<(), B
     } else if args.len() == 4 {
         let key = &args[2];
         let value = &args[3];
-        store.upsert_agent_config(key, value).map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
+        store
+            .upsert_agent_config(key, value)
+            .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
         println!();
         println!("✅ Configuration updated: {key} = {value}");
         println!();
@@ -272,9 +354,16 @@ pub fn handle_status_command(store: &RedbStore) -> Result<(), Box<dyn std::error
     let total_logs = all_logs.len();
     let unsynced = all_logs.iter().filter(|l| l.is_synced == 0).count();
     let in_flight = all_logs.iter().filter(|l| l.is_synced == 2).count();
-    let new_logs = all_logs.iter().filter(|l| l.is_synced == 0 && l.updated_at.is_none()).count();
+    let new_logs = all_logs
+        .iter()
+        .filter(|l| l.is_synced == 0 && l.updated_at.is_none())
+        .count();
     let retry_logs = unsynced - new_logs;
-    let retry_rate = if unsynced > 0 { (retry_logs as f64 / unsynced as f64) * 100.0 } else { 0.0 };
+    let retry_rate = if unsynced > 0 {
+        (retry_logs as f64 / unsynced as f64) * 100.0
+    } else {
+        0.0
+    };
 
     let dlq_total = store.count_failed_logs()?;
 

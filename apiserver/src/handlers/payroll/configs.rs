@@ -20,12 +20,16 @@ pub async fn set_department_payroll_config(
     MemberContext { .. }: MemberContext,
     Json(req): Json<SetDepartmentPayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<DepartmentPayrollConfig>)> {
-    let config = state.payroll.department_repo.upsert_department_payroll_config(department_id,
-        req.std_working_days,
-        req.hours_per_day,
-        req.effective_date,
-    )
-    .await?;
+    let config = state
+        .payroll
+        .department_repo
+        .upsert_department_payroll_config(
+            department_id,
+            req.std_working_days,
+            req.hours_per_day,
+            req.effective_date,
+        )
+        .await?;
 
     Ok((StatusCode::CREATED, Json(config)))
 }
@@ -36,12 +40,16 @@ pub async fn set_employee_payroll_config(
     MemberContext { .. }: MemberContext,
     Json(req): Json<SetEmployeePayrollConfigRequest>,
 ) -> AppResult<(StatusCode, Json<EmployeePayrollConfig>)> {
-    let config = state.employees.repo.upsert_employee_payroll_config(employee_id,
-        req.std_working_days,
-        req.hours_per_day,
-        req.effective_date,
-    )
-    .await?;
+    let config = state
+        .employees
+        .repo
+        .upsert_employee_payroll_config(
+            employee_id,
+            req.std_working_days,
+            req.hours_per_day,
+            req.effective_date,
+        )
+        .await?;
 
     Ok((StatusCode::CREATED, Json(config)))
 }

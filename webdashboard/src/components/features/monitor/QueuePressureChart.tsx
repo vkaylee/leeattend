@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import type { QueuePressureData, PressureLevel } from "@/hooks/use-monitor-charts";
+
 import { cn } from "@/lib/utils";
+
+import type { QueuePressureData, PressureLevel } from "@/hooks/use-monitor-charts";
 
 interface Props {
   data: QueuePressureData;

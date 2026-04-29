@@ -1,13 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import RuleAssignmentManager from "../RuleAssignmentManager";
-import * as payrollApi from "@/lib/api/payroll";
-import * as departmentsApi from "@/lib/api/departments";
-import * as employeesApi from "@/lib/api";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
+
+import * as employeesApi from "@/lib/api";
+import * as departmentsApi from "@/lib/api/departments";
+import * as payrollApi from "@/lib/api/payroll";
+
+import RuleAssignmentManager from "../RuleAssignmentManager";
+
 
 // --- Mocks ---
 vi.mock("@/lib/api/payroll");

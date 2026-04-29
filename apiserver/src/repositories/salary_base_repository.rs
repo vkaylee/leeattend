@@ -6,7 +6,10 @@ use uuid::Uuid;
 pub struct SalaryBaseRepository;
 
 impl SalaryBaseRepository {
-    pub async fn get_groups(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<SalaryBaseGroup>, AppError> {
+    pub async fn get_groups(
+        pool: &PgPool,
+        workspace_id: Uuid,
+    ) -> Result<Vec<SalaryBaseGroup>, AppError> {
         let groups = sqlx::query_as!(
             SalaryBaseGroup,
             r#"
@@ -20,11 +23,14 @@ impl SalaryBaseRepository {
         .fetch_all(pool)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to fetch salary bases: {}", e)))?;
-        
+
         Ok(groups)
     }
 
-    pub async fn get_group_members(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<SalaryBaseGroupMember>, AppError> {
+    pub async fn get_group_members(
+        pool: &PgPool,
+        workspace_id: Uuid,
+    ) -> Result<Vec<SalaryBaseGroupMember>, AppError> {
         let members = sqlx::query_as!(
             SalaryBaseGroupMember,
             r#"
@@ -78,7 +84,9 @@ impl SalaryBaseRepository {
         )
         .execute(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to unassign component from base: {}", e)))?;
+        .map_err(|e| {
+            AppError::Internal(format!("Failed to unassign component from base: {}", e))
+        })?;
 
         Ok(())
     }

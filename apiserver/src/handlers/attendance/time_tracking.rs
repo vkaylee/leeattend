@@ -25,10 +25,10 @@ pub async fn punch_in(
     Json(req): Json<PunchInRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
     let entry = state
-        .attendance.time_tracking_service
+        .attendance
+        .time_tracking_service
         .punch_in(workspace_id, req)
-        .await
-        ?;
+        .await?;
 
     Ok((StatusCode::CREATED, Json(entry)))
 }
@@ -40,10 +40,10 @@ pub async fn punch_out(
     Json(req): Json<PunchOutRequest>,
 ) -> AppResult<Json<TimeEntry>> {
     let entry = state
-        .attendance.time_tracking_service
+        .attendance
+        .time_tracking_service
         .punch_out(workspace_id, employee_id, req)
-        .await
-        ?;
+        .await?;
 
     Ok(Json(entry))
 }
@@ -55,10 +55,10 @@ pub async fn get_time_history(
     Query(query): Query<HistoryQuery>,
 ) -> AppResult<Json<Vec<TimeEntry>>> {
     let entries = state
-        .attendance.time_tracking_service
+        .attendance
+        .time_tracking_service
         .get_employee_history(workspace_id, employee_id, query.start, query.end)
-        .await
-        ?;
+        .await?;
 
     Ok(Json(entries))
 }
@@ -70,10 +70,10 @@ pub async fn update_time_entry(
     Json(req): Json<UpdateTimeEntryRequest>,
 ) -> AppResult<Json<TimeEntry>> {
     let entry = state
-        .attendance.time_tracking_service
+        .attendance
+        .time_tracking_service
         .update_time_entry(workspace_id, id, req)
-        .await
-        ?;
+        .await?;
 
     Ok(Json(entry))
 }
@@ -84,10 +84,10 @@ pub async fn delete_time_entry(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<StatusCode> {
     state
-        .attendance.time_tracking_service
+        .attendance
+        .time_tracking_service
         .delete_time_entry(workspace_id, id)
-        .await
-        ?;
+        .await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

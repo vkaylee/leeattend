@@ -17,11 +17,21 @@ async fn test_rbac_admin_access_smoke() {
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
 
     let admin_id = factory.user().create().await;
-    factory.add_member(ws_id, admin_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap()).await;
+    factory
+        .add_member(
+            ws_id,
+            admin_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap(),
+        )
+        .await;
 
     let member_id = factory.user().create().await;
     factory
-        .add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap())
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
         .await;
 
     // Test Admin Access to Restricted Resource (e.g. settings)

@@ -1,10 +1,15 @@
+import React from "react";
+
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import React from "react";
-import AgentAccordionCard from "../AgentAccordionCard";
+
+
 import { ToastProvider } from "@/components/ui/Toast";
+
 import { AuthorizedAgent } from "@/lib/api";
+
+import AgentAccordionCard from "../AgentAccordionCard";
 
 // Mock translation
 vi.mock("react-i18next", () => ({

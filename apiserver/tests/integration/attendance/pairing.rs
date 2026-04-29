@@ -27,8 +27,8 @@ fn log(minutes: i32) -> LogEvent {
 
 fn day_shift() -> PairingShiftConfig {
     PairingShiftConfig {
-        start_minutes: 480,  // 08:00
-        end_minutes: 1020,   // 17:00
+        start_minutes: 480, // 08:00
+        end_minutes: 1020,  // 17:00
         break_start_minutes: Some(720),
         break_end_minutes: Some(780),
     }
@@ -36,8 +36,8 @@ fn day_shift() -> PairingShiftConfig {
 
 fn overnight_shift() -> PairingShiftConfig {
     PairingShiftConfig {
-        start_minutes: 1320, // 22:00
-        end_minutes: 1800,   // 06:00 next day (30h from midnight = 1800)
+        start_minutes: 1320,             // 22:00
+        end_minutes: 1800,               // 06:00 next day (30h from midnight = 1800)
         break_start_minutes: Some(1560), // 02:00
         break_end_minutes: Some(1590),   // 02:30
     }
@@ -122,7 +122,7 @@ fn tier2_boundary_exact_buffer_edge() {
     let shift = day_shift();
     // Exactly at buffer edge (120 min)
     let logs = vec![
-        log(360), // 06:00 = 480 - 120 (exact edge)
+        log(360),  // 06:00 = 480 - 120 (exact edge)
         log(1140), // 19:00 = 1020 + 120 (exact edge)
     ];
 
@@ -197,10 +197,7 @@ fn tier2_early_morning_shift() {
 
 #[test]
 fn tier3_basic_pair() {
-    let logs = vec![
-        log(480),
-        log(1020),
-    ];
+    let logs = vec![log(480), log(1020)];
 
     let sessions = strategy().pair(&logs, None);
     assert_eq!(sessions[0].start_minutes, 480);
@@ -231,10 +228,7 @@ fn tier3_16h_limit_within() {
 #[test]
 fn tier3_16h_limit_exactly_at() {
     // Exactly 16h gap (960 min) — should pair (≤ limit)
-    let logs = vec![
-        log(0),
-        log(960),
-    ];
+    let logs = vec![log(0), log(960)];
 
     let sessions = strategy().pair(&logs, None);
     assert_eq!(sessions[0].end_minutes, Some(960));
@@ -243,10 +237,7 @@ fn tier3_16h_limit_exactly_at() {
 #[test]
 fn tier3_16h_limit_exceeded() {
     // 17h gap (1020 min) — should NOT pair
-    let logs = vec![
-        log(0),
-        log(1020),
-    ];
+    let logs = vec![log(0), log(1020)];
 
     let sessions = strategy().pair(&logs, None);
     assert!(sessions[0].end_minutes.is_none());
@@ -255,10 +246,10 @@ fn tier3_16h_limit_exceeded() {
 #[test]
 fn tier3_many_logs_picks_last_within_limit() {
     let logs = vec![
-        log(480), // 08:00
-        log(600), // 10:00
-        log(720), // 12:00
-        log(900), // 15:00
+        log(480),  // 08:00
+        log(600),  // 10:00
+        log(720),  // 12:00
+        log(900),  // 15:00
         log(1020), // 17:00 — 540 min gap, within limit
     ];
 
@@ -283,8 +274,6 @@ fn empty_logs_with_shift_returns_empty() {
     assert!(sessions.is_empty());
 }
 
-
-
 #[test]
 fn metadata_always_has_algorithm_and_tier() {
     // All tiers should set algorithm and tier in metadata
@@ -303,10 +292,7 @@ fn metadata_always_has_algorithm_and_tier() {
 
 #[test]
 fn metadata_log_ids_are_present() {
-    let logs = vec![
-        log(480),
-        log(1020),
-    ];
+    let logs = vec![log(480), log(1020)];
     let sessions = strategy().pair(&logs, None);
     let meta = sessions[0].metadata.as_ref().unwrap();
     let log_ids = meta["log_ids"].as_array().unwrap();

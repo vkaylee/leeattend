@@ -1,7 +1,9 @@
 import { Outlet, Link } from "@tanstack/react-router";
-import { ROUTES } from "@/lib/routes";
-import { useTranslation } from "react-i18next";
 import { Activity, LogOut, ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { ROUTES } from "@/lib/routes";
+
 
 /**
  * Minimal layout for infrastructure pages that don't require workspace context.

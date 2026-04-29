@@ -1,9 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import React from "react";
+
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { TimeEntryRow } from "../TimeEntryRow";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { TimeEntry } from "@/lib/api/types";
-import React from "react";
+
+import { TimeEntryRow } from "../TimeEntryRow";
 
 const mockTranslation = {
   "common.break": "Break",

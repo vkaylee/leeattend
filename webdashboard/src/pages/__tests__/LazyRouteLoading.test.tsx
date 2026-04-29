@@ -1,9 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MemoryRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../components/ui/Toast";
 import React, { Suspense } from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import { ToastProvider } from "../../components/ui/Toast";
 import i18n from "../../i18n/config";
 
 // Mock all hooks needed by pages

@@ -136,8 +136,18 @@ async fn test_enter_paper_ot_rbac_member_forbidden() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("member@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let body = serde_json::json!({
         "date": "2026-01-15",
@@ -176,7 +186,9 @@ async fn test_bulk_upload_paper_ot_no_file() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(&format!("/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"))
+                .uri(&format!(
+                    "/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
                 .header(
@@ -220,7 +232,9 @@ async fn test_bulk_upload_paper_ot_with_csv() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(&format!("/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"))
+                .uri(&format!(
+                    "/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
                 .header(
@@ -247,8 +261,18 @@ async fn test_bulk_upload_paper_ot_rbac_forbidden() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("member@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let boundary = "----WebKitFormBoundary";
     let body = format!("--{boundary}--\r\n");
@@ -258,7 +282,9 @@ async fn test_bulk_upload_paper_ot_rbac_forbidden() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(&format!("/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"))
+                .uri(&format!(
+                    "/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", member_id.to_string())
                 .header(

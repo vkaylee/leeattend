@@ -275,8 +275,14 @@ mod tests {
     /// to prevent silent session loss during adaptive polling.
     #[test]
     fn test_max_poll_interval_below_udp_session_timeout() {
-        assert_eq!(MAX_POLL_INTERVAL_SECS, 45, "MAX_POLL_INTERVAL must be 45s (below ZK UDP session timeout)");
-        assert!(MAX_POLL_INTERVAL_SECS < 60, "MAX_POLL_INTERVAL must be below 60s UDP session timeout");
+        assert_eq!(
+            MAX_POLL_INTERVAL_SECS, 45,
+            "MAX_POLL_INTERVAL must be 45s (below ZK UDP session timeout)"
+        );
+        assert!(
+            MAX_POLL_INTERVAL_SECS < 60,
+            "MAX_POLL_INTERVAL must be below 60s UDP session timeout"
+        );
     }
 
     /// Verify that escalation progression reaches exactly 45s and never exceeds it.
@@ -365,14 +371,16 @@ mod tests {
     /// Arc<AtomicU64> is shared, orchestrator writes, worker reads + set_cooldown
     #[test]
     fn test_atomic_shared_cooldown_pattern() {
-        use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
+        use std::sync::{
+            Arc,
+            atomic::{AtomicU64, Ordering},
+        };
 
         let shared_cooldown = Arc::new(AtomicU64::new(300));
 
         // Worker creates polling state from the shared value
-        let mut polling_state = AdaptivePollingState::with_cooldown(
-            shared_cooldown.load(Ordering::Relaxed)
-        );
+        let mut polling_state =
+            AdaptivePollingState::with_cooldown(shared_cooldown.load(Ordering::Relaxed));
 
         // Worker polls — new data uses 300s cooldown
         polling_state.update(true);

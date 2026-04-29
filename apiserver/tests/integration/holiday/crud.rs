@@ -27,7 +27,9 @@ fn json_request(
 
     if let Some(body) = body {
         builder
-            .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+            .body(axum::body::Body::from(
+                serde_json::to_string(&body).unwrap(),
+            ))
             .unwrap()
     } else {
         builder.body(axum::body::Body::empty()).unwrap()
@@ -55,7 +57,13 @@ async fn test_holiday_crud_lifecycle_smoke() {
     // 1. List holidays — should be empty
     let response = app
         .clone()
-        .oneshot(json_request("GET", &format!("/api/workspaces/{ws_id}/holidays"), ws_id, user_id, None))
+        .oneshot(json_request(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/holidays"),
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -132,7 +140,13 @@ async fn test_holiday_crud_lifecycle_smoke() {
     // 5. List holidays — should have 1
     let response = app
         .clone()
-        .oneshot(json_request("GET", &format!("/api/workspaces/{ws_id}/holidays"), ws_id, user_id, None))
+        .oneshot(json_request(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/holidays"),
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -156,7 +170,13 @@ async fn test_holiday_crud_lifecycle_smoke() {
     // 7. List holidays — should be empty again
     let response = app
         .clone()
-        .oneshot(json_request("GET", &format!("/api/workspaces/{ws_id}/holidays"), ws_id, user_id, None))
+        .oneshot(json_request(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/holidays"),
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -181,7 +201,13 @@ async fn test_holiday_duplicate_date_returns_conflict() {
     // First create — should succeed
     let response = app
         .clone()
-        .oneshot(json_request("POST", &format!("/api/workspaces/{ws_id}/holidays"), ws_id, user_id, Some(create_body.clone())))
+        .oneshot(json_request(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/holidays"),
+            ws_id,
+            user_id,
+            Some(create_body.clone()),
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -189,7 +215,13 @@ async fn test_holiday_duplicate_date_returns_conflict() {
     // Second create — same date — should return 409 Conflict
     let response = app
         .clone()
-        .oneshot(json_request("POST", &format!("/api/workspaces/{ws_id}/holidays"), ws_id, user_id, Some(create_body)))
+        .oneshot(json_request(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/holidays"),
+            ws_id,
+            user_id,
+            Some(create_body),
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::CONFLICT);
@@ -212,7 +244,13 @@ async fn test_holiday_year_filter() {
         let body = serde_json::json!({ "name": name, "date": date });
         let response = app
             .clone()
-            .oneshot(json_request("POST", &format!("/api/workspaces/{ws_id}/holidays"), ws_id, user_id, Some(body)))
+            .oneshot(json_request(
+                "POST",
+                &format!("/api/workspaces/{ws_id}/holidays"),
+                ws_id,
+                user_id,
+                Some(body),
+            ))
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::CREATED);
@@ -221,7 +259,13 @@ async fn test_holiday_year_filter() {
     // Filter by 2026 — should return 2
     let response = app
         .clone()
-        .oneshot(json_request("GET", &format!("/api/workspaces/{ws_id}/holidays?year=2026"), ws_id, user_id, None))
+        .oneshot(json_request(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/holidays?year=2026"),
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -231,7 +275,13 @@ async fn test_holiday_year_filter() {
     // Filter by 2027 — should return 1
     let response = app
         .clone()
-        .oneshot(json_request("GET", &format!("/api/workspaces/{ws_id}/holidays?year=2027"), ws_id, user_id, None))
+        .oneshot(json_request(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/holidays?year=2027"),
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -241,7 +291,13 @@ async fn test_holiday_year_filter() {
     // No filter — should return all 3
     let response = app
         .clone()
-        .oneshot(json_request("GET", &format!("/api/workspaces/{ws_id}/holidays"), ws_id, user_id, None))
+        .oneshot(json_request(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/holidays"),
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -261,7 +317,13 @@ async fn test_holiday_not_found() {
     // GET non-existent
     let response = app
         .clone()
-        .oneshot(json_request("GET", &format!("/api/workspaces/{ws_id}/holidays/{fake_id}"), ws_id, user_id, None))
+        .oneshot(json_request(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/holidays/{fake_id}"),
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
@@ -269,7 +331,13 @@ async fn test_holiday_not_found() {
     // DELETE non-existent
     let response = app
         .clone()
-        .oneshot(json_request("DELETE", &format!("/api/workspaces/{ws_id}/holidays/{fake_id}"), ws_id, user_id, None))
+        .oneshot(json_request(
+            "DELETE",
+            &format!("/api/workspaces/{ws_id}/holidays/{fake_id}"),
+            ws_id,
+            user_id,
+            None,
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
@@ -352,7 +420,13 @@ async fn test_holiday_with_ot_multiplier() {
 
     let response = app
         .clone()
-        .oneshot(json_request("POST", &format!("/api/workspaces/{ws_id}/holidays"), ws_id, user_id, Some(body)))
+        .oneshot(json_request(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/holidays"),
+            ws_id,
+            user_id,
+            Some(body),
+        ))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);

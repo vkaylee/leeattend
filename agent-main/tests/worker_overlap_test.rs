@@ -11,7 +11,7 @@ use agent::worker::Worker;
 use agent::worker_processor::WorkerConfig;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use tokio::time::{sleep, Duration, Instant};
+use tokio::time::{Duration, Instant, sleep};
 use tokio_util::sync::CancellationToken;
 
 // ============================================================
@@ -52,13 +52,22 @@ async fn test_worker_handle_completes_after_cancel() {
     let start = Instant::now();
     let result = tokio::time::timeout(Duration::from_secs(3), handle).await;
 
-    assert!(result.is_ok(), "JoinHandle should complete within 3s after cancel");
+    assert!(
+        result.is_ok(),
+        "JoinHandle should complete within 3s after cancel"
+    );
     assert!(result.unwrap().is_ok(), "Worker task should not panic");
-    assert!(disconnected.load(Ordering::SeqCst), "Worker must disconnect before handle completes");
+    assert!(
+        disconnected.load(Ordering::SeqCst),
+        "Worker must disconnect before handle completes"
+    );
 
     let elapsed = start.elapsed();
-    assert!(elapsed < Duration::from_secs(1),
-        "Worker should stop quickly after cancel, took {:?}", elapsed);
+    assert!(
+        elapsed < Duration::from_secs(1),
+        "Worker should stop quickly after cancel, took {:?}",
+        elapsed
+    );
 }
 
 /// Test that awaiting the JoinHandle AFTER cancel guarantees
@@ -92,8 +101,11 @@ async fn test_await_handle_guarantees_cleanup() {
     handle.await.unwrap();
 
     // After handle.await, cleanup_order must be 1 (worker finished)
-    assert_eq!(cleanup_order.load(Ordering::SeqCst), 1,
-        "After JoinHandle.await, worker must have completed cleanup");
+    assert_eq!(
+        cleanup_order.load(Ordering::SeqCst),
+        1,
+        "After JoinHandle.await, worker must have completed cleanup"
+    );
 }
 
 // ============================================================
@@ -126,8 +138,11 @@ async fn test_cancel_aware_sleep_exits_immediately() {
     token.cancel();
 
     let elapsed = handle.await.unwrap();
-    assert!(elapsed < Duration::from_secs(1),
-        "Cancel-aware sleep should exit in <1s, took {:?}", elapsed);
+    assert!(
+        elapsed < Duration::from_secs(1),
+        "Cancel-aware sleep should exit in <1s, took {:?}",
+        elapsed
+    );
 }
 
 /// Test that without cancel awareness, sleep blocks for the full interval
@@ -153,8 +168,11 @@ async fn test_plain_sleep_ignores_cancel() {
 
     let elapsed = handle.await.unwrap();
     // Plain sleep should have waited ~500ms despite cancel at 10ms
-    assert!(elapsed >= Duration::from_millis(400),
-        "Plain sleep should NOT respond to cancel, took {:?}", elapsed);
+    assert!(
+        elapsed >= Duration::from_millis(400),
+        "Plain sleep should NOT respond to cancel, took {:?}",
+        elapsed
+    );
 }
 
 // ============================================================
@@ -201,7 +219,8 @@ async fn test_no_worker_overlap_during_reload() {
 
     // Wait for old worker to be running with a timeout to avoid race conditions
     let mut started = false;
-    for _ in 0..50 { // Max 5 seconds (50 * 100ms)
+    for _ in 0..50 {
+        // Max 5 seconds (50 * 100ms)
         if old_running.load(Ordering::SeqCst) {
             started = true;
             break;
@@ -217,11 +236,16 @@ async fn test_no_worker_overlap_during_reload() {
 
     // Step 2: AWAIT old handle (the fix!)
     let result = tokio::time::timeout(Duration::from_secs(5), old_handle).await;
-    assert!(result.is_ok(), "Old worker should complete within 5s timeout");
+    assert!(
+        result.is_ok(),
+        "Old worker should complete within 5s timeout"
+    );
 
     // Old worker must be fully stopped now
-    assert!(!old_running.load(Ordering::SeqCst),
-        "Old worker must be stopped BEFORE spawning new worker");
+    assert!(
+        !old_running.load(Ordering::SeqCst),
+        "Old worker must be stopped BEFORE spawning new worker"
+    );
 
     // Step 3: Spawn new worker
     let new_token = CancellationToken::new();
@@ -246,7 +270,8 @@ async fn test_no_worker_overlap_during_reload() {
 
     // Verify new worker is running with timeout
     let mut new_started = false;
-    for _ in 0..50 { // Max 5 seconds
+    for _ in 0..50 {
+        // Max 5 seconds
         if new_running.load(Ordering::SeqCst) {
             new_started = true;
             break;
@@ -256,8 +281,10 @@ async fn test_no_worker_overlap_during_reload() {
     assert!(new_started, "New worker should be running within timeout");
 
     // No overlap detected
-    assert!(!overlap_detected.load(Ordering::SeqCst),
-        "Old and new worker must NEVER run simultaneously");
+    assert!(
+        !overlap_detected.load(Ordering::SeqCst),
+        "Old and new worker must NEVER run simultaneously"
+    );
 
     // Cleanup
     new_token.cancel();
@@ -322,8 +349,10 @@ async fn test_overlap_occurs_without_await() {
     sleep(Duration::from_millis(50)).await;
 
     // Overlap SHOULD be detected (old worker was still cleaning up)
-    assert!(overlap_detected.load(Ordering::SeqCst),
-        "Without await, overlap should occur — proving the fix is necessary");
+    assert!(
+        overlap_detected.load(Ordering::SeqCst),
+        "Without await, overlap should occur — proving the fix is necessary"
+    );
 
     // Cleanup
     new_token.cancel();
@@ -339,63 +368,92 @@ async fn test_overlap_occurs_without_await() {
 #[test]
 fn test_connection_changed_ignores_checksum() {
     let config_a = WorkerConfig {
-        id: "dev1".into(), name: "Office".into(), brand: "zkteco".into(),
-        ip: "192.168.1.1".into(), port: 4370, password: None,
+        id: "dev1".into(),
+        name: "Office".into(),
+        brand: "zkteco".into(),
+        ip: "192.168.1.1".into(),
+        port: 4370,
+        password: None,
         use_legacy_checksum: None,
     };
 
     // None → Some(false): auto-detect persisted
     let mut config_b = config_a.clone();
     config_b.use_legacy_checksum = Some(false);
-    assert!(!config_a.connection_changed(&config_b),
-        "None→Some(false) should NOT trigger restart");
+    assert!(
+        !config_a.connection_changed(&config_b),
+        "None→Some(false) should NOT trigger restart"
+    );
 
     // None → Some(true): auto-detect persisted
     config_b.use_legacy_checksum = Some(true);
-    assert!(!config_a.connection_changed(&config_b),
-        "None→Some(true) should NOT trigger restart");
+    assert!(
+        !config_a.connection_changed(&config_b),
+        "None→Some(true) should NOT trigger restart"
+    );
 
     // Some(false) → Some(true): explicit change, still excluded
     let mut config_c = config_a.clone();
     config_c.use_legacy_checksum = Some(false);
     config_b.use_legacy_checksum = Some(true);
-    assert!(!config_c.connection_changed(&config_b),
-        "Some(false)→Some(true) should NOT trigger restart (handled at connect time)");
+    assert!(
+        !config_c.connection_changed(&config_b),
+        "Some(false)→Some(true) should NOT trigger restart (handled at connect time)"
+    );
 }
 
 /// Test that connection_changed still detects real config changes.
 #[test]
 fn test_connection_changed_detects_real_changes() {
     let base = WorkerConfig {
-        id: "dev1".into(), name: "Office".into(), brand: "zkteco".into(),
-        ip: "192.168.1.1".into(), port: 4370, password: None,
+        id: "dev1".into(),
+        name: "Office".into(),
+        brand: "zkteco".into(),
+        ip: "192.168.1.1".into(),
+        port: 4370,
+        password: None,
         use_legacy_checksum: None,
     };
 
     // IP change → must trigger restart
     let mut changed = base.clone();
     changed.ip = "10.0.0.1".into();
-    assert!(base.connection_changed(&changed), "IP change must trigger restart");
+    assert!(
+        base.connection_changed(&changed),
+        "IP change must trigger restart"
+    );
 
     // Port change → must trigger restart
     changed = base.clone();
     changed.port = 4371;
-    assert!(base.connection_changed(&changed), "Port change must trigger restart");
+    assert!(
+        base.connection_changed(&changed),
+        "Port change must trigger restart"
+    );
 
     // Password change → must trigger restart
     changed = base.clone();
     changed.password = Some(12345);
-    assert!(base.connection_changed(&changed), "Password change must trigger restart");
+    assert!(
+        base.connection_changed(&changed),
+        "Password change must trigger restart"
+    );
 
     // Brand change → must trigger restart
     changed = base.clone();
     changed.brand = "mock".into();
-    assert!(base.connection_changed(&changed), "Brand change must trigger restart");
+    assert!(
+        base.connection_changed(&changed),
+        "Brand change must trigger restart"
+    );
 
     // Name change → must NOT trigger restart
     changed = base.clone();
     changed.name = "New Name".into();
-    assert!(!base.connection_changed(&changed), "Name change should NOT trigger restart");
+    assert!(
+        !base.connection_changed(&changed),
+        "Name change should NOT trigger restart"
+    );
 }
 
 // ============================================================
@@ -464,8 +522,12 @@ async fn test_reload_lifecycle_ordering() {
     let old_awaited_idx = log.iter().position(|e| e == "reload:old_awaited").unwrap();
     let new_started_idx = log.iter().position(|e| e == "new:started").unwrap();
 
-    assert!(old_stopped_idx < old_awaited_idx,
-        "old:stopped must come before reload:old_awaited");
-    assert!(old_awaited_idx < new_started_idx,
-        "reload:old_awaited must come before new:started");
+    assert!(
+        old_stopped_idx < old_awaited_idx,
+        "old:stopped must come before reload:old_awaited"
+    );
+    assert!(
+        old_awaited_idx < new_started_idx,
+        "reload:old_awaited must come before new:started"
+    );
 }

@@ -1,8 +1,10 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useDashboardLayout } from "../use-dashboard-layout";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import * as api from "@/lib/api";
+
+import { useDashboardLayout } from "../use-dashboard-layout";
 
 vi.mock("@/lib/api", async () => {
     const actual = await vi.importActual("@/lib/api");

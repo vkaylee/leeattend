@@ -1,9 +1,13 @@
 import { screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import DeviceListItem from "../DeviceListItem";
+
+import { ToastProvider } from "@/components/ui/Toast";
+
 import { Device, DeviceStatus } from "@/lib/api";
 import { renderWithClient } from "@/test/utils";
-import { ToastProvider } from "@/components/ui/Toast";
+
+import DeviceListItem from "../DeviceListItem";
+
 
 // Mock i18next
 vi.mock("react-i18next", () => ({

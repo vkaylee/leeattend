@@ -118,7 +118,7 @@ async fn test_cannot_revoke_other_sole_platform_admin() {
     );
 
     // Now user_b is the sole admin. user_b tries to revoke their own role.
-    // (user_a no longer has platform_admin, so can't authenticate, but let's 
+    // (user_a no longer has platform_admin, so can't authenticate, but let's
     //  test with user_b self-revoking to confirm the guard works)
     let response2 = app
         .clone()
@@ -196,10 +196,7 @@ async fn test_revoke_support_role_from_sole_admin_is_allowed() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(&format!(
-                    "/api/system/users/{}/roles/support",
-                    admin_id
-                ))
+                .uri(&format!("/api/system/users/{}/roles/support", admin_id))
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),

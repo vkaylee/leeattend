@@ -1,16 +1,18 @@
-use std::time::{Duration, Instant};
 use log::{info, warn};
 use rand::Rng;
+use std::time::{Duration, Instant};
 
-use super::connection::{MAX_RETRY_DELAY_SECS, MAX_RETRY_COUNT, STABILITY_THRESHOLD_SECS};
+use super::connection::{MAX_RETRY_COUNT, MAX_RETRY_DELAY_SECS, STABILITY_THRESHOLD_SECS};
 
 /// Parse composite key "device_id:user_id:timestamp_unix:punch:status" back to components
 /// Uses rsplit to safely handle device_id containing colons
 /// Format: device_id can contain colons, user_id, timestamp_unix, punch, and status cannot
 /// Returns timestamp as i64 (Unix timestamp in UTC seconds)
-pub(super) fn parse_composite_key(key: &str) -> Option<(String, String, i64, Option<i32>, Option<i32>)> {
+pub(super) fn parse_composite_key(
+    key: &str,
+) -> Option<(String, String, i64, Option<i32>, Option<i32>)> {
     let mut parts = key.rsplitn(4, ':');
-    
+
     // 1. Extract status, punch, timestamp
     let status_str = parts.next()?;
     let punch_str = parts.next()?;
@@ -35,7 +37,13 @@ pub(super) fn parse_composite_key(key: &str) -> Option<(String, String, i64, Opt
         }
     };
 
-    Some((device_id.trim().to_string(), user_id.trim().to_string(), timestamp_unix, punch, status))
+    Some((
+        device_id.trim().to_string(),
+        user_id.trim().to_string(),
+        timestamp_unix,
+        punch,
+        status,
+    ))
 }
 
 pub(super) struct RetryManager {
@@ -59,7 +67,7 @@ impl RetryManager {
         // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s, 60s (capped)
         let base_delay = std::cmp::min(
             2u64.pow(std::cmp::min(self.retry_count - 1, 31)),
-            MAX_RETRY_DELAY_SECS
+            MAX_RETRY_DELAY_SECS,
         );
 
         // Apply ±25% jitter to prevent thundering herd
@@ -93,11 +101,12 @@ impl RetryManager {
     pub(super) fn record_stable(&mut self) {
         if let Some(since) = self.stable_since {
             if since.elapsed() >= Duration::from_secs(STABILITY_THRESHOLD_SECS)
-                && self.retry_count > 0 {
-                    info!("Connection stable for {STABILITY_THRESHOLD_SECS}s, resetting retry count");
-                    self.retry_count = 0;
-                }
-                // Keep stable_since as-is to avoid repeated reset logs
+                && self.retry_count > 0
+            {
+                info!("Connection stable for {STABILITY_THRESHOLD_SECS}s, resetting retry count");
+                self.retry_count = 0;
+            }
+            // Keep stable_since as-is to avoid repeated reset logs
         } else {
             // First stable call after connection - start the timer
             self.stable_since = Some(Instant::now());
@@ -107,7 +116,8 @@ impl RetryManager {
 
 pub(super) fn calculate_sync_stats(logs: &[crate::redb_store::StoredLog]) -> String {
     let new_count = logs.iter().filter(|l| l.retry_count == 0).count();
-    let resync_logs: Vec<&crate::redb_store::StoredLog> = logs.iter().filter(|l| l.retry_count > 0).collect();
+    let resync_logs: Vec<&crate::redb_store::StoredLog> =
+        logs.iter().filter(|l| l.retry_count > 0).collect();
     let resync_count = resync_logs.len();
 
     if resync_count > 0 {
@@ -157,10 +167,22 @@ mod tests {
     #[test]
     fn test_parse_composite_key_logic() {
         let k1 = "DEV1:U1:1234567890:0:1";
-        assert_eq!(parse_composite_key(k1), Some(("DEV1".into(), "U1".into(), 1234567890, Some(0), Some(1))));
+        assert_eq!(
+            parse_composite_key(k1),
+            Some(("DEV1".into(), "U1".into(), 1234567890, Some(0), Some(1)))
+        );
 
         let k2 = "AA:BB:CC:DD:EE:FF:U1:1234567890:-1:-1";
-        assert_eq!(parse_composite_key(k2), Some(("AA:BB:CC:DD:EE:FF".into(), "U1".into(), 1234567890, None, None)));
+        assert_eq!(
+            parse_composite_key(k2),
+            Some((
+                "AA:BB:CC:DD:EE:FF".into(),
+                "U1".into(),
+                1234567890,
+                None,
+                None
+            ))
+        );
 
         let k3 = "D1:U1:INVALID:0:1";
         assert_eq!(parse_composite_key(k3), None);
@@ -202,7 +224,11 @@ mod tests {
             punch: Some(1),
             is_synced: 0,
             created_at: chrono::Utc::now().timestamp(),
-            updated_at: if retry_count > 0 { Some(chrono::Utc::now().timestamp()) } else { None },
+            updated_at: if retry_count > 0 {
+                Some(chrono::Utc::now().timestamp())
+            } else {
+                None
+            },
             retry_count,
         }
     }
@@ -215,8 +241,15 @@ mod tests {
 
     #[test]
     fn test_calculate_sync_stats_mixed() {
-        let logs = vec![make_stored_log(1, 0), make_stored_log(2, 3), make_stored_log(3, 5)];
-        assert_eq!(calculate_sync_stats(&logs), "1 New, 2 Resyncs (Attempt #3-5)");
+        let logs = vec![
+            make_stored_log(1, 0),
+            make_stored_log(2, 3),
+            make_stored_log(3, 5),
+        ];
+        assert_eq!(
+            calculate_sync_stats(&logs),
+            "1 New, 2 Resyncs (Attempt #3-5)"
+        );
     }
 
     #[test]

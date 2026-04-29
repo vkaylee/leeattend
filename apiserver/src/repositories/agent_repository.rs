@@ -15,7 +15,9 @@ pub struct SqlxAgentRepository {
 }
 
 impl SqlxAgentRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
@@ -68,6 +70,10 @@ impl AgentRepository for SqlxAgentRepository {
 }
 
 impl super::PoolBacked for SqlxAgentRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
-    fn pool(&self) -> &sqlx::PgPool { &self.pool }
+    fn from_pool(pool: sqlx::PgPool) -> Self {
+        Self::new(pool)
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }

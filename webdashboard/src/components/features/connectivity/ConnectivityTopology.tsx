@@ -1,16 +1,21 @@
 import { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+
 import { Plus, Share2, Server, HardDrive, AlertCircle, Cpu, Pencil, Lock, Save } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import AgentEditModal from "@/components/features/agents/AgentEditModal";
+import { Combobox } from "@/components/ui/Combobox";
+import Modal from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
+
 import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/Toast";
 import { AuthorizedAgent, Device } from "@/lib/api";
+import { cn } from "@/lib/utils";
+
 import AgentAccordionCard from "./AgentAccordionCard";
 import DeviceListItem from "./DeviceListItem";
-import AgentEditModal from "@/components/features/agents/AgentEditModal";
-import Modal from "@/components/ui/Modal";
-import { Combobox } from "@/components/ui/Combobox";
+
 
 export default function ConnectivityTopology() {
   const { t } = useTranslation();

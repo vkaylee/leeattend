@@ -1,8 +1,10 @@
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
-import type { QueryClient } from "@tanstack/react-query";
-import { DebugToolbar } from "@/components/debug/DebugToolbar";
+
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { DebugToolbar } from "@/components/debug/DebugToolbar";
+
+import type { QueryClient } from "@tanstack/react-query";
 
 export interface RouterContext {
   queryClient: QueryClient;

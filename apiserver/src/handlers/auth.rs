@@ -1,6 +1,6 @@
 use axum::{
     extract::State,
-    http::{HeaderMap, HeaderValue, StatusCode, header::SET_COOKIE},
+    http::{header::SET_COOKIE, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Json},
 };
 use chrono::Utc;
@@ -86,7 +86,7 @@ fn create_auth_cookies(access_token: &str, refresh_token: &str) -> HeaderMap {
         Ok(d) if !d.is_empty() => format!("Domain={d}; "),
         _ => "".to_string(),
     };
-    
+
     // access_token cookie
     let access_cookie = format!(
         "access_token={}; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=3600",
@@ -104,7 +104,7 @@ fn create_auth_cookies(access_token: &str, refresh_token: &str) -> HeaderMap {
     if let Ok(val) = HeaderValue::from_str(&refresh_cookie) {
         headers.append(SET_COOKIE, val);
     }
-    
+
     headers
 }
 
@@ -114,7 +114,7 @@ fn clear_auth_cookies() -> HeaderMap {
         Ok(d) if !d.is_empty() => format!("Domain={d}; "),
         _ => "".to_string(),
     };
-    
+
     let access_cookie = format!(
         "access_token=; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0",
         domain_attr
@@ -130,7 +130,7 @@ fn clear_auth_cookies() -> HeaderMap {
     if let Ok(val) = HeaderValue::from_str(&refresh_cookie) {
         headers.append(SET_COOKIE, val);
     }
-    
+
     headers
 }
 
@@ -180,10 +180,9 @@ pub async fn register(
     }
 
     // 4b. Auto-assign platform_admin to the very first user registered
-    let user_count: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM users")
-            .fetch_one(&mut *tx)
-            .await?;
+    let user_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
+        .fetch_one(&mut *tx)
+        .await?;
 
     if user_count == 1 {
         sqlx::query(
@@ -230,18 +229,24 @@ pub async fn register(
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
-    Ok((headers, Json(AuthResponse {
-        access_token,
-        refresh_token,
-        user: user_response,
-    })))
+    Ok((
+        headers,
+        Json(AuthResponse {
+            access_token,
+            refresh_token,
+            user: user_response,
+        }),
+    ))
 }
 
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let user = state.core.user_repo.get_user_by_email(&req.email)
+    let user = state
+        .core
+        .user_repo
+        .get_user_by_email(&req.email)
         .await?
         .ok_or_else(|| AppError::Auth("Invalid email or password".to_string()))?;
 
@@ -264,17 +269,23 @@ pub async fn login(
     let access_token =
         AuthService::generate_token(user.id, &state.core.jwt_secret, 60).map_err(AppError::from)?;
 
-    let refresh_token = state.core.auth_service.create_session(user.id)
+    let refresh_token = state
+        .core
+        .auth_service
+        .create_session(user.id)
         .await
         .map_err(AppError::from)?;
 
     let headers = create_auth_cookies(&access_token, &refresh_token);
 
-    Ok((headers, Json(AuthResponse {
-        access_token,
-        refresh_token,
-        user: user_response,
-    })))
+    Ok((
+        headers,
+        Json(AuthResponse {
+            access_token,
+            refresh_token,
+            user: user_response,
+        }),
+    ))
 }
 
 pub async fn refresh_token(
@@ -284,11 +295,11 @@ pub async fn refresh_token(
 ) -> AppResult<impl IntoResponse> {
     // Try to get refresh_token from body, fallback to cookie
     let mut token_to_refresh = None;
-    
+
     if let Some(Json(req)) = req_opt {
         token_to_refresh = Some(req.refresh_token.clone());
     }
-    
+
     if token_to_refresh.is_none() {
         if let Some(cookie_header) = headers.get("cookie") {
             if let Ok(cookie_str) = cookie_header.to_str() {
@@ -302,14 +313,19 @@ pub async fn refresh_token(
         }
     }
 
-    let token = token_to_refresh.ok_or_else(|| AppError::Auth("No refresh token provided".to_string()))?;
+    let token =
+        token_to_refresh.ok_or_else(|| AppError::Auth("No refresh token provided".to_string()))?;
 
-    let auth_response = state.core.auth_service.refresh_session(&token, &state.core.jwt_secret)
+    let auth_response = state
+        .core
+        .auth_service
+        .refresh_session(&token, &state.core.jwt_secret)
         .await
         .map_err(AppError::Auth)?;
 
-    let resp_headers = create_auth_cookies(&auth_response.access_token, &auth_response.refresh_token);
-    
+    let resp_headers =
+        create_auth_cookies(&auth_response.access_token, &auth_response.refresh_token);
+
     Ok((resp_headers, Json(auth_response)))
 }
 
@@ -319,7 +335,10 @@ pub async fn change_password(
     Json(req): Json<ChangePasswordRequest>,
 ) -> AppResult<impl IntoResponse> {
     // 1. Get current user to verify old password
-    let user = state.core.user_repo.get_user_by_id(user_id)
+    let user = state
+        .core
+        .user_repo
+        .get_user_by_id(user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
@@ -342,7 +361,12 @@ pub async fn change_password(
         .await?;
 
     // 6. Revoke all sessions (Force re-login)
-    if let Err(e) = state.core.auth_service.revoke_all_sessions_for_user(user_id).await {
+    if let Err(e) = state
+        .core
+        .auth_service
+        .revoke_all_sessions_for_user(user_id)
+        .await
+    {
         tracing::error!(user_id = %user_id, error = %e, "Failed to revoke sessions after password change");
     }
 
@@ -359,11 +383,11 @@ pub async fn logout(
 ) -> AppResult<impl IntoResponse> {
     // Try to get refresh_token from body, fallback to cookie
     let mut token_to_revoke = None;
-    
+
     if let Some(Json(req)) = req_opt {
         token_to_revoke = Some(req.refresh_token.clone());
     }
-    
+
     if token_to_revoke.is_none() {
         if let Some(cookie_header) = headers.get("cookie") {
             if let Ok(cookie_str) = cookie_header.to_str() {
@@ -389,7 +413,10 @@ pub async fn get_me(
     UserId(user_id): UserId,
 ) -> AppResult<Json<UserResponse>> {
     tracing::debug!("Fetching profile for user: {}", user_id);
-    let user = state.core.user_repo.get_user_by_id(user_id)
+    let user = state
+        .core
+        .user_repo
+        .get_user_by_id(user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
@@ -397,7 +424,7 @@ pub async fn get_me(
     let system_roles: Vec<String> = sqlx::query_scalar(
         "SELECT sr.name FROM user_system_roles usr \
          JOIN system_roles sr ON sr.id = usr.role_id \
-         WHERE usr.user_id = $1"
+         WHERE usr.user_id = $1",
     )
     .bind(user_id)
     .fetch_all(state.infra.db.api())
@@ -493,8 +520,6 @@ pub async fn get_users(
 
     Ok(Json(user_responses))
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -601,12 +626,12 @@ mod tests {
     fn test_create_auth_cookies_contains_secure_and_samesite_none() {
         // Temporarily clear COOKIE_DOMAIN if it was set
         std::env::remove_var("COOKIE_DOMAIN");
-        
+
         let headers = create_auth_cookies("my_access", "my_refresh");
-        
+
         let mut found_access = false;
         let mut found_refresh = false;
-        
+
         for cookie in headers.get_all(SET_COOKIE) {
             let cookie_str = cookie.to_str().unwrap();
             if cookie_str.starts_with("access_token=") {
@@ -621,7 +646,7 @@ mod tests {
                 found_refresh = true;
             }
         }
-        
+
         assert!(found_access, "access_token cookie not found");
         assert!(found_refresh, "refresh_token cookie not found");
     }
@@ -629,9 +654,9 @@ mod tests {
     #[test]
     fn test_clear_auth_cookies_contains_secure_and_samesite_none() {
         std::env::remove_var("COOKIE_DOMAIN");
-        
+
         let headers = clear_auth_cookies();
-        
+
         for cookie in headers.get_all(SET_COOKIE) {
             let cookie_str = cookie.to_str().unwrap();
             assert!(cookie_str.contains("SameSite=None"));

@@ -6,8 +6,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{
-    AdjustBalanceRequest, ApproveLeaveRequest, EmployeeLeaveBalance, LeaveHistoryItem,
-    LeaveDurationType, LeaveRequest, LeaveStatus, LeaveTransactionType, ShiftRoster,
+    AdjustBalanceRequest, ApproveLeaveRequest, EmployeeLeaveBalance, LeaveDurationType,
+    LeaveHistoryItem, LeaveRequest, LeaveStatus, LeaveTransactionType, ShiftRoster,
     SubmitLeaveRequest, WorkspaceLeaveBalance,
 };
 use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
@@ -33,7 +33,13 @@ impl LeaveService {
         roster_repo: Arc<dyn RosterRepository>,
         pool: PgPool,
     ) -> Self {
-        Self { leave_balance_repo, leave_request_repo, employee_repo, roster_repo, pool }
+        Self {
+            leave_balance_repo,
+            leave_request_repo,
+            employee_repo,
+            roster_repo,
+            pool,
+        }
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -47,18 +53,14 @@ impl LeaveService {
         let page = params.page.unwrap_or(1).max(1);
         let offset = (page - 1) * limit;
 
-        let (data, total) = self.leave_balance_repo.get_workspace_balances(
-            workspace_id,
-            year,
-            limit,
-            offset,
-            params.q,
-        )
-        .await
-        .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {e:?}");
-            AppError::Internal("Internal error".into())
-        })?;
+        let (data, total) = self
+            .leave_balance_repo
+            .get_workspace_balances(workspace_id, year, limit, offset, params.q)
+            .await
+            .map_err(|e| {
+                eprintln!("SQLx Error in get_workspace_balances: {e:?}");
+                AppError::Internal("Internal error".into())
+            })?;
 
         Ok(crate::models::PaginatedResponse {
             data,
@@ -196,19 +198,20 @@ impl LeaveService {
         employee_id: Uuid,
         req: AdjustBalanceRequest,
     ) -> Result<(), AppError> {
-        let amount_dec =
-            rust_decimal::Decimal::from_f64_retain(req.amount).ok_or(AppError::Validation("Invalid request".into()))?;
+        let amount_dec = rust_decimal::Decimal::from_f64_retain(req.amount)
+            .ok_or(AppError::Validation("Invalid request".into()))?;
 
-        self.leave_balance_repo.adjust_balance(
-            workspace_id,
-            employee_id,
-            req.leave_type_id,
-            amount_dec,
-            req.transaction_date,
-            &req.reason,
-        )
-        .await
-        .map_err(AppError::Sqlx)
+        self.leave_balance_repo
+            .adjust_balance(
+                workspace_id,
+                employee_id,
+                req.leave_type_id,
+                amount_dec,
+                req.transaction_date,
+                &req.reason,
+            )
+            .await
+            .map_err(AppError::Sqlx)
     }
 
     #[tracing::instrument(skip_all, err)]
@@ -219,12 +222,15 @@ impl LeaveService {
         year: i32,
     ) -> Result<Vec<EmployeeLeaveBalance>, AppError> {
         // Verify employee belongs to workspace
-        let _ = self.employee_repo.get_employee_by_id(employee_id, workspace_id)
+        let _ = self
+            .employee_repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        self.leave_balance_repo.get_employee_balances(workspace_id, employee_id, year)
+        self.leave_balance_repo
+            .get_employee_balances(workspace_id, employee_id, year)
             .await
             .map_err(AppError::Sqlx)
     }
@@ -239,7 +245,9 @@ impl LeaveService {
     ) -> Result<LeaveRequest, AppError> {
         let pool = &self.pool;
         // Verify employee belongs to workspace
-        let _ = self.employee_repo.get_employee_by_id(req.employee_id, workspace_id)
+        let _ = self
+            .employee_repo
+            .get_employee_by_id(req.employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::NotFound("Not found".into()))?;
@@ -309,7 +317,8 @@ impl LeaveService {
             updated_at: Utc::now(),
         };
 
-        self.leave_request_repo.create_leave_request(&request)
+        self.leave_request_repo
+            .create_leave_request(&request)
             .await
             .map_err(|e| {
                 eprintln!("SQLx Error in submit_leave_request: {e:?}");
@@ -371,11 +380,10 @@ impl LeaveService {
                 updated_at: Utc::now(),
             };
 
-            let _ = self.roster_repo.upsert_roster(&roster).await
-                .map_err(|e| {
-                    eprintln!("SQLx Error in apply_leave_to_roster: {e:?}");
-                    AppError::Internal("Internal error".into())
-                })?;
+            let _ = self.roster_repo.upsert_roster(&roster).await.map_err(|e| {
+                eprintln!("SQLx Error in apply_leave_to_roster: {e:?}");
+                AppError::Internal("Internal error".into())
+            })?;
 
             if let Some(next_date) = current_date.succ_opt() {
                 current_date = next_date;
@@ -395,28 +403,28 @@ impl LeaveService {
         request_id: Uuid,
         req: ApproveLeaveRequest,
     ) -> Result<(), AppError> {
-        let request = self.leave_request_repo.get_leave_request_by_id(workspace_id, request_id)
+        let request = self
+            .leave_request_repo
+            .get_leave_request_by_id(workspace_id, request_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
         // Verify employee of this request belongs to the workspace
-        let _ = self.employee_repo.get_employee_by_id(request.employee_id, workspace_id)
+        let _ = self
+            .employee_repo
+            .get_employee_by_id(request.employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::Forbidden("Forbidden".into()))?;
 
-        self.leave_request_repo.update_leave_request_status(
-            workspace_id,
-            request_id,
-            req.status,
-            Some(user_id),
-        )
-        .await
-        .map_err(|e| {
-            eprintln!("SQLx Error in approve_leave_request: {e:?}");
-            AppError::Internal("Internal error".into())
-        })?;
+        self.leave_request_repo
+            .update_leave_request_status(workspace_id, request_id, req.status, Some(user_id))
+            .await
+            .map_err(|e| {
+                eprintln!("SQLx Error in approve_leave_request: {e:?}");
+                AppError::Internal("Internal error".into())
+            })?;
 
         // If approved, update roster
         if req.status == LeaveStatus::Approved {
@@ -433,12 +441,15 @@ impl LeaveService {
         employee_id: Uuid,
     ) -> Result<Vec<LeaveRequest>, AppError> {
         // Verify employee belongs to workspace
-        let _ = self.employee_repo.get_employee_by_id(employee_id, workspace_id)
+        let _ = self
+            .employee_repo
+            .get_employee_by_id(employee_id, workspace_id)
             .await
             .map_err(AppError::Sqlx)?
             .ok_or(AppError::NotFound("Not found".into()))?;
 
-        self.leave_request_repo.get_employee_leave_requests(workspace_id, employee_id)
+        self.leave_request_repo
+            .get_employee_leave_requests(workspace_id, employee_id)
             .await
             .map_err(AppError::Sqlx)
     }
@@ -449,7 +460,8 @@ impl LeaveService {
         workspace_id: Uuid,
         status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, AppError> {
-        self.leave_request_repo.get_workspace_leave_requests(workspace_id, status)
+        self.leave_request_repo
+            .get_workspace_leave_requests(workspace_id, status)
             .await
             .map_err(AppError::Sqlx)
     }

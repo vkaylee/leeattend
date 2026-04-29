@@ -1,6 +1,6 @@
 use agent::mock_worker::MockWorker;
-use agent::worker::Worker;
 use agent::time_sync::TimeSync;
+use agent::worker::Worker;
 
 #[tokio::test]
 async fn test_mock_worker_get_info_contains_logs_capacity() {
@@ -72,4 +72,3 @@ async fn test_mock_worker_get_info_all_required_fields() {
         );
     }
 }
-

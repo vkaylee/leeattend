@@ -1,7 +1,8 @@
+import { QueryClient, QueryClientProvider, useQuery  } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { EmployeeSearch } from "../EmployeeSearch";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Create a simpler mock for the query hook
 vi.mock("@tanstack/react-query", async () => {
@@ -12,7 +13,6 @@ vi.mock("@tanstack/react-query", async () => {
   };
 });
 
-import { useQuery } from "@tanstack/react-query";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },

@@ -1,4 +1,7 @@
-use axum::{routing::{get, post, put}, Router};
+use axum::{
+    routing::{get, post, put},
+    Router,
+};
 use std::sync::Arc;
 
 use crate::handlers;

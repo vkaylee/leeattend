@@ -1,8 +1,10 @@
 import React from 'react';
-import Modal from './Modal';
-import Button from './Button';
+
 import { AlertTriangle, Info, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+import Button from './Button';
+import Modal from './Modal';
 
 export interface ConfirmDialogProps {
   isOpen: boolean;

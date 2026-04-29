@@ -68,25 +68,26 @@ pub async fn list_system_roles(
     let mut result = Vec::with_capacity(rows.len());
 
     for (role_id, role_name, description) in rows {
-        let assignees: Vec<SystemRoleAssignment> = sqlx::query_as::<_, (Uuid, Option<Uuid>, DateTime<Utc>)>(
-            r#"
+        let assignees: Vec<SystemRoleAssignment> =
+            sqlx::query_as::<_, (Uuid, Option<Uuid>, DateTime<Utc>)>(
+                r#"
             SELECT user_id, assigned_by, assigned_at
               FROM user_system_roles
              WHERE role_id = $1
              ORDER BY assigned_at
             "#,
-        )
-        .bind(role_id)
-        .fetch_all(state.infra.db.api())
-        .await?
-        .into_iter()
-        .map(|(user_id, assigned_by, assigned_at)| SystemRoleAssignment {
-            user_id,
-            role_name: role_name.clone(),
-            assigned_by,
-            assigned_at,
-        })
-        .collect();
+            )
+            .bind(role_id)
+            .fetch_all(state.infra.db.api())
+            .await?
+            .into_iter()
+            .map(|(user_id, assigned_by, assigned_at)| SystemRoleAssignment {
+                user_id,
+                role_name: role_name.clone(),
+                assigned_by,
+                assigned_at,
+            })
+            .collect();
 
         result.push(SystemRoleInfo {
             id: role_id,
@@ -137,16 +138,13 @@ pub async fn assign_system_role(
     ctx.require_role(SystemRoleType::PlatformAdmin)?;
 
     // Resolve role_id from name
-    let role_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM system_roles WHERE name = $1",
-    )
-    .bind(req.role_name.to_string())
-    .fetch_optional(state.infra.db.api())
-    .await?;
+    let role_id: Option<Uuid> = sqlx::query_scalar("SELECT id FROM system_roles WHERE name = $1")
+        .bind(req.role_name.to_string())
+        .fetch_optional(state.infra.db.api())
+        .await?;
 
-    let role_id = role_id.ok_or_else(|| {
-        AppError::NotFound(format!("System role '{}' not found", req.role_name))
-    })?;
+    let role_id = role_id
+        .ok_or_else(|| AppError::NotFound(format!("System role '{}' not found", req.role_name)))?;
 
     // Upsert — idempotent assign
     sqlx::query(
@@ -187,9 +185,8 @@ pub async fn revoke_system_role(
 
     // Safety: verify the role_name is a known system role
     use std::str::FromStr;
-    let role_type = SystemRoleType::from_str(&role_name).map_err(|_| {
-        AppError::Validation(format!("Unknown system role: '{role_name}'"))
-    })?;
+    let role_type = SystemRoleType::from_str(&role_name)
+        .map_err(|_| AppError::Validation(format!("Unknown system role: '{role_name}'")))?;
 
     // Prevent revoking the last platform_admin — regardless of who performs it.
     // Without this guard, admin A could revoke admin B (the sole remaining admin),
@@ -308,19 +305,24 @@ mod tests {
 
     #[test]
     fn test_assign_request_null_role_name_fails() {
-        assert!(
-            serde_json::from_str::<AssignSystemRoleRequest>(r#"{"role_name": null}"#).is_err()
-        );
+        assert!(serde_json::from_str::<AssignSystemRoleRequest>(r#"{"role_name": null}"#).is_err());
     }
 
     #[test]
     fn test_assign_request_roundtrip_all_roles() {
         // Every valid role_name must survive serde roundtrip (for logging/auditing).
-        for role in [SystemRoleType::PlatformAdmin, SystemRoleType::Support, SystemRoleType::BillingAdmin] {
+        for role in [
+            SystemRoleType::PlatformAdmin,
+            SystemRoleType::Support,
+            SystemRoleType::BillingAdmin,
+        ] {
             let req = AssignSystemRoleRequest { role_name: role };
             let json = serde_json::to_string(&req).unwrap();
             // Verify the role name appears correctly in serialized form
-            assert!(json.contains(&role.to_string()), "Serialized JSON missing role name: {json}");
+            assert!(
+                json.contains(&role.to_string()),
+                "Serialized JSON missing role name: {json}"
+            );
         }
     }
 
@@ -448,9 +450,18 @@ mod tests {
     #[test]
     fn test_revoke_known_role_names_parse_correctly() {
         use std::str::FromStr;
-        assert_eq!(SystemRoleType::from_str("platform_admin").unwrap(), SystemRoleType::PlatformAdmin);
-        assert_eq!(SystemRoleType::from_str("support").unwrap(), SystemRoleType::Support);
-        assert_eq!(SystemRoleType::from_str("billing_admin").unwrap(), SystemRoleType::BillingAdmin);
+        assert_eq!(
+            SystemRoleType::from_str("platform_admin").unwrap(),
+            SystemRoleType::PlatformAdmin
+        );
+        assert_eq!(
+            SystemRoleType::from_str("support").unwrap(),
+            SystemRoleType::Support
+        );
+        assert_eq!(
+            SystemRoleType::from_str("billing_admin").unwrap(),
+            SystemRoleType::BillingAdmin
+        );
     }
 
     // ── DB seed name alignment ────────────────────────────────────────────────
@@ -466,8 +477,10 @@ mod tests {
             SystemRoleType::BillingAdmin.to_string(),
         ];
         for (seeded, from_enum) in seeded_names.iter().zip(enum_names.iter()) {
-            assert_eq!(seeded, from_enum, "DB seed name mismatch: DB='{seeded}', Enum='{from_enum}'");
+            assert_eq!(
+                seeded, from_enum,
+                "DB seed name mismatch: DB='{seeded}', Enum='{from_enum}'"
+            );
         }
     }
 }
-

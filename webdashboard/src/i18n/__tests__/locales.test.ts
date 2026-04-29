@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import vi from '../locales/vi.json';
+
 import en from '../locales/en.json';
+import vi from '../locales/vi.json';
 import zh from '../locales/zh.json';
 
 type JsonObject = { [key: string]: any };

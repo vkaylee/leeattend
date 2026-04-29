@@ -1,6 +1,7 @@
-import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
+
 import { ConnectivityPage } from "./pom/ConnectivityPage";
+import { test } from "./worker-orchestrator";
 
 // Increase timeout for slower E2E environment
 test.setTimeout(120000);

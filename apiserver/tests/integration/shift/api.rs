@@ -11,7 +11,8 @@ use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_shift_api_lifecycle_smoke() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
@@ -42,8 +43,10 @@ async fn test_shift_api_lifecycle_smoke() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
-    
-    let body = axum::body::to_bytes(response.into_body(), 10000).await.unwrap();
+
+    let body = axum::body::to_bytes(response.into_body(), 10000)
+        .await
+        .unwrap();
     let shift: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let shift_id = shift["id"].as_str().unwrap();
 

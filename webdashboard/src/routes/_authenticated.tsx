@@ -1,7 +1,9 @@
 import React from "react";
+
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { fetchMe, clearAuthSession } from "@/lib/api";
+
 import { profileKeys } from "@/hooks/use-profile";
+import { fetchMe, clearAuthSession } from "@/lib/api";
 
 function AuthPendingComponent() {
   const { t } = (window as any).__i18n_t__ ?? { t: (k: string) => k };

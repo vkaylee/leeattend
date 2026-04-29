@@ -88,8 +88,12 @@ mod tests {
     struct MockAgentRepo;
 
     impl crate::repositories::PoolBacked for MockAgentRepo {
-        fn from_pool(_pool: sqlx::PgPool) -> Self { MockAgentRepo }
-        fn pool(&self) -> &sqlx::PgPool { unimplemented!("mock: no pool") }
+        fn from_pool(_pool: sqlx::PgPool) -> Self {
+            MockAgentRepo
+        }
+        fn pool(&self) -> &sqlx::PgPool {
+            unimplemented!("mock: no pool")
+        }
     }
 
     #[async_trait]

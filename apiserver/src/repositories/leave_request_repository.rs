@@ -1,5 +1,5 @@
-use async_trait::async_trait;
 use crate::models::{LeaveDurationType, LeaveRequest, LeaveStatus};
+use async_trait::async_trait;
 #[allow(unused_imports)] // Utc used in query! macro (L67), not visible under SQLX_OFFLINE
 use chrono::{NaiveDate, Utc};
 use sqlx::{query, query_as, PgPool, Row};
@@ -11,11 +11,35 @@ use uuid::Uuid;
 #[async_trait]
 pub trait LeaveRequestRepository: super::PoolBacked + Send + Sync {
     async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), sqlx::Error>;
-    async fn get_leave_request_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<LeaveRequest>, sqlx::Error>;
-    async fn update_leave_request_status(&self, workspace_id: Uuid, id: Uuid, status: LeaveStatus, approved_by: Option<Uuid>) -> Result<(), sqlx::Error>;
-    async fn get_employee_leave_requests(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Vec<LeaveRequest>, sqlx::Error>;
-    async fn get_workspace_leave_requests(&self, workspace_id: Uuid, status: Option<LeaveStatus>) -> Result<Vec<LeaveRequest>, sqlx::Error>;
-    async fn get_approved_leave_breakdown(&self, employee_id: Uuid, start_date: NaiveDate, end_date: NaiveDate, workspace_id: Uuid) -> Result<LeaveBreakdown, sqlx::Error>;
+    async fn get_leave_request_by_id(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+    ) -> Result<Option<LeaveRequest>, sqlx::Error>;
+    async fn update_leave_request_status(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        status: LeaveStatus,
+        approved_by: Option<Uuid>,
+    ) -> Result<(), sqlx::Error>;
+    async fn get_employee_leave_requests(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Vec<LeaveRequest>, sqlx::Error>;
+    async fn get_workspace_leave_requests(
+        &self,
+        workspace_id: Uuid,
+        status: Option<LeaveStatus>,
+    ) -> Result<Vec<LeaveRequest>, sqlx::Error>;
+    async fn get_approved_leave_breakdown(
+        &self,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        workspace_id: Uuid,
+    ) -> Result<LeaveBreakdown, sqlx::Error>;
 }
 
 // ---------------------------------------------------------------------------
@@ -26,7 +50,9 @@ pub struct SqlxLeaveRequestRepository {
 }
 
 impl SqlxLeaveRequestRepository {
-    pub fn new(pool: PgPool) -> Self { Self { pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
@@ -34,20 +60,45 @@ impl LeaveRequestRepository for SqlxLeaveRequestRepository {
     async fn create_leave_request(&self, request: &LeaveRequest) -> Result<(), sqlx::Error> {
         create_leave_request(&self.pool, request).await
     }
-    async fn get_leave_request_by_id(&self, workspace_id: Uuid, id: Uuid) -> Result<Option<LeaveRequest>, sqlx::Error> {
+    async fn get_leave_request_by_id(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+    ) -> Result<Option<LeaveRequest>, sqlx::Error> {
         get_leave_request_by_id(&self.pool, workspace_id, id).await
     }
-    async fn update_leave_request_status(&self, workspace_id: Uuid, id: Uuid, status: LeaveStatus, approved_by: Option<Uuid>) -> Result<(), sqlx::Error> {
+    async fn update_leave_request_status(
+        &self,
+        workspace_id: Uuid,
+        id: Uuid,
+        status: LeaveStatus,
+        approved_by: Option<Uuid>,
+    ) -> Result<(), sqlx::Error> {
         update_leave_request_status(&self.pool, workspace_id, id, status, approved_by).await
     }
-    async fn get_employee_leave_requests(&self, workspace_id: Uuid, employee_id: Uuid) -> Result<Vec<LeaveRequest>, sqlx::Error> {
+    async fn get_employee_leave_requests(
+        &self,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+    ) -> Result<Vec<LeaveRequest>, sqlx::Error> {
         get_employee_leave_requests(&self.pool, workspace_id, employee_id).await
     }
-    async fn get_workspace_leave_requests(&self, workspace_id: Uuid, status: Option<LeaveStatus>) -> Result<Vec<LeaveRequest>, sqlx::Error> {
+    async fn get_workspace_leave_requests(
+        &self,
+        workspace_id: Uuid,
+        status: Option<LeaveStatus>,
+    ) -> Result<Vec<LeaveRequest>, sqlx::Error> {
         get_workspace_leave_requests(&self.pool, workspace_id, status).await
     }
-    async fn get_approved_leave_breakdown(&self, employee_id: Uuid, start_date: NaiveDate, end_date: NaiveDate, workspace_id: Uuid) -> Result<LeaveBreakdown, sqlx::Error> {
-        get_approved_leave_breakdown(&self.pool, employee_id, start_date, end_date, workspace_id).await
+    async fn get_approved_leave_breakdown(
+        &self,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        workspace_id: Uuid,
+    ) -> Result<LeaveBreakdown, sqlx::Error> {
+        get_approved_leave_breakdown(&self.pool, employee_id, start_date, end_date, workspace_id)
+            .await
     }
 }
 
@@ -271,6 +322,10 @@ pub async fn get_approved_leave_breakdown(
 }
 
 impl super::PoolBacked for SqlxLeaveRequestRepository {
-    fn from_pool(pool: sqlx::PgPool) -> Self { Self::new(pool) }
-    fn pool(&self) -> &sqlx::PgPool { &self.pool }
+    fn from_pool(pool: sqlx::PgPool) -> Self {
+        Self::new(pool)
+    }
+    fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }

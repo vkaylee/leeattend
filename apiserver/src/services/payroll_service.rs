@@ -14,9 +14,7 @@ use crate::repositories::department_repository::DepartmentRepository;
 use crate::repositories::holiday_repository::HolidayRepositoryTrait;
 use crate::repositories::payroll_repository::PayrollRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
-use crate::repositories::{
-    roster::RosterRepository, time_entry_repository,
-};
+use crate::repositories::{roster::RosterRepository, time_entry_repository};
 
 use super::attendance_matcher::AttendanceMatcher;
 use super::financial_calculator::FinancialCalculator;
@@ -43,7 +41,10 @@ pub struct PayrollContext {
     pub(crate) tz: Tz,
     pub(crate) start_date: NaiveDate,
     pub(crate) end_date: NaiveDate,
-    pub(crate) salary_history: Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>,
+    pub(crate) salary_history: Vec<(
+        crate::models::EmployeeSalaryComponent,
+        crate::models::SalaryComponentDefinition,
+    )>,
     pub(crate) all_dept_history: Vec<crate::models::EmployeeDepartmentHistory>,
     pub(crate) daily_entries_map: HashMap<NaiveDate, Vec<crate::models::TimeEntry>>,
     pub(crate) holidays_map: HashMap<NaiveDate, crate::models::Holiday>,
@@ -82,7 +83,15 @@ impl PayrollService {
         roster_repo: Arc<dyn RosterRepository>,
         pool: PgPool,
     ) -> Self {
-        Self { payroll_repo, department_repo, time_entry_repo, workspace_repo, holiday_repo, roster_repo, pool }
+        Self {
+            payroll_repo,
+            department_repo,
+            time_entry_repo,
+            workspace_repo,
+            holiday_repo,
+            roster_repo,
+            pool,
+        }
     }
 
     /// Phase 1: Fetch all data needed for payroll calculation.
@@ -95,7 +104,8 @@ impl PayrollService {
         month: u32,
     ) -> Result<PayrollContext, AppError> {
         let pool = &self.pool;
-        let workspace = self.workspace_repo
+        let workspace = self
+            .workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
             .map_err(|e| {
@@ -106,7 +116,8 @@ impl PayrollService {
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
-        let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or(AppError::Validation("Invalid request".into()))?;
+        let start_date = NaiveDate::from_ymd_opt(year, month, 1)
+            .ok_or(AppError::Validation("Invalid request".into()))?;
         let next_month_date = if month == 12 {
             NaiveDate::from_ymd_opt(year + 1, 1, 1)
         } else {
@@ -117,32 +128,32 @@ impl PayrollService {
             .pred_opt()
             .ok_or(AppError::Internal("Internal error".into()))?;
 
-        let salary_history = self.payroll_repo.get_salary_components_history(
-            workspace_id, employee_id, start_date, end_date,
-        )
-        .await
-        .map_err(AppError::Sqlx)?;
+        let salary_history = self
+            .payroll_repo
+            .get_salary_components_history(workspace_id, employee_id, start_date, end_date)
+            .await
+            .map_err(AppError::Sqlx)?;
 
-        let all_dept_history =
-            self.department_repo.get_employee_department_history(workspace_id, employee_id)
-                .await
-                .map_err(AppError::Sqlx)?;
+        let all_dept_history = self
+            .department_repo
+            .get_employee_department_history(workspace_id, employee_id)
+            .await
+            .map_err(AppError::Sqlx)?;
 
-        let start_dt = local_to_utc(&tz, start_date, 0, 0, 0)
-            .map_err(AppError::Internal)?;
-        let end_dt = local_to_utc(&tz, end_date, 23, 59, 59)
-            .map_err(AppError::Internal)?;
+        let start_dt = local_to_utc(&tz, start_date, 0, 0, 0).map_err(AppError::Internal)?;
+        let end_dt = local_to_utc(&tz, end_date, 23, 59, 59).map_err(AppError::Internal)?;
 
-        let time_entries =
-            self.time_entry_repo.get_employee_time_entries(workspace_id, employee_id, start_dt, end_dt)
-                .await
-                .map_err(AppError::Sqlx)?;
+        let time_entries = self
+            .time_entry_repo
+            .get_employee_time_entries(workspace_id, employee_id, start_dt, end_dt)
+            .await
+            .map_err(AppError::Sqlx)?;
 
-        let holidays_map = self.holiday_repo.get_holidays_in_range(
-            workspace_id, start_date, end_date,
-        )
-        .await
-        .map_err(AppError::Sqlx)?;
+        let holidays_map = self
+            .holiday_repo
+            .get_holidays_in_range(workspace_id, start_date, end_date)
+            .await
+            .map_err(AppError::Sqlx)?;
 
         let roster_data = crate::cache::build_roster_data(pool, workspace_id)
             .await
@@ -151,14 +162,12 @@ impl PayrollService {
                 AppError::Internal("Internal error".into())
             })?;
 
-        let emp_row = sqlx::query(
-            "SELECT employee_id_number, tags FROM employees WHERE id = $1",
-        )
-        .bind(employee_id)
-        .fetch_optional(pool)
-        .await
-        .map_err(AppError::Sqlx)?
-        .ok_or(AppError::NotFound("Not found".into()))?;
+        let emp_row = sqlx::query("SELECT employee_id_number, tags FROM employees WHERE id = $1")
+            .bind(employee_id)
+            .fetch_optional(pool)
+            .await
+            .map_err(AppError::Sqlx)?
+            .ok_or(AppError::NotFound("Not found".into()))?;
 
         let emp_id_number: String = {
             use sqlx::Row;
@@ -169,7 +178,9 @@ impl PayrollService {
             emp_row.get("tags")
         };
 
-        let rosters = self.roster_repo.get_employee_rosters( employee_id, start_date, end_date)
+        let rosters = self
+            .roster_repo
+            .get_employee_rosters(employee_id, start_date, end_date)
             .await
             .map_err(AppError::Sqlx)?;
         let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
@@ -242,7 +253,9 @@ impl PayrollService {
     ) -> Result<Payslip, AppError> {
         let pool = &self.pool;
         // Phase 1: Fetch all context data
-        let ctx = self.fetch_context(employee_id, workspace_id, year, month).await?;
+        let ctx = self
+            .fetch_context(employee_id, workspace_id, year, month)
+            .await?;
 
         // Phase 2: Build segments
         let segments = Self::build_segments(&ctx);
@@ -259,7 +272,8 @@ impl PayrollService {
 
         for (seg_start, seg_end) in segments {
             // A. Context Resolution
-            let active_dept = ctx.all_dept_history
+            let active_dept = ctx
+                .all_dept_history
                 .iter()
                 .filter(|d| d.effective_date <= seg_start)
                 .max_by_key(|d| d.effective_date);
@@ -280,13 +294,20 @@ impl PayrollService {
 
             // Resolve Standard Month Config
             let std_config = PolicyResolver::resolve_standard_month(
-                pool, employee_id, dept_id, workspace_id, seg_start,
+                pool,
+                employee_id,
+                dept_id,
+                workspace_id,
+                seg_start,
             )
             .await
             .map_err(AppError::Sqlx)?;
 
             let attendance_policy = PolicyResolver::resolve_attendance_policy(
-                pool, employee_id, workspace_id, seg_start,
+                pool,
+                employee_id,
+                workspace_id,
+                seg_start,
             )
             .await
             .map_err(AppError::Sqlx)?;
@@ -296,15 +317,25 @@ impl PayrollService {
 
             // B. Attendance — delegated to AttendanceMatcher
             let att = AttendanceMatcher::process_segment_attendance(
-                pool, &ctx, seg_start, seg_end,
-                segment_total_base, segment_ot_base,
-                &std_config, &attendance_policy, seg_units_per_day,
+                pool,
+                &ctx,
+                seg_start,
+                seg_end,
+                segment_total_base,
+                segment_ot_base,
+                &std_config,
+                &attendance_policy,
+                seg_units_per_day,
                 &mut policy_cache,
-            ).await;
+            )
+            .await;
 
             // C. Financials
             let worked_days_dec = Decimal::from(att.std_units) / seg_units_per_day;
-            let daily_rate = FinancialCalculator::calculate_daily_rate(segment_total_base, std_config.std_working_days);
+            let daily_rate = FinancialCalculator::calculate_daily_rate(
+                segment_total_base,
+                std_config.std_working_days,
+            );
             let segment_amount = daily_rate * worked_days_dec;
 
             total_base_pay += segment_amount;
@@ -329,20 +360,27 @@ impl PayrollService {
         }
 
         // Phase 4: Enforce monthly OT cap
-        let payroll_settings = self.payroll_repo.get_payroll_settings_at(
-            workspace_id, ctx.end_date,
-        ).await.unwrap_or(None);
+        let payroll_settings = self
+            .payroll_repo
+            .get_payroll_settings_at(workspace_id, ctx.end_date)
+            .await
+            .unwrap_or(None);
         if let Some(ref ps) = payroll_settings {
             if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
                 let month_end_policy = PolicyResolver::resolve_attendance_policy(
-                    pool, employee_id, workspace_id, ctx.end_date,
+                    pool,
+                    employee_id,
+                    workspace_id,
+                    ctx.end_date,
                 )
                 .await
                 .map_err(AppError::Sqlx)?;
 
                 let (capped_units, capped_pay) = FinancialCalculator::apply_ot_cap(
-                    total_ot_units, total_overtime_pay,
-                    max_monthly_hours, month_end_policy.work_unit_minutes,
+                    total_ot_units,
+                    total_overtime_pay,
+                    max_monthly_hours,
+                    month_end_policy.work_unit_minutes,
                 );
                 if capped_units < total_ot_units {
                     tracing::info!(
@@ -358,41 +396,79 @@ impl PayrollService {
 
         // Phase 5: Incentives — delegated to FinancialCalculator
         let incentives = FinancialCalculator::calculate_incentives(
-            pool, workspace_id, employee_id,
-            total_std_units, total_late_early_count,
-            ctx.start_date, ctx.end_date,
-        ).await?;
+            pool,
+            workspace_id,
+            employee_id,
+            total_std_units,
+            total_late_early_count,
+            ctx.start_date,
+            ctx.end_date,
+        )
+        .await?;
 
         // Phase 6: Deductions — delegated to FinancialCalculator
-        let gross_salary = total_base_pay + total_overtime_pay + total_holiday_work_premium + incentives.total_amount;
+        let gross_salary = total_base_pay
+            + total_overtime_pay
+            + total_holiday_work_premium
+            + incentives.total_amount;
         let last_department_id = segment_snapshots.last().and_then(|s| s.department_id);
-        
+
         let mut base_values = HashMap::new();
         base_values.insert("gross".to_string(), gross_salary);
         base_values.insert("base_pay".to_string(), total_base_pay);
-        
-        if let Ok(groups) = crate::repositories::salary_base_repository::SalaryBaseRepository::get_groups(pool, workspace_id).await {
+
+        if let Ok(groups) =
+            crate::repositories::salary_base_repository::SalaryBaseRepository::get_groups(
+                pool,
+                workspace_id,
+            )
+            .await
+        {
             for group in groups {
-                let amount = if group.slug == "bhxh_base" { total_base_pay } else { gross_salary };
+                let amount = if group.slug == "bhxh_base" {
+                    total_base_pay
+                } else {
+                    gross_salary
+                };
                 base_values.insert(group.slug, amount);
             }
         }
 
         let deductions = FinancialCalculator::calculate_deductions(
-            pool, workspace_id, employee_id, last_department_id,
-            ctx.start_date, ctx.end_date, &base_values, &segment_snapshots,
-        ).await?;
+            pool,
+            workspace_id,
+            employee_id,
+            last_department_id,
+            ctx.start_date,
+            ctx.end_date,
+            &base_values,
+            &segment_snapshots,
+        )
+        .await?;
 
         // Phase 7: Assemble Payslip — delegated to FinancialCalculator
         let payslip = FinancialCalculator::assemble_payslip(
-            workspace_id, employee_id, ctx.start_date, ctx.end_date,
-            total_base_pay, total_overtime_pay, total_holiday_work_premium,
-            incentives.total_amount, deductions.amount,
-            total_std_units, total_ot_units,
+            workspace_id,
+            employee_id,
+            ctx.start_date,
+            ctx.end_date,
+            total_base_pay,
+            total_overtime_pay,
+            total_holiday_work_premium,
+            incentives.total_amount,
+            deductions.amount,
+            total_std_units,
+            total_ot_units,
         );
 
         // Phase 8: Persist — delegated to PayslipPersister
-        self.persist_calculated_payslip(payslip, segment_snapshots, incentives.results, deductions.rule_results).await
+        self.persist_calculated_payslip(
+            payslip,
+            segment_snapshots,
+            incentives.results,
+            deductions.rule_results,
+        )
+        .await
     }
 
     /// Helper extracted to move Database operations out of the calculation flow
@@ -404,38 +480,43 @@ impl PayrollService {
         incentive_results: Vec<crate::models::IncentiveEvaluationResult>,
         rule_results: Vec<crate::services::payroll_rule_evaluator::RuleEvaluationResult>,
     ) -> Result<Payslip, AppError> {
-        let created_payslip = self.payroll_repo.create_payslip(&payslip)
+        let created_payslip = self
+            .payroll_repo
+            .create_payslip(&payslip)
             .await
             .map_err(AppError::Sqlx)?;
 
         for snap in segment_snapshots {
-            self.payroll_repo.create_payslip_segment(
-                created_payslip.id,
-                snap.seg_start,
-                snap.seg_end,
-                snap.department_id,
-                snap.total_base,
-                snap.std_working_days,
-                snap.hours_per_day,
-                snap.actual_worked_days,
-                snap.paid_days,
-                snap.amount,
-                Some(snap.source),
-            )
-            .await
-            .map_err(AppError::Sqlx)?;
+            self.payroll_repo
+                .create_payslip_segment(
+                    created_payslip.id,
+                    snap.seg_start,
+                    snap.seg_end,
+                    snap.department_id,
+                    snap.total_base,
+                    snap.std_working_days,
+                    snap.hours_per_day,
+                    snap.actual_worked_days,
+                    snap.paid_days,
+                    snap.amount,
+                    Some(snap.source),
+                )
+                .await
+                .map_err(AppError::Sqlx)?;
         }
 
         for res in incentive_results {
-            let _ = self.payroll_repo.create_payslip_incentive(created_payslip.id, &res).await;
+            let _ = self
+                .payroll_repo
+                .create_payslip_incentive(created_payslip.id, &res)
+                .await;
         }
 
         for rule in rule_results {
-            let _ = self.payroll_repo.create_payslip_rule_evaluation(
-                created_payslip.id,
-                rule.rule_code,
-                rule.amount,
-            ).await;
+            let _ = self
+                .payroll_repo
+                .create_payslip_rule_evaluation(created_payslip.id, rule.rule_code, rule.amount)
+                .await;
         }
 
         Ok(created_payslip)
@@ -463,13 +544,9 @@ impl PayrollService {
                     pool: self.pool.clone(),
                 };
                 async move {
-                    match svc.calculate_monthly_payslip(
-                        emp_id,
-                        workspace_id,
-                        year,
-                        month,
-                    )
-                    .await
+                    match svc
+                        .calculate_monthly_payslip(emp_id, workspace_id, year, month)
+                        .await
                     {
                         Ok(payslip) => crate::models::BatchCalculateResult {
                             employee_id: emp_id,
@@ -505,7 +582,12 @@ mod tests {
         NaiveDate::from_ymd_opt(y, m, day).expect("valid date")
     }
 
-    fn make_salary_entry(effective_date: NaiveDate) -> (crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition) {
+    fn make_salary_entry(
+        effective_date: NaiveDate,
+    ) -> (
+        crate::models::EmployeeSalaryComponent,
+        crate::models::SalaryComponentDefinition,
+    ) {
         (
             crate::models::EmployeeSalaryComponent {
                 id: Uuid::new_v4(),
@@ -543,7 +625,10 @@ mod tests {
     fn make_ctx(
         start_date: NaiveDate,
         end_date: NaiveDate,
-        salary_history: Vec<(crate::models::EmployeeSalaryComponent, crate::models::SalaryComponentDefinition)>,
+        salary_history: Vec<(
+            crate::models::EmployeeSalaryComponent,
+            crate::models::SalaryComponentDefinition,
+        )>,
         all_dept_history: Vec<crate::models::EmployeeDepartmentHistory>,
     ) -> PayrollContext {
         PayrollContext {
@@ -594,7 +679,8 @@ mod tests {
     #[test]
     fn test_build_segments_salary_change_mid_month() {
         let ctx = make_ctx(
-            d(2026, 3, 1), d(2026, 3, 31),
+            d(2026, 3, 1),
+            d(2026, 3, 31),
             vec![make_salary_entry(d(2026, 3, 16))],
             vec![],
         );
@@ -607,7 +693,8 @@ mod tests {
     #[test]
     fn test_build_segments_dept_change_mid_month() {
         let ctx = make_ctx(
-            d(2026, 3, 1), d(2026, 3, 31),
+            d(2026, 3, 1),
+            d(2026, 3, 31),
             vec![],
             vec![make_dept_entry(d(2026, 3, 10))],
         );
@@ -620,7 +707,8 @@ mod tests {
     #[test]
     fn test_build_segments_multiple_changes() {
         let ctx = make_ctx(
-            d(2026, 3, 1), d(2026, 3, 31),
+            d(2026, 3, 1),
+            d(2026, 3, 31),
             vec![make_salary_entry(d(2026, 3, 10))],
             vec![make_dept_entry(d(2026, 3, 20))],
         );
@@ -634,7 +722,8 @@ mod tests {
     #[test]
     fn test_build_segments_change_on_first_day_no_extra_segment() {
         let ctx = make_ctx(
-            d(2026, 3, 1), d(2026, 3, 31),
+            d(2026, 3, 1),
+            d(2026, 3, 31),
             vec![make_salary_entry(d(2026, 3, 1))],
             vec![],
         );
@@ -645,7 +734,8 @@ mod tests {
     #[test]
     fn test_build_segments_change_after_end_ignored() {
         let ctx = make_ctx(
-            d(2026, 3, 1), d(2026, 3, 31),
+            d(2026, 3, 1),
+            d(2026, 3, 31),
             vec![make_salary_entry(d(2026, 4, 5))],
             vec![],
         );
@@ -656,7 +746,8 @@ mod tests {
     #[test]
     fn test_build_segments_same_day_salary_and_dept() {
         let ctx = make_ctx(
-            d(2026, 3, 1), d(2026, 3, 31),
+            d(2026, 3, 1),
+            d(2026, 3, 31),
             vec![make_salary_entry(d(2026, 3, 15))],
             vec![make_dept_entry(d(2026, 3, 15))],
         );
@@ -672,29 +763,21 @@ mod tests {
     #[test]
     fn test_daily_rate_normal() {
         // Base salary 26_000 / 26 working days = 1_000 per day
-        let rate = FinancialCalculator::calculate_daily_rate(
-            Decimal::from(26_000),
-            Decimal::from(26),
-        );
+        let rate =
+            FinancialCalculator::calculate_daily_rate(Decimal::from(26_000), Decimal::from(26));
         assert_eq!(rate, Decimal::from(1_000));
     }
 
     #[test]
     fn test_daily_rate_zero_working_days_returns_zero() {
         // Edge case: zero working days should not panic/divide-by-zero
-        let rate = FinancialCalculator::calculate_daily_rate(
-            Decimal::from(30_000),
-            Decimal::ZERO,
-        );
+        let rate = FinancialCalculator::calculate_daily_rate(Decimal::from(30_000), Decimal::ZERO);
         assert_eq!(rate, Decimal::ZERO);
     }
 
     #[test]
     fn test_daily_rate_zero_base_returns_zero() {
-        let rate = FinancialCalculator::calculate_daily_rate(
-            Decimal::ZERO,
-            Decimal::from(26),
-        );
+        let rate = FinancialCalculator::calculate_daily_rate(Decimal::ZERO, Decimal::from(26));
         assert_eq!(rate, Decimal::ZERO);
     }
 
@@ -732,9 +815,9 @@ mod tests {
     #[test]
     fn test_ot_cap_exact_limit() {
         let (units, pay) = FinancialCalculator::apply_ot_cap(
-            40,                   // exactly at limit
+            40, // exactly at limit
             Decimal::from(8_000),
-            Decimal::from(20),    // 20h * 60 / 30 = 40
+            Decimal::from(20), // 20h * 60 / 30 = 40
             30,
         );
         assert_eq!(units, 40); // no reduction
@@ -743,12 +826,8 @@ mod tests {
 
     #[test]
     fn test_ot_cap_zero_units() {
-        let (units, pay) = FinancialCalculator::apply_ot_cap(
-            0,
-            Decimal::ZERO,
-            Decimal::from(20),
-            30,
-        );
+        let (units, pay) =
+            FinancialCalculator::apply_ot_cap(0, Decimal::ZERO, Decimal::from(20), 30);
         assert_eq!(units, 0);
         assert_eq!(pay, Decimal::ZERO);
     }
@@ -791,10 +870,8 @@ mod tests {
             source: "system".to_string(),
         };
 
-        let daily_rate = FinancialCalculator::calculate_daily_rate(
-            snap.total_base,
-            snap.std_working_days,
-        );
+        let daily_rate =
+            FinancialCalculator::calculate_daily_rate(snap.total_base, snap.std_working_days);
         assert_eq!(daily_rate, Decimal::from(1_000));
     }
 }

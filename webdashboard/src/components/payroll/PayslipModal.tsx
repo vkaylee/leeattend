@@ -1,10 +1,13 @@
 import React, { useRef, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Printer, Download } from 'lucide-react';
-import { Employee, Payslip, Workspace } from '@/lib/api/types';
-import PayslipDocument from './PayslipDocument';
+import { useTranslation } from 'react-i18next';
+
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
+import { Employee, Payslip, Workspace } from '@/lib/api/types';
+
+import PayslipDocument from './PayslipDocument';
 
 interface PayslipModalProps {
   isOpen: boolean;

@@ -6,7 +6,9 @@ use chrono::NaiveDate;
 use sqlx::{query_scalar, PgPool};
 use uuid::Uuid;
 
-use crate::models::{TurnoverAnalytics, TurnoverByDepartment, TurnoverBySource, TurnoverTenureBucket};
+use crate::models::{
+    TurnoverAnalytics, TurnoverByDepartment, TurnoverBySource, TurnoverTenureBucket,
+};
 
 /// Dashboard chart: turnover analytics for terminated employees within a date range
 pub async fn get_turnover_analytics(

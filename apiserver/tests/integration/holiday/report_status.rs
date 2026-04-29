@@ -53,9 +53,7 @@ async fn test_report_status_holiday_no_punch() {
 
     // Create a holiday for today via API
     let create_resp = client
-        .post(format!(
-            "{address}/api/workspaces/{workspace_id}/holidays"
-        ))
+        .post(format!("{address}/api/workspaces/{workspace_id}/holidays"))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Test Holiday",
@@ -83,7 +81,10 @@ async fn test_report_status_holiday_no_punch() {
     assert_eq!(report.data.len(), 1);
 
     let row = &report.data[0];
-    assert_eq!(row.status, "holiday_paid", "No punch on paid holiday → status should be 'holiday_paid'");
+    assert_eq!(
+        row.status, "holiday_paid",
+        "No punch on paid holiday → status should be 'holiday_paid'"
+    );
     assert!(row.is_holiday, "is_holiday should be true");
     assert_eq!(row.holiday_name.as_deref(), Some("Test Holiday"));
 }
@@ -119,9 +120,7 @@ async fn test_report_status_holiday_with_punch() {
 
     // Create holiday
     let create_resp = client
-        .post(format!(
-            "{address}/api/workspaces/{workspace_id}/holidays"
-        ))
+        .post(format!("{address}/api/workspaces/{workspace_id}/holidays"))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Quốc tế Lao động",
@@ -165,7 +164,10 @@ async fn test_report_status_holiday_with_punch() {
     assert_eq!(report.data.len(), 1);
 
     let row = &report.data[0];
-    assert_eq!(row.status, "holiday_work", "Punch on holiday → status should be 'holiday_work'");
+    assert_eq!(
+        row.status, "holiday_work",
+        "Punch on holiday → status should be 'holiday_work'"
+    );
     assert!(row.is_holiday, "is_holiday should be true");
     assert_eq!(row.holiday_name.as_deref(), Some("Quốc tế Lao động"));
 }

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useTranslation } from "react-i18next";
+
+import * as Popover from "@radix-ui/react-popover";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { format } from "date-fns";
 import {
   UserCircle,
   Building2,
@@ -15,39 +17,47 @@ import {
   Check,
   X,
 } from "lucide-react";
-import * as Popover from "@radix-ui/react-popover";
+import { useTranslation } from "react-i18next";
+
+import FloatingRecordBadge from "@/components/common/FloatingRecordBadge";
 import NavigableList from "@/components/common/NavigableList";
 import type { NavigableListColumn } from "@/components/common/NavigableList";
+import PermissionGate from "@/components/common/PermissionGate";
+import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
+import EmployeeDetailDrawer from "@/components/features/employees/EmployeeDetailDrawer";
+import EmployeeFormModal from "@/components/features/employees/EmployeeFormModal";
+import TransferEmployeeModal from "@/components/features/employees/TransferEmployeeModal";
+import EmploymentHistoryModal from "@/components/features/employees/EmploymentHistoryModal";
+import RehireEmployeeModal from "@/components/features/employees/RehireEmployeeModal";
+
 import Button from "@/components/ui/Button";
-import StatusBadge from "@/components/ui/StatusBadge";
+
+import { useDebounce } from "@/hooks/use-debounce";
+import { Combobox } from "@/components/ui/Combobox";
 import FormField from "@/components/ui/FormField";
+import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { useToast } from "@/components/ui/Toast";
+
+
+
+import { useConfirm } from "@/hooks/use-confirm";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { cn } from "@/lib/utils";
 
 import {
   searchEmployees,
-  createEmployee,
+  
   updateEmployee,
   getCurrentWorkspaceId,
   Employee,
   fetchDepartments,
   fetchEmployeeDepartmentHistory,
-  transferEmployee,
+  
   fetchEmploymentHistory,
-  rehireEmployee
+  
 } from "../lib/api";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useDebounce } from "@/hooks/use-debounce";
-import { format } from "date-fns";
-import { Combobox } from "@/components/ui/Combobox";
-import Modal from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/Toast";
-import { cn } from "@/lib/utils";
-import FloatingRecordBadge from "@/components/common/FloatingRecordBadge";
-import EmployeeDetailDrawer from "@/components/features/employees/EmployeeDetailDrawer";
-
-import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
-import PermissionGate from "@/components/common/PermissionGate";
-import { useConfirm } from "@/hooks/use-confirm";
 
 
 export default function EmployeesPage() {
@@ -280,49 +290,14 @@ export default function EmployeesPage() {
   const { data: deptHistory } = useQuery({ queryKey: ["deptHistory", selectedEmployee?.id], queryFn: () => fetchEmployeeDepartmentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
   const { data: employmentHistory } = useQuery({ queryKey: ["employmentHistory", selectedEmployee?.id], queryFn: () => fetchEmploymentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
 
-  const createMutation = useMutation({
-    mutationFn: (data: Partial<Employee>) => createEmployee(wsId, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["employees", wsId] }); setIsModalOpen(false); toast.success(t("common.success")); },
-  });
-
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; employee: Partial<Employee> }) => updateEmployee(wsId, data.id, data.employee),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["employees", wsId] }); setIsModalOpen(false); setEditingEmployee(null); toast.success(t("common.success")); },
   });
 
-  const transferMutation = useMutation({
-    mutationFn: (data: any) => transferEmployee(wsId, selectedEmployee!.id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["deptHistory", selectedEmployee?.id] }); setIsTransferModalOpen(false); setSelectedDeptId(""); toast.success(t("common.success")); },
-  });
-
-  const rehireMutation = useMutation({
-    mutationFn: (data: { hire_date: string }) => rehireEmployee(wsId, selectedEmployee!.id, data),
-    onSuccess: (updatedEmp) => { queryClient.invalidateQueries({ queryKey: ["employees", wsId] }); queryClient.invalidateQueries({ queryKey: ["employmentHistory", selectedEmployee?.id] }); setSelectedEmployee(updatedEmp); setIsRehireModalOpen(false); toast.success(t("common.success")); },
-  });
-
   const toast = useToast();
 
 
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); const formData = new FormData(e.currentTarget);
-    const data = { full_name: formData.get("full_name") as string, employee_id_number: formData.get("employee_id_number") as string, hire_date: formData.get("hire_date") as string, is_active: formData.get("is_active") === "on" };
-    if (editingEmployee) updateMutation.mutate({ id: editingEmployee.id, employee: data });
-    else {
-      createMutation.mutate(data);
-      setPrefillEnrollmentId(""); // Clear prefill after creating
-    }
-  };
-
-  const handleTransferSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); const formData = new FormData(e.currentTarget);
-    transferMutation.mutate({ department_id: selectedDeptId, effective_date: formData.get("effective_date"), notes: formData.get("notes") });
-  };
-
-  const handleRehireSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); const formData = new FormData(e.currentTarget);
-    rehireMutation.mutate({ hire_date: formData.get("hire_date") as string });
-  };
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const focusSearch = () => setTimeout(() => searchInputRef.current?.focus(), 100);
@@ -437,71 +412,42 @@ export default function EmployeesPage() {
       />
 
       {/* Main Employee Form Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingEmployee ? t("employees.form.edit_title") : t("employees.form.add_title")} subtitle={t("employees.form.subtitle")} icon={<UserCircle size={24} />} maxWidth="lg">
-        <form onSubmit={handleSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
-          <FormField label={t("employees.form.full_name")} name="full_name" data-testid="employees-form-name-input" required defaultValue={editingEmployee?.full_name} />
-          <FormField label={t("employees.form.employee_id")} name="employee_id_number" data-testid="employees-form-id-input" required defaultValue={editingEmployee?.employee_id_number || prefillEnrollmentId} inputClassName="font-mono tracking-widest" />
-          <FormField label={t("employees.form.hire_date")} name="hire_date" type="date" data-testid="employees-form-hire-date-input" required defaultValue={editingEmployee?.hire_date} />
-          <div className="flex items-center gap-4 py-2 px-2 group cursor-pointer">
-            <input type="checkbox" name="is_active" id="is_active" data-testid="employees-form-active-checkbox" defaultChecked={editingEmployee ? editingEmployee.is_active : true} className="w-7 h-7 text-primary-600 dark:text-primary-400 rounded-xl border-slate-200 dark:border-slate-700 focus:ring-primary-500 transition-all cursor-pointer shadow-inner" />
-            <label htmlFor="is_active" className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest cursor-pointer group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{t("employees.form.is_active")}</label>
-          </div>
-          <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-            <Button variant="outline" size="lg" onClick={() => setIsModalOpen(false)}>{t("employees.form.cancel").toUpperCase()}</Button>
-            <Button variant="secondary" size="lg" type="submit" data-testid="save-employee-btn">{editingEmployee ? t("employees.form.update").toUpperCase() : t("employees.form.save").toUpperCase()}</Button>
-          </div>
-        </form>
-      </Modal>
+      <EmployeeFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        editingEmployee={editingEmployee}
+        wsId={wsId}
+        prefillEnrollmentId={prefillEnrollmentId}
+        onSuccess={() => setPrefillEnrollmentId("")}
+      />
 
       {/* Transfer Modal */}
-      <Modal isOpen={isTransferModalOpen} onClose={() => { setIsTransferModalOpen(false); setSelectedDeptId(""); }} title={t("employees.transfer.title")} subtitle={t("employees.transfer.subtitle")} icon={<Building2 size={24} />} maxWidth="md">
-        <form onSubmit={handleTransferSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
-          <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.transfer.new_dept")}</label><Combobox options={departments?.map(d => ({ value: d.id, label: d.name.toUpperCase(), icon: <Building2 size={14} /> })) || []} value={selectedDeptId} onChange={setSelectedDeptId} placeholder={t("employees.transfer.select_dept")} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 h-14" /></div>
-          <FormField label={t("employees.transfer.effective_date")} name="effective_date" type="date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} />
-          <FormField label={t("employees.transfer.notes")} name="notes" type="textarea" placeholder={t("employees.transfer.notes_placeholder")} rows={4} />
-          <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-            <Button variant="outline" size="lg" onClick={() => setIsTransferModalOpen(false)}>{t("common.cancel").toUpperCase()}</Button>
-            <Button variant="secondary" size="lg" type="submit" data-testid="submit-transfer-btn">{t("employees.transfer.submit").toUpperCase()}</Button>
-          </div>
-        </form>
-      </Modal>
+      <TransferEmployeeModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        employeeId={selectedEmployee?.id || null}
+        wsId={wsId}
+        departments={departments}
+        selectedDeptId={selectedDeptId}
+        setSelectedDeptId={setSelectedDeptId}
+      />
 
       {/* History Modal */}
-      <Modal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} title={t("employees.history.title")} subtitle={t("employees.history.subtitle")} icon={<HistoryIcon size={24} />} maxWidth="lg">
-        <div className="space-y-4 pt-4 animate-in fade-in duration-500">
-          {employmentHistory?.map((period) => (
-            <div key={period.id} className="p-8 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-inner group hover:bg-white dark:hover:bg-slate-900 transition-all relative overflow-hidden">
-              <div className="flex justify-between items-center relative z-10">
-                <div>
-                  <div className="font-bold text-slate-700 dark:text-slate-200 text-lg uppercase tracking-tight flex items-center gap-4">
-                    {period.is_rehire ? t("employees.history.rehire_period") : t("employees.history.first_period")}
-                    {!period.termination_date && (<StatusBadge variant="success">{t("employees.history.currently_working")}</StatusBadge>)}
-                  </div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.25em] mt-3 flex items-center gap-3 opacity-70">
-                    <CalendarIcon size={14} className="text-primary-400" /> {t("employees.history.period_range", { start: formatDate(period.hire_date), end: period.termination_date ? formatDate(period.termination_date) : t("employees.history.present").toUpperCase() })}
-                  </div>
-                </div>
-              </div>
-              <CalendarIcon className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-            </div>
-          ))}
-        </div>
-        <div className="mt-10 pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button variant="secondary" size="lg" onClick={() => setIsHistoryModalOpen(false)}>{t("common.close").toUpperCase()}</Button></div>
-      </Modal>
+      <EmploymentHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        employmentHistory={employmentHistory}
+        formatDate={formatDate}
+      />
 
       {/* Rehire Modal */}
-      <Modal isOpen={isRehireModalOpen} onClose={() => setIsRehireModalOpen(false)} title={t("employees.rehire.title")} subtitle={t("employees.rehire.subtitle")} icon={<UserPlus size={24} />} maxWidth="md">
-        <div className="space-y-10 pt-4 animate-in fade-in duration-500">
-          <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner text-center italic"><p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tight leading-relaxed">"{t("employees.rehire.confirm_msg")}"</p></div>
-          <form onSubmit={handleRehireSubmit} className="space-y-8">
-            <FormField label={t("employees.rehire.rehire_date")} name="hire_date" type="date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} />
-            <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-              <Button variant="outline" size="lg" onClick={() => setIsRehireModalOpen(false)}>{t("common.cancel").toUpperCase()}</Button>
-              <Button size="lg" type="submit" data-testid="confirm-rehire-btn" loading={rehireMutation.isPending}>{rehireMutation.isPending ? t("employees.rehire.processing").toUpperCase() : t("employees.rehire.confirm").toUpperCase()}</Button>
-            </div>
-          </form>
-        </div>
-      </Modal>
+      <RehireEmployeeModal
+        isOpen={isRehireModalOpen}
+        onClose={() => setIsRehireModalOpen(false)}
+        employeeId={selectedEmployee?.id || null}
+        wsId={wsId}
+        onSuccess={(updatedEmp) => setSelectedEmployee(updatedEmp)}
+      />
 
       <FloatingRecordBadge loaded={employees.length} total={totalItems} label={t("common.pagination.records")} />
 

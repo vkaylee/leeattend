@@ -45,10 +45,7 @@ pub trait RosterRepository: super::PoolBacked + Send + Sync {
         end_date: NaiveDate,
     ) -> Result<Vec<ShiftRoster>, sqlx::Error>;
 
-    async fn upsert_roster(
-        &self,
-        roster: &ShiftRoster,
-    ) -> Result<ShiftRoster, sqlx::Error>;
+    async fn upsert_roster(&self, roster: &ShiftRoster) -> Result<ShiftRoster, sqlx::Error>;
 
     async fn bulk_upsert_roster(
         &self,
@@ -63,11 +60,7 @@ pub trait RosterRepository: super::PoolBacked + Send + Sync {
         date: NaiveDate,
     ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), sqlx::Error>;
 
-    async fn delete_roster(
-        &self,
-        employee_id: Uuid,
-        date: NaiveDate,
-    ) -> Result<(), sqlx::Error>;
+    async fn delete_roster(&self, employee_id: Uuid, date: NaiveDate) -> Result<(), sqlx::Error>;
 }
 
 pub struct SqlxRosterRepository {
@@ -118,10 +111,7 @@ impl RosterRepository for SqlxRosterRepository {
         roster_crud::get_employee_rosters(&self.pool, employee_id, start_date, end_date).await
     }
 
-    async fn upsert_roster(
-        &self,
-        roster: &ShiftRoster,
-    ) -> Result<ShiftRoster, sqlx::Error> {
+    async fn upsert_roster(&self, roster: &ShiftRoster) -> Result<ShiftRoster, sqlx::Error> {
         roster_crud::upsert_roster(&self.pool, roster).await
     }
 
@@ -142,11 +132,7 @@ impl RosterRepository for SqlxRosterRepository {
         schedule_queries::get_effective_shift(&self.pool, workspace_id, employee_id, date).await
     }
 
-    async fn delete_roster(
-        &self,
-        employee_id: Uuid,
-        date: NaiveDate,
-    ) -> Result<(), sqlx::Error> {
+    async fn delete_roster(&self, employee_id: Uuid, date: NaiveDate) -> Result<(), sqlx::Error> {
         roster_crud::delete_roster(&self.pool, employee_id, date).await
     }
 }

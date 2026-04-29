@@ -52,7 +52,11 @@ impl ShiftAwareStrategy {
         ALGORITHM_NAME
     }
 
-    pub fn pair(&self, logs: &[LogEvent], config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
+    pub fn pair(
+        &self,
+        logs: &[LogEvent],
+        config: Option<&PairingShiftConfig>,
+    ) -> Vec<PairedSession> {
         if logs.is_empty() {
             return vec![];
         }
@@ -70,14 +74,18 @@ impl ShiftAwareStrategy {
     /// Earliest log near shift start = IN, last log of the day = OUT.
     /// Check-in uses a buffer window to avoid picking up logs from previous day.
     /// Check-out has no buffer — captures any amount of overtime.
-    fn pair_by_shift_window(&self, logs: &[LogEvent], shift: &PairingShiftConfig) -> Vec<PairedSession> {
+    fn pair_by_shift_window(
+        &self,
+        logs: &[LogEvent],
+        shift: &PairingShiftConfig,
+    ) -> Vec<PairedSession> {
         let check_in_window_start = shift.start_minutes - SHIFT_WINDOW_BUFFER;
         let check_in_window_end = shift.start_minutes + SHIFT_WINDOW_BUFFER;
 
         // Find earliest log in check-in window
-        let first_in = logs.iter().find(|l| {
-            l.minutes >= check_in_window_start && l.minutes <= check_in_window_end
-        });
+        let first_in = logs
+            .iter()
+            .find(|l| l.minutes >= check_in_window_start && l.minutes <= check_in_window_end);
 
         // If we can't find logs in shift windows, fall back to anchor-first
         let (start, start_id) = match first_in {
@@ -86,7 +94,10 @@ impl ShiftAwareStrategy {
         };
 
         // Last Out: take the last log of the day (after check-in)
-        let last_out = logs.iter().rev().find(|l| l.id != start_id && l.minutes > start);
+        let last_out = logs
+            .iter()
+            .rev()
+            .find(|l| l.id != start_id && l.minutes > start);
 
         let (end, end_id) = match last_out {
             Some(log) => (Some(log.minutes), Some(log.id)),
@@ -175,10 +186,10 @@ mod tests {
 
     fn standard_shift() -> PairingShiftConfig {
         PairingShiftConfig {
-            start_minutes: 480,  // 08:00
-            end_minutes: 1020,   // 17:00
-            break_start_minutes: Some(720),  // 12:00
-            break_end_minutes: Some(780),    // 13:00
+            start_minutes: 480,             // 08:00
+            end_minutes: 1020,              // 17:00
+            break_start_minutes: Some(720), // 12:00
+            break_end_minutes: Some(780),   // 13:00
         }
     }
 
@@ -208,7 +219,7 @@ mod tests {
     fn test_shift_window_long_overtime() {
         let strategy = get_strategy();
         let shift = standard_shift(); // 08:00-17:00
-        // Employee works until 23:00 (6h overtime)
+                                      // Employee works until 23:00 (6h overtime)
         let logs = vec![
             make_log(475),  // 07:55 — check-in
             make_log(1380), // 23:00 — check-out (6h after shift end)
@@ -229,8 +240,8 @@ mod tests {
         let shift = standard_shift();
         // All logs far from shift windows — should fallback to anchor_first
         let logs = vec![
-            make_log(200),  // 03:20 — way before shift
-            make_log(300),  // 05:00 — still before window
+            make_log(200), // 03:20 — way before shift
+            make_log(300), // 05:00 — still before window
         ];
 
         let sessions = strategy.pair(&logs, Some(&shift));
@@ -245,10 +256,7 @@ mod tests {
     #[test]
     fn test_anchor_first_perfect_day() {
         let strategy = get_strategy();
-        let logs = vec![
-            make_log(480),
-            make_log(1020),
-        ];
+        let logs = vec![make_log(480), make_log(1020)];
 
         let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
@@ -275,10 +283,7 @@ mod tests {
     fn test_anchor_first_16h_limit() {
         let strategy = get_strategy();
         // Log 2: 01:00 next day (1500) -> 17h gap (1020 mins). Should NOT pair.
-        let logs = vec![
-            make_log(480),
-            make_log(1500),
-        ];
+        let logs = vec![make_log(480), make_log(1500)];
 
         let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
@@ -466,8 +471,8 @@ mod tests {
     fn test_rapid_multiple_punches() {
         let strategy = get_strategy();
         let shift = PairingShiftConfig {
-            start_minutes: 450, // 07:30
-            end_minutes: 990,   // 16:30
+            start_minutes: 450,             // 07:30
+            end_minutes: 990,               // 16:30
             break_start_minutes: Some(690), // 11:30
             break_end_minutes: Some(750),   // 12:30
         };
@@ -484,7 +489,7 @@ mod tests {
 
         let sessions = strategy.pair(&logs, Some(&shift));
         assert_eq!(sessions.len(), 1);
-        assert_eq!(sessions[0].start_minutes, 446);  // earliest in window
+        assert_eq!(sessions[0].start_minutes, 446); // earliest in window
         assert_eq!(sessions[0].end_minutes, Some(1020)); // last log
     }
 
@@ -494,7 +499,7 @@ mod tests {
     fn test_log_before_shift_window_falls_back() {
         let strategy = get_strategy();
         let shift = standard_shift(); // 08:00-17:00, window starts at 06:00
-        // All logs at 03:00-04:00 — way before check-in window (480-120=360=06:00)
+                                      // All logs at 03:00-04:00 — way before check-in window (480-120=360=06:00)
         let logs = vec![
             make_log(180), // 03:00
             make_log(240), // 04:00

@@ -1,3 +1,4 @@
+import { TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
     AreaChart,
@@ -9,7 +10,7 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-import { TrendingUp } from "lucide-react";
+
 import { useAttendanceTrend } from "@/hooks/use-dashboard";
 
 const COLORS = {

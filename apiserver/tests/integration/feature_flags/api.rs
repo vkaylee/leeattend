@@ -30,9 +30,7 @@ async fn create_flag(
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(
-                    serde_json::to_string(body).unwrap(),
-                ))
+                .body(axum::body::Body::from(serde_json::to_string(body).unwrap()))
                 .unwrap(),
         )
         .await
@@ -395,8 +393,6 @@ async fn test_create_flag_with_metadata() {
     assert_eq!(status, StatusCode::CREATED);
     assert!(flag["enabled"].as_bool().unwrap());
     assert_eq!(flag["metadata"]["rollout_percent"], 25);
-    let groups = flag["metadata"]["allowed_groups"]
-        .as_array()
-        .unwrap();
+    let groups = flag["metadata"]["allowed_groups"].as_array().unwrap();
     assert_eq!(groups.len(), 2);
 }

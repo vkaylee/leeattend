@@ -1,4 +1,7 @@
-use axum::{routing::{delete, get, post}, Router};
+use axum::{
+    routing::{delete, get, post},
+    Router,
+};
 use std::sync::Arc;
 
 use crate::handlers;
@@ -17,8 +20,7 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route(
             "/workspaces/:ws_id/attendance/policies/assignments",
-            get(handlers::list_policy_assignments)
-                .post(handlers::upsert_policy_assignment),
+            get(handlers::list_policy_assignments).post(handlers::upsert_policy_assignment),
         )
         .route(
             "/workspaces/:ws_id/attendance/policies/assignments/:assignment_id",

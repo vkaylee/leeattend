@@ -17,7 +17,10 @@ use uuid::Uuid;
 use crate::cache::{CacheManager, RosterCache};
 use crate::queue::{Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
-use crate::worker::handlers::{AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, LeaveImportHandler, LogIngestionHandler, MergeHandler, ReprocessAttendanceHandler};
+use crate::worker::handlers::{
+    AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, LeaveImportHandler,
+    LogIngestionHandler, MergeHandler, ReprocessAttendanceHandler,
+};
 
 // Redis key patterns for monitoring
 const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
@@ -397,21 +400,13 @@ impl JobWorker {
                 // Future implementation
                 Err("PayrollReport not implemented".to_string())
             }
-            TaskType::LeaveAccrual => {
-                AccrualHandler::handle(&self.db, &job, &self.redis).await
-            }
-            TaskType::LogIngestion => {
-                LogIngestionHandler::handle(&self.db, &job).await
-            }
+            TaskType::LeaveAccrual => AccrualHandler::handle(&self.db, &job, &self.redis).await,
+            TaskType::LogIngestion => LogIngestionHandler::handle(&self.db, &job).await,
             TaskType::ReprocessAttendance => {
                 ReprocessAttendanceHandler::handle(&self.db, &job, &self.redis).await
             }
-            TaskType::ClaimStagedLogs => {
-                ClaimStagedLogsHandler::handle(&self.db, &job).await
-            }
-            TaskType::LeaveImport => {
-                LeaveImportHandler::handle(&self.db, &job, &self.redis).await
-            }
+            TaskType::ClaimStagedLogs => ClaimStagedLogsHandler::handle(&self.db, &job).await,
+            TaskType::LeaveImport => LeaveImportHandler::handle(&self.db, &job, &self.redis).await,
         };
 
         let elapsed = start.elapsed();
@@ -429,7 +424,10 @@ impl JobWorker {
 
         // Report completion to coordinator (for batch-based jobs only)
         // LogIngestion jobs are standalone and don't participate in batch coordination
-        if !matches!(job.task_type, TaskType::LogIngestion | TaskType::ClaimStagedLogs | TaskType::LeaveImport) {
+        if !matches!(
+            job.task_type,
+            TaskType::LogIngestion | TaskType::ClaimStagedLogs | TaskType::LeaveImport
+        ) {
             let success = result.is_ok();
             if let Err(e) = self
                 .coordinator
@@ -590,7 +588,13 @@ mod tests {
         for task_type in task_types {
             let is_implemented = matches!(
                 task_type,
-                TaskType::AttendanceReport | TaskType::MergeResults | TaskType::LeaveAccrual | TaskType::LogIngestion | TaskType::ReprocessAttendance | TaskType::ClaimStagedLogs | TaskType::LeaveImport
+                TaskType::AttendanceReport
+                    | TaskType::MergeResults
+                    | TaskType::LeaveAccrual
+                    | TaskType::LogIngestion
+                    | TaskType::ReprocessAttendance
+                    | TaskType::ClaimStagedLogs
+                    | TaskType::LeaveImport
             );
 
             // PayrollReport should be not implemented yet
@@ -655,15 +659,24 @@ mod tests {
         // The slow batch detection threshold is 10 seconds.
         // Batches under 10s should NOT trigger a warning.
         let fast_elapsed = std::time::Duration::from_secs(9);
-        assert!(fast_elapsed.as_secs() <= 10, "9s should not trigger slow batch warning");
+        assert!(
+            fast_elapsed.as_secs() <= 10,
+            "9s should not trigger slow batch warning"
+        );
 
         // Batches over 10s SHOULD trigger a warning.
         let slow_elapsed = std::time::Duration::from_secs(11);
-        assert!(slow_elapsed.as_secs() > 10, "11s should trigger slow batch warning");
+        assert!(
+            slow_elapsed.as_secs() > 10,
+            "11s should trigger slow batch warning"
+        );
 
         // Exactly 10s should NOT trigger (> 10, not >=).
         let edge_elapsed = std::time::Duration::from_secs(10);
-        assert!(!(edge_elapsed.as_secs() > 10), "Exactly 10s should not trigger");
+        assert!(
+            !(edge_elapsed.as_secs() > 10),
+            "Exactly 10s should not trigger"
+        );
     }
 
     #[test]
@@ -687,9 +700,15 @@ mod tests {
         let elapsed = start.elapsed();
 
         // Should be at least 10ms (may be slightly more due to scheduling)
-        assert!(elapsed.as_millis() >= 10, "Elapsed should capture sleep duration");
+        assert!(
+            elapsed.as_millis() >= 10,
+            "Elapsed should capture sleep duration"
+        );
         // Should not be unreasonably long
-        assert!(elapsed.as_millis() < 500, "Elapsed should not be unreasonably long");
+        assert!(
+            elapsed.as_millis() < 500,
+            "Elapsed should not be unreasonably long"
+        );
     }
 
     #[test]

@@ -15,11 +15,7 @@ use crate::services::pairing_service::PairingService;
 pub struct ReprocessAttendanceHandler;
 
 impl ReprocessAttendanceHandler {
-    pub async fn handle(
-        db: &PgPool,
-        job: &Job,
-        redis: &RedisPool,
-    ) -> Result<(), String> {
+    pub async fn handle(db: &PgPool, job: &Job, redis: &RedisPool) -> Result<(), String> {
         let payload = job
             .reprocess_payload()
             .ok_or_else(|| "Missing reprocess payload".to_string())?;
@@ -66,12 +62,7 @@ impl ReprocessAttendanceHandler {
 
         while current_date <= end_date {
             match pairing_service
-                .reprocess_daily_attendance(
-                    job.workspace_id,
-                    payload.employee_id,
-                    current_date,
-                    tz,
-                )
+                .reprocess_daily_attendance(job.workspace_id, payload.employee_id, current_date, tz)
                 .await
             {
                 Ok(_) => success_count += 1,

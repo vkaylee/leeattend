@@ -16,8 +16,8 @@ use crate::repositories::leave_balance_repository::LeaveBalanceRepository;
 use crate::repositories::leave_request_repository::LeaveRequestRepository;
 use crate::repositories::roster::RosterRepository;
 
-use crate::repositories::EmployeeRepository;
 use crate::repositories::holiday_repository::HolidayLeaveResult;
+use crate::repositories::EmployeeRepository;
 
 pub struct HolidayLeaveService {
     employee_repo: Arc<dyn EmployeeRepository>,
@@ -35,7 +35,13 @@ impl HolidayLeaveService {
         roster_repo: Arc<dyn RosterRepository>,
         pool: PgPool,
     ) -> Self {
-        Self { employee_repo, leave_balance_repo, leave_request_repo, roster_repo, pool }
+        Self {
+            employee_repo,
+            leave_balance_repo,
+            leave_request_repo,
+            roster_repo,
+            pool,
+        }
     }
 
     /// Process leave deductions for all active employees on an unpaid holiday.
@@ -82,7 +88,9 @@ impl HolidayLeaveService {
         .unwrap_or_else(|| "Leave".to_string());
 
         // Get all active employees in workspace
-        let employees = self.employee_repo.get_active_employees(workspace_id)
+        let employees = self
+            .employee_repo
+            .get_active_employees(workspace_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -98,7 +106,9 @@ impl HolidayLeaveService {
             }
 
             // Check leave balance
-            let balances = self.leave_balance_repo.get_employee_balances(workspace_id, emp.id, year)
+            let balances = self
+                .leave_balance_repo
+                .get_employee_balances(workspace_id, emp.id, year)
                 .await
                 .map_err(|e| e.to_string())?;
 
@@ -124,7 +134,8 @@ impl HolidayLeaveService {
                     updated_at: Utc::now(),
                 };
 
-                self.leave_request_repo.create_leave_request(&leave_request)
+                self.leave_request_repo
+                    .create_leave_request(&leave_request)
                     .await
                     .map_err(|e| e.to_string())?;
 
@@ -139,18 +150,20 @@ impl HolidayLeaveService {
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 };
-                let _ = self.roster_repo.upsert_roster( &roster).await;
+                let _ = self.roster_repo.upsert_roster(&roster).await;
 
                 // Audit log via leave_accrual_logs
-                let _ = self.leave_balance_repo.adjust_balance(
-                    workspace_id,
-                    emp.id,
-                    leave_type_id,
-                    rust_decimal::Decimal::ZERO, // Balance change tracked via leave_requests, not here
-                    holiday.date,
-                    &format!("Auto-deducted: Holiday {}", holiday.name),
-                )
-                .await;
+                let _ = self
+                    .leave_balance_repo
+                    .adjust_balance(
+                        workspace_id,
+                        emp.id,
+                        leave_type_id,
+                        rust_decimal::Decimal::ZERO, // Balance change tracked via leave_requests, not here
+                        holiday.date,
+                        &format!("Auto-deducted: Holiday {}", holiday.name),
+                    )
+                    .await;
 
                 results.push(HolidayLeaveResult::LeaveDeducted {
                     employee_id: emp.id,

@@ -1,9 +1,21 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Download, CalendarCheck, FileBarChart, Clock, Users2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { format, endOfMonth } from "date-fns";
+import { Download, CalendarCheck, FileBarChart, Clock, Users2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+
+import NavigableList from "@/components/common/NavigableList";
+import type { NavigableListColumn } from "@/components/common/NavigableList";
+import EmployeeDailyDrawer from "@/components/features/reports/EmployeeDailyDrawer";
+import ReportExportDialog from "@/components/features/reports/ReportExportDialog";
+import ReportFilters from "@/components/features/reports/ReportFilters";
+
+import { useDebounce } from "@/hooks/use-debounce";
+import { formatUnitsToHours } from "@/lib/utils/attendance";
+
 import {
   fetchAttendanceReport,
   getCurrentWorkspaceId,
@@ -13,13 +25,6 @@ import {
   AttendanceReportSort,
   AttendanceSummary,
 } from "../lib/api";
-import { useDebounce } from "@/hooks/use-debounce";
-import { formatUnitsToHours } from "@/lib/utils/attendance";
-import ReportExportDialog from "@/components/features/reports/ReportExportDialog";
-import ReportFilters from "@/components/features/reports/ReportFilters";
-import EmployeeDailyDrawer from "@/components/features/reports/EmployeeDailyDrawer";
-import NavigableList from "@/components/common/NavigableList";
-import type { NavigableListColumn } from "@/components/common/NavigableList";
 
 const PAGE_SIZE = 50;
 

@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-
-
-
-
 #[derive(
     Debug,
     Serialize,
@@ -49,8 +45,6 @@ pub enum LeaveDurationType {
     SecondHalf,
     CustomHours,
 }
-
-
 
 #[derive(
     Debug,
@@ -219,15 +213,7 @@ pub enum AccrualFrequency {
 }
 
 #[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    sqlx::Type,
-    strum_macros::Display,
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
 )]
 #[sqlx(type_name = "recruitment_source_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -445,17 +431,17 @@ impl From<String> for SystemRoleType {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-
     #[test]
     fn test_leave_status_serde_roundtrip() {
         let statuses = vec![
-            LeaveStatus::Pending, LeaveStatus::Approved,
-            LeaveStatus::Rejected, LeaveStatus::Cancelled,
+            LeaveStatus::Pending,
+            LeaveStatus::Approved,
+            LeaveStatus::Rejected,
+            LeaveStatus::Cancelled,
             LeaveStatus::PreApproved,
         ];
         for status in statuses {
@@ -474,7 +460,11 @@ mod tests {
 
     #[test]
     fn test_adjustment_status_serde_roundtrip() {
-        for status in [AdjustmentStatus::Pending, AdjustmentStatus::Approved, AdjustmentStatus::Rejected] {
+        for status in [
+            AdjustmentStatus::Pending,
+            AdjustmentStatus::Approved,
+            AdjustmentStatus::Rejected,
+        ] {
             let json = serde_json::to_string(&status).unwrap();
             let back: AdjustmentStatus = serde_json::from_str(&json).unwrap();
             assert_eq!(status, back);
@@ -492,7 +482,12 @@ mod tests {
 
     #[test]
     fn test_import_job_status_serde_roundtrip() {
-        for status in [ImportJobStatus::Pending, ImportJobStatus::Processing, ImportJobStatus::Completed, ImportJobStatus::Failed] {
+        for status in [
+            ImportJobStatus::Pending,
+            ImportJobStatus::Processing,
+            ImportJobStatus::Completed,
+            ImportJobStatus::Failed,
+        ] {
             let json = serde_json::to_string(&status).unwrap();
             let back: ImportJobStatus = serde_json::from_str(&json).unwrap();
             assert_eq!(status, back);
@@ -501,7 +496,12 @@ mod tests {
 
     #[test]
     fn test_leave_transaction_type_serde() {
-        for t in [LeaveTransactionType::Accrual, LeaveTransactionType::Usage, LeaveTransactionType::Adjustment, LeaveTransactionType::CarryOver] {
+        for t in [
+            LeaveTransactionType::Accrual,
+            LeaveTransactionType::Usage,
+            LeaveTransactionType::Adjustment,
+            LeaveTransactionType::CarryOver,
+        ] {
             let json = serde_json::to_string(&t).unwrap();
             let back: LeaveTransactionType = serde_json::from_str(&json).unwrap();
             assert_eq!(t, back);
@@ -510,7 +510,11 @@ mod tests {
 
     #[test]
     fn test_early_arrival_strategy_serde() {
-        for s in [EarlyArrivalStrategy::Allow, EarlyArrivalStrategy::Block, EarlyArrivalStrategy::Clamp] {
+        for s in [
+            EarlyArrivalStrategy::Allow,
+            EarlyArrivalStrategy::Block,
+            EarlyArrivalStrategy::Clamp,
+        ] {
             let json = serde_json::to_string(&s).unwrap();
             let back: EarlyArrivalStrategy = serde_json::from_str(&json).unwrap();
             assert_eq!(s, back);
@@ -519,7 +523,11 @@ mod tests {
 
     #[test]
     fn test_working_condition_type_serde() {
-        for wc in [WorkingConditionType::EarlyLeave, WorkingConditionType::LateIn, WorkingConditionType::Breastfeeding] {
+        for wc in [
+            WorkingConditionType::EarlyLeave,
+            WorkingConditionType::LateIn,
+            WorkingConditionType::Breastfeeding,
+        ] {
             let json = serde_json::to_string(&wc).unwrap();
             let back: WorkingConditionType = serde_json::from_str(&json).unwrap();
             assert_eq!(wc, back);
@@ -538,8 +546,10 @@ mod tests {
     #[test]
     fn test_assignment_history_type_serde() {
         for t in [
-            AssignmentHistoryType::Roster, AssignmentHistoryType::Pattern,
-            AssignmentHistoryType::DepartmentPattern, AssignmentHistoryType::Fixed,
+            AssignmentHistoryType::Roster,
+            AssignmentHistoryType::Pattern,
+            AssignmentHistoryType::DepartmentPattern,
+            AssignmentHistoryType::Fixed,
             AssignmentHistoryType::DepartmentFixed,
         ] {
             let json = serde_json::to_string(&t).unwrap();
@@ -550,7 +560,13 @@ mod tests {
 
     #[test]
     fn test_ot_status_serde() {
-        for s in [OtStatus::None, OtStatus::PendingEmployee, OtStatus::PendingManager, OtStatus::Approved, OtStatus::Rejected] {
+        for s in [
+            OtStatus::None,
+            OtStatus::PendingEmployee,
+            OtStatus::PendingManager,
+            OtStatus::Approved,
+            OtStatus::Rejected,
+        ] {
             let json = serde_json::to_string(&s).unwrap();
             let back: OtStatus = serde_json::from_str(&json).unwrap();
             assert_eq!(s, back);
@@ -567,11 +583,16 @@ mod tests {
     #[test]
     fn test_attendance_report_sort_serde() {
         for s in [
-            AttendanceReportSort::NameAsc, AttendanceReportSort::NameDesc,
-            AttendanceReportSort::WorkHoursAsc, AttendanceReportSort::WorkHoursDesc,
-            AttendanceReportSort::LeaveDaysAsc, AttendanceReportSort::LeaveDaysDesc,
-            AttendanceReportSort::OtHoursAsc, AttendanceReportSort::OtHoursDesc,
-            AttendanceReportSort::TotalHoursAsc, AttendanceReportSort::TotalHoursDesc,
+            AttendanceReportSort::NameAsc,
+            AttendanceReportSort::NameDesc,
+            AttendanceReportSort::WorkHoursAsc,
+            AttendanceReportSort::WorkHoursDesc,
+            AttendanceReportSort::LeaveDaysAsc,
+            AttendanceReportSort::LeaveDaysDesc,
+            AttendanceReportSort::OtHoursAsc,
+            AttendanceReportSort::OtHoursDesc,
+            AttendanceReportSort::TotalHoursAsc,
+            AttendanceReportSort::TotalHoursDesc,
         ] {
             let json = serde_json::to_string(&s).unwrap();
             let _back: AttendanceReportSort = serde_json::from_str(&json).unwrap();
@@ -580,7 +601,11 @@ mod tests {
 
     #[test]
     fn test_accrual_frequency_serde() {
-        for f in [AccrualFrequency::Monthly, AccrualFrequency::Quarterly, AccrualFrequency::Yearly] {
+        for f in [
+            AccrualFrequency::Monthly,
+            AccrualFrequency::Quarterly,
+            AccrualFrequency::Yearly,
+        ] {
             let json = serde_json::to_string(&f).unwrap();
             let _back: AccrualFrequency = serde_json::from_str(&json).unwrap();
         }
@@ -588,7 +613,11 @@ mod tests {
 
     #[test]
     fn test_recruitment_source_type_serde() {
-        for t in [RecruitmentSourceType::Direct, RecruitmentSourceType::Referral, RecruitmentSourceType::Agency] {
+        for t in [
+            RecruitmentSourceType::Direct,
+            RecruitmentSourceType::Referral,
+            RecruitmentSourceType::Agency,
+        ] {
             let json = serde_json::to_string(&t).unwrap();
             let back: RecruitmentSourceType = serde_json::from_str(&json).unwrap();
             assert_eq!(t, back);
@@ -606,8 +635,14 @@ mod tests {
 
     #[test]
     fn test_role_scope_type_json_format() {
-        assert_eq!(serde_json::to_string(&RoleScopeType::Global).unwrap(), "\"global\"");
-        assert_eq!(serde_json::to_string(&RoleScopeType::Scoped).unwrap(), "\"scoped\"");
+        assert_eq!(
+            serde_json::to_string(&RoleScopeType::Global).unwrap(),
+            "\"global\""
+        );
+        assert_eq!(
+            serde_json::to_string(&RoleScopeType::Scoped).unwrap(),
+            "\"scoped\""
+        );
     }
 
     #[test]
@@ -632,8 +667,6 @@ mod tests {
         assert_eq!(unknown, RoleScopeType::Scoped);
     }
 
-
-
     #[test]
     fn test_leave_status_json_format() {
         let json = serde_json::to_string(&LeaveStatus::Pending).unwrap();
@@ -647,8 +680,10 @@ mod tests {
     #[test]
     fn test_leave_duration_type_serde_roundtrip() {
         for dt in [
-            LeaveDurationType::FullDay, LeaveDurationType::FirstHalf,
-            LeaveDurationType::SecondHalf, LeaveDurationType::CustomHours,
+            LeaveDurationType::FullDay,
+            LeaveDurationType::FirstHalf,
+            LeaveDurationType::SecondHalf,
+            LeaveDurationType::CustomHours,
         ] {
             let json = serde_json::to_string(&dt).unwrap();
             let back: LeaveDurationType = serde_json::from_str(&json).unwrap();
@@ -658,10 +693,22 @@ mod tests {
 
     #[test]
     fn test_leave_duration_type_json_format() {
-        assert_eq!(serde_json::to_string(&LeaveDurationType::FullDay).unwrap(), "\"full_day\"");
-        assert_eq!(serde_json::to_string(&LeaveDurationType::FirstHalf).unwrap(), "\"first_half\"");
-        assert_eq!(serde_json::to_string(&LeaveDurationType::SecondHalf).unwrap(), "\"second_half\"");
-        assert_eq!(serde_json::to_string(&LeaveDurationType::CustomHours).unwrap(), "\"custom_hours\"");
+        assert_eq!(
+            serde_json::to_string(&LeaveDurationType::FullDay).unwrap(),
+            "\"full_day\""
+        );
+        assert_eq!(
+            serde_json::to_string(&LeaveDurationType::FirstHalf).unwrap(),
+            "\"first_half\""
+        );
+        assert_eq!(
+            serde_json::to_string(&LeaveDurationType::SecondHalf).unwrap(),
+            "\"second_half\""
+        );
+        assert_eq!(
+            serde_json::to_string(&LeaveDurationType::CustomHours).unwrap(),
+            "\"custom_hours\""
+        );
     }
 
     #[test]

@@ -5,19 +5,21 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::handlers::common::MemberContext;
 use crate::errors::AppError;
-use crate::state::AppState;
+use crate::handlers::common::MemberContext;
 use crate::queue::JobQueue;
+use crate::state::AppState;
 
 pub async fn get_generic_job_status(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let redis = state.infra.redis.as_ref().ok_or_else(|| {
-        AppError::Internal("Redis is required for job tracking".to_string())
-    })?;
+    let redis = state
+        .infra
+        .redis
+        .as_ref()
+        .ok_or_else(|| AppError::Internal("Redis is required for job tracking".to_string()))?;
 
     let queue = JobQueue::new(redis.clone());
 
@@ -29,7 +31,9 @@ pub async fn get_generic_job_status(
 
     // Security check
     if meta.workspace_id != ctx.workspace_id {
-        return Err(AppError::Forbidden("Cannot access job from another workspace".to_string()));
+        return Err(AppError::Forbidden(
+            "Cannot access job from another workspace".to_string(),
+        ));
     }
 
     let percentage = if meta.total_batches > 0 {

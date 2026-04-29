@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import {
   X,
   Save,
@@ -13,8 +13,10 @@ import {
   Timer,
   Calendar
 } from "lucide-react";
-import { AuthorizedAgent } from "@/lib/api";
+import { useTranslation } from "react-i18next";
+
 import { useAuthorizedAgents } from "@/hooks/use-agents";
+import { AuthorizedAgent } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface AgentEditModalProps {

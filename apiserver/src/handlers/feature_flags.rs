@@ -164,13 +164,12 @@ pub async fn delete_feature_flag(
     Path((_, id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<impl IntoResponse> {
     ctx.require_permission(Permission::FeatureFlagsManage)?;
-    let deleted =
-        FeatureFlagRepository::delete(&state.payroll.service.pool, ctx.workspace_id, id)
-            .await
-            .map_err(|e| {
-                tracing::error!("Failed to delete feature flag: {e}");
-                AppError::Internal("Failed to delete feature flag".into())
-            })?;
+    let deleted = FeatureFlagRepository::delete(&state.payroll.service.pool, ctx.workspace_id, id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to delete feature flag: {e}");
+            AppError::Internal("Failed to delete feature flag".into())
+        })?;
 
     if deleted {
         Ok(StatusCode::NO_CONTENT.into_response())

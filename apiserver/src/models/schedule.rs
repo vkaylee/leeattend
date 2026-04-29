@@ -2,8 +2,8 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::enums::AssignmentHistoryType;
 use crate::models::attendance::ScheduleTrace;
+use crate::models::enums::AssignmentHistoryType;
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct WorkingPattern {

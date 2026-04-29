@@ -1,43 +1,82 @@
-use redb::{ReadableTable, ReadableDatabase};
-use super::{RedbStore, StoredDevice, StoreError, DEVICES, AGENT_CONFIG};
+use super::{AGENT_CONFIG, DEVICES, RedbStore, StoreError, StoredDevice};
+use redb::{ReadableDatabase, ReadableTable};
 
 impl RedbStore {
     pub fn get_device_timezone(&self, device_id: &str) -> Result<chrono_tz::Tz, StoreError> {
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-        let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-        if let Some(g) = table.get(device_id).map_err(|e| StoreError::DbError(e.to_string()))? {
+        let txn = self
+            .db
+            .begin_read()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let table = txn
+            .open_table(DEVICES)
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        if let Some(g) = table
+            .get(device_id)
+            .map_err(|e| StoreError::DbError(e.to_string()))?
+        {
             let d = StoredDevice::from_bytes(g.value())?;
-            Ok(d.timezone.parse::<chrono_tz::Tz>().unwrap_or(chrono_tz::UTC))
+            Ok(d.timezone
+                .parse::<chrono_tz::Tz>()
+                .unwrap_or(chrono_tz::UTC))
         } else {
             Ok(chrono_tz::UTC)
         }
     }
 
-    pub fn parse_local_to_utc_timestamp(local_time_str: &str, tz: chrono_tz::Tz) -> Result<i64, String> {
+    pub fn parse_local_to_utc_timestamp(
+        local_time_str: &str,
+        tz: chrono_tz::Tz,
+    ) -> Result<i64, String> {
         use chrono::{NaiveDateTime, TimeZone};
         let naive_dt = NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%d %H:%M:%S")
             .or_else(|_| NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%dT%H:%M:%SZ"))
             .map_err(|e| format!("Failed to parse timestamp: {e}"))?;
-        let local_dt = tz.from_local_datetime(&naive_dt).single()
+        let local_dt = tz
+            .from_local_datetime(&naive_dt)
+            .single()
             .ok_or_else(|| format!("Ambiguous local time: {local_time_str}"))?;
         Ok(local_dt.with_timezone(&chrono::Utc).timestamp())
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str, timezone: &str, password: Option<&str>, is_enabled: bool, now_ts: i64) -> Result<(), StoreError> {
+    pub fn upsert_device(
+        &self,
+        id: &str,
+        name: &str,
+        ip: &str,
+        port: i32,
+        brand: &str,
+        timezone: &str,
+        password: Option<&str>,
+        is_enabled: bool,
+        now_ts: i64,
+    ) -> Result<(), StoreError> {
         let now = now_ts;
 
         // Read existing device data first (separate read txn)
         let existing = {
-            let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-            let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-            table.get(id).map_err(|e| StoreError::DbError(e.to_string()))?
+            let txn = self
+                .db
+                .begin_read()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let table = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            table
+                .get(id)
+                .map_err(|e| StoreError::DbError(e.to_string()))?
                 .and_then(|g| StoredDevice::from_bytes(g.value()).ok())
         };
 
         let device = StoredDevice {
-            id: id.into(), name: name.into(), ip: ip.into(), port: port as i64,
-            brand: brand.into(), timezone: timezone.into(), last_seen: Some(now), is_active: is_enabled,
+            id: id.into(),
+            name: name.into(),
+            ip: ip.into(),
+            port: port as i64,
+            brand: brand.into(),
+            timezone: timezone.into(),
+            last_seen: Some(now),
+            is_active: is_enabled,
             mac: existing.as_ref().and_then(|d| d.mac.clone()),
             serial: existing.as_ref().and_then(|d| d.serial.clone()),
             firmware: existing.as_ref().and_then(|d| d.firmware.clone()),
@@ -53,23 +92,41 @@ impl RedbStore {
             use_legacy_checksum: existing.as_ref().and_then(|d| d.use_legacy_checksum),
         };
 
-        let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_write()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
-            let mut table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-            table.insert(id, device.to_bytes().as_slice()).map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut table = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            table
+                .insert(id, device.to_bytes().as_slice())
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
         }
-        txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+        txn.commit()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         Ok(())
     }
 
     pub fn get_active_devices(&self) -> Result<Vec<StoredDevice>, StoreError> {
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-        let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_read()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let table = txn
+            .open_table(DEVICES)
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         let mut devices = Vec::new();
-        for entry in table.iter().map_err(|e| StoreError::DbError(e.to_string()))? {
+        for entry in table
+            .iter()
+            .map_err(|e| StoreError::DbError(e.to_string()))?
+        {
             let (_, g) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
             let d = StoredDevice::from_bytes(g.value())?;
-            if d.is_active { devices.push(d); }
+            if d.is_active {
+                devices.push(d);
+            }
         }
         Ok(devices)
     }
@@ -78,37 +135,66 @@ impl RedbStore {
     /// Called after successful connect to remember the auto-detected mode.
     pub fn update_device_checksum(&self, id: &str, use_legacy: bool) -> Result<(), StoreError> {
         let key = self.find_device_key_ci(id)?;
-        let k = match key { Some(k) => k, None => return Ok(()) };
+        let k = match key {
+            Some(k) => k,
+            None => return Ok(()),
+        };
 
         let existing = {
-            let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-            let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-            table.get(k.as_str()).map_err(|e| StoreError::DbError(e.to_string()))?
+            let txn = self
+                .db
+                .begin_read()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let table = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            table
+                .get(k.as_str())
+                .map_err(|e| StoreError::DbError(e.to_string()))?
                 .and_then(|g| StoredDevice::from_bytes(g.value()).ok())
         };
 
         if let Some(mut d) = existing {
             d.use_legacy_checksum = Some(use_legacy);
 
-            let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+            let txn = self
+                .db
+                .begin_write()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             {
-                let mut table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-                table.insert(k.as_str(), d.to_bytes().as_slice()).map_err(|e| StoreError::DbError(e.to_string()))?;
+                let mut table = txn
+                    .open_table(DEVICES)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                table
+                    .insert(k.as_str(), d.to_bytes().as_slice())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
             }
-            txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+            txn.commit()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
         }
         Ok(())
     }
 
     pub fn get_device_metadata(&self, id: &str) -> Result<Option<StoredDevice>, StoreError> {
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-        let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-        if let Some(g) = table.get(id).map_err(|e| StoreError::DbError(e.to_string()))? {
+        let txn = self
+            .db
+            .begin_read()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let table = txn
+            .open_table(DEVICES)
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        if let Some(g) = table
+            .get(id)
+            .map_err(|e| StoreError::DbError(e.to_string()))?
+        {
             return Ok(Some(StoredDevice::from_bytes(g.value())?));
         }
         // Case-insensitive fallback
         let id_lower = id.to_lowercase();
-        for entry in table.iter().map_err(|e| StoreError::DbError(e.to_string()))? {
+        for entry in table
+            .iter()
+            .map_err(|e| StoreError::DbError(e.to_string()))?
+        {
             let (k, g) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
             if k.value().to_lowercase() == id_lower {
                 return Ok(Some(StoredDevice::from_bytes(g.value())?));
@@ -118,72 +204,148 @@ impl RedbStore {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn update_device_metadata(&self, id: &str, mac: &str, serial: &str, fw: &str, plt: &str, hw: &str, users: i64, logs: i64, users_cap: i64, logs_cap: i64, time: &str, now_ts: i64) -> Result<(), StoreError> {
+    pub fn update_device_metadata(
+        &self,
+        id: &str,
+        mac: &str,
+        serial: &str,
+        fw: &str,
+        plt: &str,
+        hw: &str,
+        users: i64,
+        logs: i64,
+        users_cap: i64,
+        logs_cap: i64,
+        time: &str,
+        now_ts: i64,
+    ) -> Result<(), StoreError> {
         let now = now_ts;
 
         // Read existing device (separate read txn to avoid borrow conflict)
         let existing = {
-            let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-            let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-            table.get(id).map_err(|e| StoreError::DbError(e.to_string()))?
+            let txn = self
+                .db
+                .begin_read()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let table = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            table
+                .get(id)
+                .map_err(|e| StoreError::DbError(e.to_string()))?
                 .and_then(|g| StoredDevice::from_bytes(g.value()).ok())
         };
 
         if let Some(mut d) = existing {
-            d.mac = Some(mac.into()); d.serial = Some(serial.into());
-            d.firmware = Some(fw.into()); d.platform = Some(plt.into());
-            d.hw_name = Some(hw.into()); d.users_count = Some(users);
-            d.logs_count = Some(logs); d.users_capacity = Some(users_cap);
-            d.logs_capacity = Some(logs_cap); d.device_time = Some(time.into());
+            d.mac = Some(mac.into());
+            d.serial = Some(serial.into());
+            d.firmware = Some(fw.into());
+            d.platform = Some(plt.into());
+            d.hw_name = Some(hw.into());
+            d.users_count = Some(users);
+            d.logs_count = Some(logs);
+            d.users_capacity = Some(users_cap);
+            d.logs_capacity = Some(logs_cap);
+            d.device_time = Some(time.into());
             d.last_info_update = Some(now);
 
-            let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+            let txn = self
+                .db
+                .begin_write()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             {
-                let mut table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-                table.insert(id, d.to_bytes().as_slice()).map_err(|e| StoreError::DbError(e.to_string()))?;
+                let mut table = txn
+                    .open_table(DEVICES)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                table
+                    .insert(id, d.to_bytes().as_slice())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
             }
-            txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+            txn.commit()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
         }
         Ok(())
     }
 
-    pub fn update_device_counts(&self, id: &str, users: i64, logs: i64, now_ts: i64) -> Result<(), StoreError> {
+    pub fn update_device_counts(
+        &self,
+        id: &str,
+        users: i64,
+        logs: i64,
+        now_ts: i64,
+    ) -> Result<(), StoreError> {
         // Read existing device
         let key = self.find_device_key_ci(id)?;
-        let k = match key { Some(k) => k, None => return Ok(()) };
+        let k = match key {
+            Some(k) => k,
+            None => return Ok(()),
+        };
 
         let existing = {
-            let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-            let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-            table.get(k.as_str()).map_err(|e| StoreError::DbError(e.to_string()))?
+            let txn = self
+                .db
+                .begin_read()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let table = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            table
+                .get(k.as_str())
+                .map_err(|e| StoreError::DbError(e.to_string()))?
                 .and_then(|g| StoredDevice::from_bytes(g.value()).ok())
         };
 
         if let Some(mut d) = existing {
-            if users >= 0 { d.users_count = Some(users); }
-            if logs >= 0 { d.logs_count = Some(logs); }
+            if users >= 0 {
+                d.users_count = Some(users);
+            }
+            if logs >= 0 {
+                d.logs_count = Some(logs);
+            }
             d.last_info_update = Some(now_ts);
 
-            let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+            let txn = self
+                .db
+                .begin_write()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             {
-                let mut table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-                table.insert(k.as_str(), d.to_bytes().as_slice()).map_err(|e| StoreError::DbError(e.to_string()))?;
+                let mut table = txn
+                    .open_table(DEVICES)
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
+                table
+                    .insert(k.as_str(), d.to_bytes().as_slice())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
             }
-            txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+            txn.commit()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
         }
         Ok(())
     }
 
     fn find_device_key_ci(&self, id: &str) -> Result<Option<String>, StoreError> {
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-        let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-        if table.get(id).map_err(|e| StoreError::DbError(e.to_string()))?.is_some() {
+        let txn = self
+            .db
+            .begin_read()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let table = txn
+            .open_table(DEVICES)
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        if table
+            .get(id)
+            .map_err(|e| StoreError::DbError(e.to_string()))?
+            .is_some()
+        {
             return Ok(Some(id.to_string()));
         }
         let id_lower = id.to_lowercase();
-        for entry in table.iter().map_err(|e| StoreError::DbError(e.to_string()))? {
+        for entry in table
+            .iter()
+            .map_err(|e| StoreError::DbError(e.to_string()))?
+        {
             let (k, _) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
-            if k.value().to_lowercase() == id_lower { return Ok(Some(k.value().to_string())); }
+            if k.value().to_lowercase() == id_lower {
+                return Ok(Some(k.value().to_string()));
+            }
         }
         Ok(None)
     }
@@ -191,10 +353,18 @@ impl RedbStore {
     pub fn deactivate_devices_not_in(&self, active_ids: &[String]) -> Result<u64, StoreError> {
         // Phase 1: Read all devices to find which ones to deactivate
         let updates: Vec<(String, StoredDevice)> = {
-            let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-            let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
+            let txn = self
+                .db
+                .begin_read()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let table = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             let mut result = Vec::new();
-            for entry in table.iter().map_err(|e| StoreError::DbError(e.to_string()))? {
+            for entry in table
+                .iter()
+                .map_err(|e| StoreError::DbError(e.to_string()))?
+            {
                 let (k, g) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
                 let mut d = StoredDevice::from_bytes(g.value())?;
                 if d.is_active && !active_ids.iter().any(|aid| aid == k.value()) {
@@ -206,34 +376,60 @@ impl RedbStore {
         };
 
         let count = updates.len() as u64;
-        if count == 0 { return Ok(0); }
+        if count == 0 {
+            return Ok(0);
+        }
 
         // Phase 2: Write deactivated devices
-        let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_write()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
-            let mut table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut table = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             for (id, d) in &updates {
-                table.insert(id.as_str(), d.to_bytes().as_slice()).map_err(|e| StoreError::DbError(e.to_string()))?;
+                table
+                    .insert(id.as_str(), d.to_bytes().as_slice())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
             }
         }
-        txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+        txn.commit()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         Ok(count)
     }
 
     pub fn upsert_agent_config(&self, key: &str, value: &str) -> Result<(), StoreError> {
-        let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_write()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
-            let mut table = txn.open_table(AGENT_CONFIG).map_err(|e| StoreError::DbError(e.to_string()))?;
-            table.insert(key, value).map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut table = txn
+                .open_table(AGENT_CONFIG)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            table
+                .insert(key, value)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
         }
-        txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+        txn.commit()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         Ok(())
     }
 
     pub fn get_agent_config(&self, key: &str) -> Result<Option<String>, StoreError> {
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-        let table = txn.open_table(AGENT_CONFIG).map_err(|e| StoreError::DbError(e.to_string()))?;
-        Ok(table.get(key).map_err(|e| StoreError::DbError(e.to_string()))?.map(|g| g.value().to_string()))
+        let txn = self
+            .db
+            .begin_read()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let table = txn
+            .open_table(AGENT_CONFIG)
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        Ok(table
+            .get(key)
+            .map_err(|e| StoreError::DbError(e.to_string()))?
+            .map(|g| g.value().to_string()))
     }
 
     pub fn clear_startup_config(&self) -> Result<(), StoreError> {
@@ -241,45 +437,76 @@ impl RedbStore {
         let config_keys: Vec<String>;
         let device_updates: Vec<(String, StoredDevice)>;
         {
-            let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
+            let txn = self
+                .db
+                .begin_read()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
 
-            let ct = txn.open_table(AGENT_CONFIG).map_err(|e| StoreError::DbError(e.to_string()))?;
-            config_keys = ct.iter().map_err(|e| StoreError::DbError(e.to_string()))?
-                .filter_map(|e| e.ok().map(|(k, _)| k.value().to_string())).collect();
+            let ct = txn
+                .open_table(AGENT_CONFIG)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            config_keys = ct
+                .iter()
+                .map_err(|e| StoreError::DbError(e.to_string()))?
+                .filter_map(|e| e.ok().map(|(k, _)| k.value().to_string()))
+                .collect();
 
-            let dt = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
-            device_updates = dt.iter().map_err(|e| StoreError::DbError(e.to_string()))?
+            let dt = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            device_updates = dt
+                .iter()
+                .map_err(|e| StoreError::DbError(e.to_string()))?
                 .filter_map(|e| {
                     let (k, g) = e.ok()?;
                     let mut d = StoredDevice::from_bytes(g.value()).ok()?;
                     d.is_active = false;
                     Some((k.value().to_string(), d))
-                }).collect();
+                })
+                .collect();
         }
 
         // Phase 2: Write changes
-        let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_write()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
-            let mut ct = txn.open_table(AGENT_CONFIG).map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut ct = txn
+                .open_table(AGENT_CONFIG)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             for k in &config_keys {
-                ct.remove(k.as_str()).map_err(|e| StoreError::DbError(e.to_string()))?;
+                ct.remove(k.as_str())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
             }
         }
         {
-            let mut dt = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut dt = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             for (id, d) in &device_updates {
-                dt.insert(id.as_str(), d.to_bytes().as_slice()).map_err(|e| StoreError::DbError(e.to_string()))?;
+                dt.insert(id.as_str(), d.to_bytes().as_slice())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
             }
         }
-        txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+        txn.commit()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         Ok(())
     }
 
     pub fn get_all_devices(&self) -> Result<Vec<StoredDevice>, StoreError> {
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-        let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_read()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
+        let table = txn
+            .open_table(DEVICES)
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         let mut devices = Vec::new();
-        for entry in table.iter().map_err(|e| StoreError::DbError(e.to_string()))? {
+        for entry in table
+            .iter()
+            .map_err(|e| StoreError::DbError(e.to_string()))?
+        {
             let (_, g) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
             devices.push(StoredDevice::from_bytes(g.value())?);
         }
@@ -290,23 +517,38 @@ impl RedbStore {
     pub fn clear_all_config(&self) -> Result<(), StoreError> {
         // Phase 1: Read all keys
         let keys: Vec<String> = {
-            let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-            let table = txn.open_table(AGENT_CONFIG).map_err(|e| StoreError::DbError(e.to_string()))?;
-            table.iter().map_err(|e| StoreError::DbError(e.to_string()))?
+            let txn = self
+                .db
+                .begin_read()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let table = txn
+                .open_table(AGENT_CONFIG)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            table
+                .iter()
+                .map_err(|e| StoreError::DbError(e.to_string()))?
                 .filter_map(|e| e.ok().map(|(k, _)| k.value().to_string()))
                 .collect()
         };
-        if keys.is_empty() { return Ok(()); }
+        if keys.is_empty() {
+            return Ok(());
+        }
 
         // Phase 2: Remove all
-        let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_write()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
-            let mut table = txn.open_table(AGENT_CONFIG).map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut table = txn
+                .open_table(AGENT_CONFIG)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             for key in &keys {
                 let _ = table.remove(key.as_str());
             }
         }
-        txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+        txn.commit()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         Ok(())
     }
 
@@ -314,10 +556,18 @@ impl RedbStore {
     pub fn deactivate_all_devices(&self) -> Result<(), StoreError> {
         // Phase 1: Read all devices
         let updates: Vec<(String, Vec<u8>)> = {
-            let txn = self.db.begin_read().map_err(|e| StoreError::DbError(e.to_string()))?;
-            let table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
+            let txn = self
+                .db
+                .begin_read()
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
+            let table = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             let mut result = Vec::new();
-            for entry in table.iter().map_err(|e| StoreError::DbError(e.to_string()))? {
+            for entry in table
+                .iter()
+                .map_err(|e| StoreError::DbError(e.to_string()))?
+            {
                 let (k, g) = entry.map_err(|e| StoreError::DbError(e.to_string()))?;
                 let mut d = StoredDevice::from_bytes(g.value())?;
                 if d.is_active {
@@ -327,17 +577,27 @@ impl RedbStore {
             }
             result
         };
-        if updates.is_empty() { return Ok(()); }
+        if updates.is_empty() {
+            return Ok(());
+        }
 
         // Phase 2: Write updates
-        let txn = self.db.begin_write().map_err(|e| StoreError::DbError(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_write()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         {
-            let mut table = txn.open_table(DEVICES).map_err(|e| StoreError::DbError(e.to_string()))?;
+            let mut table = txn
+                .open_table(DEVICES)
+                .map_err(|e| StoreError::DbError(e.to_string()))?;
             for (id, bytes) in &updates {
-                table.insert(id.as_str(), bytes.as_slice()).map_err(|e| StoreError::DbError(e.to_string()))?;
+                table
+                    .insert(id.as_str(), bytes.as_slice())
+                    .map_err(|e| StoreError::DbError(e.to_string()))?;
             }
         }
-        txn.commit().map_err(|e| StoreError::DbError(e.to_string()))?;
+        txn.commit()
+            .map_err(|e| StoreError::DbError(e.to_string()))?;
         Ok(())
     }
 }
@@ -351,7 +611,19 @@ mod tests {
     }
 
     fn add_device(store: &RedbStore, id: &str) {
-        store.upsert_device(id, "Test Device", "192.168.1.1", 4370, "zkteco", "UTC", None, true, 100000).unwrap();
+        store
+            .upsert_device(
+                id,
+                "Test Device",
+                "192.168.1.1",
+                4370,
+                "zkteco",
+                "UTC",
+                None,
+                true,
+                100000,
+            )
+            .unwrap();
     }
 
     #[test]
@@ -369,10 +641,29 @@ mod tests {
     fn test_upsert_device_update_preserves_metadata() {
         let store = make_store();
         add_device(&store, "DEV1");
-        store.update_device_metadata("DEV1", "AA:BB", "SN123", "1.0", "Linux", "ZK400", 50, 1000, 100, 50000, "2026-01-01 12:00:00", 200000).unwrap();
+        store
+            .update_device_metadata(
+                "DEV1",
+                "AA:BB",
+                "SN123",
+                "1.0",
+                "Linux",
+                "ZK400",
+                50,
+                1000,
+                100,
+                50000,
+                "2026-01-01 12:00:00",
+                200000,
+            )
+            .unwrap();
 
         // Re-upsert with different IP
-        store.upsert_device("DEV1", "Updated", "10.0.0.1", 4370, "zkteco", "UTC", None, true, 300000).unwrap();
+        store
+            .upsert_device(
+                "DEV1", "Updated", "10.0.0.1", 4370, "zkteco", "UTC", None, true, 300000,
+            )
+            .unwrap();
 
         let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
         assert_eq!(dev.ip, "10.0.0.1");
@@ -384,7 +675,11 @@ mod tests {
     fn test_get_active_devices_filters_inactive() {
         let store = make_store();
         add_device(&store, "DEV1");
-        store.upsert_device("DEV2", "Inactive", "10.0.0.2", 4370, "zkteco", "UTC", None, false, 100000).unwrap();
+        store
+            .upsert_device(
+                "DEV2", "Inactive", "10.0.0.2", 4370, "zkteco", "UTC", None, false, 100000,
+            )
+            .unwrap();
 
         let active = store.get_active_devices().unwrap();
         assert_eq!(active.len(), 1);
@@ -411,10 +706,22 @@ mod tests {
         let store = make_store();
         add_device(&store, "DEV1");
 
-        store.update_device_metadata(
-            "DEV1", "AA:BB:CC", "SN456", "2.0", "Linux", "ZK800",
-            100, 5000, 200, 100000, "2026-01-01 15:00:00", 200000
-        ).unwrap();
+        store
+            .update_device_metadata(
+                "DEV1",
+                "AA:BB:CC",
+                "SN456",
+                "2.0",
+                "Linux",
+                "ZK800",
+                100,
+                5000,
+                200,
+                100000,
+                "2026-01-01 15:00:00",
+                200000,
+            )
+            .unwrap();
 
         let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
         assert_eq!(dev.mac, Some("AA:BB:CC".into()));
@@ -428,7 +735,9 @@ mod tests {
     fn test_update_device_metadata_nonexistent() {
         let store = make_store();
         // Should not panic on nonexistent device
-        store.update_device_metadata("NOPE", "AA", "SN", "1.0", "L", "Z", 0, 0, 0, 0, "time", 100).unwrap();
+        store
+            .update_device_metadata("NOPE", "AA", "SN", "1.0", "L", "Z", 0, 0, 0, 0, "time", 100)
+            .unwrap();
     }
 
     #[test]
@@ -436,7 +745,9 @@ mod tests {
         let store = make_store();
         add_device(&store, "DEV1");
 
-        store.update_device_counts("DEV1", 42, 1000, 200000).unwrap();
+        store
+            .update_device_counts("DEV1", 42, 1000, 200000)
+            .unwrap();
 
         let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
         assert_eq!(dev.users_count, Some(42));
@@ -456,7 +767,9 @@ mod tests {
         add_device(&store, "DEV2");
         add_device(&store, "DEV3");
 
-        let deactivated = store.deactivate_devices_not_in(&["DEV1".into(), "DEV3".into()]).unwrap();
+        let deactivated = store
+            .deactivate_devices_not_in(&["DEV1".into(), "DEV3".into()])
+            .unwrap();
         assert_eq!(deactivated, 1);
 
         let active = store.get_active_devices().unwrap();
@@ -483,11 +796,17 @@ mod tests {
 
         // Set and get
         store.upsert_agent_config("key1", "value1").unwrap();
-        assert_eq!(store.get_agent_config("key1").unwrap(), Some("value1".into()));
+        assert_eq!(
+            store.get_agent_config("key1").unwrap(),
+            Some("value1".into())
+        );
 
         // Update
         store.upsert_agent_config("key1", "updated").unwrap();
-        assert_eq!(store.get_agent_config("key1").unwrap(), Some("updated".into()));
+        assert_eq!(
+            store.get_agent_config("key1").unwrap(),
+            Some("updated".into())
+        );
     }
 
     #[test]
@@ -512,7 +831,9 @@ mod tests {
     fn test_clear_startup_config() {
         let store = make_store();
         add_device(&store, "DEV1");
-        store.upsert_agent_config("central_url", "ws://server:3000").unwrap();
+        store
+            .upsert_agent_config("central_url", "ws://server:3000")
+            .unwrap();
 
         store.clear_startup_config().unwrap();
 
@@ -533,7 +854,11 @@ mod tests {
     fn test_get_all_devices() {
         let store = make_store();
         add_device(&store, "DEV1");
-        store.upsert_device("DEV2", "Inactive", "10.0.0.2", 4370, "zkteco", "UTC", None, false, 100).unwrap();
+        store
+            .upsert_device(
+                "DEV2", "Inactive", "10.0.0.2", 4370, "zkteco", "UTC", None, false, 100,
+            )
+            .unwrap();
 
         let all = store.get_all_devices().unwrap();
         assert_eq!(all.len(), 2);
@@ -558,7 +883,9 @@ mod tests {
     #[test]
     fn test_deactivate_all_devices_already_inactive() {
         let store = make_store();
-        store.upsert_device("DEV1", "D", "1.1.1.1", 4370, "z", "UTC", None, false, 100).unwrap();
+        store
+            .upsert_device("DEV1", "D", "1.1.1.1", 4370, "z", "UTC", None, false, 100)
+            .unwrap();
         store.deactivate_all_devices().unwrap(); // Should not panic
     }
 
@@ -573,16 +900,33 @@ mod tests {
     #[test]
     fn test_get_device_timezone_custom() {
         let store = make_store();
-        store.upsert_device("DEV1", "D", "1.1.1.1", 4370, "z", "Asia/Ho_Chi_Minh", None, true, 100).unwrap();
+        store
+            .upsert_device(
+                "DEV1",
+                "D",
+                "1.1.1.1",
+                4370,
+                "z",
+                "Asia/Ho_Chi_Minh",
+                None,
+                true,
+                100,
+            )
+            .unwrap();
         let tz = store.get_device_timezone("DEV1").unwrap();
         assert_eq!(tz, chrono_tz::Asia::Ho_Chi_Minh);
     }
 
     #[test]
     fn test_parse_local_to_utc_timestamp() {
-        let ts = RedbStore::parse_local_to_utc_timestamp("2026-01-01 08:00:00", chrono_tz::Asia::Ho_Chi_Minh).unwrap();
+        let ts = RedbStore::parse_local_to_utc_timestamp(
+            "2026-01-01 08:00:00",
+            chrono_tz::Asia::Ho_Chi_Minh,
+        )
+        .unwrap();
         // 8:00 AM in HCM (UTC+7) = 1:00 AM UTC
-        let expected_ts = RedbStore::parse_local_to_utc_timestamp("2026-01-01 01:00:00", chrono_tz::UTC).unwrap();
+        let expected_ts =
+            RedbStore::parse_local_to_utc_timestamp("2026-01-01 01:00:00", chrono_tz::UTC).unwrap();
         assert_eq!(ts, expected_ts);
     }
 
@@ -595,7 +939,19 @@ mod tests {
     #[test]
     fn test_upsert_device_with_password() {
         let store = make_store();
-        store.upsert_device("DEV1", "D", "1.1.1.1", 4370, "z", "UTC", Some("secret"), true, 100).unwrap();
+        store
+            .upsert_device(
+                "DEV1",
+                "D",
+                "1.1.1.1",
+                4370,
+                "z",
+                "UTC",
+                Some("secret"),
+                true,
+                100,
+            )
+            .unwrap();
         let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
         assert_eq!(dev.password, Some("secret".into()));
     }
@@ -607,7 +963,10 @@ mod tests {
         let store = make_store();
         add_device(&store, "DEV1");
         let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
-        assert_eq!(dev.use_legacy_checksum, None, "New device should have no checksum preference");
+        assert_eq!(
+            dev.use_legacy_checksum, None,
+            "New device should have no checksum preference"
+        );
     }
 
     #[test]
@@ -639,11 +998,25 @@ mod tests {
 
         // First detection: legacy
         store.update_device_checksum("DEV1", true).unwrap();
-        assert_eq!(store.get_device_metadata("DEV1").unwrap().unwrap().use_legacy_checksum, Some(true));
+        assert_eq!(
+            store
+                .get_device_metadata("DEV1")
+                .unwrap()
+                .unwrap()
+                .use_legacy_checksum,
+            Some(true)
+        );
 
         // Second detection: modern (firmware upgrade scenario)
         store.update_device_checksum("DEV1", false).unwrap();
-        assert_eq!(store.get_device_metadata("DEV1").unwrap().unwrap().use_legacy_checksum, Some(false));
+        assert_eq!(
+            store
+                .get_device_metadata("DEV1")
+                .unwrap()
+                .unwrap()
+                .use_legacy_checksum,
+            Some(false)
+        );
     }
 
     #[test]
@@ -673,7 +1046,11 @@ mod tests {
         store.update_device_checksum("DEV1", true).unwrap();
 
         // Re-upsert (simulating ConfigPush) — checksum should be preserved
-        store.upsert_device("DEV1", "Updated", "10.0.0.1", 4370, "zkteco", "UTC", None, true, 200000).unwrap();
+        store
+            .upsert_device(
+                "DEV1", "Updated", "10.0.0.1", 4370, "zkteco", "UTC", None, true, 200000,
+            )
+            .unwrap();
 
         let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
         assert_eq!(dev.ip, "10.0.0.1"); // IP updated
@@ -693,7 +1070,11 @@ mod tests {
         assert_eq!(dev.use_legacy_checksum, Some(false)); // Still preserved
 
         // Reactivate via upsert
-        store.upsert_device("DEV1", "D", "1.1.1.1", 4370, "zkteco", "UTC", None, true, 300000).unwrap();
+        store
+            .upsert_device(
+                "DEV1", "D", "1.1.1.1", 4370, "zkteco", "UTC", None, true, 300000,
+            )
+            .unwrap();
         let dev = store.get_device_metadata("DEV1").unwrap().unwrap();
         assert!(dev.is_active);
         assert_eq!(dev.use_legacy_checksum, Some(false)); // Still preserved!
@@ -703,7 +1084,22 @@ mod tests {
     fn test_checksum_does_not_affect_other_metadata() {
         let store = make_store();
         add_device(&store, "DEV1");
-        store.update_device_metadata("DEV1", "AA:BB", "SN1", "1.0", "Linux", "ZK400", 50, 1000, 100, 50000, "2026-01-01 12:00:00", 200000).unwrap();
+        store
+            .update_device_metadata(
+                "DEV1",
+                "AA:BB",
+                "SN1",
+                "1.0",
+                "Linux",
+                "ZK400",
+                50,
+                1000,
+                100,
+                50000,
+                "2026-01-01 12:00:00",
+                200000,
+            )
+            .unwrap();
 
         store.update_device_checksum("DEV1", true).unwrap();
 

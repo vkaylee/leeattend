@@ -19,15 +19,20 @@ pub struct PairingService {
 }
 
 impl PairingService {
-    pub fn new(time_entry_repo: Arc<dyn TimeEntryRepository>, roster_repo: Arc<dyn RosterRepository>, pool: PgPool) -> Self {
-        Self { time_entry_repo, roster_repo, pool }
+    pub fn new(
+        time_entry_repo: Arc<dyn TimeEntryRepository>,
+        roster_repo: Arc<dyn RosterRepository>,
+        pool: PgPool,
+    ) -> Self {
+        Self {
+            time_entry_repo,
+            roster_repo,
+            pool,
+        }
     }
 
     #[tracing::instrument(skip_all, err)]
-    pub async fn process_new_raw_log(
-        &self,
-        log: &RawAttendanceLog,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn process_new_raw_log(&self, log: &RawAttendanceLog) -> Result<(), sqlx::Error> {
         // 1. Deduplication (exact match check)
         let is_duplicate = sqlx::query_scalar!(
             r#"
@@ -70,7 +75,8 @@ impl PairingService {
         let local_date = local_dt.date_naive();
 
         // 4. Reprocess that day
-        self.reprocess_daily_attendance(log.workspace_id, log.employee_id, local_date, tz).await?;
+        self.reprocess_daily_attendance(log.workspace_id, log.employee_id, local_date, tz)
+            .await?;
 
         // 5. Reprocess previous day if early in the morning (Overnight checkouts)
         if local_dt.hour() < 12 {
@@ -100,8 +106,10 @@ impl PairingService {
         );
 
         // 1. Fetch effective schedule
-        let (shift_id_opt, traces) =
-            self.roster_repo.get_effective_shift( workspace_id, employee_id, date).await?;
+        let (shift_id_opt, traces) = self
+            .roster_repo
+            .get_effective_shift(workspace_id, employee_id, date)
+            .await?;
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
@@ -203,14 +211,23 @@ impl PairingService {
         }
 
         if filtered_log_events.is_empty() {
-            Self::clear_auto_entries(&self.pool, employee_id, workspace_id, start_of_day_utc, next_day_utc).await?;
+            Self::clear_auto_entries(
+                &self.pool,
+                employee_id,
+                workspace_id,
+                start_of_day_utc,
+                next_day_utc,
+            )
+            .await?;
 
             let summary_svc = crate::services::AttendanceSummaryService::new(
                 self.time_entry_repo.clone(),
                 self.roster_repo.clone(),
                 self.pool.clone(),
             );
-            let _ = summary_svc.recalculate_daily_summary(workspace_id, employee_id, date).await;
+            let _ = summary_svc
+                .recalculate_daily_summary(workspace_id, employee_id, date)
+                .await;
 
             return Ok(());
         }
@@ -233,8 +250,8 @@ impl PairingService {
         .await?;
 
         for session in sessions {
-            let start_dt_local =
-                crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)? + Duration::minutes(session.start_minutes as i64);
+            let start_dt_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?
+                + Duration::minutes(session.start_minutes as i64);
             let start_dt_utc = start_dt_local.with_timezone(&Utc);
 
             if start_dt_local.date_naive() != date {
@@ -242,7 +259,8 @@ impl PairingService {
             }
 
             let end_dt_utc = if let Some(m) = session.end_minutes {
-                let end_dt_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)? + Duration::minutes(m as i64);
+                let end_dt_local = crate::utils::tz::local_to_tz(&tz, date, 0, 0, 0)?
+                    + Duration::minutes(m as i64);
                 Some(end_dt_local.with_timezone(&Utc))
             } else {
                 None
@@ -284,8 +302,16 @@ impl PairingService {
             self.roster_repo.clone(),
             self.pool.clone(),
         );
-        if let Err(e) = summary_svc.recalculate_daily_summary(workspace_id, employee_id, date).await {
-            tracing::error!("Failed to recalculate attendance summary for emp {} on {}: {}", employee_id, date, e);
+        if let Err(e) = summary_svc
+            .recalculate_daily_summary(workspace_id, employee_id, date)
+            .await
+        {
+            tracing::error!(
+                "Failed to recalculate attendance summary for emp {} on {}: {}",
+                employee_id,
+                date,
+                e
+            );
         }
         Ok(())
     }

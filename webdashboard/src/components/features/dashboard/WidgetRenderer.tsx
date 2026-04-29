@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from "react";
+
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
 // ── Lazy-loaded chart components ───────────────────────────────────

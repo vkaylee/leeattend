@@ -1,7 +1,8 @@
+import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
@@ -38,9 +39,11 @@ vi.mock("@/components/leave/LeaveBalanceDetailModal", () => ({
         isOpen ? <div data-testid="leave-balance-detail-modal" /> : null,
 }));
 
-import LeaveBalancesPage from "../LeaveBalancesPage";
-import * as api from "@/lib/api";
 import { ToastProvider } from "@/components/ui/Toast";
+
+import * as api from "@/lib/api";
+
+import LeaveBalancesPage from "../LeaveBalancesPage";
 
 const mockBalances = {
     data: [
@@ -175,9 +178,9 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
-        expect(screen.getByText("Xác nhận")).toBeDefined();
-        expect(screen.getByText("Huỷ")).toBeDefined();
+        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        expect(screen.getByText("common.confirm")).toBeDefined();
+        expect(screen.getByText("common.cancel")).toBeDefined();
     });
 
     it("cancels accrual when Huỷ is clicked", async () => {
@@ -186,8 +189,8 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
-        fireEvent.click(screen.getByText("Huỷ"));
+        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText("common.cancel"));
         expect(api.triggerAccrualRun).not.toHaveBeenCalled();
     });
 
@@ -197,8 +200,8 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
-        fireEvent.click(screen.getByText("Xác nhận"));
+        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText("common.confirm"));
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalledWith(
@@ -220,7 +223,7 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        const accrualBtn = screen.getByText("CẬP NHẬT SỐ DƯ").closest("button");
+        const accrualBtn = screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL").closest("button");
         expect(accrualBtn).not.toBeDisabled();
 
         // Change year to prev year
@@ -288,8 +291,8 @@ describe("LeaveBalancesPage", () => {
         }, { timeout: 3000 });
 
         // Open confirm dialog and confirm
-        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
-        fireEvent.click(screen.getByText("Xác nhận"));
+        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText("common.confirm"));
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalledWith(
@@ -310,8 +313,8 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
-        fireEvent.click(screen.getByText("Xác nhận"));
+        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText("common.confirm"));
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalled();
@@ -335,8 +338,8 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
-        fireEvent.click(screen.getByText("Xác nhận"));
+        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText("common.confirm"));
 
         // Wait for mutation to fire
         await waitFor(() => {
@@ -377,8 +380,8 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
-        fireEvent.click(screen.getByText("Xác nhận"));
+        fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
+        fireEvent.click(screen.getByText("common.confirm"));
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalled();

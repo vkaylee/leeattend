@@ -1,7 +1,10 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+
 import { Save, Zap, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import Modal from "@/components/ui/Modal";
+
 import { Shift } from "@/lib/api";
 
 interface EditShiftModalProps {

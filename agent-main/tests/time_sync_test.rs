@@ -6,14 +6,14 @@
 //!   3. multi-sync convergence behavior
 //!   4. thread-safety under concurrent access
 
-use std::sync::Arc;
-use agent::time_sync::TimeSync;
+use agent::central_client::message_handler::handle_incoming_text;
 use agent::hybrid_database::HybridDatabase;
 use agent::models::CentralMessage;
-use agent::central_client::message_handler::handle_incoming_text;
-use tokio::sync::mpsc;
+use agent::time_sync::TimeSync;
+use chrono::{Duration, Utc};
 use dashmap::DashMap;
-use chrono::{Utc, Duration};
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 type DeviceLocks = Arc<DashMap<String, std::sync::Arc<tokio::sync::Mutex<()>>>>;
 
@@ -43,9 +43,18 @@ async fn test_heartbeat_ack_updates_time_sync_offset() {
     let ack_json = serde_json::json!({
         "type": "heartbeat_ack",
         "server_time": server_time
-    }).to_string();
+    })
+    .to_string();
 
-    handle_incoming_text(&ack_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+    handle_incoming_text(
+        &ack_json,
+        &hybrid_db,
+        &reload_tx,
+        &central_tx,
+        &locks,
+        &time_sync,
+    )
+    .await;
 
     // After sync: offset should be ~60000ms (allow 1s tolerance)
     let offset = time_sync.offset_ms();
@@ -68,9 +77,18 @@ async fn test_heartbeat_ack_negative_offset() {
     let ack_json = serde_json::json!({
         "type": "heartbeat_ack",
         "server_time": server_time
-    }).to_string();
+    })
+    .to_string();
 
-    handle_incoming_text(&ack_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+    handle_incoming_text(
+        &ack_json,
+        &hybrid_db,
+        &reload_tx,
+        &central_tx,
+        &locks,
+        &time_sync,
+    )
+    .await;
 
     let offset = time_sync.offset_ms();
     assert!(
@@ -92,18 +110,39 @@ async fn test_heartbeat_ack_with_invalid_time_preserves_offset() {
     let ack_json = serde_json::json!({
         "type": "heartbeat_ack",
         "server_time": server_time
-    }).to_string();
-    handle_incoming_text(&ack_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+    })
+    .to_string();
+    handle_incoming_text(
+        &ack_json,
+        &hybrid_db,
+        &reload_tx,
+        &central_tx,
+        &locks,
+        &time_sync,
+    )
+    .await;
 
     let offset_before = time_sync.offset_ms();
-    assert!(offset_before > 9000, "Setup failed: offset was {offset_before}ms");
+    assert!(
+        offset_before > 9000,
+        "Setup failed: offset was {offset_before}ms"
+    );
 
     // Second: send invalid server_time → offset should NOT change
     let bad_ack = serde_json::json!({
         "type": "heartbeat_ack",
         "server_time": "not-a-valid-timestamp"
-    }).to_string();
-    handle_incoming_text(&bad_ack, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+    })
+    .to_string();
+    handle_incoming_text(
+        &bad_ack,
+        &hybrid_db,
+        &reload_tx,
+        &central_tx,
+        &locks,
+        &time_sync,
+    )
+    .await;
 
     let offset_after = time_sync.offset_ms();
     assert_eq!(
@@ -134,10 +173,20 @@ async fn test_device_upsert_uses_corrected_timestamp() {
     );
 
     // Use corrected timestamp in upsert
-    hybrid_db.store().upsert_device(
-        "dev_ts_test", "TS Test Device", "1.2.3.4", 4370, "zkteco", "UTC",
-        None, true, corrected_ts,
-    ).unwrap();
+    hybrid_db
+        .store()
+        .upsert_device(
+            "dev_ts_test",
+            "TS Test Device",
+            "1.2.3.4",
+            4370,
+            "zkteco",
+            "UTC",
+            None,
+            true,
+            corrected_ts,
+        )
+        .unwrap();
 
     let devices = hybrid_db.store().get_active_devices().unwrap();
     let dev = devices.iter().find(|d| d.id == "dev_ts_test").unwrap();
@@ -155,17 +204,44 @@ async fn test_device_metadata_update_uses_corrected_timestamp() {
 
     let corrected_ts = time_sync.corrected_timestamp();
 
-    hybrid_db.store().upsert_device(
-        "dev_meta_ts", "Meta TS Device", "1.2.3.4", 4370, "zkteco", "UTC",
-        None, true, corrected_ts,
-    ).unwrap();
+    hybrid_db
+        .store()
+        .upsert_device(
+            "dev_meta_ts",
+            "Meta TS Device",
+            "1.2.3.4",
+            4370,
+            "zkteco",
+            "UTC",
+            None,
+            true,
+            corrected_ts,
+        )
+        .unwrap();
 
-    hybrid_db.store().update_device_metadata(
-        "dev_meta_ts", "AA:BB:CC:DD:EE:FF", "SN001", "v2.0", "Linux", "xFace200",
-        200, 8000, 2000, 50000, "2026-03-08 12:00:00", corrected_ts,
-    ).unwrap();
+    hybrid_db
+        .store()
+        .update_device_metadata(
+            "dev_meta_ts",
+            "AA:BB:CC:DD:EE:FF",
+            "SN001",
+            "v2.0",
+            "Linux",
+            "xFace200",
+            200,
+            8000,
+            2000,
+            50000,
+            "2026-03-08 12:00:00",
+            corrected_ts,
+        )
+        .unwrap();
 
-    let meta = hybrid_db.store().get_device_metadata("dev_meta_ts").unwrap().unwrap();
+    let meta = hybrid_db
+        .store()
+        .get_device_metadata("dev_meta_ts")
+        .unwrap()
+        .unwrap();
     assert_eq!(meta.last_info_update, Some(corrected_ts));
 
     // Verify that corrected_ts is indeed ~120s behind raw Utc::now()
@@ -204,9 +280,18 @@ async fn test_config_push_uses_time_sync_for_device_upsert() {
                 "is_enabled": true
             }]
         }
-    }).to_string();
+    })
+    .to_string();
 
-    handle_incoming_text(&config_json, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+    handle_incoming_text(
+        &config_json,
+        &hybrid_db,
+        &reload_tx,
+        &central_tx,
+        &locks,
+        &time_sync,
+    )
+    .await;
 
     let devices = hybrid_db.store().get_active_devices().unwrap();
     let dev = devices.iter().find(|d| d.id == "dev_push_ts").unwrap();
@@ -234,18 +319,39 @@ async fn test_multiple_heartbeat_acks_converge_offset() {
     let ack1 = serde_json::json!({
         "type": "heartbeat_ack",
         "server_time": (Utc::now() + Duration::minutes(5)).to_rfc3339()
-    }).to_string();
-    handle_incoming_text(&ack1, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+    })
+    .to_string();
+    handle_incoming_text(
+        &ack1,
+        &hybrid_db,
+        &reload_tx,
+        &central_tx,
+        &locks,
+        &time_sync,
+    )
+    .await;
 
     let offset1 = time_sync.offset_ms();
-    assert!(offset1 > 290000, "First offset should be ~300000ms, got {offset1}ms");
+    assert!(
+        offset1 > 290000,
+        "First offset should be ~300000ms, got {offset1}ms"
+    );
 
     // Second sync: server corrects to only 10 seconds ahead
     let ack2 = serde_json::json!({
         "type": "heartbeat_ack",
         "server_time": (Utc::now() + Duration::seconds(10)).to_rfc3339()
-    }).to_string();
-    handle_incoming_text(&ack2, &hybrid_db, &reload_tx, &central_tx, &locks, &time_sync).await;
+    })
+    .to_string();
+    handle_incoming_text(
+        &ack2,
+        &hybrid_db,
+        &reload_tx,
+        &central_tx,
+        &locks,
+        &time_sync,
+    )
+    .await;
 
     let offset2 = time_sync.offset_ms();
     assert!(
@@ -257,7 +363,10 @@ async fn test_multiple_heartbeat_acks_converge_offset() {
     let corrected = time_sync.corrected_timestamp();
     let expected = Utc::now().timestamp() + 10;
     let diff = (corrected - expected).abs();
-    assert!(diff <= 1, "corrected_timestamp should be ~10s ahead, diff was {diff}s");
+    assert!(
+        diff <= 1,
+        "corrected_timestamp should be ~10s ahead, diff was {diff}s"
+    );
 }
 
 // ─── thread-safety ──────────────────────────────────────────────
@@ -327,5 +436,8 @@ async fn test_zero_offset_passthrough() {
     let raw_ts = Utc::now().timestamp();
     let corrected_ts = time_sync.corrected_timestamp();
     let diff = (corrected_ts - raw_ts).abs();
-    assert!(diff <= 1, "Zero-offset corrected should match raw, diff was {diff}s");
+    assert!(
+        diff <= 1,
+        "Zero-offset corrected should match raw, diff was {diff}s"
+    );
 }

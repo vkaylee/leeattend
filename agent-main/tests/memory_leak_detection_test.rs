@@ -10,7 +10,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration, timeout};
+use tokio::time::{Duration, sleep, timeout};
 
 /// Test that mpsc channel doesn't accumulate when consumer keeps up with producer.
 /// Memory leak indicator: channel buffer grows unboundedly.
@@ -50,7 +50,10 @@ async fn test_channel_no_accumulation_when_consumed() {
     let c = consumed.load(Ordering::SeqCst);
 
     // Consumer should have processed all or nearly all messages
-    assert!(c >= p - 100, "Consumer lagging too far behind: produced={p}, consumed={c}");
+    assert!(
+        c >= p - 100,
+        "Consumer lagging too far behind: produced={p}, consumed={c}"
+    );
 
     println!("✅ Channel consumption test passed: produced={p}, consumed={c}");
 }
@@ -93,7 +96,10 @@ async fn test_channel_backpressure_prevents_memory_growth() {
     let blocked_count = send_blocked.load(Ordering::SeqCst);
 
     // Producer should have been blocked multiple times (backpressure working)
-    assert!(blocked_count > 0, "Producer was never blocked - backpressure not working");
+    assert!(
+        blocked_count > 0,
+        "Producer was never blocked - backpressure not working"
+    );
 
     println!("✅ Backpressure test passed: producer blocked {blocked_count} times");
 }
@@ -128,9 +134,14 @@ async fn test_batch_buffer_cleared_after_processing() {
     // Buffer capacity may grow, but len should always return to 0
     assert_eq!(buffer.len(), 0, "Final buffer should be empty");
     assert_eq!(total_processed, 1000, "Should have processed 1000 items");
-    assert_eq!(max_buffer_size, 100, "Max buffer size should be 100 (batch size)");
+    assert_eq!(
+        max_buffer_size, 100,
+        "Max buffer size should be 100 (batch size)"
+    );
 
-    println!("✅ Batch buffer test passed: processed={total_processed}, max_size={max_buffer_size}");
+    println!(
+        "✅ Batch buffer test passed: processed={total_processed}, max_size={max_buffer_size}"
+    );
 }
 
 /// Test that Vec with capacity doesn't leak when using swap pattern.
@@ -227,12 +238,17 @@ async fn test_semaphore_permits_returned() {
 
     // All permits should be returned
     let available = semaphore.available_permits();
-    assert_eq!(available, 2, "Not all permits returned: {available} available");
+    assert_eq!(
+        available, 2,
+        "Not all permits returned: {available} available"
+    );
 
     let total_acquisitions = acquisitions.load(Ordering::SeqCst);
     assert_eq!(total_acquisitions, 50, "Should have 50 acquisitions");
 
-    println!("✅ Semaphore permit lifecycle test passed: {total_acquisitions} acquisitions, {available} permits available");
+    println!(
+        "✅ Semaphore permit lifecycle test passed: {total_acquisitions} acquisitions, {available} permits available"
+    );
 }
 
 /// Test that spawned tasks complete and don't accumulate.
@@ -256,9 +272,13 @@ async fn test_spawned_tasks_complete() {
         for h in handles {
             let _ = h.await;
         }
-    }).await;
+    })
+    .await;
 
-    assert!(result.is_ok(), "Tasks didn't complete in time - possible leak");
+    assert!(
+        result.is_ok(),
+        "Tasks didn't complete in time - possible leak"
+    );
 
     let count = completed.load(Ordering::SeqCst);
     assert_eq!(count, 100, "Not all tasks completed: {count}");
@@ -301,7 +321,10 @@ async fn test_cancellation_stops_loop() {
     sleep(Duration::from_millis(100)).await;
     let count_after = iterations.load(Ordering::SeqCst);
 
-    assert_eq!(count_at_cancel, count_after, "Loop continued after cancellation!");
+    assert_eq!(
+        count_at_cancel, count_after,
+        "Loop continued after cancellation!"
+    );
 
     println!("✅ Cancellation test passed: loop stopped at iteration {count_at_cancel}");
 }
@@ -360,7 +383,11 @@ async fn test_simulated_agent_loop_memory_stability() {
         while !token_poll.is_cancelled() {
             // Simulate fetching logs from device
             for i in 0..100 {
-                if tx.send(("device1".to_string(), batch_num * 100 + i)).await.is_err() {
+                if tx
+                    .send(("device1".to_string(), batch_num * 100 + i))
+                    .await
+                    .is_err()
+                {
                     return;
                 }
             }
@@ -419,7 +446,10 @@ async fn test_simulated_agent_loop_memory_stability() {
     assert!(processed > 0, "No logs processed");
 
     // Verify max pending stayed bounded (< 2x batch size indicates no accumulation)
-    assert!(max_p < 300, "Max pending too high ({max_p}), possible accumulation");
+    assert!(
+        max_p < 300,
+        "Max pending too high ({max_p}), possible accumulation"
+    );
 
     println!("✅ Simulated agent loop test passed: processed={processed}, max_pending={max_p}");
 }

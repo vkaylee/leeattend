@@ -1,8 +1,10 @@
+import DashboardPage from "../DashboardPage";
+
+import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import DashboardPage from "../DashboardPage";
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: any) => <a href={to}>{children}</a>,
@@ -38,9 +40,9 @@ vi.mock("@/hooks/use-dashboard-layout", () => ({
 }));
 
 import { useAgentsStatus } from "@/hooks/use-agents";
-import { useDevices } from "@/hooks/use-devices";
 import { useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
+import { useDevices } from "@/hooks/use-devices";
 
 describe("DashboardPage", () => {
   let queryClient: QueryClient;

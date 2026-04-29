@@ -1,7 +1,9 @@
+import React from "react";
+
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+
 import FormField, { LABEL_BASE, INPUT_BASE } from "./FormField";
-import React from "react";
 
 describe("FormField Component", () => {
   // ── Label rendering ─────────────────────────────────────────────

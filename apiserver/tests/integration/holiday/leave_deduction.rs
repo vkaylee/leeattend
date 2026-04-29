@@ -122,7 +122,10 @@ async fn test_update_holiday_with_leave_type_id() {
 
     // Update to unpaid with leave_type_id
     let resp = client
-        .put(format!("{address}/api/workspaces/{workspace_id}/holidays/{}", holiday.id))
+        .put(format!(
+            "{address}/api/workspaces/{workspace_id}/holidays/{}",
+            holiday.id
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "name": "Flex Day",
@@ -364,7 +367,10 @@ async fn test_process_holiday_leave_api() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     let results: Vec<serde_json::Value> = resp.json().await.unwrap();
-    assert!(!results.is_empty(), "Should have processed at least 1 employee");
+    assert!(
+        !results.is_empty(),
+        "Should have processed at least 1 employee"
+    );
 
     // Verify a leave request was created for the employee
     let leave_count: i64 = sqlx::query_scalar!(
@@ -377,7 +383,10 @@ async fn test_process_holiday_leave_api() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(leave_count, 1, "Should have created exactly 1 approved leave request");
+    assert_eq!(
+        leave_count, 1,
+        "Should have created exactly 1 approved leave request"
+    );
 }
 
 /// POST /holidays/:id/process-leave — employee with no balance → marked unpaid
@@ -455,7 +464,10 @@ async fn test_process_holiday_leave_insufficient_balance() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(leave_count, 0, "No leave request should be created when balance is 0");
+    assert_eq!(
+        leave_count, 0,
+        "No leave request should be created when balance is 0"
+    );
 }
 
 /// POST /holidays/:id/process-leave — idempotency: running twice should not duplicate
@@ -533,7 +545,10 @@ async fn test_process_holiday_leave_idempotent() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(leave_count, 1, "Idempotent: should still have exactly 1 leave request");
+    assert_eq!(
+        leave_count, 1,
+        "Idempotent: should still have exactly 1 leave request"
+    );
 }
 
 /// Process-leave on a PAID holiday should return empty results (no deductions needed)

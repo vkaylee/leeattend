@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { useAttendanceSummaries, useApproveOt } from "@/hooks/use-attendance";
+
+import * as Popover from "@radix-ui/react-popover";
 import { startOfMonth, endOfMonth, format, subMonths, addMonths } from "date-fns";
 import {
   CheckCircle,
@@ -13,10 +13,13 @@ import {
   Filter,
   Upload
 } from "lucide-react";
-import * as Popover from "@radix-ui/react-popover";
-import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import { EnterPaperOtDialog } from "@/components/approvals/EnterPaperOtDialog";
+import { useTranslation } from "react-i18next";
+
 import { BulkUploadOtDialog } from "@/components/approvals/BulkUploadOtDialog";
+import { EnterPaperOtDialog } from "@/components/approvals/EnterPaperOtDialog";
+import { MonthYearPicker } from "@/components/common/MonthYearPicker";
+
+import { useAttendanceSummaries, useApproveOt } from "@/hooks/use-attendance";
 import { cn } from "@/lib/utils";
 
 type SourceFilter = "all" | "paper_form" | "self_service";

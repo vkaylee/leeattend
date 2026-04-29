@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+
+import { ShieldAlert, Building2, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
     BarChart,
@@ -9,7 +11,7 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from "recharts";
-import { ShieldAlert, Building2, Users } from "lucide-react";
+
 import { useUnexcusedAbsences } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 

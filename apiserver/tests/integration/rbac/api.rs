@@ -15,17 +15,38 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         setup_app_tower().await;
 
     // 1. Setup global workspace and owner
-    let owner_user_id: Uuid = factory.user().create().await;     
+    let owner_user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(owner_user_id).await;
 
     // 2. Create Departments A and B
-    let dept_a = factory.department().with_workspace(ws_id).with_name("Dept A").create().await;
-    let dept_b = factory.department().with_workspace(ws_id).with_name("Dept B").create().await;
+    let dept_a = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Dept A")
+        .create()
+        .await;
+    let dept_b = factory
+        .department()
+        .with_workspace(ws_id)
+        .with_name("Dept B")
+        .create()
+        .await;
 
     // 3. Create TeamLead User and Employee in Dept A
     let tl_user_id = factory.user().create().await;
-    factory.add_member(ws_id, tl_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap()).await;
-    let emp_tl = factory.employee().with_workspace(ws_id).with_user(tl_user_id).create().await;
+    factory
+        .add_member(
+            ws_id,
+            tl_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap(),
+        )
+        .await;
+    let emp_tl = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(tl_user_id)
+        .create()
+        .await;
 
     sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)")
         .bind(emp_tl)
@@ -35,7 +56,12 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .unwrap();
 
     // 4. Create target Employee in Dept B
-    let emp_target_b = factory.employee().with_workspace(ws_id).with_full_name("Target Employee").create().await;
+    let emp_target_b = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_full_name("Target Employee")
+        .create()
+        .await;
     sqlx::query("INSERT INTO employee_department_history (employee_id, department_id, effective_date) VALUES ($1, $2, CURRENT_DATE)")
         .bind(emp_target_b)
         .bind(dept_b)
@@ -53,7 +79,10 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, emp_target_b))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}",
+                    ws_id, emp_target_b
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", tl_user_id.to_string())
@@ -63,11 +92,21 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .await
         .unwrap();
 
-    assert_eq!(response_tl.status(), StatusCode::FORBIDDEN, "TeamLead A should not update Employee B");
+    assert_eq!(
+        response_tl.status(),
+        StatusCode::FORBIDDEN,
+        "TeamLead A should not update Employee B"
+    );
 
     // 6. Create Admin User (global scope)
     let admin_user_id = factory.user().create().await;
-    factory.add_member(ws_id, admin_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap()).await;
+    factory
+        .add_member(
+            ws_id,
+            admin_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap(),
+        )
+        .await;
 
     // 7. Try to update Employee B using Admin (Should succeed -> 200 OK)
     // First we grant Admin HrManager powers to update employees (Wait, looking at role_permissions, Admin inherits HrManager which has EmployeesUpdate)
@@ -76,7 +115,10 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, emp_target_b))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}",
+                    ws_id, emp_target_b
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_user_id.to_string())
@@ -86,7 +128,11 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .await
         .unwrap();
 
-    assert_eq!(response_admin.status(), StatusCode::OK, "Admin should update any employee");
+    assert_eq!(
+        response_admin.status(),
+        StatusCode::OK,
+        "Admin should update any employee"
+    );
 }
 
 #[tokio::test]
@@ -95,11 +141,17 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
         setup_app_tower().await;
 
     // 1. Setup
-    let admin_user_id: Uuid = factory.user().create().await;     
+    let admin_user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(admin_user_id).await; // Owner has members:roles:manage
 
     let target_user_id = factory.user().create().await;
-    factory.add_member(ws_id, target_user_id, uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    factory
+        .add_member(
+            ws_id,
+            target_user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     // 2. Grant temporary permission
     let future_date = chrono::Utc::now() + chrono::Duration::days(1);
@@ -113,7 +165,10 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/members/{}/permissions", ws_id, target_user_id))
+                .uri(format!(
+                    "/api/workspaces/{}/members/{}/permissions",
+                    ws_id, target_user_id
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_user_id.to_string())
@@ -123,10 +178,16 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
         .await
         .unwrap();
 
-    assert_eq!(response_grant.status(), StatusCode::CREATED, "Grant permission should succeed");
-    
+    assert_eq!(
+        response_grant.status(),
+        StatusCode::CREATED,
+        "Grant permission should succeed"
+    );
+
     // Parse response to find perm_id
-    let body = axum::body::to_bytes(response_grant.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response_grant.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let perm_json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let perm_id = perm_json["id"].as_str().unwrap();
 
@@ -145,7 +206,10 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/workspaces/{}/members/{}/permissions/{}", ws_id, target_user_id, perm_id))
+                .uri(format!(
+                    "/api/workspaces/{}/members/{}/permissions/{}",
+                    ws_id, target_user_id, perm_id
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -154,13 +218,20 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
         .await
         .unwrap();
 
-    assert_eq!(response_revoke.status(), StatusCode::NO_CONTENT, "Revoke permission should succeed");
+    assert_eq!(
+        response_revoke.status(),
+        StatusCode::NO_CONTENT,
+        "Revoke permission should succeed"
+    );
 
     // 5. Verify audit log for revoke
-    let audit_logs_after = sqlx::query!("SELECT action FROM audit_logs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1", ws_id)
-        .fetch_one(state.infra.db.api())
-        .await
-        .unwrap();
+    let audit_logs_after = sqlx::query!(
+        "SELECT action FROM audit_logs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1",
+        ws_id
+    )
+    .fetch_one(state.infra.db.api())
+    .await
+    .unwrap();
 
     assert_eq!(audit_logs_after.action, "revoke_permission");
 }

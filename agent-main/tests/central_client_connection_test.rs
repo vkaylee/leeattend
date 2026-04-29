@@ -1,6 +1,6 @@
+use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use std::time::Duration;
-use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 use tokio_tungstenite::accept_async;
@@ -25,14 +25,18 @@ async fn start_mock_ws_server() -> (tokio::sync::broadcast::Receiver<serde_json:
                         let text_str = String::from_utf8_lossy(text.as_ref()).to_string();
                         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text_str) {
                             let _ = tx.send(json.clone());
-                            
+
                             // If it's an attendance message, mock an ACK response to complete flow
                             if json.get("msg_id").is_some() && json.get("data").is_some() {
                                 let ack = serde_json::json!({
                                     "msg_id": json["msg_id"],
                                     "success": true
                                 });
-                                let _ = ws_stream.send(tokio_tungstenite::tungstenite::Message::Text(ack.to_string().into())).await;
+                                let _ = ws_stream
+                                    .send(tokio_tungstenite::tungstenite::Message::Text(
+                                        ack.to_string().into(),
+                                    ))
+                                    .await;
                             }
                         }
                     }
@@ -54,7 +58,11 @@ async fn test_central_client_connection_and_sync() {
     let store = hybrid.store();
 
     // Must have active device to start syncing
-    store.upsert_device("DEV_SYNC", "Test", "1.1.1.1", 4370, "zkteco", "UTC", None, true, 123).unwrap();
+    store
+        .upsert_device(
+            "DEV_SYNC", "Test", "1.1.1.1", 4370, "zkteco", "UTC", None, true, 123,
+        )
+        .unwrap();
 
     let time_sync = Arc::new(TimeSync::new());
     let device_locks = Arc::new(DashMap::new());
@@ -68,7 +76,7 @@ async fn test_central_client_connection_and_sync() {
         30,
         command_registry,
         device_locks,
-        time_sync
+        time_sync,
     );
 
     let tx = client.get_tx();
@@ -80,10 +88,13 @@ async fn test_central_client_connection_and_sync() {
     });
 
     // Wait and receive Handshake
-    let handshake = tokio::time::timeout(Duration::from_secs(10), rx_server.recv()).await.expect("Timeout waiting for handshake").unwrap();
+    let handshake = tokio::time::timeout(Duration::from_secs(10), rx_server.recv())
+        .await
+        .expect("Timeout waiting for handshake")
+        .unwrap();
     assert_eq!(handshake["agent_id"], "AGENT_1");
     // In CentralMessage::Handshake it's {"Handshake": {"agent_id":...}} inside an Enum maybe, wait, Serde enum is probably adjacently tagged or externally tagged.
-    // By default, enum serialization might look like: `{"Handshake": {"agent_id": ...}}` 
+    // By default, enum serialization might look like: `{"Handshake": {"agent_id": ...}}`
     // Let's just assert it is valid JSON and contains AGENT_1 somewhere.
     assert!(handshake.to_string().contains("AGENT_1"));
 
@@ -94,7 +105,10 @@ async fn test_central_client_connection_and_sync() {
         status: Some(1),
         punch: Some(1),
     };
-    hybrid.save_raw_attendance("DEV_SYNC".into(), log_data).await.unwrap();
+    hybrid
+        .save_raw_attendance("DEV_SYNC".into(), log_data)
+        .await
+        .unwrap();
 
     // Wait for the attendance log to be sent over WS
     let mut found_log = false;

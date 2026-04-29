@@ -128,12 +128,11 @@ impl FeatureFlagRepository {
 
     /// Delete a flag. Returns true if a row was actually deleted.
     pub async fn delete(pool: &PgPool, workspace_id: Uuid, id: Uuid) -> sqlx::Result<bool> {
-        let result =
-            sqlx::query("DELETE FROM feature_flags WHERE workspace_id = $1 AND id = $2")
-                .bind(workspace_id)
-                .bind(id)
-                .execute(pool)
-                .await?;
+        let result = sqlx::query("DELETE FROM feature_flags WHERE workspace_id = $1 AND id = $2")
+            .bind(workspace_id)
+            .bind(id)
+            .execute(pool)
+            .await?;
         Ok(result.rows_affected() > 0)
     }
 

@@ -5,9 +5,9 @@
 //! 2. Workers respond to cancellation by disconnecting from devices
 //! 3. Both SIGINT and SIGTERM trigger the same shutdown path
 
-use tokio_util::sync::CancellationToken;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use tokio_util::sync::CancellationToken;
 
 /// Test that CancellationToken propagation works: when a parent token is
 /// cancelled (simulating signal handler), child tokens also cancel.
@@ -39,8 +39,14 @@ async fn test_cancellation_token_propagates_to_workers() {
     h1.await.unwrap();
     h2.await.unwrap();
 
-    assert!(w1_stopped.load(Ordering::SeqCst), "Worker 1 should have stopped");
-    assert!(w2_stopped.load(Ordering::SeqCst), "Worker 2 should have stopped");
+    assert!(
+        w1_stopped.load(Ordering::SeqCst),
+        "Worker 1 should have stopped"
+    );
+    assert!(
+        w2_stopped.load(Ordering::SeqCst),
+        "Worker 2 should have stopped"
+    );
 }
 
 /// Test the exact signal handler pattern used in main.rs:
@@ -53,9 +59,8 @@ async fn test_sigterm_triggers_cancellation() {
 
     // Replicate the exact signal handler from main.rs
     tokio::spawn(async move {
-        let mut sigterm = tokio::signal::unix::signal(
-            tokio::signal::unix::SignalKind::terminate(),
-        ).expect("Failed to register SIGTERM handler");
+        let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to register SIGTERM handler");
 
         tokio::select! {
             _ = tokio::signal::ctrl_c() => {}
@@ -119,7 +124,10 @@ async fn test_worker_disconnects_on_cancellation() {
     // Wait for worker to finish
     handle.await.unwrap();
 
-    assert!(disconnected.load(Ordering::SeqCst), "Worker should have disconnected");
+    assert!(
+        disconnected.load(Ordering::SeqCst),
+        "Worker should have disconnected"
+    );
 }
 
 /// Test that multiple workers all disconnect when the shared cancel token fires.
@@ -141,7 +149,10 @@ async fn test_all_workers_disconnect_on_shutdown() {
 
         handles.push(tokio::spawn(async move {
             let mut worker = MockWorker::new();
-            worker.connect("127.0.0.1", (4370 + i) as u16).await.unwrap();
+            worker
+                .connect("127.0.0.1", (4370 + i) as u16)
+                .await
+                .unwrap();
 
             while !token.is_cancelled() {
                 tokio::time::sleep(std::time::Duration::from_millis(50)).await;

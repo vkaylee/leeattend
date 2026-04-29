@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
+
 import { useTranslation } from 'react-i18next';
-import { useWorkspaces } from './use-workspace';
-import { useProfile } from './use-profile';
+
 import { getCurrentWorkspaceId } from '@/lib/api';
+
+import { useProfile } from './use-profile';
+import { useWorkspaces } from './use-workspace';
 
 export function useI18nSync() {
   const { i18n } = useTranslation();

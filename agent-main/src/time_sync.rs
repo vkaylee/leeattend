@@ -1,6 +1,6 @@
-use std::sync::atomic::{AtomicI64, Ordering};
 use chrono::{DateTime, Utc};
 use log::{debug, warn};
+use std::sync::atomic::{AtomicI64, Ordering};
 
 /// Thread-safe server-time synchronization.
 ///
@@ -103,7 +103,10 @@ mod tests {
         ts.update_offset(&server_time);
         // offset should be approximately +5000ms (allow 500ms tolerance for test execution)
         let offset = ts.offset_ms();
-        assert!(offset > 4500 && offset < 5500, "offset was {offset}ms, expected ~5000ms");
+        assert!(
+            offset > 4500 && offset < 5500,
+            "offset was {offset}ms, expected ~5000ms"
+        );
     }
 
     #[test]
@@ -153,6 +156,9 @@ mod tests {
         let t2 = (Utc::now() + chrono::Duration::seconds(2)).to_rfc3339();
         ts.update_offset(&t2);
         let offset2 = ts.offset_ms();
-        assert!(offset2 > 1000 && offset2 < 3000, "second offset was {offset2}ms");
+        assert!(
+            offset2 > 1000 && offset2 < 3000,
+            "second offset was {offset2}ms"
+        );
     }
 }

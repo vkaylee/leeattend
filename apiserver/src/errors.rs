@@ -61,6 +61,12 @@ impl From<std::io::Error> for AppError {
     }
 }
 
+impl From<rust_xlsxwriter::XlsxError> for AppError {
+    fn from(err: rust_xlsxwriter::XlsxError) -> Self {
+        Self::Internal(err.to_string())
+    }
+}
+
 impl From<(StatusCode, String)> for AppError {
     fn from((status, message): (StatusCode, String)) -> Self {
         match status.as_u16() {
@@ -141,14 +147,38 @@ mod tests {
 
     #[test]
     fn test_status_codes() {
-        assert_eq!(AppError::Auth("x".into()).status_code(), StatusCode::UNAUTHORIZED);
-        assert_eq!(AppError::Forbidden("x".into()).status_code(), StatusCode::FORBIDDEN);
-        assert_eq!(AppError::NotFound("x".into()).status_code(), StatusCode::NOT_FOUND);
-        assert_eq!(AppError::Validation("x".into()).status_code(), StatusCode::BAD_REQUEST);
-        assert_eq!(AppError::Internal("x".into()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
-        assert_eq!(AppError::Conflict("x".into()).status_code(), StatusCode::CONFLICT);
-        assert_eq!(AppError::ServiceUnavailable("x".into()).status_code(), StatusCode::SERVICE_UNAVAILABLE);
-        assert_eq!(AppError::Redis("x".into()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            AppError::Auth("x".into()).status_code(),
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            AppError::Forbidden("x".into()).status_code(),
+            StatusCode::FORBIDDEN
+        );
+        assert_eq!(
+            AppError::NotFound("x".into()).status_code(),
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(
+            AppError::Validation("x".into()).status_code(),
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            AppError::Internal("x".into()).status_code(),
+            StatusCode::INTERNAL_SERVER_ERROR
+        );
+        assert_eq!(
+            AppError::Conflict("x".into()).status_code(),
+            StatusCode::CONFLICT
+        );
+        assert_eq!(
+            AppError::ServiceUnavailable("x".into()).status_code(),
+            StatusCode::SERVICE_UNAVAILABLE
+        );
+        assert_eq!(
+            AppError::Redis("x".into()).status_code(),
+            StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[test]
@@ -156,10 +186,19 @@ mod tests {
         assert_eq!(AppError::Auth("x".into()).error_code(), "UNAUTHORIZED");
         assert_eq!(AppError::Forbidden("x".into()).error_code(), "FORBIDDEN");
         assert_eq!(AppError::NotFound("x".into()).error_code(), "NOT_FOUND");
-        assert_eq!(AppError::Validation("x".into()).error_code(), "VALIDATION_ERROR");
-        assert_eq!(AppError::Internal("x".into()).error_code(), "INTERNAL_ERROR");
+        assert_eq!(
+            AppError::Validation("x".into()).error_code(),
+            "VALIDATION_ERROR"
+        );
+        assert_eq!(
+            AppError::Internal("x".into()).error_code(),
+            "INTERNAL_ERROR"
+        );
         assert_eq!(AppError::Conflict("x".into()).error_code(), "CONFLICT");
-        assert_eq!(AppError::ServiceUnavailable("x".into()).error_code(), "SERVICE_UNAVAILABLE");
+        assert_eq!(
+            AppError::ServiceUnavailable("x".into()).error_code(),
+            "SERVICE_UNAVAILABLE"
+        );
         assert_eq!(AppError::Redis("x".into()).error_code(), "REDIS_ERROR");
     }
 
@@ -187,7 +226,12 @@ mod tests {
             (500, "Internal"),
         ];
         let expected_variants: &[&str] = &[
-            "Auth", "Forbidden", "NotFound", "Conflict", "Validation", "Internal",
+            "Auth",
+            "Forbidden",
+            "NotFound",
+            "Conflict",
+            "Validation",
+            "Internal",
         ];
         for (&(code, msg), &variant) in cases.iter().zip(expected_variants.iter()) {
             let sc = StatusCode::from_u16(code).expect("valid status code");
@@ -274,4 +318,3 @@ mod tests {
         }
     }
 }
-

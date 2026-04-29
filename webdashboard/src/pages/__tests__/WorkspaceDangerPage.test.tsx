@@ -1,12 +1,15 @@
+import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import WorkspaceDangerPage from "../workspace/WorkspaceDangerPage";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { ToastProvider } from "../../components/ui/Toast";
-import * as apiWorkspaces from "../../lib/api/workspaces";
+import { useWorkspace } from "../../hooks/use-workspace";
 import * as api from "../../lib/api";
-import React from "react";
+import * as apiWorkspaces from "../../lib/api/workspaces";
+
 
 vi.mock("../../lib/api/workspaces", () => ({
   clearWorkspaceData: vi.fn(),
@@ -20,7 +23,7 @@ vi.mock("../../hooks/use-workspace", () => ({
   useWorkspace: vi.fn(),
 }));
 
-import { useWorkspace } from "../../hooks/use-workspace";
+import WorkspaceDangerPage from "../workspace/WorkspaceDangerPage";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

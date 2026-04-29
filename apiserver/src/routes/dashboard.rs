@@ -26,10 +26,7 @@ pub fn router() -> Router<Arc<AppState>> {
             "/dashboard/overtime-trend",
             get(handlers::get_overtime_trend),
         )
-        .route(
-            "/dashboard/peak-times",
-            get(handlers::get_peak_times),
-        )
+        .route("/dashboard/peak-times", get(handlers::get_peak_times))
         .route(
             "/dashboard/leave-types",
             get(handlers::get_leave_types_breakdown),

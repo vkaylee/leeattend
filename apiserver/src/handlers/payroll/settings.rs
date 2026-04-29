@@ -1,10 +1,6 @@
-use axum::{
-    extract::State,
-    response::Json,
-};
+use axum::{extract::State, response::Json};
 use chrono::Utc;
 use std::sync::Arc;
-
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
@@ -15,10 +11,12 @@ pub async fn get_payroll_settings(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<PayrollSettings>> {
-    let settings =
-        state.payroll.repo.get_payroll_settings(workspace_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Settings not found".to_string()))?;
+    let settings = state
+        .payroll
+        .repo
+        .get_payroll_settings(workspace_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Settings not found".to_string()))?;
 
     Ok(Json(settings))
 }
@@ -50,11 +48,12 @@ pub async fn update_payroll_settings(
     let effective_date = req
         .effective_date
         .unwrap_or_else(|| Utc::now().date_naive());
-    let current = state.payroll.repo.get_payroll_settings_at(workspace_id,
-        effective_date,
-    )
-    .await
-    .unwrap_or(None);
+    let current = state
+        .payroll
+        .repo
+        .get_payroll_settings_at(workspace_id, effective_date)
+        .await
+        .unwrap_or(None);
 
     let mode = req.std_working_day_mode.unwrap_or_else(|| {
         current
@@ -91,17 +90,20 @@ pub async fn update_payroll_settings(
         None => current.as_ref().and_then(|s| s.max_ot_hours_per_month),
     };
 
-    let settings = state.payroll.repo.update_payroll_settings(workspace_id,
-        mode,
-        fixed_days,
-        days_per_week,
-        hours_per_day,
-        max_ot_per_day,
-        max_ot_per_month,
-        effective_date,
-    )
-    .await?;
+    let settings = state
+        .payroll
+        .repo
+        .update_payroll_settings(
+            workspace_id,
+            mode,
+            fixed_days,
+            days_per_week,
+            hours_per_day,
+            max_ot_per_day,
+            max_ot_per_month,
+            effective_date,
+        )
+        .await?;
 
     Ok(Json(settings))
 }
-

@@ -1,8 +1,10 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import PayslipDocument from "../PayslipDocument";
+
 import { Employee, Payslip, Workspace } from "@/lib/api/types";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+import PayslipDocument from "../PayslipDocument";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({

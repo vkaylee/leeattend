@@ -1,15 +1,15 @@
 mod attendance_ops;
-mod sync_ops;
 mod device_ops;
 mod maintenance_ops;
+mod sync_ops;
 mod types;
 
-pub use types::{StoredLog, StoredDevice, StoredFailedLog, StoreError};
+pub use types::{StoreError, StoredDevice, StoredFailedLog, StoredLog};
 
-use redb::{Database, TableDefinition, ReadableTable, ReadableDatabase, ReadableTableMetadata};
-use std::sync::atomic::{AtomicI64, Ordering};
-use std::sync::Arc;
+use redb::{Database, ReadableDatabase, ReadableTable, ReadableTableMetadata, TableDefinition};
 use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicI64, Ordering};
 
 // ── Table Definitions ──────────────────────────────────────────────────────
 
@@ -56,9 +56,10 @@ impl RedbStore {
         } else {
             // Ensure parent directory exists
             if let Some(parent) = Path::new(path).parent()
-                && !parent.as_os_str().is_empty() {
-                    let _ = std::fs::create_dir_all(parent);
-                }
+                && !parent.as_os_str().is_empty()
+            {
+                let _ = std::fs::create_dir_all(parent);
+            }
             Database::create(path)?
         };
 
@@ -108,8 +109,13 @@ impl RedbStore {
     }
 
     /// Compute 64-bit FxHash signature for deduplication.
-    fn compute_signature(device_id: &str, user_id: &str, timestamp: i64, punch: Option<i32>, status: Option<i32>) -> u64 {
-        
+    fn compute_signature(
+        device_id: &str,
+        user_id: &str,
+        timestamp: i64,
+        punch: Option<i32>,
+        status: Option<i32>,
+    ) -> u64 {
         // Use a simple FNV-1a style hasher (no external dependency needed)
         let mut h: u64 = 0xcbf29ce484222325;
         for b in device_id.as_bytes() {
@@ -158,7 +164,13 @@ impl RedbStore {
     }
 
     /// Compute composite key hash (same algorithm as signature but for ACK lookup).
-    fn compute_composite_hash(device_id: &str, user_id: &str, timestamp: i64, punch: Option<i32>, status: Option<i32>) -> u64 {
+    fn compute_composite_hash(
+        device_id: &str,
+        user_id: &str,
+        timestamp: i64,
+        punch: Option<i32>,
+        status: Option<i32>,
+    ) -> u64 {
         // Use different seed to avoid collision with signature hash
         let sig = Self::compute_signature(device_id, user_id, timestamp, punch, status);
         sig.wrapping_mul(0x9e3779b97f4a7c15) // Mix with golden ratio
@@ -166,24 +178,53 @@ impl RedbStore {
 
     /// Count total attendance logs.
     pub fn count_total(&self) -> Result<usize, StoreError> {
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(format!("{e}")))?;
-        let table = txn.open_table(ATTENDANCE_LOGS).map_err(|e| StoreError::DbError(format!("{e}")))?;
-        Ok(table.len().map_err(|e| StoreError::DbError(format!("{e}")))? as usize)
+        let txn = self
+            .db
+            .begin_read()
+            .map_err(|e| StoreError::DbError(format!("{e}")))?;
+        let table = txn
+            .open_table(ATTENDANCE_LOGS)
+            .map_err(|e| StoreError::DbError(format!("{e}")))?;
+        Ok(table
+            .len()
+            .map_err(|e| StoreError::DbError(format!("{e}")))? as usize)
     }
 
     /// Count signatures.
     pub fn count_signatures(&self) -> Result<usize, StoreError> {
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(format!("{e}")))?;
-        let table = txn.open_table(SIGNATURES).map_err(|e| StoreError::DbError(format!("{e}")))?;
-        Ok(table.len().map_err(|e| StoreError::DbError(format!("{e}")))? as usize)
+        let txn = self
+            .db
+            .begin_read()
+            .map_err(|e| StoreError::DbError(format!("{e}")))?;
+        let table = txn
+            .open_table(SIGNATURES)
+            .map_err(|e| StoreError::DbError(format!("{e}")))?;
+        Ok(table
+            .len()
+            .map_err(|e| StoreError::DbError(format!("{e}")))? as usize)
     }
 
     /// Check if a specific signature exists.
-    pub fn has_signature(&self, device_id: &str, user_id: &str, timestamp: i64, punch: Option<i32>, status: Option<i32>) -> Result<bool, StoreError> {
+    pub fn has_signature(
+        &self,
+        device_id: &str,
+        user_id: &str,
+        timestamp: i64,
+        punch: Option<i32>,
+        status: Option<i32>,
+    ) -> Result<bool, StoreError> {
         let sig = Self::compute_signature(device_id, user_id, timestamp, punch, status);
-        let txn = self.db.begin_read().map_err(|e| StoreError::DbError(format!("{e}")))?;
-        let table = txn.open_table(SIGNATURES).map_err(|e| StoreError::DbError(format!("{e}")))?;
-        Ok(table.get(sig).map_err(|e| StoreError::DbError(format!("{e}")))?.is_some())
+        let txn = self
+            .db
+            .begin_read()
+            .map_err(|e| StoreError::DbError(format!("{e}")))?;
+        let table = txn
+            .open_table(SIGNATURES)
+            .map_err(|e| StoreError::DbError(format!("{e}")))?;
+        Ok(table
+            .get(sig)
+            .map_err(|e| StoreError::DbError(format!("{e}")))?
+            .is_some())
     }
 
     /// Parse composite key string and look up log ID.
@@ -212,7 +253,10 @@ impl RedbStore {
         let hash = Self::compute_composite_hash(device_id, user_id, timestamp_unix, punch, status);
         let txn = self.db.begin_read().ok()?;
         let table: redb::ReadOnlyTable<u64, i64> = txn.open_table(COMPOSITE_INDEX).ok()?;
-        table.get(hash).ok()?.map(|v: redb::AccessGuard<'_, i64>| v.value())
+        table
+            .get(hash)
+            .ok()?
+            .map(|v: redb::AccessGuard<'_, i64>| v.value())
     }
 }
 
@@ -247,7 +291,11 @@ mod tests {
     #[test]
     fn test_has_signature_empty() {
         let store = make_store();
-        assert!(!store.has_signature("DEV", "USR", 100, Some(1), Some(1)).unwrap());
+        assert!(
+            !store
+                .has_signature("DEV", "USR", 100, Some(1), Some(1))
+                .unwrap()
+        );
     }
 
     #[test]
@@ -260,9 +308,17 @@ mod tests {
             punch: Some(1),
         };
         store.insert("DEV1", &data, 5000).unwrap();
-        assert!(store.has_signature("DEV1", "U1", 5000, Some(1), Some(1)).unwrap());
+        assert!(
+            store
+                .has_signature("DEV1", "U1", 5000, Some(1), Some(1))
+                .unwrap()
+        );
         // Different params = no signature
-        assert!(!store.has_signature("DEV1", "U1", 5001, Some(1), Some(1)).unwrap());
+        assert!(
+            !store
+                .has_signature("DEV1", "U1", 5001, Some(1), Some(1))
+                .unwrap()
+        );
     }
 
     #[test]

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
-import { useTranslation } from "react-i18next";
-import { ROUTES } from "@/lib/routes";
+
+import { Link } from "@tanstack/react-router";
 import {
   Monitor,
   ShieldCheck,
@@ -20,17 +20,20 @@ import {
   Timer,
   Settings2,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import DashboardViewTabs from "@/components/features/dashboard/DashboardViewTabs";
+
 import CollapsibleSection from "@/components/features/dashboard/CollapsibleSection";
 import CustomizePanel from "@/components/features/dashboard/CustomizePanel";
+import DashboardViewTabs from "@/components/features/dashboard/DashboardViewTabs";
 import WidgetRenderer from "@/components/features/dashboard/WidgetRenderer";
+
 import { useAgentsStatus } from "@/hooks/use-agents";
-import { useDevices } from "@/hooks/use-devices";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardLayout, type WidgetId } from "@/hooks/use-dashboard-layout";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useDevices } from "@/hooks/use-devices";
+import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 const DONUT_COLORS = {

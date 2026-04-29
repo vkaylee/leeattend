@@ -67,11 +67,17 @@ pub async fn get_staging_logs(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
 
-    let logs = state.attendance.staging_repo.get_pending_staging_logs(ctx.workspace_id, limit)
+    let logs = state
+        .attendance
+        .staging_repo
+        .get_pending_staging_logs(ctx.workspace_id, limit)
         .await?;
 
-    let total =
-        state.attendance.staging_repo.count_pending_staging_logs(ctx.workspace_id).await?;
+    let total = state
+        .attendance
+        .staging_repo
+        .count_pending_staging_logs(ctx.workspace_id)
+        .await?;
 
     let response = StagingLogsResponse {
         data: logs.into_iter().map(StagingLogResponse::from).collect(),
@@ -100,7 +106,6 @@ pub async fn resolve_staging_log(
     ctx.require_permission(Permission::AttendanceStagingManage)?;
 
     use crate::models::{LogSource, RawAttendanceLog};
-    
 
     // Use transaction to ensure atomicity of read-check-insert-update
     let mut tx = state.infra.db.api().begin().await?;
@@ -156,7 +161,11 @@ pub async fn resolve_staging_log(
     };
 
     // 3. Insert raw log within transaction
-    state.attendance.raw_log_repo.create_raw_log(&raw_log).await?;
+    state
+        .attendance
+        .raw_log_repo
+        .create_raw_log(&raw_log)
+        .await?;
 
     // 4. Mark staging log as processed within transaction
     staging_log_repository::update_staging_status_tx(
@@ -171,7 +180,12 @@ pub async fn resolve_staging_log(
     tx.commit().await?;
 
     // 6. Trigger pairing (post-commit side effect, log errors but don't fail the response)
-    if let Err(e) = state.attendance.pairing_service.process_new_raw_log(&raw_log).await {
+    if let Err(e) = state
+        .attendance
+        .pairing_service
+        .process_new_raw_log(&raw_log)
+        .await
+    {
         tracing::error!(log_id = %log_id, error = %e, "Failed to trigger pairing after staging resolve");
     }
 
@@ -187,11 +201,11 @@ pub async fn dismiss_staging_log(
 ) -> AppResult<StatusCode> {
     ctx.require_permission(Permission::AttendanceStagingManage)?;
 
-    let updated = state.attendance.staging_repo.update_staging_status(log_id,
-        ctx.workspace_id,
-        "dismissed",
-    )
-    .await?;
+    let updated = state
+        .attendance
+        .staging_repo
+        .update_staging_status(log_id, ctx.workspace_id, "dismissed")
+        .await?;
 
     if !updated {
         return Err(AppError::NotFound("Staging log not found".to_string()));

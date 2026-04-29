@@ -1,12 +1,16 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Plus, Loader2, LogOut } from "lucide-react";
-import { useWorkspaces } from "@/hooks/use-workspace";
-import { setCurrentWorkspaceId } from "@/lib/api";
+
 import { useNavigate } from "@tanstack/react-router";
-import { ROUTES } from "@/lib/routes";
+import { LayoutDashboard, Plus, Loader2, LogOut } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import Button from "@/components/ui/Button";
 import { LABEL_BASE } from "@/components/ui/FormField";
+
+import { useWorkspaces } from "@/hooks/use-workspace";
+import { setCurrentWorkspaceId } from "@/lib/api";
+import { ROUTES } from "@/lib/routes";
+
 
 export default function OnboardingPage() {
   const { t } = useTranslation();

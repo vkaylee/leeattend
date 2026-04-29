@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+
 import { Outlet, useLocation } from "@tanstack/react-router";
 import { Building2, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { useI18nSync } from "@/hooks/use-i18n-sync";
+import { useTheme } from "@/hooks/use-theme";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId } from "@/lib/api";
-import { useTheme } from "@/hooks/use-theme";
-import { useI18nSync } from "@/hooks/use-i18n-sync";
-import Sidebar from "./Sidebar";
-import Navbar from "./Navbar";
-import WorkspaceSwitcher from "./WorkspaceSwitcher";
-import Modal from "../ui/Modal";
-import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/routes";
+import { cn } from "@/lib/utils";
+
+import Modal from "../ui/Modal";
+
+import Navbar from "./Navbar";
+import Sidebar from "./Sidebar";
+import WorkspaceSwitcher from "./WorkspaceSwitcher";
+
+
 
 // Stable module-level arrays for sidebar section matching
 const ORG_PATHS: string[] = [ROUTES.PEOPLE, ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS];

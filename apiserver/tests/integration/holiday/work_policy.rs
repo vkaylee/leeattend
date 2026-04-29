@@ -4,13 +4,13 @@
 //! - Leave breakdown: paid holidays excluded from leave day count
 //! - CRUD: new work_threshold_percent and is_credit_on_work fields
 
-use std::sync::Arc;
 use crate::common::app::spawn_app;
 use apiserver::models::LeaveStatus;
 use chrono::{Datelike, NaiveDate, NaiveTime, TimeZone, Utc};
 use reqwest::StatusCode;
 use rust_decimal::Decimal;
 use serde::Deserialize;
+use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -68,10 +68,24 @@ async fn test_payroll_holiday_work_with_multiplier() {
 
     // Employee works full shift on the holiday
     let punch_in = Utc
-        .with_ymd_and_hms(first_of_month.year(), first_of_month.month(), first_of_month.day(), 2, 0, 0)
+        .with_ymd_and_hms(
+            first_of_month.year(),
+            first_of_month.month(),
+            first_of_month.day(),
+            2,
+            0,
+            0,
+        )
         .unwrap();
     let punch_out = Utc
-        .with_ymd_and_hms(first_of_month.year(), first_of_month.month(), first_of_month.day(), 11, 0, 0)
+        .with_ymd_and_hms(
+            first_of_month.year(),
+            first_of_month.month(),
+            first_of_month.day(),
+            11,
+            0,
+            0,
+        )
         .unwrap();
     factory
         .time_entry()
@@ -105,13 +119,47 @@ async fn test_payroll_holiday_work_with_multiplier() {
 
     // Calculate payroll
     let result = {
-            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
-            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
-            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
-            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
-            apiserver::services::payroll_service::PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone())
-        }.calculate_monthly_payslip(
+        let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
+            std::sync::Arc::new(
+                apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(
+                    pool.clone(),
+                ),
+            );
+        let dr: std::sync::Arc<
+            dyn apiserver::repositories::department_repository::DepartmentRepository,
+        > = std::sync::Arc::new(
+            apiserver::repositories::department_repository::SqlxDepartmentRepository::new(
+                pool.clone(),
+            ),
+        );
+        let tr: std::sync::Arc<
+            dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
+        > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+            pool.clone(),
+        ));
+        let wr: std::sync::Arc<
+            dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
+        > = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+            pool: pool.clone(),
+        });
+        let hr: std::sync::Arc<
+            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
+        > = std::sync::Arc::new(
+            apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
+        );
+        apiserver::services::payroll_service::PayrollService::new(
+            pr,
+            dr,
+            tr,
+            wr,
+            hr,
+            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                pool.clone(),
+            )),
+            pool.clone(),
+        )
+    }
+    .calculate_monthly_payslip(
         emp,
         workspace_id,
         first_of_month.year(),
@@ -119,7 +167,11 @@ async fn test_payroll_holiday_work_with_multiplier() {
     )
     .await;
 
-    assert!(result.is_ok(), "Payroll calculation should succeed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Payroll calculation should succeed: {:?}",
+        result.err()
+    );
     let payslip = result.unwrap();
 
     // holiday_work_premium_amount should be > 0 (employee worked on holiday)
@@ -179,10 +231,24 @@ async fn test_payroll_holiday_work_no_credit() {
     .unwrap();
 
     let punch_in = Utc
-        .with_ymd_and_hms(first_of_month.year(), first_of_month.month(), first_of_month.day(), 2, 0, 0)
+        .with_ymd_and_hms(
+            first_of_month.year(),
+            first_of_month.month(),
+            first_of_month.day(),
+            2,
+            0,
+            0,
+        )
         .unwrap();
     let punch_out = Utc
-        .with_ymd_and_hms(first_of_month.year(), first_of_month.month(), first_of_month.day(), 11, 0, 0)
+        .with_ymd_and_hms(
+            first_of_month.year(),
+            first_of_month.month(),
+            first_of_month.day(),
+            11,
+            0,
+            0,
+        )
         .unwrap();
     factory
         .time_entry()
@@ -214,13 +280,51 @@ async fn test_payroll_holiday_work_no_credit() {
     .unwrap();
 
     let payslip = {
-            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
-            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
-            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
-            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
-            apiserver::services::payroll_service::PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone())
-        }.calculate_monthly_payslip( emp, workspace_id, first_of_month.year(), first_of_month.month(),
+        let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
+            std::sync::Arc::new(
+                apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(
+                    pool.clone(),
+                ),
+            );
+        let dr: std::sync::Arc<
+            dyn apiserver::repositories::department_repository::DepartmentRepository,
+        > = std::sync::Arc::new(
+            apiserver::repositories::department_repository::SqlxDepartmentRepository::new(
+                pool.clone(),
+            ),
+        );
+        let tr: std::sync::Arc<
+            dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
+        > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+            pool.clone(),
+        ));
+        let wr: std::sync::Arc<
+            dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
+        > = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+            pool: pool.clone(),
+        });
+        let hr: std::sync::Arc<
+            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
+        > = std::sync::Arc::new(
+            apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
+        );
+        apiserver::services::payroll_service::PayrollService::new(
+            pr,
+            dr,
+            tr,
+            wr,
+            hr,
+            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                pool.clone(),
+            )),
+            pool.clone(),
+        )
+    }
+    .calculate_monthly_payslip(
+        emp,
+        workspace_id,
+        first_of_month.year(),
+        first_of_month.month(),
     )
     .await
     .unwrap();
@@ -275,10 +379,24 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
     .unwrap();
 
     let punch_in = Utc
-        .with_ymd_and_hms(first_of_month.year(), first_of_month.month(), first_of_month.day(), 2, 0, 0)
+        .with_ymd_and_hms(
+            first_of_month.year(),
+            first_of_month.month(),
+            first_of_month.day(),
+            2,
+            0,
+            0,
+        )
         .unwrap();
     let punch_out = Utc
-        .with_ymd_and_hms(first_of_month.year(), first_of_month.month(), first_of_month.day(), 11, 0, 0)
+        .with_ymd_and_hms(
+            first_of_month.year(),
+            first_of_month.month(),
+            first_of_month.day(),
+            11,
+            0,
+            0,
+        )
         .unwrap();
     factory
         .time_entry()
@@ -310,13 +428,51 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
     .unwrap();
 
     let payslip = {
-            let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> = std::sync::Arc::new(apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(pool.clone()));
-            let dr: std::sync::Arc<dyn apiserver::repositories::department_repository::DepartmentRepository> = std::sync::Arc::new(apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()));
-            let tr: std::sync::Arc<dyn apiserver::repositories::time_entry_repository::TimeEntryRepository> = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone()));
-            let wr: std::sync::Arc<dyn apiserver::repositories::workspace_repository::WorkspaceRepository> = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
-            let hr: std::sync::Arc<dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait> = std::sync::Arc::new(apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()));
-            apiserver::services::payroll_service::PayrollService::new(pr, dr, tr, wr, hr, Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone())
-        }.calculate_monthly_payslip( emp, workspace_id, first_of_month.year(), first_of_month.month(),
+        let pr: std::sync::Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
+            std::sync::Arc::new(
+                apiserver::repositories::payroll_repository::SqlxPayrollRepository::new(
+                    pool.clone(),
+                ),
+            );
+        let dr: std::sync::Arc<
+            dyn apiserver::repositories::department_repository::DepartmentRepository,
+        > = std::sync::Arc::new(
+            apiserver::repositories::department_repository::SqlxDepartmentRepository::new(
+                pool.clone(),
+            ),
+        );
+        let tr: std::sync::Arc<
+            dyn apiserver::repositories::time_entry_repository::TimeEntryRepository,
+        > = std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+            pool.clone(),
+        ));
+        let wr: std::sync::Arc<
+            dyn apiserver::repositories::workspace_repository::WorkspaceRepository,
+        > = std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+            pool: pool.clone(),
+        });
+        let hr: std::sync::Arc<
+            dyn apiserver::repositories::holiday_repository::HolidayRepositoryTrait,
+        > = std::sync::Arc::new(
+            apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
+        );
+        apiserver::services::payroll_service::PayrollService::new(
+            pr,
+            dr,
+            tr,
+            wr,
+            hr,
+            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                pool.clone(),
+            )),
+            pool.clone(),
+        )
+    }
+    .calculate_monthly_payslip(
+        emp,
+        workspace_id,
+        first_of_month.year(),
+        first_of_month.month(),
     )
     .await
     .unwrap();
@@ -341,7 +497,11 @@ async fn test_leave_reversal_full_shift() {
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
-    let emp = factory.employee().with_workspace(workspace_id).create().await;
+    let emp = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
     let today = Utc::now().date_naive();
 
     // Create holiday with threshold=50%
@@ -355,7 +515,12 @@ async fn test_leave_reversal_full_shift() {
     .await
     .unwrap();
 
-    factory.leave_balance().with_employee(emp).with_entitlement(12).create().await;
+    factory
+        .leave_balance()
+        .with_employee(emp)
+        .with_entitlement(12)
+        .create()
+        .await;
 
     let vacation_id: Uuid = sqlx::query_scalar!(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
@@ -385,7 +550,7 @@ async fn test_leave_reversal_full_shift() {
            WHERE lr.employee_id = $1
              AND lr.status = 'approved'::leave_status_type
              AND lr.start_date <= $2 AND lr.end_date >= $2
-             AND lr.requested_by_user_id IS NULL"#
+             AND lr.requested_by_user_id IS NULL"#,
     )
     .bind(emp)
     .bind(today)
@@ -403,12 +568,16 @@ async fn test_leave_reversal_full_shift() {
     .await
     .unwrap();
 
-    let status: String = sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-        .bind(leave_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    assert_eq!(status, "cancelled", "Leave should be cancelled via SQL update");
+    let status: String =
+        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
+            .bind(leave_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        status, "cancelled",
+        "Leave should be cancelled via SQL update"
+    );
 }
 
 // =============================================================================
@@ -423,7 +592,11 @@ async fn test_leave_kept_partial_work() {
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
-    let emp = factory.employee().with_workspace(workspace_id).create().await;
+    let emp = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
     let today = Utc::now().date_naive();
 
     factory
@@ -447,7 +620,12 @@ async fn test_leave_kept_partial_work() {
     .await
     .unwrap();
 
-    factory.leave_balance().with_employee(emp).with_entitlement(12).create().await;
+    factory
+        .leave_balance()
+        .with_employee(emp)
+        .with_entitlement(12)
+        .create()
+        .await;
 
     let vacation_id: Uuid = sqlx::query_scalar!(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
@@ -486,18 +664,30 @@ async fn test_leave_kept_partial_work() {
         .create()
         .await;
 
-    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary( workspace_id, emp, today,
+    apiserver::services::AttendanceSummaryService::new(
+        std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+            pool.clone(),
+        )),
+        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+            pool.clone(),
+        )),
+        pool.clone(),
     )
+    .recalculate_daily_summary(workspace_id, emp, today)
     .await
     .expect("Recalculate failed");
 
     // Leave should NOT be cancelled (work < threshold)
-    let status: String = sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-        .bind(leave_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    assert_eq!(status, "approved", "Leave should remain approved when work < threshold");
+    let status: String =
+        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
+            .bind(leave_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        status, "approved",
+        "Leave should remain approved when work < threshold"
+    );
 }
 
 // =============================================================================
@@ -512,10 +702,19 @@ async fn test_leave_reversal_custom_threshold() {
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
-    let emp = factory.employee().with_workspace(workspace_id).create().await;
+    let emp = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
     let today = Utc::now().date_naive();
 
-    factory.leave_balance().with_employee(emp).with_entitlement(12).create().await;
+    factory
+        .leave_balance()
+        .with_employee(emp)
+        .with_entitlement(12)
+        .create()
+        .await;
 
     let vacation_id: Uuid = sqlx::query_scalar!(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
@@ -560,7 +759,7 @@ async fn test_leave_reversal_custom_threshold() {
            WHERE lr.employee_id = $1
              AND lr.status = 'approved'::leave_status_type
              AND lr.start_date <= $2 AND lr.end_date >= $2
-             AND lr.requested_by_user_id IS NULL"#
+             AND lr.requested_by_user_id IS NULL"#,
     )
     .bind(emp)
     .bind(today)
@@ -568,29 +767,36 @@ async fn test_leave_reversal_custom_threshold() {
     .await
     .unwrap();
 
-    assert_eq!(system_only.len(), 1, "Should find exactly 1 system-generated leave");
-    assert_eq!(system_only[0].0, sys_leave, "Should match the system leave ID");
+    assert_eq!(
+        system_only.len(),
+        1,
+        "Should find exactly 1 system-generated leave"
+    );
+    assert_eq!(
+        system_only[0].0, sys_leave,
+        "Should match the system leave ID"
+    );
 
     // Cancel only system leave
-    sqlx::query(
-        "UPDATE leave_requests SET status = 'cancelled'::leave_status_type WHERE id = $1"
-    )
-    .bind(sys_leave)
-    .execute(&pool)
-    .await
-    .unwrap();
+    sqlx::query("UPDATE leave_requests SET status = 'cancelled'::leave_status_type WHERE id = $1")
+        .bind(sys_leave)
+        .execute(&pool)
+        .await
+        .unwrap();
 
     // Verify: system leave cancelled, user leave still approved
-    let sys_status: String = sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-        .bind(sys_leave)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    let user_status: String = sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-        .bind(user_leave)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+    let sys_status: String =
+        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
+            .bind(sys_leave)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let user_status: String =
+        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
+            .bind(user_leave)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert_eq!(sys_status, "cancelled", "System leave should be cancelled");
     assert_eq!(user_status, "approved", "User leave should remain approved");
 }
@@ -607,7 +813,11 @@ async fn test_leave_reversal_only_system() {
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
-    let emp = factory.employee().with_workspace(workspace_id).create().await;
+    let emp = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
     let today = Utc::now().date_naive();
 
     factory
@@ -630,7 +840,12 @@ async fn test_leave_reversal_only_system() {
     .await
     .unwrap();
 
-    factory.leave_balance().with_employee(emp).with_entitlement(12).create().await;
+    factory
+        .leave_balance()
+        .with_employee(emp)
+        .with_entitlement(12)
+        .create()
+        .await;
 
     let vacation_id: Uuid = sqlx::query_scalar!(
         "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
@@ -671,18 +886,30 @@ async fn test_leave_reversal_only_system() {
         .create()
         .await;
 
-    apiserver::services::AttendanceSummaryService::new(std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(pool.clone())), std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(pool.clone())), pool.clone()).recalculate_daily_summary( workspace_id, emp, today,
+    apiserver::services::AttendanceSummaryService::new(
+        std::sync::Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
+            pool.clone(),
+        )),
+        std::sync::Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+            pool.clone(),
+        )),
+        pool.clone(),
     )
+    .recalculate_daily_summary(workspace_id, emp, today)
     .await
     .expect("Recalculate failed");
 
     // User-submitted leave should NOT be cancelled
-    let status: String = sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
-        .bind(leave_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    assert_eq!(status, "approved", "User-submitted leave should NOT be auto-cancelled");
+    let status: String =
+        sqlx::query_scalar("SELECT status::TEXT FROM leave_requests WHERE id = $1")
+            .bind(leave_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        status, "approved",
+        "User-submitted leave should NOT be auto-cancelled"
+    );
 }
 
 // =============================================================================
@@ -697,13 +924,22 @@ async fn test_leave_breakdown_excludes_holidays() {
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
-    let emp = factory.employee().with_workspace(workspace_id).create().await;
+    let emp = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
 
     // Leave from Apr 28 to May 3 = 6 days
     let leave_start = NaiveDate::from_ymd_opt(2026, 4, 28).unwrap();
     let leave_end = NaiveDate::from_ymd_opt(2026, 5, 3).unwrap();
 
-    factory.leave_balance().with_employee(emp).with_entitlement(12).create().await;
+    factory
+        .leave_balance()
+        .with_employee(emp)
+        .with_entitlement(12)
+        .create()
+        .await;
 
     // Create approved leave request
     factory
@@ -717,7 +953,7 @@ async fn test_leave_breakdown_excludes_holidays() {
     // May 1 is a paid national holiday
     sqlx::query(
         "INSERT INTO holidays (workspace_id, name, date, holiday_type, is_paid, is_credit_on_work)
-         VALUES ($1, 'Labour Day', '2026-05-01', 'national', true, true)"
+         VALUES ($1, 'Labour Day', '2026-05-01', 'national', true, true)",
     )
     .bind(workspace_id)
     .execute(&pool)
@@ -725,11 +961,16 @@ async fn test_leave_breakdown_excludes_holidays() {
     .unwrap();
 
     // Get leave breakdown — should exclude May 1
-    let breakdown = apiserver::repositories::leave_request_repository::get_approved_leave_breakdown(
-        &pool, emp, leave_start, leave_end, workspace_id,
-    )
-    .await
-    .unwrap();
+    let breakdown =
+        apiserver::repositories::leave_request_repository::get_approved_leave_breakdown(
+            &pool,
+            emp,
+            leave_start,
+            leave_end,
+            workspace_id,
+        )
+        .await
+        .unwrap();
 
     // 6 days - 1 paid holiday = 5 days
     assert_eq!(
@@ -781,7 +1022,10 @@ async fn test_holiday_crud_new_fields() {
 
     // Update
     let resp = client
-        .put(format!("{address}/api/workspaces/{workspace_id}/holidays/{}", holiday.id))
+        .put(format!(
+            "{address}/api/workspaces/{workspace_id}/holidays/{}",
+            holiday.id
+        ))
         .header("Authorization", format!("Bearer {auth_token}"))
         .json(&serde_json::json!({
             "work_threshold_percent": 60,

@@ -116,13 +116,11 @@ pub async fn delete_recruitment_source(
     id: Uuid,
     workspace_id: Uuid,
 ) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query(
-        "DELETE FROM recruitment_sources WHERE id = $1 AND workspace_id = $2",
-    )
-    .bind(id)
-    .bind(workspace_id)
-    .execute(pool)
-    .await?;
+    let result = sqlx::query("DELETE FROM recruitment_sources WHERE id = $1 AND workspace_id = $2")
+        .bind(id)
+        .bind(workspace_id)
+        .execute(pool)
+        .await?;
     Ok(result.rows_affected())
 }
 

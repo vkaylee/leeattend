@@ -70,7 +70,12 @@ services:
       - CARGO_TARGET_DIR=/workspace/target
       - SCCACHE_DIR=/workspace/.sccache
       - RUSTC_WRAPPER=sccache
-    entrypoint: ["bash", "-c", "sqlx migrate run"]
+    entrypoint: ["bash", "-c", "sqlx migrate run && touch /tmp/migration_done && tail -f /dev/null"]
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/migration_done"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
   apiserver_test:
     <<: *rust-test-base
@@ -78,6 +83,13 @@ services:
     build:
       context: ../apiserver
       target: test
+    depends_on:
+      test_db:
+        condition: service_healthy
+      test_redis:
+        condition: service_healthy
+      db_init:
+        condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database

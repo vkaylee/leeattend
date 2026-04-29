@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Clock, 
@@ -13,18 +13,24 @@ import {
   X,
   AlertCircle
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+
+import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
+import Button from "@/components/ui/Button";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { useToast } from "@/components/ui/Toast";
+
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { cn } from "@/lib/utils";
+
+
 import { 
   fetchWorkspaceAttendanceAdjustments, 
   fetchEmployees, 
   approveAttendanceAdjustment, 
   getCurrentWorkspaceId 
 } from "../lib/api";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useToast } from "@/components/ui/Toast";
-import { cn } from "@/lib/utils";
-import Button from "@/components/ui/Button";
-import StatusBadge from "@/components/ui/StatusBadge";
-import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 
 type TabType = "pending" | "approved" | "rejected";
 

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+
 import type { WorkerMonitorStats, RecentJob } from "@/lib/api/types";
 
 export interface UtilizationData {

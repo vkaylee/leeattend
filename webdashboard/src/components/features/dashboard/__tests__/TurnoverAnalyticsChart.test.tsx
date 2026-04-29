@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import TurnoverAnalyticsChart from "../TurnoverAnalyticsChart";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import * as dashboardHooks from "@/hooks/use-dashboard";
+
+import TurnoverAnalyticsChart from "../TurnoverAnalyticsChart";
 
 vi.mock("@/hooks/use-dashboard", () => ({
     useTurnoverAnalytics: vi.fn(),

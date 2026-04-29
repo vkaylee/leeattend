@@ -25,7 +25,9 @@ async fn test_duplicate_detection_filters_repeated_logs_smoke() {
     for (user_id, timestamp) in &poll1_logs {
         let key = format!("{user_id}:{timestamp}");
         if seen_logs.insert(key) {
-            tx.send((device_name.clone(), format!("{user_id}:{timestamp}"))).await.unwrap();
+            tx.send((device_name.clone(), format!("{user_id}:{timestamp}")))
+                .await
+                .unwrap();
             sent_count_p1 += 1;
         }
     }
@@ -47,7 +49,9 @@ async fn test_duplicate_detection_filters_repeated_logs_smoke() {
     for (user_id, timestamp) in &poll2_logs {
         let key = format!("{user_id}:{timestamp}");
         if seen_logs.insert(key) {
-            tx.send((device_name.clone(), format!("{user_id}:{timestamp}"))).await.unwrap();
+            tx.send((device_name.clone(), format!("{user_id}:{timestamp}")))
+                .await
+                .unwrap();
             sent_count_p2 += 1;
         } else {
             dup_count_p2 += 1;
@@ -75,7 +79,9 @@ async fn test_duplicate_detection_filters_repeated_logs_smoke() {
     for (user_id, timestamp) in &poll3_logs {
         let key = format!("{user_id}:{timestamp}");
         if seen_logs.insert(key) {
-            tx.send((device_name.clone(), format!("{user_id}:{timestamp}"))).await.unwrap();
+            tx.send((device_name.clone(), format!("{user_id}:{timestamp}")))
+                .await
+                .unwrap();
             sent_count_p3 += 1;
         } else {
             dup_count_p3 += 1;
@@ -90,7 +96,10 @@ async fn test_duplicate_detection_filters_repeated_logs_smoke() {
     while let Ok(Some(_)) = tokio::time::timeout(Duration::from_millis(100), rx.recv()).await {
         received += 1;
     }
-    assert_eq!(received, 10, "Total: 10 unique logs should be in queue (5+2+3)");
+    assert_eq!(
+        received, 10,
+        "Total: 10 unique logs should be in queue (5+2+3)"
+    );
 
     println!("✅ Duplicate detection test passed:");
     println!("   Poll 1: {sent_count_p1} sent, 0 filtered");
@@ -112,7 +121,7 @@ async fn test_hashset_memory_bounded_u64() {
         format!("2026-01-28 08:{}:{}", i / 60, i % 60).hash(&mut hasher);
         let key = hasher.finish();
         seen_logs.insert(key);
-        
+
         // Simulate clearance logic
         if seen_logs.len() > 200_000 {
             seen_logs.clear();
@@ -121,7 +130,10 @@ async fn test_hashset_memory_bounded_u64() {
     }
 
     // Since we inserted 250k and cap is 200k, it should have cleared once and have ~50k remaining
-    assert!(seen_logs.capacity() >= 100_000, "Capacity should be at least shrunk size");
+    assert!(
+        seen_logs.capacity() >= 100_000,
+        "Capacity should be at least shrunk size"
+    );
     assert!(seen_logs.len() <= 200_000, "Should not exceed cap");
 
     // Each key ~8 bytes (u64)
@@ -131,7 +143,11 @@ async fn test_hashset_memory_bounded_u64() {
     println!("✅ Memory bounded test passed:");
     println!("   {} unique keys", seen_logs.len());
     println!("   capacity: {}", seen_logs.capacity());
-    println!("   ~{} bytes (~{} MB)", mem_estimate, mem_estimate / 1_000_000);
+    println!(
+        "   ~{} bytes (~{} MB)",
+        mem_estimate,
+        mem_estimate / 1_000_000
+    );
 }
 
 /// Test that different timestamps for same user create unique keys.
@@ -144,9 +160,18 @@ async fn test_unique_key_generation() {
     let key2 = "U001:2026-01-28 08:01:00".to_string();
     let key3 = "U001:2026-01-28 08:00:00".to_string(); // Duplicate of key1
 
-    assert!(seen_logs.insert(key1.clone()), "First timestamp should be new");
-    assert!(seen_logs.insert(key2.clone()), "Second timestamp should be new");
-    assert!(!seen_logs.insert(key3.clone()), "Duplicate timestamp should be rejected");
+    assert!(
+        seen_logs.insert(key1.clone()),
+        "First timestamp should be new"
+    );
+    assert!(
+        seen_logs.insert(key2.clone()),
+        "Second timestamp should be new"
+    );
+    assert!(
+        !seen_logs.insert(key3.clone()),
+        "Duplicate timestamp should be rejected"
+    );
 
     assert_eq!(seen_logs.len(), 2, "Should have 2 unique keys");
 
@@ -167,9 +192,13 @@ async fn test_multiple_devices_independent_deduplication() {
     let key_o2 = "U002:2026-01-28 08:01:00".to_string();
 
     seen_office.insert(key_o1.clone());
-    tx.send(("OFFICE".to_string(), key_o1.clone())).await.unwrap();
+    tx.send(("OFFICE".to_string(), key_o1.clone()))
+        .await
+        .unwrap();
     seen_office.insert(key_o2.clone());
-    tx.send(("OFFICE".to_string(), key_o2.clone())).await.unwrap();
+    tx.send(("OFFICE".to_string(), key_o2.clone()))
+        .await
+        .unwrap();
 
     // Device 2: XUONG 1
     let mut seen_xuong: HashSet<String> = HashSet::new();
@@ -177,9 +206,13 @@ async fn test_multiple_devices_independent_deduplication() {
     let key_x2 = "U003:2026-01-28 08:02:00".to_string();
 
     seen_xuong.insert(key_x1.clone());
-    tx.send(("XUONG 1".to_string(), key_x1.clone())).await.unwrap();
+    tx.send(("XUONG 1".to_string(), key_x1.clone()))
+        .await
+        .unwrap();
     seen_xuong.insert(key_x2.clone());
-    tx.send(("XUONG 1".to_string(), key_x2.clone())).await.unwrap();
+    tx.send(("XUONG 1".to_string(), key_x2.clone()))
+        .await
+        .unwrap();
 
     // Both devices can have same user+timestamp (different physical logs)
     drop(tx);

@@ -49,7 +49,9 @@ mod tests {
     async fn test_debug_context_no_header() {
         let req = Request::builder().body(()).unwrap();
         let (mut parts, _body) = req.into_parts();
-        let ctx = DebugContext::from_request_parts(&mut parts, &()).await.unwrap();
+        let ctx = DebugContext::from_request_parts(&mut parts, &())
+            .await
+            .unwrap();
         assert!(ctx.mock_date.is_none());
     }
 
@@ -60,7 +62,9 @@ mod tests {
             .body(())
             .unwrap();
         let (mut parts, _body) = req.into_parts();
-        let ctx = DebugContext::from_request_parts(&mut parts, &()).await.unwrap();
+        let ctx = DebugContext::from_request_parts(&mut parts, &())
+            .await
+            .unwrap();
         // In both debug and release, invalid date → None
         assert!(ctx.mock_date.is_none());
     }
@@ -73,7 +77,9 @@ mod tests {
             .body(())
             .unwrap();
         let (mut parts, _body) = req.into_parts();
-        let ctx = DebugContext::from_request_parts(&mut parts, &()).await.unwrap();
+        let ctx = DebugContext::from_request_parts(&mut parts, &())
+            .await
+            .unwrap();
         assert_eq!(
             ctx.mock_date,
             Some(NaiveDate::from_ymd_opt(2026, 3, 15).unwrap())
@@ -88,7 +94,9 @@ mod tests {
             .body(())
             .unwrap();
         let (mut parts, _body) = req.into_parts();
-        let ctx = DebugContext::from_request_parts(&mut parts, &()).await.unwrap();
+        let ctx = DebugContext::from_request_parts(&mut parts, &())
+            .await
+            .unwrap();
         // In release mode, mock date is always None
         assert!(ctx.mock_date.is_none());
     }

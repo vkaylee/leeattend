@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { Mail, UserPlus, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
+
 import Modal from "../ui/Modal";
 
 interface InviteMemberDialogProps {

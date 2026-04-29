@@ -1,4 +1,7 @@
-use axum::{routing::{delete, get, post}, Router};
+use axum::{
+    routing::{delete, get, post},
+    Router,
+};
 use std::sync::Arc;
 
 use crate::handlers::system_admin;
@@ -10,8 +13,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/system/roles", get(system_admin::list_system_roles))
         .route(
             "/system/users/:user_id/roles",
-            get(system_admin::get_user_system_roles)
-                .post(system_admin::assign_system_role),
+            get(system_admin::get_user_system_roles).post(system_admin::assign_system_role),
         )
         .route(
             "/system/users/:user_id/roles/:role_name",

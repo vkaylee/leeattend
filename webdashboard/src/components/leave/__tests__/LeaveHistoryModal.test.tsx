@@ -1,9 +1,13 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { LeaveHistoryModal } from '../LeaveHistoryModal';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import * as api from '@/lib/api';
 import React from 'react';
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
+import * as api from '@/lib/api';
+
+import { LeaveHistoryModal } from '../LeaveHistoryModal';
+
 
 // Mock react-dom BEFORE imports that might use it
 vi.mock('react-dom', () => ({

@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import LatenessByDayChart from "../LatenessByDayChart";
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import * as dashboardHooks from "@/hooks/use-dashboard";
+
+import LatenessByDayChart from "../LatenessByDayChart";
 
 vi.mock("@/hooks/use-dashboard", () => ({
     useLatenessByDay: vi.fn(),

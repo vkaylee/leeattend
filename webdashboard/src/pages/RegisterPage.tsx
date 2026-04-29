@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { useNavigate, Link } from "@tanstack/react-router";
-import { ROUTES } from "@/lib/routes";
+import { useTranslation } from "react-i18next";
+
+import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
+
 import {
   register,
   setAccessToken,
@@ -10,8 +14,7 @@ import {
   getCurrentUserId,
   AuthResponse,
 } from "@/lib/api";
-import Button from "@/components/ui/Button";
-import { LABEL_BASE } from "@/components/ui/FormField";
+import { ROUTES } from "@/lib/routes";
 
 export default function RegisterPage() {
   const { t } = useTranslation();
@@ -87,7 +90,7 @@ export default function RegisterPage() {
 
           <div className="text-center pt-2">
             <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-60">{t("auth.already_have_account")} </span>
-            <Link to={ROUTES.LOGIN} className="font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 text-[10px] uppercase tracking-widest transition-colors ml-1">{t("auth.login").toUpperCase()}</Link>
+            <Link to={ROUTES.LOGIN} className="font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 text-[10px] uppercase tracking-widest transition-colors ml-1">{t("auth.login.title").toUpperCase()}</Link>
           </div>
         </form>
       </div>

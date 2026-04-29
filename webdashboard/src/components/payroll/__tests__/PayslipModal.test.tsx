@@ -7,8 +7,10 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }));
-import PayslipModal from "../PayslipModal";
 import { Employee, Payslip, Workspace } from "@/lib/api/types";
+
+import PayslipModal from "../PayslipModal";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock i18next

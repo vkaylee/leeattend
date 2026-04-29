@@ -1,7 +1,9 @@
+import React, { createRef } from "react";
+
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+
 import InfiniteScrollSentinel from "../InfiniteScrollSentinel";
-import React, { createRef } from "react";
 
 // Mock i18n
 vi.mock("react-i18next", () => ({

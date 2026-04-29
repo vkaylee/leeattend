@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { Building2, Layers } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useWorkspaceRoles } from "@/hooks/use-workspace";
-import DepartmentsPage from "@/pages/DepartmentsPage";
+import { useTranslation } from "react-i18next";
+
 import EmploymentPhaseManager from "@/components/people/EmploymentPhaseManager";
+
+import { useWorkspaceRoles } from "@/hooks/use-workspace";
+import { cn } from "@/lib/utils";
+import DepartmentsPage from "@/pages/DepartmentsPage";
+
 
 type TabType = "departments" | "employment_phases";
 

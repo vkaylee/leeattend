@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
 import { generateExcel, isSummaryRow, isDetailRow } from "../excel-builder";
+
 import type { SummaryRow, DetailRow, AttendanceRow } from "@/types/report-stream";
 
 // Mock ExcelJS

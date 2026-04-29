@@ -62,11 +62,16 @@ async fn test_system_roles_are_seeded_with_permissions() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let roles = body_json(resp).await;
-    
+
     // Find owner role
-    let owner_role = roles.as_array().unwrap().iter().find(|r| r["name"] == "owner").expect("Owner role must exist");
+    let owner_role = roles
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["name"] == "owner")
+        .expect("Owner role must exist");
     assert_eq!(owner_role["is_system"], true);
-    
+
     let role_id = owner_role["id"].as_str().unwrap();
 
     // 2. Get permissions for the owner role
@@ -84,13 +89,22 @@ async fn test_system_roles_are_seeded_with_permissions() {
     assert_eq!(resp.status(), StatusCode::OK);
     let permissions = body_json(resp).await;
     let perms_array = permissions.as_array().unwrap();
-    
+
     // 3. Verify it has ess:profile and feature_flags:read (added in the latest migration)
     let perm_names: Vec<&str> = perms_array.iter().map(|p| p.as_str().unwrap()).collect();
-    
-    assert!(perm_names.contains(&"ess:profile"), "Owner should have ess:profile");
-    assert!(perm_names.contains(&"feature_flags:read"), "Owner should have feature_flags:read");
-    assert!(perm_names.len() >= 67, "Owner should have all core permissions");
+
+    assert!(
+        perm_names.contains(&"ess:profile"),
+        "Owner should have ess:profile"
+    );
+    assert!(
+        perm_names.contains(&"feature_flags:read"),
+        "Owner should have feature_flags:read"
+    );
+    assert!(
+        perm_names.len() >= 67,
+        "Owner should have all core permissions"
+    );
 }
 
 #[tokio::test]
@@ -102,8 +116,18 @@ async fn test_extra_role_assign_and_revoke() {
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     // Create member
-    let member_id = factory.user().with_email("staff@example.com").create().await;
-    factory.add_member(ws_id, member_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("staff@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     // 1. Get member roles (should have primary only)
     let resp = app
@@ -182,8 +206,18 @@ async fn test_assign_role_expired_returns_validation_error() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    let member_id = factory.user().with_email("staff2@example.com").create().await;
-    factory.add_member(ws_id, member_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("staff2@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     // Try to assign with expired time
     let expired = chrono::Utc::now() - chrono::Duration::hours(1);
@@ -215,11 +249,31 @@ async fn test_assign_role_rbac_member_forbidden() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
-    let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(ws_id, member_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let member_id = factory
+        .user()
+        .with_email("member@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
-    let target_id = factory.user().with_email("target@example.com").create().await;
-    factory.add_member(ws_id, target_id, Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap()).await;
+    let target_id = factory
+        .user()
+        .with_email("target@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            target_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let body = serde_json::json!({
         "role_id": "a0000000-0000-0000-0000-000000000003",
@@ -338,7 +392,7 @@ async fn test_custom_role_permissions() {
         ))
         .await
         .unwrap();
-    
+
     let role = body_json(resp).await;
     let role_id = role["id"].as_str().unwrap();
 
@@ -391,7 +445,7 @@ async fn test_custom_role_permissions() {
     let perms = body_json(resp).await;
     let perms_array = perms.as_array().unwrap();
     assert_eq!(perms_array.len(), 2);
-    
+
     let perm_names: Vec<&str> = perms_array.iter().map(|p| p.as_str().unwrap()).collect();
     assert!(perm_names.contains(&"payroll:manage"));
     assert!(perm_names.contains(&"reports:read"));
@@ -410,12 +464,18 @@ async fn test_regular_member_can_list_workspace_roles() {
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
 
     // Create a regular employee member (has NO members_roles:manage permission)
-    let employee_id = factory.user().with_email("employee@example.com").create().await;
-    factory.add_member(
-        ws_id,
-        employee_id,
-        Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(), // employee role
-    ).await;
+    let employee_id = factory
+        .user()
+        .with_email("employee@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            employee_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(), // employee role
+        )
+        .await;
 
     // Employee should be able to list workspace roles (no permission gate)
     let resp = app
@@ -430,21 +490,33 @@ async fn test_regular_member_can_list_workspace_roles() {
         .await
         .unwrap();
 
-    assert_eq!(resp.status(), StatusCode::OK, "Regular member must be able to list workspace roles");
+    assert_eq!(
+        resp.status(),
+        StatusCode::OK,
+        "Regular member must be able to list workspace roles"
+    );
 
     let roles = body_json(resp).await;
     let roles_array = roles.as_array().unwrap();
 
     // Should include all system roles
-    assert!(roles_array.len() >= 6, "Should have at least 6 system roles, got {}", roles_array.len());
+    assert!(
+        roles_array.len() >= 6,
+        "Should have at least 6 system roles, got {}",
+        roles_array.len()
+    );
 
     // Verify expected system roles exist
-    let role_names: Vec<&str> = roles_array.iter()
+    let role_names: Vec<&str> = roles_array
+        .iter()
         .map(|r| r["name"].as_str().unwrap())
         .collect();
     assert!(role_names.contains(&"owner"), "Must include owner role");
     assert!(role_names.contains(&"admin"), "Must include admin role");
-    assert!(role_names.contains(&"employee"), "Must include employee role");
+    assert!(
+        role_names.contains(&"employee"),
+        "Must include employee role"
+    );
 }
 
 #[tokio::test]
@@ -473,10 +545,15 @@ async fn test_workspace_roles_response_includes_scope_type() {
 
     for role in roles_array {
         let scope = role["scope_type"].as_str();
-        assert!(scope.is_some(), "Every role must have scope_type field: {:?}", role["name"]);
+        assert!(
+            scope.is_some(),
+            "Every role must have scope_type field: {:?}",
+            role["name"]
+        );
         assert!(
             scope.unwrap() == "global" || scope.unwrap() == "scoped",
-            "scope_type must be 'global' or 'scoped', got '{}'", scope.unwrap()
+            "scope_type must be 'global' or 'scoped', got '{}'",
+            scope.unwrap()
         );
     }
 
@@ -488,7 +565,10 @@ async fn test_workspace_roles_response_includes_scope_type() {
     assert_eq!(admin_role["scope_type"], "global");
 
     // Employee should be scoped
-    let employee_role = roles_array.iter().find(|r| r["name"] == "employee").unwrap();
+    let employee_role = roles_array
+        .iter()
+        .find(|r| r["name"] == "employee")
+        .unwrap();
     assert_eq!(employee_role["scope_type"], "scoped");
 }
 
@@ -500,12 +580,18 @@ async fn test_regular_member_cannot_create_role() {
     let owner_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
 
-    let member_id = factory.user().with_email("basic@example.com").create().await;
-    factory.add_member(
-        ws_id,
-        member_id,
-        Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
-    ).await;
+    let member_id = factory
+        .user()
+        .with_email("basic@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     let create_body = serde_json::json!({
         "name": "Hacker Role",
@@ -525,7 +611,11 @@ async fn test_regular_member_cannot_create_role() {
         .await
         .unwrap();
 
-    assert_eq!(resp.status(), StatusCode::FORBIDDEN, "Regular member must not create roles");
+    assert_eq!(
+        resp.status(),
+        StatusCode::FORBIDDEN,
+        "Regular member must not create roles"
+    );
 }
 
 #[tokio::test]
@@ -559,12 +649,18 @@ async fn test_regular_member_cannot_update_or_delete_role() {
     let role_id = role["id"].as_str().unwrap();
 
     // Add employee member
-    let member_id = factory.user().with_email("sneaky@example.com").create().await;
-    factory.add_member(
-        ws_id,
-        member_id,
-        Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
-    ).await;
+    let member_id = factory
+        .user()
+        .with_email("sneaky@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(
+            ws_id,
+            member_id,
+            Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
 
     // Member tries to UPDATE the role → Forbidden
     let resp = app
@@ -578,7 +674,11 @@ async fn test_regular_member_cannot_update_or_delete_role() {
         ))
         .await
         .unwrap();
-    assert_eq!(resp.status(), StatusCode::FORBIDDEN, "Regular member must not update roles");
+    assert_eq!(
+        resp.status(),
+        StatusCode::FORBIDDEN,
+        "Regular member must not update roles"
+    );
 
     // Member tries to DELETE the role → Forbidden
     let resp = app
@@ -592,7 +692,11 @@ async fn test_regular_member_cannot_update_or_delete_role() {
         ))
         .await
         .unwrap();
-    assert_eq!(resp.status(), StatusCode::FORBIDDEN, "Regular member must not delete roles");
+    assert_eq!(
+        resp.status(),
+        StatusCode::FORBIDDEN,
+        "Regular member must not delete roles"
+    );
 }
 
 #[tokio::test]
@@ -616,7 +720,10 @@ async fn test_cannot_delete_system_role() {
         .await
         .unwrap();
     let roles = body_json(resp).await;
-    let owner_role = roles.as_array().unwrap().iter()
+    let owner_role = roles
+        .as_array()
+        .unwrap()
+        .iter()
         .find(|r| r["name"] == "owner" && r["is_system"] == true)
         .expect("Owner system role must exist");
     let system_role_id = owner_role["id"].as_str().unwrap();
@@ -635,7 +742,11 @@ async fn test_cannot_delete_system_role() {
         .unwrap();
 
     // Should return NotFound because the DELETE query has `is_system = false` guard
-    assert_eq!(resp.status(), StatusCode::NOT_FOUND, "System roles must not be deletable");
+    assert_eq!(
+        resp.status(),
+        StatusCode::NOT_FOUND,
+        "System roles must not be deletable"
+    );
 }
 
 #[tokio::test]
@@ -662,7 +773,11 @@ async fn test_cannot_update_system_role() {
         .unwrap();
 
     // Should return NotFound because the UPDATE query has `is_system = false` guard
-    assert_eq!(resp.status(), StatusCode::NOT_FOUND, "System roles must not be updatable");
+    assert_eq!(
+        resp.status(),
+        StatusCode::NOT_FOUND,
+        "System roles must not be updatable"
+    );
 }
 
 #[tokio::test]
@@ -673,7 +788,11 @@ async fn test_update_primary_role_via_patch_members() {
     let owner_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
 
-    let member_id = factory.user().with_email("promote@example.com").create().await;
+    let member_id = factory
+        .user()
+        .with_email("promote@example.com")
+        .create()
+        .await;
     let employee_role = Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
     let admin_role = Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap();
     factory.add_member(ws_id, member_id, employee_role).await;
@@ -706,7 +825,11 @@ async fn test_update_primary_role_via_patch_members() {
         ))
         .await
         .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK, "Owner should be able to promote member");
+    assert_eq!(
+        resp.status(),
+        StatusCode::OK,
+        "Owner should be able to promote member"
+    );
 
     // 3. Verify role was updated
     let resp = app
@@ -722,7 +845,11 @@ async fn test_update_primary_role_via_patch_members() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let roles = body_json(resp).await;
-    assert_eq!(roles["primary"], admin_role.to_string(), "Primary role should be updated to admin");
+    assert_eq!(
+        roles["primary"],
+        admin_role.to_string(),
+        "Primary role should be updated to admin"
+    );
 }
 
 #[tokio::test]
@@ -756,7 +883,10 @@ async fn test_custom_role_with_scope_type() {
     assert_eq!(resp.status(), StatusCode::CREATED);
     let role = body_json(resp).await;
     assert_eq!(role["name"], "VP Engineering");
-    assert_eq!(role["scope_type"], "global", "Custom role should respect scope_type parameter");
+    assert_eq!(
+        role["scope_type"], "global",
+        "Custom role should respect scope_type parameter"
+    );
     assert_eq!(role["is_system"], false);
 
     // Create a scoped custom role (default)
@@ -779,5 +909,8 @@ async fn test_custom_role_with_scope_type() {
 
     assert_eq!(resp.status(), StatusCode::CREATED);
     let role = body_json(resp).await;
-    assert_eq!(role["scope_type"], "scoped", "Default scope_type should be 'scoped'");
+    assert_eq!(
+        role["scope_type"], "scoped",
+        "Default scope_type should be 'scoped'"
+    );
 }

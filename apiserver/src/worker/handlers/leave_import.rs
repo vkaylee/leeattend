@@ -5,8 +5,8 @@
 
 use crate::models::ImportJobStatus;
 use crate::queue::{Job, RedisPool};
-use crate::repositories::import_job_repository::SqlxImportJobRepository;
 use crate::repositories::import_job_repository::ImportJobRepository;
+use crate::repositories::import_job_repository::SqlxImportJobRepository;
 use crate::services::leave_import_service::LeaveImportService;
 use sqlx::PgPool;
 
@@ -59,11 +59,14 @@ impl LeaveImportHandler {
                 let status = ImportJobStatus::Completed;
 
                 let error_log = if result.error_count > 0 {
-                    Some(serde_json::json!({
-                        "success_count": result.success_count,
-                        "error_count": result.error_count,
-                        "error_file_path": result.error_file_path,
-                    }).to_string())
+                    Some(
+                        serde_json::json!({
+                            "success_count": result.success_count,
+                            "error_count": result.error_count,
+                            "error_file_path": result.error_file_path,
+                        })
+                        .to_string(),
+                    )
                 } else {
                     None
                 };
@@ -194,4 +197,3 @@ mod tests {
         assert_eq!(payload.user_id, payload.user_id);
     }
 }
-

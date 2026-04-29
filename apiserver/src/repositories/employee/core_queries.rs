@@ -107,9 +107,7 @@ pub(crate) fn build_employee_search_sql(
     sort_by: Option<&str>,
     sort_dir: Option<&str>,
 ) -> EmployeeSearchSql {
-    let has_search = search_query
-        .as_ref()
-        .is_some_and(|q| !q.trim().is_empty());
+    let has_search = search_query.as_ref().is_some_and(|q| !q.trim().is_empty());
 
     let mut where_clause = "WHERE e.workspace_id = $1".to_string();
     if has_search {
@@ -137,7 +135,9 @@ pub(crate) fn build_employee_search_sql(
                 THEN CAST(e.employee_id_number AS NUMERIC) END) {dir} NULLS LAST, \
                 e.employee_id_number {dir}"
             ),
-            Some("department") => format!("ORDER BY COALESCE(d_sort.name, '') {dir}, e.full_name ASC"),
+            Some("department") => {
+                format!("ORDER BY COALESCE(d_sort.name, '') {dir}, e.full_name ASC")
+            }
             Some("status") => format!("ORDER BY e.is_active {dir}, e.full_name ASC"),
             _ => format!("ORDER BY e.full_name {dir}"),
         }
@@ -164,11 +164,8 @@ pub async fn get_all_employees(
     sort_dir: Option<String>,
     department_ids: Option<Vec<Uuid>>,
 ) -> Result<(Vec<Employee>, i64), sqlx::Error> {
-    let search_sql = build_employee_search_sql(
-        &search_query,
-        sort_by.as_deref(),
-        sort_dir.as_deref(),
-    );
+    let search_sql =
+        build_employee_search_sql(&search_query, sort_by.as_deref(), sort_dir.as_deref());
 
     // Department filter clause — uses next available bind position.
     // Count query: $1=ws, optionally $2=search, then dept_ids.
@@ -188,7 +185,11 @@ pub async fn get_all_employees(
     let mut count_query = query_scalar::<_, i64>(&count_sql).bind(workspace_id);
     if search_sql.has_search {
         #[allow(clippy::expect_used)]
-        let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
+        let raw_q = search_query
+            .as_ref()
+            .expect("search_query verified non-empty by has_search")
+            .trim()
+            .to_string();
         count_query = count_query.bind(format!("%{raw_q}%"));
     }
     count_query = count_query.bind(department_ids.as_deref());
@@ -200,7 +201,11 @@ pub async fn get_all_employees(
         WHERE edh.employee_id = e.id AND edh.department_id = ANY($6)\
     ))";
 
-    let dept_join = if search_sql.needs_dept_join { EMPLOYEE_DEPT_JOIN } else { "" };
+    let dept_join = if search_sql.needs_dept_join {
+        EMPLOYEE_DEPT_JOIN
+    } else {
+        ""
+    };
     let sql = format!(
         "{EMPLOYEE_SELECT_QUERY} {dept_join} {}{data_dept_filter} {} LIMIT $3 OFFSET $4",
         search_sql.where_clause, search_sql.order_clause
@@ -209,7 +214,11 @@ pub async fn get_all_employees(
 
     if search_sql.has_search {
         #[allow(clippy::expect_used)]
-        let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
+        let raw_q = search_query
+            .as_ref()
+            .expect("search_query verified non-empty by has_search")
+            .trim()
+            .to_string();
         db_query = db_query.bind(format!("%{raw_q}%"));
     } else {
         db_query = db_query.bind(Option::<String>::None);
@@ -221,7 +230,11 @@ pub async fn get_all_employees(
     // $5 — raw search term for ranking, or None when not searching
     if search_sql.has_search {
         #[allow(clippy::expect_used)]
-        let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
+        let raw_q = search_query
+            .as_ref()
+            .expect("search_query verified non-empty by has_search")
+            .trim()
+            .to_string();
         db_query = db_query.bind(raw_q);
     } else {
         db_query = db_query.bind(Option::<String>::None);
@@ -693,15 +706,30 @@ mod tests {
         let s = build_employee_search_sql(&q, None, None);
 
         let exact_id_pos = s.order_clause.find("employee_id_number = $5").unwrap();
-        let prefix_id_pos = s.order_clause.find("employee_id_number ILIKE $5 || '%'").unwrap();
+        let prefix_id_pos = s
+            .order_clause
+            .find("employee_id_number ILIKE $5 || '%'")
+            .unwrap();
         let exact_name_pos = s.order_clause.find("full_name ILIKE $5) DESC").unwrap();
         let prefix_name_pos = s.order_clause.find("full_name ILIKE $5 || '%'").unwrap();
         let alpha_pos = s.order_clause.find("e.full_name ASC").unwrap();
 
-        assert!(exact_id_pos < prefix_id_pos, "Exact ID should come before prefix ID");
-        assert!(prefix_id_pos < exact_name_pos, "Prefix ID should come before exact name");
-        assert!(exact_name_pos < prefix_name_pos, "Exact name should come before prefix name");
-        assert!(prefix_name_pos < alpha_pos, "Prefix name should come before alphabetical");
+        assert!(
+            exact_id_pos < prefix_id_pos,
+            "Exact ID should come before prefix ID"
+        );
+        assert!(
+            prefix_id_pos < exact_name_pos,
+            "Prefix ID should come before exact name"
+        );
+        assert!(
+            exact_name_pos < prefix_name_pos,
+            "Exact name should come before prefix name"
+        );
+        assert!(
+            prefix_name_pos < alpha_pos,
+            "Prefix name should come before alphabetical"
+        );
     }
 
     #[test]
@@ -714,7 +742,9 @@ mod tests {
     #[test]
     fn test_sort_by_employee_id_number_uses_numeric_cast() {
         let s = build_employee_search_sql(&None, Some("employee_id_number"), Some("asc"));
-        assert!(s.order_clause.contains("CAST(e.employee_id_number AS NUMERIC)"));
+        assert!(s
+            .order_clause
+            .contains("CAST(e.employee_id_number AS NUMERIC)"));
         assert!(s.order_clause.contains("ASC"));
         assert!(!s.needs_dept_join);
     }
