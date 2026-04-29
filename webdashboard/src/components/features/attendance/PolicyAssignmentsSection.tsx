@@ -73,12 +73,20 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
   };
 
   const workUnitLabel = (v: number) => {
-    if (v === 1) return "1 min (exact)";
+    if (v === 1) return t("common.workspace_settings.work_unit_options.1min");
+    if (v === 15) return t("common.workspace_settings.work_unit_options.15min");
+    if (v === 30) return t("common.workspace_settings.work_unit_options.30min");
+    if (v === 60) return t("common.workspace_settings.work_unit_options.60min");
     return `${v} min`;
   };
 
   const roundingLabel = (v: string) => {
-    const map: Record<string, string> = { none: "No rounding", floor: "Round down", ceil: "Round up", round: "Standard rounding" };
+    const map: Record<string, string> = { 
+      none: t("common.workspace_settings.rounding_options.none"), 
+      floor: t("common.workspace_settings.rounding_options.floor"), 
+      ceil: t("common.workspace_settings.rounding_options.ceil"), 
+      round: t("common.workspace_settings.rounding_options.round") 
+    };
     return map[v] || v;
   };
 
@@ -96,6 +104,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
   const [workUnitMinutes, setWorkUnitMinutes] = useState(1);
   const [roundingPolicy, setRoundingPolicy] = useState("none");
   const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState<"allow" | "block" | "clamp">("allow");
+  const [validFrom, setValidFrom] = useState(() => new Date().toISOString().split("T")[0]);
 
   const upsertMutation = useMutation({
     mutationFn: (data: UpsertPolicyAssignmentRequest) => upsertPolicyAssignment(wsId, data),
@@ -118,6 +127,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
       work_unit_minutes: workUnitMinutes,
       rounding_policy: roundingPolicy,
       early_arrival_strategy: earlyArrivalStrategy,
+      valid_from: validFrom,
     });
   };
 
@@ -176,16 +186,16 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
 
                 <div className="flex items-center gap-8 px-6">
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Work Unit</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t("common.workspace_settings.work_unit")}</p>
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{workUnitLabel(assignment.rules.work_unit_minutes)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Rounding</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t("common.workspace_settings.rounding_policy")}</p>
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{roundingLabel(assignment.rules.rounding_policy)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Early Arrival</p>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{assignment.rules.early_arrival_strategy}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t("common.workspace_settings.early_arrival_strategy")}</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{t(`common.workspace_settings.early_arrival_options.${assignment.rules.early_arrival_strategy || "block"}`)}</p>
                   </div>
                 </div>
 
@@ -245,45 +255,33 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">2. Configure Rules</h3>
             
             <div className="space-y-5 bg-slate-50/50 dark:bg-slate-800/30 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
-              <div>
-                <label className={LABEL_BASE}>Work Unit</label>
-                <select 
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/20"
-                  value={workUnitMinutes}
-                  onChange={e => setWorkUnitMinutes(Number(e.target.value))}
-                >
-                  <option value={1}>1 Minute (Exact)</option>
-                  <option value={15}>15 Minutes</option>
-                  <option value={30}>30 Minutes</option>
-                  <option value={60}>60 Minutes</option>
-                </select>
+              <div className="space-y-3">
+                <label className={LABEL_BASE}>{t("common.workspace_settings.valid_from") || "Effective From"}</label>
+                <input type="date" value={validFrom} onChange={e => setValidFrom(e.target.value)} className="w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" />
               </div>
 
-              <div>
-                <label className={LABEL_BASE}>Rounding Policy</label>
-                <select 
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/20"
-                  value={roundingPolicy}
-                  onChange={e => setRoundingPolicy(e.target.value)}
-                >
-                  <option value="none">No Rounding</option>
-                  <option value="floor">Round Down (Floor)</option>
-                  <option value="ceil">Round Up (Ceil)</option>
-                  <option value="round">Standard Rounding</option>
-                </select>
+              <div className="space-y-3">
+                <label className={LABEL_BASE}>{t("common.workspace_settings.work_unit")}</label>
+                <Combobox options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnitMinutes.toString()} onChange={(v) => setWorkUnitMinutes(parseInt(v))} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" />
               </div>
 
-              <div>
-                <label className={LABEL_BASE}>Early Arrival Strategy</label>
-                <select 
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/20"
+              <div className="space-y-3">
+                <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
+                <Combobox options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy} onChange={setRoundingPolicy} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" />
+              </div>
+
+              <div className="space-y-3">
+                <label className={LABEL_BASE}>{t("common.workspace_settings.early_arrival_strategy")}</label>
+                <Combobox
+                  options={[
+                    { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> },
+                    { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> },
+                    { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
+                  ]}
                   value={earlyArrivalStrategy}
-                  onChange={e => setEarlyArrivalStrategy(e.target.value as "allow" | "block" | "clamp")}
-                >
-                  <option value="allow">Allow Always</option>
-                  <option value="clamp">Clamp to Grace Period</option>
-                  <option value="block">Block Early Punch-in</option>
-                </select>
+                  onChange={(v) => setEarlyArrivalStrategy(v as any)}
+                  className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14"
+                />
               </div>
             </div>
           </div>

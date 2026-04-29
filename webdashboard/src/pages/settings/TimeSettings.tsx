@@ -161,11 +161,19 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
   };
 
   const workUnitLabel = (v: number) => {
-    if (v === 1) return "1 min (exact)";
+    if (v === 1) return t("common.workspace_settings.work_unit_options.1min");
+    if (v === 15) return t("common.workspace_settings.work_unit_options.15min");
+    if (v === 30) return t("common.workspace_settings.work_unit_options.30min");
+    if (v === 60) return t("common.workspace_settings.work_unit_options.60min");
     return `${v} min`;
   };
   const roundingLabel = (v: string) => {
-    const map: Record<string, string> = { none: "No rounding", floor: "Round down", ceil: "Round up", round: "Standard rounding" };
+    const map: Record<string, string> = { 
+      none: t("common.workspace_settings.rounding_options.none"), 
+      floor: t("common.workspace_settings.rounding_options.floor"), 
+      ceil: t("common.workspace_settings.rounding_options.ceil"), 
+      round: t("common.workspace_settings.rounding_options.round") 
+    };
     return map[v] || v;
   };
 
