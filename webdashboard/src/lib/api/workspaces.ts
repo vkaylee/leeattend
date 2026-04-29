@@ -81,7 +81,7 @@ export async function updateWorkspaceMemberRole(
   roleId: string,
 ): Promise<void> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles`,
+    `${API_BASE_URL}/workspaces/${wsId}/members/${userId}`,
     {
       method: "PATCH",
       body: JSON.stringify({ role_id: roleId }),

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
-import { useMemberRoles } from "@/hooks/use-workspace";
+import { useMemberRoles, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
 
@@ -18,25 +18,44 @@ export default function RoleManagementModal({
 }: RoleManagementModalProps) {
   const { t } = useTranslation();
   const { formatDateTime } = useDateTimeFormatter();
-  const { roles, isLoading, updatePrimaryRole, assignRole, revokeRole } = useMemberRoles(userId || "", undefined);
-  const [newRole, setNewRole] = useState("member");
+  const { roles: memberRoles, isLoading, updatePrimaryRole, assignRole, revokeRole } = useMemberRoles(userId || "", undefined);
+  const { roles: workspaceRoles } = useWorkspaceRoles();
+
+  const [newRoleId, setNewRoleId] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
 
-  const primaryRole = roles?.primary || "";
-  const extraRoles = roles?.extra || [];
+  const primaryRoleId = memberRoles?.primary || "";
+  const extraRoles = memberRoles?.extra || [];
 
-  async function handleUpdatePrimary(role: string) {
-    if (role === primaryRole) return;
-    if (!confirm(t("members.roles.confirm_change_primary", { role: role.toUpperCase() }))) return;
-    try { await updatePrimaryRole(role); } catch (e: any) { console.error(e); }
+  const getRoleName = (roleId: string) => {
+    return workspaceRoles.find(r => r.id === roleId)?.name || roleId;
+  };
+
+  const roleOptions = workspaceRoles.map(r => ({
+    value: r.id,
+    label: r.name.toUpperCase(),
+    description: r.description || undefined,
+    icon: <Shield className={`w-4 h-4 ${r.is_system ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} />,
+  }));
+
+  const availableExtraRoleOptions = roleOptions.filter(opt =>
+    opt.value !== primaryRoleId && !extraRoles.some(er => er.role_id === opt.value)
+  );
+
+  async function handleUpdatePrimary(roleId: string) {
+    if (roleId === primaryRoleId) return;
+    const roleName = getRoleName(roleId);
+    if (!confirm(t("members.roles.confirm_change_primary", { role: roleName.toUpperCase() }))) return;
+    try { await updatePrimaryRole(roleId); } catch (e: any) { console.error(e); }
   }
 
   async function handleAssign(e: React.FormEvent) {
-    e.preventDefault(); if (!expiresAt || !userId) return;
+    e.preventDefault(); if (!expiresAt || !userId || !newRoleId) return;
     try {
       const isoExpiresAt = new Date(expiresAt).toISOString();
-      await assignRole({ role: newRole, expiresAt: isoExpiresAt });
+      await assignRole({ role: newRoleId, expiresAt: isoExpiresAt });
       setExpiresAt("");
+      setNewRoleId("");
     } catch (e) { console.error(e); }
   }
 
@@ -76,12 +95,8 @@ export default function RoleManagementModal({
                 </label>
                 <Combobox
                   id="primary-role-select"
-                  options={[
-                    { value: "owner", label: t("members.roles.owner").toUpperCase(), description: t("members.roles.owner_desc"), icon: <Shield className="w-4 h-4 text-primary-600 dark:text-primary-400" /> },
-                    { value: "admin", label: t("members.roles.admin").toUpperCase(), description: t("members.roles.admin_desc"), icon: <Shield className="w-4 h-4 text-primary-600 dark:text-primary-400" /> },
-                    { value: "member", label: t("members.roles.member").toUpperCase(), description: t("members.roles.member_desc"), icon: <Shield className="w-4 h-4 text-slate-500 dark:text-slate-400" /> },
-                  ]}
-                  value={primaryRole}
+                  options={roleOptions}
+                  value={primaryRoleId}
                   onChange={handleUpdatePrimary}
                   className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-16 rounded-[1.5rem] text-sm shadow-inner"
                 />
@@ -93,15 +108,15 @@ export default function RoleManagementModal({
                 </label>
 
                 <div className="space-y-4">
-                  {extraRoles.map((role) => (
-                    <div key={role.id} className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden shadow-inner">
+                  {extraRoles.map((extraRole) => (
+                    <div key={extraRole.id} className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden shadow-inner">
                       <div className="space-y-2">
-                        <p className="font-bold text-slate-700 dark:text-slate-200 text-base uppercase tracking-tight leading-none">{role.role}</p>
+                        <p className="font-bold text-slate-700 dark:text-slate-200 text-base uppercase tracking-tight leading-none">{getRoleName(extraRole.role_id)}</p>
                         <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70">
-                          <Clock size={12} className="text-primary-400" /> <span>{t("members.roles.expires_at").toUpperCase()}: {formatDateTime(role.expires_at)}</span>
+                          <Clock size={12} className="text-primary-400" /> <span>{t("members.roles.expires_at").toUpperCase()}: {formatDateTime(extraRole.expires_at)}</span>
                         </div>
                       </div>
-                      <button onClick={() => handleRevoke(role.id)} className="p-3 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 active:scale-90"><Trash2 size={18} /></button>
+                      <button onClick={() => handleRevoke(extraRole.id)} className="p-3 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 active:scale-90"><Trash2 size={18} /></button>
                     </div>
                   ))}
 
@@ -123,14 +138,20 @@ export default function RoleManagementModal({
             <form onSubmit={handleAssign} className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-700">
               <div className="space-y-3 px-1">
                 <label htmlFor="extra-role-select" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("members.invite.role_label")}</label>
-                <Combobox id="extra-role-select" options={[{ value: "member", label: t("members.roles.member").toUpperCase(), icon: <Shield className="w-4 h-4" /> }, { value: "admin", label: t("members.roles.admin").toUpperCase(), icon: <Shield className="w-4 h-4 text-primary-600 dark:text-primary-400" /> }]} value={newRole} onChange={setNewRole} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14 rounded-2xl" />
+                <Combobox
+                  id="extra-role-select"
+                  options={availableExtraRoleOptions}
+                  value={newRoleId}
+                  onChange={setNewRoleId}
+                  className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14 rounded-2xl"
+                />
               </div>
               <div className="space-y-3 px-1">
                 <label htmlFor="expires-at-input" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("members.roles.expiry_date_label")}</label>
                 <input id="expires-at-input" required type="datetime-local" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
               </div>
               <div className="md:col-span-2 pt-2">
-                <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-primary-700 transition-all shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95">{t("members.roles.assign_btn").toUpperCase()}</button>
+                <button type="submit" disabled={!newRoleId} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-primary-700 transition-all shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">{t("members.roles.assign_btn").toUpperCase()}</button>
               </div>
             </form>
           </div>

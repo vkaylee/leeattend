@@ -149,7 +149,8 @@ pub async fn get_workspace_roles(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<WorkspaceRole>>> {
-    ctx.require_permission(Permission::MembersRolesManage)?;
+    // No permission gate — role list is non-sensitive metadata that every
+    // workspace member needs in order to resolve role names on the People page.
 
     let roles = sqlx::query_as::<_, WorkspaceRole>(
         "SELECT * FROM workspace_roles WHERE workspace_id = $1 OR is_system = true ORDER BY is_system DESC, created_at ASC"

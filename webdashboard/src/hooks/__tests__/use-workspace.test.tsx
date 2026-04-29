@@ -235,7 +235,7 @@ describe("useWorkspacePermissionsMatrix", () => {
 
 describe("useMemberRoles", () => {
   it("fetches roles successfully", async () => {
-    const mockRoles = { primary: "admin", extra: [] };
+    const mockRoles = { primary: "a0000000-0000-0000-0000-000000000002", extra: [] };
     vi.mocked(api.fetchMemberRoles).mockResolvedValue(mockRoles as any);
 
     const { result } = renderHook(() => useMemberRoles("u-1", "ws-1"), {

@@ -117,6 +117,7 @@ export interface WorkspaceRole {
   description?: string;
   color: string;
   is_system: boolean;
+  scope_type: 'global' | 'scoped';
   created_at: string;
   updated_at: string;
 }
@@ -615,7 +616,7 @@ export interface MemberExtraRole {
   id: string;
   workspace_id: string;
   user_id: string;
-  role: string;
+  role_id: string;
   assigned_at: string;
   expires_at: string;
 }

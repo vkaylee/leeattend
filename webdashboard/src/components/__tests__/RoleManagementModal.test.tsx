@@ -7,12 +7,25 @@ import { ToastProvider } from "../ui/Toast";
 import * as api from "../../lib/api";
 import React from "react";
 
+const OWNER_ROLE_ID = "a0000000-0000-0000-0000-000000000001";
+const ADMIN_ROLE_ID = "a0000000-0000-0000-0000-000000000002";
+const EMPLOYEE_ROLE_ID = "a0000000-0000-0000-0000-000000000006";
+const TEAM_LEAD_ROLE_ID = "a0000000-0000-0000-0000-000000000005";
+
+const mockWorkspaceRoles = [
+  { id: OWNER_ROLE_ID, name: "owner", description: "Full access", color: "rose", is_system: true, scope_type: "global" as const, created_at: "", updated_at: "" },
+  { id: ADMIN_ROLE_ID, name: "admin", description: "Admin access", color: "rose", is_system: true, scope_type: "global" as const, created_at: "", updated_at: "" },
+  { id: TEAM_LEAD_ROLE_ID, name: "team_lead", description: "Team management", color: "blue", is_system: true, scope_type: "scoped" as const, created_at: "", updated_at: "" },
+  { id: EMPLOYEE_ROLE_ID, name: "employee", description: "Default access", color: "slate", is_system: true, scope_type: "scoped" as const, created_at: "", updated_at: "" },
+];
+
 // Mock the API library
 vi.mock("../../lib/api", () => ({
   fetchMemberRoles: vi.fn(),
   updateWorkspaceMemberRole: vi.fn(),
   assignExtraRole: vi.fn(),
   revokeExtraRole: vi.fn(),
+  fetchWorkspaceRoles: vi.fn(),
   getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
 }));
 
@@ -34,9 +47,10 @@ describe("RoleManagementModal", () => {
       },
     });
     (api.fetchMemberRoles as any).mockResolvedValue({
-      primary: "member",
+      primary: EMPLOYEE_ROLE_ID,
       extra: []
     });
+    (api.fetchWorkspaceRoles as any).mockResolvedValue(mockWorkspaceRoles);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -56,33 +70,51 @@ describe("RoleManagementModal", () => {
     expect(await screen.findByText(/QUYỀN CHÍNH/i)).toBeDefined();
   });
 
-  it("handles updating primary role", async () => {
-    const user = userEvent.setup();
-    (api.updateWorkspaceMemberRole as any).mockResolvedValue({});
+  it("loads workspace roles dynamically and displays primary role", async () => {
     renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
-    
-    // Find the current role text and click it to open the combobox
-    const comboboxTrigger = await screen.findByText(/THÀNH VIÊN/i);
-    await user.click(comboboxTrigger);
 
-    // Select Admin option
-    const primaryRoleSelect = screen.getByLabelText(/QUYỀN CHÍNH/i);
-    fireEvent.change(primaryRoleSelect, { target: { value: 'admin' } });
-
+    // Should have called fetchWorkspaceRoles
     await waitFor(() => {
-      expect(api.updateWorkspaceMemberRole).toHaveBeenCalledWith("test-ws-id", "user-1", "admin");
+      expect(api.fetchWorkspaceRoles).toHaveBeenCalledWith("test-ws-id");
     });
   });
 
-  it("handles assigning extra role", async () => {
+  it("handles updating primary role with UUID", async () => {
+    const user = userEvent.setup();
+    (api.updateWorkspaceMemberRole as any).mockResolvedValue({});
+    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+
+    // Wait for roles to load
+    await waitFor(() => {
+      expect(api.fetchWorkspaceRoles).toHaveBeenCalled();
+    });
+
+    // Find and interact with the primary role combobox
+    const primaryRoleSelect = await screen.findByLabelText(/QUYỀN CHÍNH/i);
+    fireEvent.change(primaryRoleSelect, { target: { value: ADMIN_ROLE_ID } });
+
+    await waitFor(() => {
+      expect(api.updateWorkspaceMemberRole).toHaveBeenCalledWith("test-ws-id", "user-1", ADMIN_ROLE_ID);
+    });
+  });
+
+  it("handles assigning extra role with UUID", async () => {
     const user = userEvent.setup();
     (api.assignExtraRole as any).mockResolvedValue({});
     renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
 
+    // Wait for roles to load
+    await waitFor(() => {
+      expect(api.fetchWorkspaceRoles).toHaveBeenCalled();
+    });
+
+    // Select a role for extra assignment
+    const extraRoleSelect = screen.getByLabelText(/Quyền hạn/i);
+    fireEvent.change(extraRoleSelect, { target: { value: ADMIN_ROLE_ID } });
+
     const dateInput = screen.getByLabelText(/Ngày hết hạn/i);
     fireEvent.change(dateInput, { target: { value: "2026-12-31T23:59" } });
 
-    // Use role button to target the assign button specifically
     await user.click(screen.getByRole("button", { name: /GÁN QUYỀN/i }));
 
     await waitFor(() => {
@@ -90,27 +122,52 @@ describe("RoleManagementModal", () => {
     });
   });
 
-  it("handles revoking extra role", async () => {
+  it("handles revoking extra role with role_id", async () => {
     const user = userEvent.setup();
     (api.fetchMemberRoles as any).mockResolvedValue({
-      primary: "member",
-      extra: [{ id: "role-1", role: "admin", expires_at: "2027-01-01T00:00:00Z" }]
+      primary: EMPLOYEE_ROLE_ID,
+      extra: [{ id: "extra-role-1", role_id: ADMIN_ROLE_ID, workspace_id: "test-ws-id", user_id: "user-1", assigned_at: "2026-01-01T00:00:00Z", expires_at: "2027-01-01T00:00:00Z" }]
     });
     (api.revokeExtraRole as any).mockResolvedValue({});
 
     renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
 
-    // In Premium UI, role name is rendered in a p tag
-    expect(await screen.findByText("admin")).toBeDefined();
-    
-    // Find the button within the extra role item container
-    const extraRoleItem = screen.getByText("admin").closest("div");
-    // The button is a sibling of the role name container
+    // Should display the resolved role name from workspace roles
+    expect(await screen.findByText(/admin/i)).toBeDefined();
+
+    // Find the revoke button
+    const extraRoleItem = screen.getByText(/admin/i).closest("div");
     const revokeBtn = extraRoleItem!.parentElement!.querySelector('button');
     await user.click(revokeBtn!);
 
     await waitFor(() => {
-      expect(api.revokeExtraRole).toHaveBeenCalledWith("test-ws-id", "user-1", "role-1");
+      expect(api.revokeExtraRole).toHaveBeenCalledWith("test-ws-id", "user-1", "extra-role-1");
     });
+  });
+
+  it("filters out primary role and existing extra roles from available options", async () => {
+    (api.fetchMemberRoles as any).mockResolvedValue({
+      primary: EMPLOYEE_ROLE_ID,
+      extra: [{ id: "extra-1", role_id: ADMIN_ROLE_ID, workspace_id: "test-ws-id", user_id: "user-1", assigned_at: "", expires_at: "2027-01-01T00:00:00Z" }]
+    });
+
+    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+
+    await waitFor(() => {
+      expect(api.fetchWorkspaceRoles).toHaveBeenCalled();
+    });
+
+    // The extra role select should not contain the primary role (employee) or existing extra (admin)
+    const extraRoleSelect = screen.getByLabelText(/Quyền hạn/i);
+    const options = extraRoleSelect.querySelectorAll("option");
+
+    const optionValues = Array.from(options).map(o => (o as HTMLOptionElement).value);
+    expect(optionValues).not.toContain(EMPLOYEE_ROLE_ID);
+    expect(optionValues).not.toContain(ADMIN_ROLE_ID);
+  });
+
+  it("does not render when isOpen is false", () => {
+    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={false} onClose={() => {}} />);
+    expect(screen.queryByText(/Quản lý quyền hạn/i)).toBeNull();
   });
 });
