@@ -93,7 +93,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deletePolicyAssignment(wsId, id),
     onSuccess: () => {
-      toast.success("Policy override removed");
+      toast.success(t("attendance_policy_overrides.messages.delete_success"));
       queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments", wsId] });
     }
   });
@@ -109,7 +109,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
   const upsertMutation = useMutation({
     mutationFn: (data: UpsertPolicyAssignmentRequest) => upsertPolicyAssignment(wsId, data),
     onSuccess: () => {
-      toast.success("Policy override saved");
+      toast.success(t("attendance_policy_overrides.messages.save_success"));
       queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments", wsId] });
       setIsDrawerOpen(false);
       setTargetId("");
@@ -118,7 +118,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
 
   const handleSave = () => {
     if (!targetId) {
-      toast.error("Please select a department or employee");
+      toast.error(t("attendance_policy_overrides.messages.validation_select_target"));
       return;
     }
     upsertMutation.mutate({
@@ -143,16 +143,16 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
       <div className="p-10 border-b border-slate-50 dark:border-slate-800">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">Overrides & Exceptions</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure specific rules for departments or individuals.</p>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("attendance_policy_overrides.title")}</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("attendance_policy_overrides.description")}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-              <button onClick={() => setActiveFilter("ALL")} className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "ALL" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")}>ALL</button>
-              <button onClick={() => setActiveFilter("GROUP")} className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "GROUP" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")}>DEPTS</button>
-              <button onClick={() => setActiveFilter("USER")} className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "USER" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")}>USERS</button>
+              <button onClick={() => setActiveFilter("ALL")} className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "ALL" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")}>{t("attendance_policy_overrides.filters.all")}</button>
+              <button onClick={() => setActiveFilter("GROUP")} className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "GROUP" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")}>{t("attendance_policy_overrides.filters.depts")}</button>
+              <button onClick={() => setActiveFilter("USER")} className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "USER" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")}>{t("attendance_policy_overrides.filters.users")}</button>
             </div>
-            <Button icon={<Plus size={18} />} onClick={() => setIsDrawerOpen(true)}>ADD OVERRIDE</Button>
+            <Button icon={<Plus size={18} />} onClick={() => setIsDrawerOpen(true)}>{t("attendance_policy_overrides.add_button")}</Button>
           </div>
         </div>
       </div>
@@ -161,8 +161,8 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
         {filteredAssignments.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-800/30">
             <Filter className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-slate-600 dark:text-slate-300">No active overrides</h3>
-            <p className="text-sm text-slate-500 mt-1">Everyone is following the workspace default policy.</p>
+            <h3 className="text-lg font-bold text-slate-600 dark:text-slate-300">{t("attendance_policy_overrides.empty_state.title")}</h3>
+            <p className="text-sm text-slate-500 mt-1">{t("attendance_policy_overrides.empty_state.description")}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -175,7 +175,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className={cn("px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md", assignment.target_type === "GROUP" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300" : "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300")}>
-                        {assignment.target_type === "GROUP" ? "DEPARTMENT" : "EMPLOYEE"}
+                        {assignment.target_type === "GROUP" ? t("attendance_policy_overrides.labels.department") : t("attendance_policy_overrides.labels.employee")}
                       </span>
                     </div>
                     <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200">
@@ -216,12 +216,12 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
       <Sheet
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        title="Add Policy Override"
-        subtitle="Configure specific rules for a target"
+        title={t("attendance_policy_overrides.drawer.add_title")}
+        subtitle={t("attendance_policy_overrides.drawer.add_subtitle")}
       >
         <div className="space-y-8">
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">1. Select Target</h3>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t("attendance_policy_overrides.drawer.step_target")}</h3>
             
             <div className="grid grid-cols-2 gap-3 mb-4">
               <button
@@ -229,30 +229,30 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
                 onClick={() => { setTargetType("GROUP"); setTargetId(""); }}
               >
                 <Building2 size={24} />
-                <span className="text-xs font-bold uppercase tracking-widest">Department</span>
+                <span className="text-xs font-bold uppercase tracking-widest">{t("attendance_policy_overrides.labels.department")}</span>
               </button>
               <button
                 className={cn("p-4 rounded-2xl border transition-all flex flex-col items-center gap-2", targetType === "USER" ? "bg-teal-50 dark:bg-teal-950/30 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-400 shadow-inner" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-700")}
                 onClick={() => { setTargetType("USER"); setTargetId(""); }}
               >
                 <User size={24} />
-                <span className="text-xs font-bold uppercase tracking-widest">Employee</span>
+                <span className="text-xs font-bold uppercase tracking-widest">{t("attendance_policy_overrides.labels.employee")}</span>
               </button>
             </div>
 
             <div>
-              <label className={LABEL_BASE}>Select {targetType === "GROUP" ? "Department" : "Employee"}</label>
+              <label className={LABEL_BASE}>{t("attendance_policy_overrides.drawer.select_target_type", { type: targetType === "GROUP" ? t("attendance_policy_overrides.labels.department") : t("attendance_policy_overrides.labels.employee") })}</label>
               <Combobox
                 options={targetOptions}
                 value={targetId}
                 onChange={setTargetId}
-                placeholder={targetType === "GROUP" ? "Search department..." : "Search employee..."}
+                placeholder={t("attendance_policy_overrides.drawer.search_placeholder", { type: targetType === "GROUP" ? t("attendance_policy_overrides.labels.department") : t("attendance_policy_overrides.labels.employee") })}
               />
             </div>
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">2. Configure Rules</h3>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t("attendance_policy_overrides.drawer.step_rules")}</h3>
             
             <div className="space-y-5 bg-slate-50/50 dark:bg-slate-800/30 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
               <div className="space-y-3">
@@ -292,7 +292,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
               onClick={handleSave} 
               loading={upsertMutation.isPending}
             >
-              SAVE OVERRIDE
+              {t("attendance_policy_overrides.drawer.save_button")}
             </Button>
           </div>
         </div>

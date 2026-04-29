@@ -142,11 +142,11 @@ describe("AttendanceLogsPage", () => {
     renderWithProviders(<AttendanceLogsPage />);
 
     // Check for the new empty state text
-    const emptyStateTitle = await screen.findByText(/No Attendance Logs Found|attendance_logs.messages.no_data/i);
+    const emptyStateTitle = await screen.findByText("attendance_logs.messages.no_data");
     expect(emptyStateTitle).toBeDefined();
 
     // Check for the helpful subtext we added
-    const emptyStateText = await screen.findByText(/Try adjusting your date range filter/i);
+    const emptyStateText = await screen.findByText("attendance_logs.messages.no_data_hint");
     expect(emptyStateText).toBeDefined();
   });
 

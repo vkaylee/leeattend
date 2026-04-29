@@ -455,7 +455,7 @@
       "status": {
         "trusted": "已批准",
         "pending": "待处理",
-        "closed": "Closed"
+        "closed": "已关闭"
       },
       "title": "代理管理",
       "subtitle": "批准并控制 Edge Agent 连接点",
@@ -710,7 +710,7 @@
     "source": "来源",
     "languages": {
       "vi": "Tiếng Việt",
-      "en": "English",
+      "en": "英语",
       "zh": "中文"
     },
     "primary_color": "主色调",
@@ -1084,8 +1084,8 @@
         "close": "关闭"
       }
     },
-    "columns": "Columns",
-    "custom": "Custom"
+    "columns": "列",
+    "custom": "自定义"
   },
   "dashboard": {
     "title": "仪表板",
@@ -2906,5 +2906,37 @@
     "roleId": "角色 ID",
     "subtitle": "管理工作区中的自定义角色",
     "title": "角色"
+  },
+  "attendance_policy_overrides": {
+    "title": "覆盖与异常",
+    "description": "为部门或个人配置特定规则。",
+    "filters": {
+      "all": "全部",
+      "depts": "部门",
+      "users": "员工"
+    },
+    "add_button": "添加覆盖",
+    "empty_state": {
+      "title": "无活动覆盖",
+      "description": "所有人都在遵循工作区的默认政策。"
+    },
+    "labels": {
+      "department": "部门",
+      "employee": "员工"
+    },
+    "drawer": {
+      "add_title": "添加政策覆盖",
+      "add_subtitle": "为目标配置特定规则",
+      "step_target": "1. 选择目标",
+      "step_rules": "2. 配置规则",
+      "select_target_type": "选择 {{type}}",
+      "search_placeholder": "搜索 {{type}}...",
+      "save_button": "保存覆盖"
+    },
+    "messages": {
+      "delete_success": "政策覆盖已移除",
+      "save_success": "政策覆盖已保存",
+      "validation_select_target": "请选择部门或员工"
+    }
   }
 }

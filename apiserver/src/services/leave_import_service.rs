@@ -77,8 +77,36 @@ impl LeaveImportService {
         // Parse rows from Excel or CSV
         let (pending_rows, mut errors) = self.parse_file(&file_bytes);
 
+        // Fetch workspace to get language
+        let lang = sqlx::query_scalar::<_, String>(
+            "SELECT default_language FROM workspaces WHERE id = $1"
+        )
+        .bind(workspace_id)
+        .fetch_optional(&self.pool)
+        .await
+        .unwrap_or(Some("en".to_string()))
+        .unwrap_or_else(|| "en".to_string());
+
+        let (err_empty, err_emp_not_found, err_leave_not_found) = match lang.as_str() {
+            "vi" => (
+                "File rỗng hoặc không có dữ liệu hợp lệ",
+                "Mã nhân viên '{}' không tồn tại",
+                "Loại nghỉ '{}' không tồn tại",
+            ),
+            "zh" => (
+                "文件为空或没有有效数据",
+                "员工编号 '{}' 不存在",
+                "假期类型 '{}' 不存在",
+            ),
+            _ => (
+                "File is empty or contains no valid data",
+                "Employee ID '{}' does not exist",
+                "Leave type '{}' does not exist",
+            ),
+        };
+
         if pending_rows.is_empty() && errors.is_empty() {
-            return Err("File rỗng hoặc không có dữ liệu hợp lệ".to_string());
+            return Err(err_empty.to_string());
         }
 
         // Build leave service for submission
@@ -114,7 +142,7 @@ impl LeaveImportService {
                         end_date_raw: row.end_date.to_string(),
                         reason: row.reason.clone().unwrap_or_default(),
                         duration_type_raw: format!("{:?}", row.duration_type),
-                        error_message: format!("Mã nhân viên '{}' không tồn tại", row.employee_id_number),
+                        error_message: err_emp_not_found.replace("{}", &row.employee_id_number),
                     });
                     continue;
                 }
@@ -132,7 +160,7 @@ impl LeaveImportService {
                         end_date_raw: row.end_date.to_string(),
                         reason: row.reason.clone().unwrap_or_default(),
                         duration_type_raw: format!("{:?}", row.duration_type),
-                        error_message: format!("Loại nghỉ '{}' không tồn tại", row.leave_type_code),
+                        error_message: err_leave_not_found.replace("{}", &row.leave_type_code),
                     });
                     continue;
                 }

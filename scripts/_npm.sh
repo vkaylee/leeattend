@@ -8,5 +8,11 @@ SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 cd "$SCRIPT_DIR/.." || exit 1
 export PROJECT_ROOT=$(pwd)
 
+# Intercept typecheck typo common for AI agents
+ARGS=("$@")
+if [[ "${ARGS[0]}" == "run" && "${ARGS[1]}" == "typecheck" ]]; then
+    ARGS[1]="type-check"
+fi
+
 echo "📦 Running npm inside container environment..."
-exec podman-compose -p leeattend-test -f docker-compose.yml -f .compose/docker-compose.test.yml run --rm --entrypoint npm web_test "$@"
+exec podman-compose -p leeattend-test -f docker-compose.yml -f .compose/docker-compose.test.yml run --rm --entrypoint npm web_test "${ARGS[@]}"

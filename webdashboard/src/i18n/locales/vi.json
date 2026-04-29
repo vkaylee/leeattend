@@ -455,7 +455,7 @@
       "status": {
         "trusted": "Đã duyệt",
         "pending": "Chờ duyệt",
-        "closed": "Closed"
+        "closed": "Đã đóng"
       },
       "title": "Quản lý Agent",
       "subtitle": "Phê duyệt và kiểm soát các điểm kết nối Edge Agent",
@@ -474,7 +474,7 @@
       },
       "table": {
         "identifier": "Định danh",
-        "token": "Token",
+        "token": "Mã định danh (Token)",
         "last_ip": "IP cuối",
         "agent": "Tên Agent",
         "status": "Trạng thái",
@@ -710,7 +710,7 @@
     "source": "Nguồn",
     "languages": {
       "vi": "Tiếng Việt",
-      "en": "English",
+      "en": "Tiếng Anh",
       "zh": "Tiếng Trung"
     },
     "primary_color": "Màu chủ đạo",
@@ -991,10 +991,10 @@
         "subtitle": "Yêu cầu thay đổi thời gian clock-in/out của bạn."
       },
       "actions": {
-        "punch_out": "Clock Out",
+        "punch_out": "Giờ ra",
         "return_to_work": "Kết thúc nghỉ",
         "start_break": "Bắt đầu nghỉ",
-        "start_work": "Clock In"
+        "start_work": "Giờ vào"
       },
       "forgot_punch": "Quên clock in/out?",
       "status": {
@@ -1066,8 +1066,8 @@
         "title": "Chấm công của tôi",
         "subtitle": "Xem lịch sử clock-in/out hàng ngày của bạn.",
         "date": "Ngày",
-        "check_in": "Punch In",
-        "check_out": "Punch Out",
+        "check_in": "Giờ vào",
+        "check_out": "Giờ ra",
         "duration": "Thời lượng",
         "status": "Trạng thái",
         "generation_info": "Thông tin xử lý (Truy xuất nguồn gốc)",
@@ -1084,8 +1084,8 @@
         "close": "Đóng"
       }
     },
-    "columns": "Columns",
-    "custom": "Custom"
+    "columns": "Cột",
+    "custom": "Tùy chỉnh"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -2906,5 +2906,37 @@
     "roleId": "Mã vai trò",
     "subtitle": "Quản lý các vai trò tùy chỉnh trong workspace",
     "title": "Vai trò"
+  },
+  "attendance_policy_overrides": {
+    "title": "Ghi đè & Ngoại lệ",
+    "description": "Cấu hình quy tắc cụ thể cho phòng ban hoặc cá nhân.",
+    "filters": {
+      "all": "TẤT CẢ",
+      "depts": "PHÒNG BAN",
+      "users": "NHÂN VIÊN"
+    },
+    "add_button": "THÊM GHI ĐÈ",
+    "empty_state": {
+      "title": "Chưa có ghi đè nào",
+      "description": "Mọi người đang áp dụng chính sách mặc định của không gian làm việc."
+    },
+    "labels": {
+      "department": "PHÒNG BAN",
+      "employee": "NHÂN VIÊN"
+    },
+    "drawer": {
+      "add_title": "Thêm Ghi đè Chính sách",
+      "add_subtitle": "Cấu hình quy tắc cụ thể cho đối tượng",
+      "step_target": "1. Chọn Đối tượng",
+      "step_rules": "2. Cấu hình Quy tắc",
+      "select_target_type": "Chọn {{type}}",
+      "search_placeholder": "Tìm kiếm {{type}}...",
+      "save_button": "LƯU GHI ĐÈ"
+    },
+    "messages": {
+      "delete_success": "Đã xóa ghi đè chính sách",
+      "save_success": "Đã lưu ghi đè chính sách",
+      "validation_select_target": "Vui lòng chọn phòng ban hoặc nhân viên"
+    }
   }
 }

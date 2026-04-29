@@ -290,11 +290,11 @@
         "status": "Status",
         "loading_payslips": "Loading payslips...",
         "no_payslips": "No payslips yet",
-        "reason": "Lý do",
-        "basis": "Căn cứ",
-        "std_days": "Công chuẩn",
-        "actual": "Thực tế",
-        "amount": "Số tiền"
+        "reason": "Reason",
+        "basis": "Basis",
+        "std_days": "Std. Days",
+        "actual": "Actual",
+        "amount": "Amount"
       },
       "status": {
         "paid": "PAID",
@@ -570,8 +570,8 @@
         "members": "Members",
         "incentives": "Incentives & Bonuses",
         "general": "General Config",
-        "devices": "Thiết bị IoT",
-        "agents": "Ứng dụng kết nối"
+        "devices": "IoT Devices",
+        "agents": "Connected Agents"
       }
     },
     "logout": "Logout",
@@ -709,7 +709,7 @@
     "deleting": "Deleting...",
     "source": "Source",
     "languages": {
-      "vi": "Tiếng Việt",
+      "vi": "Vietnamese",
       "en": "English",
       "zh": "Chinese"
     },
@@ -2906,5 +2906,37 @@
     "roleId": "Role ID",
     "subtitle": "Roles subtitle",
     "title": "Roles"
+  },
+  "attendance_policy_overrides": {
+    "title": "Overrides & Exceptions",
+    "description": "Configure specific rules for departments or individuals.",
+    "filters": {
+      "all": "ALL",
+      "depts": "DEPTS",
+      "users": "USERS"
+    },
+    "add_button": "ADD OVERRIDE",
+    "empty_state": {
+      "title": "No active overrides",
+      "description": "Everyone is following the workspace default policy."
+    },
+    "labels": {
+      "department": "DEPARTMENT",
+      "employee": "EMPLOYEE"
+    },
+    "drawer": {
+      "add_title": "Add Policy Override",
+      "add_subtitle": "Configure specific rules for a target",
+      "step_target": "1. Select Target",
+      "step_rules": "2. Configure Rules",
+      "select_target_type": "Select {{type}}",
+      "search_placeholder": "Search {{type}}...",
+      "save_button": "SAVE OVERRIDE"
+    },
+    "messages": {
+      "delete_success": "Policy override removed",
+      "save_success": "Policy override saved",
+      "validation_select_target": "Please select a department or employee"
+    }
   }
 }
