@@ -10,7 +10,11 @@ import { useMyPermissions } from "../../hooks/use-permissions";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, fallback?: string) => fallback || key,
+        t: (key: string, options?: any) => {
+            if (typeof options === 'string') return options;
+            if (options && typeof options === 'object' && options.defaultValue) return options.defaultValue;
+            return key;
+        },
     }),
 }));
 
