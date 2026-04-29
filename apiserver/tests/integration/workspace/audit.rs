@@ -137,3 +137,61 @@ async fn test_get_audit_logs_rbac_member_forbidden() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn test_audit_log_on_primary_role_update() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+
+    let member_id = factory.user().with_email("audited_primary@example.com").create().await;
+    let old_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(); // Member
+    factory.add_member(ws_id, member_id, old_role_id).await;
+
+    let new_role_id = uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000005").unwrap(); // Manager
+    let body = serde_json::json!({
+        "role_id": new_role_id.to_string(),
+    });
+    
+    // Update the role
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "PATCH",
+            &format!("/api/workspaces/{ws_id}/members/{member_id}"),
+            ws_id,
+            admin_id,
+            Some(body.to_string()),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    // Get audit logs
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/audit-logs"),
+            ws_id,
+            admin_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    
+    let result = body_json(resp).await;
+    let logs = result["data"].as_array().unwrap();
+    
+    // Find our specific update event
+    let update_log = logs.iter().find(|l| l["action"].as_str().unwrap() == "update_member_role").expect("Audit log not found");
+    
+    // Check old and new role ids exist in details
+    let details = &update_log["details"];
+    assert_eq!(details["old_role_id"].as_str().unwrap(), old_role_id.to_string());
+    assert_eq!(details["new_role_id"].as_str().unwrap(), new_role_id.to_string());
+    assert_eq!(update_log["target_user_id"].as_str().unwrap(), member_id.to_string());
+}
