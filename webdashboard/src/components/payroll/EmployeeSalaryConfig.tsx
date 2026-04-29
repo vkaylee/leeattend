@@ -101,7 +101,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.amount")} ({t("common.currency")})</label>
-              <input required type="number" placeholder="1,000" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight" value={amount} onChange={e => setAmount(e.target.value)} />
+              <input required type="number" placeholder="1,000" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" value={amount} onChange={e => setAmount(e.target.value)} />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.effective_date")}</label>

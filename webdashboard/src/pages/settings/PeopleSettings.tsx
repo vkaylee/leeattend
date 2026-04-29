@@ -107,7 +107,7 @@ export default function PeopleSettings() {
 
                   <div className="relative group">
 
-                    <input required type="email" placeholder="dong-nghiep@congty.com" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all pr-14 font-bold uppercase tracking-tight" value={newMemberEmail} onChange={(e) => setNewMemberEmail(e.target.value)} />
+                    <input required type="email" placeholder="dong-nghiep@congty.com" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all pr-14 font-bold tracking-tight" value={newMemberEmail} onChange={(e) => setNewMemberEmail(e.target.value)} />
 
                     <Mail className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" />
 

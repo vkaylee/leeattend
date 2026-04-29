@@ -80,12 +80,7 @@ export function AdjustmentRequestModal({
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
             {t("common.work_day")}
           </label>
-          <input
-            type="date"
-            required
-            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight"
-            value={formData.date}
-            onChange={(e) =>
+          <input type="date" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" value={formData.date} onChange={(e) =>
               setFormData({ ...formData, date: e.target.value })
             }
           />

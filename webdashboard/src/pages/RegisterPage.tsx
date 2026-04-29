@@ -74,7 +74,7 @@ export default function RegisterPage() {
             ].map((field) => (
               <div key={field.id} className="space-y-2 px-1">
                 <label htmlFor={field.id} className={LABEL_BASE}>{t(`auth.${field.label}`)}</label>
-                <input id={field.id} name={field.id} type={field.type} autoComplete={field.auto} required className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm uppercase tracking-tight shadow-inner" placeholder={field.placeholder} value={(formData as any)[field.id]} onChange={handleChange} />
+                <input id={field.id} name={field.id} type={field.type} autoComplete={field.auto} required className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm tracking-tight shadow-inner" placeholder={field.placeholder} value={(formData as any)[field.id]} onChange={handleChange} />
               </div>
             ))}
           </div>

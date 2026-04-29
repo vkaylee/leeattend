@@ -127,7 +127,7 @@ export default function RoleManagementModal({
               </div>
               <div className="space-y-3 px-1">
                 <label htmlFor="expires-at-input" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("members.roles.expiry_date_label")}</label>
-                <input id="expires-at-input" required type="datetime-local" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+                <input id="expires-at-input" required type="datetime-local" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
               </div>
               <div className="md:col-span-2 pt-2">
                 <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-primary-700 transition-all shadow-2xl shadow-slate-400 dark:shadow-black/40 active:scale-95">{t("members.roles.assign_btn").toUpperCase()}</button>

@@ -163,12 +163,7 @@ export default function PermissionManagementModal({
                                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
                                     {t("members.permissions.expiry_label", { defaultValue: "Expiration" })}
                                 </label>
-                                <input
-                                    required
-                                    type="datetime-local"
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-amber-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm"
-                                    value={expiresAt}
-                                    onChange={(e) => setExpiresAt(e.target.value)}
+                                <input required type="datetime-local" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-amber-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
                                 />
                             </div>
                             <div className="pt-2">

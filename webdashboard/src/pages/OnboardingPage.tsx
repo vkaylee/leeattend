@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Plus, Loader2 } from "lucide-react";
+import { LayoutDashboard, Plus, Loader2, LogOut } from "lucide-react";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { setCurrentWorkspaceId } from "@/lib/api";
 import { useNavigate } from "@tanstack/react-router";
@@ -25,8 +25,23 @@ export default function OnboardingPage() {
     } catch (error) { console.error(error); } finally { setIsSubmitting(false); }
   };
 
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = ROUTES.LOGIN;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden animate-in fade-in duration-1000">
+      {/* Top Right Actions */}
+      <div className="absolute top-6 right-6 z-50">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+        >
+          {t("common.logout")}
+          <LogOut size={16} />
+        </button>
+      </div>
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-100 dark:bg-primary-900/30 rounded-full blur-[140px] animate-pulse duration-[12s]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-100/30 dark:bg-indigo-900/20 rounded-full blur-[140px] animate-pulse duration-[10s]" />
 
