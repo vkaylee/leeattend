@@ -1,7 +1,6 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import {
   Building2,
-  Users,
   ShieldAlert,
   KeyRound,
   CreditCard,
@@ -14,7 +13,6 @@ import {
   CalendarDays,
   Palmtree,
   Cpu,
-  UserCog,
   Settings
 } from "lucide-react";
 import { useTranslation } from "react-i18next";

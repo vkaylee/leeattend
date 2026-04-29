@@ -1,0 +1,27 @@
+#!/bin/bash
+# .git-hooks/pre-commit
+
+echo "🔍 Running Enterprise Grade Pre-Commit Checks..."
+
+# Skip if explicitly requested
+if [[ "${SKIP_LINT:-}" == "true" ]]; then
+    echo "⏩ Skipping linting..."
+    exit 0
+fi
+
+# Run ONLY the lint phase for all components
+# --all: covers both backend and webdashboard
+# --lint: runs only the lint phase
+./run-tests.sh --all --lint </dev/null
+
+RESULT=$?
+
+if [ $RESULT -ne 0 ]; then
+    echo ""
+    echo "❌ Pre-commit checks failed."
+    echo "👉 Fix the linter errors above or run with SKIP_LINT=true if absolutely necessary."
+    exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
+exit 0

@@ -4,11 +4,11 @@ import { vi } from "vitest";
 import viLocale from "../i18n/locales/vi.json";
 
 // Helper to resolve nested keys
-const resolveKey = (key: string, obj: any, vars?: Record<string, any>): string => {
-  let result = key.split('.').reduce((o, i) => o?.[i], obj);
+const resolveKey = (key: string, obj: Record<string, unknown>, vars?: Record<string, unknown>): string => {
+  let result = key.split('.').reduce((o: unknown, i) => (o as Record<string, unknown>)?.[i], obj) as string | undefined;
   if (!result && key.startsWith('common.')) {
     const fallbackKey = key.substring(7);
-    result = fallbackKey.split('.').reduce((o, i) => o?.[i], obj);
+    result = fallbackKey.split('.').reduce((o: unknown, i) => (o as Record<string, unknown>)?.[i], obj) as string | undefined;
   }
   if (!result) {
     console.warn(`Missing key in test mock: ${key}`);
@@ -16,7 +16,7 @@ const resolveKey = (key: string, obj: any, vars?: Record<string, any>): string =
   }
   // Handle i18next-style {{variable}} interpolation
   if (vars && typeof result === 'string') {
-    return result.replace(/\{\{(\w+)\}\}/g, (_, varName) => vars[varName] ?? `{{${varName}}}`);
+    return result.replace(/\{\{(\w+)\}\}/g, (_, varName) => String(vars[varName] ?? `{{${varName}}}`));
   }
   return result;
 };
@@ -24,7 +24,7 @@ const resolveKey = (key: string, obj: any, vars?: Record<string, any>): string =
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, vars?: Record<string, any>) => resolveKey(key, viLocale, vars),
+    t: (key: string, vars?: Record<string, unknown>) => resolveKey(key, viLocale as Record<string, unknown>, vars),
     i18n: {
       changeLanguage: () => Promise.resolve(),
       language: 'vi',
@@ -68,7 +68,7 @@ class MockEventSource {
   dispatchEvent = vi.fn();
 }
 
-global.EventSource = MockEventSource as any;
+global.EventSource = MockEventSource as unknown as typeof EventSource;
 
 // Mock window.confirm which is missing in happy-dom
 if (typeof window !== "undefined" && !window.confirm) {
@@ -78,55 +78,35 @@ if (typeof window !== "undefined" && !window.confirm) {
 // Mock Combobox to be a simple select for existing tests to work
 
 vi.mock("@/components/ui/Combobox", () => ({
-
   Combobox: ({ 
-
     options, 
-
     value, 
-
     onChange, 
-
     id, 
-
     "data-testid": testId 
-
-  }: any) => (
-
+  }: { 
+    options: { value: string; label: string }[]; 
+    value: string; 
+    onChange: (val: string) => void; 
+    id?: string; 
+    "data-testid"?: string 
+  }) => (
     <select aria-label="Role"
-
       id={id}
-
       data-testid={testId}
-
       value={value}
-
       onChange={(e) => onChange(e.target.value)}
-
     >
-
       <option value="">Select...</option>
-
-      {options.map((opt: any) => (
-
+      {options.map((opt) => (
         <option 
-
           key={opt.value} 
-
           value={opt.value}
-
           data-testid={testId ? `${testId}-option-${opt.value}` : `combo-option-${opt.value}`}
-
         >
-
           {opt.label}
-
         </option>
-
       ))}
-
     </select>
-
   ),
-
 }));

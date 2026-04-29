@@ -1,8 +1,11 @@
 import React from "react";
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+
+import { useConfirm } from "@/hooks/use-confirm";
+import { useSystemRoles } from "@/hooks/use-system-roles";
 
 import SystemRolesPage from "../SystemRolesPage";
 
@@ -15,9 +18,6 @@ vi.mock("@/hooks/use-confirm", () => ({
   useConfirm: vi.fn(),
 }));
 
-import { useSystemRoles } from "@/hooks/use-system-roles";
-import { useConfirm } from "@/hooks/use-confirm";
-
 describe("SystemRolesPage", () => {
   const mockAssignRole = vi.fn();
   const mockRevokeRole = vi.fn();
@@ -26,7 +26,7 @@ describe("SystemRolesPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useSystemRoles as any).mockReturnValue({
+    (useSystemRoles as Mock).mockReturnValue({
       roles: [
         {
           id: "role-1",
@@ -44,7 +44,7 @@ describe("SystemRolesPage", () => {
       isRevoking: false,
     });
 
-    (useConfirm as any).mockReturnValue({
+    (useConfirm as Mock).mockReturnValue({
       confirm: mockConfirm,
       ConfirmationDialog: () => <div data-testid="confirmation-dialog"></div>,
     });

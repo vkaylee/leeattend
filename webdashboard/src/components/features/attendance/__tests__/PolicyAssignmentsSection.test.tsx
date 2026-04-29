@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
 
@@ -44,11 +44,11 @@ describe("PolicyAssignmentsSection", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.fetchPolicyAssignments as any).mockResolvedValue([]);
-    (api.fetchDepartments as any).mockResolvedValue([
+    (api.fetchPolicyAssignments as Mock).mockResolvedValue([]);
+    (api.fetchDepartments as Mock).mockResolvedValue([
       { id: "dept-1", name: "Engineering" }
     ]);
-    (api.fetchEmployees as any).mockResolvedValue({
+    (api.fetchEmployees as Mock).mockResolvedValue({
       data: [{ id: "emp-1", full_name: "Alice", employee_id_number: "EMP001" }],
       total: 1
     });
@@ -67,7 +67,7 @@ describe("PolicyAssignmentsSection", () => {
   });
 
   it("displays assignments and resolves target names", async () => {
-    (api.fetchPolicyAssignments as any).mockResolvedValue([
+    (api.fetchPolicyAssignments as Mock).mockResolvedValue([
       {
         id: "assign-1",
         target_type: "GROUP",
@@ -90,7 +90,7 @@ describe("PolicyAssignmentsSection", () => {
   });
 
   it("opens the drawer and submits a new override", async () => {
-    (api.upsertPolicyAssignment as any).mockResolvedValue({ id: "new-1" });
+    (api.upsertPolicyAssignment as Mock).mockResolvedValue({ id: "new-1" });
     
     renderWithProviders(<PolicyAssignmentsSection wsId={mockWsId} />);
     
