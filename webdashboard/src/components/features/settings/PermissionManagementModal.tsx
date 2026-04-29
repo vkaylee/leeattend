@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { X, KeyRound, Plus, Trash2, Clock, Search } from "lucide-react";
 import { useMemberPermissions } from "@/hooks/use-workspace";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useConfirm } from "@/hooks/use-confirm";
 import Modal from "@/components/ui/Modal";
 
 interface PermissionManagementModalProps {
@@ -29,6 +30,7 @@ export default function PermissionManagementModal({
     const [newPermission, setNewPermission] = useState("");
     const [expiresAt, setExpiresAt] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const { confirm, ConfirmationDialog } = useConfirm();
 
     const filteredAvailable = available.filter(
         (p) =>
@@ -51,7 +53,12 @@ export default function PermissionManagementModal({
     }
 
     async function handleRevoke(permId: string) {
-        if (!confirm(t("members.permissions.confirm_revoke", { defaultValue: "Revoke this permission?" }))) return;
+        const ok = await confirm({
+            title: t("common.warning", { defaultValue: "Warning" }),
+            message: t("members.permissions.confirm_revoke", { defaultValue: "Revoke this permission?" }),
+            variant: "danger"
+        });
+        if (!ok) return;
         try {
             await revokePermission(permId);
         } catch (e) {
@@ -169,6 +176,7 @@ export default function PermissionManagementModal({
                         </form>
                     </div>
                 </div>
+            <ConfirmationDialog />
         </Modal>
     );
 }

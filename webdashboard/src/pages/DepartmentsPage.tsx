@@ -11,6 +11,7 @@ import TemporalConfigTable from "@/components/common/TemporalConfigTable";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function DepartmentsPage() {
   const { t } = useTranslation();
@@ -22,6 +23,7 @@ export default function DepartmentsPage() {
   const [editingDept, setEditingDept] = useState<any>(null);
   const [selectedManagerId, setSelectedManagerId] = useState<string>("");
   const [selectedPatternId, setSelectedPatternId] = useState<string>("");
+  const { confirm, ConfirmationDialog } = useConfirm();
 
   const { data: departments = [], isLoading } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
   const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: ["dept-payroll-configs", editingDept?.id], queryFn: () => fetchDepartmentPayrollConfigs(wsId, editingDept.id), enabled: isConfigModalOpen && !!editingDept?.id });
@@ -99,7 +101,14 @@ export default function DepartmentsPage() {
             <div className="absolute top-0 right-0 p-8 flex gap-3 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
               <button onClick={() => { setEditingDept(dept); setIsConfigModalOpen(true); }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:text-emerald-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("payroll.settings.title")}><Calculator size={18} /></button>
               <button onClick={() => { setEditingDept(dept); setIsModalOpen(true); }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}><Pencil size={18} /></button>
-              <button onClick={() => { if(confirm(t("departments.messages.confirm_delete"))) deleteMutation.mutate(dept.id); }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
+              <button onClick={async () => {
+                const ok = await confirm({
+                  title: t("common.warning", { defaultValue: "Warning" }),
+                  message: t("departments.messages.confirm_delete"),
+                  variant: "danger"
+                });
+                if(ok) deleteMutation.mutate(dept.id);
+              }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
             </div>
 
             <div className="bg-primary-50 dark:bg-primary-950 w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-primary-600 dark:text-primary-400 mb-8 shadow-inner border border-primary-100 dark:border-primary-800/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
@@ -159,6 +168,7 @@ export default function DepartmentsPage() {
           </div>
         </form>
       </Modal>
+      <ConfirmationDialog />
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { WorkingCondition } from "@/lib/api/types";
 import { format } from "date-fns";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useConfirm } from "@/hooks/use-confirm";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -33,6 +34,7 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const { formatDate } = useDateTimeFormatter();
+  const { confirm, ConfirmationDialog } = useConfirm();
   
   const [isAdding, setIsAdding] = useState(false);
   const [type, setType] = useState("EARLY_LEAVE");
@@ -62,6 +64,17 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
       queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); 
     },
   });
+
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({
+      title: t("common.warning", { defaultValue: "Warning" }),
+      message: t("common.confirm_delete"),
+      variant: "danger"
+    });
+    if (ok) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,7 +174,7 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
                   </div>
                 </div>
               </div>
-              <button onClick={() => { if (window.confirm(t("common.confirm_delete"))) deleteMutation.mutate(cond.id); }} className="p-3 text-slate-200 dark:text-slate-700 hover:text-rose-500 hover:bg-rose-50 dark:bg-rose-950 rounded-xl transition-all active:scale-90 opacity-0 group-hover:opacity-100">
+              <button onClick={() => handleDelete(cond.id)} className="p-3 text-slate-200 dark:text-slate-700 hover:text-rose-500 hover:bg-rose-50 dark:bg-rose-950 rounded-xl transition-all active:scale-90 opacity-0 group-hover:opacity-100">
                 <Trash2 size={20} />
               </button>
             </div>
@@ -171,6 +184,7 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
           </div>
         ))}
       </div>
+      <ConfirmationDialog />
     </div>
   );
 }

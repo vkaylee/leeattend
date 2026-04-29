@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import MembersPage from "../MembersPage";
@@ -100,10 +100,7 @@ describe("MembersPage", () => {
     });
   });
 
-  // TODO: MemberTable migrated from window.confirm to useConfirm hook.
-  // This test needs to handle the custom ConfirmDialog component rendered
-  // via the useConfirm hook. Skipped pending dedicated test update.
-  it.skip("handles removing a member", async () => {
+  it("handles removing a member", async () => {
     const user = userEvent.setup();
     (api.removeWorkspaceMember as any).mockResolvedValue({});
 
@@ -116,8 +113,7 @@ describe("MembersPage", () => {
     await user.click(removeBtns[0]);
 
     // MemberTable uses useConfirm hook which renders a custom dialog.
-    // Click the confirm/proceed button in the confirmation dialog.
-    const confirmBtn = await screen.findByRole("button", { name: /confirm|xác nhận|delete|xóa|yes|có/i });
+    const confirmBtn = await screen.findByText(/Confirm|Xác nhận|common\.confirm/i, {}, { timeout: 3000 });
     await user.click(confirmBtn);
 
     await waitFor(() => {

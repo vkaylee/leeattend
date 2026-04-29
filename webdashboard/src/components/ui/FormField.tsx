@@ -16,7 +16,7 @@ export interface FormFieldProps {
   /** HTML name attribute */
   name?: string;
   /** Input type — "textarea" renders a <textarea> */
-  type?: "text" | "date" | "tel" | "email" | "number" | "textarea";
+  type?: "text" | "date" | "time" | "tel" | "email" | "number" | "textarea";
   required?: boolean;
   defaultValue?: string;
   value?: string;
@@ -33,6 +33,7 @@ export interface FormFieldProps {
   rows?: number;
   /** Wrapper className */
   className?: string;
+  disabled?: boolean;
 }
 
 const FormField = React.memo(function FormField({
@@ -49,6 +50,7 @@ const FormField = React.memo(function FormField({
   "data-testid": testId,
   rows = 5,
   className,
+  disabled,
 }: FormFieldProps) {
   const inputId = id || name;
 
@@ -61,6 +63,7 @@ const FormField = React.memo(function FormField({
     onChange,
     placeholder,
     "data-testid": testId,
+    disabled,
   };
 
   return (

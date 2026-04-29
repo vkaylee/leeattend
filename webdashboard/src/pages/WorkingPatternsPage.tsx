@@ -38,7 +38,7 @@ import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { cn } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { LABEL_BASE } from "@/components/ui/FormField";
+import FormField, { LABEL_BASE, INPUT_BASE } from "@/components/ui/FormField";
 
 export default function WorkingPatternsPage() {
   const { t } = useTranslation();
@@ -283,14 +283,16 @@ export default function WorkingPatternsPage() {
       <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title={t("patterns.modal.create_title")} subtitle={t("patterns.modal.subtitle")} icon={<Plus size={24} />} maxWidth="xl">
         <div className="space-y-10 pt-4 animate-in fade-in duration-500">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3 px-1"><label className={LABEL_BASE}>{t("patterns.form.name_label")}</label><input required className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" placeholder={t("patterns.form.name_placeholder")} value={newPatternName} onChange={e => setNewPatternName(e.target.value)} /></div>
-            <div className="space-y-3 px-1"><label className={LABEL_BASE}>{t("patterns.form.desc_label")}</label><input className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium text-sm shadow-sm" placeholder={t("patterns.form.desc_placeholder")} value={newPatternDesc} onChange={e => setNewPatternDesc(e.target.value)} /></div>
+            <FormField label={t("patterns.form.name_label")} required placeholder={t("patterns.form.name_placeholder")} value={newPatternName} onChange={e => setNewPatternName(e.target.value)} inputClassName="font-bold tracking-tight" />
+            <FormField label={t("patterns.form.desc_label")} placeholder={t("patterns.form.desc_placeholder")} value={newPatternDesc} onChange={e => setNewPatternDesc(e.target.value)} />
           </div>
 
           <div className="space-y-6">
             <div className="flex items-center justify-between px-1">
               <h4 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3"><Clock size={16} className="text-primary-500" /> {t("patterns.form.weekly_grid_title").toUpperCase()}</h4>
-              <button onClick={prefillStandard} className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:text-primary-700 dark:text-primary-300 transition-colors bg-primary-50 dark:bg-primary-950 px-4 py-2 rounded-xl border border-primary-100 dark:border-primary-800 shadow-sm active:scale-95">{t("patterns.form.prefill_standard").toUpperCase()}</button>
+              <Button variant="outline" size="sm" onClick={prefillStandard} className="text-[9px] text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900">
+                {t("patterns.form.prefill_standard").toUpperCase()}
+              </Button>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -388,7 +390,7 @@ export default function WorkingPatternsPage() {
               <label className={LABEL_BASE}>{t("patterns.form.start_date_label").toUpperCase()}</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors"><Info size={18} /></div>
-                <input type="date" className="w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-inner" value={assignStartDate} onChange={e => setAssignStartDate(e.target.value)} />
+                <input type="date" className={cn(INPUT_BASE, "pl-14 font-bold tracking-tight shadow-inner")} value={assignStartDate} onChange={e => setAssignStartDate(e.target.value)} />
               </div>
               <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60">{t("patterns.form.start_date_note")}</p>
             </div>

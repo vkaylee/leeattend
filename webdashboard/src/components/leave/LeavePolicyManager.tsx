@@ -7,6 +7,7 @@ import { Plus, Trash2, Clock, Pencil, ShieldCheck, Milestone, LayoutGrid } from 
 import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import { Combobox } from "@/components/ui/Combobox";
+import { useConfirm } from "@/hooks/use-confirm";
 import { cn } from "@/lib/utils";
 const FormRow = ({ label, children, info }: { label: string; children: React.ReactNode; info?: string }) => (
   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center group">
@@ -35,6 +36,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
+  const { confirm, ConfirmationDialog } = useConfirm();
 
   const { data: policies = [], isLoading } = useQuery({
     queryKey: ["leave-policies", wsId],
@@ -53,6 +55,15 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
       toast.success("Policy deleted successfully");
     },
   });
+
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({
+      title: t("common.warning", { defaultValue: "Warning" }),
+      message: t("leave.policy.confirm_delete", { defaultValue: "Delete this policy?" }),
+      variant: "danger"
+    });
+    if (ok) deleteMutation.mutate(id);
+  };
 
   const mutation = useMutation({
     mutationFn: (data: Partial<LeavePolicy>) => 
@@ -102,7 +113,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
                   </span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button data-testid="edit-policy-btn" onClick={() => setEditingPolicy(policy)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Pencil size={16} /></button>
-                    <button data-testid="delete-policy-btn" onClick={() => { if (confirm("Delete this policy?")) deleteMutation.mutate(policy.id); }} className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Trash2 size={16} /></button>
+                    <button data-testid="delete-policy-btn" onClick={() => handleDelete(policy.id)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Trash2 size={16} /></button>
                   </div>
                 </div>
                 <h3 className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase">{policy.name}</h3>
@@ -133,6 +144,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
           isSaving={mutation.isPending}
         />
       )}
+      <ConfirmationDialog />
     </div>
   );
 }

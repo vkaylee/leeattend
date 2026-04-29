@@ -12,6 +12,7 @@ import {
 import { AuthorizedAgent, Device, DeviceStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import DeviceListItem from "./DeviceListItem";
 
 interface AgentAccordionCardProps {
@@ -49,10 +50,16 @@ export default function AgentAccordionCard({
 }: AgentAccordionCardProps) {
   const { t } = useTranslation();
   const toast = useToast();
+  const { confirm, ConfirmationDialog } = useConfirm();
 
   async function handleToggleTrust() {
     const confirmKey = agent.is_trusted ? "agents.messages.confirm_revoke" : "agents.messages.confirm_approve";
-    if (!confirm(t(confirmKey, { name: agent.name }))) return;
+    const ok = await confirm({
+      title: t("common.warning", { defaultValue: "Warning" }),
+      message: t(confirmKey, { name: agent.name }),
+      variant: agent.is_trusted ? "danger" : "info"
+    });
+    if (!ok) return;
     try {
       await onToggleTrust(agent);
       toast.success(t(agent.is_trusted ? "agents.messages.revoke_success" : "agents.messages.approve_success", { name: agent.name }));
@@ -62,7 +69,12 @@ export default function AgentAccordionCard({
   }
 
   async function handleDelete() {
-    if (!confirm(t("agents.messages.confirm_delete", { name: agent.name }))) return;
+    const ok = await confirm({
+      title: t("common.warning", { defaultValue: "Warning" }),
+      message: t("agents.messages.confirm_delete", { name: agent.name }),
+      variant: "danger"
+    });
+    if (!ok) return;
     try {
       await onDelete(agent);
       toast.success(t("agents.messages.delete_success"));
@@ -210,6 +222,7 @@ export default function AgentAccordionCard({
           </div>
         </div>
       </div>
+      <ConfirmationDialog />
     </div>
   );
 }

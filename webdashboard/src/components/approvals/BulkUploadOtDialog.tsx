@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X, Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useBulkUploadPaperOt } from "@/hooks/use-attendance";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface Props {
   open: boolean;
@@ -24,6 +25,7 @@ interface UploadResult {
 export function BulkUploadOtDialog({ open, onOpenChange, onSuccess }: Props) {
   const { t } = useTranslation();
   const { bulkUploadPaperOt, isUploading } = useBulkUploadPaperOt();
+  const { confirm, ConfirmationDialog } = useConfirm();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
@@ -118,13 +120,14 @@ E002,2026-01-28,90,Urgent order completion`;
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     if (uploadResult && uploadResult.failed_count > 0) {
-      const confirmed = confirm(
-        t("approvals.bulk_upload.confirm_close_with_errors") ||
-        "Some rows failed. Are you sure you want to close?"
-      );
-      if (!confirmed) return;
+      const ok = await confirm({
+        title: t("common.warning", { defaultValue: "Warning" }),
+        message: t("approvals.bulk_upload.confirm_close_with_errors", { defaultValue: "Some rows failed. Are you sure you want to close?" }),
+        variant: "danger"
+      });
+      if (!ok) return;
     }
     resetForm();
     onOpenChange(false);
@@ -369,6 +372,7 @@ E002,2026-01-28,90,Urgent order completion`;
           </div>
         </Dialog.Content>
       </Dialog.Portal>
+      <ConfirmationDialog />
     </Dialog.Root>
   );
 }

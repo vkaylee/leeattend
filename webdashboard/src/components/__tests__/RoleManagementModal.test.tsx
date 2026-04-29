@@ -94,6 +94,10 @@ describe("RoleManagementModal", () => {
     const primaryRoleSelect = await screen.findByLabelText(/QUYỀN CHÍNH/i);
     fireEvent.change(primaryRoleSelect, { target: { value: ADMIN_ROLE_ID } });
 
+    // Confirm the modal
+    const confirmModalBtn = await screen.findByRole("button", { name: /Confirm|Xác nhận/i });
+    await user.click(confirmModalBtn);
+
     await waitFor(() => {
       expect(api.updateWorkspaceMemberRole).toHaveBeenCalledWith("test-ws-id", "user-1", ADMIN_ROLE_ID);
     });
@@ -146,6 +150,10 @@ describe("RoleManagementModal", () => {
     const extraRoleItem = adminTexts[0].closest("div");
     const revokeBtn = extraRoleItem!.parentElement!.querySelector('button');
     await user.click(revokeBtn!);
+
+    // Confirm the modal
+    const confirmModalBtn = await screen.findByRole("button", { name: /Confirm|Xác nhận/i });
+    await user.click(confirmModalBtn);
 
     await waitFor(() => {
       expect(api.revokeExtraRole).toHaveBeenCalledWith("test-ws-id", "user-1", "extra-role-1");

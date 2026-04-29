@@ -25,6 +25,8 @@ import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import LeaveImportDialog from "@/components/features/leave/LeaveImportDialog";
 import { cn } from "@/lib/utils";
 import type { LeaveDurationType } from "@/lib/api/types";
+import Button from "@/components/ui/Button";
+import FormField from "@/components/ui/FormField";
 
 type TabType = "pending" | "approved" | "rejected";
 
@@ -174,18 +176,18 @@ export default function LeaveRequestsPage() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Upload Excel — opens modal */}
-          <button
+          <Button
             onClick={() => setIsImportModalOpen(true)}
             disabled={importJob?.status === 'processing'}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-5 py-3 rounded-2xl flex items-center gap-2.5 shadow-xl shadow-emerald-100 dark:shadow-black/30 transition-all active:scale-95 text-[10px] uppercase tracking-widest"
+            className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100 dark:shadow-black/30 text-[10px] px-5 py-3"
           >
             <Upload size={16} />
             {t("leave_requests.upload_btn", "Upload Excel")}
-          </button>
+          </Button>
           {/* Create Leave Request */}
-          <button onClick={() => { setIsModalOpen(true); setSelectedEmpId(""); setDurationType("full_day"); setStartTime(""); setEndTime(""); }} className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-3 rounded-2xl flex items-center gap-3 shadow-xl shadow-primary-100 dark:shadow-black/30 transition-all active:scale-95 text-xs uppercase tracking-widest">
+          <Button onClick={() => { setIsModalOpen(true); setSelectedEmpId(""); setDurationType("full_day"); setStartTime(""); setEndTime(""); }}>
             <Plus size={18} /> {t("leave_requests.create_btn").toUpperCase()}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -375,14 +377,8 @@ export default function LeaveRequestsPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-8">
-            <div className="space-y-3 px-1">
-              <label htmlFor="start-date" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("common.from_date")}</label>
-              <input id="start-date" type="date" name="start_date" required className="w-full px-5 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none transition-all font-medium text-sm tracking-tight shadow-sm" />
-            </div>
-            <div className="space-y-3 px-1">
-              <label htmlFor="end-date" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("common.to_date")}</label>
-              <input id="end-date" type="date" name="end_date" required disabled={durationType !== "full_day"} className={cn("w-full px-5 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none transition-all font-medium text-sm tracking-tight shadow-sm", durationType !== "full_day" && "opacity-50 cursor-not-allowed")} />
-            </div>
+            <FormField id="start-date" name="start_date" type="date" label={t("common.from_date")} required inputClassName="text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/50" />
+            <FormField id="end-date" name="end_date" type="date" label={t("common.to_date")} required disabled={durationType !== "full_day"} inputClassName={cn("text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/50", durationType !== "full_day" && "opacity-50 cursor-not-allowed")} />
           </div>
 
           {/* Duration Type Segmented Buttons */}
@@ -428,24 +424,15 @@ export default function LeaveRequestsPage() {
           {/* Time Pickers for Custom Hours */}
           {durationType === "custom_hours" && (
             <div className="grid grid-cols-2 gap-8 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="space-y-3 px-1">
-                <label htmlFor="start-time" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("leave_requests.duration.time_from")}</label>
-                <input id="start-time" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} required className="w-full px-5 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none transition-all font-medium text-sm tracking-tight shadow-sm" />
-              </div>
-              <div className="space-y-3 px-1">
-                <label htmlFor="end-time" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("leave_requests.duration.time_to")}</label>
-                <input id="end-time" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} required className="w-full px-5 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none transition-all font-medium text-sm tracking-tight shadow-sm" />
-              </div>
+              <FormField id="start-time" type="time" label={t("leave_requests.duration.time_from")} value={startTime} onChange={e => setStartTime(e.target.value)} required inputClassName="text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/50" />
+              <FormField id="end-time" type="time" label={t("leave_requests.duration.time_to")} value={endTime} onChange={e => setEndTime(e.target.value)} required inputClassName="text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/50" />
             </div>
           )}
 
-          <div className="space-y-3 px-1">
-            <label htmlFor="leave-reason" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("common.reason")}</label>
-            <textarea id="leave-reason" name="reason" rows={3} className="w-full px-6 py-4 text-primary-700 dark:text-primary-300 bg-slate-50 dark:bg-slate-800 border border-primary-100 dark:border-primary-800/50 rounded-2xl outline-none font-medium text-sm resize-none shadow-sm" placeholder={t("leave_requests.modal.reason_placeholder")}></textarea>
-          </div>
+          <FormField id="leave-reason" name="reason" type="textarea" rows={3} label={t("common.reason")} placeholder={t("leave_requests.modal.reason_placeholder")} inputClassName="text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/50" />
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 bg-white dark:bg-slate-900 border border-primary-200 dark:border-primary-800/50 rounded-2xl font-bold text-xs uppercase tracking-widest text-primary-400 hover:bg-slate-50 dark:hover:bg-slate-800">{t("common.cancel").toUpperCase()}</button>
-            <button type="submit" className="px-8 py-4 bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 shadow-xl shadow-indigo-100">{t("leave_requests.modal.submit_btn").toUpperCase()}</button>
+            <Button type="button" variant="outline" size="lg" onClick={() => setIsModalOpen(false)}>{t("common.cancel").toUpperCase()}</Button>
+            <Button type="submit" variant="primary" size="lg">{t("leave_requests.modal.submit_btn").toUpperCase()}</Button>
           </div>
         </form>
       </Modal>

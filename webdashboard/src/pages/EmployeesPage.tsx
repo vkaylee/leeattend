@@ -47,6 +47,7 @@ import EmployeeDetailDrawer from "@/components/features/employees/EmployeeDetail
 
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 import PermissionGate from "@/components/common/PermissionGate";
+import { useConfirm } from "@/hooks/use-confirm";
 
 
 export default function EmployeesPage() {
@@ -63,6 +64,7 @@ export default function EmployeesPage() {
   const [filterDeptIds, setFilterDeptIds] = useState<string[]>([]);
   const PAGE_SIZE = 20;
   const [prefillEnrollmentId, setPrefillEnrollmentId] = useState<string>("");
+  const { confirm, ConfirmationDialog } = useConfirm();
 
   // Handle enrollment_id query param from staging logs (read once on mount)
   useEffect(() => {
@@ -421,10 +423,14 @@ export default function EmployeesPage() {
         employmentHistory={employmentHistory}
         formatDate={formatDate}
         onEdit={(emp) => { setEditingEmployee(emp); setIsModalOpen(true); }}
-        onTerminate={(emp) => {
-          if (window.confirm(t("employees.details.terminate_confirm"))) {
-            updateMutation.mutate({ id: emp.id, employee: { is_active: false, termination_date: format(new Date(), 'yyyy-MM-dd') } });
-          }
+        onTerminate={async (emp) => {
+          const ok = await confirm({
+            title: t("common.warning", { defaultValue: "Warning" }),
+            message: t("employees.details.terminate_confirm"),
+            variant: "danger"
+          });
+          if (!ok) return;
+          updateMutation.mutate({ id: emp.id, employee: { is_active: false, termination_date: format(new Date(), 'yyyy-MM-dd') } });
         }}
         onRehire={() => setIsRehireModalOpen(true)}
         onTransfer={(deptId) => { setSelectedDeptId(deptId); setIsTransferModalOpen(true); }}
@@ -512,6 +518,7 @@ export default function EmployeesPage() {
           t("employees.import_req.col_d"),
         ]}
       />
+      <ConfirmationDialog />
     </div>
   );
 }

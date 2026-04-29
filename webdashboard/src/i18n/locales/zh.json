@@ -64,14 +64,14 @@
       "new_version_desc": "创建未来的时间设置版本",
       "valid_from": "生效日期",
       "valid_from_note": "设置将从此日期起生效",
-      "early_arrival_strategy": "Early Arrival Policy",
+      "early_arrival_strategy": "早到政策",
       "early_arrival_options": {
-        "allow": "Allow Always",
-        "allow_desc": "Count full OT from check-in time (if early OT is allowed).",
-        "block": "Block Early Punch-in",
-        "block_desc": "Only allow punching in within the shift's Grace Period.",
-        "clamp": "Clamp Early OT",
-        "clamp_desc": "Allow early punch-in but only count OT within the shift's Grace Period."
+        "allow": "始终允许",
+        "allow_desc": "从签到时间开始计算全部加班费（如果允许提前加班）。",
+        "block": "禁止提前打卡",
+        "block_desc": "仅允许在班次的宽限期内打卡。",
+        "clamp": "限制提前加班",
+        "clamp_desc": "允许提前打卡，但仅计算班次宽限期内的加班费。"
       }
     },
     "members": {
@@ -81,22 +81,22 @@
         "admin": "管理员",
         "admin_desc": "系统管理员",
         "owner": "所有者",
-        "owner_desc": "Founder, highest permissions",
-        "modal_title": "Manage Roles",
-        "modal_subtitle": "Personnel permissions",
-        "primary_role_label": "Primary Role (Permanent)",
-        "extra_roles_label": "Extra Roles (Temporary)",
-        "expires_at": "Expires at",
-        "no_extra_roles": "No extra roles assigned.",
-        "assign_new_title": "Assign New Role",
-        "expiry_date_label": "Expiry Date",
-        "assign_btn": "Assign Role",
-        "confirm_change_primary": "Are you sure you want to change the primary role to {{role}}?",
-        "confirm_revoke": "Are you sure you want to revoke this role?",
+        "owner_desc": "创始人，最高权限",
+        "modal_title": "管理角色",
+        "modal_subtitle": "人员权限",
+        "primary_role_label": "主要角色（永久）",
+        "extra_roles_label": "额外角色（临时）",
+        "expires_at": "过期时间",
+        "no_extra_roles": "未分配额外角色。",
+        "assign_new_title": "分配新角色",
+        "expiry_date_label": "过期日期",
+        "assign_btn": "分配角色",
+        "confirm_change_primary": "您确定要将主要角色更改为 {{role}} 吗？",
+        "confirm_revoke": "您确定要撤销此角色吗？",
         "messages": {
-          "update_primary_error": "Error updating primary role.",
-          "assign_error": "Error assigning role.",
-          "revoke_error": "Error revoking role."
+          "update_primary_error": "更新主要角色时出错。",
+          "assign_error": "分配角色时出错。",
+          "revoke_error": "撤销角色时出错。"
         }
       },
       "permissions": {
@@ -115,21 +115,21 @@
         "manage_roles": "管理权限",
         "manage_permissions": "管理权限 (详情)",
         "remove_member": "移除成员",
-        "confirm_remove": "Are you sure you want to remove this member?",
+        "confirm_remove": "您确定要移除该成员吗？",
         "messages": {
-          "remove_error": "Error removing member.",
-          "no_members": "No members found in this workspace."
+          "remove_error": "移除成员时出错。",
+          "no_members": "在此工作区中未找到成员。"
         }
       },
-      "title": "Members & Roles",
-      "subtitle": "Manage access and permissions within the system.",
+      "title": "成员与角色",
+      "subtitle": "管理系统内的访问权限。",
       "invite": {
-        "title": "Invite Member",
-        "subtitle": "Personnel Management",
-        "email_label": "Email Address",
-        "role_label": "Role to Assign",
-        "submit_btn": "Send Invitation",
-        "error_message": "Could not invite member. Please check the email."
+        "title": "邀请成员",
+        "subtitle": "人事管理",
+        "email_label": "电子邮件地址",
+        "role_label": "分配的角色",
+        "submit_btn": "发送邀请",
+        "error_message": "无法邀请成员。请检查电子邮件。"
       }
     },
     "employees": "员工",
@@ -140,73 +140,73 @@
         "edit_title": "编辑政策",
         "title": "休假政策",
         "save_btn": "保存政策",
-        "title_single": "Policy",
-        "subtitle": "Configure leave entitlements and accrual rules",
-        "policy_note": "Note: Policy changes are not retroactive. Past accruals remain unchanged; changes only apply to future balance updates.",
-        "assign_btn": "Assign Policy",
-        "add_btn": "Add Policy",
-        "assign_title": "Assign Policy",
-        "assign_subtitle": "Personnel Allocation",
-        "assign_now_btn": "Assign Now",
-        "name_placeholder": "Ex: Standard Annual Leave",
-        "select_placeholder": "Select a policy...",
+        "title_single": "政策",
+        "subtitle": "配置休假权益和累积规则",
+        "policy_note": "注意：政策更改不具有追溯力。过去的累积保持不变；更改仅适用于未来的余额更新。",
+        "assign_btn": "分配政策",
+        "add_btn": "添加政策",
+        "assign_title": "分配政策",
+        "assign_subtitle": "人员分配",
+        "assign_now_btn": "立即分配",
+        "name_placeholder": "例：标准年假",
+        "select_placeholder": "选择政策...",
         "table": {
-          "name": "Policy Name",
-          "type": "Leave Type",
-          "entitlement": "Entitlement/year",
-          "strategy": "Strategy",
-          "carry_over": "Carry-over Days",
-          "min_work_days": "Min Work Days"
+          "name": "政策名称",
+          "type": "休假类型",
+          "entitlement": "每年权益",
+          "strategy": "策略",
+          "carry_over": "结转天数",
+          "min_work_days": "最小工作日"
         },
-        "min_work_days_desc": "Minimum working days in a month to earn leave",
+        "min_work_days_desc": "每月赚取休假所需的最小工作天数",
         "strategies": {
-          "monthly": "Monthly Accrual",
-          "monthly_desc": "Grants days at start of each month",
-          "quarterly": "Quarterly Accrual",
-          "quarterly_desc": "Grants days at start of each quarter",
-          "yearly": "Yearly Accrual",
-          "yearly_desc": "Grants full entitlement at start of year",
-          "lump_sum": "Lump Sum",
-          "lump_sum_desc": "Grants full entitlement at start of year"
+          "monthly": "每月累积",
+          "monthly_desc": "每月初授予天数",
+          "quarterly": "每季度累积",
+          "quarterly_desc": "每季度初授予天数",
+          "yearly": "每年累积",
+          "yearly_desc": "年初授予全部权益",
+          "lump_sum": "一次性（Lump Sum）",
+          "lump_sum_desc": "年初授予全部权益"
         },
         "assignee_types": {
-          "workspace": "System-wide (All)",
-          "workspace_desc": "Applies to all employees in workspace",
-          "department": "By Department",
-          "department_desc": "Applies to a specific department",
-          "employee": "Individual Employee",
-          "employee_desc": "Applies to only one selected person"
+          "workspace": "全系统（所有人员）",
+          "workspace_desc": "适用于工作区内的所有员工",
+          "department": "按部门",
+          "department_desc": "适用于特定部门",
+          "employee": "个人员工",
+          "employee_desc": "仅适用于选定的一名人员"
         },
-        "carry_over_limit": "Carry-over Limit",
+        "carry_over_limit": "结转限制",
         "messages": {
-          "no_policies": "No policies found.",
-          "create_success": "Policy created successfully!",
-          "update_success": "Policy updated successfully!",
-          "delete_success": "Policy deleted successfully!",
-          "assign_success": "Policy assigned successfully!",
-          "confirm_delete": "Are you sure you want to delete this policy?"
+          "no_policies": "未找到政策。",
+          "create_success": "政策创建成功！",
+          "update_success": "政策更新成功！",
+          "delete_success": "政策删除成功！",
+          "assign_success": "政策分配成功！",
+          "confirm_delete": "您确定要删除此政策吗？"
         }
       },
-      "title": "Leave Requests",
-      "subtitle": "Approve and manage personnel absence",
-      "invalid_leave_type": "Invalid leave type selected",
-      "create_btn": "Create Request",
-      "remaining": "Left",
+      "title": "请假申请",
+      "subtitle": "批准和管理人员缺勤",
+      "invalid_leave_type": "选择的休假类型无效",
+      "create_btn": "创建申请",
+      "remaining": "剩余",
       "tabs": {
-        "policies": "Policies"
+        "policies": "政策"
       },
       "types": {
-        "vacation": "Annual Leave",
-        "sick": "Sick Leave",
-        "vacation_full": "Annual Leave",
-        "sick_full": "Sick Leave",
-        "personal": "Personal Business"
+        "vacation": "年假",
+        "sick": "病假",
+        "vacation_full": "年假",
+        "sick_full": "病假",
+        "personal": "事假"
       },
       "modal": {
-        "submit_title": "Submit Leave Request",
-        "submit_subtitle": "Absence Management",
-        "reason_placeholder": "Enter leave reason...",
-        "submit_btn": "Submit Request"
+        "submit_title": "提交休假申请",
+        "submit_subtitle": "缺勤管理",
+        "reason_placeholder": "请输入休假原因...",
+        "submit_btn": "提交申请"
       },
       "duration": {
         "label": "请假类型",
@@ -219,8 +219,8 @@
         "half_day_note": "结束日期将自动与开始日期一致"
       },
       "messages": {
-        "accrual_success": "Leave accrual run successfully!",
-        "no_requests": "No requests found."
+        "accrual_success": "休假累积运行成功！",
+        "no_requests": "未找到申请。"
       },
       "upload_btn": "上传Excel",
       "download_template": "下载模板",
@@ -277,11 +277,11 @@
         "date_warning": "注意：生效日期决定受影响的薪资周期。更改将从此日期起自动应用。",
         "virtual": "系统默认",
         "status": "状态",
-        "std_days": "Std. Work Days",
-        "no_history": "No config history",
-        "dept_title": "Department Payroll Config",
-        "std_days_history": "Std. Days History",
-        "std_days_override": "Std. Days Override",
+        "std_days": "标准工作日",
+        "no_history": "无配置历史",
+        "dept_title": "部门薪资配置",
+        "std_days_history": "标准天数历史",
+        "std_days_override": "标准天数覆盖",
         "max_ot_hours_per_day": "每日加班上限",
         "max_ot_hours_per_month": "每月加班上限",
         "max_ot_day_short": "OT/日",
@@ -305,7 +305,7 @@
         "std_days": "标工",
         "actual": "实际",
         "amount": "金额",
-        "deductions": "Deductions"
+        "deductions": "扣除项"
       },
       "status": {
         "paid": "已支付",
@@ -315,125 +315,125 @@
         "title": "工资段详情"
       },
       "employee_config": {
-        "tab_title": "工资配置",
-        "title": "Employee Salary Config",
-        "add_btn": "Add Salary Item",
-        "effective_note_title": "Effectivity Note",
-        "salary_items_subtitle": "List of employee income items.",
-        "effective_note": "Note: If multiple records exist for the same item, the one with the latest effective date (closest to calculation date) will be used.",
-        "item_type": "Salary Item Type",
-        "no_config": "No salary config found",
-        "salary_item": "Salary Item",
-        "add_new_title": "Add New Config"
+        "tab_title": "薪资配置",
+        "title": "员工薪资配置",
+        "add_btn": "添加薪资项目",
+        "effective_note_title": "生效说明",
+        "salary_items_subtitle": "员工收入项目列表。",
+        "effective_note": "注意：如果同一项目存在多个记录，将使用生效日期最新（最接近计算日期）的记录。",
+        "item_type": "薪资项目类型",
+        "no_config": "未找到薪资配置",
+        "salary_item": "薪资项目",
+        "add_new_title": "添加新配置"
       },
       "selection": {
-        "all_filtered_selected": "All {{count}} employees in this list are selected.",
-        "count_selected": "{{count}} employees selected.",
-        "select_all_filtered": "Select all {{count}} employees"
+        "all_filtered_selected": "已选择此列表中的所有 {{count}} 名员工。",
+        "count_selected": "已选择 {{count}} 名员工。",
+        "select_all_filtered": "选择所有 {{count}} 名员工"
       },
       "traceability": {
-        "hierarchy_title": "Config Priority Hierarchy",
-        "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Workspace.",
-        "individual_policy": "Individual Policy",
-        "department_policy": "Department Policy",
-        "workspace_default": "Workspace Default",
-        "pending_adjustments": "Has pending adjustments",
-        "recalc_needed": "Recalculation needed",
-        "view_adjustments": "View adjustments"
+        "hierarchy_title": "配置优先级层次结构",
+        "hierarchy_explanation": "薪资配置优先级：个人 > 部门 > 工作区。",
+        "individual_policy": "个人政策",
+        "department_policy": "部门政策",
+        "workspace_default": "工作区默认",
+        "pending_adjustments": "有待处理的调整",
+        "recalc_needed": "需要重新计算",
+        "view_adjustments": "查看调整"
       },
-      "title": "Payroll",
-      "subtitle": "Manage income and payslips",
-      "search_placeholder": "Search employees...",
-      "employee_profile": "Personnel Salary Profile",
-      "calculate_btn": "Calculate New",
-      "history_title": "Payslips History",
+      "title": "薪资",
+      "subtitle": "管理收入和工资单",
+      "search_placeholder": "搜索员工...",
+      "employee_profile": "人员薪资档案",
+      "calculate_btn": "计算新薪资",
+      "history_title": "工资单历史",
       "empty_state": {
-        "title": "Select personnel to continue",
-        "desc": "View payslip history or calculate new monthly salary for employees."
+        "title": "选择人员以继续",
+        "desc": "查看工资单历史或为员工计算新的月薪。"
       },
       "components": {
-        "title": "Salary Components Catalog",
-        "subtitle": "Define income and deduction items.",
-        "form_subtitle": "Component parameters",
-        "add_new": "Add Component",
-        "no_components": "No components yet",
-        "use_for_ot": "Use for OT",
-        "no_ot": "No OT",
-        "taxable": "Taxable",
-        "tax_exempt": "Exempt",
-        "name_placeholder": "Ex: Meal Allowance",
-        "code_label": "Code",
-        "ot_base_label": "Use as base for OT",
-        "ot_base_desc": "System aggregates these items to calculate hourly rate.",
-        "taxable_label": "Taxable income item",
-        "taxable_desc": "This item will be included in personal income tax calculation."
+        "title": "薪资组成部分目录",
+        "subtitle": "定义收入和扣除项。",
+        "form_subtitle": "组件参数",
+        "add_new": "添加组件",
+        "no_components": "尚无组件",
+        "use_for_ot": "用于加班费",
+        "no_ot": "不计加班费",
+        "taxable": "应纳税",
+        "tax_exempt": "免税",
+        "name_placeholder": "例如：午餐津贴",
+        "code_label": "代码",
+        "ot_base_label": "用作加班费基数",
+        "ot_base_desc": "系统汇总这些项目以计算小时工资。",
+        "taxable_label": "应纳税所得额项目",
+        "taxable_desc": "此项目将包含在个人所得税计算中。"
       },
       "modal": {
-        "title": "Calculate Monthly Salary",
-        "subtitle": "Processing Data",
-        "submit": "Start Calculation"
+        "title": "计算月薪",
+        "subtitle": "处理数据",
+        "submit": "开始计算"
       },
       "messages": {
-        "calculate_success": "Payroll calculated successfully.",
-        "calculate_error": "Calculation error"
+        "calculate_success": "薪资计算成功。",
+        "calculate_error": "计算错误"
       },
       "adjustments": {
-        "title": "Attendance Adjustments",
-        "resolved_success": "Adjustment resolved successfully",
-        "resolved_error": "Error resolving adjustment",
-        "all_clear": "All requests resolved!"
+        "title": "出勤调整",
+        "resolved_success": "调整已成功解决",
+        "resolved_error": "解决调整时出错",
+        "all_clear": "所有请求已解决！"
       },
       "document": {
-        "title": "Pay Slip",
-        "system_subtitle": "Attendance & Payroll System",
-        "verified": "Verified Document",
-        "period": "Period",
-        "employee_details": "Employee Details",
-        "name": "Name",
-        "employee_id": "Employee ID",
-        "department": "Department",
-        "net_payment": "Net Payment",
-        "paid_via": "Paid via Bank Transfer",
-        "earnings_breakdown": "Earnings Breakdown",
-        "description": "Description",
-        "amount": "Amount",
-        "base_salary": "Base Salary",
-        "segment": "Segment",
-        "code": "Code",
-        "monthly": "Monthly",
-        "days_at_rate": "{{days}} Days @ {{rate}}/day",
-        "overtime_compensation": "Overtime Compensation",
-        "units": "Units",
-        "gross_pay": "Gross Pay",
-        "deductions": "Deductions",
-        "net_pay": "Net Pay",
-        "note": "Note: This is a computer-generated document and does not require a physical signature. Any discrepancies should be reported to the HR department within 3 working days.",
-        "generated_by": "Generated by LeeAttend System",
-        "print_payslip": "Print Payslip",
-        "print_hint": "Use the print button above to save as PDF or print a physical copy.",
-        "preview_title": "Official Payslip Preview"
+        "title": "工资单",
+        "system_subtitle": "出勤与薪资系统",
+        "verified": "已验证文档",
+        "period": "期间",
+        "employee_details": "员工详情",
+        "name": "姓名",
+        "employee_id": "员工 ID",
+        "department": "部门",
+        "net_payment": "实发金额",
+        "paid_via": "通过银行转账支付",
+        "earnings_breakdown": "收入明细",
+        "description": "描述",
+        "amount": "金额",
+        "base_salary": "基本工资",
+        "segment": "段",
+        "code": "代码",
+        "monthly": "每月",
+        "days_at_rate": "{{days}} 天 @ {{rate}}/天",
+        "overtime_compensation": "加班补偿",
+        "units": "单位",
+        "gross_pay": "总收入",
+        "deductions": "扣除项",
+        "net_pay": "实发工资",
+        "note": "注意：这是一份由计算机生成的文档，不需要手写签名。如有任何差异，应在 3 个工作日内向人力资源部报告。",
+        "generated_by": "由 LeeAttend 系统生成",
+        "print_payslip": "打印工资单",
+        "print_hint": "使用上方的打印按钮另存为 PDF 或打印纸质副本。",
+        "preview_title": "正式工资单预览"
       },
       "incentives": {
-        "title": "Incentive & Bonus Policies",
-        "add_btn": "New Policy",
-        "policy_name": "Policy Name",
-        "base_amount": "Base Amount",
-        "tiers_config": "Evaluation Tiers",
-        "name_required": "Policy name is required",
-        "no_policies": "No incentive policies"
+        "title": "激励与奖金政策",
+        "add_btn": "新政策",
+        "policy_name": "政策名称",
+        "base_amount": "基本金额",
+        "tiers_config": "评估层级",
+        "name_required": "政策名称是必填项",
+        "no_policies": "没有激励政策"
       },
-      "overtime_policies": "Overtime Policies",
-      "overtime_policies_desc": "Manage overtime pay rules based on time and day.",
-      "no_overtime_policies": "No overtime policies found.",
-      "create_first_policy": "Create your first policy now.",
-      "rules": "Calculation Rules",
-      "add_rule": "Add Rule",
-      "assign_policy": "Assign Policy",
-      "assign_overtime_policy": "Assign Overtime Policy",
-      "assignee_type": "Assignee Type",
-      "select_policy": "Select Policy",
-      "select_policy_placeholder": "-- Choose Policy --",
-      "effective_from": "Effective From"
+      "overtime_policies": "加班政策",
+      "overtime_policies_desc": "根据时间和日期管理加班费规则。",
+      "no_overtime_policies": "未找到加班政策。",
+      "create_first_policy": "立即创建您的第一个政策。",
+      "rules": "计算规则",
+      "add_rule": "添加规则",
+      "assign_policy": "分配政策",
+      "assign_overtime_policy": "分配加班政策",
+      "assignee_type": "被分配人类型",
+      "select_policy": "选择政策",
+      "select_policy_placeholder": "-- 选择政策 --",
+      "effective_from": "生效日期"
     },
     "agents": {
       "edit_modal": {
@@ -457,43 +457,43 @@
         "pending": "待处理",
         "closed": "Closed"
       },
-      "title": "Agent Management",
-      "subtitle": "Approve and control Edge Agent connection points",
-      "add_btn": "Declare Agent",
-      "add_form_title": "Setup New Agent",
-      "save_btn": "Save Agent",
-      "id_label": "Agent ID",
-      "name_label": "Branch Name",
-      "token_label": "Security Token",
+      "title": "代理管理",
+      "subtitle": "批准并控制 Edge Agent 连接点",
+      "add_btn": "声明代理",
+      "add_form_title": "设置新代理",
+      "save_btn": "保存代理",
+      "id_label": "代理 ID",
+      "name_label": "分支机构名称",
+      "token_label": "安全令牌",
       "actions": {
-        "hide_inactive": "Hide closed Agents",
-        "show_inactive": "Show closed Agents",
-        "showing_archived": "Showing archived",
-        "show_archived": "Show archived",
-        "declare_agent": "Declare Agent"
+        "hide_inactive": "隐藏已关闭的代理",
+        "show_inactive": "显示已关闭的代理",
+        "showing_archived": "正在显示归档内容",
+        "show_archived": "显示归档内容",
+        "declare_agent": "声明代理"
       },
       "table": {
-        "identifier": "Identifier",
-        "token": "Token",
-        "last_ip": "Last IP",
-        "agent": "Agent Name",
-        "status": "Status",
-        "last_seen": "Last Seen",
-        "no_agents": "No agents found."
+        "identifier": "标识符",
+        "token": "令牌",
+        "last_ip": "最后 IP",
+        "agent": "代理名称",
+        "status": "状态",
+        "last_seen": "最后在线",
+        "no_agents": "未找到代理。"
       },
       "messages": {
-        "restore_success": "Restored Agent {{name}}",
-        "restore_error": "Error restoring Agent.",
-        "add_success": "Agent declared successfully.",
-        "add_error": "Error adding Agent. ID might already exist.",
-        "confirm_trust": "Are you sure you want to {{action}} for Agent {{id}}?",
-        "trust_success": "Successfully {{action}} for Agent.",
-        "update_status_error": "Error updating status.",
-        "confirm_delete": "Are you sure you want to delete Agent {{name}} ({{id}})? \nThis will disconnect and hide the Agent from the system.",
-        "delete_success": "Deleted Agent {{name}}.",
-        "delete_error": "Error deleting Agent.",
-        "no_agents": "No agents declared yet.",
-        "update_success": "Updated Agent {{name}} successfully."
+        "restore_success": "已恢复代理 {{name}}",
+        "restore_error": "恢复代理时出错。",
+        "add_success": "代理声明成功。",
+        "add_error": "添加代理时出错。ID 可能已存在。",
+        "confirm_trust": "您确定要为代理 {{id}} 执行 {{action}} 吗？",
+        "trust_success": "成功为代理执行 {{action}}。",
+        "update_status_error": "更新状态时出错。",
+        "confirm_delete": "您确定要删除代理 {{name}} ({{id}}) 吗？\n这将断开连接并在系统中隐藏该代理。",
+        "delete_success": "已删除代理 {{name}}。",
+        "delete_error": "删除代理时出错。",
+        "no_agents": "尚未声明任何代理。",
+        "update_success": "成功更新代理 {{name}}。"
       }
     },
     "devices": "设备",
@@ -509,9 +509,9 @@
         "people_desc": "管理员工、部门和角色。",
         "time": "时间与考勤",
         "time_desc": "配置班次、排班和考勤规则。",
-        "general_desc": "Branding and basic workspace options.",
+        "general_desc": "品牌和基本工作区选项。",
         "organization_desc": "管理公司详细信息和品牌。",
-        "leave": "Leave Management"
+        "leave": "休假管理"
       },
       "tabs": {
         "general": "常规配置",
@@ -530,47 +530,47 @@
         "statutory_rules": "法定规则",
         "employment_phases": "雇佣阶段"
       },
-      "title": "Settings Hub",
-      "navigation": "Navigation",
-      "admin_only": "Administrators only",
+      "title": "设置中心",
+      "navigation": "导航",
+      "admin_only": "仅限管理员",
       "leave": {
-        "title": "Leave Settings",
-        "desc": "Configure leave types and accrual policies for your workspace.",
+        "title": "休假设置",
+        "desc": "为您的工作区配置休假类型和累算政策。",
         "tabs": {
-          "types": "Leave Types",
-          "policies": "Accrual Policies",
-          "types_desc": "Define available leave types and their rules",
-          "policies_desc": "Set up how leave is earned over time",
-          "assignments": "Policy Assignments",
-          "assignments_desc": "Assign policies to employees or departments"
+          "types": "休假类型",
+          "policies": "累算政策",
+          "types_desc": "定义可用的休假类型及其规则",
+          "policies_desc": "设置假期随时间累积的方式",
+          "assignments": "政策分配",
+          "assignments_desc": "将政策分配给员工或部门"
         },
         "messages": {
-          "update_success": "Leave type updated successfully",
-          "update_error": "Failed to update leave type",
-          "create_success": "Policy created successfully",
-          "delete_success": "Policy deleted successfully",
-          "assignment_note": "Policy assignments define how leave is calculated for each person. Changes will be applied during the next scheduled accrual run or can be forced via the \"Accrual Run\" tool in General Settings.",
-          "loading": "Loading assignments...",
-          "no_assignments": "No policy assignments found"
+          "update_success": "休假类型更新成功",
+          "update_error": "更新休假类型失败",
+          "create_success": "政策创建成功",
+          "delete_success": "政策删除成功",
+          "assignment_note": "政策分配定义了每个人的假期计算方式。更改将在下次计划的累算运行时应用，或通过通用设置中的“累算运行”工具强制执行。",
+          "loading": "正在加载分配...",
+          "no_assignments": "未找到政策分配"
         },
         "fields": {
-          "approval": "Approval",
-          "document": "Document",
-          "days_per_period": "days / period"
+          "approval": "批准",
+          "document": "文档",
+          "days_per_period": "天 / 周期"
         },
         "types": {
-          "paid": "Paid Leave",
-          "unpaid": "Unpaid Leave"
+          "paid": "带薪假",
+          "unpaid": "无薪假"
         },
         "actions": {
-          "assign": "Assign Policy"
+          "assign": "分配政策"
         },
         "table": {
-          "policy": "Policy",
-          "type": "Type",
-          "assignee": "Assignee",
-          "effective_date": "Effective Date",
-          "created_at": "Created At"
+          "policy": "政策",
+          "type": "类型",
+          "assignee": "被分配人",
+          "effective_date": "生效日期",
+          "created_at": "创建于"
         }
       }
     },
@@ -635,21 +635,21 @@
     "approve": "批准",
     "reject": "拒绝",
     "days": {
-      "sunday": "Sunday",
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "monday_short": "Mon",
-      "tuesday_short": "Tue",
-      "wednesday_short": "Wed",
-      "thursday_short": "Thu",
-      "friday_short": "Fri",
-      "saturday_short": "Sat",
-      "sunday_short": "Sun",
-      "label": "days"
+      "sunday": "星期日",
+      "monday": "星期一",
+      "tuesday": "星期二",
+      "wednesday": "星期三",
+      "thursday": "星期四",
+      "friday": "星期五",
+      "saturday": "星期六",
+      "monday_short": "周一",
+      "tuesday_short": "周二",
+      "wednesday_short": "周三",
+      "thursday_short": "周四",
+      "friday_short": "周五",
+      "saturday_short": "周六",
+      "sunday_short": "周日",
+      "label": "天"
     },
     "break": "休息",
     "feature_coming_soon": "此功能即将推出",
@@ -734,9 +734,9 @@
       "system_desc": "跟随系统设置"
     },
     "pagination": {
-      "showing": "显示",
+      "showing": "正在显示",
       "out_of": "之",
-      "records": "记录",
+      "records": "条记录",
       "page": "页",
       "first": "首页",
       "prev": "上一页",
@@ -809,279 +809,279 @@
     "disable": "禁用",
     "enable": "启用",
     "attendance_logs": {
-      "title": "Punch Logs",
-      "subtitle": "Raw data from timekeepers and punch sources.",
-      "export_btn": "Export Data",
-      "import_btn": "Import Data",
+      "title": "打卡日志",
+      "subtitle": "来自考勤机和打卡源的原始数据。",
+      "export_btn": "导出数据",
+      "import_btn": "导入数据",
       "status": {
-        "recorded": "Recorded"
+        "recorded": "已记录"
       },
       "tabs": {
-        "recorded": "Recorded Logs",
-        "unknown": "Unidentified"
+        "recorded": "打卡记录",
+        "unknown": "未识别"
       },
-      "unknown_id": "Unknown ID",
-      "not_in_system": "Not in system",
-      "select_employee": "Select employee...",
-      "assign": "Assign",
-      "create_employee": "Create",
+      "unknown_id": "未知 ID",
+      "not_in_system": "不在系统中",
+      "select_employee": "选择员工...",
+      "assign": "分配",
+      "create_employee": "创建",
       "messages": {
-        "loading": "Loading logs...",
-        "no_data": "No punch logs found.",
-        "no_unknown_logs": "No unidentified logs"
+        "loading": "正在加载日志...",
+        "no_data": "未找到打卡日志。",
+        "no_unknown_logs": "没有未识别的记录"
       },
       "modal": {
-        "import_title": "Import punch logs from file"
+        "import_title": "从文件导入打卡记录"
       },
       "view_reports": "查看摘要报告"
     },
     "attendance_import": {
-      "subtitle": "Bulk Data Import",
-      "rows_processed": "rows processed",
-      "error_list_title": "Detailed Error List:",
-      "select_another_file": "Select another file",
-      "upload_prompt": "Click or drag file here",
-      "upload_limit": "Excel or CSV (Max 10MB)",
-      "start_import": "Start Import",
+      "subtitle": "批量数据导入",
+      "rows_processed": "行已处理",
+      "error_list_title": "详细错误列表：",
+      "select_another_file": "选择另一个文件",
+      "upload_prompt": "点击或拖拽文件到这里",
+      "upload_limit": "Excel 或 CSV (最大 10MB)",
+      "start_import": "开始导入",
       "status": {
-        "processing": "Processing data...",
-        "completed": "Completed!",
-        "failed": "An error occurred",
-        "pending": "Pending...",
-        "uploading": "Uploading..."
+        "processing": "正在处理数据...",
+        "completed": "已完成！",
+        "failed": "发生错误",
+        "pending": "等待中...",
+        "uploading": "正在上传..."
       },
       "file_requirements": {
-        "title": "File Format Requirements:",
-        "col_a": "Column A: Employee ID",
-        "col_b": "Column B: Employee Name (Optional)",
-        "col_c": "Column C: Punch Time (DD/MM/YYYY HH:mm)",
-        "formats": "Supports .xlsx, .xls and .csv files"
+        "title": "文件格式要求：",
+        "col_a": "A 列：员工 ID",
+        "col_b": "B 列：员工姓名（可选）",
+        "col_c": "C 列：打卡时间 (DD/MM/YYYY HH:mm)",
+        "formats": "支持 .xlsx, .xls 和 .csv 文件"
       },
       "messages": {
-        "upload_error": "Error uploading file"
+        "upload_error": "上传文件出错"
       }
     },
     "onboarding": {
-      "welcome_title": "Welcome!",
-      "welcome_subtitle": "Let's create your first organization (Workspace)",
-      "org_name_label": "Organization Name",
-      "org_name_placeholder": "Ex: ABC Company, LeeAttend Team...",
-      "start_now_btn": "Start Now",
-      "workspace_desc": "A Workspace is a separate environment to help you manage devices and members in one place.",
+      "welcome_title": "欢迎！",
+      "welcome_subtitle": "让我们创建您的第一个组织（工作区）",
+      "org_name_label": "组织名称",
+      "org_name_placeholder": "例：ABC 公司、LeeAttend 团队...",
+      "start_now_btn": "立即开始",
+      "workspace_desc": "工作区是一个独立的环境，可帮助您在一个地方管理设备和成员。",
       "messages": {
-        "create_error": "Could not create Workspace. Please try again."
+        "create_error": "无法创建工作区。请再试一次。"
       }
     },
     "patterns": {
-      "title": "Working Patterns",
-      "subtitle": "Manage recurring work schedules for employees",
-      "manage_btn": "Manage Patterns",
-      "create_btn": "Create Pattern",
-      "create_title": "Create Working Pattern",
-      "create_subtitle": "Define weekly pattern",
-      "create_submit": "Create Pattern",
-      "empty_title": "No patterns yet",
-      "empty_desc": "Create a pattern to quickly assign recurring shifts to employees.",
-      "create_first": "Create First Pattern",
-      "weekly_schedule": "Weekly Schedule",
-      "select_pattern": "Select Pattern",
-      "view_details": "Pattern Details",
+      "title": "排班模式",
+      "subtitle": "管理员工的重复工作计划",
+      "manage_btn": "管理模式",
+      "create_btn": "创建模式",
+      "create_title": "创建排班模式",
+      "create_subtitle": "定义每周模式",
+      "create_submit": "创建模式",
+      "empty_title": "尚无模式",
+      "empty_desc": "创建一个模式，以便快速为员工分配重复的班次。",
+      "create_first": "创建第一个模式",
+      "weekly_schedule": "每周计划",
+      "select_pattern": "选择模式",
+      "view_details": "模式详情",
       "form": {
-        "name": "Pattern Name",
-        "description": "Description",
-        "select_pattern": "Select Pattern",
-        "select_pattern_label": "Select Pattern",
-        "select_pattern_placeholder": "Select a pattern...",
-        "start_date": "Effective Start Date",
-        "start_date_label": "Start Date",
-        "start_date_note": "Schedule will auto-repeat from this date.",
-        "select_employees": "Select Employees",
-        "select_employees_label": "Applied Employees",
-        "select_employees_placeholder": "Search and select...",
-        "name_placeholder": "Ex: Office Hours, Night Shift Rotation",
-        "name_label": "Pattern Name",
-        "desc_placeholder": "Optional description",
-        "desc_label": "Short description",
-        "weekly_grid_title": "Weekly Schedule Grid",
-        "prefill_standard": "Fill Standard Pattern"
+        "name": "模式名称",
+        "description": "描述",
+        "select_pattern": "选择模式",
+        "select_pattern_label": "选择模式",
+        "select_pattern_placeholder": "选择一个模式...",
+        "start_date": "生效开始日期",
+        "start_date_label": "开始日期",
+        "start_date_note": "计划将从该日期起自动重复。",
+        "select_employees": "选择员工",
+        "select_employees_label": "适用员工",
+        "select_employees_placeholder": "搜索并选择...",
+        "name_placeholder": "例：办公时间、夜班轮换",
+        "name_label": "模式名称",
+        "desc_placeholder": "可选描述",
+        "desc_label": "简短描述",
+        "weekly_grid_title": "每周计划网格",
+        "prefill_standard": "填充标准模式"
       },
-      "weekly_config": "Weekly Config",
+      "weekly_config": "每周配置",
       "actions": {
-        "prefill_standard": "Quick Fill: Office (Mon-Fri)"
+        "prefill_standard": "快速填充：办公（周一至周五）"
       },
-      "validation_name_required": "Please enter pattern name.",
+      "validation_name_required": "请输入模式名称。",
       "messages": {
-        "create_success": "Working pattern created successfully.",
-        "create_error": "Error creating working pattern.",
-        "delete_success": "Working pattern deleted successfully.",
-        "delete_error": "Error deleting working pattern.",
-        "bulk_assign_success_count": "Assigned pattern to {{count}} employees.",
-        "bulk_assign_conflict": "Some employees already have schedules, system will override.",
-        "bulk_assign_error": "Error in bulk assignment."
+        "create_success": "排班模式创建成功。",
+        "create_error": "创建排班模式时出错。",
+        "delete_success": "排班模式删除成功。",
+        "delete_error": "删除排班模式时出错。",
+        "bulk_assign_success_count": "已为 {{count}} 名员工分配模式。",
+        "bulk_assign_conflict": "某些员工已有计划，系统将覆盖原计划。",
+        "bulk_assign_error": "批量分配时出错。"
       },
-      "confirm_delete": "Are you sure you want to delete pattern \"{{name}}\" ?",
-      "bulk_assign_btn": "Bulk Assign",
-      "bulk_assign_title": "Bulk Assign Pattern",
-      "bulk_assign_subtitle": "Assign pattern to multiple employees at once",
+      "confirm_delete": "您确定要删除模式 \"{{name}}\" 吗？",
+      "bulk_assign_btn": "批量分配",
+      "bulk_assign_title": "批量分配模式",
+      "bulk_assign_subtitle": "一次性为多名员工分配模式",
       "modal": {
-        "create_title": "Create New Rotation",
-        "subtitle": "Setup recurring schedule",
-        "submit_btn": "Save Pattern",
-        "assign_btn": "Confirm Assignment",
-        "bulk_subtitle": "Schedule Allocation"
+        "create_title": "创建新轮换",
+        "subtitle": "设置重复计划",
+        "submit_btn": "保存模式",
+        "assign_btn": "确认分配",
+        "bulk_subtitle": "计划分配"
       },
-      "validation_pattern_required": "Please select a pattern.",
-      "validation_employees_required": "Please select at least one employee.",
-      "bulk_assign_submit": "Confirm Assign"
+      "validation_pattern_required": "请选择一个模式。",
+      "validation_employees_required": "请至少选择一名员工。",
+      "bulk_assign_submit": "确认分配"
     },
     "rules": {
-      "title": "Auto-assign Rules",
-      "subtitle": "Automatically assign patterns to employees based on conditions",
-      "create_btn": "Add Rule",
+      "title": "自动分配规则",
+      "subtitle": "根据条件自动为员工分配模式",
+      "create_btn": "添加规则",
       "table": {
-        "priority": "Priority",
-        "name": "Rule Name",
-        "pattern": "Assigned Pattern",
-        "conditions": "Conditions"
+        "priority": "优先级",
+        "name": "规则名称",
+        "pattern": "分配的模式",
+        "conditions": "条件"
       },
-      "match_all": "Workspace-wide (Match All)",
-      "empty_list": "No assignment rules yet",
-      "info_priority": "Rules are evaluated from highest to lowest priority. The first matching rule will be applied. General rules should have lowest priority.",
-      "edit_title": "Edit Rule",
-      "create_title": "Create New Rule",
-      "form_subtitle": "Define when this pattern should be applied",
+      "match_all": "全工作区（匹配所有）",
+      "empty_list": "尚无分配规则",
+      "info_priority": "规则按从高到低的优先级进行评估。将应用第一个匹配的规则。通用规则应具有最低优先级。",
+      "edit_title": "编辑规则",
+      "create_title": "创建新规则",
+      "form_subtitle": "定义何时应用此模式",
       "form": {
-        "name": "Rule Name",
-        "priority": "Priority (Higher is stronger)",
-        "pattern": "Select Pattern",
-        "name_placeholder": "Ex: Tech Support Night Shift",
-        "tags_placeholder": "NightShift, Hanoi, VVIP"
+        "name": "规则名称",
+        "priority": "优先级（越高越强）",
+        "pattern": "选择模式",
+        "name_placeholder": "例：技术支持夜班",
+        "tags_placeholder": "夜班, 河内, VVIP"
       },
-      "conditions_title": "Matching Conditions",
-      "condition_help": "Leave empty to match all employees (within scope of other conditions).",
+      "conditions_title": "匹配条件",
+      "condition_help": "留空以匹配所有员工（在其他条件的范围内）。",
       "messages": {
-        "create_success": "Rule created successfully",
-        "update_success": "Rule updated successfully",
-        "delete_success": "Rule deleted"
+        "create_success": "规则创建成功",
+        "update_success": "规则更新成功",
+        "delete_success": "规则已删除"
       },
       "validation": {
-        "required_fields": "Name and Pattern are required"
+        "required_fields": "名称和模式是必填项"
       }
     },
     "debug_tools": {
-      "title": "Debug Tools (Dev Only)",
-      "subtitle": "Quick data clearing tools for testing support.",
-      "warning": "Warning: Deleted data cannot be recovered!",
-      "full_reset_label": "FULL RESET (Careful!)",
-      "click_to_clear": "Click to clear",
+      "title": "调试工具 (仅限开发人员)",
+      "subtitle": "用于测试支持的快速数据清理工具。",
+      "warning": "警告：删除的数据无法恢复！",
+      "full_reset_label": "全部重置 (慎用！)",
+      "click_to_clear": "点击清除",
       "messages": {
-        "confirm_clear": "Are you sure you want to clear ALL [{{label}}] data for this Workspace? This cannot be undone.",
-        "clear_success": "Cleared [{{label}}] data successfully.",
-        "clear_error": "Error clearing data:"
+        "confirm_clear": "您确定要清除此工作区的所有 [{{label}}] 数据吗？此操作无法撤销。",
+        "clear_success": "已成功清除 [{{label}}] 数据。",
+        "clear_error": "清除数据时出错："
       }
     },
     "time_tracking": {
-      "title": "Time Tracking",
-      "subtitle": "Track your work hours and breaks.",
+      "title": "时间追踪",
+      "subtitle": "追踪您的工作时间和休息时间。",
       "modal": {
-        "edit_title": "Edit Time Entry",
-        "new_title": "New Adjustment Request",
-        "reason_label": "Reason for adjustment",
-        "reason_placeholder": "Why are you requesting this change?",
-        "subtitle": "Request changes to your clock-in/out times."
+        "edit_title": "编辑时间条目",
+        "new_title": "新调整请求",
+        "reason_label": "调整原因",
+        "reason_placeholder": "您为什么要请求此更改？",
+        "subtitle": "请求更改您的打卡/签退时间。"
       },
       "actions": {
-        "punch_out": "Clock Out",
-        "return_to_work": "End Break",
-        "start_break": "Start Break",
-        "start_work": "Clock In"
+        "punch_out": "下班打卡",
+        "return_to_work": "结束休息",
+        "start_break": "开始休息",
+        "start_work": "上班打卡"
       },
-      "forgot_punch": "Forgot to clock in/out?",
+      "forgot_punch": "忘记打卡了？",
       "status": {
-        "break_start_at": "Break started at",
-        "off_duty": "Off Duty",
-        "on_break": "On Break",
-        "shift_start_at": "Shift started at",
-        "working": "Working"
+        "break_start_at": "休息开始于",
+        "off_duty": "下班",
+        "on_break": "休息中",
+        "shift_start_at": "班次开始于",
+        "working": "工作中"
       }
     },
     "ess": {
-      "my_profile": "My Profile",
-      "no_employee_linked": "No employee linked",
-      "contact_hr": "Please contact HR to link your account with an employee profile.",
-      "personal_info": "Personal Information",
-      "phone": "Phone Number",
-      "date_of_birth": "Date of Birth",
-      "gender": "Gender",
-      "gender_male": "Male",
-      "gender_female": "Female",
-      "gender_other": "Other",
-      "national_id": "National ID",
-      "address": "Address",
-      "address_placeholder": "Enter your current residence address",
-      "bank_details": "Bank Account Information",
-      "bank_name": "Bank Name",
-      "account_number": "Account Number",
-      "bank_branch": "Branch Name",
-      "branch_placeholder": "Enter bank branch",
-      "emergency_contacts": "Emergency Contacts",
-      "add_contact": "Add Contact",
-      "no_emergency_contacts": "No emergency contacts found.",
-      "primary": "Primary",
-      "add_emergency_contact": "Add emergency contact",
-      "contact_name": "Contact Name",
-      "relationship": "Relationship",
-      "relationship_spouse": "Spouse",
-      "relationship_parent": "Parent",
-      "relationship_sibling": "Sibling",
-      "relationship_child": "Child",
-      "relationship_friend": "Friend",
-      "relationship_other": "Other",
-      "set_as_primary": "Set as primary",
+      "my_profile": "我的档案",
+      "no_employee_linked": "未关联员工",
+      "contact_hr": "请联系人力资源部将您的账号与员工档案关联。",
+      "personal_info": "个人信息",
+      "phone": "电话号码",
+      "date_of_birth": "出生日期",
+      "gender": "性别",
+      "gender_male": "男",
+      "gender_female": "女",
+      "gender_other": "其他",
+      "national_id": "身份证号",
+      "address": "地址",
+      "address_placeholder": "输入您的当前居住地址",
+      "bank_details": "银行账户信息",
+      "bank_name": "银行名称",
+      "account_number": "账号",
+      "bank_branch": "支行名称",
+      "branch_placeholder": "输入支行名称",
+      "emergency_contacts": "紧急联系人",
+      "add_contact": "添加联系人",
+      "no_emergency_contacts": "未找到紧急联系人。",
+      "primary": "主要",
+      "add_emergency_contact": "添加紧急联系人",
+      "contact_name": "联系人姓名",
+      "relationship": "关系",
+      "relationship_spouse": "配偶",
+      "relationship_parent": "父母",
+      "relationship_sibling": "兄弟姐妹",
+      "relationship_child": "子女",
+      "relationship_friend": "朋友",
+      "relationship_other": "其他",
+      "set_as_primary": "设为主要联系人",
       "profile": {
-        "subtitle": "View and manage your personal information.",
-        "update_success": "Profile updated successfully",
-        "update_error": "Error updating profile",
-        "title": "My Profile"
+        "subtitle": "查看并管理您的个人信息。",
+        "update_success": "档案更新成功",
+        "update_error": "更新档案时出错",
+        "title": "我的档案"
       },
       "emergency_contact": {
-        "add_success": "Contact added successfully",
-        "add_error": "Error adding contact",
-        "confirm_delete": "Are you sure you want to delete this contact?",
-        "delete_success": "Contact deleted successfully",
-        "delete_error": "Error deleting contact",
-        "subtitle": "Relatives to notify in case of emergency."
+        "add_success": "联系人添加成功",
+        "add_error": "添加联系人时出错",
+        "confirm_delete": "您确定要删除此联系人吗？",
+        "delete_success": "联系人删除成功",
+        "delete_error": "删除联系人时出错",
+        "subtitle": "紧急情况下通知的亲属。"
       },
       "clock": {
-        "title": "Time Clock",
-        "subtitle": "Clock in and out for work and breaks",
-        "punch_in_success": "Clocked in successfully",
-        "punch_out_success": "Clocked out successfully",
-        "break_start_success": "Break started",
-        "adjustment_requested": "Adjustment request submitted",
-        "no_entries": "No recent time entries",
-        "recent_history": "Recent Activity (Last 7 Days)"
+        "title": "打卡机",
+        "subtitle": "记录工作和休息的打卡/签退时间",
+        "punch_in_success": "上班打卡成功",
+        "punch_out_success": "下班打卡成功",
+        "break_start_success": "开始休息",
+        "adjustment_requested": "调整请求已提交",
+        "no_entries": "没有最近的时间条目",
+        "recent_history": "最近活动（过去 7 天）"
       },
       "attendance": {
-        "title": "My Attendance",
-        "subtitle": "View your daily clock-in/out history.",
-        "date": "Date",
-        "check_in": "Punch In",
-        "check_out": "Punch Out",
-        "duration": "Duration",
-        "status": "Status",
-        "generation_info": "Processing Info (Traceability)",
-        "no_data": "No attendance data found for this month."
+        "title": "我的考勤",
+        "subtitle": "查看您的每日打卡/签退历史。",
+        "date": "日期",
+        "check_in": "上班打卡",
+        "check_out": "下班打卡",
+        "duration": "时长",
+        "status": "状态",
+        "generation_info": "处理信息（可追溯性）",
+        "no_data": "本月未找到考勤数据。"
       },
       "ot": {
-        "claim_title": "Claim Overtime",
-        "claim_desc": "Submit your overtime claim for approval",
-        "claimed_minutes": "Minutes to Claim",
-        "reason_placeholder": "Why did you work overtime?",
-        "error_zero_minutes": "Minutes must be greater than 0",
-        "error_exceeds_system": "Cannot claim more than system detected OT",
-        "system_detected": "System Detected",
-        "close": "Close"
+        "claim_title": "申请加班",
+        "claim_desc": "提交您的加班申请以供批准",
+        "claimed_minutes": "申请分钟数",
+        "reason_placeholder": "您为什么加班？",
+        "error_zero_minutes": "分钟数必须大于 0",
+        "error_exceeds_system": "申请时长不能超过系统检测到的加班时长",
+        "system_detected": "系统检测到",
+        "close": "关闭"
       }
     },
     "columns": "Columns",
@@ -1461,7 +1461,7 @@
       "adjustment": "余额调整",
       "carry_over": "结转"
     },
-    "label": "Leave Balances"
+    "label": "休假余额"
   },
   "members": {
     "title": "成员与角色",
@@ -1645,7 +1645,7 @@
       "col_c": "C列：入职日期（可选，YYYY-MM-DD）",
       "col_d": "D列：部门名称（可选）"
     },
-    "label": "Employees"
+    "label": "员工"
   },
   "departments": {
     "title": "部门",
@@ -1673,7 +1673,7 @@
       "subtitle": "组织结构",
       "submit_btn": "创建部门"
     },
-    "label": "Departments"
+    "label": "部门"
   },
   "attendance_confirm": {
     "title": "出勤确认",
@@ -1696,7 +1696,7 @@
     "modal": {
       "import_title": "从文件导入出勤数据"
     },
-    "label": "Confirm Attendance"
+    "label": "考勤确认"
   },
   "attendance_logs": {
     "title": "打卡日志",
@@ -1954,7 +1954,7 @@
       "enable_btn": "启用设备",
       "disable_btn": "禁用设备"
     },
-    "label": "Devices"
+    "label": "设备"
   },
   "connectivity": {
     "empty_guide": "在您的本地网络上安装代理以连接考勤设备。从文档中下载安装程序。"
@@ -1996,7 +1996,7 @@
         "change_error": "修改密码时出错。"
       }
     },
-    "label": "Profile"
+    "label": "个人资料"
   },
   "leave_requests": {
     "title": "请假申请",
@@ -2284,12 +2284,12 @@
       "name_required": "政策名称是必填项",
       "no_policies": "没有激励政策"
     },
-    "overtime_policies_desc": "Quản lý các quy tắc tính lương tăng ca theo thời gian và ngày.",
-    "overtime_policies": "Chính sách tăng ca",
-    "no_overtime_policies": "Chưa có chính sách tăng ca nào.",
-    "create_first_policy": "Tạo chính sách đầu tiên ngay.",
-    "rules": "Calculation Rules",
-    "add_rule": "Add Rule",
+    "overtime_policies_desc": "管理基于时间和日期的加班工资规则。",
+    "overtime_policies": "加班政策",
+    "no_overtime_policies": "未找到加班政策。",
+    "create_first_policy": "立即创建您的第一个政策。",
+    "rules": "计算规则",
+    "add_rule": "添加规则",
     "assign_policy": "分配政策",
     "assign_overtime_policy": "分配加班政策",
     "assignee_type": "分配类型",
@@ -2391,7 +2391,7 @@
       "success": "班次已分配，考勤已重新计算。",
       "error": "处理未排班考勤失败。"
     },
-    "label": "Reports"
+    "label": "报告"
   },
   "patterns": {
     "title": "工作模式",
@@ -2603,7 +2603,7 @@
       "lowest_priority": "系统默认",
       "hierarchy_explanation": "规则从上到下评估。上方节点覆盖下方节点。"
     },
-    "label": "Shifts & Roster"
+    "label": "排班与日历"
   },
   "days": {
     "sunday": "星期日",
@@ -2620,7 +2620,7 @@
     "friday_short": "五",
     "saturday_short": "六",
     "sunday_short": "日",
-    "label": "days"
+    "label": "天"
   },
   "debug_tools": {
     "title": "调试工具 (仅限开发人员)",
@@ -2866,45 +2866,45 @@
     "errorMessage": "清除数据失败"
   },
   "billing": {
-    "comingSoon": "Coming Soon",
-    "comingSoonDesc": "Coming soon description",
-    "subtitle": "Billing subtitle",
-    "title": "Billing"
+    "comingSoon": "敬请期待",
+    "comingSoonDesc": "账单和订阅管理功能正在开发中。",
+    "subtitle": "管理您的订阅和账单",
+    "title": "账单"
   },
   "overview": {
-    "activeWorkspace": "Active Workspace",
-    "adminFallback": "Admin Fallback",
-    "adminMembers": "Admin Members",
-    "admins": "Admins",
-    "created": "Created",
-    "lateToday": "Late Today",
-    "onLeave": "On Leave",
-    "presentToday": "Present Today",
-    "timezone": "Timezone",
-    "title": "Overview",
-    "totalEmployees": "Total Employees"
+    "activeWorkspace": "活跃工作区",
+    "adminFallback": "备用管理员",
+    "adminMembers": "管理员成员",
+    "admins": "管理员",
+    "created": "创建于",
+    "lateToday": "今日迟到",
+    "onLeave": "请假中",
+    "presentToday": "今日出勤",
+    "timezone": "时区",
+    "title": "概览",
+    "totalEmployees": "员工总数"
   },
   "permissions": {
-    "modules": "Modules",
-    "permissionsLabel": "Permissions",
-    "saveMatrix": "Save Matrix",
-    "subtitle": "Permissions subtitle",
-    "systemRoleInfo": "System role info",
-    "title": "Permissions",
-    "unsavedChanges": "Unsaved changes",
-    "visibleRoles": "Visible roles"
+    "modules": "模块",
+    "permissionsLabel": "权限",
+    "saveMatrix": "保存权限矩阵",
+    "subtitle": "为每个功能配置详细权限",
+    "systemRoleInfo": "系统角色信息",
+    "title": "权限",
+    "unsavedChanges": "未保存的更改",
+    "visibleRoles": "可见角色"
   },
   "rolesPage": {
-    "confirmDelete": "Confirm Delete",
-    "createRole": "Create Role",
-    "deleteRole": "Delete Role",
-    "deleteTitle": "Delete Title",
-    "editRole": "Edit Role",
-    "manageAccess": "Manage Access",
-    "matrix": "Matrix",
-    "noDescription": "No description",
-    "roleId": "Role ID",
-    "subtitle": "Roles subtitle",
-    "title": "Roles"
+    "confirmDelete": "确认删除",
+    "createRole": "创建角色",
+    "deleteRole": "删除角色",
+    "deleteTitle": "删除标题",
+    "editRole": "编辑角色",
+    "manageAccess": "管理访问权限",
+    "matrix": "矩阵",
+    "noDescription": "无描述",
+    "roleId": "角色 ID",
+    "subtitle": "管理工作区中的自定义角色",
+    "title": "角色"
   }
 }

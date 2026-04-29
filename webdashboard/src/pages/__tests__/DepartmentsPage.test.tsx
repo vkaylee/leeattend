@@ -30,7 +30,11 @@ vi.mock("../../lib/api", () => ({
 // Override i18n for this test to return keys
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, options?: any) => {
+      if (typeof options === "string") return options;
+      if (options && options.defaultValue) return options.defaultValue;
+      return key;
+    },
     i18n: {
       changeLanguage: () => Promise.resolve(),
       language: 'en',
@@ -144,7 +148,6 @@ describe("DepartmentsPage", () => {
   it("handles deleting a department", async () => {
     const user = userEvent.setup();
     (api.deleteDepartment as any).mockResolvedValue({});
-    vi.spyOn(window, "confirm").mockReturnValue(true);
 
     renderWithProviders(<DepartmentsPage />);
 
@@ -153,7 +156,10 @@ describe("DepartmentsPage", () => {
     const deleteBtn = await screen.findByTitle(/common.delete/i);
     await user.click(deleteBtn);
 
-    expect(window.confirm).toHaveBeenCalled();
+    // Confirm the useConfirm modal
+    const confirmModalBtn = await screen.findByRole("button", { name: "Confirm" });
+    fireEvent.click(confirmModalBtn);
+
     await waitFor(() => {
       expect(api.deleteDepartment).toHaveBeenCalledWith("test-ws-id", "dept-1");
     });

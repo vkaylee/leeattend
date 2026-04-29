@@ -84,6 +84,10 @@ describe("PermissionManagementModal", () => {
     expect(revokeBtn).toBeDefined();
     await user.click(revokeBtn!);
 
+    // Confirm the modal
+    const confirmModalBtn = await screen.findByRole("button", { name: /Confirm|Xác nhận/i });
+    await user.click(confirmModalBtn);
+
     await waitFor(() => {
       expect(api.revokeExtraPermission).toHaveBeenCalledWith("test-ws-id", "user-1", "perm-1");
     });

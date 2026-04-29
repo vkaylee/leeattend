@@ -89,12 +89,8 @@ pub async fn update_employee_phase_status(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Path((_ws_id, emp_id, phase_id)): Path<(Uuid, Uuid, Uuid)>,
-    // TODO: Extract user ID from auth context for `evaluated_by`
     Json(payload): Json<UpdateEmployeePhaseStatusRequest>,
 ) -> Result<Json<EmployeePhase>, AppError> {
-    // Dummy evaluator UUID for now, until Auth layer is injected correctly in route definition
-    let dummy_evaluator = Uuid::new_v4();
-
     let phase = EmploymentPhaseRepository::update_phase_status(
         state.infra.db.api(),
         ctx.workspace_id,
@@ -102,7 +98,7 @@ pub async fn update_employee_phase_status(
         phase_id,
         &payload.status,
         payload.evaluation_notes.as_deref(),
-        dummy_evaluator,
+        ctx.user_id,
     )
     .await?;
 

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import EmployeesPage from "../EmployeesPage";
@@ -41,7 +41,11 @@ vi.mock("../../lib/api", () => ({
 // Override i18n
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, fallback?: string) => fallback || key,
+        t: (key: string, options?: any) => {
+            if (typeof options === "string") return options;
+            if (options && options.defaultValue) return options.defaultValue;
+            return key;
+        },
         i18n: {
             changeLanguage: () => Promise.resolve(),
             language: "en",
@@ -263,6 +267,31 @@ describe("EmployeesPage", () => {
         // Form inputs should be visible
         expect(screen.getByTestId("employees-form-name-input")).toBeDefined();
         expect(screen.getByTestId("employees-form-id-input")).toBeDefined();
+    });
+
+    it("handles terminating an employee with useConfirm", async () => {
+        const user = userEvent.setup();
+        renderPage();
+        
+        // click row to open drawer
+        const row = await screen.findByText("Alice Nguyen");
+        await user.click(row);
+
+        // find terminate button in drawer
+        const terminateBtn = await screen.findByTestId("employees-btn-terminate");
+        await user.click(terminateBtn);
+
+        // confirm modal appears, we can use fireEvent to bypass pointer-events: none
+        const confirmModalBtn = await screen.findByRole("button", { name: "Confirm" });
+        fireEvent.click(confirmModalBtn);
+
+        await waitFor(() => {
+            expect(api.updateEmployee).toHaveBeenCalledWith(
+                "test-ws-id", 
+                "1", 
+                expect.objectContaining({ is_active: false })
+            );
+        });
     });
 
     // ────────────────────────────────────────────────────────────

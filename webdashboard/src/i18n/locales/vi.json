@@ -81,22 +81,22 @@
         "admin": "Quản trị viên",
         "admin_desc": "Quản trị viên hệ thống",
         "owner": "Chủ sở hữu",
-        "owner_desc": "Founder, highest permissions",
-        "modal_title": "Manage Roles",
-        "modal_subtitle": "Personnel permissions",
-        "primary_role_label": "Primary Role (Permanent)",
-        "extra_roles_label": "Extra Roles (Temporary)",
-        "expires_at": "Expires at",
-        "no_extra_roles": "No extra roles assigned.",
-        "assign_new_title": "Assign New Role",
-        "expiry_date_label": "Expiry Date",
-        "assign_btn": "Assign Role",
-        "confirm_change_primary": "Are you sure you want to change the primary role to {{role}}?",
-        "confirm_revoke": "Are you sure you want to revoke this role?",
+        "owner_desc": "Người sáng lập, quyền hạn cao nhất",
+        "modal_title": "Quản lý vai trò",
+        "modal_subtitle": "Quyền hạn nhân sự",
+        "primary_role_label": "Vai trò chính (Vĩnh viễn)",
+        "extra_roles_label": "Vai trò bổ sung (Tạm thời)",
+        "expires_at": "Hết hạn lúc",
+        "no_extra_roles": "Không có vai trò bổ sung được chỉ định.",
+        "assign_new_title": "Chỉ định vai trò mới",
+        "expiry_date_label": "Ngày hết hạn",
+        "assign_btn": "Chỉ định vai trò",
+        "confirm_change_primary": "Bạn có chắc chắn muốn thay đổi vai trò chính thành {{role}} không?",
+        "confirm_revoke": "Bạn có chắc chắn muốn thu hồi vai trò này không?",
         "messages": {
-          "update_primary_error": "Error updating primary role.",
-          "assign_error": "Error assigning role.",
-          "revoke_error": "Error revoking role."
+          "update_primary_error": "Lỗi khi cập nhật vai trò chính.",
+          "assign_error": "Lỗi khi chỉ định vai trò.",
+          "revoke_error": "Lỗi khi thu hồi vai trò."
         }
       },
       "permissions": {
@@ -115,21 +115,21 @@
         "manage_roles": "Quản lý quyền",
         "manage_permissions": "Quản lý quyền (chi tiết)",
         "remove_member": "Xóa thành viên",
-        "confirm_remove": "Are you sure you want to remove this member?",
+        "confirm_remove": "Bạn có chắc chắn muốn xóa thành viên này không?",
         "messages": {
-          "remove_error": "Error removing member.",
-          "no_members": "No members found in this workspace."
+          "remove_error": "Lỗi khi xóa thành viên.",
+          "no_members": "Không tìm thấy thành viên nào trong không gian làm việc này."
         }
       },
-      "title": "Members & Roles",
-      "subtitle": "Manage access and permissions within the system.",
+      "title": "Thành viên & Vai trò",
+      "subtitle": "Quản lý truy cập và quyền hạn trong hệ thống.",
       "invite": {
-        "title": "Invite Member",
-        "subtitle": "Personnel Management",
-        "email_label": "Email Address",
-        "role_label": "Role to Assign",
-        "submit_btn": "Send Invitation",
-        "error_message": "Could not invite member. Please check the email."
+        "title": "Mời thành viên",
+        "subtitle": "Quản lý nhân sự",
+        "email_label": "Địa chỉ Email",
+        "role_label": "Vai trò chỉ định",
+        "submit_btn": "Gửi lời mời",
+        "error_message": "Không thể mời thành viên. Vui lòng kiểm tra lại email."
       }
     },
     "employees": "Nhân viên",
@@ -140,73 +140,73 @@
         "edit_title": "Sửa chính sách",
         "title": "Chính sách nghỉ phép",
         "save_btn": "Lưu chính sách",
-        "title_single": "Policy",
-        "subtitle": "Configure leave entitlements and accrual rules",
-        "policy_note": "Note: Policy changes are not retroactive. Past accruals remain unchanged; changes only apply to future balance updates.",
-        "assign_btn": "Assign Policy",
-        "add_btn": "Add Policy",
-        "assign_title": "Assign Policy",
-        "assign_subtitle": "Personnel Allocation",
-        "assign_now_btn": "Assign Now",
-        "name_placeholder": "Ex: Standard Annual Leave",
-        "select_placeholder": "Select a policy...",
+        "title_single": "Chính sách",
+        "subtitle": "Cấu hình quyền lợi nghỉ phép và quy tắc cộng dồn",
+        "policy_note": "Lưu ý: Thay đổi chính sách không có hiệu lực hồi tố. Các khoản cộng dồn trong quá khứ không đổi; thay đổi chỉ áp dụng cho các lần cập nhật số dư trong tương lai.",
+        "assign_btn": "Gán chính sách",
+        "add_btn": "Thêm chính sách",
+        "assign_title": "Gán chính sách",
+        "assign_subtitle": "Phân bổ nhân sự",
+        "assign_now_btn": "Gán ngay",
+        "name_placeholder": "VD: Nghỉ phép năm tiêu chuẩn",
+        "select_placeholder": "Chọn một chính sách...",
         "table": {
-          "name": "Policy Name",
-          "type": "Leave Type",
-          "entitlement": "Entitlement/year",
-          "strategy": "Strategy",
-          "carry_over": "Carry-over Days",
-          "min_work_days": "Min Work Days"
+          "name": "Tên chính sách",
+          "type": "Loại nghỉ phép",
+          "entitlement": "Quyền lợi/năm",
+          "strategy": "Chiến lược",
+          "carry_over": "Ngày chuyển tiếp",
+          "min_work_days": "Ngày công tối thiểu"
         },
-        "min_work_days_desc": "Minimum working days in a month to earn leave",
+        "min_work_days_desc": "Số ngày làm việc tối thiểu trong tháng để được hưởng phép",
         "strategies": {
-          "monthly": "Monthly Accrual",
-          "monthly_desc": "Grants days at start of each month",
-          "quarterly": "Quarterly Accrual",
-          "quarterly_desc": "Grants days at start of each quarter",
-          "yearly": "Yearly Accrual",
-          "yearly_desc": "Grants full entitlement at start of year",
-          "lump_sum": "Lump Sum",
-          "lump_sum_desc": "Grants full entitlement at start of year"
+          "monthly": "Cộng dồn hàng tháng",
+          "monthly_desc": "Cấp ngày phép vào đầu mỗi tháng",
+          "quarterly": "Cộng dồn hàng quý",
+          "quarterly_desc": "Cấp ngày phép vào đầu mỗi quý",
+          "yearly": "Cộng dồn hàng năm",
+          "yearly_desc": "Cấp toàn bộ quyền lợi vào đầu năm",
+          "lump_sum": "Trọn gói (Lump Sum)",
+          "lump_sum_desc": "Cấp toàn bộ quyền lợi vào đầu năm"
         },
         "assignee_types": {
-          "workspace": "System-wide (All)",
-          "workspace_desc": "Applies to all employees in workspace",
-          "department": "By Department",
-          "department_desc": "Applies to a specific department",
-          "employee": "Individual Employee",
-          "employee_desc": "Applies to only one selected person"
+          "workspace": "Toàn hệ thống (Tất cả)",
+          "workspace_desc": "Áp dụng cho tất cả nhân viên trong không gian làm việc",
+          "department": "Theo phòng ban",
+          "department_desc": "Áp dụng cho một phòng ban cụ thể",
+          "employee": "Cá nhân nhân viên",
+          "employee_desc": "Chỉ áp dụng cho một người được chọn"
         },
-        "carry_over_limit": "Carry-over Limit",
+        "carry_over_limit": "Hạn mức chuyển tiếp",
         "messages": {
-          "no_policies": "No policies found.",
-          "create_success": "Policy created successfully!",
-          "update_success": "Policy updated successfully!",
-          "delete_success": "Policy deleted successfully!",
-          "assign_success": "Policy assigned successfully!",
-          "confirm_delete": "Are you sure you want to delete this policy?"
+          "no_policies": "Không tìm thấy chính sách nào.",
+          "create_success": "Tạo chính sách thành công!",
+          "update_success": "Cập nhật chính sách thành công!",
+          "delete_success": "Xóa chính sách thành công!",
+          "assign_success": "Gán chính sách thành công!",
+          "confirm_delete": "Bạn có chắc chắn muốn xóa chính sách này không?"
         }
       },
-      "title": "Leave Requests",
-      "subtitle": "Approve and manage personnel absence",
-      "invalid_leave_type": "Invalid leave type selected",
-      "create_btn": "Create Request",
-      "remaining": "Left",
+      "title": "Yêu cầu nghỉ phép",
+      "subtitle": "Duyệt và quản lý thời gian nghỉ của nhân sự",
+      "invalid_leave_type": "Loại nghỉ phép không hợp lệ",
+      "create_btn": "Tạo yêu cầu",
+      "remaining": "Còn lại",
       "tabs": {
-        "policies": "Policies"
+        "policies": "Chính sách"
       },
       "types": {
-        "vacation": "Annual Leave",
-        "sick": "Sick Leave",
-        "vacation_full": "Annual Leave",
-        "sick_full": "Sick Leave",
-        "personal": "Personal Business"
+        "vacation": "Nghỉ phép năm",
+        "sick": "Nghỉ ốm",
+        "vacation_full": "Nghỉ phép năm",
+        "sick_full": "Nghỉ ốm",
+        "personal": "Việc riêng"
       },
       "modal": {
-        "submit_title": "Submit Leave Request",
-        "submit_subtitle": "Absence Management",
-        "reason_placeholder": "Enter leave reason...",
-        "submit_btn": "Submit Request"
+        "submit_title": "Gửi yêu cầu nghỉ phép",
+        "submit_subtitle": "Quản lý vắng mặt",
+        "reason_placeholder": "Nhập lý do nghỉ phép...",
+        "submit_btn": "Gửi yêu cầu"
       },
       "duration": {
         "label": "Loại nghỉ",
@@ -219,10 +219,10 @@
         "half_day_note": "Ngày kết thúc sẽ tự động bằng ngày bắt đầu"
       },
       "messages": {
-        "accrual_success": "Leave accrual run successfully!",
-        "no_requests": "No requests found."
+        "accrual_success": "Chạy cộng dồn nghỉ phép thành công!",
+        "no_requests": "Không tìm thấy yêu cầu nào."
       },
-      "upload_btn": "Upload Excel",
+      "upload_btn": "Tải lên Excel",
       "download_template": "Tải file mẫu",
       "upload_enqueued": "Đã gửi file, đang xử lý...",
       "upload_error": "Không thể upload file",
@@ -277,11 +277,11 @@
         "date_warning": "Lưu ý: Ngày hiệu lực sẽ quyết định kỳ lương nào bị ảnh hưởng. Các thay đổi sẽ tự động áp dụng cho mọi phép tính lương từ ngày này trở đi.",
         "virtual": "Mặc định hệ thống",
         "status": "Trạng thái",
-        "std_days": "Std. Work Days",
-        "no_history": "No config history",
-        "dept_title": "Department Payroll Config",
-        "std_days_history": "Std. Days History",
-        "std_days_override": "Std. Days Override",
+        "std_days": "Số ngày công chuẩn",
+        "no_history": "Chưa có lịch sử cấu hình",
+        "dept_title": "Cấu hình lương phòng ban",
+        "std_days_history": "Lịch sử công chuẩn",
+        "std_days_override": "Ghi đè công chuẩn",
         "max_ot_hours_per_day": "OT tối đa / Ngày",
         "max_ot_hours_per_month": "OT tối đa / Tháng",
         "max_ot_day_short": "OT/Ngày",
@@ -305,7 +305,7 @@
         "std_days": "Công chuẩn",
         "actual": "Thực tế",
         "amount": "Số tiền",
-        "deductions": "Deductions"
+        "deductions": "Khấu trừ"
       },
       "status": {
         "paid": "ĐÃ CHI TRẢ",
@@ -316,124 +316,124 @@
       },
       "employee_config": {
         "tab_title": "Cấu hình lương",
-        "title": "Employee Salary Config",
-        "add_btn": "Add Salary Item",
-        "effective_note_title": "Effectivity Note",
-        "salary_items_subtitle": "List of employee income items.",
-        "effective_note": "Note: If multiple records exist for the same item, the one with the latest effective date (closest to calculation date) will be used.",
-        "item_type": "Salary Item Type",
-        "no_config": "No salary config found",
-        "salary_item": "Salary Item",
-        "add_new_title": "Add New Config"
+        "title": "Cấu hình lương nhân viên",
+        "add_btn": "Thêm khoản lương",
+        "effective_note_title": "Lưu ý về hiệu lực",
+        "salary_items_subtitle": "Danh sách các khoản thu nhập của nhân viên.",
+        "effective_note": "Lưu ý: Nếu có nhiều bản ghi cho cùng một mục, bản ghi có ngày hiệu lực muộn nhất (gần nhất với ngày tính toán) sẽ được sử dụng.",
+        "item_type": "Loại khoản lương",
+        "no_config": "Không tìm thấy cấu hình lương",
+        "salary_item": "Khoản lương",
+        "add_new_title": "Thêm cấu hình mới"
       },
       "selection": {
-        "all_filtered_selected": "All {{count}} employees in this list are selected.",
-        "count_selected": "{{count}} employees selected.",
-        "select_all_filtered": "Select all {{count}} employees"
+        "all_filtered_selected": "Tất cả {{count}} nhân viên trong danh sách này đã được chọn.",
+        "count_selected": "Đã chọn {{count}} nhân viên.",
+        "select_all_filtered": "Chọn tất cả {{count}} nhân viên"
       },
       "traceability": {
-        "hierarchy_title": "Config Priority Hierarchy",
-        "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Workspace.",
-        "individual_policy": "Individual Policy",
-        "department_policy": "Department Policy",
-        "workspace_default": "Workspace Default",
-        "pending_adjustments": "Has pending adjustments",
-        "recalc_needed": "Recalculation needed",
-        "view_adjustments": "View adjustments"
+        "hierarchy_title": "Thứ tự ưu tiên cấu hình",
+        "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Workspace.",
+        "individual_policy": "Chính sách cá nhân",
+        "department_policy": "Chính sách phòng ban",
+        "workspace_default": "Mặc định Workspace",
+        "pending_adjustments": "Có hiệu chỉnh chờ xử lý",
+        "recalc_needed": "Cần tính toán lại",
+        "view_adjustments": "Xem hiệu chỉnh"
       },
-      "title": "Payroll",
-      "subtitle": "Manage income and payslips",
-      "search_placeholder": "Search employees...",
-      "employee_profile": "Personnel Salary Profile",
-      "calculate_btn": "Calculate New",
-      "history_title": "Payslips History",
+      "title": "Lương",
+      "subtitle": "Quản lý thu nhập và phiếu lương",
+      "search_placeholder": "Tìm kiếm nhân viên...",
+      "employee_profile": "Hồ sơ lương nhân sự",
+      "calculate_btn": "Tính lương mới",
+      "history_title": "Lịch sử phiếu lương",
       "empty_state": {
-        "title": "Select personnel to continue",
-        "desc": "View payslip history or calculate new monthly salary for employees."
+        "title": "Chọn nhân sự để tiếp tục",
+        "desc": "Xem lịch sử phiếu lương hoặc tính lương tháng mới cho nhân viên."
       },
       "components": {
-        "title": "Salary Components Catalog",
-        "subtitle": "Define income and deduction items.",
-        "form_subtitle": "Component parameters",
-        "add_new": "Add Component",
-        "no_components": "No components yet",
-        "use_for_ot": "Use for OT",
-        "no_ot": "No OT",
-        "taxable": "Taxable",
-        "tax_exempt": "Exempt",
-        "name_placeholder": "Ex: Meal Allowance",
-        "code_label": "Code",
-        "ot_base_label": "Use as base for OT",
-        "ot_base_desc": "System aggregates these items to calculate hourly rate.",
-        "taxable_label": "Taxable income item",
-        "taxable_desc": "This item will be included in personal income tax calculation."
+        "title": "Danh mục thành phần lương",
+        "subtitle": "Định nghĩa các khoản thu nhập và khấu trừ.",
+        "form_subtitle": "Thông số thành phần",
+        "add_new": "Thêm thành phần",
+        "no_components": "Chưa có thành phần nào",
+        "use_for_ot": "Tính OT",
+        "no_ot": "Không tính OT",
+        "taxable": "Tính thuế",
+        "tax_exempt": "Miễn thuế",
+        "name_placeholder": "Ví dụ: Phụ cấp ăn trưa",
+        "code_label": "Mã",
+        "ot_base_label": "Dùng làm gốc tính OT",
+        "ot_base_desc": "Hệ thống cộng dồn các khoản này để tính lương giờ.",
+        "taxable_label": "Khoản thu nhập chịu thuế",
+        "taxable_desc": "Khoản này sẽ được tính vào thu nhập chịu thuế TNCN."
       },
       "modal": {
-        "title": "Calculate Monthly Salary",
-        "subtitle": "Processing Data",
-        "submit": "Start Calculation"
+        "title": "Tính lương tháng",
+        "subtitle": "Xử lý dữ liệu",
+        "submit": "Bắt đầu tính lương"
       },
       "messages": {
-        "calculate_success": "Payroll calculated successfully.",
-        "calculate_error": "Calculation error"
+        "calculate_success": "Đã tính lương thành công.",
+        "calculate_error": "Lỗi khi tính lương"
       },
       "adjustments": {
-        "title": "Attendance Adjustments",
-        "resolved_success": "Adjustment resolved successfully",
-        "resolved_error": "Error resolving adjustment",
-        "all_clear": "All requests resolved!"
+        "title": "Hiệu chỉnh chấm công",
+        "resolved_success": "Đã xử lý hiệu chỉnh thành công",
+        "resolved_error": "Lỗi khi xử lý hiệu chỉnh",
+        "all_clear": "Tất cả yêu cầu đã được xử lý!"
       },
       "document": {
-        "title": "Pay Slip",
-        "system_subtitle": "Attendance & Payroll System",
-        "verified": "Verified Document",
-        "period": "Period",
-        "employee_details": "Employee Details",
-        "name": "Name",
-        "employee_id": "Employee ID",
-        "department": "Department",
-        "net_payment": "Net Payment",
-        "paid_via": "Paid via Bank Transfer",
-        "earnings_breakdown": "Earnings Breakdown",
-        "description": "Description",
-        "amount": "Amount",
-        "base_salary": "Base Salary",
-        "segment": "Segment",
-        "code": "Code",
-        "monthly": "Monthly",
-        "days_at_rate": "{{days}} Days @ {{rate}}/day",
-        "overtime_compensation": "Overtime Compensation",
-        "units": "Units",
-        "gross_pay": "Gross Pay",
-        "deductions": "Deductions",
-        "net_pay": "Net Pay",
-        "note": "Note: This is a computer-generated document and does not require a physical signature. Any discrepancies should be reported to the HR department within 3 working days.",
-        "generated_by": "Generated by LeeAttend System",
-        "print_payslip": "Print Payslip",
-        "print_hint": "Use the print button above to save as PDF or print a physical copy.",
-        "preview_title": "Official Payslip Preview"
+        "title": "Phiếu lương",
+        "system_subtitle": "Hệ thống Chấm công & Lương",
+        "verified": "Tài liệu đã xác thực",
+        "period": "Kỳ lương",
+        "employee_details": "Thông tin nhân viên",
+        "name": "Họ tên",
+        "employee_id": "Mã nhân viên",
+        "department": "Phòng ban",
+        "net_payment": "Thực nhận",
+        "paid_via": "Chuyển khoản ngân hàng",
+        "earnings_breakdown": "Chi tiết thu nhập",
+        "description": "Mô tả",
+        "amount": "Số tiền",
+        "base_salary": "Lương cơ bản",
+        "segment": "Phân đoạn",
+        "code": "Mã",
+        "monthly": "Hàng tháng",
+        "days_at_rate": "{{days}} Ngày @ {{rate}}/ngày",
+        "overtime_compensation": "Lương tăng ca",
+        "units": "Đơn vị",
+        "gross_pay": "Tổng thu nhập",
+        "deductions": "Khấu trừ",
+        "net_pay": "Thực nhận",
+        "note": "Lưu ý: Đây là tài liệu được tạo tự động bởi hệ thống và không cần chữ ký vật lý. Mọi sai sót vui lòng phản hồi cho bộ phận Nhân sự trong vòng 3 ngày làm việc.",
+        "generated_by": "Tạo bởi Hệ thống LeeAttend",
+        "print_payslip": "In Phiếu lương",
+        "print_hint": "Sử dụng nút In phía trên để lưu PDF hoặc in bản cứng.",
+        "preview_title": "Xem trước Phiếu lương Chính thức"
       },
       "incentives": {
-        "title": "Incentive & Bonus Policies",
-        "add_btn": "New Policy",
-        "policy_name": "Policy Name",
-        "base_amount": "Base Amount",
-        "tiers_config": "Evaluation Tiers",
-        "name_required": "Policy name is required",
-        "no_policies": "No incentive policies"
+        "title": "Chính sách Thưởng & Ưu đãi",
+        "add_btn": "Chính sách mới",
+        "policy_name": "Tên chính sách",
+        "base_amount": "Số tiền gốc",
+        "tiers_config": "Bậc đánh giá",
+        "name_required": "Tên chính sách là bắt buộc",
+        "no_policies": "Chưa có chính sách thưởng nào"
       },
-      "overtime_policies": "Overtime Policies",
-      "overtime_policies_desc": "Manage overtime pay rules based on time and day.",
-      "no_overtime_policies": "No overtime policies found.",
-      "create_first_policy": "Create your first policy now.",
-      "rules": "Calculation Rules",
-      "add_rule": "Add Rule",
-      "assign_policy": "Assign Policy",
-      "assign_overtime_policy": "Assign Overtime Policy",
-      "assignee_type": "Assignee Type",
-      "select_policy": "Select Policy",
-      "select_policy_placeholder": "-- Choose Policy --",
-      "effective_from": "Effective From"
+      "overtime_policies": "Chính sách tăng ca",
+      "overtime_policies_desc": "Quản lý quy tắc trả lương tăng ca dựa trên thời gian và ngày.",
+      "no_overtime_policies": "Chưa tìm thấy chính sách tăng ca nào.",
+      "create_first_policy": "Tạo chính sách đầu tiên ngay.",
+      "rules": "Quy tắc tính toán",
+      "add_rule": "Thêm quy tắc",
+      "assign_policy": "Gán chính sách",
+      "assign_overtime_policy": "Gán chính sách tăng ca",
+      "assignee_type": "Loại đối tượng áp dụng",
+      "select_policy": "Chọn chính sách",
+      "select_policy_placeholder": "-- Chọn một chính sách --",
+      "effective_from": "Ngày hiệu lực"
     },
     "agents": {
       "edit_modal": {
@@ -457,43 +457,43 @@
         "pending": "Chờ duyệt",
         "closed": "Closed"
       },
-      "title": "Agent Management",
-      "subtitle": "Approve and control Edge Agent connection points",
-      "add_btn": "Declare Agent",
-      "add_form_title": "Setup New Agent",
-      "save_btn": "Save Agent",
-      "id_label": "Agent ID",
-      "name_label": "Branch Name",
-      "token_label": "Security Token",
+      "title": "Quản lý Agent",
+      "subtitle": "Phê duyệt và kiểm soát các điểm kết nối Edge Agent",
+      "add_btn": "Khai báo Agent",
+      "add_form_title": "Thiết lập Agent mới",
+      "save_btn": "Lưu Agent",
+      "id_label": "Mã Agent",
+      "name_label": "Tên Chi nhánh",
+      "token_label": "Token bảo mật",
       "actions": {
-        "hide_inactive": "Hide closed Agents",
-        "show_inactive": "Show closed Agents",
-        "showing_archived": "Showing archived",
-        "show_archived": "Show archived",
-        "declare_agent": "Declare Agent"
+        "hide_inactive": "Ẩn các Agent đã đóng",
+        "show_inactive": "Hiện các Agent đã đóng",
+        "showing_archived": "Đang hiện lưu trữ",
+        "show_archived": "Hiện lưu trữ",
+        "declare_agent": "Khai báo Agent"
       },
       "table": {
-        "identifier": "Identifier",
+        "identifier": "Định danh",
         "token": "Token",
-        "last_ip": "Last IP",
-        "agent": "Agent Name",
-        "status": "Status",
-        "last_seen": "Last Seen",
-        "no_agents": "No agents found."
+        "last_ip": "IP cuối",
+        "agent": "Tên Agent",
+        "status": "Trạng thái",
+        "last_seen": "Thấy lần cuối",
+        "no_agents": "Không tìm thấy Agent nào."
       },
       "messages": {
-        "restore_success": "Restored Agent {{name}}",
-        "restore_error": "Error restoring Agent.",
-        "add_success": "Agent declared successfully.",
-        "add_error": "Error adding Agent. ID might already exist.",
-        "confirm_trust": "Are you sure you want to {{action}} for Agent {{id}}?",
-        "trust_success": "Successfully {{action}} for Agent.",
-        "update_status_error": "Error updating status.",
-        "confirm_delete": "Are you sure you want to delete Agent {{name}} ({{id}})? \nThis will disconnect and hide the Agent from the system.",
-        "delete_success": "Deleted Agent {{name}}.",
-        "delete_error": "Error deleting Agent.",
-        "no_agents": "No agents declared yet.",
-        "update_success": "Updated Agent {{name}} successfully."
+        "restore_success": "Đã khôi phục Agent {{name}}",
+        "restore_error": "Lỗi khi khôi phục Agent.",
+        "add_success": "Đã khai báo Agent thành công.",
+        "add_error": "Lỗi khi thêm Agent. Mã ID có thể đã tồn tại.",
+        "confirm_trust": "Bạn có chắc chắn muốn {{action}} cho Agent {{id}} không?",
+        "trust_success": "Đã {{action}} thành công cho Agent.",
+        "update_status_error": "Lỗi khi cập nhật trạng thái.",
+        "confirm_delete": "Bạn có chắc chắn muốn xóa Agent {{name}} ({{id}})? \nThao tác này sẽ ngắt kết nối và ẩn Agent khỏi hệ thống.",
+        "delete_success": "Đã xóa Agent {{name}}.",
+        "delete_error": "Lỗi khi xóa Agent.",
+        "no_agents": "Chưa có Agent nào được khai báo.",
+        "update_success": "Đã cập nhật Agent {{name}} thành công."
       }
     },
     "devices": "Thiết bị",
@@ -526,51 +526,51 @@
         "connectivity": "Kết nối",
         "general": "Chung",
         "organization": "Tổ chức",
-        "general_desc": "Branding and basic workspace options.",
+        "general_desc": "Thương hiệu và các tùy chọn cơ bản.",
         "organization_desc": "Quản lý thông tin tổ chức và thương hiệu.",
-        "leave": "Leave Management"
+        "leave": "Quản lý nghỉ phép"
       },
-      "title": "Settings Hub",
-      "navigation": "Navigation",
-      "admin_only": "Administrators only",
+      "title": "Trung tâm Cài đặt",
+      "navigation": "Điều hướng",
+      "admin_only": "Chỉ dành cho Quản trị viên",
       "leave": {
-        "title": "Leave Settings",
-        "desc": "Configure leave types and accrual policies for your workspace.",
+        "title": "Cài đặt Nghỉ phép",
+        "desc": "Cấu hình các loại nghỉ phép và chính sách tích lũy cho workspace của bạn.",
         "tabs": {
-          "types": "Leave Types",
-          "policies": "Accrual Policies",
-          "types_desc": "Define available leave types and their rules",
-          "policies_desc": "Set up how leave is earned over time",
-          "assignments": "Policy Assignments",
-          "assignments_desc": "Assign policies to employees or departments"
+          "types": "Các loại nghỉ",
+          "policies": "Chính sách tích lũy",
+          "types_desc": "Định nghĩa các loại nghỉ phép và quy tắc đi kèm",
+          "policies_desc": "Thiết lập cách tích lũy ngày phép theo thời gian",
+          "assignments": "Gán chính sách",
+          "assignments_desc": "Gán chính sách cho nhân viên hoặc phòng ban"
         },
         "messages": {
-          "update_success": "Leave type updated successfully",
-          "update_error": "Failed to update leave type",
-          "create_success": "Policy created successfully",
-          "delete_success": "Policy deleted successfully",
-          "assignment_note": "Policy assignments define how leave is calculated for each person. Changes will be applied during the next scheduled accrual run or can be forced via the \"Accrual Run\" tool in General Settings.",
-          "loading": "Loading assignments...",
-          "no_assignments": "No policy assignments found"
+          "update_success": "Đã cập nhật loại nghỉ phép thành công",
+          "update_error": "Lỗi khi cập nhật loại nghỉ phép",
+          "create_success": "Đã tạo chính sách thành công",
+          "delete_success": "Đã xóa chính sách thành công",
+          "assignment_note": "Gán chính sách xác định cách tính toán nghỉ phép cho mỗi người. Các thay đổi sẽ được áp dụng trong đợt tích lũy định kỳ tiếp theo hoặc có thể chạy thủ công qua công cụ \"Chạy tích lũy\" trong Cài đặt chung.",
+          "loading": "Đang tải dữ liệu gán...",
+          "no_assignments": "Không tìm thấy thông tin gán chính sách nào"
         },
         "fields": {
-          "approval": "Approval",
-          "document": "Document",
-          "days_per_period": "days / period"
+          "approval": "Phê duyệt",
+          "document": "Chứng từ",
+          "days_per_period": "ngày / kỳ"
         },
         "types": {
-          "paid": "Paid Leave",
-          "unpaid": "Unpaid Leave"
+          "paid": "Nghỉ hưởng lương",
+          "unpaid": "Nghỉ không lương"
         },
         "actions": {
-          "assign": "Assign Policy"
+          "assign": "Gán chính sách"
         },
         "table": {
-          "policy": "Policy",
-          "type": "Type",
-          "assignee": "Assignee",
-          "effective_date": "Effective Date",
-          "created_at": "Created At"
+          "policy": "Chính sách",
+          "type": "Loại",
+          "assignee": "Đối tượng gán",
+          "effective_date": "Ngày hiệu lực",
+          "created_at": "Ngày tạo"
         }
       }
     },
@@ -635,21 +635,21 @@
     "approve": "Phê duyệt",
     "reject": "Từ chối",
     "days": {
-      "sunday": "Sunday",
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "monday_short": "Mon",
-      "tuesday_short": "Tue",
-      "wednesday_short": "Wed",
-      "thursday_short": "Thu",
-      "friday_short": "Fri",
-      "saturday_short": "Sat",
-      "sunday_short": "Sun",
-      "label": "days"
+      "sunday": "Chủ nhật",
+      "monday": "Thứ hai",
+      "tuesday": "Thứ ba",
+      "wednesday": "Thứ tư",
+      "thursday": "Thứ năm",
+      "friday": "Thứ sáu",
+      "saturday": "Thứ bảy",
+      "monday_short": "T2",
+      "tuesday_short": "T3",
+      "wednesday_short": "T4",
+      "thursday_short": "T5",
+      "friday_short": "T6",
+      "saturday_short": "T7",
+      "sunday_short": "CN",
+      "label": "ngày"
     },
     "break": "Nghỉ",
     "feature_coming_soon": "Chức năng này sẽ sớm được ra mắt",
@@ -809,279 +809,279 @@
     "disable": "Tắt",
     "enable": "Bật",
     "attendance_logs": {
-      "title": "Punch Logs",
-      "subtitle": "Raw data from timekeepers and punch sources.",
-      "export_btn": "Export Data",
-      "import_btn": "Import Data",
+      "title": "Nhật ký chấm công",
+      "subtitle": "Dữ liệu thô từ máy chấm công và các nguồn khác.",
+      "export_btn": "Xuất dữ liệu",
+      "import_btn": "Nhập dữ liệu",
       "status": {
-        "recorded": "Recorded"
+        "recorded": "Đã ghi nhận"
       },
       "tabs": {
-        "recorded": "Recorded Logs",
-        "unknown": "Unidentified"
+        "recorded": "Nhật ký đã ghi",
+        "unknown": "Không xác định"
       },
-      "unknown_id": "Unknown ID",
-      "not_in_system": "Not in system",
-      "select_employee": "Select employee...",
-      "assign": "Assign",
-      "create_employee": "Create",
+      "unknown_id": "ID lạ",
+      "not_in_system": "Không có trong hệ thống",
+      "select_employee": "Chọn nhân viên...",
+      "assign": "Gán",
+      "create_employee": "Tạo mới",
       "messages": {
-        "loading": "Loading logs...",
-        "no_data": "No punch logs found.",
-        "no_unknown_logs": "No unidentified logs"
+        "loading": "Đang tải nhật ký...",
+        "no_data": "Không tìm thấy nhật ký chấm công.",
+        "no_unknown_logs": "Không có nhật ký không xác định"
       },
       "modal": {
-        "import_title": "Import punch logs from file"
+        "import_title": "Nhập nhật ký chấm công từ file"
       },
       "view_reports": "Xem Báo Cáo Tổng Hợp"
     },
     "attendance_import": {
-      "subtitle": "Bulk Data Import",
-      "rows_processed": "rows processed",
-      "error_list_title": "Detailed Error List:",
-      "select_another_file": "Select another file",
-      "upload_prompt": "Click or drag file here",
-      "upload_limit": "Excel or CSV (Max 10MB)",
-      "start_import": "Start Import",
+      "subtitle": "Nhập dữ liệu hàng loạt",
+      "rows_processed": "dòng đã xử lý",
+      "error_list_title": "Danh sách lỗi chi tiết:",
+      "select_another_file": "Chọn file khác",
+      "upload_prompt": "Click hoặc kéo thả file vào đây",
+      "upload_limit": "Excel hoặc CSV (Tối đa 10MB)",
+      "start_import": "Bắt đầu nhập",
       "status": {
-        "processing": "Processing data...",
-        "completed": "Completed!",
-        "failed": "An error occurred",
-        "pending": "Pending...",
-        "uploading": "Uploading..."
+        "processing": "Đang xử lý dữ liệu...",
+        "completed": "Hoàn tất!",
+        "failed": "Đã xảy ra lỗi",
+        "pending": "Đang chờ...",
+        "uploading": "Đang tải lên..."
       },
       "file_requirements": {
-        "title": "File Format Requirements:",
-        "col_a": "Column A: Employee ID",
-        "col_b": "Column B: Employee Name (Optional)",
-        "col_c": "Column C: Punch Time (DD/MM/YYYY HH:mm)",
-        "formats": "Supports .xlsx, .xls and .csv files"
+        "title": "Yêu cầu về định dạng file:",
+        "col_a": "Cột A: Mã nhân viên",
+        "col_b": "Cột B: Tên nhân viên (Tùy chọn)",
+        "col_c": "Cột C: Giờ chấm công (DD/MM/YYYY HH:mm)",
+        "formats": "Hỗ trợ các định dạng .xlsx, .xls và .csv"
       },
       "messages": {
-        "upload_error": "Error uploading file"
+        "upload_error": "Lỗi khi tải file lên"
       }
     },
     "onboarding": {
-      "welcome_title": "Welcome!",
-      "welcome_subtitle": "Let's create your first organization (Workspace)",
-      "org_name_label": "Organization Name",
-      "org_name_placeholder": "Ex: ABC Company, LeeAttend Team...",
-      "start_now_btn": "Start Now",
-      "workspace_desc": "A Workspace is a separate environment to help you manage devices and members in one place.",
+      "welcome_title": "Chào mừng!",
+      "welcome_subtitle": "Hãy tạo tổ chức (Workspace) đầu tiên của bạn",
+      "org_name_label": "Tên tổ chức",
+      "org_name_placeholder": "VD: Công ty ABC, Team LeeAttend...",
+      "start_now_btn": "Bắt đầu ngay",
+      "workspace_desc": "Workspace là một môi trường riêng biệt giúp bạn quản lý thiết bị và thành viên tại một nơi duy nhất.",
       "messages": {
-        "create_error": "Could not create Workspace. Please try again."
+        "create_error": "Không thể tạo Workspace. Vui lòng thử lại."
       }
     },
     "patterns": {
-      "title": "Working Patterns",
-      "subtitle": "Manage recurring work schedules for employees",
-      "manage_btn": "Manage Patterns",
-      "create_btn": "Create Pattern",
-      "create_title": "Create Working Pattern",
-      "create_subtitle": "Define weekly pattern",
-      "create_submit": "Create Pattern",
-      "empty_title": "No patterns yet",
-      "empty_desc": "Create a pattern to quickly assign recurring shifts to employees.",
-      "create_first": "Create First Pattern",
-      "weekly_schedule": "Weekly Schedule",
-      "select_pattern": "Select Pattern",
-      "view_details": "Pattern Details",
+      "title": "Mẫu ca làm việc",
+      "subtitle": "Quản lý các lịch làm việc định kỳ cho nhân viên",
+      "manage_btn": "Quản lý mẫu",
+      "create_btn": "Tạo mẫu",
+      "create_title": "Tạo mẫu ca làm việc",
+      "create_subtitle": "Định nghĩa chu kỳ hàng tuần",
+      "create_submit": "Tạo mẫu",
+      "empty_title": "Chưa có mẫu nào",
+      "empty_desc": "Tạo một mẫu để nhanh chóng gán lịch làm việc định kỳ cho nhân viên.",
+      "create_first": "Tạo mẫu đầu tiên",
+      "weekly_schedule": "Lịch tuần",
+      "select_pattern": "Chọn mẫu",
+      "view_details": "Chi tiết mẫu",
       "form": {
-        "name": "Pattern Name",
-        "description": "Description",
-        "select_pattern": "Select Pattern",
-        "select_pattern_label": "Select Pattern",
-        "select_pattern_placeholder": "Select a pattern...",
-        "start_date": "Effective Start Date",
-        "start_date_label": "Start Date",
-        "start_date_note": "Schedule will auto-repeat from this date.",
-        "select_employees": "Select Employees",
-        "select_employees_label": "Applied Employees",
-        "select_employees_placeholder": "Search and select...",
-        "name_placeholder": "Ex: Office Hours, Night Shift Rotation",
-        "name_label": "Pattern Name",
-        "desc_placeholder": "Optional description",
-        "desc_label": "Short description",
-        "weekly_grid_title": "Weekly Schedule Grid",
-        "prefill_standard": "Fill Standard Pattern"
+        "name": "Tên mẫu",
+        "description": "Mô tả",
+        "select_pattern": "Chọn mẫu",
+        "select_pattern_label": "Chọn mẫu",
+        "select_pattern_placeholder": "Chọn một mẫu...",
+        "start_date": "Ngày bắt đầu hiệu lực",
+        "start_date_label": "Ngày bắt đầu",
+        "start_date_note": "Lịch trình sẽ tự động lặp lại từ ngày này.",
+        "select_employees": "Chọn nhân viên",
+        "select_employees_label": "Nhân viên áp dụng",
+        "select_employees_placeholder": "Tìm kiếm và chọn...",
+        "name_placeholder": "VD: Giờ hành chính, Xoay ca đêm",
+        "name_label": "Tên mẫu",
+        "desc_placeholder": "Mô tả tùy chọn",
+        "desc_label": "Mô tả ngắn",
+        "weekly_grid_title": "Lưới lịch làm việc hàng tuần",
+        "prefill_standard": "Điền mẫu chuẩn"
       },
-      "weekly_config": "Weekly Config",
+      "weekly_config": "Cấu hình tuần",
       "actions": {
-        "prefill_standard": "Quick Fill: Office (Mon-Fri)"
+        "prefill_standard": "Điền nhanh: Văn phòng (Thứ 2-6)"
       },
-      "validation_name_required": "Please enter pattern name.",
+      "validation_name_required": "Vui lòng nhập tên mẫu.",
       "messages": {
-        "create_success": "Working pattern created successfully.",
-        "create_error": "Error creating working pattern.",
-        "delete_success": "Working pattern deleted successfully.",
-        "delete_error": "Error deleting working pattern.",
-        "bulk_assign_success_count": "Assigned pattern to {{count}} employees.",
-        "bulk_assign_conflict": "Some employees already have schedules, system will override.",
-        "bulk_assign_error": "Error in bulk assignment."
+        "create_success": "Đã tạo mẫu ca làm việc thành công.",
+        "create_error": "Lỗi khi tạo mẫu ca làm việc.",
+        "delete_success": "Đã xóa mẫu ca làm việc thành công.",
+        "delete_error": "Lỗi khi xóa mẫu ca làm việc.",
+        "bulk_assign_success_count": "Đã gán mẫu cho {{count}} nhân viên.",
+        "bulk_assign_conflict": "Một số nhân viên đã có lịch trình, hệ thống sẽ ghi đè.",
+        "bulk_assign_error": "Lỗi khi gán hàng loạt."
       },
-      "confirm_delete": "Are you sure you want to delete pattern \"{{name}}\" ?",
-      "bulk_assign_btn": "Bulk Assign",
-      "bulk_assign_title": "Bulk Assign Pattern",
-      "bulk_assign_subtitle": "Assign pattern to multiple employees at once",
+      "confirm_delete": "Bạn có chắc chắn muốn xóa mẫu \"{{name}}\" không?",
+      "bulk_assign_btn": "Gán hàng loạt",
+      "bulk_assign_title": "Gán mẫu hàng loạt",
+      "bulk_assign_subtitle": "Gán mẫu cho nhiều nhân viên cùng lúc",
       "modal": {
-        "create_title": "Create New Rotation",
-        "subtitle": "Setup recurring schedule",
-        "submit_btn": "Save Pattern",
-        "assign_btn": "Confirm Assignment",
-        "bulk_subtitle": "Schedule Allocation"
+        "create_title": "Tạo chu kỳ mới",
+        "subtitle": "Thiết lập lịch trình định kỳ",
+        "submit_btn": "Lưu mẫu",
+        "assign_btn": "Xác nhận gán",
+        "bulk_subtitle": "Phân bổ lịch trình"
       },
-      "validation_pattern_required": "Please select a pattern.",
-      "validation_employees_required": "Please select at least one employee.",
-      "bulk_assign_submit": "Confirm Assign"
+      "validation_pattern_required": "Vui lòng chọn một mẫu.",
+      "validation_employees_required": "Vui lòng chọn ít nhất một nhân viên.",
+      "bulk_assign_submit": "Xác nhận gán"
     },
     "rules": {
-      "title": "Auto-assign Rules",
-      "subtitle": "Automatically assign patterns to employees based on conditions",
-      "create_btn": "Add Rule",
+      "title": "Quy tắc tự động gán",
+      "subtitle": "Tự động gán mẫu ca làm việc cho nhân viên dựa trên điều kiện",
+      "create_btn": "Thêm quy tắc",
       "table": {
-        "priority": "Priority",
-        "name": "Rule Name",
-        "pattern": "Assigned Pattern",
-        "conditions": "Conditions"
+        "priority": "Ưu tiên",
+        "name": "Tên quy tắc",
+        "pattern": "Mẫu được gán",
+        "conditions": "Điều kiện"
       },
-      "match_all": "Workspace-wide (Match All)",
-      "empty_list": "No assignment rules yet",
-      "info_priority": "Rules are evaluated from highest to lowest priority. The first matching rule will be applied. General rules should have lowest priority.",
-      "edit_title": "Edit Rule",
-      "create_title": "Create New Rule",
-      "form_subtitle": "Define when this pattern should be applied",
+      "match_all": "Toàn hệ thống (Khớp tất cả)",
+      "empty_list": "Chưa có quy tắc gán nào",
+      "info_priority": "Các quy tắc được đánh giá từ mức ưu tiên cao nhất đến thấp nhất. Quy tắc khớp đầu tiên sẽ được áp dụng. Các quy tắc chung nên có mức ưu tiên thấp nhất.",
+      "edit_title": "Sửa quy tắc",
+      "create_title": "Tạo quy tắc mới",
+      "form_subtitle": "Định nghĩa khi nào mẫu này được áp dụng",
       "form": {
-        "name": "Rule Name",
-        "priority": "Priority (Higher is stronger)",
-        "pattern": "Select Pattern",
-        "name_placeholder": "Ex: Tech Support Night Shift",
-        "tags_placeholder": "NightShift, Hanoi, VVIP"
+        "name": "Tên quy tắc",
+        "priority": "Mức ưu tiên (Cao hơn là mạnh hơn)",
+        "pattern": "Chọn mẫu",
+        "name_placeholder": "VD: Ca đêm hỗ trợ kỹ thuật",
+        "tags_placeholder": "CaDem, HaNoi, VVIP"
       },
-      "conditions_title": "Matching Conditions",
-      "condition_help": "Leave empty to match all employees (within scope of other conditions).",
+      "conditions_title": "Điều kiện khớp",
+      "condition_help": "Để trống để khớp với tất cả nhân viên (trong phạm vi của các điều kiện khác).",
       "messages": {
-        "create_success": "Rule created successfully",
-        "update_success": "Rule updated successfully",
-        "delete_success": "Rule deleted"
+        "create_success": "Đã tạo quy tắc thành công",
+        "update_success": "Đã cập nhật quy tắc thành công",
+        "delete_success": "Đã xóa quy tắc"
       },
       "validation": {
-        "required_fields": "Name and Pattern are required"
+        "required_fields": "Tên và Mẫu là bắt buộc"
       }
     },
     "debug_tools": {
-      "title": "Debug Tools (Dev Only)",
-      "subtitle": "Quick data clearing tools for testing support.",
-      "warning": "Warning: Deleted data cannot be recovered!",
-      "full_reset_label": "FULL RESET (Careful!)",
-      "click_to_clear": "Click to clear",
+      "title": "Công cụ Gỡ lỗi (Chỉ dành cho Dev)",
+      "subtitle": "Các công cụ xóa dữ liệu nhanh để hỗ trợ kiểm thử.",
+      "warning": "Cảnh báo: Dữ liệu đã xóa không thể khôi phục!",
+      "full_reset_label": "Đặt lại TOÀN BỘ (Cẩn thận!)",
+      "click_to_clear": "Nhấn để xóa",
       "messages": {
-        "confirm_clear": "Are you sure you want to clear ALL [{{label}}] data for this Workspace? This cannot be undone.",
-        "clear_success": "Cleared [{{label}}] data successfully.",
-        "clear_error": "Error clearing data:"
+        "confirm_clear": "Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu [{{label}}] cho Workspace này không? Thao tác này không thể hoàn tác.",
+        "clear_success": "Đã xóa dữ liệu [{{label}}] thành công.",
+        "clear_error": "Lỗi khi xóa dữ liệu:"
       }
     },
     "time_tracking": {
-      "title": "Time Tracking",
-      "subtitle": "Track your work hours and breaks.",
+      "title": "Theo dõi thời gian",
+      "subtitle": "Theo dõi giờ làm việc và thời gian nghỉ của bạn.",
       "modal": {
-        "edit_title": "Edit Time Entry",
-        "new_title": "New Adjustment Request",
-        "reason_label": "Reason for adjustment",
-        "reason_placeholder": "Why are you requesting this change?",
-        "subtitle": "Request changes to your clock-in/out times."
+        "edit_title": "Sửa bản ghi thời gian",
+        "new_title": "Yêu cầu điều chỉnh mới",
+        "reason_label": "Lý do điều chỉnh",
+        "reason_placeholder": "Tại sao bạn yêu cầu thay đổi này?",
+        "subtitle": "Yêu cầu thay đổi thời gian clock-in/out của bạn."
       },
       "actions": {
         "punch_out": "Clock Out",
-        "return_to_work": "End Break",
-        "start_break": "Start Break",
+        "return_to_work": "Kết thúc nghỉ",
+        "start_break": "Bắt đầu nghỉ",
         "start_work": "Clock In"
       },
-      "forgot_punch": "Forgot to clock in/out?",
+      "forgot_punch": "Quên clock in/out?",
       "status": {
-        "break_start_at": "Break started at",
-        "off_duty": "Off Duty",
-        "on_break": "On Break",
-        "shift_start_at": "Shift started at",
-        "working": "Working"
+        "break_start_at": "Bắt đầu nghỉ lúc",
+        "off_duty": "Đã tan làm",
+        "on_break": "Đang nghỉ",
+        "shift_start_at": "Bắt đầu ca lúc",
+        "working": "Đang làm việc"
       }
     },
     "ess": {
-      "my_profile": "My Profile",
-      "no_employee_linked": "No employee linked",
-      "contact_hr": "Please contact HR to link your account with an employee profile.",
-      "personal_info": "Personal Information",
-      "phone": "Phone Number",
-      "date_of_birth": "Date of Birth",
-      "gender": "Gender",
-      "gender_male": "Male",
-      "gender_female": "Female",
-      "gender_other": "Other",
-      "national_id": "National ID",
-      "address": "Address",
-      "address_placeholder": "Enter your current residence address",
-      "bank_details": "Bank Account Information",
-      "bank_name": "Bank Name",
-      "account_number": "Account Number",
-      "bank_branch": "Branch Name",
-      "branch_placeholder": "Enter bank branch",
-      "emergency_contacts": "Emergency Contacts",
-      "add_contact": "Add Contact",
-      "no_emergency_contacts": "No emergency contacts found.",
-      "primary": "Primary",
-      "add_emergency_contact": "Add emergency contact",
-      "contact_name": "Contact Name",
-      "relationship": "Relationship",
-      "relationship_spouse": "Spouse",
-      "relationship_parent": "Parent",
-      "relationship_sibling": "Sibling",
-      "relationship_child": "Child",
-      "relationship_friend": "Friend",
-      "relationship_other": "Other",
-      "set_as_primary": "Set as primary",
+      "my_profile": "Hồ sơ của tôi",
+      "no_employee_linked": "Chưa liên kết với nhân viên",
+      "contact_hr": "Vui lòng liên hệ Nhân sự để liên kết tài khoản của bạn với hồ sơ nhân viên.",
+      "personal_info": "Thông tin cá nhân",
+      "phone": "Số điện thoại",
+      "date_of_birth": "Ngày sinh",
+      "gender": "Giới tính",
+      "gender_male": "Nam",
+      "gender_female": "Nữ",
+      "gender_other": "Khác",
+      "national_id": "Số CMND/CCCD",
+      "address": "Địa chỉ",
+      "address_placeholder": "Nhập địa chỉ cư trú hiện tại của bạn",
+      "bank_details": "Thông tin tài khoản ngân hàng",
+      "bank_name": "Tên ngân hàng",
+      "account_number": "Số tài khoản",
+      "bank_branch": "Tên chi nhánh",
+      "branch_placeholder": "Nhập chi nhánh ngân hàng",
+      "emergency_contacts": "Liên hệ khẩn cấp",
+      "add_contact": "Thêm liên hệ",
+      "no_emergency_contacts": "Không tìm thấy liên hệ khẩn cấp nào.",
+      "primary": "Chính",
+      "add_emergency_contact": "Thêm liên hệ khẩn cấp",
+      "contact_name": "Tên người liên hệ",
+      "relationship": "Mối quan hệ",
+      "relationship_spouse": "Vợ/Chồng",
+      "relationship_parent": "Bố/Mẹ",
+      "relationship_sibling": "Anh/Chị/Em",
+      "relationship_child": "Con",
+      "relationship_friend": "Bạn bè",
+      "relationship_other": "Khác",
+      "set_as_primary": "Đặt làm liên hệ chính",
       "profile": {
-        "subtitle": "View and manage your personal information.",
-        "update_success": "Profile updated successfully",
-        "update_error": "Error updating profile",
-        "title": "My Profile"
+        "subtitle": "Xem và quản lý thông tin cá nhân của bạn.",
+        "update_success": "Đã cập nhật hồ sơ thành công",
+        "update_error": "Lỗi khi cập nhật hồ sơ",
+        "title": "Hồ sơ của tôi"
       },
       "emergency_contact": {
-        "add_success": "Contact added successfully",
-        "add_error": "Error adding contact",
-        "confirm_delete": "Are you sure you want to delete this contact?",
-        "delete_success": "Contact deleted successfully",
-        "delete_error": "Error deleting contact",
-        "subtitle": "Relatives to notify in case of emergency."
+        "add_success": "Đã thêm liên hệ thành công",
+        "add_error": "Lỗi khi thêm liên hệ",
+        "confirm_delete": "Bạn có chắc chắn muốn xóa liên hệ này không?",
+        "delete_success": "Đã xóa liên hệ thành công",
+        "delete_error": "Lỗi khi xóa liên hệ",
+        "subtitle": "Người thân để thông báo trong trường hợp khẩn cấp."
       },
       "clock": {
-        "title": "Time Clock",
-        "subtitle": "Clock in and out for work and breaks",
-        "punch_in_success": "Clocked in successfully",
-        "punch_out_success": "Clocked out successfully",
-        "break_start_success": "Break started",
-        "adjustment_requested": "Adjustment request submitted",
-        "no_entries": "No recent time entries",
-        "recent_history": "Recent Activity (Last 7 Days)"
+        "title": "Máy chấm công",
+        "subtitle": "Clock in và out cho công việc và nghỉ ngơi",
+        "punch_in_success": "Clock in thành công",
+        "punch_out_success": "Clock out thành công",
+        "break_start_success": "Bắt đầu nghỉ",
+        "adjustment_requested": "Yêu cầu điều chỉnh đã được gửi",
+        "no_entries": "Không có bản ghi thời gian gần đây",
+        "recent_history": "Hoạt động gần đây (7 ngày qua)"
       },
       "attendance": {
-        "title": "My Attendance",
-        "subtitle": "View your daily clock-in/out history.",
-        "date": "Date",
+        "title": "Chấm công của tôi",
+        "subtitle": "Xem lịch sử clock-in/out hàng ngày của bạn.",
+        "date": "Ngày",
         "check_in": "Punch In",
         "check_out": "Punch Out",
-        "duration": "Duration",
-        "status": "Status",
-        "generation_info": "Processing Info (Traceability)",
-        "no_data": "No attendance data found for this month."
+        "duration": "Thời lượng",
+        "status": "Trạng thái",
+        "generation_info": "Thông tin xử lý (Truy xuất nguồn gốc)",
+        "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này."
       },
       "ot": {
-        "claim_title": "Claim Overtime",
-        "claim_desc": "Submit your overtime claim for approval",
-        "claimed_minutes": "Minutes to Claim",
-        "reason_placeholder": "Why did you work overtime?",
-        "error_zero_minutes": "Minutes must be greater than 0",
-        "error_exceeds_system": "Cannot claim more than system detected OT",
-        "system_detected": "System Detected",
-        "close": "Close"
+        "claim_title": "Yêu cầu làm thêm giờ (OT)",
+        "claim_desc": "Gửi yêu cầu làm thêm giờ của bạn để phê duyệt",
+        "claimed_minutes": "Số phút yêu cầu",
+        "reason_placeholder": "Tại sao bạn làm thêm giờ?",
+        "error_zero_minutes": "Số phút phải lớn hơn 0",
+        "error_exceeds_system": "Không thể yêu cầu nhiều hơn số phút OT hệ thống ghi nhận",
+        "system_detected": "Hệ thống ghi nhận",
+        "close": "Đóng"
       }
     },
     "columns": "Columns",
@@ -1165,7 +1165,7 @@
       "online_agents": "Agent trực tuyến",
       "total_devices": "Tổng số thiết bị",
       "active_devices": "Thiết bị đang hoạt động",
-      "edge_agents": "Edge Agents",
+      "edge_agents": "Edge Agent",
       "live_data": "Dữ liệu trực tiếp",
       "seen": "Nhìn thấy",
       "connected": "Đã kết nối",
@@ -1461,7 +1461,7 @@
       "adjustment": "Điều chỉnh số dư",
       "carry_over": "Chuyển từ năm trước"
     },
-    "label": "Leave Balances"
+    "label": "Số dư nghỉ phép"
   },
   "members": {
     "title": "Thành viên & Quyền hạn",
@@ -1645,7 +1645,7 @@
       "col_c": "Cột C: Ngày vào làm (Tùy chọn, DD/MM/YYYY)",
       "col_d": "Cột D: Tên bộ phận (Tùy chọn)"
     },
-    "label": "Employees"
+    "label": "Nhân viên"
   },
   "departments": {
     "title": "Phòng ban",
@@ -1673,7 +1673,7 @@
       "subtitle": "Cơ cấu tổ chức",
       "submit_btn": "Tạo phòng ban"
     },
-    "label": "Departments"
+    "label": "Phòng ban"
   },
   "attendance_confirm": {
     "title": "Xác nhận công",
@@ -1696,7 +1696,7 @@
     "modal": {
       "import_title": "Nhập dữ liệu chấm công từ file"
     },
-    "label": "Confirm Attendance"
+    "label": "Xác nhận công"
   },
   "attendance_logs": {
     "title": "Nhật ký quẹt thẻ",
@@ -1954,7 +1954,7 @@
       "enable_btn": "Bật thiết bị",
       "disable_btn": "Tắt thiết bị"
     },
-    "label": "Devices"
+    "label": "Thiết bị"
   },
   "connectivity": {
     "empty_guide": "Cài đặt Agent trên mạng nội bộ để kết nối thiết bị chấm công. Tải trình cài đặt từ tài liệu hướng dẫn."
@@ -1996,7 +1996,7 @@
         "change_error": "Lỗi khi thay đổi mật khẩu."
       }
     },
-    "label": "Profile"
+    "label": "Hồ sơ"
   },
   "leave_requests": {
     "title": "Yêu cầu nghỉ phép",
@@ -2085,7 +2085,7 @@
       "accrual_success": "Đã chạy tích lũy phép thành công!",
       "no_requests": "Không có yêu cầu nào."
     },
-    "upload_btn": "Upload Excel",
+    "upload_btn": "Tải lên Excel",
     "upload_processing": "Đang xử lý {{processed}}/{{total}} dòng...",
     "upload_success": "Import thành công {{success}} đơn nghỉ",
     "upload_partial": "Thành công {{success}}/{{total}}. {{errors}} dòng lỗi.",
@@ -2391,7 +2391,7 @@
       "success": "Đã gán ca và tính lại giờ công.",
       "error": "Lỗi khi xử lý chấm công ngoài lịch."
     },
-    "label": "Reports"
+    "label": "Báo cáo"
   },
   "patterns": {
     "title": "Mẫu lịch làm việc",
@@ -2603,7 +2603,7 @@
       "lowest_priority": "Mặc định hệ thống",
       "hierarchy_explanation": "Các quy tắc được đánh giá từ trên xuống dưới. Các nút cao hơn sẽ ghi đè các nút thấp hơn."
     },
-    "label": "Shifts & Roster"
+    "label": "Ca làm & Lịch trực"
   },
   "days": {
     "sunday": "Chủ Nhật",
@@ -2620,7 +2620,7 @@
     "friday_short": "T6",
     "saturday_short": "T7",
     "sunday_short": "CN",
-    "label": "days"
+    "label": "ngày"
   },
   "debug_tools": {
     "title": "Debug Tools (Chỉ dành cho Dev)",
@@ -2866,45 +2866,45 @@
     "errorMessage": "Không thể xóa dữ liệu"
   },
   "billing": {
-    "comingSoon": "Coming Soon",
-    "comingSoonDesc": "Coming soon description",
-    "subtitle": "Billing subtitle",
-    "title": "Billing"
+    "comingSoon": "Sắp ra mắt",
+    "comingSoonDesc": "Tính năng quản lý thanh toán và gói dịch vụ đang được phát triển.",
+    "subtitle": "Quản lý gói dịch vụ và thanh toán",
+    "title": "Thanh toán"
   },
   "overview": {
-    "activeWorkspace": "Active Workspace",
-    "adminFallback": "Admin Fallback",
-    "adminMembers": "Admin Members",
-    "admins": "Admins",
-    "created": "Created",
-    "lateToday": "Late Today",
-    "onLeave": "On Leave",
-    "presentToday": "Present Today",
-    "timezone": "Timezone",
-    "title": "Overview",
-    "totalEmployees": "Total Employees"
+    "activeWorkspace": "Workspace đang hoạt động",
+    "adminFallback": "Quản trị viên dự phòng",
+    "adminMembers": "Thành viên quản trị",
+    "admins": "Quản trị viên",
+    "created": "Ngày tạo",
+    "lateToday": "Đi muộn hôm nay",
+    "onLeave": "Nghỉ phép",
+    "presentToday": "Có mặt hôm nay",
+    "timezone": "Múi giờ",
+    "title": "Tổng quan",
+    "totalEmployees": "Tổng số nhân viên"
   },
   "permissions": {
-    "modules": "Modules",
-    "permissionsLabel": "Permissions",
-    "saveMatrix": "Save Matrix",
-    "subtitle": "Permissions subtitle",
-    "systemRoleInfo": "System role info",
-    "title": "Permissions",
-    "unsavedChanges": "Unsaved changes",
-    "visibleRoles": "Visible roles"
+    "modules": "Phân hệ",
+    "permissionsLabel": "Quyền hạn",
+    "saveMatrix": "Lưu ma trận quyền",
+    "subtitle": "Cấu hình quyền chi tiết cho từng chức năng",
+    "systemRoleInfo": "Thông tin vai trò hệ thống",
+    "title": "Quyền hạn",
+    "unsavedChanges": "Có thay đổi chưa lưu",
+    "visibleRoles": "Vai trò hiển thị"
   },
   "rolesPage": {
-    "confirmDelete": "Confirm Delete",
-    "createRole": "Create Role",
-    "deleteRole": "Delete Role",
-    "deleteTitle": "Delete Title",
-    "editRole": "Edit Role",
-    "manageAccess": "Manage Access",
-    "matrix": "Matrix",
-    "noDescription": "No description",
-    "roleId": "Role ID",
-    "subtitle": "Roles subtitle",
-    "title": "Roles"
+    "confirmDelete": "Xác nhận xóa",
+    "createRole": "Tạo vai trò",
+    "deleteRole": "Xóa vai trò",
+    "deleteTitle": "Xóa tiêu đề",
+    "editRole": "Sửa vai trò",
+    "manageAccess": "Quản lý truy cập",
+    "matrix": "Ma trận",
+    "noDescription": "Không có mô tả",
+    "roleId": "Mã vai trò",
+    "subtitle": "Quản lý các vai trò tùy chỉnh trong workspace",
+    "title": "Vai trò"
   }
 }

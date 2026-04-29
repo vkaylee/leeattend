@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { X, Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
 import { useMemberRoles, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 
@@ -22,6 +23,7 @@ export default function RoleManagementModal({
   const { formatDateTime } = useDateTimeFormatter();
   const { roles: memberRoles, isLoading, updatePrimaryRole, assignRole, revokeRole } = useMemberRoles(userId || "", undefined);
   const { roles: workspaceRoles } = useWorkspaceRoles();
+  const { confirm, ConfirmationDialog } = useConfirm();
 
   const [newRoleId, setNewRoleId] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
@@ -47,7 +49,12 @@ export default function RoleManagementModal({
   async function handleUpdatePrimary(roleId: string) {
     if (roleId === primaryRoleId) return;
     const roleName = getRoleName(roleId);
-    if (!confirm(t("members.roles.confirm_change_primary", { role: roleName.toUpperCase() }))) return;
+    const ok = await confirm({
+      title: t("common.warning", { defaultValue: "Warning" }),
+      message: t("members.roles.confirm_change_primary", { role: roleName.toUpperCase() }),
+      variant: "danger"
+    });
+    if (!ok) return;
     try { await updatePrimaryRole(roleId); } catch (e: any) { console.error(e); }
   }
 
@@ -62,7 +69,12 @@ export default function RoleManagementModal({
   }
 
   async function handleRevoke(roleId: string) {
-    if (!confirm(t("members.roles.confirm_revoke"))) return;
+    const ok = await confirm({
+      title: t("common.warning", { defaultValue: "Warning" }),
+      message: t("members.roles.confirm_revoke"),
+      variant: "danger"
+    });
+    if (!ok) return;
     try { await revokeRole(roleId); } catch (e) { console.error(e); }
   }
 
@@ -149,6 +161,7 @@ export default function RoleManagementModal({
             </form>
           </div>
       </div>
+      <ConfirmationDialog />
     </Modal>
   );
 }
