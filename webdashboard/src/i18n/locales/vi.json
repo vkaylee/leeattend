@@ -1075,7 +1075,9 @@
         "system_detected": "System Detected",
         "close": "Close"
       }
-    }
+    },
+    "columns": "Columns",
+    "custom": "Custom"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -2303,13 +2305,16 @@
       "daily": "Chi tiết hàng ngày"
     },
     "reprocess": {
-      "bulk_tooltip": "Tính Lại Dữ Liệu",
-      "bulk_confirm_title": "Xác nhận tính lại toàn bộ",
-      "bulk_confirm_message": "Hành động này sẽ tính toán lại giờ làm việc, tăng ca và đi muộn/về sớm của TẤT CẢ nhân viên trong khoảng thời gian đã chọn. Không thể hoàn tác tiến trình này. Bạn có chắc không?",
-      "confirm": "Xác nhận",
-      "tooltip": "Tính lại ngày làm việc",
-      "confirm_title": "Xác nhận tính lại",
-      "confirm_message": "Tính toán lại dữ liệu chấm công cho nhân viên này vào ngày {{date}}. Bạn có chắc không?"
+      "button": "Tính lại",
+      "processing": "Đang xử lý...",
+      "tooltip": "Tính lại dữ liệu chấm công cho ngày này",
+      "confirm_title": "Tính lại dữ liệu chấm công?",
+      "confirm_message": "Hệ thống sẽ tính lại dữ liệu chấm công cho {{employee}} vào ngày {{date}} sử dụng thuật toán ghép cặp và cài đặt ca làm việc mới nhất.",
+      "bulk_tooltip": "Tính lại dữ liệu chấm công toàn hệ thống",
+      "bulk_confirm_title": "Tính lại dữ liệu chấm công toàn hệ thống?",
+      "bulk_confirm_message": "Hệ thống sẽ tính lại dữ liệu chấm công cho TẤT CẢ nhân viên trong khoảng thời gian đã chọn sử dụng thuật toán ghép cặp và cài đặt ca làm việc mới.",
+      "confirm": "Tính lại",
+      "error": "Không thể tính lại dữ liệu chấm công. Vui lòng thử lại."
     },
     "status": {
       "present": "Đúng giờ",
@@ -2337,18 +2342,6 @@
     "messages": {
       "generating": "Đang tạo báo cáo...",
       "no_data": "Không có dữ liệu trong khoảng thời gian này."
-    },
-    "reprocess": {
-      "button": "Tính lại",
-      "processing": "Đang xử lý...",
-      "tooltip": "Tính lại dữ liệu chấm công cho ngày này",
-      "confirm_title": "Tính lại dữ liệu chấm công?",
-      "confirm_message": "Hệ thống sẽ tính lại dữ liệu chấm công cho {{employee}} vào ngày {{date}} sử dụng thuật toán ghép cặp và cài đặt ca làm việc mới nhất.",
-      "bulk_tooltip": "Tính lại dữ liệu chấm công toàn hệ thống",
-      "bulk_confirm_title": "Tính lại dữ liệu chấm công toàn hệ thống?",
-      "bulk_confirm_message": "Hệ thống sẽ tính lại dữ liệu chấm công cho TẤT CẢ nhân viên trong khoảng thời gian đã chọn sử dụng thuật toán ghép cặp và cài đặt ca làm việc mới.",
-      "confirm": "Tính lại",
-      "error": "Không thể tính lại dữ liệu chấm công. Vui lòng thử lại."
     },
     "confirm": {
       "tooltip": "Xác nhận công cho ngày này",
@@ -2846,5 +2839,62 @@
   },
   "payroll_rules": {
     "scope_workspace": "Toàn Không gian làm việc"
+  },
+  "danger": {
+    "title": "Vùng nguy hiểm",
+    "subtitle": "Các thao tác phá hủy dữ liệu cho không gian làm việc này",
+    "clearDataTitle": "Xóa dữ liệu không gian làm việc",
+    "clearDataDesc": "Xóa tất cả nhân viên, chấm công, nghỉ phép và dữ liệu khác. Hành động này không thể hoàn tác.",
+    "clearAllData": "XÓA TOÀN BỘ DỮ LIỆU",
+    "modalTitle": "Xóa dữ liệu",
+    "warningDesc1": "Hành động này sẽ xóa vĩnh viễn toàn bộ dữ liệu trong không gian làm việc, bao gồm nhân viên, ca làm, chấm công và nghỉ phép.",
+    "warningDesc2": "Thành viên và cấu hình sẽ được giữ lại.",
+    "typeToConfirmPrefix": "Nhập",
+    "typeToConfirmSuffix": "để xác nhận",
+    "permanentlyDelete": "XÓA VĨNH VIỄN DỮ LIỆU",
+    "successMessage": "Đã xóa dữ liệu không gian làm việc",
+    "errorMessage": "Không thể xóa dữ liệu"
+  },
+  "billing": {
+    "comingSoon": "Coming Soon",
+    "comingSoonDesc": "Coming soon description",
+    "subtitle": "Billing subtitle",
+    "title": "Billing"
+  },
+  "overview": {
+    "activeWorkspace": "Active Workspace",
+    "adminFallback": "Admin Fallback",
+    "adminMembers": "Admin Members",
+    "admins": "Admins",
+    "created": "Created",
+    "lateToday": "Late Today",
+    "onLeave": "On Leave",
+    "presentToday": "Present Today",
+    "timezone": "Timezone",
+    "title": "Overview",
+    "totalEmployees": "Total Employees"
+  },
+  "permissions": {
+    "modules": "Modules",
+    "permissionsLabel": "Permissions",
+    "saveMatrix": "Save Matrix",
+    "subtitle": "Permissions subtitle",
+    "systemRoleInfo": "System role info",
+    "title": "Permissions",
+    "unsavedChanges": "Unsaved changes",
+    "visibleRoles": "Visible roles"
+  },
+  "rolesPage": {
+    "confirmDelete": "Confirm Delete",
+    "createRole": "Create Role",
+    "deleteRole": "Delete Role",
+    "deleteTitle": "Delete Title",
+    "editRole": "Edit Role",
+    "manageAccess": "Manage Access",
+    "matrix": "Matrix",
+    "noDescription": "No description",
+    "roleId": "Role ID",
+    "subtitle": "Roles subtitle",
+    "title": "Roles"
   }
 }
