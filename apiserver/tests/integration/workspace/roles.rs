@@ -396,3 +396,388 @@ async fn test_custom_role_permissions() {
     assert!(perm_names.contains(&"payroll:manage"));
     assert!(perm_names.contains(&"reports:read"));
 }
+
+// ─── RBAC Cleanup Tests ─────────────────────────────────────────────────────
+// Verify that get_workspace_roles is accessible without MembersRolesManage
+// while write operations remain gated.
+
+#[tokio::test]
+async fn test_regular_member_can_list_workspace_roles() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    // Create a regular employee member (has NO members_roles:manage permission)
+    let employee_id = factory.user().with_email("employee@example.com").create().await;
+    factory.add_member(
+        ws_id,
+        employee_id,
+        Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(), // employee role
+    ).await;
+
+    // Employee should be able to list workspace roles (no permission gate)
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            employee_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::OK, "Regular member must be able to list workspace roles");
+
+    let roles = body_json(resp).await;
+    let roles_array = roles.as_array().unwrap();
+
+    // Should include all system roles
+    assert!(roles_array.len() >= 6, "Should have at least 6 system roles, got {}", roles_array.len());
+
+    // Verify expected system roles exist
+    let role_names: Vec<&str> = roles_array.iter()
+        .map(|r| r["name"].as_str().unwrap())
+        .collect();
+    assert!(role_names.contains(&"owner"), "Must include owner role");
+    assert!(role_names.contains(&"admin"), "Must include admin role");
+    assert!(role_names.contains(&"employee"), "Must include employee role");
+}
+
+#[tokio::test]
+async fn test_workspace_roles_response_includes_scope_type() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            owner_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::OK);
+    let roles = body_json(resp).await;
+    let roles_array = roles.as_array().unwrap();
+
+    for role in roles_array {
+        let scope = role["scope_type"].as_str();
+        assert!(scope.is_some(), "Every role must have scope_type field: {:?}", role["name"]);
+        assert!(
+            scope.unwrap() == "global" || scope.unwrap() == "scoped",
+            "scope_type must be 'global' or 'scoped', got '{}'", scope.unwrap()
+        );
+    }
+
+    // Owner and admin should be global
+    let owner_role = roles_array.iter().find(|r| r["name"] == "owner").unwrap();
+    assert_eq!(owner_role["scope_type"], "global");
+
+    let admin_role = roles_array.iter().find(|r| r["name"] == "admin").unwrap();
+    assert_eq!(admin_role["scope_type"], "global");
+
+    // Employee should be scoped
+    let employee_role = roles_array.iter().find(|r| r["name"] == "employee").unwrap();
+    assert_eq!(employee_role["scope_type"], "scoped");
+}
+
+#[tokio::test]
+async fn test_regular_member_cannot_create_role() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    let member_id = factory.user().with_email("basic@example.com").create().await;
+    factory.add_member(
+        ws_id,
+        member_id,
+        Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+    ).await;
+
+    let create_body = serde_json::json!({
+        "name": "Hacker Role",
+        "description": "Should be denied",
+        "color": "red"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            member_id,
+            Some(create_body.to_string()),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN, "Regular member must not create roles");
+}
+
+#[tokio::test]
+async fn test_regular_member_cannot_update_or_delete_role() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    // Owner creates a custom role first
+    let create_body = serde_json::json!({
+        "name": "Target Role",
+        "description": "For testing",
+        "color": "cyan"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            owner_id,
+            Some(create_body.to_string()),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let role = body_json(resp).await;
+    let role_id = role["id"].as_str().unwrap();
+
+    // Add employee member
+    let member_id = factory.user().with_email("sneaky@example.com").create().await;
+    factory.add_member(
+        ws_id,
+        member_id,
+        Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+    ).await;
+
+    // Member tries to UPDATE the role → Forbidden
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "PUT",
+            &format!("/api/workspaces/{ws_id}/roles/{role_id}"),
+            ws_id,
+            member_id,
+            Some(serde_json::json!({ "name": "Pwned Role" }).to_string()),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN, "Regular member must not update roles");
+
+    // Member tries to DELETE the role → Forbidden
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "DELETE",
+            &format!("/api/workspaces/{ws_id}/roles/{role_id}"),
+            ws_id,
+            member_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN, "Regular member must not delete roles");
+}
+
+#[tokio::test]
+async fn test_cannot_delete_system_role() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    // Get the system owner role ID
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            owner_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    let roles = body_json(resp).await;
+    let owner_role = roles.as_array().unwrap().iter()
+        .find(|r| r["name"] == "owner" && r["is_system"] == true)
+        .expect("Owner system role must exist");
+    let system_role_id = owner_role["id"].as_str().unwrap();
+
+    // Even the owner cannot delete a system role
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "DELETE",
+            &format!("/api/workspaces/{ws_id}/roles/{system_role_id}"),
+            ws_id,
+            owner_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    // Should return NotFound because the DELETE query has `is_system = false` guard
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND, "System roles must not be deletable");
+}
+
+#[tokio::test]
+async fn test_cannot_update_system_role() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    // Use the well-known admin system role UUID
+    let admin_role_id = "a0000000-0000-0000-0000-000000000002";
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "PUT",
+            &format!("/api/workspaces/{ws_id}/roles/{admin_role_id}"),
+            ws_id,
+            owner_id,
+            Some(serde_json::json!({ "name": "Renamed Admin" }).to_string()),
+        ))
+        .await
+        .unwrap();
+
+    // Should return NotFound because the UPDATE query has `is_system = false` guard
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND, "System roles must not be updatable");
+}
+
+#[tokio::test]
+async fn test_update_primary_role_via_patch_members() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    let member_id = factory.user().with_email("promote@example.com").create().await;
+    let employee_role = Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap();
+    let admin_role = Uuid::parse_str("a0000000-0000-0000-0000-000000000002").unwrap();
+    factory.add_member(ws_id, member_id, employee_role).await;
+
+    // 1. Verify initial role is employee
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles"),
+            ws_id,
+            owner_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let roles = body_json(resp).await;
+    assert_eq!(roles["primary"], employee_role.to_string());
+
+    // 2. Owner promotes member to admin via PATCH /members/:id
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "PATCH",
+            &format!("/api/workspaces/{ws_id}/members/{member_id}"),
+            ws_id,
+            owner_id,
+            Some(serde_json::json!({ "role_id": admin_role }).to_string()),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK, "Owner should be able to promote member");
+
+    // 3. Verify role was updated
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/members/{member_id}/roles"),
+            ws_id,
+            owner_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let roles = body_json(resp).await;
+    assert_eq!(roles["primary"], admin_role.to_string(), "Primary role should be updated to admin");
+}
+
+#[tokio::test]
+async fn test_custom_role_with_scope_type() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let owner_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(owner_id).await;
+
+    // Create a global-scope custom role
+    let create_body = serde_json::json!({
+        "name": "VP Engineering",
+        "description": "Vice President of Engineering",
+        "color": "indigo",
+        "scope_type": "global"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            owner_id,
+            Some(create_body.to_string()),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let role = body_json(resp).await;
+    assert_eq!(role["name"], "VP Engineering");
+    assert_eq!(role["scope_type"], "global", "Custom role should respect scope_type parameter");
+    assert_eq!(role["is_system"], false);
+
+    // Create a scoped custom role (default)
+    let create_body = serde_json::json!({
+        "name": "Shift Supervisor",
+        "color": "teal"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/roles"),
+            ws_id,
+            owner_id,
+            Some(create_body.to_string()),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let role = body_json(resp).await;
+    assert_eq!(role["scope_type"], "scoped", "Default scope_type should be 'scoped'");
+}
