@@ -22,6 +22,12 @@ vi.mock("../../hooks/use-workspace", () => ({
 
 import { useWorkspace } from "../../hooks/use-workspace";
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
 describe("WorkspaceDangerPage", () => {
   let queryClient: QueryClient;
 
@@ -63,14 +69,14 @@ describe("WorkspaceDangerPage", () => {
 
     renderWithProviders(<WorkspaceDangerPage />);
 
-    const clearDataBtn = await screen.findByText("CLEAR ALL DATA");
+    const clearDataBtn = await screen.findByText("danger.clearAllData");
     await user.click(clearDataBtn);
 
-    const modalTitles = await screen.findAllByText("Clear Workspace Data");
+    const modalTitles = await screen.findAllByText("danger.modalTitle");
     expect(modalTitles.length).toBeGreaterThan(0);
 
     // The confirm button inside the modal
-    const confirmBtn = screen.getByRole('button', { name: "PERMANENTLY DELETE DATA" });
+    const confirmBtn = screen.getByRole('button', { name: "danger.permanentlyDelete" });
     expect(confirmBtn).toBeDisabled();
 
     const input = screen.getByPlaceholderText("Test Workspace");
