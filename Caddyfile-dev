@@ -1,0 +1,20 @@
+:80 {
+	# Frontend (Vite dev server with HMR)
+	handle /* {
+		reverse_proxy webdashboard:5173
+	}
+
+	# Proxy API requests to backend
+	handle /api/* {
+		reverse_proxy apiserver:3000
+	}
+
+	# Error pages
+	handle_errors {
+		@50x {
+			expression {err.status_code} >= 500
+		}
+		rewrite @50x /50x.html
+		file_server
+	}
+}

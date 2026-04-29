@@ -32,9 +32,9 @@ COPY --from=base /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-# Stage 5: Runtime (Nginx)
-FROM nginx:alpine AS runtime
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Stage 5: Runtime (Caddy)
+FROM caddy:alpine AS runtime
+COPY --from=builder /app/dist /srv
+COPY Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
