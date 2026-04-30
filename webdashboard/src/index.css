@@ -170,10 +170,7 @@
     width: 100%;
   }
 
-  /* Hide UI elements during print */
-  .print\\:hidden {
-    display: none !important;
-  }
+
 }
 
 /* Global placeholder softening */

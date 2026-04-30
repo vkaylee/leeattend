@@ -95,6 +95,7 @@ COMPOSE_CMD=(
     -e "CLOUDFLARE_BRANCH=$CLOUDFLARE_BRANCH"
     -e "CI=true"
     -e "WRANGLER_SEND_METRICS=false"
+    -e "NODE_OPTIONS=--max_old_space_size=4096"
 )
 
 # Dynamically add all VITE_* environment variables so Vite can bake them into the build
