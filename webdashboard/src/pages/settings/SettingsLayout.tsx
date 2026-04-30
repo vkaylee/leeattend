@@ -94,7 +94,7 @@ export default function SettingsLayout() {
 
     {
       path: ROUTES.SETTINGS.ROLES,
-      label: t("settings.tabs.members"),
+      label: t("rolesPage.title", { defaultValue: "Roles" }),
       icon: <ShieldAlert className="w-4 h-4" />,
       description: t("common.members.roles.subtitle"),
       permissions: ["members:roles:manage"],
