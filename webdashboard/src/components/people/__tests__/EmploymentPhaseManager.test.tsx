@@ -40,7 +40,8 @@ describe("EmploymentPhaseManager", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    (api.fetchEmploymentPhases as any).mockResolvedValue(mockPhases);
+ 
+    vi.mocked(api.fetchEmploymentPhases).mockResolvedValue(mockPhases as unknown as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -62,7 +63,8 @@ describe("EmploymentPhaseManager", () => {
   });
 
   it("opens modal and submits new employment phase", async () => {
-    (api.createEmploymentPhase as any).mockResolvedValue({ id: "2" });
+ 
+    vi.mocked(api.createEmploymentPhase).mockResolvedValue({ id: "2" } as unknown as never);
     renderWithProviders(<EmploymentPhaseManager wsId={mockWsId} />);
 
     const addBtn = screen.getByText(/common.add/i);

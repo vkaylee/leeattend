@@ -1,21 +1,17 @@
 import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { _Link } from "@tanstack/react-router";
 import { format, startOfToday } from "date-fns";
 import {
   Plus,
   Trash2,
   CalendarDays,
   Clock,
-  _ArrowLeft,
   Info,
   Check,
   Users,
-  _Settings2,
   ChevronDown,
   ChevronUp,
-  _Search,
   X
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -25,23 +21,19 @@ import Button from "@/components/ui/Button";
 import FormField, { LABEL_BASE, INPUT_BASE } from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
+import { useToast } from "@/components/ui/Toast";
 
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { cn } from "@/lib/utils";
 
-import { useToast } from "../components/ui/Toast";
 import {
   fetchWorkingPatterns,
   createWorkingPattern,
   fetchPatternDetails,
   fetchShifts,
-  _fetchEmployees,
   bulkAssignPattern,
   deleteWorkingPattern,
   getCurrentWorkspaceId,
-  WorkingPattern,
-  _Shift,
-  _Employee
+  WorkingPattern
 } from "../lib/api";
 
 export default function WorkingPatternsPage() {
@@ -49,7 +41,7 @@ export default function WorkingPatternsPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { _formatTime } = useDateTimeFormatter();
+
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -87,25 +79,27 @@ export default function WorkingPatternsPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => createWorkingPattern(wsId, data),
+    mutationFn: (data: Parameters<typeof createWorkingPattern>[1]) => createWorkingPattern(wsId, data),
     onSuccess: () => {
       toast.success(t("patterns.messages.create_success"));
       setIsCreateModalOpen(false);
       setNewPatternName("");
       setNewPatternDesc("");
       setWeeklyGrid(Array.from({ length: 7 }, () => []));
+ 
       queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
     },
   });
 
   const bulkAssignMutation = useMutation({
-    mutationFn: (data: any) => bulkAssignPattern(wsId, data),
+    mutationFn: (data: Parameters<typeof bulkAssignPattern>[1]) => bulkAssignPattern(wsId, data),
     onSuccess: (data) => {
       if (data.success_count > 0) {
         toast.success(t("patterns.messages.bulk_assign_success_count", { count: data.success_count }));
         setIsBulkModalOpen(false);
         setSelectedEmployeeIds([]);
         queryClient.invalidateQueries({ queryKey: ["schedules"] });
+ 
       } else if (data.failed_employees.length > 0) {
         toast.error(t("patterns.messages.bulk_assign_conflict", { count: data.failed_employees.length }));
       }
@@ -405,7 +399,7 @@ export default function WorkingPatternsPage() {
             <EmployeeSearch
               workspaceId={wsId}
               value={selectedEmployeeIds}
-              onChange={setSelectedEmployeeIds}
+              onChange={(val) => setSelectedEmployeeIds(val as string[])}
               multiple={true}
               className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-inner"
             />

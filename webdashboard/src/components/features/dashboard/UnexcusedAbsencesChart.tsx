@@ -27,7 +27,20 @@ const COLORS = {
     consecutive: "#f97316",
 };
 
-function CustomTooltip({ active, payload, label }: any) {
+ 
+interface ChartDataEntry {
+    unexcused_count?: number;
+    consecutive_count?: number;
+    total_absent_count?: number;
+}
+
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<{ payload: ChartDataEntry | null }>;
+    label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     const { t } = useTranslation();
     if (!active || !payload?.length) return null;
 
@@ -209,6 +222,7 @@ export default function UnexcusedAbsencesChart() {
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
                         <Bar
                             dataKey="consecutive_count"
+ 
                             name={t("dashboard.hr.consecutive_days")}
                             fill={COLORS.consecutive}
                             stackId="absences"
@@ -221,8 +235,8 @@ export default function UnexcusedAbsencesChart() {
                             fill={COLORS.unexcused}
                             stackId="absences"
                             radius={[0, 4, 4, 0]}
-                            label={(props: any) => {
-                                const { x, y, width, height, index } = props;
+                            label={(props: unknown) => {
+                                const { x, y, width, height, index } = props as { x: number; y: number; width: number; height: number; index: number };
                                 const row = chartData[index];
                                 const total = row?.unexcused_count ?? 0;
                                 if (!total || total === 0) return null;

@@ -6,7 +6,7 @@ import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 
-import type { _OtStatus } from "@/lib/api";
+
 
 interface DailyReportTableProps {
   data: DailyAttendanceReport[];

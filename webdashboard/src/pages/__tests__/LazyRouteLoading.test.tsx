@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, lazy } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -96,7 +96,8 @@ vi.mock("@/hooks/use-dashboard-layout", () => ({
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => {
-    const actual = await importOriginal<any>();
+ 
+    const actual = await importOriginal<Record<string, unknown>>();
     return {
         ...actual,
         getCurrentUserId: vi.fn(() => "test-user"),
@@ -116,11 +117,13 @@ class MockIntersectionObserver {
     unobserve() { }
     disconnect() { }
 }
-window.IntersectionObserver = MockIntersectionObserver as any;
+ 
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
 vi.mock("recharts", () => ({
-    ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
+ 
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     BarChart: () => <div />, Bar: () => <div />, XAxis: () => <div />, YAxis: () => <div />,
     CartesianGrid: () => <div />, Tooltip: () => <div />, Legend: () => <div />,
     LineChart: () => <div />, Line: () => <div />, AreaChart: () => <div />, Area: () => <div />,
@@ -152,7 +155,8 @@ describe("Lazy Route Loading", () => {
     };
 
     it("should lazy load DashboardPage with Suspense", async () => {
-        const LazyDashboard = React.lazy(() => import("../DashboardPage"));
+ 
+        const LazyDashboard = lazy(() => import("../DashboardPage"));
 
         renderWithProviders(
             <Suspense fallback={<div data-testid="loading">Loading...</div>}>
@@ -167,7 +171,8 @@ describe("Lazy Route Loading", () => {
     });
 
     it("should lazy load LoginPage with Suspense", async () => {
-        const LazyLogin = React.lazy(() => import("../LoginPage"));
+ 
+        const LazyLogin = lazy(() => import("../LoginPage"));
 
         renderWithProviders(
             <Suspense fallback={<div data-testid="loading">Loading...</div>}>
@@ -182,7 +187,8 @@ describe("Lazy Route Loading", () => {
     });
 
     it("should lazy load EmployeesPage with Suspense", async () => {
-        const LazyEmployees = React.lazy(() => import("../EmployeesPage"));
+ 
+        const LazyEmployees = lazy(() => import("../EmployeesPage"));
 
         renderWithProviders(
             <Suspense fallback={<div data-testid="loading">Loading...</div>}>
@@ -200,12 +206,15 @@ describe("Lazy Route Loading", () => {
 
     it("should show fallback while page is loading", async () => {
         // Create a lazy component that simulates a slow import
-        let resolveImport: (value: any) => void;
-        const slowImport = new Promise<any>((resolve) => {
+ 
+        let resolveImport: (value: unknown) => void = () => {};
+ 
+        const slowImport = new Promise<unknown>((resolve) => {
             resolveImport = resolve;
         });
 
-        const LazyComponent = React.lazy(() => slowImport);
+ 
+        const LazyComponent = lazy(() => slowImport as Promise<{ default: React.ComponentType<unknown> }>);
 
         renderWithProviders(
             <Suspense fallback={<div data-testid="suspense-fallback">Loading...</div>}>
@@ -217,7 +226,7 @@ describe("Lazy Route Loading", () => {
         expect(screen.getByTestId("suspense-fallback")).toBeInTheDocument();
 
         // Resolve the import with a simple component
-        resolveImport!({ default: () => <div data-testid="loaded-component">Loaded</div> });
+        (resolveImport as (value: unknown) => void)({ default: () => <div data-testid="loaded-component">Loaded</div> });
 
         // After resolving, the component should render
         await waitFor(() => {
@@ -226,7 +235,8 @@ describe("Lazy Route Loading", () => {
     });
 
     it("should handle multiple lazy pages without interference", async () => {
-        const LazyDashboard = React.lazy(() => import("../DashboardPage"));
+ 
+        const LazyDashboard = lazy(() => import("../DashboardPage"));
 
         const { unmount } = renderWithProviders(
             <Suspense fallback={<div>Loading...</div>}>
@@ -241,7 +251,8 @@ describe("Lazy Route Loading", () => {
         unmount();
 
         // Render a different lazy page after unmounting the first
-        const LazyEmployees = React.lazy(() => import("../EmployeesPage"));
+ 
+        const LazyEmployees = lazy(() => import("../EmployeesPage"));
 
         renderWithProviders(
             <Suspense fallback={<div>Loading...</div>}>

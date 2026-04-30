@@ -1,17 +1,19 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent, waitFor, _within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
+import { Employee, PaginatedResponse, LeaveRequest, EmployeeLeaveBalance, LeavePolicy, LeaveType } from "../../lib/api/types";
 import LeaveRequestsPage from "../LeaveRequestsPage";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
+ 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock the API library
@@ -39,8 +41,9 @@ vi.mock("../../lib/api", () => ({
 }));
 
 // Mock EmployeeSearch
+ 
 vi.mock("@/components/common/EmployeeSearch", () => ({
-  EmployeeSearch: ({ value, onChange }: any) => (
+  EmployeeSearch: ({ value, onChange }: { value: string; onChange: (val: string) => void }) => (
     <select 
       aria-label="Nhân viên"
       value={value} 
@@ -74,35 +77,43 @@ describe("LeaveRequestsPage", () => {
           staleTime: 0,
         },
       },
+ 
     });
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchEmployees as any).mockResolvedValue({
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
         { id: "emp-1", full_name: "John Doe", hire_date: "2025-01-01", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }
       ],
       total: 1,
       page: 1,
       limit: 50,
-    });
-    (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([]);
-    (api.fetchEmployeeLeaveBalances as any).mockResolvedValue([]);
-    (api.fetchLeavePolicies as any).mockResolvedValue([]);
-    (api.fetchLeaveTypes as any).mockResolvedValue([
+ 
+    } as unknown as PaginatedResponse<Employee>);
+ 
+    vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([] as unknown as LeaveRequest[]);
+ 
+    vi.mocked(api.fetchEmployeeLeaveBalances).mockResolvedValue([] as unknown as EmployeeLeaveBalance[]);
+ 
+    vi.mocked(api.fetchLeavePolicies).mockResolvedValue([] as unknown as LeavePolicy[]);
+    vi.mocked(api.fetchLeaveTypes).mockResolvedValue([
       { id: "lt-vacation", code: "lt-vacation", name: "Vacation", is_paid: true, workspace_id: "ws-1", policy_config: {}, created_at: "2025-01-01T00:00:00Z" }
-    ]);
+    ] as unknown as LeaveType[]);
   });
 
+ 
   it("renders without workspace selected", () => {
-    (api.getCurrentWorkspaceId as any).mockReturnValue(null);
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(null);
     renderPage(queryClient);
 
     expect(screen.getByText("Chọn Workspace")).toBeDefined();
   });
 
+ 
   it("renders pending requests by default", async () => {
-    (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
+    vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([
       { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", reason: "Test reason", duration_type: "full_day" }
-    ]);
+    ] as unknown as LeaveRequest[]);
 
     renderPage(queryClient);
 
@@ -112,15 +123,17 @@ describe("LeaveRequestsPage", () => {
   });
 
   it("handles submitting a new leave request", async () => {
+ 
     const user = userEvent.setup();
-    (api.submitLeaveRequest as any).mockResolvedValue({});
-    (api.fetchEmployeeLeaveBalances as any).mockImplementation((wsId: string, empId: string) => {
+ 
+    vi.mocked(api.submitLeaveRequest).mockResolvedValue({ id: "req-new" } as unknown as LeaveRequest);
+    vi.mocked(api.fetchEmployeeLeaveBalances).mockImplementation((wsId: string, empId: string) => {
       if (empId === "emp-1") {
         return Promise.resolve([
           { leave_type_id: "lt-1", leave_type_code: "lt-vacation", leave_type_name: "Vacation", is_paid: true, remaining: 10, entitlement: 12, carried_over: 2, accrued_amount: 0, used: 2 }
-        ]);
+        ] as unknown as EmployeeLeaveBalance[]);
       }
-      return Promise.resolve([]);
+      return Promise.resolve([] as unknown as EmployeeLeaveBalance[]);
     });
 
     renderPage(queryClient);
@@ -159,11 +172,13 @@ describe("LeaveRequestsPage", () => {
   }, 30000);
 
   it("handles approve/reject actions", async () => {
+ 
     const user = userEvent.setup();
-    (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
+    vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([
       { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", duration_type: "full_day" }
-    ]);
-    (api.approveLeaveRequest as any).mockResolvedValue({});
+ 
+    ] as unknown as LeaveRequest[]);
+    vi.mocked(api.approveLeaveRequest).mockResolvedValue({} as unknown as void);
 
     renderPage(queryClient);
 
@@ -261,15 +276,17 @@ describe("LeaveRequestsPage", () => {
 
   describe("Duration Type - Submit Behavior", () => {
     const setupSubmitTest = async () => {
+ 
       const user = userEvent.setup();
-      (api.submitLeaveRequest as any).mockResolvedValue({});
-      (api.fetchEmployeeLeaveBalances as any).mockImplementation((_wsId: string, empId: string) => {
+ 
+      vi.mocked(api.submitLeaveRequest).mockResolvedValue({ id: "req-setup" } as unknown as LeaveRequest);
+      vi.mocked(api.fetchEmployeeLeaveBalances).mockImplementation((_wsId: string, empId: string) => {
         if (empId === "emp-1") {
           return Promise.resolve([
             { leave_type_id: "lt-1", leave_type_code: "lt-vacation", leave_type_name: "Vacation", is_paid: true, remaining: 10, entitlement: 12, carried_over: 2, accrued_amount: 0, used: 2 }
-          ]);
+          ] as unknown as EmployeeLeaveBalance[]);
         }
-        return Promise.resolve([]);
+        return Promise.resolve([] as unknown as EmployeeLeaveBalance[]);
       });
       renderPage(queryClient);
 
@@ -310,8 +327,9 @@ describe("LeaveRequestsPage", () => {
         }));
       }, { timeout: 20000 });
 
+ 
       // Verify no start_time/end_time sent for half-day
-      const callArgs = (api.submitLeaveRequest as any).mock.calls[0][1];
+      const callArgs = vi.mocked(api.submitLeaveRequest).mock.calls[0][1] as unknown as { start_time?: string; end_time?: string };
       expect(callArgs.start_time).toBeUndefined();
       expect(callArgs.end_time).toBeUndefined();
     }, 30000);
@@ -375,10 +393,11 @@ describe("LeaveRequestsPage", () => {
   });
 
   describe("Duration Type - Table Display", () => {
+ 
     it("shows half-day badge for first_half requests", async () => {
-      (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
+      vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([
         { id: "req-half", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-03-15", end_date: "2026-03-15", status: "pending", reason: "Morning off", duration_type: "first_half" }
-      ]);
+      ] as unknown as LeaveRequest[]);
 
       renderPage(queryClient);
 
@@ -388,10 +407,11 @@ describe("LeaveRequestsPage", () => {
       expect(screen.getByText(/Sáng/i)).toBeDefined();
     });
 
+ 
     it("shows custom hours time range badge for custom_hours requests", async () => {
-      (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
+      vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([
         { id: "req-hours", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-03-15", end_date: "2026-03-15", status: "pending", reason: "Errand", duration_type: "custom_hours", start_time: "09:00:00", end_time: "12:00:00" }
-      ]);
+      ] as unknown as LeaveRequest[]);
 
       renderPage(queryClient);
 
@@ -401,10 +421,11 @@ describe("LeaveRequestsPage", () => {
       expect(screen.getByText(/12:00/)).toBeDefined();
     });
 
+ 
     it("does NOT show duration badge for full_day requests", async () => {
-      (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
+      vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([
         { id: "req-full", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", reason: "Vacation", duration_type: "full_day" }
-      ]);
+      ] as unknown as LeaveRequest[]);
 
       renderPage(queryClient);
 

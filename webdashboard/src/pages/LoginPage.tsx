@@ -6,12 +6,9 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/Button";
 import { LABEL_BASE } from "@/components/ui/FormField";
 
-import { _useProfile } from "@/hooks/use-profile";
+
 import {
-  _setCurrentUserId,
   getCurrentUserId,
-  _setAccessToken,
-  _setRefreshToken,
   login as apiLogin,
 } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
@@ -25,9 +22,10 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const from = (location.state as any)?.from || ROUTES.HOME;
+  const from = (location.state as { from?: string })?.from || ROUTES.HOME;
 
   const userId = getCurrentUserId();
+ 
 
   useEffect(() => {
     if (userId) {
@@ -45,9 +43,10 @@ export default function LoginPage() {
       await apiLogin(loginEmail, loginPass);
       // Điều hướng về trang trước đó hoặc Dashboard
       navigate({ to: from, replace: true });
-    } catch (err: any) {
-      setError(err.message || t("auth.login_error"));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("auth.login_error"));
     } finally { setIsSubmitting(false); }
+ 
   };
 
   const handleLogin = async (e: React.FormEvent) => { e.preventDefault(); await performLogin(email, password); };

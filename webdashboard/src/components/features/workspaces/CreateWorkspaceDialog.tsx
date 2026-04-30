@@ -30,7 +30,7 @@ export default function CreateWorkspaceDialog({
     try {
       await createWorkspace({ name });
       setName(""); onClose();
-    } catch (__e) {
+    } catch {
       setError(t("common.create_workspace_error"));
     } finally { setIsSubmitting(false); }
   }
@@ -52,10 +52,10 @@ export default function CreateWorkspaceDialog({
         )}
 
         <div className="space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
+          <label htmlFor="workspace-name" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
             {t("common.org_name_label")}
           </label>
-          <input autoFocus type="text" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" placeholder={t("common.org_name_placeholder")} value={name} onChange={(e) => setName(e.target.value)}
+          <input id="workspace-name" type="text" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" placeholder={t("common.org_name_placeholder")} value={name} onChange={(e) => setName(e.target.value)}
             disabled={isSubmitting}
           />
         </div>

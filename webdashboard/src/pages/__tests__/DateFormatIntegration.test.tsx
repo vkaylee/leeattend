@@ -1,8 +1,7 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent, _within, _waitFor } from "@testing-library/react";
-import { BrowserRouter as _BrowserRouter } from "react-router-dom";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
@@ -15,17 +14,20 @@ import PayrollPage from "../PayrollPage";
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
+ 
 }));
 
 // Mock useDebounce to be immediate
 vi.mock("@/hooks/use-debounce", () => ({
-  useDebounce: (value: any) => value,
+  useDebounce: (value: unknown) => value,
+ 
 }));
 
 // Mock EmployeeSearch to avoid internal queries
 vi.mock("@/components/common/EmployeeSearch", () => ({
-  EmployeeSearch: ({ value, onChange }: any) => (
+  EmployeeSearch: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+ 
     <select aria-label="Employee Search"
       data-testid="employee-select"
       value={value}
@@ -39,7 +41,8 @@ vi.mock("@/components/common/EmployeeSearch", () => ({
 
 // Mock MonthYearPicker
 vi.mock("@/components/common/MonthYearPicker", () => ({
-  MonthYearPicker: ({ _value, _onChange }: any) => (
+  MonthYearPicker: ({ _value, _onChange }: { _value: unknown; _onChange: unknown }) => (
+ 
     <div data-testid="month-year-picker">Mock Picker</div>
   )
 }));
@@ -68,8 +71,10 @@ describe("Date Format Integration", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"] });
-    (api.fetchDevices as any).mockResolvedValue([]);
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: [] } as unknown as Awaited<ReturnType<typeof api.fetchMyPermissions>>);
+ 
+    vi.mocked(api.fetchDevices).mockResolvedValue([] as unknown as never[]);
+ 
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -83,19 +88,22 @@ describe("Date Format Integration", () => {
   };
 
   it("renders dates in DD/MM/YYYY format when workspace setting is DD/MM/YYYY", async () => {
-    (api.fetchEmployees as any).mockResolvedValue({
+    vi.mocked(api.fetchEmployees).mockResolvedValue({
+ 
       data: [{ id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, hire_date: "2025-01-01", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }],
       total: 1,
       page: 1,
       limit: 50,
-    });
-    (api.fetchWorkspace as any).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" });
-    (api.fetchRawAttendanceLogs as any).mockImplementation(() => Promise.resolve({
+    } as unknown as never);
+    vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" } as unknown as never);
+ 
+    vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
+ 
       data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
       total: 1,
       page: 1,
       limit: 50
-    }));
+    } as unknown as never);
 
     renderWithProviders(<AttendanceLogsPage />);
 
@@ -103,19 +111,22 @@ describe("Date Format Integration", () => {
   });
 
   it("renders dates in YYYY-MM-DD format when workspace setting is YYYY-MM-DD", async () => {
-    (api.fetchEmployees as any).mockResolvedValue({
+    vi.mocked(api.fetchEmployees).mockResolvedValue({
+ 
       data: [{ id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, hire_date: "2025-01-01", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }],
       total: 1,
       page: 1,
       limit: 50,
-    });
-    (api.fetchWorkspace as any).mockResolvedValue({ date_format: "YYYY-MM-DD", timezone: "UTC" });
-    (api.fetchRawAttendanceLogs as any).mockImplementation(() => Promise.resolve({
+    } as unknown as never);
+    vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "YYYY-MM-DD", timezone: "UTC" } as unknown as never);
+ 
+    vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
+ 
       data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
       total: 1,
       page: 1,
       limit: 50
-    }));
+    } as unknown as never);
 
     renderWithProviders(<AttendanceLogsPage />);
 
@@ -123,15 +134,19 @@ describe("Date Format Integration", () => {
   });
 
   it("renders month/year correctly in PayrollPage", async () => {
-    (api.fetchEmployees as any).mockResolvedValue({
+    vi.mocked(api.fetchEmployees).mockResolvedValue({
+ 
       data: [{ id: "emp-1", full_name: "John Doe", hire_date: "2025-01-01", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }],
       total: 1,
       page: 1,
       limit: 50,
-    });
-    (api.fetchEmployeePayslips as any).mockResolvedValue([]);
-    (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
-    (api.fetchWorkspace as any).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" });
+    } as unknown as never);
+    vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([] as unknown as never[]);
+ 
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([] as unknown as never[]);
+ 
+    vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" } as unknown as never);
+ 
 
     renderWithProviders(<PayrollPage />);
 

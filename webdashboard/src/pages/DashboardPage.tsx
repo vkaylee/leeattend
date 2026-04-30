@@ -105,7 +105,7 @@ export default function DashboardPage() {
   // Memoize visible charts and paired charts
   const visibleCharts = useMemo(() =>
     widgetOrder.filter((id) => chartWidgetIds.includes(id) && visibleWidgets[id]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional: effect should only fire when listed deps change
     [widgetOrder, visibleWidgets]
   );
 

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 
+ 
 import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -21,7 +23,6 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-import { useTranslation } from 'react-i18next';
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();

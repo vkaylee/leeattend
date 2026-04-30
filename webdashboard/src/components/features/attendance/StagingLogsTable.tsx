@@ -110,7 +110,8 @@ export function StagingLogsTable({
                             <EmployeeSearch
                               workspaceId={wsId}
                               value=""
-                              onChange={(empId) => {
+                              onChange={(val) => {
+                                const empId = Array.isArray(val) ? val[0] : val;
                                 if (empId) {
                                   handleResolve(log.id, empId);
                                 }

@@ -1,38 +1,53 @@
 import React from "react";
 
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, _afterEach } from "vitest";
+import { Command } from "cmdk";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.unmock("@/components/ui/Combobox");
 
 import { Combobox } from "./Combobox";
-
-import { Command } from "cmdk";
+ 
 
 vi.mock("@radix-ui/react-popover", () => ({
-  Root: ({ children, open, onOpenChange }: any) => (
-    <div data-testid="popover-root" data-open={open} onClick={() => onOpenChange?.(!open)}>
-      {children}
-    </div>
+  Root: ({ children, open, onOpenChange }: { children: React.ReactNode, open?: boolean, onOpenChange?: (open: boolean) => void }) => (
+ 
+    <>
+// eslint-disable-next-line jsx-a11y/no-static-element-interactions
+// eslint-disable-next-line jsx-a11y/click-events-have-key-events
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div data-testid="popover-root" data-open={open} onClick={() => onOpenChange?.(!open)}>
+        {children}
+      </div>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+    </>
+ 
   ),
-  Trigger: ({ children }: any) => <div data-testid="popover-trigger">{children}</div>,
-  Portal: ({ children }: any) => <div>{children}</div>,
-  Content: ({ children }: any) => <div data-testid="popover-content">{children}</div>,
+ 
+  Trigger: ({ children }: { children: React.ReactNode }) => <div data-testid="popover-trigger">{children}</div>,
+  Portal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Content: ({ children }: { children: React.ReactNode }) => <div data-testid="popover-content">{children}</div>,
 }));
 
+ 
 vi.mock("cmdk", () => ({
   Command: Object.assign(
-    ({ children, value, _onValueChange }: any) => (
+    ({ children, value, _onValueChange }: { children: React.ReactNode, value?: string, _onValueChange?: (val: string) => void }) => (
       <div data-testid="cmdk-root" data-value={value}>{children}</div>
+ 
     ),
     {
-      Input: vi.fn(({ autoFocus, placeholder }: any) => (
+      Input: vi.fn(({ autoFocus, placeholder }: { autoFocus?: boolean, placeholder?: string }) => (
+ 
         <input data-testid="cmdk-input" data-autofocus={autoFocus} placeholder={placeholder} />
+ 
       )),
-      List: ({ children }: any) => <div>{children}</div>,
-      Empty: ({ children }: any) => <div>{children}</div>,
-      Group: ({ children }: any) => <div>{children}</div>,
-      Item: ({ children, value }: any) => <div data-testid={`cmdk-item-${value}`}>{children}</div>,
+ 
+      List: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+ 
+      Empty: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+      Group: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+      Item: ({ children, value }: { children: React.ReactNode, value?: string }) => <div data-testid={`cmdk-item-${value}`}>{children}</div>,
     }
   ),
 }));
@@ -43,8 +58,10 @@ describe("Combobox AutoFocus", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+ 
 
   it("starts with popover open when autoFocus is true", () => {
+    // eslint-disable-next-line jsx-a11y/no-autofocus
     render(<Combobox options={options} onChange={() => { }} autoFocus={true} />);
     const root = screen.getByTestId("popover-root");
     expect(root.getAttribute("data-open")).toBe("true");
@@ -162,9 +179,11 @@ describe("Combobox Keyboard Shortcut", () => {
     render(
       <Combobox
         options={options}
+ 
         onChange={() => { }}
         keyboardShortcut="Enter"
         onSearchChange={onSearchChange}
+        // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus={true} // Starts open
       />
     );

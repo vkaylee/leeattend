@@ -22,7 +22,8 @@ export async function setupApiMocks(page: Page) {
 
     console.log(`[MOCK API] Intercepted API Call: ${method} ${pathname}`);
 
-    const fulfill = async (data: any, status = 200) => {
+ 
+    const fulfill = async (data: unknown, status = 200) => {
       console.log(`[MOCK API] Fulfilling ${method} ${pathname} with status ${status}`);
       return route.fulfill({
         status,
@@ -103,7 +104,7 @@ export async function setupApiMocks(page: Page) {
     if (pathname.match(/\/api\/employees/)) {
       return fulfill({
         data: MOCK_EMPLOYEES,
-        pagination: { total_count: MOCK_EMPLOYEES.length, page: 1, page_size: 50, total_pages: 1 }
+        pagination: { total_count: MOCK_EMPLOYEES.length, page: 1, page_size: 50, totalpages: 1 }
       });
     }
 
@@ -118,7 +119,7 @@ export async function setupApiMocks(page: Page) {
         data: [
           { id: "log-1", employee_id: "emp-mock-1", punch_time: "2026-01-15T08:00:00Z", punch_type: "in", source: "device", device_name: "Main Door" }
         ],
-        pagination: { total_count: 1, page: 1, page_size: 50, total_pages: 1 }
+        pagination: { total_count: 1, page: 1, page_size: 50, totalpages: 1 }
       });
     }
 
@@ -137,7 +138,7 @@ export async function setupApiMocks(page: Page) {
     if (pathname.match(/\/api\/dashboard\/unexcused-absences/)) {
       return fulfill({
         data: [],
-        pagination: { total_count: 0, page: 1, page_size: 50, total_pages: 0 }
+        pagination: { total_count: 0, page: 1, page_size: 50, totalpages: 0 }
       });
     }
 
@@ -280,14 +281,14 @@ export async function setupApiMocks(page: Page) {
       return fulfill([]);
     }
     if (pathname.includes('/schedules')) {
-      return fulfill({ data: [], pagination: { total_count: 0, page: 1, page_size: 50, total_pages: 0 } });
+      return fulfill({ data: [], pagination: { total_count: 0, page: 1, page_size: 50, totalpages: 0 } });
     }
     if (pathname.includes('/holidays')) {
       return fulfill([]);
     }
     if (pathname.includes('/leave/')) {
       if (pathname.endsWith('/submit')) return fulfill({ success: true }, 201);
-      return fulfill({ data: [], pagination: { total_count: 0, page: 1, page_size: 50, total_pages: 0 } });
+      return fulfill({ data: [], pagination: { total_count: 0, page: 1, page_size: 50, totalpages: 0 } });
     }
     if (pathname.includes('/payroll') || pathname.includes('/salary-components')) {
       return fulfill([]);

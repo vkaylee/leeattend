@@ -30,16 +30,20 @@ describe("AssignPolicyModal", () => {
         },
       },
     });
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchEmployees as any).mockResolvedValue({ data: [
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+ 
+    vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [
       { id: "emp-1", first_name: "Alice", last_name: "Doe", employee_id_number: "EMP001" }
-    ], total: 1, page: 1, limit: 3000 });
-    (api.fetchDepartments as any).mockResolvedValue([
+    ], total: 1, page: 1, limit: 3000 } as unknown as never);
+ 
+    vi.mocked(api.fetchDepartments).mockResolvedValue([
       { id: "dept-1", name: "Engineering" }
-    ]);
-    (api.fetchLeavePolicies as any).mockResolvedValue([
+    ] as unknown as never);
+ 
+    vi.mocked(api.fetchLeavePolicies).mockResolvedValue([
       { id: "pol-1", name: "Standard Vacation", leave_type: "vacation" }
-    ]);
+    ] as unknown as never);
   });
 
   const renderModal = (isOpen: boolean = true, onClose = vi.fn()) => {
@@ -69,7 +73,8 @@ describe("AssignPolicyModal", () => {
   it("allows selecting an employee and policy then submitting", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    (api.assignLeavePolicy as any).mockResolvedValue({});
+ 
+    vi.mocked(api.assignLeavePolicy).mockResolvedValue({} as unknown as never);
 
     renderModal(true, onClose);
 

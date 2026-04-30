@@ -38,9 +38,10 @@ describe("PayrollSettingsSection", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    (api.fetchPayrollSettingsHistory as any).mockResolvedValue([
+ 
+    vi.mocked(api.fetchPayrollSettingsHistory).mockResolvedValue([
       { fixed_std_days: 26, hours_per_day: 8, effective_date: "2026-01-01" }
-    ]);
+    ] as unknown as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -63,7 +64,8 @@ describe("PayrollSettingsSection", () => {
   });
 
   it("calls update API when save button is clicked", async () => {
-    (api.updatePayrollSettings as any).mockResolvedValue({});
+ 
+    vi.mocked(api.updatePayrollSettings).mockResolvedValue({} as unknown as never);
     renderWithProviders(<PayrollSettingsSection wsId={mockWsId} />);
 
     const addBtn = await screen.findByText(/common.add_new/i);

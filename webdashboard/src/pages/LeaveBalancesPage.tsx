@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight, AlertTriangle, _X, Calendar } from "lucide-react";
+import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight, AlertTriangle, Calendar } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
@@ -134,7 +134,7 @@ export default function LeaveBalancesPage() {
 
           <div className="relative group w-full md:w-80">
             <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" size={18} />
-            <input type="text" autoFocus placeholder={t("common.search_placeholder")} className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm min-h-[44px]" value={searchTerm} onChange={(e) => {
+            <input type="text" placeholder={t("common.search_placeholder")} className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm min-h-[44px]" value={searchTerm} onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setPage(1); // Reset to page 1 on search
               }}
@@ -249,11 +249,11 @@ export default function LeaveBalancesPage() {
         <LeaveBalanceDetailModal balance={selectedBalance} isOpen={!!selectedBalance} onClose={() => setSelectedBalance(null)} />
       )}
 
-      {/* Custom Accrual Confirm Dialog */}
       {showAccrualConfirm && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowAccrualConfirm(false)}>
+        <div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowAccrualConfirm(false)} onKeyDown={(e) => e.key === 'Escape' && setShowAccrualConfirm(false)}>
           <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" />
-          <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-300 space-y-6" onClick={e => e.stopPropagation()}>
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Element has interactive role via onClick/onKeyDown */}
+          <div role="dialog" className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-300 space-y-6" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 bg-amber-50 dark:bg-amber-950 rounded-2xl flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />

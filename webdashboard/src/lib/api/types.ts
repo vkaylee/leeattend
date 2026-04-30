@@ -157,7 +157,8 @@ export interface TimeEntry {
   is_break_overtime: boolean;
   entry_type: string;
   note?: string;
-  generation_metadata?: any;
+ 
+  generation_metadata?: unknown;
   created_at: string;
   updated_at: string;
   employee_full_name?: string;
@@ -171,7 +172,8 @@ export interface RawAttendanceLog {
   punch_time: string;
   source: string;
   device_id?: string;
-  raw_data?: any;
+ 
+  raw_data?: unknown;
   created_at: string;
   employee_full_name?: string;
   employee_id_number?: string;
@@ -276,7 +278,8 @@ export interface AuditLog {
   target_user_id?: string;
   target_resource_id?: string;
   action: string;
-  details?: Record<string, any>;
+ 
+  details?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
   created_at: string;
@@ -317,7 +320,8 @@ export interface DailyAttendanceReport {
   is_holiday: boolean;
   is_unscheduled?: boolean;
   holiday_name?: string | null;
-  generation_metadata?: any;
+ 
+  generation_metadata?: unknown;
 }
 
 // --- Payroll and Shift Models ---
@@ -353,6 +357,7 @@ export interface PayrollSettings {
   updated_at: string;
 }
 
+ 
 export interface SalaryComponentDefinition {
   id: string;
   workspace_id: string;
@@ -360,6 +365,9 @@ export interface SalaryComponentDefinition {
   code: string;
   is_base_for_ot: boolean;
   is_taxable: boolean;
+  created_at: string;
+  updated_at: string;
+ 
 }
 
 export interface EmployeeSalaryComponent {
@@ -372,6 +380,8 @@ export interface EmployeeSalaryComponent {
   code?: string;
   is_base_for_ot?: boolean;
   is_taxable?: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PayrollSegment {
@@ -391,36 +401,19 @@ export interface PayrollSegment {
 
 export interface IncentiveEvaluationResult {
   policy_name: string;
+ 
   amount: string;
   tier_id?: string;
 }
 
-export interface SalaryComponentDefinition {
-  id: string;
-  workspace_id: string;
-  name: string;
-  code: string;
-  is_base_for_ot: boolean;
-  is_taxable: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
-export interface EmployeeSalaryComponent {
-  id: string;
-  employee_id: string;
-  component_definition_id: string;
-  amount: string;
-  effective_date: string;
-  created_at: string;
-  updated_at: string;
-}
 
 export interface SalaryComponentWithDefinition {
   component: EmployeeSalaryComponent;
   definition: SalaryComponentDefinition;
 }
 
+ 
 export interface SalaryBaseGroup {
   id: string;
   workspace_id: string;
@@ -660,6 +653,7 @@ export interface LeaveType {
   is_paid: boolean;
   policy_config: LeaveTypeConfig;
   created_at: string;
+ 
 }
 
 export interface LeavePolicy {
@@ -667,6 +661,7 @@ export interface LeavePolicy {
   workspace_id: string;
   name: string;
   description?: string;
+ 
   leave_type_id: string;
   rule_config: LeavePolicyConfig;
   created_at: string;
@@ -680,22 +675,7 @@ export interface SeniorityBonus {
   extra_days: number;
 }
 
-export interface LeaveTypeConfig {
-  requires_document?: boolean;
-  allow_negative_balance?: boolean;
-  negative_balance_limit?: number;
-  approval_required?: boolean;
-}
 
-export interface LeaveType {
-  id: string;
-  workspace_id: string;
-  code: string;
-  name: string;
-  is_paid: boolean;
-  policy_config: LeaveTypeConfig;
-  created_at: string;
-}
 
 export interface LeavePolicyConfig {
   frequency: AccrualFrequency;
@@ -710,6 +690,7 @@ export interface LeavePolicyConfig {
 
 export interface ScheduleTrace {
   rule_id?: string;
+ 
   rule_name: string;
   priority: number;
   status: "applied" | "overridden" | "conflict";
@@ -717,6 +698,7 @@ export interface ScheduleTrace {
 }
 
 export interface EffectiveSchedule {
+ 
   date: string;
   shift_id: string | null;
   source: "roster" | "pattern" | "assignment_rule" | "department_pattern" | "fixed" | "department_fixed" | "none";
@@ -1018,7 +1000,7 @@ export interface PayrollRuleDefinition {
   category: "statutory_deduction" | "allowance" | "bonus" | "deduction";
   applies_to: "all" | "department" | "employee";
   calculation_method: "percentage" | "fixed" | "tiered";
-  rule_config: Record<string, any>;
+  rule_config: Record<string, unknown>;
   is_mandatory: boolean;
   display_order: number;
   created_at: string;
@@ -1042,12 +1024,13 @@ export interface PayrollRuleAssignment {
   assignee_id: string | null;
   effective_from: string;
   effective_to?: string | null;
-  override_config?: Record<string, any> | null;
+  override_config?: Record<string, unknown> | null;
   created_at: string;
 }
 
 // --- Employment Phases ---
 
+ 
 export interface EmploymentPhaseDefinition {
   id: string;
   workspace_id: string;
@@ -1069,3 +1052,4 @@ export interface EmploymentPhaseAssignment {
   status: "active" | "completed" | "terminated";
   notes?: string;
 }
+ 

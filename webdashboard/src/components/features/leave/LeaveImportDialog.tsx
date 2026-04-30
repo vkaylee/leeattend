@@ -278,6 +278,7 @@ export default function LeaveImportDialog({
           </button>
 
           {/* File Drop Zone */}
+          { }
           <div
             className={cn(
               "border-3 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center transition-all cursor-pointer group active:scale-[0.98] relative overflow-hidden",
@@ -286,6 +287,14 @@ export default function LeaveImportDialog({
                 : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30"
             )}
             onClick={() => document.getElementById("leave-import-file-input")?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                document.getElementById("leave-import-file-input")?.click();
+              }
+            }}
           >
             <input
               id="leave-import-file-input"

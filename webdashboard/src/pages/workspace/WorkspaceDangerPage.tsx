@@ -74,8 +74,9 @@ function ClearDataModal({ isOpen, onClose, workspaceName }: { isOpen: boolean, o
       onClose();
       // Reload to reset state
       setTimeout(() => window.location.reload(), 1000);
-    } catch (e: any) {
-      toast.error(e.message || t('danger.errorMessage', { defaultValue: 'Failed to clear data' }));
+ 
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : t('danger.errorMessage', { defaultValue: 'Failed to clear data' }));
     } finally {
       setIsLoading(false);
     }

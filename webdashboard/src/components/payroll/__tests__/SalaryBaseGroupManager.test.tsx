@@ -1,7 +1,7 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, _fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -55,8 +55,10 @@ describe("SalaryBaseGroupManager", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    (api.fetchSalaryBaseGroups as any).mockResolvedValue({ groups: mockGroups, members: mockMembers });
-    (api.fetchSalaryComponents as any).mockResolvedValue(mockComponents);
+ 
+    vi.mocked(api.fetchSalaryBaseGroups).mockResolvedValue({ groups: mockGroups, members: mockMembers } as unknown as never);
+ 
+    vi.mocked(api.fetchSalaryComponents).mockResolvedValue(mockComponents as unknown as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -101,7 +103,8 @@ describe("SalaryBaseGroupManager", () => {
 
   it("handles assigning a component", async () => {
     const user = userEvent.setup();
-    (api.assignComponentToSalaryBase as any).mockResolvedValue({});
+ 
+    vi.mocked(api.assignComponentToSalaryBase).mockResolvedValue({} as unknown as never);
     renderWithProviders(<SalaryBaseGroupManager wsId={mockWsId} />);
 
     await waitFor(() => {
@@ -131,7 +134,8 @@ describe("SalaryBaseGroupManager", () => {
 
   it("handles unassigning a component", async () => {
     const user = userEvent.setup();
-    (api.unassignComponentFromSalaryBase as any).mockResolvedValue({});
+ 
+    vi.mocked(api.unassignComponentFromSalaryBase).mockResolvedValue({} as unknown as never);
     renderWithProviders(<SalaryBaseGroupManager wsId={mockWsId} />);
 
     await waitFor(() => {

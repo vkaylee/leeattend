@@ -66,8 +66,10 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
       resetForm();
       onOpenChange(false);
       onSuccess?.();
-    } catch (e: any) {
-      setError(e.message || "Failed to submit");
+ 
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to submit";
+      setError(msg);
     }
   };
 
@@ -97,7 +99,7 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
               <EmployeeSearch
                 workspaceId={wsId}
                 value={employeeId}
-                onChange={setEmployeeId}
+                onChange={(val) => setEmployeeId(Array.isArray(val) ? val[0] || "" : val)}
                 placeholder={t("approvals.paper_ot.select_employee") || "Search employee..."}
               />
             </div>

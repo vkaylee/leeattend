@@ -64,13 +64,15 @@ describe('LeaveBalanceDetailModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.fetchLeaveHistory as any).mockResolvedValue(mockHistory);
+ 
+    vi.mocked(api.fetchLeaveHistory).mockResolvedValue(mockHistory as unknown as never);
   });
 
   it('renders balance breakdown and history', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveBalanceDetailModal balance={mockBalance as any} isOpen={true} onClose={vi.fn()} />
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <LeaveBalanceDetailModal balance={mockBalance as unknown as never} isOpen={true} onClose={vi.fn()} />
       </QueryClientProvider>
     );
 
@@ -97,7 +99,8 @@ describe('LeaveBalanceDetailModal', () => {
   it('filters history by tabs', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <LeaveBalanceDetailModal balance={mockBalance as any} isOpen={true} onClose={vi.fn()} />
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <LeaveBalanceDetailModal balance={mockBalance as unknown as never} isOpen={true} onClose={vi.fn()} />
       </QueryClientProvider>
     );
 

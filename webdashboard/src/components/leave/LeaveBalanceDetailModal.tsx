@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { X, _Info, TrendingUp, Calendar, Award, _FileText, ArrowUpRight, ArrowDownRight, History as HistoryIcon, Clock } from "lucide-react";
+import { X, TrendingUp, Calendar, Award, ArrowUpRight, ArrowDownRight, History as HistoryIcon, Clock } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
@@ -36,18 +36,25 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
   const usage = history.filter(h => h.transaction_type === "usage");
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300"
-      onClick={onClose}
-    >
+ 
+ 
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-md" />
+      <div 
+        className="absolute inset-0 bg-slate-900/20 backdrop-blur-md"
+        onClick={onClose}
+        role="presentation"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+ 
+ 
+            onClose();
+          }
+        }}
+      />
 
       {/* Modal Content */}
-      <div
-        className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 flex flex-col">
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 md:px-8 py-5 md:py-6 rounded-t-3xl z-10 flex-shrink-0">
           <div className="flex items-start justify-between gap-4">

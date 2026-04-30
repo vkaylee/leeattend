@@ -34,10 +34,11 @@ vi.mock("react-i18next", () => ({
 
 describe("MyAttendancePage", () => {
   it("renders loading state", () => {
-    (useMyAttendance as any).mockReturnValue({
+ 
+    vi.mocked(useMyAttendance).mockReturnValue({
       entries: [],
       isLoading: true,
-    });
+    } as unknown as never);
 
     render(<MyAttendancePage />);
     // Check for spinner or loading indicator (implementation detail: spinner has specific class or just absence of data)
@@ -47,17 +48,19 @@ describe("MyAttendancePage", () => {
   });
 
   it("renders empty state", () => {
-    (useMyAttendance as any).mockReturnValue({
+ 
+    vi.mocked(useMyAttendance).mockReturnValue({
       entries: [],
       isLoading: false,
-    });
+    } as unknown as never);
 
     render(<MyAttendancePage />);
     expect(screen.getByText("ess.attendance.no_data")).toBeDefined();
   });
 
   it("renders attendance entries", () => {
-    (useMyAttendance as any).mockReturnValue({
+ 
+    vi.mocked(useMyAttendance).mockReturnValue({
       entries: [
         {
           id: "entry-1",
@@ -67,7 +70,7 @@ describe("MyAttendancePage", () => {
         }
       ],
       isLoading: false,
-    });
+    } as unknown as never);
 
     render(<MyAttendancePage />);
     expect(screen.getByText("ess.attendance.title")).toBeDefined();
@@ -79,7 +82,8 @@ describe("MyAttendancePage", () => {
   });
 
   it("renders metadata popover trigger when metadata exists", () => {
-    (useMyAttendance as any).mockReturnValue({
+ 
+    vi.mocked(useMyAttendance).mockReturnValue({
       entries: [
         {
           id: "entry-1",
@@ -88,7 +92,7 @@ describe("MyAttendancePage", () => {
         }
       ],
       isLoading: false,
-    });
+    } as unknown as never);
 
     render(<MyAttendancePage />);
     // Look for Info icon trigger

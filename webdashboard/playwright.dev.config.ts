@@ -1,4 +1,4 @@
-import { defineConfig, _devices } from "@playwright/test";
+import { defineConfig } from "@playwright/test";
 
 import config from "./playwright.config";
 

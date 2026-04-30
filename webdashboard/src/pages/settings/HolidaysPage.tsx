@@ -85,31 +85,34 @@ export default function HolidaysPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!wsId) return;
+        const currentWsId = wsId;
+        if (!currentWsId) return;
         setError(null);
+ 
 
-        const payload: any = {
+        const payload = {
             name: formName,
             date: formDate,
             holiday_type: formType,
             is_paid: formIsPaid,
-            leave_type_id: !formIsPaid && formLeaveTypeId ? formLeaveTypeId : undefined,
+            leave_type_id: !formIsPaid && formLeaveTypeId ? formLeaveTypeId : null,
             description: formDescription || undefined,
             ot_multiplier: formOtMultiplier ? parseFloat(formOtMultiplier) : undefined,
             is_credit_on_work: formIsCreditOnWork,
-            work_threshold_percent: formThresholdPercent ? parseInt(formThresholdPercent) : undefined,
-        };
+            work_threshold_percent: formThresholdPercent ? parseInt(formThresholdPercent) : null,
+        } as Parameters<typeof createHoliday>[1];
 
         try {
             if (editingHoliday) {
-                await updateHoliday(wsId, editingHoliday.id, payload);
+                await updateHoliday(currentWsId, editingHoliday.id, payload);
             } else {
-                await createHoliday(wsId, payload);
+                await createHoliday(currentWsId, payload);
             }
             resetForm();
+ 
             loadHolidays();
-        } catch (err: any) {
-            setError(err.message || t('holidays.messages.save_error'));
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : t('holidays.messages.save_error'));
         }
     };
 

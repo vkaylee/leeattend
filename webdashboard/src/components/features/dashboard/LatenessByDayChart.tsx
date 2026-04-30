@@ -1,7 +1,6 @@
 import { CalendarClock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
-    _BarChart,
     Bar,
     XAxis,
     YAxis,

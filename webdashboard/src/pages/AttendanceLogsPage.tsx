@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 
 import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useNavigate, Link, _useSearch } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { format, endOfMonth } from "date-fns";
 import {
   Download,
@@ -12,20 +12,14 @@ import {
   Users,
   CalendarRange,
   AlertTriangle,
-  _UserPlus,
-  _Trash2,
-  _Link2,
-  _Check,
-  _Loader2, BarChart3 
+  BarChart3 
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import FloatingRecordBadge from "@/components/common/FloatingRecordBadge";
-import _InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import PermissionGate from "@/components/common/PermissionGate";
-import { _TableSkeleton } from "@/components/common/TableSkeleton";
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 import { RecordedLogsTable } from "@/components/features/attendance/RecordedLogsTable";
 import { StagingLogsTable } from "@/components/features/attendance/StagingLogsTable";
@@ -47,11 +41,12 @@ export default function AttendanceLogsPage() {
   const navigate = useNavigate();
   // URL search params — read once on mount for cross-page navigation
   const searchParams = new URLSearchParams(window.location.search);
-  const setSearchParams = (_params: Record<string, string>, _opts?: any) => {
+  const setSearchParams = (_params: Record<string, string>, _opts?: unknown) => {
     // No-op: we use local state, not URL for this page
   };
   const wsId = getCurrentWorkspaceId();
   const { formatDate, formatTime } = useDateTimeFormatter();
+ 
   const queryClient = useQueryClient();
 
   // Initialize from URL search params if present
@@ -84,7 +79,7 @@ export default function AttendanceLogsPage() {
     if (urlFrom || urlTo || urlEmployee) {
       setSearchParams({}, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional: effect should only fire when listed deps change
   }, []);
 
   const handleFilterModeChange = useCallback((mode: "this_month" | "last_month" | "custom" | "specific_month") => {
@@ -251,11 +246,12 @@ export default function AttendanceLogsPage() {
         <div className="flex items-center gap-3">
           <Link
             to="/reports"
-            search={{ from: dateRange.start, to: dateRange.end } as any}
+            search={{ from: dateRange.start, to: dateRange.end } as Record<string, unknown>}
             className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-5 py-2.5 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"
           >
             <BarChart3 size={14} /> {t("attendance_logs.view_reports")}
           </Link>
+          { }
           <Button variant="outline" size="sm" onClick={() => window.print()} icon={<Download size={14} />}>{t("attendance_logs.export_btn")}</Button>
           <PermissionGate permission="attendance_staging:manage">
             <Button size="sm" onClick={() => setIsImportDialogOpen(true)} icon={<Upload size={14} />}>{t("attendance_logs.import_btn")}</Button>
@@ -301,11 +297,12 @@ export default function AttendanceLogsPage() {
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm p-2 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
               {["this_month", "last_month"].map(mode => (
-                <button key={mode} onClick={() => handleFilterModeChange(mode as any)} className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>{t(`common.filters.${mode}`)}</button>
+                <button key={mode} onClick={() => handleFilterModeChange(mode as "this_month" | "last_month" | "custom" | "specific_month")} className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>{t(`common.filters.${mode}`)}</button>
               ))}
               <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-1" />
               <div className="relative group">
                 <button className={cn("flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>
+                  { }
                   <CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month")}
                 </button>
                 <div className="absolute left-0 top-full mt-2 z-[100] hidden group-hover:block animate-in zoom-in-95 duration-200 origin-top-left"><MonthYearPicker month={specificMonth.month} year={specificMonth.year} onChange={handleSpecificMonthChange} /></div>
@@ -314,7 +311,7 @@ export default function AttendanceLogsPage() {
             </div>
 
             <div className="flex-1 max-w-md flex items-center gap-3 px-2">
-              <div className="flex-1"><EmployeeSearch data-testid="employee-search" workspaceId={wsId!} value={employeeId === "all" ? "" : employeeId} onChange={(val) => { setEmployeeId(val || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} autoFocus keyboardShortcut={["/", "Enter"]} clearOnEscape /></div>
+              <div className="flex-1"><EmployeeSearch data-testid="employee-search" workspaceId={wsId!} value={employeeId === "all" ? "" : employeeId} onChange={(val) => { setEmployeeId((Array.isArray(val) ? val[0] : val) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} keyboardShortcut={["/", "Enter"]} clearOnEscape /></div>
               {employeeId !== "all" && <button onClick={() => { setEmployeeId("all"); }} className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all"><Users size={18} /></button>}
             </div>
           </div>

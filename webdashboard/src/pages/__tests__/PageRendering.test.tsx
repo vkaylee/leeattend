@@ -16,7 +16,8 @@ import LeaveBalancesPage from "../LeaveBalancesPage";
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+ 
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock scrollIntoView and IntersectionObserver for jsdom
@@ -28,7 +29,8 @@ class MockIntersectionObserver {
   disconnect = vi.fn();
   constructor() { }
 }
-window.IntersectionObserver = MockIntersectionObserver as any;
+ 
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock hooks
 vi.mock("@/hooks/use-profile", () => ({
@@ -83,7 +85,8 @@ vi.mock("@/hooks/use-dashboard", () => ({
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => {
-  const actual = await importOriginal<any>();
+ 
+  const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
     getCurrentUserId: vi.fn(() => "test-user"),
@@ -96,11 +99,12 @@ vi.mock("@/lib/api", async (importOriginal) => {
     fetchEmploymentHistory: vi.fn(() => Promise.resolve([])),
     fetchRawAttendanceLogs: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
     fetchMyEmployeeProfile: vi.fn(() => Promise.resolve({ id: "emp-1", full_name: "Test User" })),
-  };
+  } as unknown as Record<string, unknown>;
 });
 
 vi.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
+ 
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   BarChart: () => <div />, Bar: () => <div />, XAxis: () => <div />, YAxis: () => <div />,
   CartesianGrid: () => <div />, Tooltip: () => <div />, Legend: () => <div />,
   LineChart: () => <div />, Line: () => <div />, AreaChart: () => <div />, Area: () => <div />,

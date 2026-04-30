@@ -1,19 +1,19 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
+ 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
-import { Employee, _Payslip } from "@/lib/api/types";
+
+import { Employee } from "@/lib/api/types";
 
 import { ToastProvider } from "../../ui/Toast";
 import PayrollDetailDrawer from "../PayrollDetailDrawer";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
 
 // Mock i18next
 vi.mock("react-i18next", () => ({

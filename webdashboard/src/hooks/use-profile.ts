@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchMe, updateMe, setCurrentUserId, _User } from "@/lib/api";
+import { fetchMe, updateMe, setCurrentUserId } from "@/lib/api";
 
 export const profileKeys = {
   me: ["profile-me"] as const,

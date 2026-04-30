@@ -17,17 +17,21 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("recharts", () => ({
-    ComposedChart: ({ children, ...props }: any) => (
-        <div data-testid="composed-chart" {...props}>{children}</div>
+ 
+    ComposedChart: ({ children, ...props }: { children: React.ReactNode }) => (
+        <div data-testid="composed-chart" {...props}>{children as React.ReactNode}</div>
     ),
-    Bar: (props: any) => <div data-testid={`bar-${props.dataKey}`} />,
-    Line: (props: any) => <div data-testid={`line-${props.dataKey}`} />,
+ 
+    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey}`} />,
+ 
+    Line: (props: { dataKey: string }) => <div data-testid={`line-${props.dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
-    ResponsiveContainer: ({ children }: any) => (
-        <div data-testid="responsive-container">{children}</div>
+ 
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+        <div data-testid="responsive-container">{children as React.ReactNode}</div>
     ),
     Legend: () => <div data-testid="legend" />,
 }));
@@ -59,10 +63,11 @@ describe("LatenessByDayChart", () => {
     });
 
     it("renders loading spinner when data is loading", () => {
-        (dashboardHooks.useLatenessByDay as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: undefined,
             isLoading: true,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LatenessByDayChart />);
 
@@ -71,10 +76,11 @@ describe("LatenessByDayChart", () => {
     });
 
     it("renders empty state when no data available", () => {
-        (dashboardHooks.useLatenessByDay as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: [],
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LatenessByDayChart />);
 
@@ -83,10 +89,11 @@ describe("LatenessByDayChart", () => {
     });
 
     it("renders empty state when all late counts are zero", () => {
-        (dashboardHooks.useLatenessByDay as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: [{ day: "Mon", late_count: 0, avg_late_minutes: 0 }],
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LatenessByDayChart />);
 
@@ -94,10 +101,11 @@ describe("LatenessByDayChart", () => {
     });
 
     it("renders chart with data when lateness data is available", () => {
-        (dashboardHooks.useLatenessByDay as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LatenessByDayChart />);
 
@@ -106,10 +114,11 @@ describe("LatenessByDayChart", () => {
     });
 
     it("renders bar and line series", () => {
-        (dashboardHooks.useLatenessByDay as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LatenessByDayChart />);
 
@@ -118,6 +127,7 @@ describe("LatenessByDayChart", () => {
     });
 
     it("displays the correct chart title and subtitle", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useLatenessByDay as any).mockReturnValue({
             data: mockData,
             isLoading: false,

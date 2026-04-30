@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Component } from "react";
 
 interface ErrorBoundaryProps {
   children?: React.ReactNode;
@@ -11,7 +11,8 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<
+ 
+export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {

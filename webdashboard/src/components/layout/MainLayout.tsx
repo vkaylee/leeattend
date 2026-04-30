@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 import { Outlet, useLocation } from "@tanstack/react-router";
-import { Building2, _X } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useI18nSync } from "@/hooks/use-i18n-sync";
@@ -101,9 +101,17 @@ export default function MainLayout() {
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden">
       {isSidebarOpen && (
+ 
+ 
         <div
           className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
           onClick={() => setIsSidebarOpen(false)}
+          role="presentation"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+              setIsSidebarOpen(false);
+            }
+          }}
         />
       )}
 

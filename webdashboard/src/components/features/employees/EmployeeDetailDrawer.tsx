@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 
+import { useQuery } from "@tanstack/react-query";
 import {
     Trash2,
     Building2,
@@ -8,23 +9,39 @@ import {
     X,
     Pencil,
     Calendar as CalendarIcon,
+    User,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
 
 import PermissionGate from "@/components/common/PermissionGate";
 import WorkingConditionConfig from "@/components/employees/WorkingConditionConfig";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 import Sheet from "@/components/ui/Sheet";
 
+import { fetchWorkspaceMembers } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-
-import type { Employee, Department } from "@/lib/api";
+import type { Employee, Department, WorkspaceMember } from "@/lib/api";
 
 
 type DetailTabType = "profile" | "salary" | "history" | "policies";
 const TAB_ORDER: DetailTabType[] = ["profile", "salary", "policies", "history"];
 const SCROLL_STEP = 80;
+
+interface DeptHistoryEntry {
+    department_id: string;
+    effective_date: string;
+ 
+}
+ 
+
+interface EmploymentPeriodEntry {
+    id: string;
+    hire_date: string;
+    termination_date?: string | null;
+    is_rehire?: boolean;
+}
 
 interface EmployeeDetailDrawerProps {
     isOpen: boolean;
@@ -32,8 +49,8 @@ interface EmployeeDetailDrawerProps {
     employee: Employee | null;
     wsId: string;
     departments?: Department[];
-    deptHistory?: any[];
-    employmentHistory?: any[];
+    deptHistory?: DeptHistoryEntry[];
+    employmentHistory?: EmploymentPeriodEntry[];
     formatDate: (date: string) => string;
     onEdit: (employee: Employee) => void;
     onTerminate: (employee: Employee) => void;
@@ -84,7 +101,15 @@ export default function EmployeeDetailDrawer({
         return () => window.removeEventListener("keydown", handleKeyDown, true);
     }, [isOpen]);
 
+    const { data: members } = useQuery({
+        queryKey: ["workspace-members", wsId],
+        queryFn: () => fetchWorkspaceMembers(wsId),
+        enabled: !!wsId && !!employee?.user_id,
+    });
+
     if (!employee) return null;
+
+    const linkedUser = members?.find((m: WorkspaceMember) => m.user_id === employee.user_id);
 
     return (
         <Sheet
@@ -154,6 +179,25 @@ export default function EmployeeDetailDrawer({
                                     </div>
                                 ) : (<div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest italic opacity-60">{t("employees.details.not_assigned_dept")}</div>)}
                                 <Building2 className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-700 dark:text-slate-200 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+                            </div>
+                        </section>
+
+                        <section className="space-y-5">
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 opacity-70"><User size={14} className="text-indigo-500" /> {t("common.user").toUpperCase()}</span>
+                            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
+                                {linkedUser ? (
+                                    <div>
+                                        <div className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none mb-1">{linkedUser.full_name || linkedUser.email}</div>
+                                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70">{linkedUser.email}</div>
+                                    </div>
+                                ) : employee.user_id ? (
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                                        <div className="text-xs text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest italic">{t("common.loading")}</div>
+                                    </div>
+                                ) : (
+                                    <div className="text-slate-300 dark:text-slate-600 font-bold text-xl tracking-tighter uppercase font-mono">—</div>
+                                )}
                             </div>
                         </section>
 

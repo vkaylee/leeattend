@@ -1,18 +1,20 @@
-import { describe, it, expect, vi } from 'vitest';
-
-// Mock TanStack Router
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn(),
-  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
-}));
+ 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 
 import AssignOvertimePolicyModal from '../AssignOvertimePolicyModal';
 import OvertimeRuleEditor from '../OvertimeRuleEditor';
+ 
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
+// Mock TanStack Router
+ 
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
+}));
+ 
 
 vi.mock('@/lib/api/payroll', () => ({
   addOvertimeRule: vi.fn().mockResolvedValue({}),

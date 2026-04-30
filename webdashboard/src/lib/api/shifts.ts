@@ -2,6 +2,7 @@ import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
 import { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster } from "./types";
 
+
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts`);
   if (!response.ok) throw new Error("Failed to fetch shifts");
@@ -70,8 +71,9 @@ export const fetchEmployeeRosters = async (
   if (!response.ok) throw new Error("Failed to fetch rosters");
   return response.json();
 }
+ 
 
-export async function upsertRoster(wsId: string, employeeId: string, data: any): Promise<ShiftRoster> {
+export async function upsertRoster(wsId: string, employeeId: string, data: Partial<ShiftRoster>): Promise<ShiftRoster> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters`, {
     method: "POST",
     body: JSON.stringify(data),
@@ -79,8 +81,9 @@ export async function upsertRoster(wsId: string, employeeId: string, data: any):
   if (!response.ok) throw new Error("Failed to upsert roster");
   return response.json();
 }
+ 
 
-export async function bulkUpsertRoster(wsId: string, employeeId: string, items: any[]): Promise<void> {
+export async function bulkUpsertRoster(wsId: string, employeeId: string, items: Partial<ShiftRoster>[]): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters/bulk`, {
     method: "POST",
     body: JSON.stringify({ items }),

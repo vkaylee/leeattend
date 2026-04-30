@@ -1,20 +1,22 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, _fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
 import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
+import { RoleScopeType } from "../../lib/api/types";
 import MembersPage from "../MembersPage";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
+ 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock the API library
@@ -46,18 +48,26 @@ describe("MembersPage", () => {
           staleTime: 0,
         },
       },
+ 
     });
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["members:invite", "members:remove", "members:roles:manage"], roles: ["admin"] });
-    (api.fetchWorkspaceMembers as any).mockResolvedValue([
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+ 
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ 
+      permissions: ["members:invite", "members:remove", "members:roles:manage"], 
+      roles: ["admin"],
+      managed_department_ids: null
+ 
+    });
+    vi.mocked(api.fetchWorkspaceMembers).mockResolvedValue([
         { workspace_id: "test-ws-id", user_id: "user-1", email: "owner@example.com", full_name: "Workspace Owner", role_id: "role-owner", extra_role_ids: [] },
         { workspace_id: "test-ws-id", user_id: "user-2", email: "admin@example.com", full_name: "Admin User", role_id: "role-admin", extra_role_ids: [] }
     ]);
-    (api.fetchWorkspaceRoles as any).mockResolvedValue([
-      { id: "role-owner", name: "Owner", is_system: true, color: "rose" },
-      { id: "role-admin", name: "Admin", is_system: true, color: "indigo" },
-      { id: "role-member", name: "Member", is_system: true, color: "slate" }
-    ]);
+    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue([
+      { id: "role-owner", name: "Owner", is_system: true, color: "rose", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
+      { id: "role-admin", name: "Admin", is_system: true, color: "indigo", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
+      { id: "role-member", name: "Member", is_system: true, color: "slate", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" }
+    ] as unknown as Awaited<ReturnType<typeof api.fetchWorkspaceRoles>>);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -76,12 +86,13 @@ describe("MembersPage", () => {
     expect(await screen.findByText(/Workspace Owner/i, {}, { timeout: 30000 })).toBeDefined();
     expect((await screen.findAllByText(/OWNER/i)).length).toBeGreaterThan(0);
     expect(await screen.findByText(/Admin User/i)).toBeDefined();
+ 
     expect((await screen.findAllByText(/ADMIN/i)).length).toBeGreaterThan(0);
   });
 
   it("handles inviting a new member", async () => {
     const user = userEvent.setup();
-    (api.addWorkspaceMember as any).mockResolvedValue({});
+    vi.mocked(api.addWorkspaceMember).mockResolvedValue(undefined as unknown as void);
 
     renderWithProviders(<MembersPage />);
 
@@ -99,12 +110,13 @@ describe("MembersPage", () => {
 
     await waitFor(() => {
       expect(api.addWorkspaceMember).toHaveBeenCalledWith("test-ws-id", "new@example.com", "role-owner");
+ 
     });
   });
 
   it("handles removing a member", async () => {
     const user = userEvent.setup();
-    (api.removeWorkspaceMember as any).mockResolvedValue({});
+    vi.mocked(api.removeWorkspaceMember).mockResolvedValue(undefined as unknown as void);
 
     renderWithProviders(<MembersPage />);
 
@@ -120,12 +132,13 @@ describe("MembersPage", () => {
 
     await waitFor(() => {
       expect(api.removeWorkspaceMember).toHaveBeenCalledWith("test-ws-id", "user-2");
+ 
     });
   });
 
   it("opens role management modal", async () => {
     const user = userEvent.setup();
-    (api.fetchMemberRoles as any).mockResolvedValue({
+    vi.mocked(api.fetchMemberRoles).mockResolvedValue({
       primary: "role-admin",
       extra: []
     });

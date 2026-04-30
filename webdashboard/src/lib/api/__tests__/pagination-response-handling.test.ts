@@ -1,7 +1,5 @@
-import { describe, it, expect, _beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
-import { _fetchEmployees, _searchEmployees } from "../employees";
-import { _fetchWorkspacePayslips } from "../payroll";
 import { PaginatedResponse } from "../types";
 
 /**
@@ -208,9 +206,10 @@ describe("Pagination Response Handling", () => {
         page: 1,
         limit: 50,
         // missing 'data' property
-      } as any;
+      } as unknown as PaginatedResponse<unknown>;
 
-      const data = malformedResponse?.data ?? [];
+ 
+      const data = (malformedResponse as unknown as Record<string, unknown>)?.data ?? [];
       expect(Array.isArray(data)).toBe(true);
       expect(data).toHaveLength(0);
     });
@@ -275,9 +274,10 @@ describe("Pagination Response Handling", () => {
         total: 0,
         page: 1,
         limit: 50,
-      } as any;
+      } as unknown as PaginatedResponse<unknown>;
 
-      const data = response?.data ?? [];
+ 
+      const data = (response as unknown as Record<string, unknown>)?.data ?? [];
       expect(Array.isArray(data)).toBe(true);
       expect(data).toHaveLength(0);
     });
@@ -308,9 +308,10 @@ describe("Pagination Response Handling", () => {
       const unexpectedResponse = {
         results: [{ id: "1" }], // Wrong property name
         count: 1,
-      } as any;
+      } as unknown as PaginatedResponse<unknown>;
 
-      const data = unexpectedResponse?.data ?? [];
+ 
+      const data = (unexpectedResponse as unknown as Record<string, unknown>)?.data ?? [];
       expect(Array.isArray(data)).toBe(true);
       expect(data).toHaveLength(0);
     });
@@ -354,8 +355,9 @@ describe("Pagination Response Handling", () => {
       const mockFetch = vi.fn();
 
       // Mock the apiFetch to validate response structure
-      const createMockResponse = (data: any) => ({
+      const createMockResponse = (data: unknown) => ({
         ok: true,
+ 
         json: async () => data,
       });
 
@@ -388,8 +390,9 @@ describe("Pagination Response Handling", () => {
     it("should validate searchEmployees returns PaginatedResponse type", async () => {
       const mockFetch = vi.fn();
 
-      const createMockResponse = (data: any) => ({
+      const createMockResponse = (data: unknown) => ({
         ok: true,
+ 
         json: async () => data,
       });
 
@@ -408,7 +411,7 @@ describe("Pagination Response Handling", () => {
       );
 
       const result = await mockFetch();
-      const parsed = await result.json();
+      const parsed = await result.json() as PaginatedResponse<{ id: string; full_name: string }>;
 
       expect(parsed.data).toHaveLength(1);
       expect(parsed.data[0].full_name).toContain("John");

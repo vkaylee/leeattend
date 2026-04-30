@@ -1,20 +1,22 @@
+import React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, _beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Mock TanStack Router
+ 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
+
 import { Payslip } from "@/lib/api/types";
+ 
 
 import { ToastProvider } from "../../ui/Toast";
 import PayrollTable from "../PayrollTable";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-import React from "react";
 
 vi.mock("@/hooks/use-permissions", () => ({
   useMyPermissions: () => ({
@@ -119,7 +121,8 @@ describe("PayrollTable", () => {
       <PayrollTable employee={null} workspace={null}
         payslips={mockPayslips}
         isLoading={false}
-        adjustments={mockAdjustments as any}
+ 
+        adjustments={mockAdjustments as unknown as never}
         onResolveAdjustments={vi.fn()}
       />
     );

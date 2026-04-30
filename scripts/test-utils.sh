@@ -277,6 +277,7 @@ run_parallel_ordered() {
     local running_logs=()
     local running_names=()
     local running_starts=()
+    local running_tails=()
     local completed_count=0
 
     while [ $completed_count -lt $total_tasks ]; do
@@ -302,13 +303,17 @@ run_parallel_ordered() {
                 (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd" </dev/null > "$log_file" 2>&1) &
                 local test_pid=$!
                 
-                # tail -f sẽ tự động thoát khi test_pid kết thúc (PTY-safe)
-                tail -f "$log_file" --pid=$test_pid 2>/dev/null || true
-                
-                # Chờ lấy exit code thực sự của test
+                # tail -f sẽ tự động thoát khi test_pid kết thúc (PTY-safe).
+                # Timeout bảo vệ: nếu log file bị giữ open bởi process khác,
+                # tail vẫn thoát sau task_timeout + 30s.
+                tail -f "$log_file" --pid=$test_pid 2>/dev/null &
+                local _tail_pid=$!
+                # Wait for test (not tail — tail exits automatically via --pid)
                 wait $test_pid
                 local status=$?
-                set -e
+                # Ensure tail is dead (belt-and-suspenders)
+                kill $_tail_pid 2>/dev/null || true
+                wait $_tail_pid 2>/dev/null || true
                 set -e
                 local duration=$(( SECONDS - start_time ))
 
@@ -337,10 +342,15 @@ run_parallel_ordered() {
                 running_names+=("$name")
                 running_starts+=("$start_time")
                 
-                # Start a background tail to show progress (PASS/FAIL/TIMEOUT + compile errors)
-                # It will automatically exit when test_pid exits
+                # Start a progress tail in background. Track its PID so we
+                # can kill it when the task completes — prevents orphaned
+                # pipe processes from holding PTY fds.
                 touch "$log_file"
-                tail -f "$log_file" --pid=$test_pid 2>/dev/null | grep --line-buffered -E "^(    PASS|    FAIL|    TIMEOUT|panicked|test result:|error\[|error:|   -->|could not compile)" </dev/null >&2 &
+                {
+                    tail -f "$log_file" --pid=$test_pid 2>/dev/null | grep --line-buffered -E "^(    PASS|    FAIL|    TIMEOUT|panicked|test result:|error\[|error:|   -->|could not compile)" </dev/null >&2
+                } </dev/null &
+                local _tail_pid=$!
+                running_tails+=($_tail_pid)
             fi
         done
 
@@ -353,6 +363,7 @@ run_parallel_ordered() {
             local still_running_logs=()
             local still_running_names=()
             local still_running_starts=()
+            local still_running_tails=()
             local finished_any=false
 
             for i in "${!running_pids[@]}"; do
@@ -360,8 +371,11 @@ run_parallel_ordered() {
                 local log="${running_logs[$i]}"
                 local name="${running_names[$i]}"
                 local start="${running_starts[$i]}"
+                local _tp="${running_tails[$i]:-0}"
 
                 if ! kill -0 "$pid" 2>/dev/null; then
+                    # Kill the progress tail (belt-and-suspenders with --pid)
+                    kill "$_tp" 2>/dev/null || true
                     set +e
                     wait "$pid"
                     local status=$?
@@ -391,6 +405,7 @@ run_parallel_ordered() {
                     still_running_logs+=("$log")
                     still_running_names+=("$name")
                     still_running_starts+=("$start")
+                    still_running_tails+=("$_tp")
                 fi
             done
 
@@ -399,6 +414,7 @@ run_parallel_ordered() {
             running_logs=(${still_running_logs[@]+"${still_running_logs[@]}"})
             running_names=(${still_running_names[@]+"${still_running_names[@]}"})
             running_starts=(${still_running_starts[@]+"${still_running_starts[@]}"})
+            running_tails=(${still_running_tails[@]+"${still_running_tails[@]}"})
             set -e
 
             if [ "$finished_any" = "false" ]; then
@@ -408,6 +424,11 @@ run_parallel_ordered() {
                 sleep 1
             fi
         fi
+    done
+
+    # Clean up any remaining progress tails
+    for _tp in "${running_tails[@]}"; do
+        kill "$_tp" 2>/dev/null || true
     done
 
     echo -ne "                                                                \r"

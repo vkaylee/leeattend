@@ -7,14 +7,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
+import { Department, User, WorkingPattern } from "../../lib/api/types";
 import DepartmentsPage from "../DepartmentsPage";
 
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
+ 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock the API library
@@ -32,9 +34,9 @@ vi.mock("../../lib/api", () => ({
 
 // Override i18n for this test to return keys
 vi.mock('react-i18next', () => ({
+ 
   useTranslation: () => ({
-    t: (key: string, options?: any) => {
-      if (typeof options === "string") return options;
+    t: (key: string, options?: { defaultValue?: string }) => {
       if (options && options.defaultValue) return options.defaultValue;
       return key;
     },
@@ -59,16 +61,20 @@ describe("DepartmentsPage", () => {
         },
       },
     });
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchDepartments as any).mockResolvedValue([
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+ 
+    vi.mocked(api.fetchDepartments).mockResolvedValue([
       { id: "dept-1", name: "Engineering", description: "Tech stuff", manager_id: "user-1", active_employee_count: 5 }
-    ]);
-    (api.fetchUsers as any).mockResolvedValue([
+    ] as unknown as Department[]);
+ 
+    vi.mocked(api.fetchUsers).mockResolvedValue([
       { id: "user-1", full_name: "Manager One", email: "manager1@example.com" }
-    ]);
-    (api.fetchWorkingPatterns as any).mockResolvedValue([
+    ] as unknown as User[]);
+ 
+    vi.mocked(api.fetchWorkingPatterns).mockResolvedValue([
       { id: "pat-1", name: "Standard Pattern" }
-    ]);
+    ] as unknown as WorkingPattern[]);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -82,7 +88,8 @@ describe("DepartmentsPage", () => {
   };
 
   it("renders without workspace selected", () => {
-    (api.getCurrentWorkspaceId as any).mockReturnValue(null);
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(null);
     renderWithProviders(<DepartmentsPage />);
     expect(screen.getByText("common.select_workspace")).toBeDefined();
   });
@@ -96,7 +103,8 @@ describe("DepartmentsPage", () => {
 
   it("handles creating a new department with working pattern", async () => {
     const user = userEvent.setup();
-    (api.createDepartment as any).mockResolvedValue({ id: "new-dept", name: "HR" });
+ 
+    vi.mocked(api.createDepartment).mockResolvedValue({ id: "new-dept", name: "HR" } as unknown as Department);
 
     renderWithProviders(<DepartmentsPage />);
 
@@ -124,7 +132,8 @@ describe("DepartmentsPage", () => {
 
   it("handles updating a department", async () => {
     const user = userEvent.setup();
-    (api.updateDepartment as any).mockResolvedValue({ id: "dept-1", name: "Engineering Updated" });
+ 
+    vi.mocked(api.updateDepartment).mockResolvedValue({ id: "dept-1", name: "Engineering Updated" } as unknown as Department);
 
     renderWithProviders(<DepartmentsPage />);
     
@@ -150,7 +159,8 @@ describe("DepartmentsPage", () => {
 
   it("handles deleting a department", async () => {
     const user = userEvent.setup();
-    (api.deleteDepartment as any).mockResolvedValue({});
+ 
+    vi.mocked(api.deleteDepartment).mockResolvedValue({} as unknown as void);
 
     renderWithProviders(<DepartmentsPage />);
 

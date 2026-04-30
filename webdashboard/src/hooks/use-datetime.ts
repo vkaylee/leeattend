@@ -21,7 +21,7 @@ export function useDateTimeFormatter() {
     if (!date) return "---";
     try {
       return format(new Date(date), datePattern);
-    } catch (__e) {
+    } catch {
       return String(date);
     }
   };
@@ -38,7 +38,7 @@ export function useDateTimeFormatter() {
         d.setHours(parseInt(h), parseInt(m), s ? parseInt(s) : 0);
       }
       return format(d, timePattern);
-    } catch (__e) {
+    } catch {
       return String(date);
     }
   };
@@ -53,7 +53,7 @@ export function useDateTimeFormatter() {
         d.setHours(parseInt(h), parseInt(m), s ? parseInt(s) : 0);
       }
       return format(d, "HH:mm");
-    } catch (__e) {
+    } catch {
       return "";
     }
   };
@@ -62,7 +62,7 @@ export function useDateTimeFormatter() {
     if (!date) return "---";
     try {
       return format(new Date(date), `${datePattern} ${timePattern}`);
-    } catch (__e) {
+    } catch {
       return String(date);
     }
   };
@@ -73,7 +73,7 @@ export function useDateTimeFormatter() {
       // Use localized month and year based on datePattern
       const pattern = datePattern.includes("dd/MM") ? "MM/yyyy" : datePattern.includes("MM/dd") ? "MM/yyyy" : "yyyy-MM";
       return format(new Date(date), pattern);
-    } catch (__e) {
+    } catch {
       return String(date);
     }
   };

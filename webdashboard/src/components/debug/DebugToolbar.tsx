@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserPlus, UserMinus } from "lucide-react";
@@ -17,10 +17,12 @@ export const DebugToolbar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<DebugTab>("identity");
   const [tempId, setTempId] = useState(impersonateId || "");
   const [tempDate, setTempDate] = useState(mockDate || "");
-  const [debugUsers, setDebugUsers] = useState<any[]>([]);
+ 
+  const [debugUsers, setDebugUsers] = useState<Record<string, unknown>[]>([]);
   const [isWiping, setIsWiping] = useState(false);
 
-  React.useEffect(() => {
+ 
+  useEffect(() => {
     if (isOpen && isEnabled && activeTab === "identity") {
       debugApi.getUsers()
         .then(res => {
@@ -140,17 +142,19 @@ export const DebugToolbar: React.FC = () => {
         {activeTab === "identity" && (
           <div className="space-y-3 animate-in fade-in duration-300">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
+              { }
+              <label htmlFor="debug-user-select" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
                 Select User
               </label>
               <select 
+                id="debug-user-select"
                 className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] mb-2 focus:outline-none focus:border-blue-500"
                 onChange={(e) => setTempId(e.target.value)}
                 value={tempId}
               >
                 <option value="">-- All Workspace Users --</option>
                 {Array.isArray(debugUsers) && debugUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                  <option key={String(u.id)} value={String(u.id)}>{String(u.name)} ({String(u.role)})</option>
                 ))}
               </select>
               <div className="flex gap-2">
@@ -174,12 +178,14 @@ export const DebugToolbar: React.FC = () => {
 
         {activeTab === "time" && (
           <div className="space-y-3 animate-in fade-in duration-300">
+            { }
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
+              <label htmlFor="debug-date-input" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
                 Travel to Date
               </label>
               <div className="flex gap-2">
                 <input
+                  id="debug-date-input"
                   type="date"
                   value={tempDate}
                   onChange={(e) => setTempDate(e.target.value)}

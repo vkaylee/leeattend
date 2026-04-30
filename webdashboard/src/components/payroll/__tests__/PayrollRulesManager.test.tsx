@@ -69,8 +69,10 @@ describe("PayrollRulesManager", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    (api.fetchPayrollRules as any).mockResolvedValue(mockRules);
-    (api.fetchSalaryBaseGroups as any).mockResolvedValue(mockBasesResponse);
+ 
+    vi.mocked(api.fetchPayrollRules).mockResolvedValue(mockRules as unknown as never);
+ 
+    vi.mocked(api.fetchSalaryBaseGroups).mockResolvedValue(mockBasesResponse as unknown as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -92,7 +94,8 @@ describe("PayrollRulesManager", () => {
 
   it("opens modal and submits new rule", async () => {
     const user = userEvent.setup();
-    (api.createPayrollRule as any).mockResolvedValue({ id: "rule-2" });
+ 
+    vi.mocked(api.createPayrollRule).mockResolvedValue({ id: "rule-2" } as unknown as never);
     renderWithProviders(<PayrollRulesManager wsId={mockWsId} />);
 
     const addBtn = await screen.findByText(/common.add/i);

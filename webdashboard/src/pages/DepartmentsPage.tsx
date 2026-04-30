@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, _Search, Pencil, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays, Calculator, _Loader2, _Calendar } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays, Calculator } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 
@@ -13,28 +13,27 @@ import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 
 import { useConfirm } from "@/hooks/use-confirm";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { _cn } from "@/lib/utils";
 
-import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "../lib/api";
+
+import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig, Department } from "../lib/api";
 
 export default function DepartmentsPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
-  const { _formatDate } = useDateTimeFormatter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
-  const [editingDept, setEditingDept] = useState<any>(null);
+  const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [selectedManagerId, setSelectedManagerId] = useState<string>("");
+ 
   const [selectedPatternId, setSelectedPatternId] = useState<string>("");
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const { data: departments = [], isLoading } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
-  const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: ["dept-payroll-configs", editingDept?.id], queryFn: () => fetchDepartmentPayrollConfigs(wsId, editingDept.id), enabled: isConfigModalOpen && !!editingDept?.id });
+  const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: ["dept-payroll-configs", editingDept?.id], queryFn: () => fetchDepartmentPayrollConfigs(wsId, editingDept!.id), enabled: isConfigModalOpen && !!editingDept?.id });
 
   const saveConfigMutation = useMutation({
-    mutationFn: (data: { std_working_days: number; hours_per_day: number; effective_date: string }) => setDepartmentPayrollConfig(wsId, editingDept.id, data),
+    mutationFn: (data: { std_working_days: number; hours_per_day: number; effective_date: string }) => setDepartmentPayrollConfig(wsId, editingDept!.id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["dept-payroll-configs", editingDept?.id] }); },
   });
 
@@ -42,13 +41,15 @@ export default function DepartmentsPage() {
   const { data: patterns = [] } = useQuery({ queryKey: ["working-patterns", wsId], queryFn: () => fetchWorkingPatterns(wsId), enabled: !!wsId });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => createDepartment(wsId, data),
+    mutationFn: (data: Record<string, unknown>) => createDepartment(wsId, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); setIsModalOpen(false); toast.success(t("common.success")); },
+ 
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => updateDepartment(wsId, editingDept.id, data),
+    mutationFn: (data: Record<string, unknown>) => updateDepartment(wsId, editingDept!.id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); setIsModalOpen(false); setEditingDept(null); toast.success(t("common.success")); },
+ 
   });
 
   const deleteMutation = useMutation({
@@ -66,7 +67,7 @@ export default function DepartmentsPage() {
 
   useEffect(() => {
     if (editingDept) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setSelectedManagerId(editingDept.manager_id || "");
       setSelectedPatternId(editingDept.default_working_pattern_id || "");
     } else {
@@ -162,7 +163,7 @@ export default function DepartmentsPage() {
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")} subtitle={t("departments.modal.subtitle")} icon={<LayoutGrid size={24} />} maxWidth="lg">
         <form onSubmit={handleSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
           <FormField label={t("departments.form.name_label")} id="dept-name" name="name" required defaultValue={editingDept?.name} placeholder={t("departments.form.name_placeholder")} />
-          <FormField label={t("common.description")} id="dept-desc" name="description" type="textarea" defaultValue={editingDept?.description} placeholder={t("departments.form.desc_placeholder")} rows={4} />
+          <FormField label={t("common.description")} id="dept-desc" name="description" type="textarea" defaultValue={editingDept?.description || undefined} placeholder={t("departments.form.desc_placeholder")} rows={4} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3 px-1"><label htmlFor="dept-manager" className={LABEL_BASE}>{t("departments.manager_label")}</label><Combobox id="dept-manager" options={users.map(u => ({ value: u.id, label: (u.full_name || u.email).toUpperCase(), icon: <UserCircle size={14} /> }))} value={selectedManagerId} onChange={setSelectedManagerId} placeholder={t("departments.form.manager_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" /></div>
             <div className="space-y-3 px-1"><label htmlFor="dept-pattern" className={LABEL_BASE}>{t("departments.default_pattern_label")}</label><Combobox id="dept-pattern" data-testid="dept-pattern" options={patterns.map(p => ({ value: p.id, label: p.name.toUpperCase(), icon: <CalendarDays size={14} /> }))} value={selectedPatternId} onChange={setSelectedPatternId} placeholder={t("departments.form.pattern_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" /></div>

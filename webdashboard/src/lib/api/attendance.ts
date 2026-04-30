@@ -5,9 +5,9 @@ import {
   AttendanceAdjustmentRequest,
   RawAttendanceLog,
   AttendanceImportJob,
-  _AttendanceSummary,
+  AttendanceSummary,
   DailyAttendanceReport,
-  _PaginatedResponse,
+  PaginatedResponse,
   AttendanceReportSort,
   ReportExportJob,
   CreateReportExportRequest,
@@ -182,7 +182,8 @@ export async function fetchAttendanceReport(
   sort?: AttendanceReportSort,
   employeeIds?: string[],
   departmentId?: string | null
-): Promise<any> {
+ 
+): Promise<PaginatedResponse<AttendanceSummary | DailyAttendanceReport>> {
   const params = new URLSearchParams({
     start_date: start,
     end_date: end,

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/Toast";
 
-import { _fetchPayrollSettings, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
+import { updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
 
 import TemporalConfigTable from "../common/TemporalConfigTable";
 
@@ -31,13 +31,15 @@ export default function PayrollSettingsSection({ wsId }: Props) {
         hours_per_day: data.hours_per_day,
         max_ot_hours_per_day: data.max_ot_hours_per_day,
         max_ot_hours_per_month: data.max_ot_hours_per_month,
-        effective_date: data.effective_date as any
+ 
+        effective_date: data.effective_date
       });
       toast.success(t("common.success"));
       queryClient.invalidateQueries({ queryKey: ["payroll-settings", wsId] });
       queryClient.invalidateQueries({ queryKey: ["payroll-settings-history", wsId] });
-    } catch (error: any) {
-      toast.error(error.message || t("common.error"));
+ 
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : t("common.error"));
     }
   };
 

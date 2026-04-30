@@ -3,7 +3,6 @@ import React from "react";
 import { Calendar, CalendarRange, Building2 } from "lucide-react";
 
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import _SearchBox from "@/components/common/SearchBox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,14 +35,14 @@ export default function ReportFilters({
   filterMode,
   dateRange,
   specificMonth,
-  _searchQuery,
-  _searchInputRef,
+  searchQuery: _searchQuery,
+  searchInputRef: _searchInputRef,
   t,
   onFilterModeChange,
   onDateRangeChange,
   onSpecificMonthChange,
-  _onSearchQueryChange,
-  _onSearchKeyDown,
+  onSearchQueryChange: _onSearchQueryChange,
+  onSearchKeyDown: _onSearchKeyDown,
   departments,
   selectedDepartmentId,
   onDepartmentChange,
@@ -55,10 +54,10 @@ export default function ReportFilters({
 
         <div className="flex flex-col md:flex-row md:items-center gap-6 bg-white dark:bg-slate-900 p-3 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5">
           <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
-            {["this_month", "last_month"].map(mode => (
+            {(["this_month", "last_month"] as const).map(mode => (
               <button
                 key={mode}
-                onClick={() => onFilterModeChange(mode as any)}
+                onClick={() => onFilterModeChange(mode)}
                 className={cn(
                   "px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
                   filterMode === mode

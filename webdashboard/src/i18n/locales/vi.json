@@ -1642,6 +1642,8 @@
       "employee_id": "Mã nhân viên",
       "hire_date": "Ngày vào làm",
       "is_active": "Đang hoạt động",
+      "link_user": "Liên kết tài khoản",
+      "select_user": "Chọn người dùng...",
       "cancel": "Hủy bỏ",
       "save": "Lưu hồ sơ",
       "update": "Cập nhật"

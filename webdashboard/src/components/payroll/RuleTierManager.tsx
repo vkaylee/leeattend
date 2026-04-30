@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, _Save, _X, LayoutList } from "lucide-react";
+import { Plus, Trash2, LayoutList } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/Toast";
 
 import { fetchPayrollRuleTiers, createPayrollRuleTier } from "@/lib/api/payroll";
 import { PayrollRuleTier } from "@/lib/api/types";
-import { _cn } from "@/lib/utils";
+
 
 interface Props {
   wsId: string;
@@ -16,7 +16,7 @@ interface Props {
   onClose?: () => void;
 }
 
-export default function RuleTierManager({ wsId, ruleId, _onClose }: Props) {
+export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();

@@ -98,10 +98,20 @@ export default function AgentAccordionCard({
       )}
     >
       {/* Header row - clickable to expand */}
+      { }
+      { }
       <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggleExpand();
+          }
+        }}
         data-testid={`agent-header-${agent.id}`}
         onClick={onToggleExpand}
-        className="flex items-center gap-6 p-8 cursor-pointer group"
+        className="flex items-center gap-6 p-8 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
       >
         {/* Chevron */}
         <div className="text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
@@ -153,6 +163,8 @@ export default function AgentAccordionCard({
           <HardDrive size={14} className="text-slate-400 dark:text-slate-500" />
           <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{devices.length}</span>
         </div>
+        { }
+        { }
 
         {/* Last seen */}
         <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[10px] font-mono font-bold uppercase bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800 shrink-0">
@@ -161,7 +173,12 @@ export default function AgentAccordionCard({
         </div>
 
         {/* Action buttons - show on hover */}
-        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0" onClick={e => e.stopPropagation()}>
+        <div 
+          role="presentation"
+          onKeyDown={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+          className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+        >
           <button data-testid={`agent-edit-${agent.id}`} onClick={() => onEdit(agent)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}>
             <Pencil size={18} />
           </button>

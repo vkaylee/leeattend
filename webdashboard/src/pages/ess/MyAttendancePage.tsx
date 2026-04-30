@@ -3,17 +3,11 @@ import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { startOfMonth, endOfMonth, format, subMonths, addMonths } from "date-fns";
 import {
-  _CalendarDays,
-  _Clock,
-  _MapPin,
   ChevronLeft,
   ChevronRight,
   Info,
   Calendar,
   Activity,
-  _History,
-  _AlertCircle,
-  _CheckCircle
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -272,7 +266,7 @@ export default function MyAttendancePage() {
 
                         <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", entry.punch_out_time ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800 animate-pulse")}>{entry.punch_out_time ? t("common.completed").toUpperCase() : t("common.pending").toUpperCase()}</span>
 
-                        {entry.generation_metadata && (
+                        {!!entry.generation_metadata && (
 
                           <Popover.Root>
 

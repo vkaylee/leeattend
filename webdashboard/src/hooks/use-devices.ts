@@ -6,7 +6,6 @@ import {
   updateDevice,
   deleteDevice,
   Device,
-  _DeviceInfo,
   fetchDeviceInfo,
 } from "@/lib/api";
 

@@ -17,16 +17,19 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("recharts", () => ({
-    BarChart: ({ children, ...props }: any) => (
-        <div data-testid="bar-chart" {...props}>{children}</div>
+ 
+    BarChart: ({ children, ...props }: { children: React.ReactNode }) => (
+        <div data-testid="bar-chart" {...props}>{children as React.ReactNode}</div>
     ),
-    Bar: (props: any) => <div data-testid={`bar-${props.dataKey}`} />,
+ 
+    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
-    ResponsiveContainer: ({ children }: any) => (
-        <div data-testid="responsive-container">{children}</div>
+ 
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+        <div data-testid="responsive-container">{children as React.ReactNode}</div>
     ),
     Legend: () => <div data-testid="legend" />,
 }));
@@ -56,10 +59,11 @@ describe("PeakTimesChart", () => {
     });
 
     it("renders loading spinner when data is loading", () => {
-        (dashboardHooks.usePeakTimes as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.usePeakTimes).mockReturnValue({
             data: undefined,
             isLoading: true,
-        });
+        } as unknown as never);
 
         renderWithProviders(<PeakTimesChart />);
 
@@ -68,10 +72,11 @@ describe("PeakTimesChart", () => {
     });
 
     it("renders empty state when no data available", () => {
-        (dashboardHooks.usePeakTimes as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.usePeakTimes).mockReturnValue({
             data: [],
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<PeakTimesChart />);
 
@@ -80,10 +85,11 @@ describe("PeakTimesChart", () => {
     });
 
     it("renders empty state when all values are zero", () => {
-        (dashboardHooks.usePeakTimes as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.usePeakTimes).mockReturnValue({
             data: [{ time_slot: "07:30-08:00", check_in: 0, check_out: 0 }],
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<PeakTimesChart />);
 
@@ -91,10 +97,11 @@ describe("PeakTimesChart", () => {
     });
 
     it("renders chart with data when peak times data is available", () => {
-        (dashboardHooks.usePeakTimes as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.usePeakTimes).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<PeakTimesChart />);
 
@@ -103,10 +110,11 @@ describe("PeakTimesChart", () => {
     });
 
     it("renders both bar series (check_in, check_out)", () => {
-        (dashboardHooks.usePeakTimes as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.usePeakTimes).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<PeakTimesChart />);
 
@@ -115,6 +123,7 @@ describe("PeakTimesChart", () => {
     });
 
     it("displays the correct chart title and subtitle", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.usePeakTimes as any).mockReturnValue({
             data: mockData,
             isLoading: false,

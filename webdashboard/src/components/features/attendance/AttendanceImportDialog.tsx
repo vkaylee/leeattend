@@ -126,7 +126,8 @@ export default function AttendanceImportDialog({
             </div>
           </div>
 
-          <div className={cn("border-3 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center transition-all cursor-pointer group active:scale-[0.98] relative overflow-hidden", file ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30")} onClick={() => document.getElementById("file-upload")?.click()}>
+          { }
+          <label htmlFor="file-upload" className={cn("border-3 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center transition-all cursor-pointer group active:scale-[0.98] relative overflow-hidden w-full", file ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30")}>
             <input id="file-upload" aria-label="File Upload" type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={(e) => setFile(e.target.files?.[0] || null)} />
             {file ? (
               <div className="text-center animate-in zoom-in-95 duration-500">
@@ -142,7 +143,7 @@ export default function AttendanceImportDialog({
                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("attendance_import.upload_limit")}</p>
               </div>
             )}
-          </div>
+          </label>
 
           <div className="flex gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
             <button onClick={onClose} className="flex-1 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("common.cancel")}</button>

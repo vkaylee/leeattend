@@ -45,10 +45,11 @@ describe("useAttendanceTrend hook", () => {
     });
 
     it("fetches attendance trend data successfully", async () => {
-        (api.apiFetch as any).mockResolvedValue({
+ 
+        vi.mocked(api.apiFetch).mockResolvedValue({
             ok: true,
             json: () => Promise.resolve(mockTrendData),
-        });
+        } as unknown as never);
 
         const { result } = renderHook(() => useAttendanceTrend(), {
             wrapper: createWrapper(),
@@ -62,10 +63,11 @@ describe("useAttendanceTrend hook", () => {
     });
 
     it("returns correct data shape with all fields", async () => {
-        (api.apiFetch as any).mockResolvedValue({
+ 
+        vi.mocked(api.apiFetch).mockResolvedValue({
             ok: true,
             json: () => Promise.resolve(mockTrendData),
-        });
+        } as unknown as never);
 
         const { result } = renderHook(() => useAttendanceTrend(), {
             wrapper: createWrapper(),
@@ -82,10 +84,11 @@ describe("useAttendanceTrend hook", () => {
     });
 
     it("handles API error gracefully", async () => {
-        (api.apiFetch as any).mockResolvedValue({
+ 
+        vi.mocked(api.apiFetch).mockResolvedValue({
             ok: false,
             status: 500,
-        });
+        } as unknown as never);
 
         const { result } = renderHook(() => useAttendanceTrend(), {
             wrapper: createWrapper(),
@@ -96,10 +99,11 @@ describe("useAttendanceTrend hook", () => {
     });
 
     it("handles empty data response", async () => {
-        (api.apiFetch as any).mockResolvedValue({
+ 
+        vi.mocked(api.apiFetch).mockResolvedValue({
             ok: true,
             json: () => Promise.resolve([]),
-        });
+        } as unknown as never);
 
         const { result } = renderHook(() => useAttendanceTrend(), {
             wrapper: createWrapper(),

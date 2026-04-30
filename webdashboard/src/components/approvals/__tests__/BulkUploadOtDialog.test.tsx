@@ -25,7 +25,8 @@ vi.mock("@/hooks/use-attendance", () => ({
 // Mock translation
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, _options?: any) => {
+ 
+    t: (key: string, _options?: unknown) => {
       if (key === "approvals.bulk_upload.confirm_close_with_errors") return "Close with errors?";
       if (key === "common.warning") return "Warning";
       if (key === "common.confirm") return "Confirm";
@@ -36,7 +37,8 @@ vi.mock("react-i18next", () => ({
   })
 }));
 
-const renderComponent = (props: any) => {
+ 
+const renderComponent = (props: { open: boolean; onOpenChange: (open: boolean) => void }) => {
   return render(
     <ToastProvider>
       <BulkUploadOtDialog {...props} />

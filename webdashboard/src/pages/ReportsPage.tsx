@@ -33,7 +33,8 @@ export default function ReportsPage() {
   const wsId = getCurrentWorkspaceId();
   // URL search params — read once on mount for cross-page navigation
   const searchParams = new URLSearchParams(window.location.search);
-  const setSearchParams = (_params: Record<string, string>, _opts?: any) => {
+ 
+  const setSearchParams = (_params: Record<string, string>, _opts?: unknown) => {
     // No-op: local state only
   };
 
@@ -72,7 +73,7 @@ export default function ReportsPage() {
     if (urlFrom || urlTo) {
       setSearchParams({}, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional: effect should only fire when listed deps change
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -183,14 +184,17 @@ export default function ReportsPage() {
   const quickStats = useMemo(() => {
     const allData = allStatsResponse?.data || [];
     const stdHours = formatUnitsToHours(
-      allData.reduce((acc: number, r: any) => acc + (r.total_std_units || 0), 0),
+ 
+      (allData as AttendanceSummary[]).reduce((acc: number, r: AttendanceSummary) => acc + (r.total_std_units || 0), 0),
       workUnitMinutes
     );
     const otHours = formatUnitsToHours(
-      allData.reduce((acc: number, r: any) => acc + (r.total_ot_units || 0), 0),
+ 
+      (allData as AttendanceSummary[]).reduce((acc: number, r: AttendanceSummary) => acc + (r.total_ot_units || 0), 0),
       workUnitMinutes
     );
-    const totalEmployees = new Set(allData.map((r: any) => r.employee_id)).size;
+ 
+    const totalEmployees = new Set((allData as AttendanceSummary[]).map((r: AttendanceSummary) => r.employee_id)).size;
     return { stdHours, otHours, totalEmployees };
   }, [allStatsResponse, workUnitMinutes]);
 
@@ -309,7 +313,8 @@ export default function ReportsPage() {
         <div className="flex items-center gap-3">
           <Link
             to="/attendance-logs"
-            search={{ from: dateRange.start, to: dateRange.end } as any}
+ 
+            search={{ from: dateRange.start, to: dateRange.end } as Record<string, string>}
             className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-8 py-3 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
           >
             <CalendarCheck size={18} /> {t("reports.view_raw_logs").toUpperCase()}
@@ -325,7 +330,7 @@ export default function ReportsPage() {
 
       <NavigableList<AttendanceSummary>
         columns={reportColumns}
-        items={filteredData}
+        items={filteredData as AttendanceSummary[]}
         itemKey={(row) => row.employee_id}
         onSelect={(row) => handleEmployeeClick(row.employee_id, row.employee_name)}
         isLoading={isLoading}

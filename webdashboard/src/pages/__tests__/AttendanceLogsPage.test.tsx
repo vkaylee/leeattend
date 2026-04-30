@@ -1,20 +1,23 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, _fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
+import { StagingLogsResponse } from "../../lib/api/attendance";
+import { Employee, PaginatedResponse, RawAttendanceLog, Workspace, Device } from "../../lib/api/types";
 import AttendanceLogsPage from "../AttendanceLogsPage";
 
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
+ 
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, search, children, ...props }: any) => {
+  Link: ({ to, search, children, ...props }: { to: string; search?: Record<string, unknown>; children: React.ReactNode }) => {
     let href = to;
     if (search && typeof search === 'object') {
       const params = new URLSearchParams();
@@ -34,9 +37,10 @@ vi.mock("@tanstack/react-router", () => ({
 class MockIntersectionObserver {
   observe() { }
   unobserve() { }
+ 
   disconnect() { }
 }
-window.IntersectionObserver = MockIntersectionObserver as any;
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -74,29 +78,36 @@ describe("AttendanceLogsPage", () => {
           gcTime: 0,
           staleTime: 0,
         },
+ 
       },
+ 
     });
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace" });
-    (api.fetchEmployees as any).mockResolvedValue({
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.fetchWorkspace).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace" } as unknown as Workspace);
+    vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
         { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, hire_date: "2025-01-01", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }
       ],
       total: 1,
       page: 1,
+ 
       limit: 50,
-    });
-    (api.fetchRawAttendanceLogs as any).mockResolvedValue({
+    } as unknown as PaginatedResponse<Employee>);
+    vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
       data: [
         { id: "log-1", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "DEVICE", device_id: "dev-1" }
       ],
       total: 1,
       page: 1,
+ 
       page_size: 50
-    });
-    (api.fetchDevices as any).mockResolvedValue([]);
-    (api.fetchStagingLogs as any).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
-    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"] });
+ 
+    } as unknown as PaginatedResponse<RawAttendanceLog>);
+ 
+    vi.mocked(api.fetchDevices).mockResolvedValue([] as unknown as Device[]);
+    vi.mocked(api.fetchStagingLogs).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 } as unknown as StagingLogsResponse);
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: null } as unknown as Awaited<ReturnType<typeof api.fetchMyPermissions>>);
   });
 
   const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {
@@ -122,9 +133,10 @@ describe("AttendanceLogsPage", () => {
     expect(link.getAttribute("href")).toBe("/reports?from=2026-01-01&to=2026-01-31");
   });
 
+ 
   it("shows skeleton loading state when fetching data", () => {
     // Override the mock to simulate loading state (slow promise)
-    (api.fetchRawAttendanceLogs as any).mockImplementation(() => new Promise(() => { }));
+    vi.mocked(api.fetchRawAttendanceLogs).mockImplementation(() => new Promise(() => { }));
 
     renderWithProviders(<AttendanceLogsPage />);
 
@@ -133,14 +145,15 @@ describe("AttendanceLogsPage", () => {
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
+ 
   it("shows beautiful empty state when no data is returned", async () => {
     // Override the mock to return empty data
-    (api.fetchRawAttendanceLogs as any).mockResolvedValue({
+    vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
       data: [],
       total: 0,
       page: 1,
       page_size: 50
-    });
+    } as unknown as PaginatedResponse<RawAttendanceLog>);
 
     renderWithProviders(<AttendanceLogsPage />);
 
@@ -154,9 +167,10 @@ describe("AttendanceLogsPage", () => {
   });
 
   it("uses PAGE_SIZE of 20 for infinite scroll", async () => {
+ 
     renderWithProviders(<AttendanceLogsPage />);
     await waitFor(() => {
-      const calls = (api.fetchRawAttendanceLogs as any).mock.calls;
+      const calls = vi.mocked(api.fetchRawAttendanceLogs).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
       // limit param should be 20
       expect(calls[0][0].limit).toBe(20);
@@ -175,9 +189,10 @@ describe("AttendanceLogsPage", () => {
     // No "Page X / Y" text
     expect(screen.queryByText(/Page \d+ \//i)).toBeNull();
   });
+ 
 
   it("displays floating record count badge with loaded/total counts", async () => {
-    (api.fetchRawAttendanceLogs as any).mockResolvedValue({
+    vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
       data: [
         { id: "log-1", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "DEVICE", device_id: "dev-1" },
         { id: "log-2", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "DEVICE", device_id: "dev-1" },
@@ -185,7 +200,7 @@ describe("AttendanceLogsPage", () => {
       total: 5,
       page: 1,
       page_size: 20
-    });
+    } as unknown as PaginatedResponse<RawAttendanceLog>);
 
     renderWithProviders(<AttendanceLogsPage />);
     // Wait for data to render (2 rows with same name)
@@ -201,9 +216,10 @@ describe("AttendanceLogsPage", () => {
     expect(badge?.textContent).toContain("5");
   });
 
+ 
   it("shows loading spinner when fetching next page", () => {
     // Simulate infinite loading
-    (api.fetchRawAttendanceLogs as any).mockImplementation(() => new Promise(() => { }));
+    vi.mocked(api.fetchRawAttendanceLogs).mockImplementation(() => new Promise(() => { }));
 
     renderWithProviders(<AttendanceLogsPage />);
 
@@ -215,16 +231,17 @@ describe("AttendanceLogsPage", () => {
   });
 
   it("renders unknown tab with staging data and floating amber badge", async () => {
+ 
     const user = userEvent.setup();
 
-    (api.fetchStagingLogs as any).mockResolvedValue({
+    vi.mocked(api.fetchStagingLogs).mockResolvedValue({
       data: [
         { id: "stg-1", raw_user_id: "UNKNOWN-42", punch_time: new Date().toISOString(), device_id: "dev-1" },
       ],
       total: 3,
       page: 1,
       limit: 20,
-    });
+    } as unknown as StagingLogsResponse);
 
     renderWithProviders(<AttendanceLogsPage />);
     await screen.findByText(/John Doe/i);

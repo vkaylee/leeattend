@@ -8,13 +8,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToastProvider } from "../../components/ui/Toast";
 import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
+import { Employee, PaginatedResponse, AttendanceSummary, DailyAttendanceReport, Department } from "../../lib/api/types";
 import ReportsPage from "../ReportsPage";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
+ 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, search, children, ...props }: any) => {
+  Link: ({ to, search, children, ...props }: { to: string; search?: Record<string, unknown>; children: React.ReactNode; [key: string]: unknown }) => {
     let href = to;
     if (search && typeof search === 'object') {
       const params = new URLSearchParams();
@@ -39,8 +41,9 @@ class MockIntersectionObserver {
   unobserve = vi.fn();
   disconnect = vi.fn();
   constructor() { }
+ 
 }
-window.IntersectionObserver = MockIntersectionObserver as any;
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -74,18 +77,39 @@ describe("ReportsPage", () => {
           staleTime: 0,
         },
       },
+ 
     });
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace", work_unit_minutes: 60 });
-    (api.fetchEmployees as any).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe" }], total: 1 });
-    (api.searchEmployees as any).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", employee_id_number: "E01" }], total: 1 });
-    (api.fetchDepartments as any).mockResolvedValue([]);
-    (api.fetchAttendanceReport as any).mockImplementation(() => Promise.resolve({
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+ 
+    vi.mocked(api.fetchWorkspace).mockResolvedValue({
+ 
+      id: "test-ws-id",
+ 
+      name: "Test Workspace",
+ 
+      work_unit_minutes: 60,
+      rounding_policy: "none",
+      date_format: "YYYY-MM-DD",
+      time_format: "HH:mm",
+ 
+      timezone: "UTC",
+ 
+      theme_primary_color: "#000000",
+      default_language: "en",
+      created_at: "2025-01-01T00:00:00Z",
+    });
+    vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<Employee>);
+    vi.mocked(api.searchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<Employee>);
+    vi.mocked(api.fetchDepartments).mockResolvedValue([] as unknown as Department[]);
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(() => Promise.resolve({
       data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
-      total: 1
-    }));
-    (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
-    (api.adminConfirmAttendance as any).mockResolvedValue(undefined);
+      total: 1,
+      page: 1,
+      limit: 50
+    } as unknown as PaginatedResponse<AttendanceSummary>));
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([] as unknown as never[]);
+    vi.mocked(api.adminConfirmAttendance).mockResolvedValue(undefined as unknown as void);
   });
 
   const renderWithProviders = (ui: React.ReactElement, _initialEntries = ["/"]) => {
@@ -110,6 +134,7 @@ describe("ReportsPage", () => {
     renderWithProviders(<ReportsPage />);
     const lastMonthBtn = await screen.findByText(/Last Month|Tháng trước/i);
     await user.click(lastMonthBtn);
+ 
     expect(api.fetchAttendanceReport).toHaveBeenCalled();
   });
 
@@ -118,13 +143,14 @@ describe("ReportsPage", () => {
     renderWithProviders(<ReportsPage />);
     const customBtn = await screen.findByText(/Custom|Tùy chỉnh/i);
     await user.click(customBtn);
+ 
     expect(await screen.findByText(/From Date|Từ ngày/i)).toBeDefined();
   });
 
   it("uses PAGE_SIZE of 50 for infinite scroll", async () => {
     renderWithProviders(<ReportsPage />);
     await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
       // arg index 5 = limit = PAGE_SIZE = 50
       expect(calls[0][5]).toBe(50);
@@ -132,7 +158,7 @@ describe("ReportsPage", () => {
   });
 
   it("fetches full dataset with limit=99999 for stats and renders inline stats badges", async () => {
-    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, _type: string, _page: number, limit: number) => {
+    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, _type, page, limit) => {
       if (limit === 99999) {
         // Full stats query — return all employees
         return Promise.resolve({
@@ -140,22 +166,28 @@ describe("ReportsPage", () => {
             { employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 },
             { employee_id: "emp-2", employee_name: "Jane Smith", total_std_units: 360, total_ot_units: 60, total_leave_days: 1 },
           ],
-          total: 2
-        });
+ 
+          total: 2,
+ 
+          page: 1,
+          limit: 99999
+        } as unknown as PaginatedResponse<AttendanceSummary>);
       }
       // Paginated query — return only page 1
       return Promise.resolve({
         data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
-        total: 2
-      });
+        total: 2,
+        page: 1,
+        limit: 50
+      } as unknown as PaginatedResponse<AttendanceSummary>);
     });
 
     renderWithProviders(<ReportsPage />);
 
     // Verify a call with limit=99999 was made for stats
     await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
-      const statsCall = calls.find((c: any[]) => c[5] === 99999);
+      const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
+      const statsCall = calls.find((c) => c[5] === 99999);
       expect(statsCall).toBeDefined();
     });
 
@@ -189,6 +221,7 @@ describe("ReportsPage", () => {
   it("opens slide-over drawer when clicking an employee row", async () => {
     const user = userEvent.setup();
 
+ 
     const mockDailyRow = {
       employee_id: "emp-1",
       employee_name: "John Doe",
@@ -207,15 +240,18 @@ describe("ReportsPage", () => {
       generation_metadata: null,
     };
 
-    (api.fetchAttendanceReport as any).mockImplementation(
-      (_wsId: string, _start: string, _end: string, type: string) => {
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(
+      (_wsId, _start, _end, type) => {
         if (type === "daily") {
-          return Promise.resolve({ data: [mockDailyRow], total: 1 });
+          return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
         }
+ 
         return Promise.resolve({
           data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
-          total: 1
-        });
+          total: 1,
+          page: 1,
+          limit: 50
+        } as unknown as PaginatedResponse<AttendanceSummary>);
       }
     );
 
@@ -230,7 +266,7 @@ describe("ReportsPage", () => {
   it("always fetches summary data (no daily tab)", async () => {
     renderWithProviders(<ReportsPage />);
     await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
       expect(calls[0][3]).toBe("summary");
     });
@@ -239,15 +275,15 @@ describe("ReportsPage", () => {
     expect(dailyTab).toBeNull();
   });
 
-  it("renders a search input that is autofocused", async () => {
+  it("renders a search input that exists and is functional", async () => {
     renderWithProviders(<ReportsPage />);
     await screen.findByText(/John Doe/i);
 
     // Search input should exist
     const searchInput = screen.getByRole("textbox");
     expect(searchInput).toBeDefined();
-    // Should have autoFocus
-    expect(searchInput).toHaveFocus();
+    // autoFocus removed for accessibility (jsx-a11y/no-autofocus)
+    expect(searchInput).toBeInTheDocument();
   });
 
   it("triggers searchEmployees API on search input with debounce", async () => {
@@ -263,6 +299,7 @@ describe("ReportsPage", () => {
       expect(api.searchEmployees).toHaveBeenCalledWith("test-ws-id", "John");
     }, { timeout: 2000 });
   });
+ 
 
   it("auto-selects text on focus and refocuses on drawer close", async () => {
     const user = userEvent.setup();
@@ -283,9 +320,9 @@ describe("ReportsPage", () => {
       status: "present",
       generation_metadata: null,
     };
-    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, type: string) => {
-      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1 });
-      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1 });
+    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, type) => {
+      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
+      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
 
     renderWithProviders(<ReportsPage />);
@@ -324,6 +361,7 @@ describe("ReportsPage", () => {
     expect(searchInput.selectionStart).toBe(0);
     expect(searchInput.selectionEnd).toBe(4);
   });
+ 
 
   it("opens the first employee's drawer when pressing Enter in search input", async () => {
     const user = userEvent.setup();
@@ -344,9 +382,9 @@ describe("ReportsPage", () => {
       status: "present",
       generation_metadata: null,
     };
-    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, type: string) => {
-      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1 });
-      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1 });
+    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, type) => {
+      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
+      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
 
     renderWithProviders(<ReportsPage />);
@@ -368,6 +406,7 @@ describe("ReportsPage", () => {
     // We should see the daily report data because the drawer is open
     const rawLogsToggle = await screen.findByRole("button", { name: /Nhật ký thô|View Raw Logs|reports.view_raw_logs/i });
     expect(rawLogsToggle).toBeInTheDocument();
+ 
   });
   it("allows switching tabs with arrows after opening the drawer via Enter key", async () => {
     const user = userEvent.setup();
@@ -388,9 +427,9 @@ describe("ReportsPage", () => {
       status: "present",
       generation_metadata: null,
     };
-    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, type: string) => {
-      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1 });
-      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1 });
+    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, type) => {
+      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
+      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
 
     renderWithProviders(<ReportsPage />);
@@ -423,6 +462,7 @@ describe("ReportsPage", () => {
       expect(rawLogsToggle.className).toContain("text-primary-600");
     });
   });
+ 
 
   it("navigates with ArrowDown and opens the second employee when pressing Enter", async () => {
     const user = userEvent.setup();
@@ -442,16 +482,20 @@ describe("ReportsPage", () => {
       ot_work_units: 0,
       status: "present",
       generation_metadata: null,
+ 
     };
-    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, type: string) => {
-      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1 });
+    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, type) => {
+      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
       return Promise.resolve({
         data: [
           { employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 },
           { employee_id: "emp-2", employee_name: "Jane Smith", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }
         ],
-        total: 2
-      });
+        total: 2,
+        page: 1,
+ 
+        limit: 50
+      } as unknown as PaginatedResponse<AttendanceSummary>);
     });
 
     renderWithProviders(<ReportsPage />);
@@ -462,17 +506,18 @@ describe("ReportsPage", () => {
     const searchInput = screen.getByRole("textbox");
 
     // Clear mocks
-    (window.HTMLElement.prototype.scrollIntoView as any).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
     window.HTMLElement.prototype.scrollTo = vi.fn();
 
     // Press ArrowDown to select the second row
     await user.type(searchInput, "{ArrowDown}");
 
     // Verify scrollIntoView was called smooth/nearest for index 1
+ 
     expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "nearest" });
 
     // Press ArrowUp to go back to the first row (index 0)
-    (window.HTMLElement.prototype.scrollIntoView as any).mockClear();
+    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
     await user.type(searchInput, "{ArrowUp}");
 
     // In full-page mode, scrollIntoView is used (no .overflow-auto container)
@@ -491,8 +536,9 @@ describe("ReportsPage", () => {
   });
 
   it("displays an empty state when no data is returned", async () => {
-    (api.fetchAttendanceReport as any).mockImplementation(() => {
-      return Promise.resolve({ data: [], total: 0 });
+ 
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(() => {
+      return Promise.resolve({ data: [], total: 0, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
 
     renderWithProviders(<ReportsPage />);
@@ -507,16 +553,18 @@ describe("ReportsPage", () => {
     renderWithProviders(<ReportsPage />, ["/reports?from=2026-03-01&to=2026-03-31"]);
     // Using string matching that is case-insensitive and covers both EN and VI since i18n isn't mocked the same way
     const link = await screen.findByRole("link", { name: /View Raw Logs|Xem nhật ký thô|REPORTS\.VIEW_RAW_LOGS/i });
+ 
     expect(link).toBeDefined();
     expect(link.getAttribute("href")).toBe("/attendance-logs?from=2026-03-01&to=2026-03-31");
   });
   it("filters the report by selected department", async () => {
     const user = userEvent.setup();
     // Setup specific mock for departments
-    (api.fetchDepartments as any).mockResolvedValue([
-      { id: "dept-1", name: "Engineering", managers: [] },
-      { id: "dept-2", name: "HR", managers: [] }
-    ]);
+    vi.mocked(api.fetchDepartments).mockResolvedValue([
+      { id: "dept-1", name: "Engineering", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
+      { id: "dept-2", name: "HR", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 }
+    ] as unknown as Department[]);
+ 
 
     renderWithProviders(<ReportsPage />);
 
@@ -529,20 +577,23 @@ describe("ReportsPage", () => {
 
     // Verify fetchAttendanceReport is called with department_id="dept-1" (9th arg, index 8)
     await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
       const latestCall = calls[calls.length - 1];
       expect(latestCall[8]).toBe("dept-1");
     });
 
     // Verify that clicking "All" clears the department filter (null is passed)
     const allChip = await screen.findByRole("button", { name: /all|tất cả/i });
+ 
     await user.click(allChip);
 
     await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
       const latestCall = calls[calls.length - 1];
       expect(latestCall[8]).toBeNull();
+ 
     });
+ 
   });
 
   it("sorts by OT hours when clicking OT column header", async () => {
@@ -551,34 +602,39 @@ describe("ReportsPage", () => {
     renderWithProviders(<ReportsPage />);
     await screen.findByText(/John Doe/i);
 
+ 
     // Find the OT Hours column header — text is "Overtime" (en) inside a flex div with SVG icon
+ 
     const otHeaderText = screen.getByText((content, element) => {
       return element?.tagName?.toLowerCase() === "div" && /Overtime|Tăng ca/i.test(content);
     });
     const otClickTarget = otHeaderText.closest("th") || otHeaderText;
 
     // Clear mock calls so we only see calls triggered by the click
-    (api.fetchAttendanceReport as any).mockClear();
+    vi.mocked(api.fetchAttendanceReport).mockClear();
 
     // Click OT header — should sort desc first (default for numeric)
     await user.click(otClickTarget);
 
     await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
-      const sortedCall = calls.find((c: any[]) => c[6] === "ot_hours_desc");
+      const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
+      const sortedCall = calls.find((c) => c[6] === "ot_hours_desc");
       expect(sortedCall).toBeDefined();
     });
 
     // Click again — should toggle to asc
     await user.click(otClickTarget);
 
+ 
     await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
-      const sortedCall = calls.find((c: any[]) => c[6] === "ot_hours_asc");
+      const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
+      const sortedCall = calls.find((c) => c[6] === "ot_hours_asc");
       expect(sortedCall).toBeDefined();
     });
   });
+ 
 
+ 
   it("renders total hours column and sorts by total hours", async () => {
     const user = userEvent.setup();
     i18n.changeLanguage("en");
@@ -587,21 +643,24 @@ describe("ReportsPage", () => {
 
     // Total hours = 440 std + 40 ot = 480 units = 480h (with work_unit_minutes=60)
     expect(screen.getByTitle("480 total units")).toBeInTheDocument();
+ 
 
+ 
     // Find the Total Hours column header
     const totalHeader = screen.getByText((content, element) => {
       return element?.tagName?.toLowerCase() === "div" && /Total Hours|Tổng giờ công/i.test(content);
     });
     const totalClickTarget = totalHeader.closest("th") || totalHeader;
 
-    (api.fetchAttendanceReport as any).mockClear();
+ 
+    vi.mocked(api.fetchAttendanceReport).mockClear();
 
     // Click header — should sort desc first
     await user.click(totalClickTarget);
 
     await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
-      const sortedCall = calls.find((c: any[]) => c[6] === "total_hours_desc");
+      const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
+      const sortedCall = calls.find((c) => c[6] === "total_hours_desc");
       expect(sortedCall).toBeDefined();
     });
 
@@ -609,18 +668,18 @@ describe("ReportsPage", () => {
     await user.click(totalClickTarget);
 
     await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
-      const sortedCall = calls.find((c: any[]) => c[6] === "total_hours_asc");
+      const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
+      const sortedCall = calls.find((c) => c[6] === "total_hours_asc");
       expect(sortedCall).toBeDefined();
     });
   });
 
   it("renders department chips with wrapping layout", async () => {
-    (api.fetchDepartments as any).mockResolvedValue([
-      { id: "dept-1", name: "Engineering", managers: [] },
-      { id: "dept-2", name: "HR", managers: [] },
-      { id: "dept-3", name: "Design", managers: [] }
-    ]);
+    vi.mocked(api.fetchDepartments).mockResolvedValue([
+      { id: "dept-1", name: "Engineering", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
+      { id: "dept-2", name: "HR", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
+      { id: "dept-3", name: "Design", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 }
+    ] as unknown as Department[]);
 
     renderWithProviders(<ReportsPage />);
 

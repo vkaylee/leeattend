@@ -1,14 +1,13 @@
-import React, { Suspense } from "react";
+import React, { Suspense, createElement, lazy } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { _createRouter, _RouterProvider } from "@tanstack/react-router";
+import { createRouter as _createRouter, RouterProvider as _RouterProvider } from "@tanstack/react-router";
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+ 
 import { ToastProvider } from "../../components/ui/Toast";
-
-
-// ── Mock hooks needed by pages ──────────────────────────────────────
+import i18n from "../../i18n/config";
 
 vi.mock("@/hooks/use-permissions", () => ({
     useMyPermissions: () => ({
@@ -97,8 +96,9 @@ vi.mock("@/hooks/use-dashboard-layout", () => ({
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => {
-    const actual = await importOriginal<any>();
+    const actual = await importOriginal<Record<string, unknown>>();
     return {
+ 
         ...actual,
         getCurrentUserId: vi.fn(() => "test-user"),
         getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
@@ -121,12 +121,14 @@ class MockIntersectionObserver {
     unobserve() { }
     disconnect() { }
 }
-window.IntersectionObserver = MockIntersectionObserver as any;
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+ 
 
 vi.mock("recharts", () => ({
-    ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     BarChart: () => <div />, Bar: () => <div />, XAxis: () => <div />, YAxis: () => <div />,
+ 
     CartesianGrid: () => <div />, Tooltip: () => <div />, Legend: () => <div />,
     LineChart: () => <div />, Line: () => <div />, AreaChart: () => <div />, Area: () => <div />,
     PieChart: () => <div />, Pie: () => <div />, Cell: () => <div />,
@@ -213,21 +215,24 @@ describe("Page-level code splitting", () => {
         });
     });
 
-    const renderLazy = (component: React.LazyExoticComponent<React.ComponentType<any>>) => {
+    const renderLazy = (component: React.LazyExoticComponent<React.ComponentType<unknown>>) => {
         return render(
+ 
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
                     <Suspense fallback={<div data-testid="fallback">Loading...</div>}>
-                        {React.createElement(component)}
+                        {createElement(component)}
                     </Suspense>
+// eslint-disable-next-line import-x/no-named-as-default-member
                 </ToastProvider>
             </QueryClientProvider>
         );
     };
 
     it("DashboardPage renders via lazy import", async () => {
-        const LazyDashboard = React.lazy(() => import("../DashboardPage"));
+        const LazyDashboard = lazy(() => import("../DashboardPage"));
         renderLazy(LazyDashboard);
+ 
 
         await waitFor(() => {
             expect(screen.getByTestId("dashboard-title")).toBeInTheDocument();
@@ -235,8 +240,9 @@ describe("Page-level code splitting", () => {
     });
 
     it("LoginPage renders via lazy import", async () => {
-        const LazyLogin = React.lazy(() => import("../LoginPage"));
+        const LazyLogin = lazy(() => import("../LoginPage"));
         renderLazy(LazyLogin);
+ 
 
         await waitFor(() => {
             expect(document.querySelector("form, h1, h2, [data-testid]")).toBeTruthy();
@@ -244,8 +250,9 @@ describe("Page-level code splitting", () => {
     });
 
     it("EmployeesPage renders via lazy import", async () => {
-        const LazyEmployees = React.lazy(() => import("../EmployeesPage"));
+        const LazyEmployees = lazy(() => import("../EmployeesPage"));
         renderLazy(LazyEmployees);
+ 
 
         await waitFor(() => {
             const headings = screen.getAllByRole("heading");
@@ -266,13 +273,16 @@ describe("Page-level code splitting", () => {
     });
 
     it("shows suspense fallback while page is loading", async () => {
-        let resolveImport: (value: any) => void;
-        const slowImport = new Promise<any>((resolve) => {
+        let resolveImport: (value: unknown) => void = () => {};
+        const slowImport = new Promise<unknown>((resolve) => {
+ 
             resolveImport = resolve;
+ 
         });
 
-        const LazyComponent = React.lazy(() => slowImport);
+        const LazyComponent = lazy(() => slowImport as Promise<{ default: React.ComponentType<unknown> }>);
 
+ 
         render(
             <QueryClientProvider client={queryClient}>
                 <Suspense fallback={<div data-testid="suspense-fallback">Loading...</div>}>
@@ -283,7 +293,7 @@ describe("Page-level code splitting", () => {
 
         expect(screen.getByTestId("suspense-fallback")).toBeInTheDocument();
 
-        resolveImport!({ default: () => <div data-testid="loaded-component">Loaded</div> });
+        (resolveImport as (value: unknown) => void)({ default: () => <div data-testid="loaded-component">Loaded</div> });
 
         await waitFor(() => {
             expect(screen.getByTestId("loaded-component")).toBeInTheDocument();
@@ -291,8 +301,9 @@ describe("Page-level code splitting", () => {
     });
 
     it("multiple lazy pages can be loaded sequentially", async () => {
-        const LazyDashboard = React.lazy(() => import("../DashboardPage"));
+        const LazyDashboard = lazy(() => import("../DashboardPage"));
 
+ 
         const { unmount } = renderLazy(LazyDashboard);
 
         await waitFor(() => {
@@ -301,8 +312,9 @@ describe("Page-level code splitting", () => {
 
         unmount();
 
-        const LazyEmployees = React.lazy(() => import("../EmployeesPage"));
+        const LazyEmployees = lazy(() => import("../EmployeesPage"));
         renderLazy(LazyEmployees);
+ 
 
         await waitFor(() => {
             const headings = screen.getAllByRole("heading");
@@ -313,7 +325,7 @@ describe("Page-level code splitting", () => {
 
 // ── i18n lazy loading ───────────────────────────────────────────────
 
-import i18n from "../../i18n/config";
+// i18n section uses the import from the top
 
 describe("i18n lazy locale loading", () => {
     it("has fallback language set to vi", () => {

@@ -3,11 +3,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockCallbacks: string[] = [];
 
 vi.mock("web-vitals", () => ({
-  onCLS: vi.fn((_cb: any) => mockCallbacks.push("onCLS")),
-  onFCP: vi.fn((_cb: any) => mockCallbacks.push("onFCP")),
-  onINP: vi.fn((_cb: any) => mockCallbacks.push("onINP")),
-  onLCP: vi.fn((_cb: any) => mockCallbacks.push("onLCP")),
-  onTTFB: vi.fn((_cb: any) => mockCallbacks.push("onTTFB")),
+ 
+  onCLS: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onCLS")),
+ 
+  onFCP: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onFCP")),
+ 
+  onINP: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onINP")),
+ 
+  onLCP: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onLCP")),
+ 
+  onTTFB: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onTTFB")),
 }));
 
 describe("web-vitals", () => {

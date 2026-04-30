@@ -11,7 +11,6 @@ import {
   Palette,
   Undo2,
   Globe,
-  _RefreshCw,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -45,7 +44,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setFormData({
         full_name: user.full_name || "", avatar_url: user.avatar_url || "",
         bio: user.bio || "", preferred_language: user.preferred_language || "",
@@ -205,9 +204,11 @@ function ChangePasswordForm() {
     try {
       await changePassword({ old_password: formData.old_password, new_password: formData.new_password });
       toast.success(t("profile.security.messages.password_changed"));
-      setTimeout(() => { clearAuthSession(); navigate({ to: ROUTES.LOGIN as any }); }, 2000);
-    } catch (e: any) {
-      toast.error(e.message || t("profile.security.messages.change_error"));
+      setTimeout(() => { clearAuthSession(); navigate({ to: ROUTES.LOGIN }); }, 2000);
+ 
+    } catch (e: unknown) {
+ 
+      toast.error(e instanceof Error ? e.message : t("profile.security.messages.change_error"));
     } finally { setIsSubmitting(false); }
   }
 
@@ -221,7 +222,8 @@ function ChangePasswordForm() {
         <div key={field.id} className="space-y-3 px-1">
           <label className={LABEL_BASE}>{t(`profile.security.${field.label}`)}</label>
           <div className="relative group">
-            <input type="password" required data-testid={`${field.id}-password-input`} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-300 outline-none transition-all pr-14 font-bold text-sm tracking-tight shadow-sm" value={(formData as any)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} />
+            <input type="password" required data-testid={`${field.id}-password-input`} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-300 outline-none transition-all pr-14 font-bold text-sm tracking-tight shadow-sm" value={(formData as Record<string, string>)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} />
+            { }
             <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-orange-500 transition-colors" size={20} />
           </div>
         </div>

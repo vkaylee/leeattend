@@ -8,7 +8,8 @@ import { useConfirm } from "../use-confirm";
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, options?: any) => {
+ 
+    t: (key: string, options?: { defaultValue?: string }) => {
       if (options && options.defaultValue) {
         return options.defaultValue;
       }

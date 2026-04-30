@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import {
-  _MoreVertical,
+
   Shield,
   Trash2,
   UserCog,
@@ -17,7 +17,7 @@ import RoleManagementModal from "@/components/features/settings/RoleManagementMo
 
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
-import { _WorkspaceMember, WorkspaceRole } from "@/lib/api";
+import { WorkspaceRole } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const roleColorMap: Record<string, string> = {
@@ -44,7 +44,8 @@ export default function MemberTable() {
   const handleRemoveMember = async (userId: string) => { 
     const isConfirmed = await confirm({ title: t('common.warning', { defaultValue: 'Warning' }), message: t("members.table.confirm_remove"), variant: 'danger' });
     if (!isConfirmed) return; 
-    try { await removeMember(userId); } catch (e: any) { console.error(e); } 
+ 
+    try { await removeMember(userId); } catch (e: unknown) { console.error(e); } 
   };
 
   if (isLoading) return <div className="flex justify-center py-32"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent shadow-xl"></div></div>;

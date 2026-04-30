@@ -135,7 +135,8 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       })] : []),
       {
         name: 'save-port-file',
-        configureServer(server: { httpServer: net.Server | null; address?: () => any }) { 
+ 
+        configureServer(server: { httpServer: net.Server | null; address?: () => unknown }) { 
           server.httpServer?.once('listening', () => {
             const address = server.httpServer?.address();
             if (address && typeof address === 'object') {

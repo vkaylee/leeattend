@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, CheckCircle2, _CircleDashed, FileText, Trash2, Percent, Calculator } from "lucide-react";
+import { Plus, CheckCircle2, FileText, Trash2, Percent, Calculator } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
@@ -62,9 +62,19 @@ export default function PayrollRulesManager({ wsId }: Props) {
         ) : (
           rules?.map((rule) => (
             <div key={rule.id} className="border-b border-slate-50 dark:border-slate-800/50 last:border-0">
+              { }
+              { }
               <div 
                 className={cn("p-8 px-10 flex items-center justify-between transition-all group relative m-2 rounded-3xl cursor-pointer", expandedRuleId === rule.id ? "bg-slate-50 dark:bg-slate-800/80 shadow-inner" : "hover:bg-slate-50 dark:hover:bg-slate-800/50")}
                 onClick={() => setExpandedRuleId(expandedRuleId === rule.id ? null : rule.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpandedRuleId(expandedRuleId === rule.id ? null : rule.id);
+                  }
+                }}
               >
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-sm group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 transition-all uppercase">{rule.code.slice(0, 2)}</div>
@@ -111,6 +121,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
               <input id="rule-name" required type="text" placeholder="Social Insurance" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
             </div>
             <div className="space-y-3 px-1">
+              { }
               <label htmlFor="rule-code" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Code</label>
               <input id="rule-code" required type="text" placeholder="BHXH" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})} />
             </div>
@@ -119,8 +130,9 @@ export default function PayrollRulesManager({ wsId }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
               <label htmlFor="rule-category" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Category</label>
-              <select id="rule-category" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as any})}>
+              <select id="rule-category" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as "statutory_deduction" | "allowance" | "bonus" | "deduction"})}>
                 <option value="statutory_deduction">Statutory Deduction</option>
+                { }
                 <option value="allowance">Allowance</option>
                 <option value="bonus">Bonus</option>
                 <option value="deduction">Deduction</option>
@@ -129,7 +141,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
             <div className="space-y-3 px-1">
               <label htmlFor="rule-calc" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Calculation Method</label>
               <select id="rule-calc" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" value={formData.calculation_method} onChange={e => {
-                const method = e.target.value as any;
+                const method = e.target.value as "percentage" | "fixed" | "tiered";
                 let newConfig = {};
                 if (method === "percentage") newConfig = { rate: 0, base: "gross" };
                 else if (method === "fixed") newConfig = { amount: 0, frequency: "monthly" };
@@ -148,16 +160,17 @@ export default function PayrollRulesManager({ wsId }: Props) {
               <Calculator size={18} className="text-primary-600 dark:text-primary-400" />
               <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest">Logic Configuration</h3>
             </div>
+            { }
             
             {formData.calculation_method === "percentage" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label htmlFor="rule-rate" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1"><Percent size={12}/> Rate (%)</label>
-                  <input id="rule-rate" type="number" step="0.01" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={formData.rule_config?.rate || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}})} />
+                  <input id="rule-rate" type="number" step="0.01" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={(formData.rule_config?.rate as number) || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}})} />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Calculation Base</label>
-                  <select required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={formData.rule_config?.base || "gross"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
+                  <label htmlFor="rule-calc-base" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Calculation Base</label>
+                  <select id="rule-calc-base" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={(formData.rule_config?.base as string) || "gross"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
                     {bases?.map(b => (
                       <option key={b.slug} value={b.slug}>{b.name}</option>
                     ))}
@@ -176,7 +189,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
               <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-3">
                   <label htmlFor="rule-fixed" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Fixed Amount (₫)</label>
-                  <input id="rule-fixed" type="number" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={formData.rule_config?.amount || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}})} />
+                  <input id="rule-fixed" type="number" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={(formData.rule_config?.amount as number) || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}})} />
                 </div>
               </div>
             )}
@@ -185,7 +198,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
               <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-3">
                   <label htmlFor="rule-tier-base" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Tier Base Amount</label>
-                  <select id="rule-tier-base" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={formData.rule_config?.base || "taxable_income"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
+                  <select id="rule-tier-base" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={(formData.rule_config?.base as string) || "taxable_income"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
                     {bases?.map(b => (
                       <option key={b.slug} value={b.slug}>{b.name}</option>
                     ))}
@@ -198,23 +211,29 @@ export default function PayrollRulesManager({ wsId }: Props) {
                   </select>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic">Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.</p>
                 </div>
+              { }
               </div>
+ 
             )}
           </div>
+          { }
 
           <div className="space-y-5">
             {[
               { key: "is_mandatory", label: "Mandatory Rule", desc: "Cannot be bypassed by default", icon: CheckCircle2 }
             ].map(field => (
-              <label key={field.key} className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
-                (formData as any)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
-              )}>
-                <input type="checkbox" className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" checked={(formData as any)[field.key]} onChange={e => setFormData({...formData, [field.key]: e.target.checked})} />
-                <div>
-                  <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon size={14} className="opacity-50" /> {field.label}</p>
-                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{field.desc}</p>
-                </div>
-              </label>
+              <React.Fragment key={field.key}>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- Label associated via htmlFor; rule false-positive on dynamic IDs */}
+                <label htmlFor={`rule-${field.key}`} className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
+                  (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
+                )}>
+                  <input id={`rule-${field.key}`} type="checkbox" className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" checked={!!(formData as Record<string, boolean>)[field.key]} onChange={e => setFormData({...formData, [field.key]: e.target.checked})} />
+                  <div>
+                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon size={14} className="opacity-50" /> {field.label}</p>
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{field.desc}</p>
+                  </div>
+                </label>
+              </React.Fragment>
             ))}
           </div>
 

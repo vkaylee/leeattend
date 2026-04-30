@@ -20,16 +20,19 @@ vi.mock("react-i18next", () => ({
 
 // Mock Recharts to avoid rendering SVG in tests
 vi.mock("recharts", () => ({
-    AreaChart: ({ children, ...props }: any) => (
-        <div data-testid="area-chart" {...props}>{children}</div>
+ 
+    AreaChart: ({ children, ...props }: { children: React.ReactNode }) => (
+        <div data-testid="area-chart" {...props}>{children as React.ReactNode}</div>
     ),
-    Area: (props: any) => <div data-testid={`area-${props.dataKey}`} />,
+ 
+    Area: (props: { dataKey: string }) => <div data-testid={`area-${props.dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
-    ResponsiveContainer: ({ children }: any) => (
-        <div data-testid="responsive-container">{children}</div>
+ 
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+        <div data-testid="responsive-container">{children as React.ReactNode}</div>
     ),
     Legend: () => <div data-testid="legend" />,
 }));
@@ -59,10 +62,11 @@ describe("OvertimeTrendChart", () => {
     });
 
     it("renders loading spinner when data is loading", () => {
-        (dashboardHooks.useOvertimeTrend as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: undefined,
             isLoading: true,
-        });
+        } as unknown as never);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -71,10 +75,11 @@ describe("OvertimeTrendChart", () => {
     });
 
     it("renders empty state when no data available", () => {
-        (dashboardHooks.useOvertimeTrend as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: [],
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -83,10 +88,11 @@ describe("OvertimeTrendChart", () => {
     });
 
     it("renders empty state when all values are zero", () => {
-        (dashboardHooks.useOvertimeTrend as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: [{ date: "2026-02-01", system_ot_hours: 0, approved_ot_hours: 0 }],
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -94,10 +100,11 @@ describe("OvertimeTrendChart", () => {
     });
 
     it("renders chart with data when OT data is available", () => {
-        (dashboardHooks.useOvertimeTrend as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: mockOtData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -106,10 +113,11 @@ describe("OvertimeTrendChart", () => {
     });
 
     it("renders both area series (system_ot_hours, approved_ot_hours)", () => {
-        (dashboardHooks.useOvertimeTrend as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: mockOtData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -118,6 +126,7 @@ describe("OvertimeTrendChart", () => {
     });
 
     it("displays the correct chart title and subtitle", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useOvertimeTrend as any).mockReturnValue({
             data: mockOtData,
             isLoading: false,
@@ -130,10 +139,11 @@ describe("OvertimeTrendChart", () => {
     });
 
     it("renders axes and grid alongside the chart", () => {
-        (dashboardHooks.useOvertimeTrend as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: mockOtData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<OvertimeTrendChart />);
 

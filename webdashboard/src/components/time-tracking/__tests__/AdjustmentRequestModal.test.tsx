@@ -1,15 +1,12 @@
 import React from "react";
 
-import { _QueryClient, _QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, _fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { TimeEntry } from "@/lib/api/types";
 
-import { _ToastProvider } from "../../ui/Toast";
 import { AdjustmentRequestModal } from "../AdjustmentRequestModal";
-
 
 
 const mockTranslation = {
@@ -41,9 +38,10 @@ vi.mock("@/hooks/use-datetime", () => ({
 
 vi.mock("@/components/ui/Modal", () => ({
   __esModule: true,
-  default: ({ isOpen, children, title }: any) => {
+  default: ({ isOpen, children, title }: { isOpen: boolean; children: React.ReactNode; title: string }) => {
     if (!isOpen) return null;
     return (
+ 
       <div data-testid="modal">
         <h2>{title}</h2>
         {children}

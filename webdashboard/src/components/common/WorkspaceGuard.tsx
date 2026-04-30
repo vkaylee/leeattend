@@ -32,7 +32,7 @@ export default function WorkspaceGuard() {
         workspaces[0].id,
       );
       setCurrentWorkspaceId(workspaces[0].id);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setActiveWsId(workspaces[0].id);
     }
   }, [workspaces, activeWsId, isLoading]);

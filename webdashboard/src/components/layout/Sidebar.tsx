@@ -3,31 +3,20 @@ import React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard,
-  _Cpu,
   History,
   Settings,
-  _UserCheck,
   UserCircle,
   Users,
   Clock,
   CheckCircle,
-  _CalendarDays,
   UserRound,
-  _Banknote,
   CalendarRange,
   Building2,
   X,
   LogOut,
-  _ListOrdered,
   ChevronDown,
   ChevronRight,
-  _Briefcase,
-  _Zap,
-  _Globe,
-  _Palette,
   ShieldCheck,
-  _Share2,
-  _HardDrive,
   Scale,
   BarChart3,
   Folder,
@@ -35,16 +24,12 @@ import {
   Wallet,
   Wrench,
   User,
-  _FileText,
   Plane,
   CalendarCheck,
   ClipboardCheck,
   ArrowLeftRight,
-  _TimerIcon,
   DollarSign,
-  _UserCog,
-  Activity,
-  _Palmtree
+  Activity
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -63,7 +48,7 @@ interface SidebarProps {
   isCollapsed: boolean;
 }
 
-export default function Sidebar({ isOpen, onClose, openSections, toggleSection, _onShowSwitcher, isCollapsed }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, openSections, toggleSection, onShowSwitcher: _onShowSwitcher, isCollapsed }: SidebarProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const { hasAnyPermission } = useMyPermissions();
@@ -117,7 +102,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     .map((item) => {
       if (item.section && item.items) {
         const filteredItems = item.items.filter(
-          (subItem: any) => {
+          (subItem: { to: string; systemRoles?: string[]; permissions?: string[] }) => {
             if (subItem.systemRoles && subItem.systemRoles.length > 0) {
               return subItem.systemRoles.some((role: string) => user?.system_roles?.includes(role));
             }
@@ -132,6 +117,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       if (item.section) {
         return item.items && item.items.length > 0;
       }
+ 
       return true;
     });
 

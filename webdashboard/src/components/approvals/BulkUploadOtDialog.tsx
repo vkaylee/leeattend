@@ -117,8 +117,10 @@ E002,2026-01-28,90,Urgent order completion`;
       if (result.success_count > 0) {
         onSuccess?.();
       }
-    } catch (e: any) {
-      setError(e.message || "Failed to upload file");
+ 
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to upload file";
+      setError(msg);
     }
   };
 

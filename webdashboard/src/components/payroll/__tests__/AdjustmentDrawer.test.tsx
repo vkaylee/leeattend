@@ -45,7 +45,8 @@ describe("AdjustmentDrawer", () => {
   };
 
   it("renders pending adjustments for the specific employee", async () => {
-    (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([
+ 
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([
       {
         id: "adj-1",
         employee_id: "emp-1",
@@ -54,7 +55,7 @@ describe("AdjustmentDrawer", () => {
         reason: "Forgot to punch",
         status: "pending"
       }
-    ]);
+    ] as unknown as never);
 
     renderWithProviders(
       <AdjustmentDrawer 
@@ -71,15 +72,17 @@ describe("AdjustmentDrawer", () => {
   });
 
   it("calls approve API when Approve is clicked", async () => {
-    (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([
+ 
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([
       {
         id: "adj-1",
         employee_id: "emp-1",
         requested_punch_in_time: "2026-01-10T08:00:00Z",
         status: "pending"
       }
-    ]);
-    (api.approveAttendanceAdjustment as any).mockResolvedValue({});
+    ] as unknown as never);
+ 
+    vi.mocked(api.approveAttendanceAdjustment).mockResolvedValue({} as unknown as never);
 
     renderWithProviders(
       <AdjustmentDrawer 

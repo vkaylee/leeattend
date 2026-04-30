@@ -1,22 +1,20 @@
-import React from "react";
-
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-
 import { ToastProvider } from "@/components/ui/Toast";
 
-import { AuthorizedAgent } from "@/lib/api";
+import { AuthorizedAgent, Device } from "@/lib/api";
 
 import AgentAccordionCard from "../AgentAccordionCard";
 
 // Mock translation
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, options?: any) => {
+    t: (key: string, options?: { name?: string }) => {
       if (key === "agents.messages.confirm_delete") return `Delete ${options?.name}?`;
       if (key === "agents.messages.confirm_revoke") return `Revoke ${options?.name}?`;
+ 
       if (key === "agents.messages.confirm_approve") return `Approve ${options?.name}?`;
       if (key === "common.confirm") return "Confirm";
       if (key === "common.warning") return "Warning";
@@ -31,9 +29,22 @@ const mockAgent: AuthorizedAgent = {
   is_active: true,
   is_trusted: true,
   last_seen_at: "2026-01-01T00:00:00Z"
-} as any;
+} as unknown as AuthorizedAgent;
 
-const renderComponent = (props: any) => {
+const renderComponent = (props: {
+ 
+  agent: AuthorizedAgent;
+  devices: Device[];
+ 
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onEdit: () => void;
+  onToggleTrust: (agent: AuthorizedAgent) => Promise<void>;
+  onDelete: (agent: AuthorizedAgent) => Promise<void>;
+  onUpdateDevice: (id: string, data: Partial<Device>) => Promise<void>;
+  onDeleteDevice: (id: string) => Promise<void>;
+  isOnline: boolean;
+}) => {
   return render(
     <ToastProvider>
       <AgentAccordionCard {...props} />

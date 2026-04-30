@@ -9,7 +9,7 @@ import { ToastProvider } from "../../components/ui/Toast";
 import { useWorkspace } from "../../hooks/use-workspace";
 import * as api from "../../lib/api";
 import * as apiWorkspaces from "../../lib/api/workspaces";
-
+import WorkspaceDangerPage from "../workspace/WorkspaceDangerPage";
 
 vi.mock("../../lib/api/workspaces", () => ({
   clearWorkspaceData: vi.fn(),
@@ -23,30 +23,37 @@ vi.mock("../../hooks/use-workspace", () => ({
   useWorkspace: vi.fn(),
 }));
 
-import WorkspaceDangerPage from "../workspace/WorkspaceDangerPage";
-
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
 }));
-
 describe("WorkspaceDangerPage", () => {
   let queryClient: QueryClient;
-
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
     
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    
-    (useWorkspace as any).mockReturnValue({
+    vi.mocked(useWorkspace).mockReturnValue({
       workspace: {
         id: "test-ws-id",
+ 
         name: "Test Workspace",
+        work_unit_minutes: 0,
+ 
+        rounding_policy: "",
+        date_format: "",
+        time_format: "",
+        timezone: "",
+        theme_primary_color: "",
+        default_language: "",
+        created_at: "",
       },
+      isLoading: false,
+      isError: false,
     });
     
     // Mock window.location.reload
@@ -63,12 +70,13 @@ describe("WorkspaceDangerPage", () => {
           {ui}
         </ToastProvider>
       </QueryClientProvider>
+ 
     );
   };
 
   it("requires exact workspace name to clear data", async () => {
     const user = userEvent.setup();
-    (apiWorkspaces.clearWorkspaceData as any).mockResolvedValue({});
+    vi.mocked(apiWorkspaces.clearWorkspaceData).mockResolvedValue(undefined as unknown as void);
 
     renderWithProviders(<WorkspaceDangerPage />);
 

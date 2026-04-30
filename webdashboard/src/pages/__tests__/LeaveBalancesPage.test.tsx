@@ -4,30 +4,38 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { ToastProvider } from "@/components/ui/Toast";
+
+import * as api from "@/lib/api";
+
+import LeaveBalancesPage from "../LeaveBalancesPage";
+
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
+ 
         t: (key: string, fallback?: string) => fallback || key,
     }),
 }));
 
 // Mock useDebounce to return value immediately (no delay)
 vi.mock("@/hooks/use-debounce", () => ({
-    useDebounce: (value: any) => value,
+    useDebounce: <T,>(value: T) => value,
 }));
 
 vi.mock("@/lib/api", async () => {
     const actual = await vi.importActual("@/lib/api");
     return {
-        ...actual,
+        ...actual as unknown as Record<string, unknown>,
         fetchWorkspaceLeaveBalances: vi.fn(),
         triggerAccrualRun: vi.fn(),
+ 
         fetchJobStatus: vi.fn(),
         getCurrentWorkspaceId: () => "test-ws-id",
     };
 });
 
 vi.mock("@/components/leave/LeaveHistoryModal", () => ({
-    LeaveHistoryModal: (props: any) => (
+    LeaveHistoryModal: (props: { leaveTypeId: string; leaveTypeName: string; employeeId: string; isOpen: boolean }) => (
         <div data-testid="leave-history-modal" data-leavetypeid={props.leaveTypeId} data-leavetypename={props.leaveTypeName} data-employeeid={props.employeeId}>
             {props.isOpen ? "MOCKED_LEAVE_HISTORY_MODAL" : null}
         </div>
@@ -38,12 +46,6 @@ vi.mock("@/components/leave/LeaveBalanceDetailModal", () => ({
     LeaveBalanceDetailModal: ({ isOpen }: { isOpen: boolean }) =>
         isOpen ? <div data-testid="leave-balance-detail-modal" /> : null,
 }));
-
-import { ToastProvider } from "@/components/ui/Toast";
-
-import * as api from "@/lib/api";
-
-import LeaveBalancesPage from "../LeaveBalancesPage";
 
 const mockBalances = {
     data: [
@@ -91,8 +93,10 @@ describe("LeaveBalancesPage", () => {
         queryClient = new QueryClient({
             defaultOptions: { queries: { retry: false } },
         });
-        (api.fetchWorkspaceLeaveBalances as any).mockResolvedValue(mockBalances);
-        (api.triggerAccrualRun as any).mockResolvedValue({ job_id: "", status: "completed", message: "Processed 2 accrual entries synchronously" });
+ 
+        vi.mocked(api.fetchWorkspaceLeaveBalances).mockResolvedValue(mockBalances as unknown as Awaited<ReturnType<typeof api.fetchWorkspaceLeaveBalances>>);
+ 
+        vi.mocked(api.triggerAccrualRun).mockResolvedValue({ job_id: "", status: "completed", message: "Processed 2 accrual entries synchronously" } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
     });
 
     function renderPage() {
@@ -212,7 +216,8 @@ describe("LeaveBalancesPage", () => {
     });
 
     it("shows loading state when data is pending", () => {
-        (api.fetchWorkspaceLeaveBalances as any).mockReturnValue(new Promise(() => { }));
+ 
+        vi.mocked(api.fetchWorkspaceLeaveBalances).mockReturnValue(new Promise(() => { }));
         renderPage();
         expect(screen.getAllByText("common.loading").length).toBeGreaterThan(0);
     });
@@ -248,12 +253,13 @@ describe("LeaveBalancesPage", () => {
     });
 
     it("shows empty state when no data", async () => {
-        (api.fetchWorkspaceLeaveBalances as any).mockResolvedValue({
+ 
+        vi.mocked(api.fetchWorkspaceLeaveBalances).mockResolvedValue({
             data: [],
             total: 0,
             page: 1,
             limit: 20,
-        });
+        } as unknown as Awaited<ReturnType<typeof api.fetchWorkspaceLeaveBalances>>);
         renderPage();
         await waitFor(() => {
             expect(screen.getAllByText("attendance_logs.messages.no_data").length).toBeGreaterThan(0);
@@ -280,11 +286,12 @@ describe("LeaveBalancesPage", () => {
     });
 
     it("shows queued toast when accrual is processed in background", async () => {
-        (api.triggerAccrualRun as any).mockResolvedValue({
+ 
+        vi.mocked(api.triggerAccrualRun).mockResolvedValue({
             job_id: "job-123",
             status: "queued",
             message: "Accrual job enqueued for background processing",
-        });
+        } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
         renderPage();
         await waitFor(() => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
@@ -303,11 +310,12 @@ describe("LeaveBalancesPage", () => {
     });
 
     it("shows completed toast when accrual runs synchronously", async () => {
-        (api.triggerAccrualRun as any).mockResolvedValue({
+ 
+        vi.mocked(api.triggerAccrualRun).mockResolvedValue({
             job_id: "",
             status: "completed",
             message: "Processed 5 accrual entries synchronously",
-        });
+        } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
         renderPage();
         await waitFor(() => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
@@ -323,15 +331,17 @@ describe("LeaveBalancesPage", () => {
 
     it("polls fetchJobStatus after queued response until completed", async () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
-        (api.triggerAccrualRun as any).mockResolvedValue({
+ 
+        vi.mocked(api.triggerAccrualRun).mockResolvedValue({
             job_id: "job-poll-1",
             status: "queued",
             message: "Enqueued",
-        });
+        } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
         // First poll: still processing. Second poll: completed.
-        (api.fetchJobStatus as any)
-            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "processing", completed_at: null, error_message: null })
-            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "completed", completed_at: "2026-02-28T12:00:00Z", error_message: null });
+ 
+        vi.mocked(api.fetchJobStatus)
+            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "processing", completed_at: null, error_message: null } as unknown as Awaited<ReturnType<typeof api.fetchJobStatus>>)
+            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "completed", completed_at: "2026-02-28T12:00:00Z", error_message: null } as unknown as Awaited<ReturnType<typeof api.fetchJobStatus>>);
 
         renderPage();
         await waitFor(() => {
@@ -355,7 +365,8 @@ describe("LeaveBalancesPage", () => {
         // Advance past second poll interval
         await act(async () => { vi.advanceTimersByTime(2500); });
         await waitFor(() => {
-            expect((api.fetchJobStatus as any).mock.calls.length).toBeGreaterThanOrEqual(2);
+ 
+            expect(vi.mocked(api.fetchJobStatus).mock.calls.length).toBeGreaterThanOrEqual(2);
         });
 
         vi.useRealTimers();
@@ -363,17 +374,19 @@ describe("LeaveBalancesPage", () => {
 
     it("stops polling and shows error when job fails", async () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
-        (api.triggerAccrualRun as any).mockResolvedValue({
+ 
+        vi.mocked(api.triggerAccrualRun).mockResolvedValue({
             job_id: "job-fail-1",
             status: "queued",
             message: "Enqueued",
-        });
-        (api.fetchJobStatus as any).mockResolvedValue({
+        } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
+ 
+        vi.mocked(api.fetchJobStatus).mockResolvedValue({
             job_id: "job-fail-1",
             status: "failed",
             completed_at: "2026-02-28T12:00:00Z",
             error_message: "Accrual processing failed: DB error",
-        });
+        } as unknown as Awaited<ReturnType<typeof api.fetchJobStatus>>);
 
         renderPage();
         await waitFor(() => {
@@ -394,9 +407,11 @@ describe("LeaveBalancesPage", () => {
         });
 
         // Should NOT poll again after failure
-        const callCount = (api.fetchJobStatus as any).mock.calls.length;
+ 
+        const callCount = vi.mocked(api.fetchJobStatus).mock.calls.length;
         await act(async () => { vi.advanceTimersByTime(5000); });
-        expect((api.fetchJobStatus as any).mock.calls.length).toBe(callCount);
+ 
+        expect(vi.mocked(api.fetchJobStatus).mock.calls.length).toBe(callCount);
 
         vi.useRealTimers();
     });

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -10,7 +10,8 @@ interface FloatingRecordBadgeProps {
     variant?: "default" | "amber";
 }
 
-const FloatingRecordBadge = React.memo(function FloatingRecordBadge({
+ 
+const FloatingRecordBadge = memo(function FloatingRecordBadge({
     loaded,
     total,
     label = "records",

@@ -8,8 +8,6 @@ import PageHeader from "@/components/ui/PageHeader";
 
 import { useConfirm } from "@/hooks/use-confirm";
 import { useSystemRoles } from "@/hooks/use-system-roles";
-import { _cn } from "@/lib/utils";
-
 
 
 const roleDescriptions: Record<string, string> = {
@@ -18,8 +16,9 @@ const roleDescriptions: Record<string, string> = {
   billing_admin: "system_roles.descriptions.billing_admin",
 };
 
-const roleIcons: Record<string, any> = {
+const roleIcons: Record<string, React.ElementType> = {
   platform_admin: ShieldAlert,
+ 
   support: ShieldCheck,
   billing_admin: ShieldHalf,
 };
@@ -47,8 +46,9 @@ export default function SystemRolesPage() {
       setAssignError("");
       await assignRole({ userId: userIdInput.trim(), request: { role_name: selectedRole } });
       setIsModalOpen(false);
-    } catch (err: any) {
-      setAssignError(err.message || t("system_roles.messages.assign_error"));
+    } catch (err: unknown) {
+      setAssignError(err instanceof Error ? err.message : t("system_roles.messages.assign_error"));
+ 
     }
   };
 
@@ -61,8 +61,9 @@ export default function SystemRolesPage() {
     if (isConfirmed) {
       try {
         await revokeRole({ userId, roleName });
-      } catch (err: any) {
-        alert(err.message || t("system_roles.messages.revoke_error"));
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : t("system_roles.messages.revoke_error"));
+ 
       }
     }
   };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import { User, X } from 'lucide-react';
@@ -12,13 +12,14 @@ import { Combobox } from '../ui/Combobox';
 interface EmployeeSearchProps {
   workspaceId: string;
   value?: string | string[];
-  onChange: (value: any) => void;
+ 
+  onChange: (value: string | string[]) => void;
   placeholder?: string;
   className?: string;
   id?: string;
   'data-testid'?: string;
   multiple?: boolean;
-  autoFocus?: boolean;
+
   keyboardShortcut?: string | string[];
   clearOnEscape?: boolean;
   onSelectEmployee?: (employee: Employee) => void;
@@ -37,7 +38,7 @@ export function EmployeeSearch({
   id,
   'data-testid': testId,
   multiple = false,
-  autoFocus = false,
+
   keyboardShortcut,
   clearOnEscape,
   onSelectEmployee,
@@ -47,35 +48,35 @@ export function EmployeeSearch({
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Fetch employees with debounced query
-  const { data: employeesData, _isLoading } = useQuery({
+  const { data: employeesData, isLoading: _isLoading } = useQuery({
     queryKey: ['employees', workspaceId, 'search', debouncedSearchTerm],
     queryFn: () => searchEmployees(workspaceId, debouncedSearchTerm),
     enabled: !!workspaceId,
   });
 
-  const employees = React.useMemo(() => employeesData?.data || [], [employeesData?.data]);
+ 
+  const employees = useMemo(() => employeesData?.data || [], [employeesData?.data]);
 
   // Keep track of selected employee objects to show their names in chips
   const [selectedMeta, setSelectedMeta] = useState<Employee[]>([]);
 
-  const selectedIds = React.useMemo(() =>
+ 
+  const selectedIds = useMemo(() =>
     Array.isArray(value) ? value : value ? [value] : [],
     [value]
   );
 
   // Auto-populate selectedMeta when employees are loaded
-  React.useEffect(() => {
-    if (employees.length > 0 && selectedIds.length > 0) {
-      const found = employees.filter(emp => selectedIds.includes(emp.id));
-      if (found.length > 0) {
-        setSelectedMeta(prev => {
-          const missing = found.filter(f => !prev.find(m => m.id === f.id));
-          if (missing.length === 0) return prev;
-          return [...prev, ...missing];
-        });
+ 
+  if (employees.length > 0 && selectedIds.length > 0) {
+    const found = employees.filter(emp => selectedIds.includes(emp.id));
+    if (found.length > 0) {
+      const missing = found.filter(f => !selectedMeta.find(m => m.id === f.id));
+      if (missing.length > 0) {
+        setSelectedMeta(prev => [...prev, ...missing]);
       }
     }
-  }, [employees, selectedIds]);
+  }
 
   const handleSelect = (selectedId: string) => {
     const emp = employees.find(e => e.id === selectedId);
@@ -167,9 +168,10 @@ export function EmployeeSearch({
         onChange={handleSelect}
         placeholder={placeholder || t('common.search')}
         onSearchChange={setSearchTerm}
-        autoFocus={autoFocus}
+
         keyboardShortcut={keyboardShortcut}
         clearOnEscape={clearOnEscape}
+ 
       />
 
       {multiple && selectedIds.length > 0 && (

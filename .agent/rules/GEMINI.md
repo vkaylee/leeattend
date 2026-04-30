@@ -104,13 +104,19 @@ When user's prompt is NOT in English:
 3. **Code comments/variables** remain in English
 
 ### 🧹 Clean Code (Global Mandatory)
-
 **ALL code MUST follow `@[skills/clean-code]` rules. No exceptions.**
 
 - **Code**: Concise, direct, no over-engineering. Self-documenting.
 - **Testing**: Mandatory. Pyramid (Unit > Int > E2E) + AAA Pattern.
 - **Performance**: Measure first. Adhere to 2025 standards (Core Web Vitals).
 - **Infra/Safety**: 5-Phase Deployment. Verify secrets security.
+
+### 🔌 PTY & FD Leak Safety (CRITICAL)
+> 🔴 **MANDATORY:** AI environments (like Antigravity) use strict PTY stream tracking. Any background process holding `stdout`/`stderr` will cause an infinite hang.
+- **NEVER** run background scripts (`&`) or pipes (`|`) that inherit the PTY's `stdout/stderr` without full redirection.
+- **ALWAYS** append `</dev/null >/dev/null 2>&1` to ANY background command.
+- **NEVER** leave orphaned processes (like `tail -f` or `grep`) running after the main script exits.
+*❌ Failure Condition:* The AI agent hangs indefinitely waiting for a background command's EOF.
 
 ### 🧰 Hermetic Environment (Toolbox Scripts)
 

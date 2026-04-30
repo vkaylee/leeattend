@@ -25,6 +25,7 @@ window.addEventListener("unhandledrejection", (event) => {
   }
 });
 
+// eslint-disable-next-line import-x/no-named-as-default-member
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ToastProvider>

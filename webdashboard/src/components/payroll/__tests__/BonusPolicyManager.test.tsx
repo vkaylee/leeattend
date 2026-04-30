@@ -42,7 +42,8 @@ describe("BonusPolicyManager", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.fetchIncentivePolicies as any).mockResolvedValue([]);
+ 
+    vi.mocked(api.fetchIncentivePolicies).mockResolvedValue([] as unknown as never);
   });
 
   it("renders correctly and opens creation form", async () => {
@@ -71,7 +72,8 @@ describe("BonusPolicyManager", () => {
   });
 
   it("submits policy data correctly", async () => {
-    (api.createIncentivePolicy as any).mockResolvedValue({ id: "p1" });
+ 
+    vi.mocked(api.createIncentivePolicy).mockResolvedValue({ id: "p1" } as unknown as never);
     
     renderWithProviders(<BonusPolicyManager wsId={mockWsId} />);
     fireEvent.click(screen.getByText(/payroll.incentives.add_btn/i));

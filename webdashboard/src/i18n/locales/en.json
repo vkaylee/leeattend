@@ -1642,6 +1642,8 @@
       "employee_id": "Employee ID",
       "hire_date": "Hire Date",
       "is_active": "Is Active",
+      "link_user": "Link User Account",
+      "select_user": "Select user...",
       "cancel": "Cancel",
       "save": "Save Profile",
       "update": "Update"

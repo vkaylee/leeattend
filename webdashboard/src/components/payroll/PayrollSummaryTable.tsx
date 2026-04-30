@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 import { 
   CheckCircle2, 
@@ -7,7 +7,6 @@ import {
   User,
   Calculator,
   Search,
-  _ArrowRight,
   Info
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -50,13 +49,15 @@ export default function PayrollSummaryTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const payslipMap = React.useMemo(() => {
+  const payslipMap = useMemo(() => {
+ 
     const map: Record<string, Payslip> = {};
     payslips.forEach(p => { map[p.employee_id] = p; });
     return map;
   }, [payslips]);
 
-  const filteredEmployees = React.useMemo(() => {
+  const filteredEmployees = useMemo(() => {
+ 
     return employees.filter(emp => 
       emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
@@ -64,7 +65,7 @@ export default function PayrollSummaryTable({
   }, [employees, searchTerm]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
     setCurrentPage(1);
   }, [searchTerm]);
 
@@ -103,7 +104,8 @@ export default function PayrollSummaryTable({
         <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
           <div className="relative group flex-1 max-w-lg">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 w-4.5 h-4.5 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" />
-            <input type="text" autoFocus aria-label={t("common.search")} placeholder={t("payroll.search_placeholder")} className="w-full pl-14 pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
+            <input type="text" aria-label={t("common.search")} placeholder={t("payroll.search_placeholder")} className="w-full pl-14 pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
+            { }
           </div>
           <div className="flex items-center gap-3"><span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">{filteredEmployees.length} {t("common.employees")}</span></div>
         </div>

@@ -1,19 +1,21 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, _fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as api from "../../lib/api";
+import { WorkingPattern, Shift, PaginatedResponse, Employee, WorkingPatternDetail, BulkAssignResponse } from "../../lib/api/types";
 import WorkingPatternsPage from "../WorkingPatternsPage";
 
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
+ 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock API
@@ -28,8 +30,9 @@ vi.mock("../../lib/api", () => ({
 }));
 
 // Mock EmployeeSearch
+ 
 vi.mock("@/components/common/EmployeeSearch", () => ({
-  EmployeeSearch: ({ value, onChange, onSelect, multiple }: any) => {
+  EmployeeSearch: ({ value, onChange, onSelect, multiple }: { value: unknown; onChange: (_v: unknown) => void; onSelect: (_v: unknown) => void; multiple: boolean }) => {
     const handler = onSelect || onChange || (() => {});
     return (
       <div data-testid="employee-search-mock">
@@ -64,8 +67,9 @@ vi.mock("../../components/ui/Toast", () => ({
 
 // Override i18n
 vi.mock('react-i18next', () => ({
+ 
   useTranslation: () => ({
-    t: (key: string, options?: any) => {
+    t: (key: string, options?: Record<string, unknown>) => {
         if (key === "patterns.messages.bulk_assign_success_count") return `Success: ${options?.count}`;
         if (key === "patterns.messages.bulk_assign_conflict") return `Conflict: ${options?.count}`;
         return key;
@@ -86,15 +90,19 @@ describe("WorkingPatternsPage", () => {
       defaultOptions: {
         queries: { retry: false, gcTime: 0, staleTime: 0 },
       },
+ 
     });
-    (api.getCurrentWorkspaceId as any).mockReturnValue("ws-1");
-    (api.fetchWorkingPatterns as any).mockResolvedValue([
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("ws-1");
+    vi.mocked(api.fetchWorkingPatterns).mockResolvedValue([
       { id: "pat-1", name: "Standard Office", description: "Mon-Fri", is_active: true }
-    ]);
-    (api.fetchShifts as any).mockResolvedValue([
+ 
+    ] as unknown as WorkingPattern[]);
+    vi.mocked(api.fetchShifts).mockResolvedValue([
       { id: "shift-1", name: "Morning", start_time: "08:00", end_time: "17:00" }
-    ]);
-    (api.fetchEmployees as any).mockResolvedValue({
+ 
+    ] as unknown as Shift[]);
+    vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
         { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, hire_date: "2025-01-01", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" },
         { id: "emp-2", full_name: "Jane Smith", employee_id_number: "EMP002", workspace_id: "ws-1", is_active: true, hire_date: "2025-01-02", created_at: "2025-01-02T00:00:00Z", updated_at: "2025-01-02T00:00:00Z" }
@@ -102,8 +110,9 @@ describe("WorkingPatternsPage", () => {
       total: 2,
       page: 1,
       limit: 50,
-    });
-    (api.fetchPatternDetails as any).mockResolvedValue([]);
+ 
+    } as unknown as PaginatedResponse<Employee>);
+    vi.mocked(api.fetchPatternDetails).mockResolvedValue([] as unknown as WorkingPatternDetail[]);
   });
 
   it("renders patterns list", async () => {
@@ -118,8 +127,9 @@ describe("WorkingPatternsPage", () => {
   });
 
   it("opens create modal and submits new pattern", async () => {
+ 
     const user = userEvent.setup();
-    (api.createWorkingPattern as any).mockResolvedValue({ id: "pat-new" });
+    vi.mocked(api.createWorkingPattern).mockResolvedValue({ id: "pat-new" } as unknown as WorkingPattern);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -141,11 +151,12 @@ describe("WorkingPatternsPage", () => {
 
   it("opens bulk assign modal and handles success response", async () => {
     const user = userEvent.setup();
+ 
     // Mock Success Response
-    (api.bulkAssignPattern as any).mockResolvedValue({
+    vi.mocked(api.bulkAssignPattern).mockResolvedValue({
         success_count: 2,
         failed_employees: []
-    });
+    } as unknown as BulkAssignResponse);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -183,11 +194,12 @@ describe("WorkingPatternsPage", () => {
 
   it("opens bulk assign modal and handles conflict error", async () => {
     const user = userEvent.setup();
+ 
     // Mock Conflict Response
-    (api.bulkAssignPattern as any).mockResolvedValue({
+    vi.mocked(api.bulkAssignPattern).mockResolvedValue({
         success_count: 0,
         failed_employees: ["emp-1"]
-    });
+    } as unknown as BulkAssignResponse);
 
     render(
       <QueryClientProvider client={queryClient}>

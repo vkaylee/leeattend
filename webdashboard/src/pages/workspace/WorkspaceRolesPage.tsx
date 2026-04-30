@@ -53,8 +53,14 @@ export default function WorkspaceRolesPage() {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (role: any) => {
-    setEditingRole(role);
+ 
+  const handleEdit = (role: { id: string; name: string; description?: string; color: string }) => {
+    setEditingRole({
+      id: role.id,
+      name: role.name,
+      description: role.description || "",
+      color: role.color
+    });
     setIsModalOpen(true);
     setActiveMenu(null);
   };

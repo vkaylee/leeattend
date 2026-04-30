@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
 
-import * as _employeesApi from "@/lib/api";
+
 import * as departmentsApi from "@/lib/api/departments";
 import * as payrollApi from "@/lib/api/payroll";
 
@@ -26,7 +26,8 @@ vi.mock("@/lib/api", async () => {
 // Avoid modal rendering in portals for simpler DOM queries
 vi.mock("@/components/ui/Modal", () => {
   return {
-    default: ({ isOpen, children, title }: any) => {
+ 
+    default: ({ isOpen, children, title }: { isOpen: boolean; children: React.ReactNode; title: string }) => {
       if (!isOpen) return null;
       return (
         <div data-testid="mock-modal">
@@ -117,7 +118,8 @@ describe("RuleAssignmentManager", () => {
   it("opens modal and can submit workspace level assignment", async () => {
     vi.mocked(payrollApi.fetchPayrollRuleAssignments).mockResolvedValueOnce([]);
     vi.mocked(departmentsApi.fetchDepartments).mockResolvedValueOnce([]);
-    vi.mocked(payrollApi.createPayrollRuleAssignment).mockResolvedValueOnce({} as any);
+ 
+    vi.mocked(payrollApi.createPayrollRuleAssignment).mockResolvedValueOnce({} as unknown as never);
 
     renderComponent();
     

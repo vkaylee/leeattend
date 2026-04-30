@@ -17,22 +17,30 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("recharts", () => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     BarChart: ({ children, ...props }: any) => (
-        <div data-testid="bar-chart" {...props}>{children}</div>
+        <div data-testid="bar-chart" {...props}>{children as React.ReactNode}</div>
     ),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     Bar: (props: any) => <div data-testid="bar" {...props} />,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     XAxis: (props: any) => <div data-testid="x-axis" {...props} />,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     YAxis: (props: any) => <div data-testid="y-axis" {...props} />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     PieChart: ({ children, ...props }: any) => (
-        <div data-testid="pie-chart" {...props}>{children}</div>
+        <div data-testid="pie-chart" {...props}>{children as React.ReactNode}</div>
     ),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     Pie: ({ children, ...props }: any) => (
-        <div data-testid="pie" {...props}>{children}</div>
+        <div data-testid="pie" {...props}>{children as React.ReactNode}</div>
     ),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     Cell: (props: any) => <div data-testid="cell" {...props} />,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     ResponsiveContainer: ({ children }: any) => (
-        <div data-testid="responsive-container">{children}</div>
+        <div data-testid="responsive-container">{children as React.ReactNode}</div>
     ),
     Tooltip: () => <div data-testid="tooltip" />,
     Legend: () => <div data-testid="legend" />,
@@ -77,6 +85,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("renders loading skeleton when data is loading", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
             data: undefined,
             isLoading: true,
@@ -91,6 +100,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("renders empty state when no data available", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
             data: {
                 tenure_distribution: [],
@@ -109,6 +119,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("renders tenure bar chart by default when data is available", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -121,6 +132,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("displays the correct chart title", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -133,6 +145,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("displays total terminated badge", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -144,6 +157,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("shows tab navigation with 3 tabs", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -157,6 +171,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("switches to source pie chart when source tab clicked", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -172,6 +187,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("switches to department chart when dept tab clicked", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -187,6 +203,7 @@ describe("TurnoverAnalyticsChart", () => {
     });
 
     it("has a period selector dropdown with options", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
             data: mockData,
             isLoading: false,

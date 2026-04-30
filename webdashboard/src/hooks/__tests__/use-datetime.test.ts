@@ -16,12 +16,13 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("formats date and time correctly with default workspace settings (VN)", () => {
-    (useWorkspace as any).mockReturnValue({
+ 
+    vi.mocked(useWorkspace).mockReturnValue({
       workspace: {
         date_format: "DD/MM/YYYY",
         time_format: "24h",
       }
-    });
+    } as unknown as never);
 
     const { result } = renderHook(() => useDateTimeFormatter());
     
@@ -35,12 +36,13 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("formats date and time correctly with US settings", () => {
-    (useWorkspace as any).mockReturnValue({
+ 
+    vi.mocked(useWorkspace).mockReturnValue({
       workspace: {
         date_format: "MM/DD/YYYY",
         time_format: "12h",
       }
-    });
+    } as unknown as never);
 
     const { result } = renderHook(() => useDateTimeFormatter());
     
@@ -53,12 +55,13 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("formats date correctly with ISO setting", () => {
-    (useWorkspace as any).mockReturnValue({
+ 
+    vi.mocked(useWorkspace).mockReturnValue({
       workspace: {
         date_format: "YYYY-MM-DD",
         time_format: "24h",
       }
-    });
+    } as unknown as never);
 
     const { result } = renderHook(() => useDateTimeFormatter());
     
@@ -68,7 +71,8 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("handles null and undefined dates gracefully", () => {
-    (useWorkspace as any).mockReturnValue({ workspace: null });
+ 
+    vi.mocked(useWorkspace).mockReturnValue({ workspace: null } as unknown as never);
 
     const { result } = renderHook(() => useDateTimeFormatter());
 
@@ -79,12 +83,13 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("handles raw time strings (HH:mm:ss)", () => {
-    (useWorkspace as any).mockReturnValue({
+ 
+    vi.mocked(useWorkspace).mockReturnValue({
       workspace: {
         date_format: "DD/MM/YYYY",
         time_format: "12h",
       }
-    });
+    } as unknown as never);
 
     const { result } = renderHook(() => useDateTimeFormatter());
 
@@ -93,7 +98,8 @@ describe("useDateTimeFormatter hook", () => {
   });
 
   it("falls back to default settings when workspace is loading", () => {
-    (useWorkspace as any).mockReturnValue({ workspace: undefined });
+ 
+    vi.mocked(useWorkspace).mockReturnValue({ workspace: undefined } as unknown as never);
 
     const { result } = renderHook(() => useDateTimeFormatter());
     
@@ -106,23 +112,26 @@ describe("useDateTimeFormatter hook", () => {
 
   it("formats month and year correctly based on workspace date preference", () => {
     // Case 1: DD/MM/YYYY -> MM/yyyy
-    (useWorkspace as any).mockReturnValue({
+ 
+    vi.mocked(useWorkspace).mockReturnValue({
       workspace: { date_format: "DD/MM/YYYY" }
-    });
+    } as unknown as never);
     const { result: res1 } = renderHook(() => useDateTimeFormatter());
     expect(res1.current.formatMonthYear(new Date(2026, 0, 1))).toBe("01/2026");
 
     // Case 2: MM/DD/YYYY -> MM/yyyy
-    (useWorkspace as any).mockReturnValue({
+ 
+    vi.mocked(useWorkspace).mockReturnValue({
       workspace: { date_format: "MM/DD/YYYY" }
-    });
+    } as unknown as never);
     const { result: res2 } = renderHook(() => useDateTimeFormatter());
     expect(res2.current.formatMonthYear(new Date(2026, 0, 1))).toBe("01/2026");
 
     // Case 3: YYYY-MM-DD -> yyyy-MM
-    (useWorkspace as any).mockReturnValue({
+ 
+    vi.mocked(useWorkspace).mockReturnValue({
       workspace: { date_format: "YYYY-MM-DD" }
-    });
+    } as unknown as never);
     const { result: res3 } = renderHook(() => useDateTimeFormatter());
     expect(res3.current.formatMonthYear(new Date(2026, 0, 1))).toBe("2026-01");
   });

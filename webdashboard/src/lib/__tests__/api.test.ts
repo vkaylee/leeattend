@@ -8,11 +8,13 @@ describe("api.ts comprehensive tests", () => {
     localStorage.clear();
   });
 
-  const mockSuccess = (data: any = {}) => {
-    (fetch as any).mockResolvedValue({
+ 
+  const mockSuccess = (data: unknown = {}) => {
+ 
+    vi.mocked(fetch).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(data),
-    });
+    } as unknown as Response);
   };
 
   describe("Device & Agent API", () => {
@@ -184,7 +186,8 @@ describe("api.ts comprehensive tests", () => {
     });
 
     it("fetchLatestImportJob", async () => {
-      (fetch as any).mockResolvedValueOnce({ ok: true, json: async () => ({ id: "job-1" }) });
+ 
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ id: "job-1" }) } as unknown as Response);
       await api.fetchLatestImportJob("ws-1", "adjustment");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/import-jobs/latest?target_type=adjustment"), expect.anything());
     });
@@ -450,7 +453,8 @@ describe("api.ts comprehensive tests", () => {
     });
 
     it("changePassword", async () => {
-      (fetch as any).mockResolvedValue({ ok: true, text: () => Promise.resolve("OK") });
+ 
+      vi.mocked(fetch).mockResolvedValue({ ok: true, text: () => Promise.resolve("OK") } as unknown as Response);
       await api.changePassword({ old_password: "o", new_password: "n" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/auth/change-password"), expect.objectContaining({ method: "POST" }));
     });

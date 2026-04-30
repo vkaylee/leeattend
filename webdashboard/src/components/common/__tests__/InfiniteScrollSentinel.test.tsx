@@ -1,6 +1,6 @@
 import React, { createRef } from "react";
 
-import { render, _screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 import InfiniteScrollSentinel from "../InfiniteScrollSentinel";

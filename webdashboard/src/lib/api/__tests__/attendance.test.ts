@@ -17,15 +17,17 @@ describe("fetchAttendanceReport", () => {
     });
 
     it("should append standard query parameters correctly", async () => {
-        (apiFetch as any).mockResolvedValueOnce({
+ 
+        vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
             json: async () => ({ data: [], total: 0 }),
-        });
+        } as Response);
 
         await fetchAttendanceReport("test-ws-id", "2026-03-01", "2026-03-31", "summary");
 
         expect(apiFetch).toHaveBeenCalledTimes(1);
-        const calledUrl = (apiFetch as any).mock.calls[0][0];
+ 
+        const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
         expect(calledUrl).toContain(`${API_BASE_URL}/workspaces/test-ws-id/reports/attendance`);
         expect(calledUrl).toContain("start_date=2026-03-01");
@@ -35,10 +37,11 @@ describe("fetchAttendanceReport", () => {
     });
 
     it("should append department_id query parameter when provided", async () => {
-        (apiFetch as any).mockResolvedValueOnce({
+ 
+        vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
             json: async () => ({ data: [], total: 0 }),
-        });
+        } as Response);
 
         const departmentId = "dept-uuid-123";
 
@@ -56,7 +59,8 @@ describe("fetchAttendanceReport", () => {
         );
 
         expect(apiFetch).toHaveBeenCalledTimes(1);
-        const calledUrl = (apiFetch as any).mock.calls[0][0];
+ 
+        const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
         // Verify department_id is appended correctly
         expect(calledUrl).toContain(`department_id=${departmentId}`);
@@ -67,10 +71,11 @@ describe("fetchAttendanceReport", () => {
     });
 
     it("should format employee_ids as comma-separated string when provided", async () => {
-        (apiFetch as any).mockResolvedValueOnce({
+ 
+        vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
             json: async () => ({ data: [], total: 0 }),
-        });
+        } as Response);
 
         const employeeIds = ["emp-1", "emp-2"];
 
@@ -86,7 +91,8 @@ describe("fetchAttendanceReport", () => {
         );
 
         expect(apiFetch).toHaveBeenCalledTimes(1);
-        const calledUrl = (apiFetch as any).mock.calls[0][0];
+ 
+        const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
         expect(calledUrl).toContain("employee_ids=emp-1%2Cemp-2"); // %2C is URL encoded comma
     });

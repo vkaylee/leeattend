@@ -27,7 +27,8 @@ describe("useInfiniteScroll", () => {
             unobserve = vi.fn();
             disconnect = disconnectMock;
         }
-        window.IntersectionObserver = MockIO as any;
+ 
+        window.IntersectionObserver = MockIO as unknown as typeof IntersectionObserver;
     });
 
     afterEach(() => {
@@ -58,7 +59,8 @@ describe("useInfiniteScroll", () => {
                 fetchNextPage,
             });
             // Simulate ref attachment
-            (ref as any).current = div;
+ 
+            (ref as unknown as { current: HTMLDivElement | null }).current = div;
             return ref;
         });
 
@@ -82,7 +84,8 @@ describe("useInfiniteScroll", () => {
                 isFetchingNextPage: true,
                 fetchNextPage,
             });
-            (ref as any).current = div;
+ 
+            (ref as unknown as { current: HTMLDivElement | null }).current = div;
             return ref;
         });
 
@@ -105,6 +108,7 @@ describe("useInfiniteScroll", () => {
                 isFetchingNextPage: false,
                 fetchNextPage,
             });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
             (ref as any).current = div;
             return ref;
         });

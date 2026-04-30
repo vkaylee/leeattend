@@ -64,6 +64,7 @@ export function useAuthorizedAgents() {
   });
 
   const sendCommandMutation = useMutation({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: ({ id, command }: { id: string; command: any }) =>
       sendAgentCommand(id, command),
   });

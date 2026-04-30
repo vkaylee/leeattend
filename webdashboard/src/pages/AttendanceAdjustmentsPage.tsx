@@ -8,10 +8,8 @@ import {
   FileDown, 
   Upload, 
   User as UserIcon,
-  _Search,
   Check,
-  X,
-  _AlertCircle
+  X
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

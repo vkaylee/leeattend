@@ -51,7 +51,7 @@ run_with_timeout() {
 leeattend_cleanup() {
     echo -e "\n${YELLOW}🧹 [Parent] Cleaning up test environment...${NC}"
     $DOCKER_COMPOSE_CMD down --remove-orphans </dev/null > /dev/null 2>&1
-    podman volume prune -f --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.volume=shared-data" > /dev/null 2>&1 || true
+    podman volume prune -f --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.volume=shared-data" </dev/null > /dev/null 2>&1 || true
     rm -f apiserver/.api_port* webdashboard/.web_port*
     echo -e "${GREEN}✅ Cleanup complete.${NC}"
 }

@@ -24,7 +24,8 @@ vi.mock("@/lib/api/employees", () => ({
     }
   ]),
   createWorkingCondition: vi.fn(),
-  deleteWorkingCondition: (...args: any[]) => mockDelete(...args)
+ 
+  deleteWorkingCondition: (...args: unknown[]) => mockDelete(...args)
 }));
 
 // Mock translation
@@ -40,7 +41,8 @@ vi.mock("react-i18next", () => ({
   })
 }));
 
-const renderComponent = (props: any) => {
+ 
+const renderComponent = (props: { wsId: string; employeeId: string }) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
   });

@@ -5,7 +5,8 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+ 
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 import { Employee, Payslip } from "@/lib/api/types";
 
@@ -193,7 +194,7 @@ describe("PayrollSummaryTable", () => {
     expect(screen.getByText("common.loading")).toBeInTheDocument();
   });
 
-  it("auto-focuses the search input on mount", () => {
+  it("renders the search input on mount", () => {
     render(
         <PayrollSummaryTable
           employees={mockEmployees}
@@ -209,6 +210,7 @@ describe("PayrollSummaryTable", () => {
     );
 
     const input = screen.getByLabelText("common.search");
-    expect(input).toHaveFocus();
+    // autoFocus removed for accessibility (jsx-a11y/no-autofocus)
+    expect(input).toBeInTheDocument();
   });
 });

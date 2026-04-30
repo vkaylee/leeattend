@@ -39,17 +39,22 @@ describe("AgentEditModal", () => {
       isFetching: false,
       error: null,
       refetch: vi.fn(),
-      updateAgent: vi.fn() as any,
+ 
+      updateAgent: vi.fn() as never,
       isUpdating: false,
-      deleteAgent: vi.fn() as any,
+ 
+      deleteAgent: vi.fn() as never,
       isDeleting: false,
       includeInactive: false,
       setIncludeInactive: vi.fn(),
-      createAgent: vi.fn() as any,
+ 
+      createAgent: vi.fn() as never,
       isCreating: false,
-      updateTrust: vi.fn() as any,
+ 
+      updateTrust: vi.fn() as never,
       isUpdatingTrust: false,
-      sendCommand: vi.fn() as any,
+ 
+      sendCommand: vi.fn() as never,
       isSendingCommand: false,
     });
 
@@ -84,17 +89,22 @@ describe("AgentEditModal", () => {
       isFetching: false,
       error: null,
       refetch: vi.fn(),
-      updateAgent: updateAgentMock as any,
+ 
+      updateAgent: updateAgentMock as never,
       isUpdating: false,
-      deleteAgent: vi.fn() as any,
+ 
+      deleteAgent: vi.fn() as never,
       isDeleting: false,
       includeInactive: false,
       setIncludeInactive: vi.fn(),
-      createAgent: vi.fn() as any,
+ 
+      createAgent: vi.fn() as never,
       isCreating: false,
-      updateTrust: vi.fn() as any,
+ 
+      updateTrust: vi.fn() as never,
       isUpdatingTrust: false,
-      sendCommand: vi.fn() as any,
+ 
+      sendCommand: vi.fn() as never,
       isSendingCommand: false,
     });
 

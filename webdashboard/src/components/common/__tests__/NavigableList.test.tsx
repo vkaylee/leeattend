@@ -1,6 +1,6 @@
-import React from "react";
+import React, { createRef } from "react";
 
-import { render, screen, _fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -14,11 +14,13 @@ class MockIntersectionObserver {
     unobserve() { }
     disconnect() { }
 }
-window.IntersectionObserver = MockIntersectionObserver as any;
+ 
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock scroll methods not available in jsdom
 Element.prototype.scrollIntoView = vi.fn();
-Element.prototype.scrollTo = vi.fn() as any;
+ 
+Element.prototype.scrollTo = vi.fn() as unknown as typeof Element.prototype.scrollTo;
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
@@ -327,7 +329,8 @@ describe("NavigableList", () => {
     // ── onKeyDownRef ───────────────────────────────────────────
 
     it("exposes keyboard handler via onKeyDownRef", () => {
-        const ref = React.createRef<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>() as React.MutableRefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
+ 
+        const ref = createRef<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>() as React.MutableRefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
         ref.current = null;
 
         render(<NavigableList {...defaultProps} onKeyDownRef={ref} />);

@@ -21,7 +21,8 @@ interface OvertimePolicyManagerProps {
   wsId: string;
 }
 
-function OvertimePolicyCard({ policy, wsId }: { policy: any, wsId: string }) {
+ 
+function OvertimePolicyCard({ policy, wsId }: { policy: { id: string; name: string; description: string | null }, wsId: string }) {
   const { data: detail, isLoading } = useQuery({
     queryKey: ['overtime-policy', policy.id],
     queryFn: () => fetchOvertimePolicy(wsId, policy.id),
@@ -67,7 +68,8 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => createOvertimePolicy(wsId, data),
+ 
+    mutationFn: (data: Parameters<typeof createOvertimePolicy>[1]) => createOvertimePolicy(wsId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['overtime-policies'] });
       setIsCreating(false);
@@ -145,7 +147,8 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
       )}
 
       <div className='grid grid-cols-1 gap-4'>
-        {policies.map((policy: any) => (
+        { }
+        {policies.map((policy: { id: string; name: string; description: string | null }) => (
           <OvertimePolicyCard key={policy.id} policy={policy} wsId={wsId} />
         ))}
 

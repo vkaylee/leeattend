@@ -6,8 +6,9 @@ import { MonthYearPicker } from "../MonthYearPicker";
 // Mock i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, options?: any) => {
-        if (key === "common.month_short") return `Tháng ${options.month}`;
+ 
+    t: (key: string, options?: { month: number }) => {
+        if (key === "common.month_short" && options) return `Tháng ${options.month}`;
         if (key === "common.filters.last_month") return "Tháng trước";
         if (key === "common.filters.this_month") return "Tháng này";
         return key;

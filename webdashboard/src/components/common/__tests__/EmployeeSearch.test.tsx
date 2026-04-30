@@ -33,10 +33,11 @@ describe("EmployeeSearch Component", () => {
   ];
 
   it("calls onChange when an employee is selected", async () => {
-    (useQuery as any).mockReturnValue({
+ 
+    vi.mocked(useQuery).mockReturnValue({
       data: { data: mockEmployees },
       isLoading: false,
-    });
+    } as unknown as never);
 
     const onChange = vi.fn();
     // We test the internal handleSelect by bypassing the complex Radix UI
@@ -48,10 +49,11 @@ describe("EmployeeSearch Component", () => {
   });
 
   it("renders chips in multiple mode", () => {
-    (useQuery as any).mockReturnValue({
+ 
+    vi.mocked(useQuery).mockReturnValue({
       data: { data: mockEmployees },
       isLoading: false,
-    });
+    } as unknown as never);
 
     const onChange = vi.fn();
     const value = ["1"];
@@ -75,10 +77,11 @@ describe("EmployeeSearch Component", () => {
       { id: "d", full_name: "Pham Van D", employee_id_number: "416" },
     ];
 
-    (useQuery as any).mockReturnValue({
+ 
+    vi.mocked(useQuery).mockReturnValue({
       data: { data: rankedEmployees },
       isLoading: false,
-    });
+    } as unknown as never);
 
     const onChange = vi.fn();
     render(<EmployeeSearch workspaceId="ws-1" onChange={onChange} />, { wrapper });
@@ -97,10 +100,11 @@ describe("EmployeeSearch Component", () => {
   });
 
   it("passes keyboardShortcut prop to Combobox", () => {
-    (useQuery as any).mockReturnValue({
+ 
+    vi.mocked(useQuery).mockReturnValue({
       data: { data: mockEmployees },
       isLoading: false,
-    });
+    } as unknown as never);
 
     const onChange = vi.fn();
     render(
@@ -113,10 +117,11 @@ describe("EmployeeSearch Component", () => {
   });
 
   it("calls onSelectEmployee with the full Employee object when selected via hidden select", () => {
-    (useQuery as any).mockReturnValue({
+ 
+    vi.mocked(useQuery).mockReturnValue({
       data: { data: mockEmployees },
       isLoading: false,
-    });
+    } as unknown as never);
 
     const onChange = vi.fn();
     const onSelectEmployee = vi.fn();
@@ -148,10 +153,11 @@ describe("EmployeeSearch Component", () => {
   });
 
   it("does NOT call onSelectEmployee when employee is not found in data", () => {
-    (useQuery as any).mockReturnValue({
+ 
+    vi.mocked(useQuery).mockReturnValue({
       data: { data: mockEmployees },
       isLoading: false,
-    });
+    } as unknown as never);
 
     const onChange = vi.fn();
     const onSelectEmployee = vi.fn();

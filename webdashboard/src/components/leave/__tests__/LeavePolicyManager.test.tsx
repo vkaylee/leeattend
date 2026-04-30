@@ -26,7 +26,8 @@ vi.mock("@/lib/api/leaves", () => ({
   ]),
   createLeavePolicy: vi.fn(),
   updateLeavePolicy: vi.fn(),
-  deleteLeavePolicy: (...args: any[]) => mockDelete(...args)
+ 
+  deleteLeavePolicy: (...args: unknown[]) => mockDelete(...args)
 }));
 
 // Mock translation
@@ -41,7 +42,8 @@ vi.mock("react-i18next", () => ({
   })
 }));
 
-const renderComponent = (props: any) => {
+ 
+const renderComponent = (props: { wsId: string }) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
   });

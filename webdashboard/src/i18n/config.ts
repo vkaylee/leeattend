@@ -1,3 +1,4 @@
+// eslint-disable-next-line import-x/no-named-as-default
 import i18n from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
@@ -17,6 +18,7 @@ async function loadLocale(lng: string) {
   i18n.addResourceBundle(lng, 'translation', mod.default || mod, true, true);
 }
 
+// eslint-disable-next-line import-x/no-named-as-default-member
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)

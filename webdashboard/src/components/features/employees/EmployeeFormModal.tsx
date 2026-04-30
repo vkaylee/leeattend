@@ -1,15 +1,18 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
 import FormField from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 
-import { createEmployee, updateEmployee, Employee } from "@/lib/api";
+import { createEmployee, updateEmployee, fetchWorkspaceMembers, Employee } from "@/lib/api";
+
+import type { WorkspaceMember } from "@/lib/api";
 
 interface EmployeeFormModalProps {
   isOpen: boolean;
@@ -31,6 +34,20 @@ export default function EmployeeFormModal({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState(editingEmployee?.user_id || "");
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
+    setSelectedUserId(editingEmployee?.user_id || "");
+  }, [editingEmployee]);
+
+  useEffect(() => {
+    if (isOpen && wsId) {
+      fetchWorkspaceMembers(wsId).then(setMembers).catch(() => {});
+    }
+  }, [isOpen, wsId]);
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<Employee>) => createEmployee(wsId, data),
@@ -56,12 +73,15 @@ export default function EmployeeFormModal({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data = {
+    const data: Partial<Employee> = {
       full_name: formData.get("full_name") as string,
       employee_id_number: formData.get("employee_id_number") as string,
       hire_date: formData.get("hire_date") as string,
       is_active: formData.get("is_active") === "on",
     };
+    if (selectedUserId) {
+      data.user_id = selectedUserId;
+    }
     if (editingEmployee) {
       updateMutation.mutate({ id: editingEmployee.id, employee: data });
     } else {
@@ -102,6 +122,23 @@ export default function EmployeeFormModal({
           required
           defaultValue={editingEmployee?.hire_date}
         />
+        <div className="space-y-3 px-1">
+          <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+            {t("employees.form.link_user")}
+          </label>
+          <Combobox
+            options={members.map(m => ({
+              value: m.user_id,
+              label: m.full_name || m.email,
+              description: m.email,
+            }))}
+            value={selectedUserId}
+            onChange={setSelectedUserId}
+            placeholder={t("employees.form.select_user")}
+            data-testid="employees-form-user-combobox"
+            clearOnEscape
+          />
+        </div>
         <div className="flex items-center gap-4 py-2 px-2 group cursor-pointer">
           <input
             type="checkbox"

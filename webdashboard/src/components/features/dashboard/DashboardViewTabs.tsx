@@ -33,8 +33,9 @@ export default function DashboardViewTabs({
     const { t } = useTranslation();
 
     return (
-        <nav
+        <div
             className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner overflow-x-auto"
+ 
             role="tablist"
             aria-label={t("dashboard.views.label")}
         >
@@ -59,6 +60,6 @@ export default function DashboardViewTabs({
                     </button>
                 );
             })}
-        </nav>
+        </div>
     );
 }

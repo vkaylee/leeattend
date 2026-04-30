@@ -4,9 +4,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { useWorkspace, useWorkspaceMembers, useWorkspaceRoles } from "../../hooks/use-workspace";
 import * as api from "../../lib/api";
 import WorkspaceOverviewPage from "../workspace/WorkspaceOverviewPage";
-
 
 vi.mock("../../lib/api", () => ({
   getCurrentWorkspaceId: vi.fn(),
@@ -21,8 +21,7 @@ vi.mock("../../hooks/use-workspace", () => ({
   useWorkspacePermissionsMatrix: vi.fn(),
 }));
 
-import { useWorkspace, useWorkspaceMembers, useWorkspaceRoles } from "../../hooks/use-workspace";
-
+ 
 describe("WorkspaceOverviewPage", () => {
   let queryClient: QueryClient;
 
@@ -32,29 +31,57 @@ describe("WorkspaceOverviewPage", () => {
       defaultOptions: { queries: { retry: false } },
     });
     
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
     
-    (useWorkspace as any).mockReturnValue({
+ 
+    vi.mocked(useWorkspace).mockReturnValue({
       workspace: {
+ 
         id: "test-ws-id",
         name: "Test Workspace",
         timezone: "Asia/Ho_Chi_Minh",
         created_at: "2024-01-01T00:00:00Z",
+        work_unit_minutes: 0,
+        rounding_policy: "",
+        date_format: "",
+        time_format: "",
+        theme_primary_color: "",
+        default_language: "",
+ 
       },
       isLoading: false,
+      isError: false,
     });
     
-    (useWorkspaceMembers as any).mockReturnValue({
+    vi.mocked(useWorkspaceMembers).mockReturnValue({
       members: [
         { workspace_id: "ws-1", user_id: "user-1", email: "owner@test.com", full_name: "Owner User", role_id: "role-1", extra_role_ids: [] },
+ 
         { workspace_id: "ws-1", user_id: "user-2", email: "member@test.com", full_name: "Member User", role_id: "role-2", extra_role_ids: [] },
       ],
+ 
       isLoading: false,
-    });
+      isAdding: false,
+      isRemoving: false,
+      addMember: vi.fn() as unknown as (_args: unknown) => Promise<void>,
+      removeMember: vi.fn() as unknown as (_args: unknown) => Promise<void>,
+    } as unknown as ReturnType<typeof useWorkspaceMembers>);
     
-    (useWorkspaceRoles as any).mockReturnValue({ roles: [{ id: "role-1", name: "owner", is_system: true }], isLoading: false });
+    vi.mocked(useWorkspaceRoles).mockReturnValue({ 
+      roles: [
+        { id: 'role-1', name: 'Admin', is_system: true, color: 'indigo' },
+        { id: 'role-2', name: 'Member', is_system: false, color: 'slate' },
+      ] as unknown as Record<string, unknown>[],
+      isLoading: false,
+      isCreating: false,
+      isUpdating: false,
+      isDeleting: false,
+      createRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+      updateRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+      deleteRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+    } as unknown as ReturnType<typeof useWorkspaceRoles>);
     
-    (api.apiFetch as any).mockResolvedValue({
+    vi.mocked(api.apiFetch).mockResolvedValue({
       ok: true,
       json: async () => ({
         total_employees: 42,
@@ -62,7 +89,7 @@ describe("WorkspaceOverviewPage", () => {
         late_today: 2,
         on_leave_today: 1,
       }),
-    });
+    } as Response);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {

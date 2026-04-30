@@ -31,7 +31,7 @@ export function AdjustmentRequestModal({
   onClose,
   timeEntry,
   onSubmit,
-  _timezone
+  timezone: _timezone
 }: AdjustmentRequestModalProps) {
   const { t } = useTranslation();
   const { formatTime24h } = useDateTimeFormatter();

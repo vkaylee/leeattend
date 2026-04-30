@@ -10,6 +10,21 @@
 > descriptors and prevent command completion detection. The agent will hang
 > waiting for a "done" status that never arrives.
 
+**Root cause:** fd 0 (stdin), fd 1 (stdout), fd 2 (stderr) all point to the PTY slave
+device. Child processes inherit these FDs. If any child outlives the parent with
+PTY FDs open, the PTY master never sees EOF → infinite hang.
+
+**Defense layers in this project:**
+
+| Layer | Where | What it does |
+|-------|-------|--------------|
+| 1. `dc()` wrapper | `scripts/docker-ops.sh` | All podman-compose via `dc`/`dc_detached` gets `</dev/null` automatically |
+| 2. `dc_detached()` + setsid | `scripts/docker-ops.sh` | Cleanup ops: new session + full FD redirect + 60s hard timeout |
+| 3. `cleanup()` 3-layer kill | `scripts/lifecycle.sh` | Process group kill + `/proc` FD sweep + **cleanup deadline watchdog** (120s) |
+| 4. Global watchdog | `scripts/lifecycle.sh` (via `start_watchdog`) | Last-resort safety net: kills after `GLOBAL_TIMEOUT` |
+| 5. PTY safety scanner | `scripts/test-pty-safety.sh` | Static scan (20 patterns) + runtime PTY tests |
+| 6. Tracked background tails | `scripts/test-utils.sh` | All `tail -f` PIDs tracked and killed on task completion |
+
 **ALWAYS append `</dev/null` to these commands:**
 
 | Command | Why |
@@ -17,6 +32,7 @@
 | `git commit`, `git push`, `git pull` | GPG agent holds PTY |
 | `podman-compose up/down/exec/build` | Podman CLI spawns children |
 | Any script with `&` (background jobs) | Background process inherits PTY |
+| Any `tail -f` in background | Pipe buffer + `grep` keeps PTY fd open |
 
 ```bash
 # ✅ Correct — AGENT_MODE skips Podman tests in pre-commit hook

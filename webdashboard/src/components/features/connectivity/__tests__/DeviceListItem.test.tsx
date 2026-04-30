@@ -103,9 +103,10 @@ describe("DeviceListItem", () => {
   });
 
   it("renders 'N/A' when logs_count is null or invalid", () => {
-    const statusWithNull: any = {
+ 
+    const statusWithNull: DeviceStatus = {
       ...mockStatus,
-      info: { ...mockStatus.info, logs_count: null }
+      info: { ...mockStatus.info!, logs_count: null as unknown as number }
     };
     renderWithClient(
       <ToastProvider>
@@ -122,9 +123,10 @@ describe("DeviceListItem", () => {
   });
 
   it("renders '0' when logs_count is exactly 0", () => {
-    const statusWithZero: any = {
+ 
+    const statusWithZero: DeviceStatus = {
       ...mockStatus,
-      info: { ...mockStatus.info, logs_count: 0 }
+      info: { ...mockStatus.info!, logs_count: 0 }
     };
     renderWithClient(
       <ToastProvider>
@@ -228,7 +230,8 @@ describe("DeviceListItem", () => {
   it("renders '—' when last_sync is missing", () => {
     const statusNoSync: DeviceStatus = {
       ...mockStatus,
-      info: { ...mockStatus.info!, last_sync: undefined as any },
+ 
+      info: { ...mockStatus.info!, last_sync: undefined as unknown as string },
     };
     renderWithClient(
       <ToastProvider>

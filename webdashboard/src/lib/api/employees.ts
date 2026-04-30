@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { Employee, EmploymentPeriod, EmployeeDepartmentHistory, WorkingCondition, PaginatedResponse } from "./types";
+import { Employee, EmploymentPeriod, EmployeeDepartmentHistory, WorkingCondition, PaginatedResponse, EmploymentPhaseDefinition } from "./types";
 
 export async function fetchEmployees(
   wsId: string,
@@ -16,13 +16,16 @@ export async function fetchEmployees(
 
 // --- Employment Phases API ---
 
-export async function fetchEmploymentPhases(wsId: string): Promise<any[]> {
+ 
+export async function fetchEmploymentPhases(wsId: string): Promise<EmploymentPhaseDefinition[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employment-phases`);
   if (!response.ok) throw new Error("Failed to fetch employment phases");
   return response.json();
 }
 
-export async function createEmploymentPhase(wsId: string, data: any): Promise<any> {
+ 
+ 
+export async function createEmploymentPhase(wsId: string, data: Partial<EmploymentPhaseDefinition>): Promise<EmploymentPhaseDefinition> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employment-phases`, {
     method: "POST",
     body: JSON.stringify(data),

@@ -125,10 +125,11 @@ export async function apiFetch(
   const headers = { ...getHeaders(), ...options.headers };
 
   // Remove timeout from options to avoid passing it to fetch
-  const { _timeout, ...fetchOptions } = options;
+  const { timeout: _timeout, ...fetchOptions } = options;
 
   if (fetchOptions.body instanceof FormData) {
-    delete (headers as any)["Content-Type"];
+ 
+    delete (headers as Record<string, string>)["Content-Type"];
   }
 
   // If url already starts with http/https or the API_BASE_URL, don't prepend API_BASE_URL

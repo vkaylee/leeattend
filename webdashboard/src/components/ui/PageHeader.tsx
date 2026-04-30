@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,8 @@ export interface PageHeaderProps {
   className?: string;
 }
 
-const PageHeader = React.memo(function PageHeader({
+ 
+const PageHeader = memo(function PageHeader({
   title,
   subtitle,
   actions,

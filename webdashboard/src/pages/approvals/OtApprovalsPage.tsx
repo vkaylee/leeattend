@@ -7,8 +7,6 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
-  _Calendar,
-  _AlertCircle,
   FileText,
   Filter,
   Upload
@@ -44,8 +42,9 @@ export default function OtApprovalsPage() {
       return s.entered_via === sourceFilter;
     });
 
-  const handleApprove = async (summary: any, approved: boolean) => {
+  const handleApprove = async (summary: { employee_id: string; date: string; claimed_ot_minutes: number; }, approved: boolean) => {
     try {
+ 
         await approveOt({
             employeeId: summary.employee_id,
             date: summary.date,

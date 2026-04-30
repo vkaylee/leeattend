@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, _CheckCircle2, _CircleDashed, Users, Trash2 } from "lucide-react";
+import { Plus, Users, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
@@ -86,7 +86,8 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
             </div>
             <div className="space-y-3 px-1">
               <label htmlFor="phase-type" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Type</label>
-              <select id="phase-type" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" value={formData.phase_type} onChange={e => setFormData({...formData, phase_type: e.target.value as any})}>
+              { }
+              <select id="phase-type" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" value={formData.phase_type} onChange={e => setFormData({...formData, phase_type: e.target.value as "probation" | "internship" | "official" | "contract"})}>
                 <option value="probation">Probation</option>
                 <option value="internship">Internship</option>
                 <option value="official">Official</option>

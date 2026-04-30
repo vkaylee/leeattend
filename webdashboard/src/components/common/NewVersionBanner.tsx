@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 interface NewVersionBannerProps {
   onRefresh: () => void;
@@ -6,7 +6,8 @@ interface NewVersionBannerProps {
 }
 
 export function NewVersionBanner({ onRefresh, onDismiss }: NewVersionBannerProps) {
-  const [leaving, setLeaving] = React.useState(false);
+ 
+  const [leaving, setLeaving] = useState(false);
 
   const handleRefresh = () => {
     setLeaving(true);

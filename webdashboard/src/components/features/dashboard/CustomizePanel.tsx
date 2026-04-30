@@ -1,4 +1,3 @@
-import { _useState } from "react";
 
 import {
     DndContext,
@@ -167,8 +166,14 @@ export default function CustomizePanel({
         <>
             {/* Backdrop */}
             <div
+ 
+ 
+                role="presentation"
                 className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm z-40 transition-opacity"
                 onClick={onClose}
+                onKeyDown={(e) => {
+                    if (e.key === 'Escape') onClose();
+                }}
             />
 
             {/* Panel */}

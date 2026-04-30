@@ -22,7 +22,8 @@ export function toUTCISO(dateStr: string, timeStr: string, timezone: string): st
     
     const getFormatted = (d: Date) => {
       const parts = formatter.formatToParts(d);
-      const p: any = {};
+ 
+      const p: Record<string, string> = {};
       parts.forEach(part => p[part.type] = part.value);
       // Ensure ISO-like string YYYY-MM-DDTHH:mm:ss
       return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}`;

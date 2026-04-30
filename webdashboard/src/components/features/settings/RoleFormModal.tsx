@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
 
-import { _Shield, _ShieldAlert, _ShieldCheck } from "lucide-react";
-import { useTranslation } from "react-i18next";
-
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 
@@ -25,7 +22,6 @@ const AVAILABLE_COLORS = [
 ];
 
 export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleFormModalProps) {
-  const { _t } = useTranslation();
   const { createRole, updateRole, isCreating, isUpdating } = useWorkspaceRoles();
   
   const [name, setName] = useState("");
@@ -34,7 +30,7 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
 
   useEffect(() => {
     if (editingRole && isOpen) {
-      // eslint-disable-next-line
+      // eslint-disable-next-line -- Derived state synced from props; intentional pattern
       setName(editingRole.name);
       setDescription(editingRole.description || "");
       setColor(editingRole.color || "slate");
@@ -65,9 +61,11 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
     <Modal isOpen={isOpen} onClose={onClose} title={editingRole ? "Edit Custom Role" : "Create Custom Role"}>
       <form onSubmit={handleSubmit} className="space-y-6 pt-4">
         <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Role Name</label>
+          <label htmlFor="role-name" className="text-sm font-bold text-slate-700 dark:text-slate-300">Role Name</label>
           <input
+            id="role-name"
             required
+ 
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Finance Manager"
@@ -76,8 +74,10 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Description</label>
+          <label htmlFor="role-desc" className="text-sm font-bold text-slate-700 dark:text-slate-300">Description</label>
           <textarea
+            id="role-desc"
+ 
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What can this role do?"
@@ -87,8 +87,9 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
         </div>
 
         <div className="space-y-3">
-          <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Role Color</label>
-          <div className="flex flex-wrap gap-3">
+          <div id="role-color-label" className="text-sm font-bold text-slate-700 dark:text-slate-300">Role Color</div>
+          <div role="radiogroup" aria-labelledby="role-color-label" className="flex flex-wrap gap-3">
+            { }
             {AVAILABLE_COLORS.map(c => (
               <button
                 key={c.id}

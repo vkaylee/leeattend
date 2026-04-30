@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, memo } from "react";
 
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
 
@@ -69,7 +69,8 @@ interface WidgetRendererProps {
  * directly in DashboardPage because they require data from the page scope.
  * This renderer handles chart-type widgets with lazy loading.
  */
-const WidgetRenderer = React.memo(function WidgetRenderer({ widgetId }: WidgetRendererProps) {
+ 
+const WidgetRenderer = memo(function WidgetRenderer({ widgetId }: WidgetRendererProps) {
     const ChartComponent = chartMap[widgetId];
 
     if (!ChartComponent) {

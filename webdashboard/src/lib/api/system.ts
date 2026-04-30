@@ -46,7 +46,8 @@ export async function revokeSystemRole(userId: string, roleName: string): Promis
   if (!response.ok) throw new Error("Failed to revoke system role");
 }
 
-export async function fetchSystemHealth(): Promise<Record<string, any>> {
+ 
+export async function fetchSystemHealth(): Promise<Record<string, unknown>> {
   const response = await apiFetch(`${API_BASE_URL}/system/health`);
   if (!response.ok) throw new Error("Failed to fetch system health");
   return response.json();

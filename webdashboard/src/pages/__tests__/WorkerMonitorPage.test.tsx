@@ -1,24 +1,28 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, _waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, opts?: any) => opts?.defaultValue || key,
+ 
+        t: (key: string, opts?: Record<string, unknown>) => (opts?.defaultValue as string) || key,
     }),
 }));
 
 // Mock chart components to avoid recharts SVG rendering in jsdom
 vi.mock("@/components/features/monitor/WorkerUtilizationGauge", () => ({
-    default: (_props: any) => <div data-testid="utilization-gauge" />,
+ 
+    default: () => <div data-testid="utilization-gauge" />,
 }));
 vi.mock("@/components/features/monitor/QueuePressureChart", () => ({
-    default: (_props: any) => <div data-testid="queue-pressure-chart" />,
+ 
+    default: () => <div data-testid="queue-pressure-chart" />,
 }));
 vi.mock("@/components/features/monitor/JobStatusDistributionChart", () => ({
-    default: (_props: any) => <div data-testid="job-distribution-chart" />,
+ 
+    default: () => <div data-testid="job-distribution-chart" />,
 }));
 
 // Mock data transformation hooks
@@ -209,7 +213,8 @@ describe("WorkerMonitorPage", () => {
     // --- Empty State ---
     it("shows empty state when no workers", async () => {
         const useWorkerMonitor = (await import("@/hooks/use-worker-monitor")).useWorkerMonitor;
-        (useWorkerMonitor as any).mockReturnValue({
+ 
+        vi.mocked(useWorkerMonitor).mockReturnValue({
             stats: { ...mockMonitorData, total_workers: 0 },
             workers: [],
             recentJobs: [],
@@ -227,7 +232,8 @@ describe("WorkerMonitorPage", () => {
     // --- Loading State ---
     it("shows loading indicator for stats", async () => {
         const useWorkerMonitor = (await import("@/hooks/use-worker-monitor")).useWorkerMonitor;
-        (useWorkerMonitor as any).mockReturnValue({
+ 
+        vi.mocked(useWorkerMonitor).mockReturnValue({
             stats: undefined,
             workers: [],
             recentJobs: [],
@@ -246,7 +252,8 @@ describe("WorkerMonitorPage", () => {
     // --- Error State ---
     it("shows error banner when fetch fails", async () => {
         const useWorkerMonitor = (await import("@/hooks/use-worker-monitor")).useWorkerMonitor;
-        (useWorkerMonitor as any).mockReturnValue({
+ 
+        vi.mocked(useWorkerMonitor).mockReturnValue({
             stats: undefined,
             workers: [],
             recentJobs: [],

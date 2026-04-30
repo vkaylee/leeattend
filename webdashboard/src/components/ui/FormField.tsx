@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -37,7 +37,8 @@ export interface FormFieldProps {
   disabled?: boolean;
 }
 
-const FormField = React.memo(function FormField({
+ 
+const FormField = memo(function FormField({
   label,
   name,
   type = "text",

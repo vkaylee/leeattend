@@ -18,19 +18,24 @@ export default function ReportStats({
 }: ReportStatsProps) {
   const stdHours = formatUnitsToHours(
     reportType === "summary"
-      ? filteredData.reduce((acc: number, r: any) => acc + (r.total_std_units || 0), 0)
-      : filteredData.reduce((acc: number, r: any) => acc + r.std_work_units, 0),
+ 
+      ? (filteredData as AttendanceSummary[]).reduce((acc: number, r: AttendanceSummary) => acc + (r.total_std_units || 0), 0)
+ 
+      : (filteredData as DailyAttendanceReport[]).reduce((acc: number, r: DailyAttendanceReport) => acc + r.std_work_units, 0),
     workUnitMinutes
   );
 
   const otHours = formatUnitsToHours(
     reportType === "summary"
-      ? filteredData.reduce((acc: number, r: any) => acc + (r.total_ot_units || 0), 0)
-      : filteredData.reduce((acc: number, r: any) => acc + (r.ot_work_units || 0), 0),
+ 
+      ? (filteredData as AttendanceSummary[]).reduce((acc: number, r: AttendanceSummary) => acc + (r.total_ot_units || 0), 0)
+ 
+      : (filteredData as DailyAttendanceReport[]).reduce((acc: number, r: DailyAttendanceReport) => acc + (r.ot_work_units || 0), 0),
     workUnitMinutes
   );
 
-  const totalEmployees = new Set(filteredData.map((r: any) => r.employee_id)).size;
+ 
+  const totalEmployees = new Set(filteredData.map((r) => r.employee_id)).size;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 px-2">

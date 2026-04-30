@@ -36,15 +36,17 @@ describe("PermissionManagementModal", () => {
         },
       },
     });
-    (api.fetchAvailablePermissions as any).mockResolvedValue([
+ 
+    vi.mocked(api.fetchAvailablePermissions).mockResolvedValue([
       "members:invite",
       "members:remove",
       "members:roles:manage",
       "settings:read",
-    ]);
-    (api.fetchMemberPermissions as any).mockResolvedValue([
+    ] as unknown as never);
+ 
+    vi.mocked(api.fetchMemberPermissions).mockResolvedValue([
       { id: "perm-1", permission: "members:invite", expires_at: "2027-01-01T00:00:00Z", assigned_at: "2026-01-01T00:00:00Z" }
-    ]);
+    ] as unknown as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -69,7 +71,8 @@ describe("PermissionManagementModal", () => {
 
   it("handles revoking a permission", async () => {
     const user = userEvent.setup();
-    (api.revokeExtraPermission as any).mockResolvedValue({});
+ 
+    vi.mocked(api.revokeExtraPermission).mockResolvedValue({} as never);
 
     renderWithProviders(<PermissionManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
 
@@ -116,7 +119,8 @@ describe("PermissionManagementModal", () => {
 
   it("handles assigning a new permission", async () => {
     const user = userEvent.setup();
-    (api.assignExtraPermission as any).mockResolvedValue({});
+ 
+    vi.mocked(api.assignExtraPermission).mockResolvedValue({} as never);
 
     renderWithProviders(<PermissionManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
 

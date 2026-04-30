@@ -1,6 +1,6 @@
 import React from "react";
 
-import { ChevronLeft, ChevronRight, _Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ export function MonthYearPicker({
   month,
   year,
   onChange,
-  _variant = "grid",
+  variant: _variant = "grid",
   showShortcuts = true,
   className,
 }: MonthYearPickerProps) {

@@ -74,7 +74,8 @@ export default function WorkspacePermissionsPage() {
     }
   }, [matrix]);
 
-  const togglePermission = (role: any, permId: string) => {
+ 
+  const togglePermission = (role: { id: string; is_system: boolean }, permId: string) => {
     if (role.is_system || !hasManagePermission) return; // System permissions cannot be changed
 
     setPermissions(prev => {

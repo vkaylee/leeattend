@@ -39,7 +39,8 @@ describe('useTheme', () => {
 
   it('should return workspace theme when available and no user override', () => {
     vi.mocked(useWorkspaceHook.useWorkspace).mockReturnValue({
-      workspace: { theme_primary_color: workspaceColor } as any,
+ 
+      workspace: { theme_primary_color: workspaceColor } as unknown as never,
       isLoading: false,
       isError: false,
     });
@@ -53,7 +54,8 @@ describe('useTheme', () => {
     localStorage.setItem('user_theme_primary_color', userColor);
     
     vi.mocked(useWorkspaceHook.useWorkspace).mockReturnValue({
-      workspace: { theme_primary_color: workspaceColor } as any,
+ 
+      workspace: { theme_primary_color: workspaceColor } as unknown as never,
       isLoading: false,
       isError: false,
     });
@@ -79,7 +81,8 @@ describe('useTheme', () => {
     localStorage.setItem('user_theme_primary_color', userColor);
     
     vi.mocked(useWorkspaceHook.useWorkspace).mockReturnValue({
-      workspace: { theme_primary_color: workspaceColor } as any,
+ 
+      workspace: { theme_primary_color: workspaceColor } as unknown as never,
       isLoading: false,
       isError: false,
     });

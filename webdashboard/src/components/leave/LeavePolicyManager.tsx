@@ -10,8 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 
 import { useConfirm } from "@/hooks/use-confirm";
 import { fetchLeavePolicies, createLeavePolicy, deleteLeavePolicy, updateLeavePolicy, fetchLeaveTypes } from "@/lib/api/leaves";
-import { LeavePolicy, _LeaveType } from "@/lib/api/types";
-import { _cn } from "@/lib/utils";
+import { LeavePolicy } from "@/lib/api/types";
 const FormRow = ({ label, children, info }: { label: string; children: React.ReactNode; info?: string }) => (
   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center group">
     <div className="md:col-span-4 md:text-right">
@@ -143,7 +142,8 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
           onClose={() => { setIsCreating(false); setEditingPolicy(null); }}
           leaveTypes={leaveTypes}
           policy={editingPolicy}
-          onSave={(data: any) => mutation.mutate(data)}
+          onSave={(data: Partial<LeavePolicy>) => mutation.mutate(data)}
+ 
           isSaving={mutation.isPending}
         />
       )}
@@ -152,30 +152,40 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
   );
 }
 
-function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: any) {
+interface PolicyModalProps {
+ 
+  isOpen: boolean;
+  onClose: () => void;
+  leaveTypes: { id: string; name: string }[];
+  policy: LeavePolicy | null;
+  onSave: (data: Partial<LeavePolicy>) => void;
+  isSaving: boolean;
+}
+
+function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: PolicyModalProps) {
   const [formData, setFormData] = useState({
     name: policy?.name || "",
     description: policy?.description || "",
     leave_type_id: policy?.leave_type_id || (leaveTypes.length > 0 ? leaveTypes[0].id : ""),
     accrual_amount: policy?.rule_config.accrual_amount || 1.0,
-    frequency: policy?.rule_config.frequency || "monthly",
+    frequency: (policy?.rule_config.frequency || "monthly") as "monthly" | "yearly" | "quarterly",
     carry_over_limit: policy?.rule_config.carry_over_limit || 5,
     min_work_days_threshold: policy?.rule_config.min_work_days_threshold || 14
   });
 
-  const [seniorityBonus, setSeniorityBonus] = useState<{ months: number; bonus_amount: number }[]>(
+  const [seniorityBonus, setSeniorityBonus] = useState<{ min_years: number; extra_days: number }[]>(
     policy?.rule_config.seniority_bonus || []
   );
 
   const addBonusMilestone = () => {
-    setSeniorityBonus([...seniorityBonus, { months: 12, bonus_amount: 1.0 }]);
+    setSeniorityBonus([...seniorityBonus, { min_years: 1, extra_days: 1.0 }]);
   };
 
   const removeBonusMilestone = (index: number) => {
     setSeniorityBonus(seniorityBonus.filter((_, i) => i !== index));
   };
 
-  const updateBonusMilestone = (index: number, field: "months" | "bonus_amount", value: number) => {
+  const updateBonusMilestone = (index: number, field: "min_years" | "extra_days", value: number) => {
     const next = [...seniorityBonus];
     next[index] = { ...next[index], [field]: value };
     setSeniorityBonus(next);
@@ -191,7 +201,7 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
         accrual_timing: "start_of_period",
         carry_over_limit: formData.carry_over_limit,
         min_work_days_threshold: formData.min_work_days_threshold,
-        seniority_bonus: seniorityBonus.sort((a, b) => a.months - b.months)
+        seniority_bonus: seniorityBonus.sort((a, b) => a.min_years - b.min_years)
       }
     });
   };
@@ -204,6 +214,7 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
         {/* IDENTITY */}
         <div className="space-y-8">
           <div className="flex items-center gap-3">
+            { }
             <div className="h-8 w-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400"><LayoutGrid size={18} /></div>
             <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter">Identity</h4>
           </div>
@@ -212,7 +223,7 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
               <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary-500/5 transition-all h-[54px]" id="policy-name" placeholder="e.g. Standard Policy" />
             </FormRow>
             <FormRow label="Leave Type">
-              <Combobox options={leaveTypes.map((t: any) => ({ value: t.id, label: t.name }))} value={formData.leave_type_id} onChange={(val) => setFormData({...formData, leave_type_id: val})} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-[54px] rounded-xl" />
+              <Combobox options={leaveTypes.map((t) => ({ value: t.id, label: t.name }))} value={formData.leave_type_id} onChange={(val) => setFormData({...formData, leave_type_id: val})} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-[54px] rounded-xl" />
             </FormRow>
           </div>
         </div>
@@ -228,7 +239,7 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
               <input required type="number" step="0.1" id="annual-entitlement" value={formData.accrual_amount} onChange={(e) => setFormData({...formData, accrual_amount: parseFloat(e.target.value)})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center h-[54px]" />
             </FormRow>
             <FormRow label="Frequency">
-              <select value={formData.frequency} onChange={(e) => setFormData({...formData, frequency: e.target.value})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold uppercase h-[54px]">
+              <select value={formData.frequency} onChange={(e) => setFormData({...formData, frequency: e.target.value as "monthly" | "quarterly" | "yearly"})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold uppercase h-[54px]">
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="yearly">Yearly</option>
@@ -260,13 +271,13 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
               <div key={idx} className="space-y-6 pt-8 first:pt-0 border-t first:border-0 border-slate-100 dark:border-slate-800 animate-in slide-in-from-right-2 duration-300 relative group/row">
                 <div className="absolute -left-4 top-10 font-black text-[8px] text-slate-300 dark:text-slate-600 uppercase vertical-text tracking-widest">Row {idx + 1}</div>
                 
-                <FormRow label="After Months">
-                  <input type="number" value={bonus.months} onChange={(e) => updateBonusMilestone(idx, "months", parseInt(e.target.value))} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center h-[54px] focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none" />
+                <FormRow label="After Years">
+                  <input type="number" value={bonus.min_years} onChange={(e) => updateBonusMilestone(idx, "min_years", parseInt(e.target.value))} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center h-[54px] focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none" />
                 </FormRow>
                 
                 <FormRow label="Bonus Amount">
                   <div className="flex gap-4 w-full max-w-md">
-                    <input type="number" step="0.5" value={bonus.bonus_amount} onChange={(e) => updateBonusMilestone(idx, "bonus_amount", parseFloat(e.target.value))} className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center text-primary-600 dark:text-primary-400 h-[54px] focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" />
+                    <input type="number" step="0.5" value={bonus.extra_days} onChange={(e) => updateBonusMilestone(idx, "extra_days", parseFloat(e.target.value))} className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center text-primary-600 dark:text-primary-400 h-[54px] focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" />
                     <button type="button" onClick={() => removeBonusMilestone(idx)} className="p-4 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 rounded-2xl transition-all h-[54px] flex items-center justify-center border border-transparent hover:border-rose-100 dark:border-rose-800 shadow-sm hover:shadow-md"><Trash2 size={18} /></button>
                   </div>
                 </FormRow>

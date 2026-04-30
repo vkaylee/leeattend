@@ -54,7 +54,8 @@ describe("SearchBox", () => {
     it("calls select() on focus to select all text", async () => {
         const selectSpy = vi.spyOn(HTMLInputElement.prototype, "select");
         const user = userEvent.setup();
-        render(<SearchBox value="hello" onChange={() => { }} data-testid="search" autoFocus={false} />);
+ 
+        render(<SearchBox value="hello" onChange={() => { }} data-testid="search" />);
 
         const input = screen.getByTestId("search");
         await user.click(input);

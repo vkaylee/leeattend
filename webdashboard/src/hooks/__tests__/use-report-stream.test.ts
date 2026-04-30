@@ -266,7 +266,7 @@ describe("useReportStream Hook", () => {
     });
 
     it("should allow remounting after unmount", () => {
-      const { unmount, _rerender } = renderHook(() =>
+      const { unmount } = renderHook(() =>
         useReportStream({ jobId: "test-job" })
       );
 
@@ -385,7 +385,7 @@ describe("useReportStream Hook", () => {
     it("should not attempt reconnect when status is completed", () => {
       // The fix uses statusRef.current instead of captured status.
       // When status is "completed", onclose should NOT retry.
-      const { result, _rerender } = renderHook(
+      const { result } = renderHook(
         ({ jobId }: { jobId: string | null }) =>
           useReportStream({ jobId, maxRetries: 3 }),
         { initialProps: { jobId: "test-job" as string | null } }
@@ -480,8 +480,8 @@ describe("useReportStream Hook", () => {
       addEventListener = vi.fn();
       removeEventListener = vi.fn();
       set onopen(fn: ((ev?: Event) => void) | null) { mockOnOpen = fn; }
-      set onmessage(fn: ((ev: MessageEvent) => void) | null) { mockOnMessage = fn; }
-      set onerror(fn: ((ev: Event) => void) | null) { mockOnError = fn; }
+      set onmessage(fn: ((ev: MessageEvent) => void) | null) { _mockOnMessage = fn; }
+      set onerror(fn: ((ev: Event) => void) | null) { _mockOnError = fn; }
       set onclose(fn: ((ev: CloseEvent) => void) | null) { mockOnClose = fn; }
     }
 
@@ -489,8 +489,8 @@ describe("useReportStream Hook", () => {
       capturedUrl = undefined;
       mockOnOpen = null;
       mockOnClose = null;
-      mockOnError = null;
-      mockOnMessage = null;
+      _mockOnError = null;
+      _mockOnMessage = null;
       vi.stubGlobal("WebSocket", MockWebSocket);
       vi.spyOn(console, "debug").mockImplementation(() => { });
       vi.spyOn(console, "error").mockImplementation(() => { });
@@ -675,14 +675,15 @@ describe("useReportStream Hook", () => {
 
   describe("Heartbeat Ping", () => {
     let mockOnOpen: ((ev?: Event) => void) | null;
-    let mockSend: any;
+ 
+    let mockSend: ReturnType<typeof vi.fn>;
 
     class MockWebSocket {
       static OPEN = 1;
       readyState = 1; // WebSocket.OPEN
       constructor() {}
-      send = vi.fn().mockImplementation((val) => {
-        if (mockSend) mockSend(val);
+      send = vi.fn().mockImplementation((val: string) => {
+        if (mockSend) (mockSend as (v: string) => void)(val);
       });
       close = vi.fn();
       addEventListener = vi.fn();

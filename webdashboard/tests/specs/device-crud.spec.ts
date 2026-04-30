@@ -1,7 +1,7 @@
 import { test, expect } from '../worker-orchestrator';
 
 test.describe('Device CRUD — DevicesPage', () => {
-  test.beforeEach(async ({ _authPage, devicesPage }) => {
+  test.beforeEach(async ({ devicesPage }) => {
     // authPage fixture already logs in; now navigate to DevicesPage
     await devicesPage.goto();
     await devicesPage.waitForLoad();
@@ -16,7 +16,7 @@ test.describe('Device CRUD — DevicesPage', () => {
 
   // ---- Create ----
 
-  test('should add a new device via the add form', async ({ devicesPage, _page }) => {
+  test('should add a new device via the add form', async ({ devicesPage, page }) => {
     await devicesPage.clickAddDevice();
 
     await devicesPage.fillDeviceForm({
@@ -38,7 +38,7 @@ test.describe('Device CRUD — DevicesPage', () => {
     await expect(devicesPage.getDeviceItem('device-new-100')).toBeVisible({ timeout: 10000 });
   });
 
-  test('should cancel adding a device without creating it', async ({ devicesPage, _page }) => {
+  test('should cancel adding a device without creating it', async ({ devicesPage, page }) => {
     await devicesPage.clickAddDevice();
 
     await devicesPage.fillDeviceForm({
@@ -58,7 +58,7 @@ test.describe('Device CRUD — DevicesPage', () => {
 
   // ---- Edit ----
 
-  test('should edit a device via the dropdown menu', async ({ devicesPage, _page }) => {
+  test('should edit a device via the dropdown menu', async ({ devicesPage, page }) => {
     await devicesPage.openDeviceMenu('device-mock-1');
     await devicesPage.clickEditDevice('device-mock-1');
 
@@ -73,7 +73,7 @@ test.describe('Device CRUD — DevicesPage', () => {
 
   // ---- Delete ----
 
-  test('should delete a device after confirmation', async ({ devicesPage, _page }) => {
+  test('should delete a device after confirmation', async ({ devicesPage }) => {
     await devicesPage.openDeviceMenu('device-mock-2');
     await devicesPage.clickDeleteDevice('device-mock-2');
 
@@ -97,7 +97,7 @@ test.describe('Device CRUD — DevicesPage', () => {
 
   // ---- Toggle enable/disable ----
 
-  test('should disable an enabled device after confirmation', async ({ devicesPage, _page }) => {
+  test('should disable an enabled device after confirmation', async ({ devicesPage, page }) => {
     // device-mock-1 is enabled
     await devicesPage.clickToggleDevice('device-mock-1');
     await devicesPage.confirmToggle('device-mock-1');
@@ -106,7 +106,7 @@ test.describe('Device CRUD — DevicesPage', () => {
     await expect(page.getByTestId('toggle-modal-device-mock-1')).not.toBeVisible({ timeout: 5000 });
   });
 
-  test('should cancel toggle without changing state', async ({ devicesPage, _page }) => {
+  test('should cancel toggle without changing state', async ({ devicesPage, page }) => {
     await devicesPage.clickToggleDevice('device-mock-1');
     await devicesPage.cancelToggle('device-mock-1');
 

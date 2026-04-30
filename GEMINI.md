@@ -97,6 +97,13 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 - **Memory Retention:** Document major architectural shifts in `.ai/ADRs/` to retain long-term AI context.
 - **Clean Workspace:** Do NOT save `.txt` or temporary planning files in project root. Use `/tmp/` or prefix `ai_` (added to `.gitignore`).
 
+### 4.8 PTY & FD Leak Safety (CRITICAL)
+> 🔴 **MANDATORY:** AI environments (like Antigravity) use strict PTY stream tracking. Any background process holding `stdout`/`stderr` will cause an infinite hang.
+- **NEVER** run background scripts (`&`) or pipes (`|`) that inherit the PTY's `stdout/stderr` without full redirection.
+- **ALWAYS** append `</dev/null >/dev/null 2>&1` to ANY background command.
+- **NEVER** leave orphaned processes (like `tail -f` or `grep`) running after the main script exits.
+*❌ Failure Condition:* The AI agent hangs indefinitely waiting for a background command's EOF.
+
 ### 4.10 Hermetic Toolbox (Zero Host Dependency)
 > 🔴 **MANDATORY:** NEVER run `cargo`, `npm`, or `sqlx` directly on the host machine. These tools run inside isolated Podman containers via wrapper scripts to guarantee a reproducible, host-agnostic environment.
 

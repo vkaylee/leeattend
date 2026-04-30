@@ -57,13 +57,15 @@ export default function AssignOvertimePolicyModal({
   });
 
   const assignMutation = useMutation({
-    mutationFn: (data: any) => assignOvertimePolicy(wsId, data),
+ 
+    mutationFn: (data: Parameters<typeof assignOvertimePolicy>[1]) => assignOvertimePolicy(wsId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['overtime-policy-assignment'] });
       toast.success(t('common.success'));
       onClose();
     },
-    onError: (error: any) => {
+ 
+    onError: (error: Error) => {
       toast.error(error.message || t('common.error'));
     }
   });
@@ -80,8 +82,8 @@ export default function AssignOvertimePolicyModal({
     }
 
     assignMutation.mutate({
-      assignee_type: selectedType,
-      assignee_id: selectedType === 'workspace' ? null : targetId,
+      employee_id: selectedType === 'employee' ? targetId : undefined,
+      department_id: selectedType === 'department' ? targetId : undefined,
       policy_id: policyId,
       effective_from: effectiveFrom
     });
@@ -104,7 +106,8 @@ export default function AssignOvertimePolicyModal({
                   type='button'
                   data-testid={`assignee-type-${opt.id}`}
                   onClick={() => {
-                    setSelectedType(opt.id as any);
+ 
+                    setSelectedType(opt.id as 'employee' | 'department' | 'workspace');
                     setTargetId('');
                   }}
                   className={cn(
@@ -124,7 +127,7 @@ export default function AssignOvertimePolicyModal({
               <EmployeeSearch 
                 workspaceId={wsId}
                 value={targetId}
-                onChange={setTargetId}
+                onChange={(val) => setTargetId(Array.isArray(val) ? val[0] : val)}
                 placeholder={t('common.select_employee')}
                 className='bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14'
                 data-testid='assign-employee-search'
@@ -156,7 +159,8 @@ export default function AssignOvertimePolicyModal({
             <Combobox 
               id='policy-select'
               data-testid='assign-policy-select'
-              options={policies.map((p: any) => ({
+ 
+              options={policies.map((p: { id: string; name: string }) => ({
                 value: p.id,
                 label: p.name,
                 icon: <Clock size={14} className='text-primary-500' />

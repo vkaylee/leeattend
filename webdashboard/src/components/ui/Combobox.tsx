@@ -98,7 +98,7 @@ export function Combobox({
   // Reset highlight to first item whenever options change
   useEffect(() => {
     if (firstItemCmdkValue) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setHighlightedValue(firstItemCmdkValue);
     }
   }, [firstItemCmdkValue]);
@@ -111,6 +111,7 @@ export function Combobox({
       </select>
 
       <Popover.Trigger asChild>
+        {/* eslint-disable-next-line jsx-a11y/no-autofocus -- autoFocus improves UX: immediate keyboard input without extra click */}
         <button id={id} data-testid={testId} autoFocus={autoFocus} type="button" className={cn("flex w-full items-center justify-between rounded-[1.25rem] border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-5 py-4 text-sm font-bold text-primary-600 dark:text-primary-400 transition-all hover:border-primary-200 dark:hover:border-primary-800 hover:bg-white dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight", className)}>
           <span className="flex items-center gap-3 truncate">
             {selectedOption?.icon}
@@ -125,6 +126,7 @@ export function Combobox({
           <Command shouldFilter={shouldFilter ?? !onSearchChange} value={highlightedValue} onValueChange={setHighlightedValue} className="flex flex-col gap-3">
             <div className="flex items-center border-b border-slate-50 dark:border-slate-800 px-4 pb-3 pt-1">
               <Search className="mr-3 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-500" />
+              {/* eslint-disable-next-line jsx-a11y/no-autofocus -- autoFocus improves UX: immediate keyboard input without extra click */}
               <Command.Input autoFocus placeholder={searchPlaceholder} onValueChange={onSearchChange} className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 dark:text-primary-300 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50 font-bold" />
             </div>
 

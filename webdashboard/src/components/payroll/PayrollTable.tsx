@@ -2,8 +2,6 @@ import React, { useState } from "react";
 
 import * as Popover from '@radix-ui/react-popover';
 import { 
-  _CheckCircle2, 
-  _AlertCircle, 
   ChevronDown, 
   History,
   Info,
@@ -77,7 +75,16 @@ export default function PayrollTable({
 
         return (
           <div key={slip.id} data-testid={`payslip-card-${slip.id}`} className={cn("group bg-white dark:bg-slate-900 border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 dark:border-primary-800 rounded-[2.5rem] shadow-2xl shadow-primary-100/20 dark:shadow-black/20" : "border-slate-100 dark:border-slate-800 hover:border-primary-100 dark:border-primary-800 rounded-[2rem] shadow-sm dark:shadow-black/10 hover:shadow-lg hover:shadow-primary-100/10")}>
-            <div data-testid={`toggle-card-${slip.id}`} className={cn("p-8 flex items-center justify-between cursor-pointer transition-colors", isExpanded ? "bg-primary-50 dark:bg-primary-950/30 dark:bg-primary-950/30" : "hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50")} onClick={() => setExpandedId(isExpanded ? null : slip.id)}>
+            <div 
+              data-testid={`toggle-card-${slip.id}`} 
+ 
+ 
+              className={cn("p-8 flex items-center justify-between cursor-pointer transition-colors", isExpanded ? "bg-primary-50 dark:bg-primary-950/30 dark:bg-primary-950/30" : "hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50")} 
+              onClick={() => setExpandedId(isExpanded ? null : slip.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(isExpanded ? null : slip.id); } }}
+              role="button"
+              tabIndex={0}
+            >
               <div className="flex items-center gap-8">
                 <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-inner border", isExpanded ? "bg-primary-600 text-white border-primary-500" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 group-hover:bg-white dark:group-hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800")}>
                   <Calendar size={24} />

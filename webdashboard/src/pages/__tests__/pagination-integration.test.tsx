@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, _fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
@@ -27,7 +27,8 @@ import type { PaginatedResponse, Employee } from "../../lib/api/types";
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+ 
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode; [key: string]: unknown }) => <a href={to} {...props}>{children}</a>,
 }));
 
 vi.mock("../../lib/api", () => ({
@@ -74,7 +75,8 @@ describe("Pagination Integration Tests", () => {
         queries: { retry: false, gcTime: 0, staleTime: 0 },
       },
     });
-    (api.fetchMyPermissions as any).mockResolvedValue({ permissions: [], roles: [] });
+ 
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: [], roles: [], managed_department_ids: [] });
   });
 
   const renderWithProviders = (component: React.ReactElement) => {
@@ -105,11 +107,14 @@ describe("Pagination Integration Tests", () => {
         { total: 1 }
       );
 
-      (api.fetchEmployees as any).mockResolvedValue(mockEmployees);
-      (api.fetchWorkspacePayslips as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
+ 
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
         createPaginatedResponse([])
       );
-      (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
       renderWithProviders(<PayrollPage />);
 
@@ -118,13 +123,16 @@ describe("Pagination Integration Tests", () => {
     });
 
     it("should handle empty paginated response in PayrollPage", async () => {
-      (api.fetchEmployees as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(
         createPaginatedResponse([], { total: 0 })
       );
-      (api.fetchWorkspacePayslips as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
         createPaginatedResponse([])
       );
-      (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
       renderWithProviders(<PayrollPage />);
 
@@ -135,9 +143,12 @@ describe("Pagination Integration Tests", () => {
     });
 
     it("should handle undefined paginated response in PayrollPage", async () => {
-      (api.fetchEmployees as any).mockResolvedValue(undefined);
-      (api.fetchWorkspacePayslips as any).mockResolvedValue(undefined);
-      (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(undefined as unknown as PaginatedResponse<Employee>);
+ 
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(undefined as unknown as PaginatedResponse<api.Payslip>);
+ 
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
       // Should not crash when rendering with undefined paginated response
       expect(() => {
@@ -172,11 +183,14 @@ describe("Pagination Integration Tests", () => {
         { total: 2 }
       );
 
-      (api.fetchEmployees as any).mockResolvedValue(mockEmployees);
-      (api.fetchWorkspacePayslips as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
+ 
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
         createPaginatedResponse([])
       );
-      (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
       // This should NOT throw "TypeError: employees.forEach is not a function"
       expect(() => {
@@ -203,11 +217,14 @@ describe("Pagination Integration Tests", () => {
         { total: 250, page: 1, limit: 50 }
       );
 
-      (api.fetchEmployees as any).mockResolvedValue(mockEmployees);
-      (api.fetchWorkspacePayslips as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
+ 
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
         createPaginatedResponse([])
       );
-      (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
       renderWithProviders(<PayrollPage />);
 
@@ -235,12 +252,15 @@ describe("Pagination Integration Tests", () => {
         ]
       );
 
-      (api.fetchEmployees as any).mockResolvedValue(mockEmployees);
-      (api.fetchWorkspace as any).mockResolvedValue({
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
+ 
+      vi.mocked(api.fetchWorkspace).mockResolvedValue({
         id: "ws-1",
         name: "Test Workspace",
-      });
-      (api.fetchRawAttendanceLogs as any).mockResolvedValue(
+      } as api.Workspace);
+ 
+      vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue(
         createPaginatedResponse([])
       );
 
@@ -251,14 +271,17 @@ describe("Pagination Integration Tests", () => {
     });
 
     it("should handle empty paginated response in AttendanceLogsPage", async () => {
-      (api.fetchEmployees as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(
         createPaginatedResponse([], { total: 0 })
       );
-      (api.fetchWorkspace as any).mockResolvedValue({
+ 
+      vi.mocked(api.fetchWorkspace).mockResolvedValue({
         id: "ws-1",
         name: "Test Workspace",
-      });
-      (api.fetchRawAttendanceLogs as any).mockResolvedValue(
+      } as api.Workspace);
+ 
+      vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue(
         createPaginatedResponse([])
       );
 
@@ -286,9 +309,12 @@ describe("Pagination Integration Tests", () => {
         ]
       );
 
-      (api.fetchEmployees as any).mockResolvedValue(mockEmployees);
-      (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([]);
-      (api.fetchLeavePolicies as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
+ 
+      vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchLeavePolicies).mockResolvedValue([]);
 
       // Should not crash when rendering with paginated response
       expect(() => {
@@ -297,11 +323,14 @@ describe("Pagination Integration Tests", () => {
     });
 
     it("should handle empty paginated response in LeaveRequestsPage", async () => {
-      (api.fetchEmployees as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(
         createPaginatedResponse([], { total: 0 })
       );
-      (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([]);
-      (api.fetchLeavePolicies as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchLeavePolicies).mockResolvedValue([]);
 
       // Should not crash when rendering with paginated response
       expect(() => {
@@ -317,13 +346,17 @@ describe("Pagination Integration Tests", () => {
         total: 0,
         page: 1,
         limit: 50,
-      } as any;
+ 
+      } as unknown as PaginatedResponse<Employee>;
 
-      (api.fetchEmployees as any).mockResolvedValue(malformedResponse);
-      (api.fetchWorkspacePayslips as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(malformedResponse);
+ 
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
         createPaginatedResponse([])
       );
-      (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
       // Component should handle gracefully with optional chaining and nullish coalescing
       expect(() => {
@@ -337,13 +370,17 @@ describe("Pagination Integration Tests", () => {
         page: 1,
         limit: 50,
         // data property missing
-      } as any;
+ 
+      } as unknown as PaginatedResponse<Employee>;
 
-      (api.fetchEmployees as any).mockResolvedValue(malformedResponse);
-      (api.fetchWorkspacePayslips as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(malformedResponse);
+ 
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
         createPaginatedResponse([])
       );
-      (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
       expect(() => {
         renderWithProviders(<PayrollPage />);
@@ -368,11 +405,14 @@ describe("Pagination Integration Tests", () => {
         limit: 50,
       });
 
-      (api.fetchEmployees as any).mockResolvedValue(mockEmployees);
-      (api.fetchWorkspacePayslips as any).mockResolvedValue(
+ 
+      vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees as unknown as PaginatedResponse<Employee>);
+ 
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
         createPaginatedResponse([])
       );
-      (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
+ 
+      vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
       // Should handle large response without performance issues
       expect(() => {
@@ -403,7 +443,8 @@ describe("Pagination Integration Tests", () => {
 
       // INCORRECT PATTERN (what was happening before)
       // Treating response object as array directly
-      const incorrectUsage = paginatedResponse as any;
+ 
+      const incorrectUsage = paginatedResponse as unknown as { forEach: (cb: unknown) => void };
 
       // This would throw: TypeError: incorrectUsage.forEach is not a function
       // because paginatedResponse is an object, not an array

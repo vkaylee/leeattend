@@ -40,7 +40,8 @@ describe("SalaryComponentManager", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    (api.fetchSalaryComponents as any).mockResolvedValue(mockComponents);
+ 
+    vi.mocked(api.fetchSalaryComponents).mockResolvedValue(mockComponents as unknown as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -61,7 +62,8 @@ describe("SalaryComponentManager", () => {
   });
 
   it("opens modal and submits new component", async () => {
-    (api.createSalaryComponent as any).mockResolvedValue({ id: "2" });
+ 
+    vi.mocked(api.createSalaryComponent).mockResolvedValue({ id: "2" } as unknown as never);
     renderWithProviders(<SalaryComponentManager wsId={mockWsId} />);
 
     const addBtn = screen.getByText(/common.add/i);

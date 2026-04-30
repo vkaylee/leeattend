@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { _Link } from "@tanstack/react-router";
-import { RefreshCw, Check, CheckCircle, _User, CalendarCheck, SearchX, _Loader2, FileBarChart, AlertTriangle, Clock  } from "lucide-react";
+import { RefreshCw, Check, CheckCircle, CalendarCheck, SearchX, FileBarChart, AlertTriangle, Clock  } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
@@ -177,7 +176,7 @@ export default function EmployeeDailyDrawer({
     }, [pendingAdjustments]);
 
     const reportData = useMemo(
-        () => reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : []),
+        () => (reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : [])) as DailyAttendanceReport[],
         [reportResponse]
     );
 

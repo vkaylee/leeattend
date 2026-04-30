@@ -3,8 +3,9 @@
  * Endpoints for employees to manage their own data
  */
 
+import { claimOt, fetchAttendanceSummaries } from "./attendance";
 import { API_BASE_URL } from "./config";
-import { apiFetch, getCurrentWorkspaceId, _getCurrentUserId  } from "./helpers";
+import { apiFetch, getCurrentWorkspaceId } from "./helpers";
 import {
   MyProfileResponse,
   EmployeeProfile,
@@ -177,8 +178,9 @@ export async function fetchEssLeaveRequests(): Promise<LeaveRequest[]> {
 }
 
 // --- OT Claim (ESS Wrapper) ---
+ 
 
-import { claimOt, fetchAttendanceSummaries } from "./attendance";
+// OT Claim (ESS Wrapper) using attendance helpers
 
 // This requires fetching the employee ID first or having the backend resolve it from token.
 // The backend handler for claimOt expects `employeeId` in path.

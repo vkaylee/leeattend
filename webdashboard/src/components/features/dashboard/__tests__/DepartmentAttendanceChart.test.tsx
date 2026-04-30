@@ -20,16 +20,19 @@ vi.mock("react-i18next", () => ({
 
 // Mock Recharts to avoid rendering SVG in tests
 vi.mock("recharts", () => ({
-    BarChart: ({ children, ...props }: any) => (
-        <div data-testid="bar-chart" {...props}>{children}</div>
+ 
+    BarChart: ({ children, ...props }: { children: React.ReactNode }) => (
+        <div data-testid="bar-chart" {...props}>{children as React.ReactNode}</div>
     ),
-    Bar: (props: any) => <div data-testid={`bar-${props.dataKey}`} />,
+ 
+    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
-    ResponsiveContainer: ({ children }: any) => (
-        <div data-testid="responsive-container">{children}</div>
+ 
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+        <div data-testid="responsive-container">{children as React.ReactNode}</div>
     ),
     Legend: () => <div data-testid="legend" />,
 }));
@@ -59,10 +62,11 @@ describe("DepartmentAttendanceChart", () => {
     });
 
     it("renders loading spinner when data is loading", () => {
-        (dashboardHooks.useDepartmentAttendance as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: undefined,
             isLoading: true,
-        });
+        } as unknown as never);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -71,10 +75,11 @@ describe("DepartmentAttendanceChart", () => {
     });
 
     it("renders empty state when no data available", () => {
-        (dashboardHooks.useDepartmentAttendance as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: [],
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -83,10 +88,11 @@ describe("DepartmentAttendanceChart", () => {
     });
 
     it("renders chart with data when department data is available", () => {
-        (dashboardHooks.useDepartmentAttendance as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: mockDeptData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -95,10 +101,11 @@ describe("DepartmentAttendanceChart", () => {
     });
 
     it("renders all four bar series (on_time, late, absent, on_leave)", () => {
-        (dashboardHooks.useDepartmentAttendance as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: mockDeptData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -109,10 +116,11 @@ describe("DepartmentAttendanceChart", () => {
     });
 
     it("displays chart title", () => {
-        (dashboardHooks.useDepartmentAttendance as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: mockDeptData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -121,6 +129,7 @@ describe("DepartmentAttendanceChart", () => {
     });
 
     it("shows Today and This Week toggle buttons", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useDepartmentAttendance as any).mockReturnValue({
             data: mockDeptData,
             isLoading: false,

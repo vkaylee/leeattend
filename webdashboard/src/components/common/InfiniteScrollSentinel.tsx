@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +16,8 @@ interface InfiniteScrollSentinelProps {
  * Sentinel table row that triggers loading the next page
  * when it becomes visible via IntersectionObserver.
  */
-const InfiniteScrollSentinel = React.memo(function InfiniteScrollSentinel({
+ 
+const InfiniteScrollSentinel = memo(function InfiniteScrollSentinel({
     sentinelRef,
     isFetchingNextPage,
     colSpan = 5,

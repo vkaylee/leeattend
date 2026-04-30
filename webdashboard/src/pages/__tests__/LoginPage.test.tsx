@@ -12,7 +12,8 @@ import LoginPage from "../LoginPage";
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/", search: "", hash: "", state: null }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+ 
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock the API library
@@ -30,7 +31,8 @@ describe("LoginPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     i18n.changeLanguage("en");
-    (api.getCurrentUserId as any).mockReturnValue(null);
+ 
+    vi.mocked(api.getCurrentUserId).mockReturnValue(null as unknown as string);
   });
 
   afterEach(() => {
@@ -54,7 +56,12 @@ describe("LoginPage", () => {
     expect(passwordInput).toBeDefined();
 
     const user = userEvent.setup();
-    (api.login as any).mockResolvedValue({});
+ 
+    vi.mocked(api.login).mockResolvedValue({ 
+      user: { id: "user-1", email: "admin@leeattend.com", full_name: "Admin", created_at: "" },
+      access_token: "token", 
+      refresh_token: "refresh" 
+    });
 
     await user.type(emailInput, "admin@leeattend.com");
     await user.type(passwordInput, "admin123");
@@ -63,22 +70,25 @@ describe("LoginPage", () => {
     await waitFor(() => {
       expect(api.login).toHaveBeenCalledWith("admin@leeattend.com", "admin123");
     });
+ 
   });
 
 
   it("redirects to home if user is already logged in", () => {
-    (api.getCurrentUserId as any).mockReturnValue("user-123");
+    vi.mocked(api.getCurrentUserId).mockReturnValue("user-123");
     
+ 
     // We need to spy on the navigate function returned by useNavigate mock
     const mockNavigate = vi.fn();
     // Override the mock for this test
     vi.doMock("@tanstack/react-router", async () => {
-      const actual = await vi.importActual<any>("@tanstack/react-router");
+      const actual = await vi.importActual<Record<string, unknown>>("@tanstack/react-router");
+ 
       return {
         ...actual,
         useNavigate: () => mockNavigate,
         useLocation: () => ({ pathname: "/", search: "", hash: "", state: null }),
-        Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+        Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
       };
     });
 

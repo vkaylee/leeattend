@@ -10,7 +10,6 @@ import {
   ShieldAlert, 
   Calculator,
   Zap,
-  _MoreVertical,
   Trash2,
   ChevronRight,
   Filter
@@ -30,8 +29,6 @@ import {
   deletePolicyAssignment, 
   fetchDepartments, 
   fetchEmployees,
-  _PolicyAssignmentResponse,
-  _Department,
   Employee, UpsertPolicyAssignmentRequest 
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -282,9 +279,10 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
                     { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
                   ]}
                   value={earlyArrivalStrategy}
-                  onChange={(v) => setEarlyArrivalStrategy(v as any)}
+                  onChange={(v) => setEarlyArrivalStrategy(v as "allow" | "block" | "clamp")}
                   className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14"
                 />
+                { }
               </div>
             </div>
           </div>

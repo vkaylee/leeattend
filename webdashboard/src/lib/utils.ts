@@ -22,7 +22,7 @@ export function formatTime(timeStr: string | null | undefined, timeFormat: strin
     const date = parse(timeStr.substring(0, 8), timeStr.includes(":") && timeStr.split(":").length >= 3 ? "HH:mm:ss" : "HH:mm", referenceDate);
     const pattern = timeFormat === "12h" ? "hh:mm a" : "HH:mm";
     return format(date, pattern);
-  } catch (__e) {
+  } catch {
     return timeStr.substring(0, 5);
   }
 }
@@ -38,7 +38,8 @@ export function formatDateTime(dateTimeStr: string | null | undefined, timeForma
  * Returns attributes for debugging and testing.
  * Stripped in production via build-time rollup configuration.
  */
-export function debugProps(data: Record<string, any>) {
+ 
+export function debugProps(data: Record<string, unknown>) {
   // We check PROD here for runtime safety, though Rollup will strip the result anyway
   if (import.meta.env.PROD) return {};
   

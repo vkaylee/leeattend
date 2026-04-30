@@ -1,6 +1,6 @@
 import React from "react";
 
-import { render, _screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 
 import FloatingRecordBadge from "../FloatingRecordBadge";

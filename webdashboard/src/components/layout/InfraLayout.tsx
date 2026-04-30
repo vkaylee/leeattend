@@ -1,5 +1,5 @@
 import { Outlet, Link } from "@tanstack/react-router";
-import { _Activity, LogOut, ArrowLeft } from "lucide-react";
+import { LogOut, ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ROUTES } from "@/lib/routes";

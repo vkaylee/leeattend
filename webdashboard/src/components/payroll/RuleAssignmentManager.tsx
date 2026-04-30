@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Users, Building, _Building2, Plus, Trash2, Calendar,
-  Globe, _ChevronDown, Shield, Clock, Sliders,
+  Users, Building, Plus, Trash2, Calendar,
+  Globe, Shield, Clock, Sliders,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -75,7 +75,8 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
     enabled: !!wsId,
   });
 
-  const deptMap = React.useMemo(() => {
+ 
+  const deptMap = useMemo(() => {
     const m: Record<string, Department> = {};
     departments?.forEach((d) => { m[d.id] = d; });
     return m;
@@ -117,7 +118,8 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    let overrideConfig: Record<string, any> | undefined;
+ 
+    let overrideConfig: Record<string, unknown> | undefined;
     if (hasOverride) {
       if (calculationMethod === "percentage" && overrideRate) {
         overrideConfig = { rate: parseFloat(overrideRate), base: overrideBase };
@@ -131,7 +133,8 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
       effective_from: effectiveFrom,
       effective_to: effectiveTo || undefined,
       override_config: overrideConfig,
-    } as any);
+ 
+    });
   };
 
   const getAssigneeName = (a: PayrollRuleAssignment) => {
@@ -140,7 +143,8 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
     return a.assignee_id?.slice(0, 8) + "…";
   };
 
-  const grouped = React.useMemo(() => {
+ 
+  const grouped = useMemo(() => {
     const g = { workspace: [] as PayrollRuleAssignment[], department: [] as PayrollRuleAssignment[], employee: [] as PayrollRuleAssignment[] };
     assignments?.forEach((a) => g[a.assignee_type]?.push(a));
     return g;
@@ -288,9 +292,10 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
         <form onSubmit={handleSubmit} className="space-y-8 pt-2 animate-in fade-in duration-300">
           {/* Scope selector */}
           <div className="space-y-3">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
+            { }
+            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 mb-1">
               Assignment Scope
-            </label>
+            </div>
             <div className="grid grid-cols-3 gap-3">
               {(["employee", "department", "workspace"] as const).map((scope) => {
                 const Icon = SCOPE_ICONS[scope];
@@ -321,13 +326,14 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
           {/* Assignee picker (employee or department) */}
           {assigneeType === "employee" && (
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
+              { }
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 mb-1">
                 Select Employee
-              </label>
+              </div>
               <EmployeeSearch
                 workspaceId={wsId}
                 value={assigneeId}
-                onChange={(val: string) => setAssigneeId(val)}
+                onChange={(val) => setAssigneeId(Array.isArray(val) ? val[0] : val)}
                 placeholder="Search employees…"
               />
             </div>
@@ -335,10 +341,12 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
 
           {assigneeType === "department" && (
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
+              { }
+              <label htmlFor="dept-select" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
                 Select Department
               </label>
               <select
+                id="dept-select"
                 required
                 value={assigneeId}
                 onChange={(e) => setAssigneeId(e.target.value)}
@@ -393,8 +401,11 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
 
           {/* Override config toggle */}
           {(calculationMethod === "percentage" || calculationMethod === "fixed") && (
+ 
             <div className="space-y-4">
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- Label associated via htmlFor; rule false-positive on dynamic IDs */}
               <label
+                htmlFor="override-config"
                 className={cn(
                   "flex items-center gap-4 p-5 rounded-2xl cursor-pointer transition-all border-2 active:scale-[0.98]",
                   hasOverride
@@ -403,6 +414,7 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
                 )}
               >
                 <input
+                  id="override-config"
                   type="checkbox"
                   checked={hasOverride}
                   onChange={(e) => setHasOverride(e.target.checked)}
@@ -419,23 +431,27 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
               </label>
 
               {hasOverride && (
+ 
                 <div className="bg-orange-50 dark:bg-orange-950/20 rounded-2xl p-5 border border-orange-100 dark:border-orange-800 space-y-4 animate-in slide-in-from-top-2 duration-200">
                   {calculationMethod === "percentage" && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-widest">Override Rate (%)</label>
+                        <label htmlFor="override-rate" className="text-[10px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-widest">Override Rate (%)</label>
                         <input
+                          id="override-rate"
                           type="number"
                           step="0.01"
                           value={overrideRate}
                           onChange={(e) => setOverrideRate(e.target.value)}
+ 
                           placeholder="e.g. 10.5"
                           className="w-full bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-orange-500/20 outline-none"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-widest">Override Base</label>
+                        <label htmlFor="override-base" className="text-[10px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-widest">Override Base</label>
                         <select
+                          id="override-base"
                           value={overrideBase}
                           onChange={(e) => setOverrideBase(e.target.value)}
                           className="w-full bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-orange-500/20 outline-none uppercase tracking-tight"
@@ -443,14 +459,16 @@ export default function RuleAssignmentManager({ wsId, ruleId, calculationMethod 
                           <option value="gross">Gross Salary</option>
                           <option value="gross_salary">Gross Salary (alt)</option>
                           <option value="taxable_income">Taxable Income</option>
+                          { }
                         </select>
                       </div>
                     </div>
                   )}
                   {calculationMethod === "fixed" && (
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-widest">Override Amount (₫)</label>
+                      <label htmlFor="override-amount" className="text-[10px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-widest">Override Amount (₫)</label>
                       <input
+                        id="override-amount"
                         type="number"
                         value={overrideAmount}
                         onChange={(e) => setOverrideAmount(e.target.value)}

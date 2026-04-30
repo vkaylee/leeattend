@@ -17,15 +17,19 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("recharts", () => ({
-    PieChart: ({ children, ...props }: any) => (
-        <div data-testid="pie-chart" {...props}>{children}</div>
+ 
+    PieChart: ({ children, ...props }: { children: React.ReactNode }) => (
+        <div data-testid="pie-chart" {...props}>{children as React.ReactNode}</div>
     ),
-    Pie: ({ children, ...props }: any) => (
-        <div data-testid="pie" {...props}>{children}</div>
+ 
+    Pie: ({ children, ...props }: { children: React.ReactNode }) => (
+        <div data-testid="pie" {...props}>{children as React.ReactNode}</div>
     ),
-    Cell: (props: any) => <div data-testid="cell" {...props} />,
-    ResponsiveContainer: ({ children }: any) => (
-        <div data-testid="responsive-container">{children}</div>
+ 
+    Cell: (props: { fill: string }) => <div data-testid="cell" {...props} />,
+ 
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+        <div data-testid="responsive-container">{children as React.ReactNode}</div>
     ),
     Tooltip: () => <div data-testid="tooltip" />,
     Legend: () => <div data-testid="legend" />,
@@ -57,10 +61,11 @@ describe("LeaveTypesChart", () => {
     });
 
     it("renders loading spinner when data is loading", () => {
-        (dashboardHooks.useLeaveTypesBreakdown as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLeaveTypesBreakdown).mockReturnValue({
             data: undefined,
             isLoading: true,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LeaveTypesChart />);
 
@@ -69,10 +74,11 @@ describe("LeaveTypesChart", () => {
     });
 
     it("renders empty state when no data available", () => {
-        (dashboardHooks.useLeaveTypesBreakdown as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLeaveTypesBreakdown).mockReturnValue({
             data: [],
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LeaveTypesChart />);
 
@@ -81,10 +87,11 @@ describe("LeaveTypesChart", () => {
     });
 
     it("renders empty state when all counts are zero", () => {
-        (dashboardHooks.useLeaveTypesBreakdown as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLeaveTypesBreakdown).mockReturnValue({
             data: [{ leave_type: "Sick", count: 0 }],
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LeaveTypesChart />);
 
@@ -92,10 +99,11 @@ describe("LeaveTypesChart", () => {
     });
 
     it("renders pie chart when data is available", () => {
-        (dashboardHooks.useLeaveTypesBreakdown as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLeaveTypesBreakdown).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LeaveTypesChart />);
 
@@ -104,10 +112,11 @@ describe("LeaveTypesChart", () => {
     });
 
     it("displays inline legend with leave type names and counts", () => {
-        (dashboardHooks.useLeaveTypesBreakdown as any).mockReturnValue({
+ 
+        vi.mocked(dashboardHooks.useLeaveTypesBreakdown).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as never);
 
         renderWithProviders(<LeaveTypesChart />);
 
@@ -116,6 +125,7 @@ describe("LeaveTypesChart", () => {
     });
 
     it("displays the correct chart title and subtitle", () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         (dashboardHooks.useLeaveTypesBreakdown as any).mockReturnValue({
             data: mockData,
             isLoading: false,

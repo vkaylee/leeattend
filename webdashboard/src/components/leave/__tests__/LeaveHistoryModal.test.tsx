@@ -41,7 +41,8 @@ describe('LeaveHistoryModal', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-        (api.fetchLeaveHistory as any).mockResolvedValue([
+ 
+        vi.mocked(api.fetchLeaveHistory).mockResolvedValue([
             {
                 id: 'h-1',
                 date: '2026-02-01',
@@ -51,9 +52,10 @@ describe('LeaveHistoryModal', () => {
                 created_at: '2026-02-01T00:00:00Z',
             }
         ]);
-        (api.fetchLeaveTypes as any).mockResolvedValue([
+ 
+        vi.mocked(api.fetchLeaveTypes).mockResolvedValue([
             { id: 'lt-1', name: 'Annual Leave' }
-        ]);
+        ] as unknown as never);
     });
 
     const defaultProps = {
@@ -98,7 +100,8 @@ describe('LeaveHistoryModal', () => {
 
     it('invalidates workspace-leave-balances cache upon successful adjustment', async () => {
         // Setup successful adjustment
-        (api.adjustLeaveBalance as any).mockResolvedValue({});
+ 
+        vi.mocked(api.adjustLeaveBalance).mockResolvedValue({} as unknown as never);
         const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
         render(

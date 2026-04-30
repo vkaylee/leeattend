@@ -2,22 +2,19 @@ import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import _userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useMyPermissions } from "../../hooks/use-permissions";
 import { useWorkspaceRoles } from "../../hooks/use-workspace";
+import { WorkspaceRole } from "../../lib/api/types";
 import WorkspaceRolesPage from "../workspace/WorkspaceRolesPage";
-
-
-
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, options?: any) => {
-            if (typeof options === 'string') return options;
+        t: (key: string, options?: { defaultValue?: string }) => {
             if (options && typeof options === 'object' && options.defaultValue) return options.defaultValue;
             return key;
+ 
         },
     }),
 }));
@@ -31,14 +28,16 @@ vi.mock("../../hooks/use-permissions", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-    Link: ({ children, to, className }: any) => <a href={to} className={className}>{children}</a>,
+    Link: ({ children, to, className }: { children: React.ReactNode; to: string; className?: string }) => <a href={to} className={className}>{children}</a>,
 }));
 
 vi.mock("@/components/features/settings/RoleFormModal", () => ({
-    default: ({ isOpen, editingRole }: any) => {
+ 
+    default: ({ isOpen, editingRole }: { isOpen: boolean; editingRole?: { name: string } }) => {
         if (!isOpen) return null;
         return <div data-testid="role-form-modal">Modal: {editingRole ? editingRole.name : 'Create'}</div>;
     }
+ 
 }));
 
 describe("WorkspaceRolesPage", () => {
@@ -55,18 +54,29 @@ describe("WorkspaceRolesPage", () => {
             defaultOptions: { queries: { retry: false } },
         });
 
-        (useWorkspaceRoles as any).mockReturnValue({
-            roles: mockRoles,
+        vi.mocked(useWorkspaceRoles).mockReturnValue({
+            roles: mockRoles as unknown as WorkspaceRole[],
             isLoading: false,
-            deleteRole: vi.fn(),
-        });
+            createRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+ 
+            isCreating: false,
+            updateRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+            isUpdating: false,
+            deleteRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+            isDeleting: false,
+        } as unknown as ReturnType<typeof useWorkspaceRoles>);
+ 
 
-        (useMyPermissions as any).mockReturnValue({
+        vi.mocked(useMyPermissions).mockReturnValue({
             hasPermission: () => true,
             hasAnyPermission: () => true,
             hasScopedPermission: () => true,
+            hasRole: () => true,
             isLoading: false,
-        });
+            permissions: [],
+            roles: [],
+            managedDepartmentIds: null
+        } as unknown as ReturnType<typeof useMyPermissions>);
         
         window.confirm = vi.fn().mockReturnValue(true);
     });
@@ -84,17 +94,23 @@ describe("WorkspaceRolesPage", () => {
     it("renders roles list correctly", () => {
         renderWithProviders(<WorkspaceRolesPage />);
         expect(screen.getByText("Owner")).toBeDefined();
+ 
         expect(screen.getByText("Manager")).toBeDefined();
         expect(screen.getByText("Workspace Owner")).toBeDefined();
     });
 
     it("hides action buttons if user lacks manage permission", () => {
-        (useMyPermissions as any).mockReturnValue({
+        vi.mocked(useMyPermissions).mockReturnValue({
             hasPermission: () => false,
             hasAnyPermission: () => false,
             hasScopedPermission: () => false,
+            hasRole: () => false,
             isLoading: false,
-        });
+            permissions: [],
+            roles: [],
+            managedDepartmentIds: null
+ 
+        } as unknown as ReturnType<typeof useMyPermissions>);
 
         renderWithProviders(<WorkspaceRolesPage />);
         
@@ -103,12 +119,16 @@ describe("WorkspaceRolesPage", () => {
     });
 
     it("shows action buttons if user has manage permission", () => {
-        (useMyPermissions as any).mockReturnValue({
+        vi.mocked(useMyPermissions).mockReturnValue({
             hasPermission: () => true,
             hasAnyPermission: () => true,
             hasScopedPermission: () => true,
+            hasRole: () => true,
             isLoading: false,
-        });
+            permissions: [],
+            roles: [],
+            managedDepartmentIds: null
+        } as unknown as ReturnType<typeof useMyPermissions>);
 
         renderWithProviders(<WorkspaceRolesPage />);
         

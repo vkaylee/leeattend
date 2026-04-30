@@ -30,7 +30,7 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
       setReason("");
       setError(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional: effect should only fire when listed deps change
   }, [open]); // Intentionally only depend on open, not summary
 
   const handleSubmit = async (e: React.FormEvent) => {

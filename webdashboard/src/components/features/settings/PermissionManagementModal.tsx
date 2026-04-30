@@ -1,7 +1,6 @@
 import { useState } from "react";
 
-import { _X, KeyRound, Plus, Trash2, Clock, Search } from "lucide-react";
-import { _createPortal } from "react-dom";
+import { KeyRound, Plus, Trash2, Clock, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";

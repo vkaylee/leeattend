@@ -4,13 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
   Plus, 
-  _Coins, 
-  _Calendar, 
   Wallet, 
   Trash2, 
   ShieldCheck, 
   AlertCircle, 
-  _ChevronDown, 
   ChevronRight,
   History,
   ArrowUpRight
@@ -29,7 +26,7 @@ import {
   fetchEmployeePayrollConfigs,
   setEmployeePayrollConfig
 } from "@/lib/api/payroll";
-import { EmployeeSalaryComponent, _SalaryComponentDefinition } from "@/lib/api/types";
+import { EmployeeSalaryComponent } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import TemporalConfigTable from "../common/TemporalConfigTable";

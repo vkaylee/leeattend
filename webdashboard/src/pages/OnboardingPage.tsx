@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Plus, _Loader2, LogOut } from "lucide-react";
+import { LayoutDashboard, Plus, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
@@ -70,7 +70,7 @@ export default function OnboardingPage() {
               {t("onboarding.org_name_label")}
             </label>
             <input
-              autoFocus
+ 
               type="text"
               placeholder={t("onboarding.org_name_placeholder")}
               value={name}

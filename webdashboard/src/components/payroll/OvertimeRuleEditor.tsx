@@ -3,11 +3,7 @@ import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, 
-  _Trash2, 
-  _Save,
   Clock,
-  _Calendar,
-  _AlertCircle,
   Hash,
   Percent
 } from 'lucide-react';
@@ -90,10 +86,12 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
         <div className='bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 space-y-4 animate-in zoom-in-95 duration-200'>
           <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
             <div className='space-y-1.5'>
-              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
+              <label htmlFor='rule-priority' className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
                 <Hash size={10}/> Priority
               </label>
               <input 
+ 
+                id='rule-priority'
                 type='number' 
                 value={priority} 
                 onChange={e => setPriority(parseInt(e.target.value))}
@@ -101,10 +99,12 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
               />
             </div>
             <div className='space-y-1.5'>
-              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
+              <label htmlFor='rule-multiplier' className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
                 <Percent size={10}/> Multiplier
               </label>
+              { }
               <input 
+                id='rule-multiplier'
                 type='number' 
                 step='0.1'
                 value={multiplier} 
@@ -113,10 +113,12 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
               />
             </div>
             <div className='space-y-1.5'>
-              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
+              <label htmlFor='rule-start' className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
                 <Clock size={10}/> Start
+              { }
               </label>
               <input 
+                id='rule-start'
                 type='time' 
                 value={startTime} 
                 onChange={e => setStartTime(e.target.value)}
@@ -124,10 +126,12 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
               />
             </div>
             <div className='space-y-1.5'>
-              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
+              <label htmlFor='rule-end' className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
+                { }
                 <Clock size={10}/> End
               </label>
               <input 
+                id='rule-end'
                 type='time' 
                 value={endTime} 
                 onChange={e => setEndTime(e.target.value)}

@@ -5,13 +5,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
+import { Employee, PaginatedResponse, Shift, Workspace, EmployeeSchedule } from "../../lib/api/types";
 import ShiftsPage from "../ShiftsPage";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
+ 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock the API library
@@ -36,8 +38,9 @@ vi.mock("../../lib/api", () => ({
 vi.mock("date-fns", async () => {
   const actual = await vi.importActual<typeof import("date-fns")>("date-fns");
   return {
+ 
     ...actual,
-    format: (date: Date, formatStr: string, _options?: any) => {
+    format: (date: Date, formatStr: string, _options?: Record<string, unknown>) => {
       if (formatStr === "EEEE") {
         const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         return days[date.getDay()];
@@ -53,8 +56,9 @@ vi.mock("date-fns", async () => {
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
+ 
   useTranslation: () => ({
-    t: (key: string, params?: any) => {
+    t: (key: string, params?: Record<string, unknown>) => {
       const translations: Record<string, string> = {
         "shifts.title": "Scheduling System",
         "shifts.subtitle": "Manage flexible and fixed work shifts",
@@ -198,16 +202,25 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         },
       },
     });
+ 
 
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchEmployees as any).mockResolvedValue(mockEmployees);
-    (api.fetchShifts as any).mockResolvedValue(mockShifts);
-    (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace" });
-    (api.fetchWorkspaceSchedules as any).mockResolvedValue(mockSchedules);
-    (api.fetchAssignmentHistory as any).mockResolvedValue([]);
-    (api.bulkUpsertRoster as any).mockResolvedValue({});
-    (api.fetchWorkingPatterns as any).mockResolvedValue([]);
-    (api as any).searchEmployees.mockResolvedValue(mockEmployees);
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+ 
+    vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees as unknown as PaginatedResponse<Employee>);
+ 
+    vi.mocked(api.fetchShifts).mockResolvedValue(mockShifts as unknown as Shift[]);
+ 
+    vi.mocked(api.fetchWorkspace).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace" } as unknown as Workspace);
+ 
+    vi.mocked(api.fetchWorkspaceSchedules).mockResolvedValue(mockSchedules as unknown as EmployeeSchedule[]);
+ 
+    vi.mocked(api.fetchAssignmentHistory).mockResolvedValue([] as unknown as never[]);
+ 
+    vi.mocked(api.bulkUpsertRoster).mockResolvedValue(undefined as unknown as void);
+ 
+    vi.mocked(api.fetchWorkingPatterns).mockResolvedValue([] as unknown as never[]);
+    vi.mocked(api.searchEmployees).mockResolvedValue(mockEmployees as unknown as PaginatedResponse<Employee>);
   });
 
   const renderShiftsPage = () => {
@@ -219,8 +232,9 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       </QueryClientProvider>
     );
   };
+ 
 
-  const selectEmployee = async (user: any, employeeId: string) => {
+  const selectEmployee = async (_user: unknown, employeeId: string) => {
     const select = screen.getByTestId("employee-select") as HTMLSelectElement;
     await waitFor(() => expect(select.options.length).toBeGreaterThan(1));
     fireEvent.change(select, { target: { value: employeeId } });
@@ -645,8 +659,9 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
   describe("Shift Picker Modal - Error Handling", () => {
     it("should handle API error gracefully", async () => {
+ 
       const user = userEvent.setup();
-      (api.bulkUpsertRoster as any).mockRejectedValueOnce(new Error("API Error"));
+      vi.mocked(api.bulkUpsertRoster).mockRejectedValueOnce(new Error("API Error"));
 
       renderShiftsPage();
 

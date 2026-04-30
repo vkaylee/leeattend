@@ -1,7 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Printer, _Download } from 'lucide-react';
+import { X, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { useDateTimeFormatter } from '@/hooks/use-datetime';

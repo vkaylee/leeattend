@@ -2,38 +2,46 @@ import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi, _beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
         t: (key: string, opts?: any) => opts?.defaultValue || key,
     }),
 }));
 
 // Mock recharts
 vi.mock("recharts", () => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     RadialBarChart: ({ children, ...props }: any) => (
         <div data-testid="radial-chart" {...props}>{children}</div>
     ),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     RadialBar: (_props: any) => <div data-testid="radial-bar" />,
     PolarAngleAxis: () => <div data-testid="polar-axis" />,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     ResponsiveContainer: ({ children }: any) => (
         <div data-testid="responsive-container">{children}</div>
     ),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     BarChart: ({ children, ...props }: any) => (
         <div data-testid="bar-chart" {...props}>{children}</div>
     ),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     Bar: (_props: any) => <div data-testid="bar" />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
     Cell: () => <div data-testid="cell" />,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     PieChart: ({ children, ...props }: any) => (
         <div data-testid="pie-chart" {...props}>{children}</div>
     ),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     Pie: ({ children, ...props }: any) => (
         <div data-testid="pie" {...props}>{children}</div>
     ),

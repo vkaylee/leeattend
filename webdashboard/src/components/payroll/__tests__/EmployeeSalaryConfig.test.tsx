@@ -41,13 +41,16 @@ describe("EmployeeSalaryConfig", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    (api.fetchSalaryComponents as any).mockResolvedValue([
+ 
+    vi.mocked(api.fetchSalaryComponents).mockResolvedValue([
       { id: "comp-1", name: "Base Salary", code: "BASE" }
-    ]);
-    (api.fetchEmployeeSalaryComponents as any).mockResolvedValue([
+    ] as unknown as never);
+ 
+    vi.mocked(api.fetchEmployeeSalaryComponents).mockResolvedValue([
       { id: "esc-1", component_definition_id: "comp-1", name: "Lương cơ bản", code: "BASE", amount: "1000", effective_date: "2026-01-01", is_base_for_ot: true }
-    ]);
-    (api.fetchEmployeePayrollConfigs as any).mockResolvedValue([]);
+    ] as unknown as never);
+ 
+    vi.mocked(api.fetchEmployeePayrollConfigs).mockResolvedValue([] as unknown as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -68,7 +71,8 @@ describe("EmployeeSalaryConfig", () => {
   });
 
   it("allows adding a new salary component to employee", async () => {
-    (api.assignEmployeeSalaryComponent as any).mockResolvedValue({});
+ 
+    vi.mocked(api.assignEmployeeSalaryComponent).mockResolvedValue({} as unknown as never);
     renderWithProviders(<EmployeeSalaryConfig wsId={mockWsId} employeeId={mockEmpId} />);
 
     const addBtn = await screen.findByRole("button", { name: /payroll.employee_config.add_btn/i });

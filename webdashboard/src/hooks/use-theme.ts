@@ -29,6 +29,7 @@ export function useTheme() {
       setUserColor(localStorage.getItem('user_theme_primary_color'));
     };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handlePreview = (e: any) => {
       setPreviewColor(e.detail);
     };
@@ -37,11 +38,13 @@ export function useTheme() {
     // Custom event for same-tab updates
     window.addEventListener('theme-change', handleStorage);
     // Live preview event
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     window.addEventListener('theme-preview' as any, handlePreview);
     
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('theme-change', handleStorage);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
       window.removeEventListener('theme-preview' as any, handlePreview);
     };
   }, []);

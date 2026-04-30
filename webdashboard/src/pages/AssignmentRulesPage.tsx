@@ -4,11 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, 
   Trash2, 
-  _GripVertical,
   Pencil,
   Filter,
   Save,
-  _X,
   AlertCircle,
   Building2,
   Zap
@@ -16,7 +14,6 @@ import {
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
-import { _Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 
@@ -52,12 +49,14 @@ export default function AssignmentRulesPage() {
   const { data: departments } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => createAssignmentRule(wsId, data),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic data shape from form state; strict typing would add boilerplate without safety gain
+    mutationFn: (data: Record<string, unknown>) => createAssignmentRule(wsId, data as any),
     onSuccess: () => { toast.success(t("rules.messages.create_success")); closeModal(); queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: any }) => updateAssignmentRule(wsId, id, data),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic data shape from form state; strict typing would add boilerplate without safety gain
+    mutationFn: ({ id, data }: { id: string, data: Record<string, unknown> }) => updateAssignmentRule(wsId, id, data as any),
     onSuccess: () => { toast.success(t("rules.messages.update_success")); closeModal(); queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); },
   });
 

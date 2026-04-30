@@ -7,14 +7,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
+import { Employee, PaginatedResponse, Department, EmploymentPeriod, EmployeeDepartmentHistory } from "../../lib/api/types";
 import EmployeesPage from "../EmployeesPage";
 
 
 // Mock TanStack Router to avoid needing full route tree in unit tests
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
+ 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode; [key: string]: unknown }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock IntersectionObserver for jsdom
@@ -22,8 +24,9 @@ class MockIntersectionObserver {
     observe() { }
     unobserve() { }
     disconnect() { }
+ 
 }
-window.IntersectionObserver = MockIntersectionObserver as any;
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -39,14 +42,16 @@ vi.mock("../../lib/api", () => ({
     fetchEmploymentHistory: vi.fn(),
     rehireEmployee: vi.fn(),
     fetchMyPermissions: vi.fn(),
+    fetchWorkspaceMembers: vi.fn().mockResolvedValue([]),
 }));
 
 // Override i18n
 vi.mock("react-i18next", () => ({
+ 
     useTranslation: () => ({
-        t: (key: string, options?: any) => {
+        t: (key: string, options?: string | { defaultValue?: string }) => {
             if (typeof options === "string") return options;
-            if (options && options.defaultValue) return options.defaultValue;
+            if (options && typeof options === "object" && options.defaultValue) return options.defaultValue;
             return key;
         },
         i18n: {
@@ -64,7 +69,7 @@ vi.mock("@/components/employees/WorkingConditionConfig", () => ({
     default: () => <div data-testid="working-condition">WorkingCondition</div>,
 }));
 
-const mockEmployee = (id: string, name: string, active = true, department?: string): api.Employee => ({
+const mockEmployee = (id: string, name: string, active = true, department?: string): Employee => ({
     id,
     full_name: name,
     employee_id_number: `EMP-${id}`,
@@ -86,17 +91,23 @@ describe("EmployeesPage", () => {
                 queries: { retry: false, gcTime: 0, staleTime: 0 },
             },
         });
-        (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-        (api.searchEmployees as any).mockResolvedValue({
+ 
+        vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+ 
+        vi.mocked(api.searchEmployees).mockResolvedValue({
             data: [mockEmployee("1", "Alice Nguyen"), mockEmployee("2", "Bob Tran")],
             total: 2,
             page: 1,
             limit: 20,
-        });
-        (api.fetchDepartments as any).mockResolvedValue([]);
-        (api.fetchEmployeeDepartmentHistory as any).mockResolvedValue([]);
-        (api.fetchEmploymentHistory as any).mockResolvedValue([]);
-        (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["employees:create", "employees:update", "employees:delete"], roles: ["admin"] });
+        } as unknown as PaginatedResponse<Employee>);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue([] as unknown as Department[]);
+ 
+        vi.mocked(api.fetchEmployeeDepartmentHistory).mockResolvedValue([] as unknown as EmployeeDepartmentHistory[]);
+ 
+        vi.mocked(api.fetchEmploymentHistory).mockResolvedValue([] as unknown as EmploymentPeriod[]);
+ 
+        vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["employees:create", "employees:update", "employees:delete"], roles: ["admin"], managed_department_ids: [] } as unknown as Awaited<ReturnType<typeof api.fetchMyPermissions>>);
     });
 
     const renderPage = (_initialEntries = ["/"]) =>
@@ -119,12 +130,13 @@ describe("EmployeesPage", () => {
     });
 
     it("shows empty state when no employees exist", async () => {
-        (api.searchEmployees as any).mockResolvedValue({
+ 
+        vi.mocked(api.searchEmployees).mockResolvedValue({
             data: [],
             total: 0,
             page: 1,
             limit: 20,
-        });
+        } as unknown as PaginatedResponse<Employee>);
         renderPage();
         expect(await screen.findByText(/employees.table.no_data/i)).toBeDefined();
     });
@@ -140,36 +152,39 @@ describe("EmployeesPage", () => {
     });
 
     it("displays department name when employee has a department", async () => {
-        (api.searchEmployees as any).mockResolvedValue({
+ 
+        vi.mocked(api.searchEmployees).mockResolvedValue({
             data: [mockEmployee("1", "Alice Nguyen", true, "Engineering"), mockEmployee("2", "Bob Tran", true, "Sales")],
             total: 2,
             page: 1,
             limit: 20,
-        });
+        } as unknown as PaginatedResponse<Employee>);
         renderPage();
         expect(await screen.findByText("Engineering")).toBeDefined();
         expect(screen.getByText("Sales")).toBeDefined();
     });
 
     it("displays dash when employee has no department", async () => {
-        (api.searchEmployees as any).mockResolvedValue({
+ 
+        vi.mocked(api.searchEmployees).mockResolvedValue({
             data: [mockEmployee("1", "Alice Nguyen")],
             total: 1,
             page: 1,
             limit: 20,
-        });
+        } as unknown as PaginatedResponse<Employee>);
         renderPage();
         await screen.findByText("Alice Nguyen");
         expect(screen.getByText("—")).toBeDefined();
     });
 
     it("handles mixed employees with and without departments", async () => {
-        (api.searchEmployees as any).mockResolvedValue({
+ 
+        vi.mocked(api.searchEmployees).mockResolvedValue({
             data: [mockEmployee("1", "Alice Nguyen", true, "HR"), mockEmployee("2", "Bob Tran")],
             total: 2,
             page: 1,
             limit: 20,
-        });
+        } as unknown as PaginatedResponse<Employee>);
         renderPage();
         expect(await screen.findByText("HR")).toBeDefined();
         expect(screen.getByText("—")).toBeDefined();
@@ -182,7 +197,8 @@ describe("EmployeesPage", () => {
     it("uses PAGE_SIZE of 20 for infinite scroll", async () => {
         renderPage();
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
             expect(calls.length).toBeGreaterThan(0);
             // args: wsId, query, page, limit
             expect(calls[0][2]).toBe(1);  // page = 1
@@ -201,12 +217,13 @@ describe("EmployeesPage", () => {
     });
 
     it("displays floating record count badge with loaded/total", async () => {
-        (api.searchEmployees as any).mockResolvedValue({
+ 
+        vi.mocked(api.searchEmployees).mockResolvedValue({
             data: [mockEmployee("1", "Alice Nguyen")],
             total: 10,
             page: 1,
             limit: 20,
-        });
+        } as unknown as PaginatedResponse<Employee>);
 
         renderPage();
         await screen.findByText("Alice Nguyen");
@@ -231,8 +248,10 @@ describe("EmployeesPage", () => {
 
         await waitFor(
             () => {
-                const calls = (api.searchEmployees as any).mock.calls;
-                const searchCall = calls.find((c: any[]) => c[1] === "Bob");
+ 
+                const calls = vi.mocked(api.searchEmployees).mock.calls;
+ 
+                const searchCall = calls.find((c) => c[1] === "Bob");
                 expect(searchCall).toBeDefined();
             },
             { timeout: 3000 }
@@ -314,15 +333,18 @@ describe("EmployeesPage", () => {
         renderPage();
         await screen.findByText("Alice Nguyen");
 
-        (api.searchEmployees as any).mockClear();
+ 
+        vi.mocked(api.searchEmployees).mockClear();
         const nameHeader = findHeaderByText("employees.table.name");
         await user.click(nameHeader);
 
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
-            const sortCall = calls.find((c: any[]) => c[4] === "name");
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
+ 
+            const sortCall = calls.find((c) => c[4] === "name");
             expect(sortCall).toBeDefined();
-            expect(sortCall[5]).toBe("asc");
+            expect(sortCall![5]).toBe("asc");
         });
     });
 
@@ -334,17 +356,22 @@ describe("EmployeesPage", () => {
         await user.click(findHeaderByText("employees.table.name"));
 
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
-            expect(calls.some((c: any[]) => c[4] === "name" && c[5] === "asc")).toBe(true);
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
+ 
+            expect(calls.some((c) => c[4] === "name" && c[5] === "asc")).toBe(true);
         }, { timeout: 3000 });
 
-        (api.searchEmployees as any).mockClear();
+ 
+        vi.mocked(api.searchEmployees).mockClear();
         // Re-query header since DOM is re-rendered after first click
         await user.click(findHeaderByText("employees.table.name"));
 
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
-            const descCall = calls.find((c: any[]) => c[4] === "name" && c[5] === "desc");
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
+ 
+            const descCall = calls.find((c) => c[4] === "name" && c[5] === "desc");
             expect(descCall).toBeDefined();
         }, { timeout: 3000 });
     });
@@ -354,15 +381,18 @@ describe("EmployeesPage", () => {
         renderPage();
         await screen.findByText("Alice Nguyen");
 
-        (api.searchEmployees as any).mockClear();
+ 
+        vi.mocked(api.searchEmployees).mockClear();
         const statusHeader = findHeaderByText("employees.table.status");
         await user.click(statusHeader);
 
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
-            const sortCall = calls.find((c: any[]) => c[4] === "status");
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
+ 
+            const sortCall = calls.find((c) => c[4] === "status");
             expect(sortCall).toBeDefined();
-            expect(sortCall[5]).toBe("asc");
+            expect(sortCall![5]).toBe("asc");
         });
     });
 
@@ -372,15 +402,18 @@ describe("EmployeesPage", () => {
         renderPage();
         await screen.findByText("Alice Nguyen");
 
-        (api.searchEmployees as any).mockClear();
+ 
+        vi.mocked(api.searchEmployees).mockClear();
         const deptHeader = findHeaderByText("common.department");
         await user.click(deptHeader);
 
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
-            const sortCall = calls.find((c: any[]) => c[4] === "department");
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
+ 
+            const sortCall = calls.find((c) => c[4] === "department");
             expect(sortCall).toBeDefined();
-            expect(sortCall[5]).toBe("asc");
+            expect(sortCall![5]).toBe("asc");
         });
     });
 
@@ -388,14 +421,15 @@ describe("EmployeesPage", () => {
     // Department filter (checkbox popover)
     // ────────────────────────────────────────────────────────────
 
-    const mockDepartments = [
-        { id: "dept-1", name: "Engineering", workspace_id: "test-ws-id" },
-        { id: "dept-2", name: "Sales", workspace_id: "test-ws-id" },
-        { id: "dept-3", name: "HR", workspace_id: "test-ws-id" },
+    const mockDepartments: Department[] = [
+        { id: "dept-1", name: "Engineering", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
+        { id: "dept-2", name: "Sales", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
+        { id: "dept-3", name: "HR", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
     ];
 
     it("renders department filter button in header", async () => {
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -405,7 +439,8 @@ describe("EmployeesPage", () => {
 
     it("opens filter popover and shows department checkboxes", async () => {
         const user = userEvent.setup();
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -422,7 +457,8 @@ describe("EmployeesPage", () => {
 
     it("sends department_id filter when selecting a department", async () => {
         const user = userEvent.setup();
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -431,20 +467,24 @@ describe("EmployeesPage", () => {
         await user.click(filterBtn);
 
         // Click "Engineering" checkbox
-        (api.searchEmployees as any).mockClear();
+ 
+        vi.mocked(api.searchEmployees).mockClear();
         const engOption = await screen.findByTestId("dept-filter-option-dept-1");
         await user.click(engOption);
 
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
-            const filterCall = calls.find((c: any[]) => Array.isArray(c[6]) && c[6].includes("dept-1"));
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
+ 
+            const filterCall = calls.find((c) => Array.isArray(c[6]) && c[6].includes("dept-1"));
             expect(filterCall).toBeDefined();
         });
     });
 
     it("sends multiple department_ids when selecting multiple departments", async () => {
         const user = userEvent.setup();
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -452,13 +492,16 @@ describe("EmployeesPage", () => {
         await user.click(screen.getByTestId("dept-filter-btn"));
 
         // Select Engineering and Sales in one popover session
-        (api.searchEmployees as any).mockClear();
+ 
+        vi.mocked(api.searchEmployees).mockClear();
         await user.click(await screen.findByTestId("dept-filter-option-dept-1"));
         await user.click(await screen.findByTestId("dept-filter-option-dept-2"));
 
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
-            const multiCall = calls.find((c: any[]) =>
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
+ 
+            const multiCall = calls.find((c) =>
                 Array.isArray(c[6]) && c[6].includes("dept-1") && c[6].includes("dept-2")
             );
             expect(multiCall).toBeDefined();
@@ -467,7 +510,8 @@ describe("EmployeesPage", () => {
 
     it("clears filter when clicking the chip X button", async () => {
         const user = userEvent.setup();
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -481,13 +525,16 @@ describe("EmployeesPage", () => {
         });
 
         // Click the filter chip to remove it
-        (api.searchEmployees as any).mockClear();
+ 
+        vi.mocked(api.searchEmployees).mockClear();
         await user.click(screen.getByTestId("dept-chip-dept-1"));
 
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
             // Should send undefined (no filter) when empty
-            const clearCall = calls.find((c: any[]) => c[6] === undefined);
+ 
+            const clearCall = calls.find((c) => c[6] === undefined);
             expect(clearCall).toBeDefined();
         });
     });
@@ -498,7 +545,8 @@ describe("EmployeesPage", () => {
 
     it("shows filter chips with department names when filter is active", async () => {
         const user = userEvent.setup();
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -517,7 +565,8 @@ describe("EmployeesPage", () => {
     });
 
     it("does not show filter chips when no filter is active", async () => {
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -526,7 +575,8 @@ describe("EmployeesPage", () => {
 
     it("shows badge count on filter icon matching selected count", async () => {
         const user = userEvent.setup();
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -545,7 +595,8 @@ describe("EmployeesPage", () => {
 
     it("clears all filters when clicking 'Xóa tất cả' in chips area", async () => {
         const user = userEvent.setup();
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -559,14 +610,17 @@ describe("EmployeesPage", () => {
         });
 
         // Click "Xóa tất cả" button
-        (api.searchEmployees as any).mockClear();
+ 
+        vi.mocked(api.searchEmployees).mockClear();
         const clearAllBtn = screen.getByText("Xóa tất cả");
         await user.click(clearAllBtn);
 
         // Filter should be cleared
         await waitFor(() => {
-            const calls = (api.searchEmployees as any).mock.calls;
-            expect(calls.some((c: any[]) => c[6] === undefined)).toBe(true);
+ 
+            const calls = vi.mocked(api.searchEmployees).mock.calls;
+ 
+            expect(calls.some((c) => c[6] === undefined)).toBe(true);
         });
         // Chips should disappear
         expect(screen.queryByTestId("active-filter-chips")).toBeNull();
@@ -574,7 +628,8 @@ describe("EmployeesPage", () => {
 
     it("does not show 'Xóa bộ lọc' button in popover when no filter is active", async () => {
         const user = userEvent.setup();
-        (api.fetchDepartments as any).mockResolvedValue(mockDepartments);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -589,7 +644,8 @@ describe("EmployeesPage", () => {
 
     it("shows empty state in popover when no departments exist", async () => {
         const user = userEvent.setup();
-        (api.fetchDepartments as any).mockResolvedValue([]);
+ 
+        vi.mocked(api.fetchDepartments).mockResolvedValue([] as unknown as Department[]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 

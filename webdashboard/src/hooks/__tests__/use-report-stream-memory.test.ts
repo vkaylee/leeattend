@@ -9,15 +9,27 @@ import { useReportStream } from "../use-report-stream";
  * keeping duplicate data in both ref and state.
  */
 describe("useReportStream Double-Buffering Fix", () => {
-    let capturedSocket: any;
+ 
+    let capturedSocket: {
+        readyState: number;
+        onopen: ((ev: { type: string }) => void) | null;
+        onmessage: ((ev: { data: string }) => void) | null;
+        onerror: ((ev: { type: string }) => void) | null;
+ 
+        onclose: ((ev: { code: number; reason: string }) => void) | null;
+ 
+        close: ReturnType<typeof vi.fn>;
+ 
+    } | null;
+ 
 
     function createMockWebSocket(_url: string) {
         const socket = {
             readyState: 0,
-            onopen: null as ((ev: any) => void) | null,
-            onmessage: null as ((ev: any) => void) | null,
-            onerror: null as ((ev: any) => void) | null,
-            onclose: null as ((ev: any) => void) | null,
+            onopen: null as ((ev: { type: string }) => void) | null,
+            onmessage: null as ((ev: { data: string }) => void) | null,
+            onerror: null as ((ev: { type: string }) => void) | null,
+            onclose: null as ((ev: { code: number; reason: string }) => void) | null,
             close: vi.fn(),
         };
         capturedSocket = socket;

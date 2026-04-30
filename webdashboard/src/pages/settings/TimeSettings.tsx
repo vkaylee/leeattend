@@ -361,7 +361,8 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                       { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
                     ]}
                     value={earlyArrivalStrategy}
-                    onChange={(v) => setEarlyArrivalStrategy(v as any)}
+ 
+                    onChange={(v) => setEarlyArrivalStrategy(v as "block" | "allow" | "clamp")}
                     className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
                   />
                 </div>

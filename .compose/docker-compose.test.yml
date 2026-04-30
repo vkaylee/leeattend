@@ -33,6 +33,8 @@ services:
       - test_net
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
     environment:
+      TZ: Asia/Bangkok
+      PGTZ: Asia/Bangkok
       POSTGRES_DB: test_database
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: test_password

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -38,7 +38,8 @@ export interface StatusBadgeProps {
   className?: string;
 }
 
-const StatusBadge = React.memo(function StatusBadge({
+ 
+const StatusBadge = memo(function StatusBadge({
   variant = "neutral",
   children,
   icon,

@@ -14,7 +14,7 @@ export async function login(username: string, password: string): Promise<AuthRes
       if (errorData?.error?.message) {
         errorMessage = errorData.error.message;
       }
-    } catch (__e) {
+    } catch {
       // Ignore JSON parse errors and use default message
     }
     throw new Error(errorMessage);

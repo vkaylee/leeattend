@@ -1,7 +1,6 @@
 import { useState } from "react";
 
-import { _X, Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
-import { _createPortal } from "react-dom";
+import { Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 
@@ -59,7 +58,8 @@ export default function RoleManagementModal({
       variant: "danger"
     });
     if (!ok) return;
-    try { await updatePrimaryRole(roleId); } catch (e: any) { console.error(e); }
+    try { await updatePrimaryRole(roleId); } catch (e: unknown) { console.error(e); }
+ 
   }
 
   async function handleAssign(e: React.FormEvent) {

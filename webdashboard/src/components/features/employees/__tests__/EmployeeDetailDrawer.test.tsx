@@ -27,6 +27,22 @@ vi.mock("@/components/payroll/EmployeeSalaryConfig", () => ({
 vi.mock("@/components/employees/WorkingConditionConfig", () => ({
     default: () => <div data-testid="working-condition">WorkingCondition</div>,
 }));
+
+const mockMembers = [
+    {
+        workspace_id: "ws-1",
+        user_id: "user-123",
+        role_id: "role-1",
+        email: "alice@example.com",
+        full_name: "Alice User",
+        avatar_url: undefined,
+        extra_role_ids: [],
+    },
+];
+
+vi.mock("@/lib/api", () => ({
+    fetchWorkspaceMembers: vi.fn(() => Promise.resolve(mockMembers)),
+}));
 vi.mock("@/hooks/use-permissions", () => ({
     useMyPermissions: () => ({
         hasPermission: () => true,
@@ -56,6 +72,13 @@ const terminatedEmployee: Employee = {
     id: "emp-2",
     full_name: "Bob Tran",
     is_active: false,
+};
+
+const linkedEmployee: Employee = {
+    ...mockEmployee,
+    id: "emp-3",
+    full_name: "Charlie Le",
+    user_id: "user-123",
 };
 
 const mockDepartments = [
@@ -232,6 +255,19 @@ describe("EmployeeDetailDrawer", () => {
     it("displays formatted hire date", () => {
         renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
         expect(screen.getByText("2024-06-15")).toBeDefined();
+    });
+
+    // ── Linked user section ────────────────────────────────────
+
+    it("shows dash when employee has no linked user", () => {
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} />);
+        expect(screen.getByText("—")).toBeDefined();
+    });
+
+    it("shows linked user name and email when employee has a user_id", async () => {
+        renderWithClient(<EmployeeDetailDrawer {...defaultProps} employee={linkedEmployee} />);
+        expect(await screen.findByText("Alice User")).toBeDefined();
+        expect(screen.getByText("alice@example.com")).toBeDefined();
     });
 
     // ── Keyboard tab navigation ────────────────────────────────

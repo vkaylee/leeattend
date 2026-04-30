@@ -4,12 +4,9 @@ import * as Popover from "@radix-ui/react-popover";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
-  _UserCircle,
   Building2,
   UserPlus,
   Upload,
-  History as _HistoryIcon,
-  Calendar as _CalendarIcon,
   ArrowUpDown,
   ChevronUp,
   ChevronDown,
@@ -30,9 +27,6 @@ import EmploymentHistoryModal from "@/components/features/employees/EmploymentHi
 import RehireEmployeeModal from "@/components/features/employees/RehireEmployeeModal";
 import TransferEmployeeModal from "@/components/features/employees/TransferEmployeeModal";
 import Button from "@/components/ui/Button";
-import { _Combobox } from "@/components/ui/Combobox";
-import _FormField from "@/components/ui/FormField";
-import _Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
@@ -86,7 +80,7 @@ export default function EmployeesPage() {
       url.searchParams.delete("enrollment_id");
       window.history.replaceState({}, "", url.toString());
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional: effect should only fire when listed deps change
   }, []);
 
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);

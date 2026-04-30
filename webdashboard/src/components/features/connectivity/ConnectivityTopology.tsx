@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 
-import { Plus, Share2, Server, _HardDrive, AlertCircle, Cpu, _Pencil, Lock, Save } from "lucide-react";
+import { Plus, Share2, Server, AlertCircle, Cpu, Lock, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import AgentEditModal from "@/components/features/agents/AgentEditModal";
@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 
 import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
-import { AuthorizedAgent, Device } from "@/lib/api";
+import { AuthorizedAgent, Device, DeviceStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import AgentAccordionCard from "./AgentAccordionCard";
@@ -30,7 +30,6 @@ export default function ConnectivityTopology() {
     createAgent,
     updateTrust,
     deleteAgent,
-    _updateAgent,
     sendCommand
   } = useAuthorizedAgents();
 
@@ -47,7 +46,8 @@ export default function ConnectivityTopology() {
 
   // Create a flattened map of device_id -> status
   const deviceStatuses = useMemo(() => {
-    const map: Record<string, any> = {};
+    const map: Record<string, DeviceStatus> = {};
+ 
     agentsStatus.forEach(a => {
       a.devices.forEach(d => {
         map[d.device_id.toLowerCase()] = d;
@@ -70,10 +70,11 @@ export default function ConnectivityTopology() {
       toast.success(t("devices.toast.refresh_sent"));
       // Refresh status after a short delay
       setTimeout(refetchStatus, 2000);
-    } catch (e: any) {
+    } catch (e: unknown) {
+ 
       console.error("Refresh failed:", e);
-      const msg = e?.message || "";
-      toast.error(`${t("devices.toast.refresh_error")} (${msg})`);
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(`${t("devices.toast.refresh_error")} ${msg ? `(${msg})` : ""}`);
     }
   }
 

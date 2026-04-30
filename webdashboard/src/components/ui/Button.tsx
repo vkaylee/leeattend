@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, forwardRef } from "react";
 
 import { Loader2 } from "lucide-react";
 
@@ -39,8 +39,10 @@ export interface ButtonProps
   children: React.ReactNode;
 }
 
-const Button = React.memo(
-  React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+ 
+const Button = memo(
+ 
+  forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     {
       variant = "primary",
       size = "md",

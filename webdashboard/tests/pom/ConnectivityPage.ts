@@ -16,6 +16,8 @@ export class ConnectivityPage extends BasePage {
   async waitForLoad() {
     console.log(`[ConnectivityPage] Waiting for load at: ${this.page.url()}`);
     await expect(this.page.getByTestId('connectivity-topology')).toBeVisible({ timeout: 30000 });
+    // Wait for either the agent list or the empty state to be visible (meaning data has finished loading)
+    await expect(this.page.locator('[data-testid="agents-list"], [data-testid="empty-agents-state"]')).toBeVisible({ timeout: 15000 });
   }
 
   // Agent operations

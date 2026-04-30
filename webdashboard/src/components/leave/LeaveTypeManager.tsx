@@ -2,7 +2,6 @@ import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Wallet, AlertTriangle, Pencil, Plus, Trash2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
@@ -16,7 +15,6 @@ interface LeaveTypeManagerProps {
 }
 
 export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
-  const { _t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
   
@@ -94,8 +92,9 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         ))}
       </div>
 
-      {isAddingType && <AddLeaveTypeModal onClose={() => setIsAddingType(false)} onSave={(data: any) => createTypeMutation.mutate(data)} isSaving={createTypeMutation.isPending} />}
+      {isAddingType && <AddLeaveTypeModal onClose={() => setIsAddingType(false)} onSave={(data) => createTypeMutation.mutate(data)} isSaving={createTypeMutation.isPending} />}
       {editingType && <EditLeaveTypeModal leaveType={editingType} onClose={() => setEditingType(null)} onSave={(config: LeaveTypeConfig) => updateTypeMutation.mutate({ typeId: editingType.id, config })} isSaving={updateTypeMutation.isPending} />}
+      { }
       {deletingType && (
         <Modal isOpen={true} onClose={() => setDeletingType(null)} title="Confirm Delete">
           <div className="p-8">
@@ -108,26 +107,42 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
   );
 }
 
-function AddLeaveTypeModal({ onClose, onSave, isSaving }: any) {
+interface AddLeaveTypeModalProps {
+  onClose: () => void;
+ 
+  onSave: (data: { code: string; name: string; is_paid: boolean }) => void;
+  isSaving: boolean;
+}
+
+function AddLeaveTypeModal({ onClose, onSave, isSaving }: AddLeaveTypeModalProps) {
   const [formData, setFormData] = useState({ code: "", name: "", is_paid: true });
   return (
+ 
     <Modal isOpen={true} onClose={onClose} title="Add Leave Type">
       <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="p-8 space-y-5">
         <input required type="text" placeholder="Code" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })} className="w-full rounded-2xl border p-4 text-sm" />
         <input required type="text" placeholder="Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-2xl border p-4 text-sm" />
-        <div className="flex items-center gap-3"><input type="checkbox" checked={formData.is_paid} onChange={(e) => setFormData({ ...formData, is_paid: e.target.checked })} /><label className="text-xs font-bold uppercase">Paid Leave?</label></div>
+        <div className="flex items-center gap-3"><input id="paid-leave-input" type="checkbox" checked={formData.is_paid} onChange={(e) => setFormData({ ...formData, is_paid: e.target.checked })} /><label htmlFor="paid-leave-input" className="text-xs font-bold uppercase">Paid Leave?</label></div>
         <div className="flex justify-end gap-3 pt-6"><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-primary-600 px-8 py-3 text-xs font-bold text-white uppercase">Create</button></div>
       </form>
+      { }
     </Modal>
   );
 }
 
-function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: any) {
+interface EditLeaveTypeModalProps {
+  leaveType: LeaveType;
+  onClose: () => void;
+  onSave: (config: LeaveTypeConfig) => void;
+  isSaving: boolean;
+}
+
+function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveTypeModalProps) {
   const [config, setConfig] = useState(leaveType.policy_config || { approval_required: true, requires_document: false, allow_negative_balance: false });
   return (
     <Modal isOpen={true} onClose={onClose} title={`Config: ${leaveType.name}`}>
       <form onSubmit={(e) => { e.preventDefault(); onSave(config); }} className="p-8 space-y-4">
-        <label className="flex items-center gap-3"><input type="checkbox" checked={config.approval_required} onChange={(e) => setConfig({ ...config, approval_required: e.target.checked })} /><span className="text-xs font-bold uppercase">Approval Required</span></label>
+        <div className="flex items-center gap-3"><input id="approval-req-input" type="checkbox" checked={config.approval_required} onChange={(e) => setConfig({ ...config, approval_required: e.target.checked })} /><label htmlFor="approval-req-input" className="text-xs font-bold uppercase">Approval Required</label></div>
         <div className="flex justify-end gap-3 pt-6"><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-primary-600 px-8 py-3 text-xs font-bold text-white uppercase">Save</button></div>
       </form>
     </Modal>

@@ -1,20 +1,22 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, _fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
+import { Employee, PaginatedResponse, AttendanceAdjustmentRequest } from "../../lib/api/types";
 import AttendanceAdjustmentsPage from "../AttendanceAdjustmentsPage";
 
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
+ 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock the API library
@@ -49,17 +51,20 @@ describe("AttendanceAdjustmentsPage", () => {
           staleTime: 0,
         },
       },
+ 
     });
-    (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchEmployees as any).mockResolvedValue({
+ 
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
+    vi.mocked(api.fetchEmployees).mockResolvedValue({
       data: [
         { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, hire_date: "2025-01-01", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }
       ],
       total: 1,
       page: 1,
       limit: 50,
-    });
-    (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([
+ 
+    } as unknown as PaginatedResponse<Employee>);
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([
       { 
         id: "adj-1", 
         employee_id: "emp-1", 
@@ -69,7 +74,7 @@ describe("AttendanceAdjustmentsPage", () => {
         status: "pending", 
         reason: "Forgot to punch" 
       }
-    ]);
+    ] as unknown as AttendanceAdjustmentRequest[]);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -89,8 +94,9 @@ describe("AttendanceAdjustmentsPage", () => {
   });
 
   it("handles approve action", async () => {
+ 
     const user = userEvent.setup();
-    (api.approveAttendanceAdjustment as any).mockResolvedValue({});
+    vi.mocked(api.approveAttendanceAdjustment).mockResolvedValue(undefined as unknown as void);
 
     renderWithProviders(<AttendanceAdjustmentsPage />);
     

@@ -52,10 +52,14 @@ describe("LeaveSettings Page", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (helpers.getCurrentWorkspaceId as any).mockReturnValue(wsId);
-    (api.fetchLeaveTypes as any).mockResolvedValue([]);
-    (api.fetchLeavePolicies as any).mockResolvedValue([]);
-    (api.fetchLeavePolicyAssignments as any).mockResolvedValue(mockAssignments);
+ 
+    vi.mocked(helpers.getCurrentWorkspaceId).mockReturnValue(wsId);
+ 
+    vi.mocked(api.fetchLeaveTypes).mockResolvedValue([] as never);
+ 
+    vi.mocked(api.fetchLeavePolicies).mockResolvedValue([] as never);
+ 
+    vi.mocked(api.fetchLeavePolicyAssignments).mockResolvedValue(mockAssignments as never);
   });
 
   it("renders all three main tabs", () => {

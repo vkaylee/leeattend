@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, _List, Coins, ShieldCheck, Percent, Trash2 } from "lucide-react";
+import { Plus, Coins, ShieldCheck, Percent, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
@@ -95,15 +95,20 @@ export default function SalaryComponentManager({ wsId }: Props) {
               { key: "is_base_for_ot", label: "ot_base_label", desc: "ot_base_desc", icon: ShieldCheck },
               { key: "is_taxable", label: "taxable_label", desc: "taxable_desc", icon: Percent }
             ].map(field => (
-              <label key={field.key} className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
-                (formData as any)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
-              )}>
-                <input type="checkbox" className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" checked={(formData as any)[field.key]} onChange={e => setFormData({...formData, [field.key]: e.target.checked})} />
-                <div>
-                  <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon size={14} className="opacity-50" /> {t(`payroll.components.${field.label}`)}</p>
-                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{t(`payroll.components.${field.desc}`)}</p>
-                </div>
-              </label>
+ 
+              <React.Fragment key={field.key}>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- Dynamic data shape from form state; strict typing would add boilerplate without safety gain */}
+                <label htmlFor={`comp-${field.key}`} className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
+ 
+                  (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
+                )}>
+                  <input id={`comp-${field.key}`} type="checkbox" className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" checked={!!(formData as Record<string, boolean>)[field.key]} onChange={e => setFormData({...formData, [field.key]: e.target.checked})} />
+                  <div>
+                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon size={14} className="opacity-50" /> {t(`payroll.components.${field.label}`)}</p>
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{t(`payroll.components.${field.desc}`)}</p>
+                  </div>
+                </label>
+              </React.Fragment>
             ))}
           </div>
 

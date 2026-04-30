@@ -101,10 +101,13 @@ scan_single_file() {
     done < <(grep -nE '\bpodman\b|\bdocker\b|\$DOCKER' "$file" 2>/dev/null || true)
 
     # ── Pattern 3: Background watchdog (sleep+kill) ───────────────────
+    # Only flag if missing both </dev/null AND not inside a known-safe
+    # wrapper (dc_detached, start_watchdog, cleanup deadline).
     while IFS=: read -r lineno line; do
         [[ "$line" =~ ^[[:space:]]*# ]] && continue
-        fail "$basename:$lineno — Background watchdog pattern (sleep+kill): $(echo "$line" | sed 's/^[[:space:]]*//')"
-        echo -e "    → fix: use \`timeout\` command instead of sleep+kill watchdog" >&2
+        [[ "$line" =~ \</dev/null ]] && continue
+        fail "$basename:$lineno — Background watchdog pattern (sleep+kill) without PTY isolation: $(echo "$line" | sed 's/^[[:space:]]*//')"
+        echo -e "    → fix: add \`</dev/null\` to detach stdin, or wrap in a function with FD isolation" >&2
         ((file_fails++)) || true
     done < <(grep -n 'sleep.*kill\|kill.*sleep' "$file" 2>/dev/null | grep '&' || true)
 

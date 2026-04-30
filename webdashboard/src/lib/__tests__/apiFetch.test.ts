@@ -15,7 +15,8 @@ describe("apiFetch utility", () => {
   });
 
   it("should setup a timeout via AbortController", async () => {
-    (fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+ 
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
 
     await apiFetch("/test");
 
@@ -28,7 +29,8 @@ describe("apiFetch utility", () => {
   });
 
   it("should set Content-Type to application/json by default", async () => {
-    (fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+ 
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
 
     await apiFetch("/test", { method: "POST", body: JSON.stringify({ data: 1 }) });
 
@@ -43,24 +45,24 @@ describe("apiFetch utility", () => {
   });
 
   it("should not set Content-Type if body is FormData", async () => {
-    (fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+ 
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
 
-    const formData = new FormData();
-    formData.append("file", new Blob(["test"]), "test.txt");
+    await apiFetch("/test", { method: "POST", body: new FormData() });
 
-    await apiFetch("/test", { method: "POST", body: formData });
-
-    const callHeaders = (fetch as any).mock.calls[0][1].headers;
+    const callHeaders = (vi.mocked(fetch).mock.calls[0][1] as RequestInit).headers as Record<string, string>;
     expect(callHeaders["Content-Type"]).toBeUndefined();
   });
 
   it("should include X-Workspace-Id if available in localStorage", async () => {
+ 
     localStorage.setItem("active_workspace_id", "ws-123");
-    (fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
 
     await apiFetch("/test");
 
     expect(fetch).toHaveBeenCalledWith(
+ 
       expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -72,11 +74,12 @@ describe("apiFetch utility", () => {
 
   it("should include Authorization header if token is available", async () => {
     localStorage.setItem("access_token", "token-abc");
-    (fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
 
     await apiFetch("/test");
 
     expect(fetch).toHaveBeenCalledWith(
+ 
       expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -110,11 +113,12 @@ describe("apiFetch utility", () => {
     });
 
     it("should clear auth session and redirect on 401 response", async () => {
-      (fetch as any).mockResolvedValue({ status: 401, ok: false });
+      vi.mocked(fetch).mockResolvedValue({ status: 401, ok: false } as unknown as Response);
 
       await expect(apiFetch("/test")).rejects.toThrow("Session expired");
 
       // Verify all auth keys are cleared
+ 
       expect(localStorage.getItem("access_token")).toBeNull();
       expect(localStorage.getItem("refresh_token")).toBeNull();
       expect(localStorage.getItem("active_user_id")).toBeNull();
@@ -126,11 +130,12 @@ describe("apiFetch utility", () => {
 
     it("should not redirect if already on login page", async () => {
       window.location.pathname = "/login";
-      (fetch as any).mockResolvedValue({ status: 401, ok: false });
+      vi.mocked(fetch).mockResolvedValue({ status: 401, ok: false } as unknown as Response);
 
       await expect(apiFetch("/test")).rejects.toThrow("Session expired");
 
       // Auth should still be cleared
+ 
       expect(localStorage.getItem("access_token")).toBeNull();
 
       // Should NOT set href when already on /login
@@ -138,11 +143,12 @@ describe("apiFetch utility", () => {
     });
 
     it("should throw error to stop caller execution on 401", async () => {
-      (fetch as any).mockResolvedValue({ status: 401, ok: false });
+      vi.mocked(fetch).mockResolvedValue({ status: 401, ok: false } as unknown as Response);
 
       const promise = apiFetch("/test");
 
       await expect(promise).rejects.toThrow("Session expired");
+ 
     });
   });
 });

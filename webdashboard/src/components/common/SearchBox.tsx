@@ -8,7 +8,7 @@ interface SearchBoxProps {
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
-    autoFocus?: boolean;
+
     inputRef?: React.RefObject<HTMLInputElement | null>;
     onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
     className?: string;
@@ -19,7 +19,7 @@ export default function SearchBox({
     value,
     onChange,
     placeholder = "Search...",
-    autoFocus = true,
+
     inputRef,
     onKeyDown,
     className,
@@ -34,14 +34,15 @@ export default function SearchBox({
             <input
                 ref={inputRef}
                 data-testid={testId}
-                autoFocus={autoFocus}
+ 
+
                 type="text"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 onKeyDown={onKeyDown}
                 onFocus={(e) => e.target.select()}
                 placeholder={placeholder}
-                className="w-full pl-14 pr-12 py-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 dark:focus:border-primary-700 transition-all shadow-sm uppercase tracking-tight"
+                className="w-full pl-14 pr-12 py-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 dark:focus:border-primary-700 transition-all shadow-sm tracking-tight"
             />
             {value && (
                 <button

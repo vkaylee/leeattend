@@ -43,10 +43,21 @@ describe("OnboardingPage", () => {
   });
 
   it("handles logout to prevent regression", async () => {
-    // Mock window.location
+    const locationMock = new URL("http://localhost/");
     const originalLocation = window.location;
-    delete (window as any).location;
-    window.location = { ...originalLocation, href: "http://localhost/" } as any;
+ 
+    
+ 
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        ...originalLocation,
+        href: locationMock.href,
+        assign: vi.fn(),
+        replace: vi.fn(),
+        reload: vi.fn(),
+      },
+    });
     
     // Set dummy localStorage to verify it gets cleared
     localStorage.setItem("test_key", "test_value");
@@ -59,6 +70,7 @@ describe("OnboardingPage", () => {
 
     // Click logout
     fireEvent.click(logoutBtn);
+ 
 
     // Verify localStorage was cleared
     expect(localStorage.getItem("test_key")).toBeNull();
@@ -68,6 +80,9 @@ describe("OnboardingPage", () => {
     expect(window.location.href).toBe(ROUTES.LOGIN);
 
     // Restore window.location
-    (window as any).location = originalLocation;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: originalLocation,
+    });
   });
 });

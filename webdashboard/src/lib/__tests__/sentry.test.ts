@@ -8,7 +8,8 @@ vi.mock("@sentry/react", () => ({
   init: mockInit,
   browserTracingIntegration: mockBrowserTracingIntegration,
   replayIntegration: mockReplayIntegration,
-  ErrorBoundary: ({ children }: any) => children,
+ 
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 describe("initSentry", () => {
@@ -22,7 +23,8 @@ describe("initSentry", () => {
   });
 
   it("returns false when VITE_SENTRY_DSN is not set", async () => {
-    vi.stubEnv("VITE_SENTRY_DSN", undefined as any);
+ 
+    vi.stubEnv("VITE_SENTRY_DSN", undefined as unknown as string);
     const { initSentry } = await import("../sentry");
 
     const result = initSentry();

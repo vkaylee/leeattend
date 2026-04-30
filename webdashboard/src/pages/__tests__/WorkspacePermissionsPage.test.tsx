@@ -1,7 +1,7 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, _within, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -9,11 +9,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useMyPermissions } from "../../hooks/use-permissions";
 import { useWorkspaceRoles, useWorkspacePermissionsMatrix } from "../../hooks/use-workspace";
 import * as api from "../../lib/api";
+import { WorkspaceRole } from "../../lib/api/types";
 import WorkspacePermissionsPage from "../workspace/WorkspacePermissionsPage";
 
 vi.mock("react-i18next", () => ({
+ 
     useTranslation: () => ({
-        t: (key: string, options?: any) => {
+        t: (key: string, options?: { defaultValue?: string }) => {
             if (options && typeof options === 'object' && options.defaultValue) {
                 return options.defaultValue;
             }
@@ -60,27 +62,40 @@ describe("WorkspacePermissionsPage", () => {
             defaultOptions: { queries: { retry: false } },
         });
         mockRefetch = vi.fn();
+ 
 
-        (useWorkspaceRoles as any).mockReturnValue({
-            roles: [SYSTEM_ROLE, CUSTOM_ROLE],
+        vi.mocked(useWorkspaceRoles).mockReturnValue({
+            roles: [SYSTEM_ROLE, CUSTOM_ROLE] as unknown as WorkspaceRole[],
             isLoading: false,
-        });
+            createRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+ 
+            isCreating: false,
+            updateRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+            isUpdating: false,
+            deleteRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+            isDeleting: false,
+        } as unknown as ReturnType<typeof useWorkspaceRoles>);
 
-        (useWorkspacePermissionsMatrix as any).mockReturnValue({
+        vi.mocked(useWorkspacePermissionsMatrix).mockReturnValue({
             matrix: buildMatrix(
+ 
                 ["workspace:update", "members:roles:manage", "employees:read", "payroll:read", "audit_logs:read"],
                 ["employees:read", "leave:approve:l1"],
             ),
             isLoading: false,
-            refetch: mockRefetch,
-        });
+            refetch: mockRefetch as unknown as () => Promise<unknown>,
+        } as unknown as ReturnType<typeof useWorkspacePermissionsMatrix>);
 
-        (useMyPermissions as any).mockReturnValue({
+        vi.mocked(useMyPermissions).mockReturnValue({
             hasPermission: (p: string) => p === "members:roles:manage",
             hasAnyPermission: () => true,
             hasScopedPermission: () => true,
+            hasRole: () => true,
             isLoading: false,
-        });
+            permissions: ["members:roles:manage"],
+            roles: ["admin"],
+            managedDepartmentIds: null
+        } as unknown as ReturnType<typeof useMyPermissions>);
     });
 
     const renderPage = () =>
@@ -159,6 +174,7 @@ describe("WorkspacePermissionsPage", () => {
             renderPage();
             expect(screen.getByText("System")).toBeDefined();
         });
+ 
 
         it("marks custom role with 'Custom' badge", () => {
             renderPage();
@@ -169,35 +185,50 @@ describe("WorkspacePermissionsPage", () => {
     // ─── Loading State ─────────────────────────────────────────
 
     describe("loading state", () => {
+ 
         it("shows spinner when roles are loading", () => {
-            (useWorkspaceRoles as any).mockReturnValue({
+        vi.mocked(useWorkspaceRoles).mockReturnValue({
                 roles: [],
                 isLoading: true,
-            });
+                createRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+                isCreating: false,
+                updateRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+                isUpdating: false,
+                deleteRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+                isDeleting: false,
+            } as unknown as ReturnType<typeof useWorkspaceRoles>);
             renderPage();
             // Should not render checkboxes
             expect(screen.queryAllByRole("checkbox").length).toBe(0);
+ 
         });
 
         it("shows spinner when matrix is loading", () => {
-            (useWorkspacePermissionsMatrix as any).mockReturnValue({
+            vi.mocked(useWorkspacePermissionsMatrix).mockReturnValue({
                 matrix: {},
                 isLoading: true,
-                refetch: mockRefetch,
-            });
+                refetch: mockRefetch as unknown as () => Promise<unknown>,
+            } as unknown as ReturnType<typeof useWorkspacePermissionsMatrix>);
             renderPage();
             expect(screen.queryAllByRole("checkbox").length).toBe(0);
         });
     });
+ 
 
     // ─── Access Control ────────────────────────────────────────
 
     describe("access control", () => {
         it("disables ALL checkboxes when user lacks members:roles:manage", () => {
-            (useMyPermissions as any).mockReturnValue({
+            vi.mocked(useMyPermissions).mockReturnValue({
                 hasPermission: () => false,
+                hasAnyPermission: () => false,
+                hasScopedPermission: () => false,
+                hasRole: () => false,
                 isLoading: false,
-            });
+                permissions: [],
+                roles: [],
+                managedDepartmentIds: null
+            } as unknown as ReturnType<typeof useMyPermissions>);
 
             renderPage();
             const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
@@ -206,10 +237,16 @@ describe("WorkspacePermissionsPage", () => {
         });
 
         it("hides Save Matrix button when user lacks permission", () => {
-            (useMyPermissions as any).mockReturnValue({
+            vi.mocked(useMyPermissions).mockReturnValue({
                 hasPermission: () => false,
+                hasAnyPermission: () => false,
+                hasScopedPermission: () => false,
+                hasRole: () => false,
                 isLoading: false,
-            });
+                permissions: [],
+                roles: [],
+                managedDepartmentIds: null
+            } as unknown as ReturnType<typeof useMyPermissions>);
 
             renderPage();
             expect(screen.queryByText("Save Matrix")).toBeNull();
@@ -302,7 +339,7 @@ describe("WorkspacePermissionsPage", () => {
                 expect(api.updateRolePermissions).toHaveBeenCalledWith(
                     "ws-1",
                     CUSTOM_ROLE.id,
-                    expect.any(Array),
+                    expect.any(Array) as unknown as string[],
                 );
             });
         });

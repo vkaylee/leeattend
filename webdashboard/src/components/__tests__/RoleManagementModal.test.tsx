@@ -53,11 +53,13 @@ describe("RoleManagementModal", () => {
         },
       },
     });
-    (api.fetchMemberRoles as any).mockResolvedValue({
+ 
+    vi.mocked(api.fetchMemberRoles).mockResolvedValue({
       primary: EMPLOYEE_ROLE_ID,
       extra: []
-    });
-    (api.fetchWorkspaceRoles as any).mockResolvedValue(mockWorkspaceRoles);
+    } as unknown as never);
+ 
+    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockWorkspaceRoles as unknown as never);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -88,7 +90,8 @@ describe("RoleManagementModal", () => {
 
   it("handles updating primary role with UUID", async () => {
     const user = userEvent.setup();
-    (api.updateWorkspaceMemberRole as any).mockResolvedValue({});
+ 
+    vi.mocked(api.updateWorkspaceMemberRole).mockResolvedValue({} as never);
     renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
 
     // Wait for roles to load
@@ -111,7 +114,8 @@ describe("RoleManagementModal", () => {
 
   it("handles assigning extra role with UUID", async () => {
     const user = userEvent.setup();
-    (api.assignExtraRole as any).mockResolvedValue({});
+ 
+    vi.mocked(api.assignExtraRole).mockResolvedValue({} as never);
     renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
 
     // Wait for roles to load
@@ -140,11 +144,13 @@ describe("RoleManagementModal", () => {
 
   it("handles revoking extra role with role_id", async () => {
     const user = userEvent.setup();
-    (api.fetchMemberRoles as any).mockResolvedValue({
+ 
+    vi.mocked(api.fetchMemberRoles).mockResolvedValue({
       primary: EMPLOYEE_ROLE_ID,
       extra: [{ id: "extra-role-1", role_id: ADMIN_ROLE_ID, workspace_id: "test-ws-id", user_id: "user-1", assigned_at: "2026-01-01T00:00:00Z", expires_at: "2027-01-01T00:00:00Z" }]
-    });
-    (api.revokeExtraRole as any).mockResolvedValue({});
+    } as unknown as never);
+ 
+    vi.mocked(api.revokeExtraRole).mockResolvedValue({} as never);
 
     renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
 
@@ -167,10 +173,11 @@ describe("RoleManagementModal", () => {
   });
 
   it("filters out primary role and existing extra roles from available options", async () => {
-    (api.fetchMemberRoles as any).mockResolvedValue({
+ 
+    vi.mocked(api.fetchMemberRoles).mockResolvedValue({
       primary: EMPLOYEE_ROLE_ID,
       extra: [{ id: "extra-1", role_id: ADMIN_ROLE_ID, workspace_id: "test-ws-id", user_id: "user-1", assigned_at: "", expires_at: "2027-01-01T00:00:00Z" }]
-    });
+    } as unknown as never);
 
     renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
 

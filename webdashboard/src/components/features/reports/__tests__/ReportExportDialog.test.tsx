@@ -27,6 +27,7 @@ vi.mock("@/hooks/use-report-stream", () => ({
 
 // Mock Modal component
 vi.mock("@/components/ui/Modal", () => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   default: ({ isOpen, title, children, ...props }: any) =>
     isOpen ? (
       <div data-testid="modal" {...props}>
@@ -77,12 +78,15 @@ describe("ReportExportDialog - Integration Tests", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useReportStream as any).mockReturnValue(mockStreamHook());
-    (attendanceApi.createReportExportJob as any).mockResolvedValue({
+ 
+    (useReportStream as import("vitest").Mock).mockReturnValue(mockStreamHook());
+ 
+    (attendanceApi.createReportExportJob as import("vitest").Mock).mockResolvedValue({
       job_id: "job-123",
       total_batches: 5,
     });
-    (attendanceApi.fetchExportJobStatus as any).mockResolvedValue({
+ 
+    (attendanceApi.fetchExportJobStatus as import("vitest").Mock).mockResolvedValue({
       status: "processing",
       progress: { percentage: 50, completed_batches: 2 },
     });
@@ -164,7 +168,8 @@ describe("ReportExportDialog - Integration Tests", () => {
     it("should pass jobId to useReportStream hook for WebSocket connection", async () => {
       const user = userEvent.setup();
 
-      (attendanceApi.createReportExportJob as any).mockResolvedValue({
+ 
+      (attendanceApi.createReportExportJob as import("vitest").Mock).mockResolvedValue({
         job_id: "test-job-456",
         total_batches: 3,
       });
@@ -217,7 +222,9 @@ describe("ReportExportDialog - Integration Tests", () => {
       const user = userEvent.setup();
 
       // Mock WebSocket status changes
-      (useReportStream as any).mockImplementation(({ jobId }: any) => {
+ 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         // Simulate connecting -> streaming transition
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
@@ -268,7 +275,9 @@ describe("ReportExportDialog - Integration Tests", () => {
 
   describe("Progress Updates", () => {
     it("should display progress bar during streaming", async () => {
-      (useReportStream as any).mockImplementation(({ jobId }: any) => {
+ 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
           progress: 50,
@@ -289,7 +298,9 @@ describe("ReportExportDialog - Integration Tests", () => {
     });
 
     it("should update progress fill width based on stream progress", async () => {
-      (useReportStream as any).mockImplementation(({ jobId }: any) => {
+ 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
           progress: 65,
@@ -333,7 +344,8 @@ describe("ReportExportDialog - Integration Tests", () => {
     });
 
     it("should display fallback notification when polling", async () => {
-      (useReportStream as any).mockImplementation(() =>
+ 
+      (useReportStream as import("vitest").Mock).mockImplementation(() =>
         mockStreamHook({
           status: "streaming",
           progress: 30,
@@ -359,7 +371,8 @@ describe("ReportExportDialog - Integration Tests", () => {
     it("should display error message when WebSocket fails", async () => {
       const errorMessage = "Connection timeout";
 
-      (useReportStream as any).mockImplementation(() =>
+ 
+      (useReportStream as import("vitest").Mock).mockImplementation(() =>
         mockStreamHook({
           status: "error",
           error: errorMessage,
@@ -382,7 +395,8 @@ describe("ReportExportDialog - Integration Tests", () => {
     });
 
     it("should show retry button when export fails", async () => {
-      (useReportStream as any).mockImplementation(() =>
+ 
+      (useReportStream as import("vitest").Mock).mockImplementation(() =>
         mockStreamHook({
           status: "error",
           error: "Export failed",
@@ -405,7 +419,8 @@ describe("ReportExportDialog - Integration Tests", () => {
     });
 
     it("should handle API error during job creation", async () => {
-      (attendanceApi.createReportExportJob as any).mockRejectedValue(
+ 
+      (attendanceApi.createReportExportJob as import("vitest").Mock).mockRejectedValue(
         new Error("Server error")
       );
 
@@ -453,7 +468,9 @@ describe("ReportExportDialog - Integration Tests", () => {
     it("should handle background button to run export in background", async () => {
       const user = userEvent.setup();
 
-      (useReportStream as any).mockImplementation(({ jobId }: any) => {
+ 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
           progress: 20,
@@ -512,7 +529,9 @@ describe("ReportExportDialog - Integration Tests", () => {
     });
 
     it("should have accessible progress bar structure", async () => {
-      (useReportStream as any).mockImplementation(({ jobId }: any) => {
+ 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
           progress: 50,

@@ -34,7 +34,8 @@ describe("useAuthorizedAgents hook", () => {
 
   it("fetches only active agents by default", async () => {
     const mockAgents = [{ id: "A1", is_active: true }];
-    (api.fetchAuthorizedAgents as any).mockResolvedValue(mockAgents);
+ 
+    vi.mocked(api.fetchAuthorizedAgents).mockResolvedValue(mockAgents as unknown as never);
 
     const { result } = renderHook(() => useAuthorizedAgents(), {
       wrapper: createWrapper(),
@@ -46,7 +47,8 @@ describe("useAuthorizedAgents hook", () => {
   });
 
   it("fetches all agents when includeInactive is true", async () => {
-    (api.fetchAuthorizedAgents as any).mockResolvedValue([]);
+ 
+    vi.mocked(api.fetchAuthorizedAgents).mockResolvedValue([]);
 
     const { result } = renderHook(() => useAuthorizedAgents(), {
       wrapper: createWrapper(),

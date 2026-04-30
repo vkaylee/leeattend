@@ -509,10 +509,8 @@ parse_cli_args() {
     fi
     rm -f "$PROJECT_ROOT/.test_logs/results.txt"
     
-    # NOTE: Global watchdog removed. Per-phase timeouts (TIMEOUT_LINT,
-    # TIMEOUT_UNIT, TIMEOUT_INTEGRATION, TIMEOUT_BUILD) already protect
-    # each stage individually. The background watchdog process caused PTY
-    # file descriptor inheritance issues when run-tests.sh was invoked from
-    # git hooks or AI agent terminals, making commands appear to hang
-    # indefinitely even after successful completion.
+    # NOTE: Per-phase timeouts (TIMEOUT_LINT, TIMEOUT_UNIT, TIMEOUT_INTEGRATION,
+    # TIMEOUT_BUILD) protect each stage individually. The global watchdog
+    # (start_watchdog in lifecycle.sh) acts as a last-resort safety net.
+    # It runs with all FDs severed from the PTY to prevent FD inheritance.
 }

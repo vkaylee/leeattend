@@ -64,7 +64,8 @@ describe("useWorkspaces", () => {
           created_at: new Date().toISOString()
         },
       ];
-        vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces as any);
+ 
+        vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces as unknown as never);
 
     const { result } = renderHook(() => useWorkspaces(), {
       wrapper: createWrapper(),
@@ -86,7 +87,8 @@ describe("useWorkspaces", () => {
           theme_primary_color: "#10b981",
           default_language: "en",
           created_at: new Date().toISOString() 
-        };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs as any);
+ 
+        };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs as unknown as never);
 
     const { result } = renderHook(() => useWorkspaces(), {
       wrapper: createWrapper(),
@@ -103,7 +105,8 @@ describe("useWorkspaceMembers", () => {
     const mockMembers = [
       { workspace_id: "ws-1", user_id: "u-1", email: "owner@test.com", role_id: "role-1", extra_role_ids: [] },
     ];
-    vi.mocked(api.fetchWorkspaceMembers).mockResolvedValue(mockMembers as any);
+ 
+    vi.mocked(api.fetchWorkspaceMembers).mockResolvedValue(mockMembers as unknown as never);
 
     const { result } = renderHook(() => useWorkspaceMembers("ws-1"), {
       wrapper: createWrapper(),
@@ -114,7 +117,8 @@ describe("useWorkspaceMembers", () => {
   });
 
   it("adds a member successfully", async () => {
-    vi.mocked(api.addWorkspaceMember).mockResolvedValue(undefined as any);
+ 
+    vi.mocked(api.addWorkspaceMember).mockResolvedValue(undefined as unknown as never);
 
     const { result } = renderHook(() => useWorkspaceMembers("ws-1"), {
       wrapper: createWrapper(),
@@ -137,7 +141,8 @@ describe("useWorkspaceRoles", () => {
     const mockRoles = [
       { id: "role-1", name: "Admin", is_system: true, color: "indigo", created_at: "", updated_at: "" }
     ];
-    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as any);
+ 
+    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as unknown as never);
 
     const { renderHook, waitFor } = await import("@testing-library/react");
     const { useWorkspaceRoles } = await import("../use-workspace");
@@ -150,7 +155,8 @@ describe("useWorkspaceRoles", () => {
   });
 
   it("creates a role successfully", async () => {
-    vi.mocked(api.createWorkspaceRole).mockResolvedValue({ id: "role-new", name: "New Role" } as any);
+ 
+    vi.mocked(api.createWorkspaceRole).mockResolvedValue({ id: "role-new", name: "New Role" } as unknown as never);
     const { renderHook } = await import("@testing-library/react");
     const { useWorkspaceRoles } = await import("../use-workspace");
     
@@ -163,7 +169,8 @@ describe("useWorkspaceRoles", () => {
   });
 
   it("updates a role successfully", async () => {
-    vi.mocked(api.updateWorkspaceRole).mockResolvedValue({ id: "role-1", name: "Updated" } as any);
+ 
+    vi.mocked(api.updateWorkspaceRole).mockResolvedValue({ id: "role-1", name: "Updated" } as unknown as never);
     const { renderHook } = await import("@testing-library/react");
     const { useWorkspaceRoles } = await import("../use-workspace");
     
@@ -176,7 +183,8 @@ describe("useWorkspaceRoles", () => {
   });
 
   it("deletes a role successfully", async () => {
-    vi.mocked(api.deleteWorkspaceRole).mockResolvedValue(undefined as any);
+ 
+    vi.mocked(api.deleteWorkspaceRole).mockResolvedValue(undefined as unknown as never);
     const { renderHook } = await import("@testing-library/react");
     const { useWorkspaceRoles } = await import("../use-workspace");
     
@@ -195,7 +203,8 @@ describe("useWorkspacePermissionsMatrix", () => {
       { id: "role-1", name: "Admin", is_system: true, color: "indigo" },
       { id: "role-2", name: "Member", is_system: false, color: "slate" }
     ];
-    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as any);
+ 
+    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as unknown as never);
     
     // role-1 has perms: p1, p2. role-2 has: p2.
     vi.mocked(api.fetchRolePermissions).mockImplementation(async (wsId, roleId) => {
@@ -222,7 +231,8 @@ describe("useWorkspacePermissionsMatrix", () => {
       { id: "role-1", name: "Admin", is_system: true, color: "indigo" },
       { id: "role-new", name: "New", is_system: false, color: "slate" }
     ];
-    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as any);
+ 
+    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as unknown as never);
     vi.mocked(api.fetchRolePermissions).mockResolvedValue([]);
 
     const { renderHook, waitFor } = await import("@testing-library/react");
@@ -242,7 +252,8 @@ describe("useWorkspacePermissionsMatrix", () => {
 describe("useMemberRoles", () => {
   it("fetches roles successfully", async () => {
     const mockRoles = { primary: "a0000000-0000-0000-0000-000000000002", extra: [] };
-    vi.mocked(api.fetchMemberRoles).mockResolvedValue(mockRoles as any);
+ 
+    vi.mocked(api.fetchMemberRoles).mockResolvedValue(mockRoles as unknown as never);
 
     const { result } = renderHook(() => useMemberRoles("u-1", "ws-1"), {
       wrapper: createWrapper(),

@@ -1,7 +1,7 @@
 import React from "react";
 
 import { format } from "date-fns";
-import { vi, enUS, zhCN } from "date-fns/locale";
+import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 import {
   ChevronLeft,
   ChevronRight,
@@ -21,11 +21,12 @@ import { useTranslation } from "react-i18next";
 import { Combobox } from "@/components/ui/Combobox";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { Employee } from "@/lib/api";
+import { Employee, EmployeeSchedule } from "@/lib/api/types";
 
 import { ScheduleTracePopover } from "./ScheduleTracePopover";
 
-const dateLocales: Record<string, any> = {
+ 
+const dateLocales: Record<string, Locale> = {
   vi: vi,
   en: enUS,
   zh: zhCN,
@@ -39,18 +40,20 @@ interface WeeklyRosterGridProps {
   selectedDays: string[];
   onToggleDaySelection: (dateStr: string) => void;
   onClearSelection: () => void;
-  employeeSchedule?: any;
+ 
+  employeeSchedule?: EmployeeSchedule;
   onCopyPreviousWeek: () => void;
   onAssignAllWeek: () => void;
   onClearWeek: () => void;
   onOpenShiftPicker: (dates: string[]) => void;
   onDeleteRoster: (date: string) => void;
-  currentLocale?: any;
+ 
+  currentLocale?: Locale;
 }
 
 export function WeeklyRosterGrid({
   selectedEmployee,
-  _currentDate,
+
   onNavigateWeek,
   weekDays,
   selectedDays,
@@ -139,16 +142,23 @@ export function WeeklyRosterGrid({
         {weekDays.map((day, idx) => {
           const dateStr = format(day, 'yyyy-MM-dd');
           const isSelected = selectedDays.includes(dateStr);
-          const effectiveSchedule = employeeSchedule?.schedules.find((s: any) => s.date === dateStr);
+ 
+          const effectiveSchedule = employeeSchedule?.schedules.find((s) => s.date === dateStr);
           const isToday = day.toDateString() === new Date().toDateString();
-          const source = effectiveSchedule?.source as any;
+ 
+          const source = effectiveSchedule?.source;
           const isHoliday = effectiveSchedule?.is_holiday === true;
           const holidayName = effectiveSchedule?.holiday_name;
 
           return (
+ 
+ 
             <div
               key={idx}
               onClick={() => onToggleDaySelection(dateStr)}
+              onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleDaySelection(dateStr); } }}
+              role="button"
+              tabIndex={0}
               className={`bg-white dark:bg-slate-900 border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group cursor-pointer ${isSelected
                   ? 'border-primary-500 ring-4 ring-primary-50 shadow-md'
                   : isHoliday
@@ -199,7 +209,7 @@ export function WeeklyRosterGrid({
                       <ShieldCheck size={8} /> {t("shifts.types.fixed")}
                     </span>
                   )}
-                  {source && (source === "department" || source === "department_fixed") && (
+                  {source === "department_fixed" && (
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800 uppercase tracking-tighter flex items-center gap-1">
                       <Building2 size={8} /> {t("common.department")}
                     </span>

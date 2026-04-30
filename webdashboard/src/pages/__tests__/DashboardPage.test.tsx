@@ -1,16 +1,14 @@
-import DashboardPage from "../DashboardPage";
-
-import React from "react";
-
+ 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, to }: any) => <a href={to}>{children}</a>,
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
 
 vi.mock("react-i18next", () => ({
+ 
   useTranslation: () => ({
     t: (key: string) => key,
     i18n: { language: "en" },
@@ -27,10 +25,11 @@ vi.mock("@/hooks/use-devices", () => ({
 
 vi.mock("@/hooks/use-datetime", () => ({
   useDateTimeFormatter: () => ({
-    formatTime: (v: any) => v,
+    formatTime: (v: string | number | Date) => v,
   }),
 }));
 
+ 
 vi.mock("@/hooks/use-dashboard", () => ({
   useDashboardStats: vi.fn(),
 }));
@@ -44,6 +43,8 @@ import { useDashboardStats } from "@/hooks/use-dashboard";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
 import { useDevices } from "@/hooks/use-devices";
 
+import DashboardPage from "../DashboardPage";
+
 describe("DashboardPage", () => {
   let queryClient: QueryClient;
 
@@ -53,20 +54,23 @@ describe("DashboardPage", () => {
     });
     vi.clearAllMocks();
 
-    (useAgentsStatus as any).mockReturnValue({
+    vi.mocked(useAgentsStatus).mockReturnValue({
       agents: [],
+ 
       isLoading: false,
       error: null,
-    });
+    } as unknown as ReturnType<typeof useAgentsStatus>);
 
-    (useDevices as any).mockReturnValue({
+    vi.mocked(useDevices).mockReturnValue({
       devices: [],
+ 
       isLoading: false,
       error: null,
-    });
+    } as unknown as ReturnType<typeof useDevices>);
 
-    (useDashboardStats as any).mockReturnValue({
+    vi.mocked(useDashboardStats).mockReturnValue({
       data: {
+ 
         total_employees: 100,
         present_today: 95,
         late_today: 5,
@@ -79,10 +83,11 @@ describe("DashboardPage", () => {
       },
       isLoading: false,
       error: null,
-    });
+    } as unknown as ReturnType<typeof useDashboardStats>);
 
-    (useDashboardLayout as any).mockReturnValue({
+    vi.mocked(useDashboardLayout).mockReturnValue({
       activeView: "overview",
+ 
       visibleWidgets: {
         kpi_cards: true,
         donut_chart: true,
@@ -111,7 +116,7 @@ describe("DashboardPage", () => {
       toggleSection: vi.fn(),
       resetToDefault: vi.fn(),
       allWidgets: [],
-    });
+    } as unknown as ReturnType<typeof useDashboardLayout>);
   });
 
   const renderComponent = () => {

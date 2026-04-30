@@ -1642,6 +1642,8 @@
       "employee_id": "员工 ID",
       "hire_date": "入职日期",
       "is_active": "活跃",
+      "link_user": "关联用户账户",
+      "select_user": "选择用户...",
       "cancel": "取消",
       "save": "保存档案",
       "update": "更新"

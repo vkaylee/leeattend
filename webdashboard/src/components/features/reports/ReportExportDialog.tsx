@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet, _X } from "lucide-react";
+import { Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useReportStream } from "../../../hooks/use-report-stream";
@@ -44,7 +44,7 @@ export default function ReportExportDialog({
   // Reset state when dialog opens
   useEffect(() => {
     if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setPhase("idle");
       setJobId(null);
       setError(null);
@@ -111,7 +111,7 @@ export default function ReportExportDialog({
     if (!useFallbackPolling || !pollingStatus) return;
 
     if (pollingStatusValue === "completed" && phaseState !== "completed") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setPhase("completed");
     } else if (pollingStatusValue === "failed" && phaseState !== "failed") {
       setPhase("failed");

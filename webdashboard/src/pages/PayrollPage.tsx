@@ -1,22 +1,13 @@
-import React, { useState, _useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 
-import { useQuery, _useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { 
   Calculator, 
   ArrowLeft, 
-  ArrowRight, 
-  _Search, 
-  User as _UserIcon,
-  _ChevronRight,
-  _Info,
-  _Banknote,
-  _Calendar,
-  _Filter,
-  _MoreVertical
+  ArrowRight
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { _EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import AdjustmentDrawer from "@/components/payroll/AdjustmentDrawer";
 import BatchCalculationModal from "@/components/payroll/BatchCalculationModal";
@@ -27,14 +18,11 @@ import _PayrollTable from "@/components/payroll/PayrollTable";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  _DropdownMenuItem,
   DropdownMenuLabel,
-  _DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import _Modal from "@/components/ui/Modal";
 
-import { _useDateTimeFormatter } from "@/hooks/use-datetime";
 import { cn } from "@/lib/utils";
 
 import { useToast } from "../components/ui/Toast";
@@ -43,7 +31,6 @@ import {
   searchEmployees,
   fetchEmployeePayslips,
   fetchWorkspacePayslips,
-  _calculate_payroll,
   getCurrentWorkspaceId,
   fetchWorkspaceAttendanceAdjustments,
   Employee,
@@ -64,7 +51,7 @@ export default function PayrollPage() {
 
   // Debounce search term for server-side search
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
     }, 300);
@@ -77,6 +64,7 @@ export default function PayrollPage() {
     return d.getFullYear();
   });
   const [calcMonth, setCalcMonth] = useState(() => {
+ 
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
     return d.getMonth() + 1;
@@ -97,7 +85,7 @@ export default function PayrollPage() {
     placeholderData: keepPreviousData,
   });
 
-  const employees = React.useMemo(() => employeesData?.data ?? [], [employeesData?.data]);
+  const employees = useMemo(() => employeesData?.data ?? [], [employeesData?.data]);
 
   const { data: workspacePayslipsData = [], isLoading: workspacePayslipsLoading } = useQuery({
     queryKey: ["workspace-payslips", wsId, calcYear, calcMonth],
@@ -110,6 +98,7 @@ export default function PayrollPage() {
   const workspacePayslips = Array.isArray(workspacePayslipsData)
     ? workspacePayslipsData
     : workspacePayslipsData?.data ?? [];
+ 
 
   const { data: employeePayslips = [], isLoading: employeePayslipsLoading } = useQuery({
     queryKey: ["payslips", selectedEmployee?.id],
@@ -158,7 +147,7 @@ export default function PayrollPage() {
     setIsDetailDrawerOpen(true);
   };
 
-  const employeeNames = React.useMemo(() => {
+  const employeeNames = useMemo(() => {
     const map: Record<string, string> = {};
     employees.forEach(e => { map[e.id] = e.full_name; });
     return map;
@@ -171,6 +160,7 @@ export default function PayrollPage() {
   };
 
   const changeMonth = (delta: number) => {
+ 
     let nextMonth = calcMonth + delta;
     let nextYear = calcYear;
     if (nextMonth > 12) { nextMonth = 1; nextYear++; }

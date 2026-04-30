@@ -53,7 +53,8 @@ export default function Modal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="modal-backdrop" onClick={onClose} data-testid={testId}>
+    <div className="modal-backdrop" role="presentation" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} data-testid={testId}>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Element has interactive role via onClick/onKeyDown */}
       <div 
         role="dialog"
         aria-modal="true"

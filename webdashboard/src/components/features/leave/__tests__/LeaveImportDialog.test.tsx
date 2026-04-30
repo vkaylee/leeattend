@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, _act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
@@ -39,8 +39,10 @@ describe("LeaveImportDialog", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     onClose = vi.fn() as unknown as () => void;
     onImportComplete = vi.fn() as unknown as () => void;
-    (api.getCurrentWorkspaceId as any).mockReturnValue("ws-test");
-    (api.fetchLatestLeaveImport as any).mockResolvedValue(null);
+ 
+    (api.getCurrentWorkspaceId as import("vitest").Mock).mockReturnValue("ws-test");
+ 
+    (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -158,7 +160,8 @@ describe("LeaveImportDialog", () => {
   describe("Template Download", () => {
     it("calls downloadLeaveImportTemplate when button is clicked", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      (api.downloadLeaveImportTemplate as any).mockResolvedValue(undefined);
+ 
+      (api.downloadLeaveImportTemplate as import("vitest").Mock).mockResolvedValue(undefined);
       renderDialog();
 
       const downloadBtn = screen.getByText(/Tải file mẫu Excel/i).closest("button")!;
@@ -171,7 +174,8 @@ describe("LeaveImportDialog", () => {
 
     it("handles template download error gracefully", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      (api.downloadLeaveImportTemplate as any).mockRejectedValue(new Error("Network error"));
+ 
+      (api.downloadLeaveImportTemplate as import("vitest").Mock).mockRejectedValue(new Error("Network error"));
       renderDialog();
 
       const downloadBtn = screen.getByText(/Tải file mẫu Excel/i).closest("button")!;
@@ -192,7 +196,8 @@ describe("LeaveImportDialog", () => {
   describe("Upload Flow", () => {
     it("calls uploadLeaveExcel with correct args when import is clicked", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      (api.uploadLeaveExcel as any).mockResolvedValue({ job_id: "job-123" });
+ 
+      (api.uploadLeaveExcel as import("vitest").Mock).mockResolvedValue({ job_id: "job-123" });
       renderDialog();
 
       const fileInput = document.getElementById("leave-import-file-input") as HTMLInputElement;
@@ -209,7 +214,8 @@ describe("LeaveImportDialog", () => {
 
     it("transitions to progress view after successful upload", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      (api.uploadLeaveExcel as any).mockResolvedValue({ job_id: "job-456" });
+ 
+      (api.uploadLeaveExcel as import("vitest").Mock).mockResolvedValue({ job_id: "job-456" });
       renderDialog();
 
       const fileInput = document.getElementById("leave-import-file-input") as HTMLInputElement;
@@ -227,7 +233,8 @@ describe("LeaveImportDialog", () => {
 
     it("handles upload error gracefully (stays on upload view)", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      (api.uploadLeaveExcel as any).mockRejectedValue(new Error("Upload failed"));
+ 
+      (api.uploadLeaveExcel as import("vitest").Mock).mockRejectedValue(new Error("Upload failed"));
       renderDialog();
 
       const fileInput = document.getElementById("leave-import-file-input") as HTMLInputElement;
@@ -249,7 +256,8 @@ describe("LeaveImportDialog", () => {
     });
 
     it("does not upload when workspace ID is null", () => {
-      (api.getCurrentWorkspaceId as any).mockReturnValue(null);
+ 
+      (api.getCurrentWorkspaceId as import("vitest").Mock).mockReturnValue(null);
       renderDialog();
       // Template download button should be disabled
       const downloadBtn = screen.getByText(/Tải file mẫu Excel/i).closest("button");
@@ -263,7 +271,8 @@ describe("LeaveImportDialog", () => {
 
   describe("Progress View", () => {
     it("shows processing status with progress rows", async () => {
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-1",
         status: "processing",
         total_rows: 100,
@@ -283,7 +292,8 @@ describe("LeaveImportDialog", () => {
     });
 
     it("shows completed status without errors", async () => {
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-2",
         status: "completed",
         total_rows: 50,
@@ -308,7 +318,8 @@ describe("LeaveImportDialog", () => {
         error_file_path: "/tmp/errors.xlsx",
       });
 
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-3",
         status: "completed",
         total_rows: 50,
@@ -337,7 +348,8 @@ describe("LeaveImportDialog", () => {
         error_file_path: "/tmp/errors.xlsx",
       });
 
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-err",
         status: "completed",
         total_rows: 50,
@@ -356,7 +368,8 @@ describe("LeaveImportDialog", () => {
     });
 
     it("shows failed status with error detail", async () => {
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-4",
         status: "failed",
         total_rows: 0,
@@ -376,7 +389,8 @@ describe("LeaveImportDialog", () => {
     });
 
     it("shows footer buttons (upload another + close) when finished", async () => {
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-5",
         status: "completed",
         total_rows: 50,
@@ -395,7 +409,8 @@ describe("LeaveImportDialog", () => {
     });
 
     it("hides footer buttons while processing", async () => {
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-6",
         status: "processing",
         total_rows: 100,
@@ -416,7 +431,8 @@ describe("LeaveImportDialog", () => {
 
     it("resets to upload view when 'upload another' is clicked", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-7",
         status: "completed",
         total_rows: 10,
@@ -453,7 +469,8 @@ describe("LeaveImportDialog", () => {
 
     it("calls onClose when close button is clicked after completion", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-done",
         status: "completed",
         total_rows: 10,
@@ -489,7 +506,8 @@ describe("LeaveImportDialog", () => {
 
     it("ignores jobs older than 24 hours", async () => {
       const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-old",
         status: "completed",
         total_rows: 10,
@@ -508,7 +526,8 @@ describe("LeaveImportDialog", () => {
     });
 
     it("shows existing processing job when dialog opens", async () => {
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-active",
         status: "processing",
         total_rows: 200,
@@ -527,7 +546,8 @@ describe("LeaveImportDialog", () => {
     });
 
     it("handles API error when fetching latest job", async () => {
-      (api.fetchLatestLeaveImport as any).mockRejectedValue(new Error("Server error"));
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockRejectedValue(new Error("Server error"));
       renderDialog();
       // Should fall back to upload view
       await waitFor(() => {
@@ -561,7 +581,8 @@ describe("LeaveImportDialog", () => {
     });
 
     it("handles completed job with unparseable error_log", async () => {
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-bad-log",
         status: "completed",
         total_rows: 20,
@@ -581,7 +602,8 @@ describe("LeaveImportDialog", () => {
     });
 
     it("handles pending job with zero total_rows", async () => {
-      (api.fetchLatestLeaveImport as any).mockResolvedValue({
+ 
+      (api.fetchLatestLeaveImport as import("vitest").Mock).mockResolvedValue({
         id: "job-pending",
         status: "pending",
         total_rows: 0,

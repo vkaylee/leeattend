@@ -57,8 +57,9 @@ export default function LeaveRequestsPage() {
   const { data: requests = [], isLoading: requestsLoading } = useQuery({ queryKey: ["leave-requests", wsId, activeTab], queryFn: () => fetchWorkspaceLeaveRequests(wsId!, activeTab), enabled: !!wsId });
   const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId!), enabled: !!wsId });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (leaveTypes.length > 0 && !leaveTypeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setLeaveTypeId(leaveTypes[0].id);
     }
   }, [leaveTypes, leaveTypeId]);
@@ -147,7 +148,8 @@ export default function LeaveRequestsPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const formData = new FormData(e.currentTarget);
     if (!leaveTypeId) { toast.error(t("leave_requests.invalid_leave_type")); return; }
-    const payload: any = {
+ 
+    const payload: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string } = {
       employee_id: selectedEmpId,
       leave_type_id: leaveTypeId,
       start_date: formData.get("start_date") as string,
@@ -359,7 +361,7 @@ export default function LeaveRequestsPage() {
         <form onSubmit={handleSubmit} className="space-y-8 pt-4">
           <div className="space-y-3 px-1">
             <label htmlFor="leave-emp" className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">{t("common.employee")}</label>
-            <EmployeeSearch id="leave-emp" workspaceId={wsId!} value={selectedEmpId} onChange={setSelectedEmpId} className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 shadow-sm" />
+            <EmployeeSearch id="leave-emp" workspaceId={wsId!} value={selectedEmpId} onChange={(val) => setSelectedEmpId(Array.isArray(val) ? val[0] || "" : val)} className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 shadow-sm" />
           </div>
           {selectedEmpId && balances.length > 0 && (
             <div className="bg-primary-50 dark:bg-primary-950/50 p-8 rounded-[2.5rem] border border-primary-100 dark:border-primary-800/50 grid grid-cols-2 gap-8 shadow-inner">

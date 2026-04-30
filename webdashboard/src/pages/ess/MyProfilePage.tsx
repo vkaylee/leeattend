@@ -47,7 +47,7 @@ export default function MyProfilePage() {
 
   useEffect(() => {
     if (profile) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setFormData({
         phone: profile.phone || "", address: profile.address || "", date_of_birth: profile.date_of_birth || "",
         gender: profile.gender || "", national_id: profile.national_id || "", bank_name: profile.bank_name || "",
@@ -141,7 +141,8 @@ export default function MyProfilePage() {
               ].map(field => (
                 <div key={field.key} className="space-y-3 px-1">
                   <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
-                  <input type={field.type} value={(formData as any)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" placeholder={field.placeholder} />
+                  { }
+                  <input type={field.type} value={(formData as Record<string, string>)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" placeholder={field.placeholder} />
                 </div>
               ))}
               <div className="space-y-3 px-1">
@@ -174,7 +175,8 @@ export default function MyProfilePage() {
               ].map(field => (
                 <div key={field.key} className="space-y-3 px-1">
                   <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
-                  <input type="text" value={(formData as any)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm font-mono" placeholder={field.placeholder} />
+                  { }
+                  <input type="text" value={(formData as Record<string, string>)[field.key] || ""} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm font-mono" placeholder={field.placeholder} />
                 </div>
               ))}
             </div>

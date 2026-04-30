@@ -21,7 +21,8 @@ describe("LeaveTypeManager", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.fetchLeaveTypes as any).mockResolvedValue(mockLeaveTypes);
+ 
+    vi.mocked(api.fetchLeaveTypes).mockResolvedValue(mockLeaveTypes as unknown as never);
   });
 
   it("renders leave types list", async () => {

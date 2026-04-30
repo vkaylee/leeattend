@@ -8,7 +8,9 @@ export async function fetchAgents(): Promise<AgentStatus[]> {
   return response.json();
 }
 
-export async function sendAgentCommand(agentId: string, command: any): Promise<any> {
+ 
+ 
+export async function sendAgentCommand(agentId: string, command: unknown): Promise<unknown> {
   const response = await apiFetch(`${API_BASE_URL}/agent/${agentId}/command`, {
     method: "POST",
     body: JSON.stringify(command),

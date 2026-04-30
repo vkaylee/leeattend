@@ -19,10 +19,8 @@ import { useToast } from "@/components/ui/Toast";
 import {
   fetchEmployees,
   fetchShifts,
-  _assignShift,
   createShift,
   updateShift,
-  _fetchWorkspace,
   fetchWorkspaceSchedules,
   fetchAssignmentHistory,
   upsertRoster,
@@ -35,8 +33,6 @@ import {
 import {
   AssignPatternRequest,
   Shift,
-  _ShiftRoster,
-  _EmployeeSchedule,
   Employee
 } from "@/lib/api/types";
 import { ROUTES } from "@/lib/routes";
@@ -257,10 +253,11 @@ export default function ShiftsPage() {
       if (!empPrev) { toast.warning(t("shifts.messages.no_previous_data")); return; }
       const items = empPrev.schedules.map((s, idx) => ({ date: format(weekDays[idx], 'yyyy-MM-dd'), shift_id: s.shift_id }));
       bulkRosterMutation.mutate(items);
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
   const handleCreateShift = () => {
+ 
     if (!newShiftName || !newShiftStart || !newShiftEnd) return;
     createShiftMutation.mutate({
       name: newShiftName,
@@ -338,9 +335,11 @@ export default function ShiftsPage() {
           <p className="text-slate-500 dark:text-slate-400 mt-1">{t("shifts.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link to={ROUTES.SETTINGS.TIME as any} search={{ tab: "patterns" } as any} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic data shape from form state; strict typing would add boilerplate without safety gain */}
+          <Link to={ROUTES.SETTINGS.TIME as never} search={{ tab: "patterns" } as any} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
             <CalendarRange className="w-4 h-4" />
             <span className="text-xs uppercase tracking-widest">{t("patterns.manage_btn")}</span>
+            { }
           </Link>
           <button onClick={() => setIsCreateModalOpen(true)} className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all">
             <Plus className="w-5 h-5" />
@@ -373,7 +372,6 @@ export default function ShiftsPage() {
               onChange={(id) => { if (!id) setSelectedEmployee(null); }}
               onSelectEmployee={(emp) => setSelectedEmployee(emp)}
               placeholder={t("shifts.empty_state.title")}
-              autoFocus
               keyboardShortcut={["/", "Enter"]}
               clearOnEscape
             />

@@ -47,10 +47,11 @@ describe("useDashboardLayout hook", () => {
     });
 
     it("fetches dashboard preferences and applies active view", async () => {
-        (api.apiFetch as any).mockResolvedValueOnce({
+ 
+        vi.mocked(api.apiFetch).mockResolvedValueOnce({
             ok: true,
             json: () => Promise.resolve(mockPreferences),
-        });
+        } as unknown as never);
 
         const { result } = renderHook(() => useDashboardLayout(), {
             wrapper: createWrapper(),
@@ -63,12 +64,13 @@ describe("useDashboardLayout hook", () => {
     });
 
     it("sets default overview preset configuration correctly", async () => {
-        (api.apiFetch as any).mockResolvedValueOnce({
+ 
+        vi.mocked(api.apiFetch).mockResolvedValueOnce({
             ok: true,
             json: () => Promise.resolve({
                 id: "pref-123", active_view: "overview"
             }),
-        });
+        } as unknown as never);
 
         const { result } = renderHook(() => useDashboardLayout(), {
             wrapper: createWrapper(),
@@ -83,10 +85,11 @@ describe("useDashboardLayout hook", () => {
     });
 
     it("triggers API PUT when setting active view", async () => {
-        (api.apiFetch as any).mockResolvedValue({
+ 
+        vi.mocked(api.apiFetch).mockResolvedValue({
             ok: true,
             json: () => Promise.resolve({ active_view: "overview" }),
-        });
+        } as unknown as never);
 
         const { result } = renderHook(() => useDashboardLayout(), {
             wrapper: createWrapper(),
@@ -98,11 +101,12 @@ describe("useDashboardLayout hook", () => {
 
         await waitFor(() => expect(api.apiFetch).toHaveBeenCalledTimes(2));
 
-        const putCallArgs = (api.apiFetch as any).mock.calls[1];
+ 
+        const putCallArgs = vi.mocked(api.apiFetch).mock.calls[1];
         expect(putCallArgs[0]).toBe("/dashboard/preferences");
-        expect(putCallArgs[1].method).toBe("PUT");
+        expect(putCallArgs[1]!.method).toBe("PUT");
 
-        const body = JSON.parse(putCallArgs[1].body);
+        const body = JSON.parse(putCallArgs[1]!.body as string);
         expect(body.active_view).toBe("trends");
         // Ensure trends preset config is passed
         expect(body.visible_widgets.overtime_trend).toBe(true);
@@ -110,10 +114,11 @@ describe("useDashboardLayout hook", () => {
     });
 
     it("triggers API PUT when toggling section", async () => {
-        (api.apiFetch as any).mockResolvedValue({
+ 
+        vi.mocked(api.apiFetch).mockResolvedValue({
             ok: true,
             json: () => Promise.resolve(mockPreferences),
-        });
+        } as unknown as never);
 
         const { result } = renderHook(() => useDashboardLayout(), {
             wrapper: createWrapper(),
@@ -128,8 +133,9 @@ describe("useDashboardLayout hook", () => {
 
         await waitFor(() => expect(api.apiFetch).toHaveBeenCalledTimes(2));
 
-        const putCallArgs = (api.apiFetch as any).mock.calls[1];
-        const body = JSON.parse(putCallArgs[1].body);
+ 
+        const putCallArgs = vi.mocked(api.apiFetch).mock.calls[1];
+        const body = JSON.parse(putCallArgs[1]!.body as string);
         expect(body.collapsed_sections.summary).toBe(false);
     });
 });

@@ -5,18 +5,20 @@ import { useWebSocket } from "../use-websocket";
 
 describe("useWebSocket Hook", () => {
   let mockOnOpen: ((ev?: Event) => void) | null;
-  let mockSend: any;
-  let mockClose: any;
+ 
+  let mockSend: ReturnType<typeof vi.fn>;
+ 
+  let mockClose: ReturnType<typeof vi.fn>;
 
   class MockWebSocket {
     static OPEN = 1;
     readyState = 1; // WebSocket.OPEN
     constructor() {}
-    send = vi.fn().mockImplementation((val) => {
-      if (mockSend) mockSend(val);
+    send = vi.fn().mockImplementation((val: string) => {
+      if (mockSend) (mockSend as (v: string) => void)(val);
     });
     close = vi.fn().mockImplementation(() => {
-      if (mockClose) mockClose();
+      if (mockClose) (mockClose as () => void)();
     });
     set onopen(fn: ((ev?: Event) => void) | null) { mockOnOpen = fn; }
     set onmessage(_: unknown) { }

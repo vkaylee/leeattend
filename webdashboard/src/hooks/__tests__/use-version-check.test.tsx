@@ -5,7 +5,8 @@ import { useVersionCheck } from "../use-version-check";
 
 describe("useVersionCheck", () => {
   beforeEach(() => {
-    (globalThis as any).__BUILD_HASH__ = "abc123";
+ 
+    (globalThis as unknown as { __BUILD_HASH__: string }).__BUILD_HASH__ = "abc123";
     globalThis.fetch = vi.fn();
   });
 
@@ -14,12 +15,13 @@ describe("useVersionCheck", () => {
   });
 
   it("returns hasNewVersion=false when versions match", async () => {
-    (globalThis.fetch as any).mockResolvedValue({
+ 
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       text: () =>
         Promise.resolve(
           '<html><head><meta name="build-version" content="abc123" /></head></html>',
         ),
-    });
+    } as unknown as never);
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -27,12 +29,13 @@ describe("useVersionCheck", () => {
   });
 
   it("sets hasNewVersion=true when build version differs", async () => {
-    (globalThis.fetch as any).mockResolvedValue({
+ 
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       text: () =>
         Promise.resolve(
           '<html><head><meta name="build-version" content="def456" /></head></html>',
         ),
-    });
+    } as unknown as never);
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -40,12 +43,13 @@ describe("useVersionCheck", () => {
   });
 
   it("calls dismiss to reset hasNewVersion to false", async () => {
-    (globalThis.fetch as any).mockResolvedValue({
+ 
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       text: () =>
         Promise.resolve(
           '<html><head><meta name="build-version" content="def456" /></head></html>',
         ),
-    });
+    } as unknown as never);
 
     const { result } = renderHook(() => useVersionCheck());
 
@@ -56,13 +60,14 @@ describe("useVersionCheck", () => {
   });
 
   it("fetches with cache-busting query param", async () => {
-    const fetchFn = globalThis.fetch as any;
+ 
+    const fetchFn = vi.mocked(globalThis.fetch);
     fetchFn.mockResolvedValue({
       text: () =>
         Promise.resolve(
           '<html><head><meta name="build-version" content="abc123" /></head></html>',
         ),
-    });
+    } as unknown as never);
 
     renderHook(() => useVersionCheck());
 
@@ -75,13 +80,14 @@ describe("useVersionCheck", () => {
   });
 
   it("sends no-cache header", async () => {
-    const fetchFn = globalThis.fetch as any;
+ 
+    const fetchFn = vi.mocked(globalThis.fetch);
     fetchFn.mockResolvedValue({
       text: () =>
         Promise.resolve(
           '<html><head><meta name="build-version" content="abc123" /></head></html>',
         ),
-    });
+    } as unknown as never);
 
     renderHook(() => useVersionCheck());
 
@@ -89,12 +95,13 @@ describe("useVersionCheck", () => {
       expect(fetchFn.mock.calls.length).toBeGreaterThan(0);
     });
 
-    const options = fetchFn.mock.calls[0][1];
+    const options = fetchFn.mock.calls[0][1] as RequestInit;
     expect(options.headers).toMatchObject({ "Cache-Control": "no-cache" });
   });
 
   it("does not throw on fetch failure", async () => {
-    (globalThis.fetch as any).mockRejectedValue(new Error("network error"));
+ 
+    vi.mocked(globalThis.fetch).mockRejectedValue(new Error("network error"));
 
     const { result } = renderHook(() => useVersionCheck());
 

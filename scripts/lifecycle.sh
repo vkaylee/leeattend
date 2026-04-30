@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# ── Hard timeout for cleanup operations (seconds) ────────────────────
+CLEANUP_DEADLINE="${CLEANUP_DEADLINE:-120}"
+
+# ── /proc FD sweep safety: max PIDs to scan before bail-out ─────────
+FD_SWEEP_MAX_PROCS="${FD_SWEEP_MAX_PROCS:-500}"
+
 # Cleanup handler: stop containers on exit
 cleanup() {
     local exit_code=$?
@@ -18,6 +24,19 @@ cleanup() {
     echo -e "\n🧹 Cleaning up test environment..." >&2
     exec 1>>"$_cleanup_log" 2>&1
     exec 0</dev/null
+
+    # ── Cleanup deadline watchdog ────────────────────────────────────
+    # If cleanup itself hangs (e.g. podman-compose down stuck on
+    # network), this timer force-kills the entire process group.
+    # Uses a background subshell with all FDs severed from PTY.
+    (
+        sleep "$CLEANUP_DEADLINE"
+        echo "CLEANUP_DEADLINE: force-killing process group after ${CLEANUP_DEADLINE}s" >> "$_cleanup_log"
+        kill -KILL -$$ 2>/dev/null || true
+    ) </dev/null >/dev/null 2>&1 &
+    local _deadline_pid=$!
+    # Arm RETURN trap to cancel the deadline on normal cleanup exit
+    trap 'kill $_deadline_pid 2>/dev/null; wait $_deadline_pid 2>/dev/null' RETURN
 
     # ── Kill all child processes ─────────────────────────────────────
     # Ignore TERM in this handler so we survive our own cleanup kills.
@@ -83,19 +102,27 @@ cleanup() {
     # ── Final sweep ──────────────────────────────────────────────────
     pkill -KILL -P $$ 2>/dev/null || true
 
+    # Cancel deadline (RETURN trap also handles this)
+    kill $_deadline_pid 2>/dev/null || true
+    wait $_deadline_pid 2>/dev/null || true
+
     exit "$exit_code"
 }
 
 
 # --- Watchdog (Safety Net) ---
+# Spawns a fully detached background process that kills the parent
+# after a timeout. All FDs are severed from PTY so the watchdog
+# itself cannot be the cause of a PTY hang.
 start_watchdog() {
     local timeout_sec=$1
     (
         sleep "$timeout_sec"
-        # If we reach here, kill the parent script directly. 
-        # The trap 'cleanup' in the parent will then handle container cleanup.
-        echo -e "\n\n${RED}${BOLD}🚨 WATCHDOG: GLOBAL TIMEOUT REACHED (${timeout_sec}s)! Force-killing main script...${NC}" >&2
+        echo -e "\n\n🚨 WATCHDOG: GLOBAL TIMEOUT REACHED (${timeout_sec}s)! Force-killing main script..." >&2
+        kill -KILL -$$ 2>/dev/null || true
+        sleep 2
         kill -9 $$ 2>/dev/null || true
     ) </dev/null >/dev/null 2>&1 &
     WATCHDOG_PID=$!
+    export WATCHDOG_PID
 }

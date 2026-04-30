@@ -16,6 +16,7 @@ import EmployeeDailyDrawer from "../EmployeeDailyDrawer";
 vi.mock("@tanstack/react-router", () => ({
     useNavigate: () => vi.fn(),
     useLocation: () => ({ pathname: "/", search: "", hash: "" }),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }));
 
@@ -89,21 +90,28 @@ describe("EmployeeDailyDrawer", () => {
             },
         });
 
-        (api.fetchAttendanceReport as any).mockResolvedValue({
+ 
+        (api.fetchAttendanceReport as import("vitest").Mock).mockResolvedValue({
             data: [mockDailyRow],
             total: 1,
         });
-        (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
-        (api.reprocessAttendance as any).mockResolvedValue(true);
-        (api.adminConfirmAttendance as any).mockResolvedValue(true);
-        (api.approveOt as any).mockResolvedValue(true);
-        (api.fetchRawAttendanceLogs as any).mockResolvedValue({
+ 
+        (api.fetchWorkspaceAttendanceAdjustments as import("vitest").Mock).mockResolvedValue([]);
+ 
+        (api.reprocessAttendance as import("vitest").Mock).mockResolvedValue(true);
+ 
+        (api.adminConfirmAttendance as import("vitest").Mock).mockResolvedValue(true);
+ 
+        (api.approveOt as import("vitest").Mock).mockResolvedValue(true);
+ 
+        (api.fetchRawAttendanceLogs as import("vitest").Mock).mockResolvedValue({
             data: [],
             total: 0,
             page: 1,
             limit: 100
         });
-        (api.fetchShifts as any).mockResolvedValue([
+ 
+        (api.fetchShifts as import("vitest").Mock).mockResolvedValue([
             {
                 id: "shift-morning",
                 workspace_id: "ws-1",
@@ -115,7 +123,8 @@ describe("EmployeeDailyDrawer", () => {
                 updated_at: "2026-01-01T00:00:00Z",
             },
         ]);
-        (api.upsertRoster as any).mockResolvedValue({});
+ 
+        (api.upsertRoster as import("vitest").Mock).mockResolvedValue({});
     });
 
     const renderWithProviders = (ui: React.ReactElement, _initialEntries = ["/"]) => {
@@ -480,7 +489,8 @@ describe("EmployeeDailyDrawer", () => {
             scheduled_start: null,
             scheduled_end: null,
         };
-        (api.fetchAttendanceReport as any).mockResolvedValue({
+ 
+        (api.fetchAttendanceReport as import("vitest").Mock).mockResolvedValue({
             data: [unscheduledRow],
             total: 1,
         });
@@ -513,7 +523,8 @@ describe("EmployeeDailyDrawer", () => {
             scheduled_start: null,
             scheduled_end: null,
         };
-        (api.fetchAttendanceReport as any).mockResolvedValue({
+ 
+        (api.fetchAttendanceReport as import("vitest").Mock).mockResolvedValue({
             data: [unscheduledRow],
             total: 1,
         });
