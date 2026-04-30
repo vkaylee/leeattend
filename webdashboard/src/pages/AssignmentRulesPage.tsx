@@ -14,6 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 
@@ -174,16 +175,14 @@ export default function AssignmentRulesPage() {
 
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("rules.form.pattern")}</label>
-            <select
+            <Combobox
+              data-testid="pattern-combobox"
               value={patternId}
-              onChange={(e) => setPatternId(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
-            >
-              <option value="">{t("patterns.form.select_pattern_placeholder")}</option>
-              {patterns?.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+              onChange={setPatternId}
+              options={(patterns || []).map((p) => ({ value: p.id, label: p.name }))}
+              placeholder={t("patterns.form.select_pattern_placeholder")}
+              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-[5px] font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
+            />
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-800 rounded-[32px] p-6 border border-slate-100 dark:border-slate-800 space-y-4">
@@ -194,16 +193,13 @@ export default function AssignmentRulesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("common.department")}</label>
-                <select
+                <Combobox
                   value={conditions.department_id || ""}
-                  onChange={(e) => setConditions({ ...conditions, department_id: e.target.value || undefined })}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-200"
-                >
-                  <option value="">{t("common.all_departments")}</option>
-                  {departments?.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setConditions({ ...conditions, department_id: value || undefined })}
+                  options={(departments || []).map((d) => ({ value: d.id, label: d.name }))}
+                  placeholder={t("common.all_departments")}
+                  className="w-full bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200"
+                />
               </div>
 
               <div className="space-y-2">

@@ -17,6 +17,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
 import { LABEL_BASE } from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -147,12 +148,17 @@ export default function MyProfilePage() {
               ))}
               <div className="space-y-3 px-1">
                 <label className={LABEL_BASE}>{t("ess.gender")}</label>
-                <select value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm appearance-none cursor-pointer">
-                  <option value="">{t("common.select").toUpperCase()}</option>
-                  <option value="male">{t("ess.gender_male").toUpperCase()}</option>
-                  <option value="female">{t("ess.gender_female").toUpperCase()}</option>
-                  <option value="other">{t("ess.gender_other").toUpperCase()}</option>
-                </select>
+                <Combobox
+                  value={formData.gender}
+                  onChange={(value) => setFormData({ ...formData, gender: value })}
+                  options={[
+                    { value: "male", label: t("ess.gender_male").toUpperCase() },
+                    { value: "female", label: t("ess.gender_female").toUpperCase() },
+                    { value: "other", label: t("ess.gender_other").toUpperCase() },
+                  ]}
+                  placeholder={t("common.select").toUpperCase()}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm"
+                />
               </div>
               <div className="space-y-3 md:col-span-2 px-1">
                 <label className={LABEL_BASE}><MapPin size={12} className="inline mr-2" /> {t("ess.address")}</label>
@@ -236,15 +242,20 @@ export default function MyProfilePage() {
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
               <label className={LABEL_BASE}>{t("ess.relationship")}</label>
-              <select required value={newContact.relationship} onChange={(e) => setNewContact({ ...newContact, relationship: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm appearance-none cursor-pointer">
-                <option value="">{t("common.select").toUpperCase()}</option>
-                <option value="spouse">{t("ess.relationship_spouse").toUpperCase()}</option>
-                <option value="parent">{t("ess.relationship_parent").toUpperCase()}</option>
-                <option value="sibling">{t("ess.relationship_sibling").toUpperCase()}</option>
-                <option value="child">{t("ess.relationship_child").toUpperCase()}</option>
-                <option value="friend">{t("ess.relationship_friend").toUpperCase()}</option>
-                <option value="other">{t("ess.relationship_other").toUpperCase()}</option>
-              </select>
+              <Combobox
+                value={newContact.relationship}
+                onChange={(value) => setNewContact({ ...newContact, relationship: value })}
+                options={[
+                  { value: "spouse", label: t("ess.relationship_spouse").toUpperCase() },
+                  { value: "parent", label: t("ess.relationship_parent").toUpperCase() },
+                  { value: "sibling", label: t("ess.relationship_sibling").toUpperCase() },
+                  { value: "child", label: t("ess.relationship_child").toUpperCase() },
+                  { value: "friend", label: t("ess.relationship_friend").toUpperCase() },
+                  { value: "other", label: t("ess.relationship_other").toUpperCase() },
+                ]}
+                placeholder={t("common.select").toUpperCase()}
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm"
+              />
             </div>
             <div className="space-y-3 px-1">
               <label className={LABEL_BASE}>{t("ess.phone")}</label>

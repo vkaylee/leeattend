@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Activity, Globe, Monitor, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Combobox } from "@/components/ui/Combobox";
+
 import { getCurrentWorkspaceId, fetchAuditLogs, AuditLog  } from "@/lib/api";
 
 
@@ -67,30 +69,25 @@ export default function AuditLogPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <select aria-label={t("audit_logs.filters.action")}
+                        <Combobox
                             value={actionFilter}
-                            onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-                            className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        >
-                            <option value="">{t("audit_logs.filters.all_actions")}</option>
-                            <optgroup label={t("audit_logs.filters.groups.user_auth")}>
-                                <option value="user_login">{t("auth.login.title")}</option>
-                                <option value="user_create">{t("common.create")} {t("common.user")}</option>
-                                <option value="user_update">{t("common.update")} {t("common.user")}</option>
-                                <option value="user_delete">{t("common.delete")} {t("common.user")}</option>
-                            </optgroup>
-                            <optgroup label={t("audit_logs.filters.groups.roles_perms")}>
-                                <option value="role_assign">{t("workspace.roles.title")} {t("common.assign")}</option>
-                                <option value="role_revoke">{t("workspace.roles.title")} {t("common.revoke")}</option>
-                                <option value="permission_override_set">{t("common.permissions")} {t("common.set")}</option>
-                            </optgroup>
-                            <optgroup label={t("audit_logs.filters.groups.domain")}>
-                                <option value="leave_request_create">{t("leave.request.create")}</option>
-                                <option value="leave_request_approve">{t("leave.request.approve")}</option>
-                                <option value="attendance_log_create">{t("attendance.log.create")}</option>
-                                <option value="shift_swap_request">{t("attendance.shift_swap.request")}</option>
-                            </optgroup>
-                        </select>
+                            onChange={(value) => { setActionFilter(value); setPage(1); }}
+                            options={[
+                                { value: "user_login", label: `[${t("audit_logs.filters.groups.user_auth")}] ${t("auth.login.title")}` },
+                                { value: "user_create", label: `[${t("audit_logs.filters.groups.user_auth")}] ${t("common.create")} ${t("common.user")}` },
+                                { value: "user_update", label: `[${t("audit_logs.filters.groups.user_auth")}] ${t("common.update")} ${t("common.user")}` },
+                                { value: "user_delete", label: `[${t("audit_logs.filters.groups.user_auth")}] ${t("common.delete")} ${t("common.user")}` },
+                                { value: "role_assign", label: `[${t("audit_logs.filters.groups.roles_perms")}] ${t("workspace.roles.title")} ${t("common.assign")}` },
+                                { value: "role_revoke", label: `[${t("audit_logs.filters.groups.roles_perms")}] ${t("workspace.roles.title")} ${t("common.revoke")}` },
+                                { value: "permission_override_set", label: `[${t("audit_logs.filters.groups.roles_perms")}] ${t("common.permissions")} ${t("common.set")}` },
+                                { value: "leave_request_create", label: `[${t("audit_logs.filters.groups.domain")}] ${t("leave.request.create")}` },
+                                { value: "leave_request_approve", label: `[${t("audit_logs.filters.groups.domain")}] ${t("leave.request.approve")}` },
+                                { value: "attendance_log_create", label: `[${t("audit_logs.filters.groups.domain")}] ${t("attendance.log.create")}` },
+                                { value: "shift_swap_request", label: `[${t("audit_logs.filters.groups.domain")}] ${t("attendance.shift_swap.request")}` },
+                            ]}
+                            placeholder={t("audit_logs.filters.all_actions")}
+                            className="w-[280px] text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 py-[5px]"
+                        />
                         <div className="flex items-center gap-2">
                             <input aria-label={t("audit_logs.filters.start_date")}
                                 type="date"

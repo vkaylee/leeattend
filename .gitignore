@@ -71,3 +71,4 @@ backups/
 # Docker Test Cache
 docker-test-cache/
 apiserver/.sqlx
+.migration-squash-work/

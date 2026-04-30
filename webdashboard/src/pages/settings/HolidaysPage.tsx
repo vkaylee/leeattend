@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Pencil, CalendarDays, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Combobox } from "@/components/ui/Combobox";
+
 import { getCurrentWorkspaceId } from "@/lib/api";
 import { fetchHolidays, createHoliday, updateHoliday, deleteHoliday } from "@/lib/api/holidays";
 import { fetchLeaveTypes } from "@/lib/api/leaves";
@@ -211,15 +213,17 @@ export default function HolidaysPage() {
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                                     {t('holidays.fields.type')}
                                 </label>
-                                <select
+                                <Combobox
                                     value={formType}
-                                    onChange={(e) => setFormType(e.target.value)}
-                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
-                                >
-                                    <option value="national">{t('holidays.fields.types.national')}</option>
-                                    <option value="company">{t('holidays.fields.types.company')}</option>
-                                    <option value="regional">{t('holidays.fields.types.regional')}</option>
-                                </select>
+                                    onChange={setFormType}
+                                    options={[
+                                        { value: "national", label: t('holidays.fields.types.national') },
+                                        { value: "company", label: t('holidays.fields.types.company') },
+                                        { value: "regional", label: t('holidays.fields.types.regional') },
+                                    ]}
+                                    placeholder={t('holidays.fields.type')}
+                                    className="w-full border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm py-[7px]"
+                                />
                             </div>
                         </div>
                         <div>
@@ -267,16 +271,16 @@ export default function HolidaysPage() {
                                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                                         {t('holidays.fields.deduct_leave_type')}
                                     </label>
-                                    <select
+                                    <Combobox
                                         value={formLeaveTypeId}
-                                        onChange={(e) => setFormLeaveTypeId(e.target.value)}
-                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
-                                    >
-                                        <option value="">{t('holidays.fields.auto_first_paid')}</option>
-                                        {leaveTypes.filter(lt => lt.is_paid).map(lt => (
-                                            <option key={lt.id} value={lt.id}>{lt.name} ({lt.code})</option>
-                                        ))}
-                                    </select>
+                                        onChange={setFormLeaveTypeId}
+                                        options={leaveTypes.filter(lt => lt.is_paid).map(lt => ({
+                                            value: lt.id,
+                                            label: `${lt.name} (${lt.code})`
+                                        }))}
+                                        placeholder={t('holidays.fields.auto_first_paid')}
+                                        className="w-full border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm py-[7px]"
+                                    />
                                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                                         ⚠️ {t('holidays.fields.deduction_warning')}
                                     </p>

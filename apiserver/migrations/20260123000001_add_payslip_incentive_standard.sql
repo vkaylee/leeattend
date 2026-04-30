@@ -1,1 +1,0 @@
-ALTER TABLE payslip_incentives ADD COLUMN standard_amount DOUBLE PRECISION NOT NULL DEFAULT 0.0;

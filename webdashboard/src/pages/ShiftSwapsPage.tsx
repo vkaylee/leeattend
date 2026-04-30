@@ -19,6 +19,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
 import { LABEL_BASE } from "@/components/ui/FormField";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
@@ -226,37 +227,33 @@ export default function ShiftSwapsPage() {
                             <label className={cn(LABEL_BASE, "block mb-2")}>
                                 {t("shift_swaps.requester")}
                             </label>
-                            <select
+                            <Combobox
                                 value={requesterId}
-                                onChange={(e) => setRequesterId(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 font-medium"
-                            >
-                                <option value="">{t("shift_swaps.select_employee")}</option>
-                                {employees.map((emp) => (
-                                    <option key={emp.id} value={emp.id}>
-                                        {emp.full_name} ({emp.employee_id_number})
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={setRequesterId}
+                                options={employees.map((emp) => ({
+                                    value: emp.id,
+                                    label: `${emp.full_name} (${emp.employee_id_number})`
+                                }))}
+                                placeholder={t("shift_swaps.select_employee")}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium py-[5px]"
+                            />
                         </div>
                         <div>
                             <label className={cn(LABEL_BASE, "block mb-2")}>
                                 {t("shift_swaps.target")}
                             </label>
-                            <select
+                            <Combobox
                                 value={targetId}
-                                onChange={(e) => setTargetId(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 font-medium"
-                            >
-                                <option value="">{t("shift_swaps.select_employee")}</option>
-                                {employees
+                                onChange={setTargetId}
+                                options={employees
                                     .filter((emp) => emp.id !== requesterId)
-                                    .map((emp) => (
-                                        <option key={emp.id} value={emp.id}>
-                                            {emp.full_name} ({emp.employee_id_number})
-                                        </option>
-                                    ))}
-                            </select>
+                                    .map((emp) => ({
+                                        value: emp.id,
+                                        label: `${emp.full_name} (${emp.employee_id_number})`
+                                    }))}
+                                placeholder={t("shift_swaps.select_employee")}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium py-[5px]"
+                            />
                         </div>
                         <div>
                             <label className={cn(LABEL_BASE, "block mb-2")}>

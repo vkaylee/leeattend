@@ -1,1 +1,0 @@
-ALTER TABLE devices ADD COLUMN brand TEXT DEFAULT 'zkteco' NOT NULL;

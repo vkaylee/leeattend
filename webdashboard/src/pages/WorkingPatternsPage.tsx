@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import Button from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
 import FormField, { LABEL_BASE, INPUT_BASE } from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -336,14 +337,13 @@ export default function WorkingPatternsPage() {
                     </div>
 
                     {/* Add shift button */}
-                    <select
-                      className="w-28 flex-shrink-0 p-2 rounded-xl text-[9px] font-bold uppercase tracking-tight outline-none border border-dashed border-primary-200 dark:border-primary-800 bg-transparent text-primary-500 dark:text-primary-400 cursor-pointer transition-all hover:bg-primary-50 dark:hover:bg-primary-950/50 text-center appearance-none"
+                    <Combobox
                       value=""
-                      onChange={e => { if (e.target.value) addShiftToDay(idx, e.target.value); }}
-                    >
-                      <option value="">+ {t("patterns.form.add_shift") || "ADD"}</option>
-                      {shifts?.filter(s => !dayShifts.includes(s.id)).map(s => <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>)}
-                    </select>
+                      onChange={value => { if (value) addShiftToDay(idx, value); }}
+                      options={shifts?.filter(s => !dayShifts.includes(s.id)).map(s => ({ value: s.id, label: s.name.toUpperCase() })) || []}
+                      placeholder={`+ ${t("patterns.form.add_shift") || "ADD"}`}
+                      className="w-36 flex-shrink-0 !py-1 !px-2 rounded-xl text-[9px] font-bold uppercase tracking-tight outline-none border border-dashed border-primary-200 dark:border-primary-800 bg-transparent text-primary-500 dark:text-primary-400 cursor-pointer transition-all hover:bg-primary-50 dark:hover:bg-primary-950/50"
+                    />
                   </div>
                 );
               })}

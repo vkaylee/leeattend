@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+
 import i18n, { lazyLoadBackend } from '../config';
 
 describe('i18n config lazyLoadBackend', () => {
@@ -14,7 +15,7 @@ describe('i18n config lazyLoadBackend', () => {
     expect(result).toBeDefined();
     expect(typeof result).toBe('object');
     // Basic structural check for the Vietnamese locale
-    expect((result as any).common).toBeDefined();
+    expect((result as Record<string, unknown>).common).toBeDefined();
   });
 
   it('should handle languages with regional subtags (en-US -> en)', async () => {
@@ -27,12 +28,12 @@ describe('i18n config lazyLoadBackend', () => {
 
     expect(result).toBeDefined();
     expect(typeof result).toBe('object');
-    expect((result as any).common).toBeDefined();
+    expect((result as Record<string, unknown>).common).toBeDefined();
   });
 
   it('should return an error for an unsupported language', async () => {
     const error = await new Promise((resolve) => {
-      lazyLoadBackend.read('fr', 'translation', (err, data) => {
+      lazyLoadBackend.read('fr', 'translation', (err, _data) => {
         resolve(err);
       });
     });

@@ -1,4 +1,0 @@
--- This migration previously seeded development data (admin user, default workspace).
--- Removed: The application now uses a self-service registration flow where the
--- first registered user is automatically assigned the platform_admin system role.
--- No hardcoded seed data is needed.
