@@ -70,3 +70,4 @@ backups/
 
 # Docker Test Cache
 docker-test-cache/
+apiserver/.sqlx
