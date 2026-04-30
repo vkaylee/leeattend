@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet, X } from "lucide-react";
+import { Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet, _X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useReportStream } from "../../../hooks/use-report-stream";
@@ -57,7 +57,7 @@ export default function ReportExportDialog({
   const {
     status: streamStatus,
     progress: streamProgress,
-    error: streamError,
+    error: _streamError,
   } = useReportStream({
     jobId,
     onComplete: () => {

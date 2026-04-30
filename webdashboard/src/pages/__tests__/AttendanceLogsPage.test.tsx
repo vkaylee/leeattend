@@ -1,7 +1,7 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, _fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -208,7 +208,7 @@ describe("AttendanceLogsPage", () => {
     renderWithProviders(<AttendanceLogsPage />);
 
     // Check animate-spin exists (Loader2 spinner in sentinel row)
-    const spinners = document.querySelectorAll('.animate-spin');
+    const _spinners = document.querySelectorAll('.animate-spin');
     // While first page is loading, skeleton rows show instead of spinner
     // The spinner only appears during fetchNextPage, so we just verify no crash
     expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);

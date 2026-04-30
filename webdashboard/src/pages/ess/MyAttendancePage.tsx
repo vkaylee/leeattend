@@ -3,17 +3,17 @@ import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { startOfMonth, endOfMonth, format, subMonths, addMonths } from "date-fns";
 import {
-  CalendarDays,
-  Clock,
-  MapPin,
+  _CalendarDays,
+  _Clock,
+  _MapPin,
   ChevronLeft,
   ChevronRight,
   Info,
   Calendar,
   Activity,
-  History,
-  AlertCircle,
-  CheckCircle
+  _History,
+  _AlertCircle,
+  _CheckCircle
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

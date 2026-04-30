@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-import { X, Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
-import { createPortal } from "react-dom";
+import { _X, Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
+import { _createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Calculator, Save, ShieldAlert, Settings2, LayoutGrid, Zap, RefreshCw, AlertTriangle, Plus, History, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+import { Clock, Calculator, ShieldAlert, Settings2, LayoutGrid, Zap, RefreshCw, AlertTriangle, Plus, History, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { PolicyAssignmentsSection } from "@/components/features/attendance/PolicyAssignmentsSection";
@@ -94,7 +94,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
     queryKey: ["generic-job-status", wsId, pollingJobId],
     queryFn: () => fetchGenericJobStatus(wsId, pollingJobId!),
     enabled: !!pollingJobId,
-    refetchInterval: (query: any) => {
+    refetchInterval: (query: { state: { data?: { status: string } } }) => {
       const data = query.state?.data;
       return data && (data.status === "completed" || data.status === "failed") ? false : 3000;
     },
@@ -125,7 +125,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
     onSuccess: (data) => {
       setPollingJobId(data.job_id);
     },
-    onError: (e: any) => {
+    onError: (e: Error) => {
       toast.error(e.message || t("common.error"));
     }
   });
@@ -134,7 +134,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
     reprocessMutation.mutate();
   };
 
-  const updateWsMutation = useMutation({
+  const _updateWsMutation = useMutation({
     mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
@@ -155,7 +155,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
     updateRulesMutation.mutate({
       work_unit_minutes: workUnit,
       rounding_policy: roundingPolicy,
-      early_arrival_strategy: earlyArrivalStrategy as any,
+      early_arrival_strategy: earlyArrivalStrategy as "block" | "allow" | "clamp",
       valid_from: newValidFrom,
     });
   }

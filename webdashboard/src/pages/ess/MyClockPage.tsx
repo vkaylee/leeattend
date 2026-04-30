@@ -49,7 +49,7 @@ export default function MyClockPage() {
           ? t("ess.clock.punch_in_success")
           : t("ess.clock.break_start_success")
       );
-    } catch (error) {
+    } catch (__error) {
       toast.error(t("common.error"));
     }
   };
@@ -58,7 +58,7 @@ export default function MyClockPage() {
     try {
       await punchOut({});
       toast.success(t("ess.clock.punch_out_success"));
-    } catch (error) {
+    } catch (__error) {
       toast.error(t("common.error"));
     }
   };
@@ -82,7 +82,7 @@ export default function MyClockPage() {
         reason: data.reason,
       });
       toast.success(t("ess.clock.adjustment_requested"));
-    } catch (error) {
+    } catch (__error) {
       toast.error(t("common.error"));
     }
   };

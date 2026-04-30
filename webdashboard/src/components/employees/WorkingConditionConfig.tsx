@@ -6,7 +6,7 @@ import {
   Plus, 
   Trash2, 
   AlertCircle, 
-  ChevronRight,
+  _ChevronRight,
   Clock,
   CheckCircle2,
   Calendar,

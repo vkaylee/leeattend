@@ -37,7 +37,7 @@ vi.mock("date-fns", async () => {
   const actual = await vi.importActual<typeof import("date-fns")>("date-fns");
   return {
     ...actual,
-    format: (date: Date, formatStr: string, options?: any) => {
+    format: (date: Date, formatStr: string, _options?: any) => {
       if (formatStr === "EEEE") {
         const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         return days[date.getDay()];

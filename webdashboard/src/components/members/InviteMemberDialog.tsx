@@ -30,7 +30,7 @@ export default function InviteMemberDialog({
       if (!selectedRoleId) throw new Error("No role selected");
       await addMember({ email, roleId: selectedRoleId });
       setEmail(""); setRoleId(""); onClose();
-    } catch (e) {
+    } catch (__e) {
       setError(t("members.invite.error_message"));
     }
   }

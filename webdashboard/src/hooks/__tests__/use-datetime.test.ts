@@ -134,7 +134,7 @@ describe("useDateTimeFormatter hook", () => {
     const janFirstLocal = new Date(2026, 0, 1, 0, 0, 0);
     
     // This is the problematic logic we removed:
-    const buggyString = janFirstLocal.toISOString().split('T')[0];
+    const _buggyString = janFirstLocal.toISOString().split('T')[0];
     
     // This is the new logic:
     const safeString = format(janFirstLocal, 'yyyy-MM-dd');

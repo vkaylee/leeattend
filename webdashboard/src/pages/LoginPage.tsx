@@ -6,12 +6,12 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/Button";
 import { LABEL_BASE } from "@/components/ui/FormField";
 
-import { useProfile } from "@/hooks/use-profile";
+import { _useProfile } from "@/hooks/use-profile";
 import {
-  setCurrentUserId,
+  _setCurrentUserId,
   getCurrentUserId,
-  setAccessToken,
-  setRefreshToken,
+  _setAccessToken,
+  _setRefreshToken,
   login as apiLogin,
 } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
@@ -51,7 +51,7 @@ export default function LoginPage() {
   };
 
   const handleLogin = async (e: React.FormEvent) => { e.preventDefault(); await performLogin(email, password); };
-  const handleFastLogin = undefined; // Removed: no seeded admin credentials
+  const _handleFastLogin = undefined; // Removed: no seeded admin credentials
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 relative overflow-hidden animate-in fade-in duration-1000">

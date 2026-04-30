@@ -24,8 +24,8 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/hooks/use-datetime", () => ({
   useDateTimeFormatter: () => ({
-    formatDate: (date: string) => "2024-01-21",
-    formatTime: (date: string) => "08:00 AM",
+    formatDate: (_date: string) => "2024-01-21",
+    formatTime: (_date: string) => "08:00 AM",
   }),
 }));
 

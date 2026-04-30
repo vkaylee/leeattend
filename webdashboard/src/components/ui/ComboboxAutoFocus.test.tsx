@@ -1,7 +1,7 @@
 import React from "react";
 
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, _afterEach } from "vitest";
 
 vi.unmock("@/components/ui/Combobox");
 
@@ -22,7 +22,7 @@ vi.mock("@radix-ui/react-popover", () => ({
 
 vi.mock("cmdk", () => ({
   Command: Object.assign(
-    ({ children, value, onValueChange }: any) => (
+    ({ children, value, _onValueChange }: any) => (
       <div data-testid="cmdk-root" data-value={value}>{children}</div>
     ),
     {

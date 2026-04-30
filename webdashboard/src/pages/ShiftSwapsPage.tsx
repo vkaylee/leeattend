@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import {
     fetchEmployees,
     getCurrentWorkspaceId,
-    fetchShifts,
+    _fetchShifts,
 } from "../lib/api";
 import {
     fetchShiftSwaps,

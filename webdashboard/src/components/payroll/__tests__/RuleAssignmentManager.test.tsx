@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
 
-import * as employeesApi from "@/lib/api";
+import * as _employeesApi from "@/lib/api";
 import * as departmentsApi from "@/lib/api/departments";
 import * as payrollApi from "@/lib/api/payroll";
 

@@ -2,7 +2,7 @@
 import { test as base, expect } from '@playwright/test';
 
 import { setupApiMocks } from './mocks/api-intercept';
-import { MOCK_USER, MOCK_WORKSPACE } from './mocks/mock-data';
+import { MOCK_USER, _MOCK_WORKSPACE } from './mocks/mock-data';
 import { ConnectivityPage } from './pom/ConnectivityPage';
 import { DevicesPage } from './pom/DevicesPage';
 import { EmployeesPage } from './pom/EmployeesPage';

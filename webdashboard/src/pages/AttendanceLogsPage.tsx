@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 
 import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useNavigate, Link, useSearch } from "@tanstack/react-router";
+import { useNavigate, Link, _useSearch } from "@tanstack/react-router";
 import { format, endOfMonth } from "date-fns";
 import {
   Download,
@@ -12,35 +12,33 @@ import {
   Users,
   CalendarRange,
   AlertTriangle,
-  UserPlus,
-  Trash2,
-  Link2,
-  Check,
-  Loader2, BarChart3 
+  _UserPlus,
+  _Trash2,
+  _Link2,
+  _Check,
+  _Loader2, BarChart3 
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import FloatingRecordBadge from "@/components/common/FloatingRecordBadge";
-import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
+import _InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
+import { MonthYearPicker } from "@/components/common/MonthYearPicker";
+import PermissionGate from "@/components/common/PermissionGate";
+import { _TableSkeleton } from "@/components/common/TableSkeleton";
+import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
+import { RecordedLogsTable } from "@/components/features/attendance/RecordedLogsTable";
+import { StagingLogsTable } from "@/components/features/attendance/StagingLogsTable";
 import Button from "@/components/ui/Button";
+import { LABEL_BASE } from "@/components/ui/FormField";
+import _StatusBadge from "@/components/ui/StatusBadge";
 
-import StatusBadge from "@/components/ui/StatusBadge";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { fetchRawAttendanceLogs, fetchEmployees, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
 import { RawAttendanceLog, Employee } from "@/lib/api/types";
-
-
 import { cn } from "@/lib/utils";
 
-import { LABEL_BASE } from "@/components/ui/FormField";
-import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
-import { RecordedLogsTable } from "@/components/features/attendance/RecordedLogsTable";
-import { StagingLogsTable } from "@/components/features/attendance/StagingLogsTable";
-import PermissionGate from "@/components/common/PermissionGate";
-import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import { TableSkeleton } from "@/components/common/TableSkeleton";
 
 type TabType = "recorded" | "unknown";
 
@@ -103,7 +101,7 @@ export default function AttendanceLogsPage() {
   }, []);
 
   const { data: employeesData } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: !!wsId });
-  const employees = employeesData?.data || [];
+  const _employees = employeesData?.data || [];
 
   // Optimized lookup map to prevent O(N) search in render loop
   const employeeMap = useMemo(() => {

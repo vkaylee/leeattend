@@ -9,12 +9,10 @@ import {
   Plus, 
   MoreVertical, 
   Edit2, 
-  Copy, 
   Trash2,
   Users,
   CheckCircle2,
   ChevronRight,
-  PlusCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

@@ -5,7 +5,7 @@ import {
   Sparkles, 
   Plus, 
   Trash2, 
-  Info, 
+  _Info, 
   Save,
   CheckCircle2,
   AlertCircle,
@@ -33,7 +33,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
   // Form State
   const [name, setName] = useState("");
   const [baseAmount, setBaseAmount] = useState(300000);
-  const [payoutType, setPayoutType] = useState<"fixed" | "percentage">("fixed");
+  const [payoutType, _setPayoutType] = useState<"fixed" | "percentage">("fixed");
   const [tiers, setTiers] = useState<any[]>([
     { priority: 1, max_total_leave_days: 1, max_late_early_count: 2, max_unpaid_leave_days: 0.5, max_sick_leave_days: 1, payout_amount: 150000 },
     { priority: 2, max_total_leave_days: null, max_late_early_count: null, max_unpaid_leave_days: null, max_sick_leave_days: null, payout_amount: 0 }
@@ -254,7 +254,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                {policy.tiers?.sort((a, b) => a.priority - b.priority).map((tier, tidx) => (
+                {policy.tiers?.sort((a, b) => a.priority - b.priority).map((tier, _tidx) => (
                   <div key={tier.id} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 flex flex-col items-center min-w-[140px] shadow-inner">
                     <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Tier {tier.priority}</span>
                     <span className="text-sm font-bold text-primary-600 dark:text-primary-400 font-mono tracking-tighter">

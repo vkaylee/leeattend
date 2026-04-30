@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { UserCircle, FileText, ShieldCheck, CalendarDays, Building2 } from "lucide-react";
+import { UserCircle, _FileText, ShieldCheck, _CalendarDays, Building2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Combobox } from "@/components/ui/Combobox";
@@ -15,7 +15,7 @@ import {
   fetchLeavePolicies,
   fetchLeaveTypes,
   assignLeavePolicy,
-  getCurrentWorkspaceId,
+  _getCurrentWorkspaceId,
 } from "@/lib/api";
 
 

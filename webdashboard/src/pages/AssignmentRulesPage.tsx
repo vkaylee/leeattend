@@ -4,11 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, 
   Trash2, 
-  GripVertical,
+  _GripVertical,
   Pencil,
   Filter,
   Save,
-  X,
+  _X,
   AlertCircle,
   Building2,
   Zap
@@ -16,7 +16,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
-import { Combobox } from "@/components/ui/Combobox";
+import { _Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 

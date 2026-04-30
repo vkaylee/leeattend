@@ -1,13 +1,13 @@
 import React from "react";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { _QueryClient, _QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, _fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { TimeEntry } from "@/lib/api/types";
 
-import { ToastProvider } from "../../ui/Toast";
+import { _ToastProvider } from "../../ui/Toast";
 import { AdjustmentRequestModal } from "../AdjustmentRequestModal";
 
 
@@ -35,7 +35,7 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/hooks/use-datetime", () => ({
   useDateTimeFormatter: () => ({
-    formatTime24h: (date: string) => "08:00",
+    formatTime24h: (_date: string) => "08:00",
   }),
 }));
 

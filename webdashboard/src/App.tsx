@@ -44,7 +44,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <DebugProvider>
         <DarkModeProvider>
-          <Sentry.ErrorBoundary fallback={(error: any) => <ErrorBoundary>{null}</ErrorBoundary>}>
+          <Sentry.ErrorBoundary fallback={(_error: any) => <ErrorBoundary>{null}</ErrorBoundary>}>
             <AppContent />
           </Sentry.ErrorBoundary>
         </DarkModeProvider>

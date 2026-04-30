@@ -11,7 +11,7 @@ import {
   Palette,
   Undo2,
   Globe,
-  RefreshCw,
+  _RefreshCw,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

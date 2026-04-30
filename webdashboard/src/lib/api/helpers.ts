@@ -125,7 +125,7 @@ export async function apiFetch(
   const headers = { ...getHeaders(), ...options.headers };
 
   // Remove timeout from options to avoid passing it to fetch
-  const { timeout, ...fetchOptions } = options;
+  const { _timeout, ...fetchOptions } = options;
 
   if (fetchOptions.body instanceof FormData) {
     delete (headers as any)["Content-Type"];

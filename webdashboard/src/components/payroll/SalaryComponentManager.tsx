@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, List, Coins, ShieldCheck, Percent, Trash2 } from "lucide-react";
+import { Plus, _List, Coins, ShieldCheck, Percent, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";

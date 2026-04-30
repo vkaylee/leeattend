@@ -300,7 +300,7 @@ export function useWorkspacePermissionsMatrix(wsId?: string) {
         try {
           const perms = await fetchRolePermissions(activeWsId!, role.id);
           matrix[role.id] = perms;
-        } catch (e) {
+        } catch (__e) {
           matrix[role.id] = [];
         }
       }));

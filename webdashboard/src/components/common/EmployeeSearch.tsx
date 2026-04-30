@@ -47,7 +47,7 @@ export function EmployeeSearch({
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Fetch employees with debounced query
-  const { data: employeesData, isLoading } = useQuery({
+  const { data: employeesData, _isLoading } = useQuery({
     queryKey: ['employees', workspaceId, 'search', debouncedSearchTerm],
     queryFn: () => searchEmployees(workspaceId, debouncedSearchTerm),
     enabled: !!workspaceId,

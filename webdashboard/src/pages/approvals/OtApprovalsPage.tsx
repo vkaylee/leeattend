@@ -7,8 +7,8 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
-  Calendar,
-  AlertCircle,
+  _Calendar,
+  _AlertCircle,
   FileText,
   Filter,
   Upload

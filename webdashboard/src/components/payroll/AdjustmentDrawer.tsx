@@ -1,7 +1,7 @@
 import React from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, MessageSquare, Clock, X, Calendar, CheckCircle2 } from "lucide-react";
+import { ArrowRight, MessageSquare, _Clock, _X, Calendar, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 
-import { Plus, Share2, Server, HardDrive, AlertCircle, Cpu, Pencil, Lock, Save } from "lucide-react";
+import { Plus, Share2, Server, _HardDrive, AlertCircle, Cpu, _Pencil, Lock, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import AgentEditModal from "@/components/features/agents/AgentEditModal";
@@ -30,7 +30,7 @@ export default function ConnectivityTopology() {
     createAgent,
     updateTrust,
     deleteAgent,
-    updateAgent,
+    _updateAgent,
     sendCommand
   } = useAuthorizedAgents();
 

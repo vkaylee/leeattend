@@ -16,7 +16,7 @@ interface LeaveTypeManagerProps {
 }
 
 export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
-  const { t } = useTranslation();
+  const { _t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
   

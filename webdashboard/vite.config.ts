@@ -90,7 +90,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       apiPort = fs.readFileSync(apiPortFile, "utf8").trim();
       console.log(`📡 Vite: Discovered API server on port ${apiPort} via ${portFileName}`);
     }
-  } catch (e) {
+  } catch {
     console.warn("📡 Vite: Could not discover API port");
   }
 
@@ -135,7 +135,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       })] : []),
       {
         name: 'save-port-file',
-        configureServer(server: any) { // Explicitly declare server type as any
+        configureServer(server: { httpServer: net.Server | null; address?: () => any }) { 
           server.httpServer?.once('listening', () => {
             const address = server.httpServer?.address();
             if (address && typeof address === 'object') {
@@ -164,11 +164,11 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
           target: wsTarget,
           changeOrigin: true,
           ws: true,
-          configure: (proxy: any, _options: any) => {
+          configure: (proxy: net.Socket, _options: unknown) => {
             proxy.on('error', (err: Error, _req: IncomingMessage, _res: ServerResponse) => {
               console.log('📡 Vite: WebSocket proxy error', err);
             });
-            proxy.on('proxyReq', (_proxyReq: IncomingMessage, req: IncomingMessage, _res: ServerResponse) => {
+            proxy.on('proxyReq', (_proxyReq: unknown, req: IncomingMessage, _res: ServerResponse) => {
               console.log(`📡 Vite: Proxying WebSocket ${req.method} ${req.url} -> ${wsTarget}${req.url}`);
             });
           },
@@ -177,11 +177,11 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
         "/api": {
           target: apiTarget,
           changeOrigin: true,
-          configure: (proxy: any, _options: any) => {
+          configure: (proxy: net.Socket, _options: unknown) => {
             proxy.on('error', (err: Error, _req: IncomingMessage, _res: ServerResponse) => {
               console.log('📡 Vite: Proxy error', err);
             });
-            proxy.on('proxyReq', (_proxyReq: IncomingMessage, req: IncomingMessage, _res: ServerResponse) => {
+            proxy.on('proxyReq', (_proxyReq: unknown, req: IncomingMessage, _res: ServerResponse) => {
               console.log(`📡 Vite: Proxying request ${req.method} ${req.url} -> ${apiTarget}${req.url}`);
             });
           },

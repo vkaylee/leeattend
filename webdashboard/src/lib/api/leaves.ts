@@ -292,7 +292,7 @@ export async function fetchLatestLeaveImport(
 /** Fetch a specific import job by its ID (for polling). */
 export async function fetchLeaveImportStatus(
   wsId: string,
-  jobId: string,
+  _jobId: string,
 ): Promise<LeaveImportJob | null> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/import/latest`);
   if (!response.ok) return null;

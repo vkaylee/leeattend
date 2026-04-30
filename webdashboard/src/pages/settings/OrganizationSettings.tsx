@@ -15,7 +15,7 @@ type TabType = "departments" | "employment_phases";
 export default function OrganizationSettings() {
 
   const { t } = useTranslation();
-  const { roles, isLoading } = useWorkspaceRoles();
+  const { roles, _isLoading } = useWorkspaceRoles();
   const [activeTab, setActiveTab] = useState<TabType>("departments");
   return (
 

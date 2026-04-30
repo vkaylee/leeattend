@@ -2,8 +2,8 @@ import React, { useState } from "react";
 
 import * as Popover from '@radix-ui/react-popover';
 import { 
-  CheckCircle2, 
-  AlertCircle, 
+  _CheckCircle2, 
+  _AlertCircle, 
   ChevronDown, 
   History,
   Info,

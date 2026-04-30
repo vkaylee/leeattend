@@ -77,7 +77,7 @@ describe("PermissionManagementModal", () => {
     await screen.findByText(/members:invite/i);
 
     // Find the revoke button (trash icon). It should be next to our permission
-    const revokeBtns = await screen.findAllByRole("button");
+    const _revokeBtns = await screen.findAllByRole("button");
     // The first button might be the close modal button. The revoke one is the second one typically, or has a specific SVG.
     // Let's find it by clicking the one that is inside the same container as the permission text.
     const permText = await screen.findByText("members:invite");

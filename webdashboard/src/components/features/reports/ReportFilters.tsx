@@ -3,7 +3,7 @@ import React from "react";
 import { Calendar, CalendarRange, Building2 } from "lucide-react";
 
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import SearchBox from "@/components/common/SearchBox";
+import _SearchBox from "@/components/common/SearchBox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,14 +36,14 @@ export default function ReportFilters({
   filterMode,
   dateRange,
   specificMonth,
-  searchQuery,
-  searchInputRef,
+  _searchQuery,
+  _searchInputRef,
   t,
   onFilterModeChange,
   onDateRangeChange,
   onSpecificMonthChange,
-  onSearchQueryChange,
-  onSearchKeyDown,
+  _onSearchQueryChange,
+  _onSearchKeyDown,
   departments,
   selectedDepartmentId,
   onDepartmentChange,

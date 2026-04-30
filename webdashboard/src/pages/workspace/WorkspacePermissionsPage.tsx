@@ -238,7 +238,7 @@ export default function WorkspacePermissionsPage() {
               </tr>
             </thead>
             <tbody>
-              {permissionGroups.map((group, groupIdx) => (
+              {permissionGroups.map((group, _groupIdx) => (
                 <React.Fragment key={group.id}>
                   {/* Group Header */}
                   <tr>
@@ -254,7 +254,7 @@ export default function WorkspacePermissionsPage() {
                   </tr>
                   
                   {/* Permissions Rows */}
-                  {group.permissions.map((perm, permIdx) => (
+                  {group.permissions.map((perm, _permIdx) => (
                     <tr key={perm.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-b border-r border-slate-100 dark:border-slate-800 p-4 pl-6">
                         <div className="flex items-start gap-2">

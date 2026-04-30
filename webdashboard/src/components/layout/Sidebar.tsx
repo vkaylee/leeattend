@@ -3,31 +3,31 @@ import React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard,
-  Cpu,
+  _Cpu,
   History,
   Settings,
-  UserCheck,
+  _UserCheck,
   UserCircle,
   Users,
   Clock,
   CheckCircle,
-  CalendarDays,
+  _CalendarDays,
   UserRound,
-  Banknote,
+  _Banknote,
   CalendarRange,
   Building2,
   X,
   LogOut,
-  ListOrdered,
+  _ListOrdered,
   ChevronDown,
   ChevronRight,
-  Briefcase,
-  Zap,
-  Globe,
-  Palette,
+  _Briefcase,
+  _Zap,
+  _Globe,
+  _Palette,
   ShieldCheck,
-  Share2,
-  HardDrive,
+  _Share2,
+  _HardDrive,
   Scale,
   BarChart3,
   Folder,
@@ -35,16 +35,16 @@ import {
   Wallet,
   Wrench,
   User,
-  FileText,
+  _FileText,
   Plane,
   CalendarCheck,
   ClipboardCheck,
   ArrowLeftRight,
-  TimerIcon,
+  _TimerIcon,
   DollarSign,
-  UserCog,
+  _UserCog,
   Activity,
-  Palmtree
+  _Palmtree
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -63,7 +63,7 @@ interface SidebarProps {
   isCollapsed: boolean;
 }
 
-export default function Sidebar({ isOpen, onClose, openSections, toggleSection, onShowSwitcher, isCollapsed }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, openSections, toggleSection, _onShowSwitcher, isCollapsed }: SidebarProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const { hasAnyPermission } = useMyPermissions();

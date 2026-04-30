@@ -15,4 +15,4 @@ if [[ "${ARGS[0]}" == "run" && "${ARGS[1]}" == "typecheck" ]]; then
 fi
 
 echo "📦 Running npm inside container environment..."
-exec podman-compose -p leeattend-test -f docker-compose.yml -f .compose/docker-compose.test.yml run --rm --entrypoint npm web_test "${ARGS[@]}"
+exec podman-compose -p leeattend-test -f docker-compose.yml -f .compose/docker-compose.test.yml run -T --rm --entrypoint npm web_test "${ARGS[@]}" 2>&1

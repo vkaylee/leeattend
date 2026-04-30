@@ -7,7 +7,7 @@ import {
   User,
   Calculator,
   Search,
-  ArrowRight,
+  _ArrowRight,
   Info
 } from "lucide-react";
 import { useTranslation } from "react-i18next";

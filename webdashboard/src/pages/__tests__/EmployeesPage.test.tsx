@@ -99,7 +99,7 @@ describe("EmployeesPage", () => {
         (api.fetchMyPermissions as any).mockResolvedValue({ permissions: ["employees:create", "employees:update", "employees:delete"], roles: ["admin"] });
     });
 
-    const renderPage = (initialEntries = ["/"]) =>
+    const renderPage = (_initialEntries = ["/"]) =>
         render(
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>

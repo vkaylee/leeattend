@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 export default function WorkerMonitorPage() {
   const { t } = useTranslation();
   const { stats, workers, recentJobs, isLoading, isFetching, error, refetch } = useWorkerMonitor();
-  const { connected: sseConnected } = useMonitorStream();
+  const { connected: _sseConnected } = useMonitorStream();
   const utilization = useWorkerUtilization(stats);
   const queuePressure = useQueuePressure(stats);
   const jobDistribution = useJobStatusDistribution(recentJobs);

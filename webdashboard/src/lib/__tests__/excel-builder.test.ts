@@ -8,7 +8,7 @@ import type { SummaryRow, DetailRow, AttendanceRow } from "@/types/report-stream
 const mockWriteBuffer = vi.fn(() => Promise.resolve(new ArrayBuffer(0)));
 const mockCommit = vi.fn();
 const mockGetCell = vi.fn((row: number, col?: number) => {
-  const cellIndex = col !== undefined ? col : row;
+  const _cellIndex = col !== undefined ? col : row;
   return {
     value: null,
     font: {},

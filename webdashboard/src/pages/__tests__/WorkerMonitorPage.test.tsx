@@ -1,7 +1,7 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, _waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("react-i18next", () => ({
@@ -12,13 +12,13 @@ vi.mock("react-i18next", () => ({
 
 // Mock chart components to avoid recharts SVG rendering in jsdom
 vi.mock("@/components/features/monitor/WorkerUtilizationGauge", () => ({
-    default: (props: any) => <div data-testid="utilization-gauge" />,
+    default: (_props: any) => <div data-testid="utilization-gauge" />,
 }));
 vi.mock("@/components/features/monitor/QueuePressureChart", () => ({
-    default: (props: any) => <div data-testid="queue-pressure-chart" />,
+    default: (_props: any) => <div data-testid="queue-pressure-chart" />,
 }));
 vi.mock("@/components/features/monitor/JobStatusDistributionChart", () => ({
-    default: (props: any) => <div data-testid="job-distribution-chart" />,
+    default: (_props: any) => <div data-testid="job-distribution-chart" />,
 }));
 
 // Mock data transformation hooks

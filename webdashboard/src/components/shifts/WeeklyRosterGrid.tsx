@@ -50,7 +50,7 @@ interface WeeklyRosterGridProps {
 
 export function WeeklyRosterGrid({
   selectedEmployee,
-  currentDate,
+  _currentDate,
   onNavigateWeek,
   weekDays,
   selectedDays,

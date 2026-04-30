@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 import { Outlet, useLocation } from "@tanstack/react-router";
-import { Building2, X } from "lucide-react";
+import { Building2, _X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useI18nSync } from "@/hooks/use-i18n-sync";

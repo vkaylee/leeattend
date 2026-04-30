@@ -7,7 +7,7 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }));
-import { Employee, Payslip } from "@/lib/api/types";
+import { Employee, _Payslip } from "@/lib/api/types";
 
 import { ToastProvider } from "../../ui/Toast";
 import PayrollDetailDrawer from "../PayrollDetailDrawer";

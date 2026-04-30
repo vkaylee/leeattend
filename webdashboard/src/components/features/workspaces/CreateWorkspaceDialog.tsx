@@ -30,7 +30,7 @@ export default function CreateWorkspaceDialog({
     try {
       await createWorkspace({ name });
       setName(""); onClose();
-    } catch (e) {
+    } catch (__e) {
       setError(t("common.create_workspace_error"));
     } finally { setIsSubmitting(false); }
   }

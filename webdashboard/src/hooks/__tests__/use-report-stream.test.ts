@@ -266,7 +266,7 @@ describe("useReportStream Hook", () => {
     });
 
     it("should allow remounting after unmount", () => {
-      const { unmount, rerender } = renderHook(() =>
+      const { unmount, _rerender } = renderHook(() =>
         useReportStream({ jobId: "test-job" })
       );
 
@@ -385,7 +385,7 @@ describe("useReportStream Hook", () => {
     it("should not attempt reconnect when status is completed", () => {
       // The fix uses statusRef.current instead of captured status.
       // When status is "completed", onclose should NOT retry.
-      const { result, rerender } = renderHook(
+      const { result, _rerender } = renderHook(
         ({ jobId }: { jobId: string | null }) =>
           useReportStream({ jobId, maxRetries: 3 }),
         { initialProps: { jobId: "test-job" as string | null } }
@@ -467,8 +467,8 @@ describe("useReportStream Hook", () => {
     let capturedUrl: string | undefined;
     let mockOnOpen: ((ev?: Event) => void) | null;
     let mockOnClose: ((ev: CloseEvent) => void) | null;
-    let mockOnError: ((ev: Event) => void) | null;
-    let mockOnMessage: ((ev: MessageEvent) => void) | null;
+    let _mockOnError: ((ev: Event) => void) | null;
+    let _mockOnMessage: ((ev: MessageEvent) => void) | null;
 
     class MockWebSocket {
       readyState = 0;

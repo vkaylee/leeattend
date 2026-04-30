@@ -194,7 +194,7 @@ export function useMyLeave() {
 
 export function useMyClock() {
   const queryClient = useQueryClient();
-  const wsId = getCurrentWorkspaceId();
+  const _wsId = getCurrentWorkspaceId();
 
   // Fetch current user's time entries (today + 7 days)
   const { startDate, endDate } = useMemo(() => {

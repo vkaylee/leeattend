@@ -27,7 +27,7 @@ vi.mock("recharts", () => ({
     XAxis: (props: any) => <div data-testid="x-axis" data-type={props.type} />,
     YAxis: (props: any) => <div data-testid="y-axis" data-type={props.type} />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
-    Tooltip: (props: any) => <div data-testid="tooltip" />,
+    Tooltip: (_props: any) => <div data-testid="tooltip" />,
     ResponsiveContainer: ({ children }: any) => (
         <div data-testid="responsive-container">{children}</div>
     ),

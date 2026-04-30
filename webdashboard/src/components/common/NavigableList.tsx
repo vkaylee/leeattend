@@ -1,6 +1,6 @@
-import React, { RefObject, useEffect, useRef, useState, useCallback } from "react";
+import React, { RefObject, useEffect, useRef, useState, _useCallback } from "react";
 
-import { SearchX, Loader2, ChevronRight } from "lucide-react";
+import { SearchX, _Loader2, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";

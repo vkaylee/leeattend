@@ -23,5 +23,5 @@ fi
 cd "$PROJECT_ROOT" || exit 1
 
 echo "🦀 Running cargo inside container environment ($TARGET_CONTAINER) at /workspace$REL_DIR..."
-exec podman-compose -p leeattend-test -f docker-compose.yml -f .compose/docker-compose.test.yml run --rm -e SQLX_OFFLINE=true --workdir "/workspace$REL_DIR" --entrypoint cargo "$TARGET_CONTAINER" "$@"
+exec podman-compose -p leeattend-test -f docker-compose.yml -f .compose/docker-compose.test.yml run -T --rm -e SQLX_OFFLINE=true --workdir "/workspace$REL_DIR" --entrypoint cargo "$TARGET_CONTAINER" "$@" 2>&1
 

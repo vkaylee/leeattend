@@ -10,7 +10,7 @@ import {
   ShieldAlert, 
   Calculator,
   Zap,
-  MoreVertical,
+  _MoreVertical,
   Trash2,
   ChevronRight,
   Filter
@@ -30,8 +30,8 @@ import {
   deletePolicyAssignment, 
   fetchDepartments, 
   fetchEmployees,
-  PolicyAssignmentResponse,
-  Department,
+  _PolicyAssignmentResponse,
+  _Department,
   Employee, UpsertPolicyAssignmentRequest 
 } from "@/lib/api";
 import { cn } from "@/lib/utils";

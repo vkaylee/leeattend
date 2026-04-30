@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Plus, Loader2, LogOut } from "lucide-react";
+import { LayoutDashboard, Plus, _Loader2, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";

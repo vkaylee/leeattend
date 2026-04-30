@@ -22,7 +22,7 @@ export function formatTime(timeStr: string | null | undefined, timeFormat: strin
     const date = parse(timeStr.substring(0, 8), timeStr.includes(":") && timeStr.split(":").length >= 3 ? "HH:mm:ss" : "HH:mm", referenceDate);
     const pattern = timeFormat === "12h" ? "hh:mm a" : "HH:mm";
     return format(date, pattern);
-  } catch (e) {
+  } catch (__e) {
     return timeStr.substring(0, 5);
   }
 }

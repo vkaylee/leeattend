@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 
 import * as Popover from '@radix-ui/react-popover';
-import { Info, CheckCircle2, AlertCircle, Shield, Building2, User, Zap, ChevronDown, ChevronRight } from 'lucide-react';
+import { Info, CheckCircle2, AlertCircle, Shield, _Building2, _User, _Zap, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { ScheduleTrace } from '../../lib/api/types';
-import { cn } from '../../lib/utils';
+import { _cn } from '../../lib/utils';
 
 interface ScheduleTracePopoverProps {
   traces: ScheduleTrace[];

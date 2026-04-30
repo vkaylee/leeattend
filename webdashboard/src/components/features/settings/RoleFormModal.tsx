@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import { Shield, ShieldAlert, ShieldCheck } from "lucide-react";
+import { _Shield, _ShieldAlert, _ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
@@ -25,7 +25,7 @@ const AVAILABLE_COLORS = [
 ];
 
 export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleFormModalProps) {
-  const { t } = useTranslation();
+  const { _t } = useTranslation();
   const { createRole, updateRole, isCreating, isUpdating } = useWorkspaceRoles();
   
   const [name, setName] = useState("");

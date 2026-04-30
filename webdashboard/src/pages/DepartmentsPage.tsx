@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Pencil, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays, Calculator, Loader2, Calendar } from "lucide-react";
+import { Plus, _Search, Pencil, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays, Calculator, _Loader2, _Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 
@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/Toast";
 
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { cn } from "@/lib/utils";
+import { _cn } from "@/lib/utils";
 
 import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "../lib/api";
 
@@ -22,7 +22,7 @@ export default function DepartmentsPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
-  const { formatDate } = useDateTimeFormatter();
+  const { _formatDate } = useDateTimeFormatter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<any>(null);

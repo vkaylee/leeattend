@@ -6,7 +6,7 @@ import { profileKeys } from "@/hooks/use-profile";
 import { fetchMe, clearAuthSession } from "@/lib/api";
 
 function AuthPendingComponent() {
-  const { t } = (window as any).__i18n_t__ ?? { t: (k: string) => k };
+  const { t } = (window as unknown as { __i18n_t__?: { t: (k: string) => string } }).__i18n_t__ ?? { t: (k: string) => k };
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
       <div className="flex flex-col items-center gap-4">
@@ -31,9 +31,9 @@ export const Route = createFileRoute("/_authenticated")({
         throw redirect({ to: "/login" });
       }
       return { user };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If it's already a redirect, rethrow
-      if (error?.isRedirect) throw error;
+      if (error && typeof error === 'object' && 'isRedirect' in error) throw error;
       
       // Prevent infinite redirect loops by clearing the session 
       // before sending the user back to the login page.

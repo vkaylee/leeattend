@@ -10,8 +10,8 @@ import { useToast } from "@/components/ui/Toast";
 
 import { useConfirm } from "@/hooks/use-confirm";
 import { fetchLeavePolicies, createLeavePolicy, deleteLeavePolicy, updateLeavePolicy, fetchLeaveTypes } from "@/lib/api/leaves";
-import { LeavePolicy, LeaveType } from "@/lib/api/types";
-import { cn } from "@/lib/utils";
+import { LeavePolicy, _LeaveType } from "@/lib/api/types";
+import { _cn } from "@/lib/utils";
 const FormRow = ({ label, children, info }: { label: string; children: React.ReactNode; info?: string }) => (
   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center group">
     <div className="md:col-span-4 md:text-right">
@@ -80,7 +80,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const calculateAnnualEntitlement = (policy: LeavePolicy) => {
+  const _calculateAnnualEntitlement = (policy: LeavePolicy) => {
     const amount = policy.rule_config.accrual_amount;
     switch (policy.rule_config.frequency) {
       case "monthly": return amount * 12;

@@ -2,8 +2,8 @@ import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Users, Building, Building2, Plus, Trash2, Calendar,
-  Globe, ChevronDown, Shield, Clock, Sliders,
+  Users, Building, _Building2, Plus, Trash2, Calendar,
+  Globe, _ChevronDown, Shield, Clock, Sliders,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

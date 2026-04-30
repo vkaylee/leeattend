@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, _beforeEach, vi } from "vitest";
 
-import { fetchEmployees, searchEmployees } from "../employees";
-import { fetchWorkspacePayslips } from "../payroll";
+import { _fetchEmployees, _searchEmployees } from "../employees";
+import { _fetchWorkspacePayslips } from "../payroll";
 import { PaginatedResponse } from "../types";
 
 /**

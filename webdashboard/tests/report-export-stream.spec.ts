@@ -175,7 +175,7 @@ test.describe.skip('Report Export Streaming E2E', () => {
     await expect(page.getByTestId('reports-page')).toBeVisible({ timeout: 10000 });
 
     // Listen for WebSocket connections
-    const wsConnections: any[] = [];
+    const wsConnections: unknown[] = [];
     page.on('websocket', ws => {
       console.log(`[WS] WebSocket connection: ${ws.url()}`);
       wsConnections.push(ws);
@@ -200,7 +200,7 @@ test.describe.skip('Report Export Streaming E2E', () => {
     expect(wsConnections.length).toBeGreaterThan(0);
 
     // Verify WebSocket URL pattern
-    const wsUrl = wsConnections[0].url();
+    const wsUrl = (wsConnections[0] as { url: () => string }).url();
     expect(wsUrl).toMatch(/ws:\/\/.*\/api\/ws\/reports\/.+/);
 
     // Verify streaming status indicator
@@ -246,7 +246,7 @@ test.describe.skip('Report Export Streaming E2E', () => {
 
   // TODO: Skipped until WebSocket streaming is implemented
   test('should handle WebSocket reconnection after disconnect', async ({ page }) => {
-    let wsConnection: any;
+    let wsConnection: unknown;
 
     page.on('websocket', ws => {
       if (ws.url().includes('/api/ws/reports/')) {
@@ -270,7 +270,7 @@ test.describe.skip('Report Export Streaming E2E', () => {
     // Simulate disconnect
     await page.evaluate(() => {
       // Close WebSocket connection from client side
-      const ws = (window as any).__reportWebSocket;
+      const ws = (window as unknown as { __reportWebSocket?: { close: () => void } }).__reportWebSocket;
       if (ws) ws.close();
     });
 

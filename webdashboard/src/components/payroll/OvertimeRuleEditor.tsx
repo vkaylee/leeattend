@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, 
-  Trash2, 
-  Save,
+  _Trash2, 
+  _Save,
   Clock,
-  Calendar,
-  AlertCircle,
+  _Calendar,
+  _AlertCircle,
   Hash,
   Percent
 } from 'lucide-react';

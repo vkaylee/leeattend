@@ -19,10 +19,10 @@ import { useToast } from "@/components/ui/Toast";
 import {
   fetchEmployees,
   fetchShifts,
-  assignShift,
+  _assignShift,
   createShift,
   updateShift,
-  fetchWorkspace,
+  _fetchWorkspace,
   fetchWorkspaceSchedules,
   fetchAssignmentHistory,
   upsertRoster,
@@ -35,8 +35,8 @@ import {
 import {
   AssignPatternRequest,
   Shift,
-  ShiftRoster,
-  EmployeeSchedule,
+  _ShiftRoster,
+  _EmployeeSchedule,
   Employee
 } from "@/lib/api/types";
 import { ROUTES } from "@/lib/routes";
@@ -102,7 +102,7 @@ export default function ShiftsPage() {
     queryFn: () => fetchEmployees(wsId, 1, 3000),
     enabled: !!wsId,
   });
-  const employees = employeesData?.data || [];
+  const _employees = employeesData?.data || [];
 
   const { data: shifts } = useQuery({
     queryKey: ["shifts", wsId],
@@ -159,7 +159,7 @@ export default function ShiftsPage() {
     onError: (error: Error) => toast.error(error.message, t("shifts.messages.assign_error"))
   });
 
-  const rosterMutation = useMutation({
+  const _rosterMutation = useMutation({
     mutationFn: (data: { date: string; shift_id: string | null; notes?: string }) => upsertRoster(wsId, selectedEmployee!.id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.update_roster_success"));

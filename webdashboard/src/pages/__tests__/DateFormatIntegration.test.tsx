@@ -1,7 +1,7 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, _within, _waitFor } from "@testing-library/react";
 import { BrowserRouter as _BrowserRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -39,7 +39,7 @@ vi.mock("@/components/common/EmployeeSearch", () => ({
 
 // Mock MonthYearPicker
 vi.mock("@/components/common/MonthYearPicker", () => ({
-  MonthYearPicker: ({ value, onChange }: any) => (
+  MonthYearPicker: ({ _value, _onChange }: any) => (
     <div data-testid="month-year-picker">Mock Picker</div>
   )
 }));

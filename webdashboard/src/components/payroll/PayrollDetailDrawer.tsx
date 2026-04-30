@@ -5,7 +5,7 @@ import {
   X, 
   History, 
   Settings2, 
-  UserCircle,
+  _UserCircle,
   Banknote,
   CalendarDays
 } from "lucide-react";

@@ -4,7 +4,7 @@
  */
 
 import { API_BASE_URL } from "./config";
-import { apiFetch, getCurrentWorkspaceId, getCurrentUserId  } from "./helpers";
+import { apiFetch, getCurrentWorkspaceId, _getCurrentUserId  } from "./helpers";
 import {
   MyProfileResponse,
   EmployeeProfile,

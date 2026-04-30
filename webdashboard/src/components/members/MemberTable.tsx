@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import {
-  MoreVertical,
+  _MoreVertical,
   Shield,
   Trash2,
   UserCog,
@@ -17,7 +17,7 @@ import RoleManagementModal from "@/components/features/settings/RoleManagementMo
 
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
-import { WorkspaceMember, WorkspaceRole } from "@/lib/api";
+import { _WorkspaceMember, WorkspaceRole } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const roleColorMap: Record<string, string> = {

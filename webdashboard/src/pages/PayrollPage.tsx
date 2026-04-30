@@ -1,40 +1,40 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, _useMemo } from "react";
 
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, _useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { 
   Calculator, 
   ArrowLeft, 
   ArrowRight, 
-  Search, 
-  User as UserIcon,
-  ChevronRight,
-  Info,
-  Banknote,
-  Calendar,
-  Filter,
-  MoreVertical
+  _Search, 
+  User as _UserIcon,
+  _ChevronRight,
+  _Info,
+  _Banknote,
+  _Calendar,
+  _Filter,
+  _MoreVertical
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import { _EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import AdjustmentDrawer from "@/components/payroll/AdjustmentDrawer";
 import BatchCalculationModal from "@/components/payroll/BatchCalculationModal";
-import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
-import PayrollSummaryTable from "@/components/payroll/PayrollSummaryTable";
-import PayrollTable from "@/components/payroll/PayrollTable";
+import _EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 import PayrollDetailDrawer from "@/components/payroll/PayrollDetailDrawer";
+import PayrollSummaryTable from "@/components/payroll/PayrollSummaryTable";
+import _PayrollTable from "@/components/payroll/PayrollTable";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  _DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
+  _DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Modal from "@/components/ui/Modal";
+import _Modal from "@/components/ui/Modal";
 
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { _useDateTimeFormatter } from "@/hooks/use-datetime";
 import { cn } from "@/lib/utils";
 
 import { useToast } from "../components/ui/Toast";
@@ -43,7 +43,7 @@ import {
   searchEmployees,
   fetchEmployeePayslips,
   fetchWorkspacePayslips,
-  calculate_payroll,
+  _calculate_payroll,
   getCurrentWorkspaceId,
   fetchWorkspaceAttendanceAdjustments,
   Employee,
@@ -53,7 +53,7 @@ export default function PayrollPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
-  const toast = useToast();
+  const _toast = useToast();
   
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());

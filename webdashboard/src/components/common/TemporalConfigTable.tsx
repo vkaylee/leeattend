@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { Plus, Trash2, Calendar, History, Save, Calculator, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, _Trash2, Calendar, History, Save, Calculator, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";

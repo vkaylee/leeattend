@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Cpu,
   Globe,
-  Hash,
+  _Hash,
   MoreVertical,
   Pencil,
   Trash2,
@@ -81,7 +81,7 @@ export default function DeviceListItem({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Fetch detailed info automatically on mount (if agent is active)
-  const { data: deviceInfo, refetch: refetchInfo, error: infoError } = useDeviceInfo(device.id, parentAgentActive && isVisible);
+  const { data: deviceInfo, refetch: _refetchInfo, error: _infoError } = useDeviceInfo(device.id, parentAgentActive && isVisible);
 
   // Merge status.info (heartbeat data) with deviceInfo (on-demand data)
   const displayInfo: DeviceInfo | null = deviceInfo ?? status?.info ?? null;

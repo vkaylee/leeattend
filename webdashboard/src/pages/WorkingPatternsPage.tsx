@@ -1,21 +1,21 @@
 import React, { useState } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { _Link } from "@tanstack/react-router";
 import { format, startOfToday } from "date-fns";
 import {
   Plus,
   Trash2,
   CalendarDays,
   Clock,
-  ArrowLeft,
+  _ArrowLeft,
   Info,
   Check,
   Users,
-  Settings2,
+  _Settings2,
   ChevronDown,
   ChevronUp,
-  Search,
+  _Search,
   X
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -35,13 +35,13 @@ import {
   createWorkingPattern,
   fetchPatternDetails,
   fetchShifts,
-  fetchEmployees,
+  _fetchEmployees,
   bulkAssignPattern,
   deleteWorkingPattern,
   getCurrentWorkspaceId,
   WorkingPattern,
-  Shift,
-  Employee
+  _Shift,
+  _Employee
 } from "../lib/api";
 
 export default function WorkingPatternsPage() {
@@ -49,7 +49,7 @@ export default function WorkingPatternsPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { formatTime } = useDateTimeFormatter();
+  const { _formatTime } = useDateTimeFormatter();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);

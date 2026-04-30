@@ -25,7 +25,7 @@ vi.mock("@/hooks/use-attendance", () => ({
 // Mock translation
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, options?: any) => {
+    t: (key: string, _options?: any) => {
       if (key === "approvals.bulk_upload.confirm_close_with_errors") return "Close with errors?";
       if (key === "common.warning") return "Warning";
       if (key === "common.confirm") return "Confirm";

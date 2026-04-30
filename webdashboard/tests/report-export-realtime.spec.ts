@@ -161,7 +161,7 @@ test.describe.skip("Report Export Real-Time Updates", () => {
     await expect(batchCounter).toContainText(/\d+ (of|\/|out of) \d+/i);
 
     // Get initial text
-    const initialText = await batchCounter.textContent();
+    const _initialText = await batchCounter.textContent();
 
     // Wait and check it updates
     await page.waitForTimeout(1000);

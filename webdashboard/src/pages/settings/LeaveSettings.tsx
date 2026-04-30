@@ -19,13 +19,23 @@ import { cn } from "@/lib/utils";
 
 type TabType = "types" | "policies" | "assignments";
 
+interface LeaveAssignment {
+  id: string;
+  policy_name: string;
+  leave_type_name: string;
+  assignee_type: string;
+  effective_from: string;
+  effective_to: string | null;
+  created_at: string;
+}
+
 export default function LeaveSettings() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const [activeTab, setActiveTab] = useState<TabType>("types");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
-  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
+  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<LeaveAssignment[]>({
     queryKey: ["leave-assignments", wsId],
     queryFn: () => fetchLeavePolicyAssignments(wsId!),
     enabled: !!wsId && activeTab === "assignments"
@@ -169,7 +179,7 @@ export default function LeaveSettings() {
                     ) : assignments.length === 0 ? (
                       <tr><td colSpan={5} className="p-12 text-center text-slate-400 dark:text-slate-500 italic font-bold text-xs uppercase tracking-widest opacity-50">{t("settings.leave.messages.no_assignments")}</td></tr>
                     ) : (
-                      assignments.map((a: any) => (
+                      assignments.map((a) => (
                         <tr key={a.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                           <td className="px-6 py-5 font-bold text-slate-700 dark:text-slate-200 text-xs tracking-tight">{a.policy_name}</td>
                           <td className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{a.leave_type_name}</td>

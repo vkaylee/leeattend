@@ -1,13 +1,14 @@
 import React from "react";
-import { Building2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { Building2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-import Modal from "@/components/ui/Modal";
-import FormField from "@/components/ui/FormField";
-import { Combobox } from "@/components/ui/Combobox";
 import Button from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
+import FormField from "@/components/ui/FormField";
+import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 
 import { transferEmployee, Department } from "@/lib/api";

@@ -4,12 +4,12 @@ import * as Popover from "@radix-ui/react-popover";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
-  UserCircle,
+  _UserCircle,
   Building2,
   UserPlus,
   Upload,
-  History as HistoryIcon,
-  Calendar as CalendarIcon,
+  History as _HistoryIcon,
+  Calendar as _CalendarIcon,
   ArrowUpDown,
   ChevronUp,
   ChevronDown,
@@ -26,16 +26,13 @@ import PermissionGate from "@/components/common/PermissionGate";
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 import EmployeeDetailDrawer from "@/components/features/employees/EmployeeDetailDrawer";
 import EmployeeFormModal from "@/components/features/employees/EmployeeFormModal";
-import TransferEmployeeModal from "@/components/features/employees/TransferEmployeeModal";
 import EmploymentHistoryModal from "@/components/features/employees/EmploymentHistoryModal";
 import RehireEmployeeModal from "@/components/features/employees/RehireEmployeeModal";
-
+import TransferEmployeeModal from "@/components/features/employees/TransferEmployeeModal";
 import Button from "@/components/ui/Button";
-
-import { useDebounce } from "@/hooks/use-debounce";
-import { Combobox } from "@/components/ui/Combobox";
-import FormField from "@/components/ui/FormField";
-import Modal from "@/components/ui/Modal";
+import { _Combobox } from "@/components/ui/Combobox";
+import _FormField from "@/components/ui/FormField";
+import _Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
@@ -44,6 +41,7 @@ import { useToast } from "@/components/ui/Toast";
 
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 
 import {

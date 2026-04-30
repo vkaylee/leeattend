@@ -2,7 +2,7 @@ import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, _beforeEach } from "vitest";
 
 
 // Mock react-i18next
@@ -17,7 +17,7 @@ vi.mock("recharts", () => ({
     RadialBarChart: ({ children, ...props }: any) => (
         <div data-testid="radial-chart" {...props}>{children}</div>
     ),
-    RadialBar: (props: any) => <div data-testid="radial-bar" />,
+    RadialBar: (_props: any) => <div data-testid="radial-bar" />,
     PolarAngleAxis: () => <div data-testid="polar-axis" />,
     ResponsiveContainer: ({ children }: any) => (
         <div data-testid="responsive-container">{children}</div>
@@ -25,7 +25,7 @@ vi.mock("recharts", () => ({
     BarChart: ({ children, ...props }: any) => (
         <div data-testid="bar-chart" {...props}>{children}</div>
     ),
-    Bar: (props: any) => <div data-testid="bar" />,
+    Bar: (_props: any) => <div data-testid="bar" />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,

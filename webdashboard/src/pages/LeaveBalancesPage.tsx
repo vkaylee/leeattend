@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight, AlertTriangle, X, Calendar } from "lucide-react";
+import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight, AlertTriangle, _X, Calendar } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 

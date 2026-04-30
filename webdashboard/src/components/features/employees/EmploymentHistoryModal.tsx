@@ -1,10 +1,12 @@
 import React from "react";
+
 import { History as HistoryIcon, Calendar as CalendarIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
-import Button from "@/components/ui/Button";
+
 import { EmploymentPeriod } from "@/lib/api";
 
 interface EmploymentHistoryModalProps {

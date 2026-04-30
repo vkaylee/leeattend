@@ -1,5 +1,5 @@
-import { renderHook, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, _act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, _afterEach } from "vitest";
 
 import { useStickyHeader } from "../use-sticky-header";
 
