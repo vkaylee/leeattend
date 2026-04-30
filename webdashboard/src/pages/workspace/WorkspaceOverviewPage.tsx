@@ -1,30 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
 import { Building2, Users, CalendarDays, BarChart3, Clock, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import PageHeader from "@/components/ui/PageHeader";
 
+import { useDashboardStats } from "@/hooks/use-dashboard";
 import { useWorkspace, useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
-import { apiFetch, API_BASE_URL, getCurrentWorkspaceId } from "@/lib/api";
 
 
 export default function WorkspaceOverviewPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() || "";
   const { workspace, isLoading: isWsLoading } = useWorkspace();
   const { members, isLoading: isMembersLoading } = useWorkspaceMembers();
   const { roles, isLoading: isRolesLoading } = useWorkspaceRoles();
 
-  // Fetch workspace stats
-  const { data: stats, isLoading: isStatsLoading } = useQuery({
-    queryKey: ["workspace", wsId, "stats"],
-    queryFn: async () => {
-      const res = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/stats`);
-      if (!res.ok) throw new Error("Failed to fetch stats");
-      return res.json();
-    },
-    enabled: !!wsId,
-  });
+  // Fetch workspace stats using dedicated hook
+  const { data: stats, isLoading: isStatsLoading } = useDashboardStats();
 
   if (isWsLoading || isMembersLoading || isStatsLoading || isRolesLoading) {
     return (

@@ -1,0 +1,198 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderHook, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import * as api from "@/lib/api";
+
+import {
+    useDashboardStats,
+    useAttendanceTrend,
+    useDepartmentAttendance,
+    useUnexcusedAbsences,
+    useTurnoverAnalytics
+} from "../use-dashboard";
+
+vi.mock("@/lib/api", async () => {
+    const actual = await vi.importActual("@/lib/api");
+    return {
+        ...actual,
+        apiFetch: vi.fn(),
+    };
+});
+
+vi.mock("../use-workspace", () => ({
+    useWorkspace: () => ({
+        workspace: { id: "ws-test-123", name: "Test Workspace" },
+    }),
+}));
+
+const createWrapper = () => {
+    const queryClient = new QueryClient({
+        defaultOptions: {
+            queries: { retry: false },
+        },
+    });
+    return ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+};
+
+describe("use-dashboard hooks", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    describe("useDashboardStats", () => {
+        it("fetches dashboard stats correctly", async () => {
+            const mockStats = {
+                total_employees: 100,
+                present_today: 95,
+                pending_leave_requests: 2,
+                estimated_monthly_payroll: "100000.00",
+                late_today: 5,
+                absent_today: 3,
+                on_leave_today: 2,
+                early_departure_today: 1,
+                avg_work_hours_today: 8.5
+            };
+
+            vi.mocked(api.apiFetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockStats),
+            } as unknown as never);
+
+            const { result } = renderHook(() => useDashboardStats(), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/workspace-stats");
+            expect(result.current.data).toEqual(mockStats);
+        });
+
+        it("handles error when fetch fails", async () => {
+            vi.mocked(api.apiFetch).mockResolvedValueOnce({
+                ok: false,
+            } as unknown as never);
+
+            const { result } = renderHook(() => useDashboardStats(), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isError).toBe(true));
+            expect(result.current.error?.message).toBe("Failed to fetch dashboard stats");
+        });
+    });
+
+    describe("useAttendanceTrend", () => {
+        it("fetches attendance trend correctly", async () => {
+            const mockData = [{ date: "2023-01-01", present: 10, late: 1, absent: 0, on_leave: 0 }];
+
+            vi.mocked(api.apiFetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockData),
+            } as unknown as never);
+
+            const { result } = renderHook(() => useAttendanceTrend(), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/attendance-trend");
+            expect(result.current.data).toEqual(mockData);
+        });
+    });
+
+    describe("useDepartmentAttendance", () => {
+        it("fetches department attendance correctly with range", async () => {
+            const mockData = [{ department_id: "dept-1", department_name: "Engineering", on_time: 10, late: 0, absent: 0, on_leave: 0 }];
+
+            vi.mocked(api.apiFetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockData),
+            } as unknown as never);
+
+            const { result } = renderHook(() => useDepartmentAttendance("week"), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/department-attendance?range=week");
+            expect(result.current.data).toEqual(mockData);
+        });
+    });
+
+    describe("useUnexcusedAbsences", () => {
+        it("builds query params correctly and fetches unexcused absences", async () => {
+            const mockData = [{ department_id: "dept-1", department_name: "HR", unexcused_count: 1, consecutive_count: 1, total_absent_count: 1, total_leave_count: 0 }];
+
+            vi.mocked(api.apiFetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockData),
+            } as unknown as never);
+
+            const { result } = renderHook(() => useUnexcusedAbsences("2023-01-01", "2023-01-31", "employee"), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/unexcused-absences?start_date=2023-01-01&end_date=2023-01-31&group_by=employee");
+            expect(result.current.data).toEqual(mockData);
+        });
+        
+        it("omits query parameters when not provided", async () => {
+            vi.mocked(api.apiFetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve([]),
+            } as unknown as never);
+
+            const { result } = renderHook(() => useUnexcusedAbsences(), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/unexcused-absences");
+        });
+    });
+
+    describe("useTurnoverAnalytics", () => {
+        it("does not fetch if startDate or endDate is missing", async () => {
+            const { result } = renderHook(() => useTurnoverAnalytics("", "2023-01-31"), {
+                wrapper: createWrapper(),
+            });
+
+            expect(result.current.fetchStatus).toBe("idle");
+            expect(api.apiFetch).not.toHaveBeenCalled();
+        });
+
+        it("fetches turnover analytics correctly", async () => {
+            const mockData = {
+                tenure_distribution: [],
+                by_source: [],
+                by_department: [],
+                total_terminated: 5,
+                period_start: "2023-01-01",
+                period_end: "2023-01-31"
+            };
+
+            vi.mocked(api.apiFetch).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockData),
+            } as unknown as never);
+
+            const { result } = renderHook(() => useTurnoverAnalytics("2023-01-01", "2023-01-31"), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+            expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31");
+            expect(result.current.data).toEqual(mockData);
+        });
+    });
+});
