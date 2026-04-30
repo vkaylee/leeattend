@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) as \"count!\"\n               FROM holidays h\n               WHERE h.workspace_id = $1\n                 AND h.is_paid = false\n                 AND h.date >= $2\n                 AND h.date <= $3\n                 AND NOT EXISTS (\n                     SELECT 1 FROM leave_requests lr\n                     WHERE lr.employee_id = $4\n                       AND lr.status IN ('approved', 'pre_approved')\n                       AND lr.start_date <= h.date\n                       AND lr.end_date >= h.date\n                 )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "07cf727b0d2d2e3125492770b45713bf08eca0ade69316426bc237c13c809c11"
+}

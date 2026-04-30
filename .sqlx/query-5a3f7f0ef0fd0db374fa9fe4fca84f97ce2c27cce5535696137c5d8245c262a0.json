@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            a.id, \n            a.workspace_id, \n            a.assignee_type, \n            a.assignee_id, \n            a.policy_id, \n            a.effective_from, \n            a.effective_to, \n            a.created_at as \"created_at!\",\n            d.name as \"policy_name!\",\n            lt.name as \"leave_type_name!\"\n        FROM leave_policy_assignments a\n        JOIN leave_policy_definitions d ON a.policy_id = d.id\n        JOIN leave_types lt ON d.leave_type_id = lt.id\n        WHERE a.workspace_id = $1\n        ORDER BY a.created_at DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "assignee_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "assignee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "policy_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "effective_from",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "effective_to",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "policy_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "leave_type_name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "5a3f7f0ef0fd0db374fa9fe4fca84f97ce2c27cce5535696137c5d8245c262a0"
+}

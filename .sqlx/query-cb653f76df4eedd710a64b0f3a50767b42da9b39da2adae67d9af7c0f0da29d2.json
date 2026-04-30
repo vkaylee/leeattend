@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO salary_component_base_members (component_definition_id, base_group_id)\n            VALUES ($1, $2)\n            ON CONFLICT (component_definition_id, base_group_id) DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cb653f76df4eedd710a64b0f3a50767b42da9b39da2adae67d9af7c0f0da29d2"
+}

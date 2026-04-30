@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            apa.id,\n            apa.target_type,\n            apa.target_id,\n            apa.valid_from,\n            apa.valid_to,\n            apv.rules as \"rules: sqlx::types::Json<AttendanceRules>\"\n        FROM attendance_policy_assignments apa\n        JOIN attendance_policies ap ON ap.id = apa.policy_id\n        JOIN attendance_policy_versions apv ON apv.policy_id = ap.id\n        WHERE ap.workspace_id = $1\n          AND apv.valid_from <= NOW()\n          AND (apv.valid_to IS NULL OR apv.valid_to >= NOW())\n          AND apa.valid_from <= NOW()\n          AND (apa.valid_to IS NULL OR apa.valid_to >= NOW())\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "target_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "target_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "valid_from",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "valid_to",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "rules: sqlx::types::Json<AttendanceRules>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "f5ff2d992e4204ee068cf4b6156c88d686d2e3b71853dd2031979838e6e8366d"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO employee_shifts (employee_id, shift_id, start_date, end_date)\n         VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "575e47035d4159fdc8afb871ced64dc6e7d0c918d4f65fa7cf0488f17f8799bf"
+}

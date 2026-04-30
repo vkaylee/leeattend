@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO leave_types (workspace_id, code, name, is_paid, policy_config)\n        VALUES ($1, $2, $3, $4, $5)\n        RETURNING id, workspace_id, code, name, is_paid, \n                  policy_config as \"policy_config: sqlx::types::Json<LeaveTypeConfig>\", \n                  created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_paid",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "policy_config: sqlx::types::Json<LeaveTypeConfig>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0eca5c6dc8d918f10c1104283e1aa0e59f41eefed668a06921dad610c218eb6d"
+}

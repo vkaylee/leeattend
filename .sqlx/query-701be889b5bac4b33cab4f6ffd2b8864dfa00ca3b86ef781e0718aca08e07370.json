@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT wc.id, wc.employee_id, wc.type as \"type_\", wc.minute_allowance, wc.is_paid, wc.start_date, wc.end_date\n            FROM working_conditions wc\n            JOIN employees e ON wc.employee_id = e.id\n            WHERE wc.employee_id = ANY($1)\n              AND e.workspace_id = $2\n              AND wc.start_date <= $4\n              AND (wc.end_date IS NULL OR wc.end_date >= $3)\n            ORDER BY wc.employee_id, wc.start_date\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "type_",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "minute_allowance",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_paid",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "end_date",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "701be889b5bac4b33cab4f6ffd2b8864dfa00ca3b86ef781e0718aca08e07370"
+}

@@ -1,0 +1,130 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE shifts \n         SET name = $2, report_symbol = $3, start_time = $4, end_time = $5, \n             break_duration_minutes = $6, break_start = $7, break_end = $8, \n             is_break_auto_deduct = $9, break_is_overtime = $10, \n             early_punch_in_grace_period_minutes = $11, allow_early_ot = $12, updated_at = CURRENT_TIMESTAMP\n         WHERE id = $1 AND workspace_id = $13\n         RETURNING \n            id, workspace_id, name, report_symbol, start_time, end_time, \n            break_duration_minutes, break_start, break_end, \n            is_break_auto_deduct, break_is_overtime, \n            early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,\n            created_at as \"created_at!\", updated_at as \"updated_at!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "report_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 5,
+        "name": "end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 6,
+        "name": "break_duration_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "break_start",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 8,
+        "name": "break_end",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_break_auto_deduct",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "break_is_overtime",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "early_punch_in_grace_period_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "allow_early_ot",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "parent_shift_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Time",
+        "Time",
+        "Int4",
+        "Time",
+        "Time",
+        "Bool",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "37064b14c81f1984b71e612ef391c54057dbeb2dc962bf53d8a73c43eb7d1541"
+}

@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, name, report_symbol, start_time, end_time, break_duration_minutes,\n               break_start, break_end, is_break_auto_deduct,\n               early_punch_in_grace_period_minutes, allow_early_ot\n        FROM shifts WHERE workspace_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "report_symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 4,
+        "name": "end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 5,
+        "name": "break_duration_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "break_start",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 7,
+        "name": "break_end",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_break_auto_deduct",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "early_punch_in_grace_period_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "allow_early_ot",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5dafc8c68d012c45d320416f9f0b7275f96fc1a1f408f2fec2162eb6a248432a"
+}

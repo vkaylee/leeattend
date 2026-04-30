@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM salary_component_base_members\n            WHERE component_definition_id = $1 AND base_group_id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5ab175e965b5f5de9bcfd8260befc6d4fe2672c10bc360d31e60ba216ecba085"
+}

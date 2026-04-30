@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT lal.id, lal.accrual_date, lal.amount, lt.name as leave_type_name,\n                   lal.notes, lal.created_at, lal.policy_assignment_id\n            FROM leave_accrual_logs lal\n            JOIN leave_types lt ON lal.leave_type_id = lt.id\n            JOIN employees e ON lal.employee_id = e.id\n            WHERE lal.employee_id = $1\n              AND e.workspace_id = $4\n              AND EXTRACT(YEAR FROM lal.accrual_date) = $2\n              AND (lt.id = $3 OR $3 IS NULL)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "accrual_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "leave_type_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "policy_assignment_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Numeric",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "cb7def9931d34989cf0efbbb823b857c0c3c9b07558e948c43cf6fa352c851ff"
+}

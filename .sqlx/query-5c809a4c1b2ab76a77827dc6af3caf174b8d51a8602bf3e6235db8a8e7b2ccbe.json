@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO leave_requests\n            (id, employee_id, leave_type_id, start_date, end_date, reason, status,\n             duration_type, start_time, end_time,\n             requested_by_user_id, approved_by_user_id, created_at, updated_at)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date",
+        "Text",
+        {
+          "Custom": {
+            "name": "leave_status_type",
+            "kind": {
+              "Enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "cancelled",
+                "pre_approved"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        "Time",
+        "Time",
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c809a4c1b2ab76a77827dc6af3caf174b8d51a8602bf3e6235db8a8e7b2ccbe"
+}

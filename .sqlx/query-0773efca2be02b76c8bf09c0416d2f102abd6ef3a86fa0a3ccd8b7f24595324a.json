@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT wpd.shift_id, ewp.pattern_id\n        FROM working_pattern_details wpd\n        JOIN employee_working_patterns ewp ON ewp.pattern_id = wpd.pattern_id\n        JOIN employees e ON e.id = ewp.employee_id\n        WHERE ewp.employee_id = $1 \n          AND ewp.start_date <= $2 \n          AND (ewp.end_date IS NULL OR ewp.end_date >= $2)\n          AND wpd.day_of_week = $3\n          AND e.workspace_id = $4\n        ORDER BY ewp.created_at DESC\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "shift_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "pattern_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Int4",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "0773efca2be02b76c8bf09c0416d2f102abd6ef3a86fa0a3ccd8b7f24595324a"
+}

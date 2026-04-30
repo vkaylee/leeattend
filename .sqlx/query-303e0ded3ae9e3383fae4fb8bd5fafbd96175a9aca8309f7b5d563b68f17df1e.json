@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                    UPDATE leave_balances\n                                    SET accrued_amount = accrued_amount + $3, updated_at = NOW()\n                                    WHERE employee_id = $1 AND year = $2 AND leave_type_id = $4\n                                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Numeric",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "303e0ded3ae9e3383fae4fb8bd5fafbd96175a9aca8309f7b5d563b68f17df1e"
+}

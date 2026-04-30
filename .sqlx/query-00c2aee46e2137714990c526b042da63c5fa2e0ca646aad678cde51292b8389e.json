@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id AS employee_id,\n                  edh.department_id AS \"department_id?\",\n                  COALESCE(d.name, 'Unassigned') AS \"department_name!\"\n           FROM employees e\n           LEFT JOIN LATERAL (\n               SELECT edh2.department_id\n               FROM employee_department_history edh2\n               WHERE edh2.employee_id = e.id AND edh2.effective_date <= $2\n               ORDER BY edh2.effective_date DESC\n               LIMIT 1\n           ) edh ON TRUE\n           LEFT JOIN departments d ON d.id = edh.department_id\n           WHERE e.is_active = TRUE AND e.workspace_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "department_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "department_name!",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "00c2aee46e2137714990c526b042da63c5fa2e0ca646aad678cde51292b8389e"
+}

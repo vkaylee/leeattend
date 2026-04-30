@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT wc.id, wc.employee_id, wc.type as \"type_\", wc.minute_allowance, wc.is_paid, wc.start_date, wc.end_date\n           FROM working_conditions wc\n           JOIN employees e ON e.id = wc.employee_id\n           WHERE wc.employee_id = $1 AND e.workspace_id = $2\n           ORDER BY wc.start_date DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "type_",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "minute_allowance",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_paid",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "end_date",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "0428ee9a41c306770b9c703a222a883eeab9552207f472ae857b294bcc4b3468"
+}
