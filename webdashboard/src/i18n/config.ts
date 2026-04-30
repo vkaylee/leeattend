@@ -1,5 +1,5 @@
 // eslint-disable-next-line import-x/no-named-as-default
-import i18n from 'i18next';
+import i18n, { BackendModule } from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
@@ -9,22 +9,28 @@ const localeLoaders: Record<string, () => Promise<{ default: Record<string, unkn
   zh: () => import('./locales/zh.json'),
 };
 
-const loadedLanguages = new Set<string>();
-
-async function loadLocale(lng: string) {
-  if (loadedLanguages.has(lng) || !localeLoaders[lng]) return;
-  loadedLanguages.add(lng);
-  const mod = await localeLoaders[lng]();
-  i18n.addResourceBundle(lng, 'translation', mod.default || mod, true, true);
-}
+export const lazyLoadBackend: BackendModule = {
+  type: 'backend',
+  init: () => {},
+  read: (language, _namespace, callback) => {
+    const lng = language.split('-')[0];
+    if (localeLoaders[lng]) {
+      localeLoaders[lng]()
+        .then((mod) => callback(null, mod.default || mod))
+        .catch((err) => callback(err, null));
+    } else {
+      callback(new Error(`Language ${lng} not found`), null);
+    }
+  },
+};
 
 // eslint-disable-next-line import-x/no-named-as-default-member
 i18n
+  .use(lazyLoadBackend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     fallbackLng: 'vi',
-    partialBundledLanguages: true,
     interpolation: {
       escapeValue: false,
     },
@@ -33,12 +39,5 @@ i18n
       caches: ['localStorage'],
     },
   });
-
-const detected = i18n.language?.split('-')[0] || 'vi';
-loadLocale(detected);
-
-i18n.on('languageChanged', (lng) => {
-  loadLocale(lng.split('-')[0]);
-});
 
 export default i18n;

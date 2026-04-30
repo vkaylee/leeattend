@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import * as Sentry from "@sentry/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
@@ -46,7 +47,9 @@ function App() {
         <DarkModeProvider>
           { }
           <Sentry.ErrorBoundary fallback={(_error: unknown) => <ErrorBoundary>{null}</ErrorBoundary>}>
-            <AppContent />
+            <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+              <AppContent />
+            </Suspense>
           </Sentry.ErrorBoundary>
         </DarkModeProvider>
       </DebugProvider>
