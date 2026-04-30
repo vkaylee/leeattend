@@ -256,6 +256,11 @@ build_service() {
     # Validate context
     [[ -f "${context}/Dockerfile" ]] || die "No Dockerfile at ${context}/Dockerfile"
 
+    # Copy .sqlx cache from workspace root to context for SQLX_OFFLINE builds
+    if [[ -d "${PROJECT_ROOT}/.sqlx" ]]; then
+        cp -a "${PROJECT_ROOT}/.sqlx" "${context}/" 2>/dev/null || true
+    fi
+
     # Build args
     local build_args=()
     build_args+=(build)
