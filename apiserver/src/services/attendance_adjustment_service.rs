@@ -56,7 +56,6 @@ impl AttendanceAdjustmentService {
             te_repo,
             workspace_repo,
             pool,
-            None,
         );
         import_svc.resume_all_pending_jobs().await;
     }

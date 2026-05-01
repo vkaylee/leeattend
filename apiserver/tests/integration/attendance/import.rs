@@ -57,7 +57,6 @@ async fn test_import_csv_with_line_errors() {
             pool: pool.clone(),
         }),
         pool.clone(),
-        None,
     )
     .batch_import_from_file(ws_id, user_id, file_path, "log".to_string())
     .await

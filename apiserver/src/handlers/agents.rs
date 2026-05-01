@@ -97,22 +97,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                     format!("Redis enqueue failed: {e}")
                                                 })
                                             } else {
-                                                // Fallback: synchronous processing (no Redis)
-                                                let entry = AgentLogEntry::new(AgentLogEntryArgs {
-                                                    workspace_id,
-                                                    employee_id_number: user_id_number.to_string(),
-                                                    punch_time_raw: punch_time_str.to_string(),
-                                                    device_id: Some(device_id.to_string()),
-                                                    raw_data: Some(data.clone()),
-                                                    timezone: ws_tz.clone(),
-                                                    date_fmt: ws_date_fmt.clone(),
-                                                    time_fmt: ws_time_fmt.clone(),
-                                                });
-                                                state_clone
-                                                    .attendance
-                                                    .log_service
-                                                    .ingest_agent_log(entry)
-                                                    .await
+                                                Err("Redis not available for async ingestion"
+                                                    .to_string())
                                             };
                                         if let Some(msg_id) = v["msg_id"].as_str() {
                                             let (status, message) = match result {

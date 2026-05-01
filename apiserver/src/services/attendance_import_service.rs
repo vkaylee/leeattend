@@ -44,7 +44,6 @@ pub struct AttendanceImportService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
     pool: PgPool,
-    redis: Option<crate::queue::RedisPool>,
 }
 
 impl AttendanceImportService {
@@ -55,7 +54,6 @@ impl AttendanceImportService {
         time_entry_repo: Arc<dyn TimeEntryRepository>,
         workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
         pool: PgPool,
-        redis: Option<crate::queue::RedisPool>,
     ) -> Self {
         Self {
             import_repo,
@@ -64,7 +62,6 @@ impl AttendanceImportService {
             time_entry_repo,
             workspace_repo,
             pool,
-            redis,
         }
     }
     #[tracing::instrument(skip_all, err)]
@@ -549,44 +546,18 @@ impl AttendanceImportService {
                         }
                     }
 
-                    // Enqueue claim-staged-logs job via queue runner
-                    if let Some(ref redis) = self.redis {
-                        let queue = crate::queue::JobQueue::new(redis.clone());
-                        let claim_job = crate::queue::Job::new(
-                            Uuid::new_v4(),
-                            0,
-                            crate::queue::TaskType::ClaimStagedLogs,
+                    // Claim staged logs directly — we're already in a background task,
+                    // so no need to enqueue another job via Redis queue.
+                    if let Err(e) =
+                        crate::repositories::staging_log_repository::claim_staged_logs_direct(
+                            &pool,
                             job.workspace_id,
-                            crate::queue::JobPayload::ClaimStagedLogs(
-                                crate::queue::ClaimStagedLogsPayload {
-                                    workspace_id: job.workspace_id,
-                                    employee_id,
-                                    employee_id_number: emp.id_number.clone(),
-                                },
-                            ),
-                        );
-                        if let Err(e) = queue.enqueue_jobs(vec![claim_job]).await {
-                            error!(
-                                "Failed to enqueue claim-staged-logs for {}: {}",
-                                emp.id_number, e
-                            );
-                        }
-                    } else {
-                        // Fallback: claim staged logs directly when no queue runner is available
-                        if let Err(e) =
-                            crate::repositories::staging_log_repository::claim_staged_logs_direct(
-                                &self.pool,
-                                job.workspace_id,
-                                employee_id,
-                                &emp.id_number,
-                            )
-                            .await
-                        {
-                            error!(
-                                "Failed to claim staged logs directly for {}: {}",
-                                emp.id_number, e
-                            );
-                        }
+                            employee_id,
+                            &emp.id_number,
+                        )
+                        .await
+                    {
+                        error!("Failed to claim staged logs for {}: {}", emp.id_number, e);
                     }
 
                     if (processed_rows + skipped_rows) % 10 == 0 {

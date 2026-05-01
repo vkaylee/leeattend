@@ -68,7 +68,6 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
             pool: pool.clone(),
         }),
         pool.clone(),
-        None,
     )
     .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
     .await
@@ -188,7 +187,6 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
             pool: pool.clone(),
         }),
         pool.clone(),
-        None,
     )
     .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
     .await

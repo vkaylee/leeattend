@@ -105,7 +105,6 @@ impl AppState {
                 time_entry_repo.clone(),
                 workspace_repo.clone(),
                 worker_pool.clone(),
-                redis_pool.clone(),
             ),
         );
         import_service.resume_all_pending_jobs().await;

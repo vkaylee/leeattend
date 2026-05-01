@@ -103,7 +103,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             time_entry_repo.clone(),
             workspace_repo.clone(),
             pool.clone(),
-            None,
         ),
     );
     let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
@@ -407,7 +406,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             time_entry_repo.clone(),
             workspace_repo.clone(),
             pool.clone(),
-            None,
         ),
     );
     let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =
@@ -727,7 +725,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             time_entry_repo.clone(),
             workspace_repo.clone(),
             pool.clone(),
-            None,
         ),
     );
     let payroll_repo: Arc<dyn apiserver::repositories::payroll_repository::PayrollRepository> =

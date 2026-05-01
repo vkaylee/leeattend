@@ -339,65 +339,53 @@ pub async fn trigger_accrual_run(
     let date = NaiveDate::parse_from_str(&payload.date, "%Y-%m-%d")
         .map_err(|_| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
 
-    // Try to enqueue as background job if Redis is available
-    if let Some(ref redis) = state.infra.redis {
-        use crate::queue::JobQueue;
-        use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
+    // Require Redis for background processing
+    let redis = state.infra.redis.as_ref().ok_or_else(|| {
+        AppError::ServiceUnavailable(
+            "Leave accrual requires Redis for background processing".to_string(),
+        )
+    })?;
 
-        let queue = JobQueue::new(redis.clone());
-        let parent_id = Uuid::new_v4();
-        let job = Job::new(
-            parent_id,
-            0,
-            TaskType::LeaveAccrual,
-            ctx.workspace_id,
-            JobPayload::LeaveAccrual(AccrualPayload { date, force: true }),
-        );
+    use crate::queue::JobQueue;
+    use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
 
-        // Create job metadata for status polling
-        let meta = JobMetadata::new(
-            parent_id,
-            1, // Single job (not batched)
-            ctx.workspace_id,
-            ctx.user_id,
-            None, // No report type for leave accrual
-        );
+    let queue = JobQueue::new(redis.clone());
+    let parent_id = Uuid::new_v4();
+    let job = Job::new(
+        parent_id,
+        0,
+        TaskType::LeaveAccrual,
+        ctx.workspace_id,
+        JobPayload::LeaveAccrual(AccrualPayload { date, force: true }),
+    );
 
-        queue
-            .create_job_metadata(&meta)
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to create job metadata: {e}")))?;
+    // Create job metadata for status polling
+    let meta = JobMetadata::new(
+        parent_id,
+        1, // Single job (not batched)
+        ctx.workspace_id,
+        ctx.user_id,
+        None, // No report type for leave accrual
+    );
 
-        queue
-            .enqueue_jobs(vec![job])
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to enqueue accrual job: {e}")))?;
+    queue
+        .create_job_metadata(&meta)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to create job metadata: {e}")))?;
 
-        Ok((
-            StatusCode::ACCEPTED,
-            Json(AccrualJobResponse {
-                job_id: parent_id.to_string(),
-                status: "queued".to_string(),
-                message: "Accrual job enqueued for background processing".to_string(),
-            }),
-        ))
-    } else {
-        // Fallback: synchronous processing (no Redis)
-        let logs = state
-            .leaves
-            .accrual_service
-            .process_workspace_accruals(ctx.workspace_id, date, true)
-            .await?;
+    queue
+        .enqueue_jobs(vec![job])
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to enqueue accrual job: {e}")))?;
 
-        Ok((
-            StatusCode::OK,
-            Json(AccrualJobResponse {
-                job_id: "".to_string(),
-                status: "completed".to_string(),
-                message: format!("Processed {} accrual entries synchronously", logs.len()),
-            }),
-        ))
-    }
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(AccrualJobResponse {
+            job_id: parent_id.to_string(),
+            status: "queued".to_string(),
+            message: "Accrual job enqueued for background processing".to_string(),
+        }),
+    ))
 }
 
 /// GET /workspaces/:ws_id/jobs/:job_id/status
@@ -534,83 +522,35 @@ pub async fn upload_leave_excel(
             .map_err(|e| AppError::Internal(format!("Failed to create import job: {e}")))?;
     }
 
-    // Try Redis queue, fallback to sync
-    if let Some(redis) = &state.infra.redis {
-        use crate::queue::{Job, JobPayload, JobQueue, LeaveImportPayload, TaskType};
+    // Require Redis for background processing
+    let redis = state.infra.redis.as_ref().ok_or_else(|| {
+        AppError::ServiceUnavailable(
+            "Leave import requires Redis for background processing".to_string(),
+        )
+    })?;
 
-        let payload = LeaveImportPayload {
-            file_path: path,
-            user_id,
-            auto_approve,
-            import_job_id,
-        };
+    use crate::queue::{Job, JobPayload, JobQueue, LeaveImportPayload, TaskType};
 
-        let job = Job::new(
-            import_job_id,
-            0,
-            TaskType::LeaveImport,
-            ctx.workspace_id,
-            JobPayload::LeaveImport(payload),
-        );
+    let payload = LeaveImportPayload {
+        file_path: path,
+        user_id,
+        auto_approve,
+        import_job_id,
+    };
 
-        let queue = JobQueue::new(redis.clone());
-        queue
-            .enqueue_jobs(vec![job])
-            .await
-            .map_err(|e| AppError::Internal(format!("Failed to enqueue leave import job: {e}")))?;
-    } else {
-        // Sync fallback: process in background via tokio::spawn
-        let pool = state.infra.db.api().clone();
-        let ws_id = ctx.workspace_id;
-        let file = path;
-        tokio::spawn(async move {
-            let service =
-                crate::services::leave_import_service::LeaveImportService::new(pool.clone());
-            let result = service
-                .process_import(import_job_id, ws_id, user_id, &file, auto_approve)
-                .await;
+    let job = Job::new(
+        import_job_id,
+        0,
+        TaskType::LeaveImport,
+        ctx.workspace_id,
+        JobPayload::LeaveImport(payload),
+    );
 
-            use crate::repositories::import_job_repository::{
-                ImportJobRepository, SqlxImportJobRepository,
-            };
-            let repo = SqlxImportJobRepository::new(pool);
-
-            match result {
-                Ok(r) => {
-                    let error_log = if r.error_count > 0 {
-                        Some(
-                            serde_json::json!({
-                                "success_count": r.success_count,
-                                "error_count": r.error_count,
-                                "error_file_path": r.error_file_path,
-                            })
-                            .to_string(),
-                        )
-                    } else {
-                        None
-                    };
-                    let _ = repo
-                        .update_job_progress(
-                            import_job_id,
-                            r.success_count,
-                            crate::models::ImportJobStatus::Completed,
-                            error_log,
-                        )
-                        .await;
-                }
-                Err(msg) => {
-                    let _ = repo
-                        .update_job_progress(
-                            import_job_id,
-                            0,
-                            crate::models::ImportJobStatus::Failed,
-                            Some(msg.to_string()),
-                        )
-                        .await;
-                }
-            }
-        });
-    }
+    let queue = JobQueue::new(redis.clone());
+    queue
+        .enqueue_jobs(vec![job])
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to enqueue leave import job: {e}")))?;
 
     Ok(Json(serde_json::json!({
         "job_id": import_job_id.to_string(),
