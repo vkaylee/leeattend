@@ -45,10 +45,18 @@ impl AccrualHandler {
                 db.clone(),
             ),
         );
+        let accrual_log_repo: std::sync::Arc<
+            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+        > = std::sync::Arc::new(
+            crate::repositories::leave_accrual_log_repository::SqlxLeaveAccrualLogRepository::new(
+                db.clone(),
+            ),
+        );
         let accrual_service = LeaveAccrualService::new(
             employee_repo,
             department_repo,
             leave_policy_repo,
+            accrual_log_repo,
             db.clone(),
         );
         match accrual_service

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::models::{AccrualFrequency, LeaveAccrualLog, LeavePolicyConfig};
 use crate::repositories::department_repository::DepartmentRepository;
+use crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository;
 use crate::repositories::leave_policy_repository::LeavePolicyRepository;
 use crate::repositories::EmployeeRepository;
 use chrono::{Datelike, NaiveDate};
@@ -10,10 +11,24 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Default qualifying work days when threshold checking is disabled.
+/// This value ensures `calculate_accrual_amount` always passes the
+/// threshold check when no policy threshold is configured.
+const DEFAULT_QUALIFYING_DAYS_BYPASS: f64 = 20.0;
+
+/// Context IDs that flow together through the accrual pipeline.
+struct AccrualContext {
+    workspace_id: Uuid,
+    employee_id: Uuid,
+    assignment_id: Uuid,
+    leave_type_id: Uuid,
+}
+
 pub struct LeaveAccrualService {
     employee_repo: Arc<dyn EmployeeRepository>,
     department_repo: Arc<dyn DepartmentRepository>,
     leave_policy_repo: Arc<dyn LeavePolicyRepository>,
+    accrual_log_repo: Arc<dyn LeaveAccrualLogRepository>,
     pool: PgPool,
 }
 
@@ -22,12 +37,14 @@ impl LeaveAccrualService {
         employee_repo: Arc<dyn EmployeeRepository>,
         department_repo: Arc<dyn DepartmentRepository>,
         leave_policy_repo: Arc<dyn LeavePolicyRepository>,
+        accrual_log_repo: Arc<dyn LeaveAccrualLogRepository>,
         pool: PgPool,
     ) -> Self {
         Self {
             employee_repo,
             department_repo,
             leave_policy_repo,
+            accrual_log_repo,
             pool,
         }
     }
@@ -408,6 +425,7 @@ impl LeaveAccrualService {
 
     /// Main orchestrator to process accruals for a workspace on a specific date.
     /// Optimized: uses pre-computed accrual dates and batched qualifying-days queries.
+    /// All persistence is delegated to `accrual_log_repo` (Repository pattern).
     #[tracing::instrument(skip_all, err)]
     pub async fn process_workspace_accruals(
         &self,
@@ -415,15 +433,12 @@ impl LeaveAccrualService {
         date: NaiveDate,
         force: bool,
     ) -> Result<Vec<LeaveAccrualLog>, sqlx::Error> {
-        let pool = &self.pool;
-        // Get Workspace settings for timezone
-        let workspace = sqlx::query!(
-            "SELECT timezone FROM workspaces WHERE id = $1",
-            workspace_id
-        )
-        .fetch_one(pool)
-        .await?;
-        let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
+        // Get workspace timezone via repository
+        let tz_str = self
+            .accrual_log_repo
+            .get_workspace_timezone(workspace_id)
+            .await?;
+        let tz: Tz = crate::utils::tz::parse_workspace_tz(&tz_str);
 
         // Get all active employees
         let employees = self
@@ -433,230 +448,219 @@ impl LeaveAccrualService {
         let mut all_logs = Vec::new();
 
         for emp in employees {
-            // Resolve policy for employee
-            let dept_hist = self
-                .department_repo
-                .get_current_department(workspace_id, emp.id)
-                .await
-                .ok()
-                .flatten();
-
-            if let Some((policy, assignment_id, _leave_type_code)) = self
-                .leave_policy_repo
-                .find_active_assignment_for_employee(
-                    workspace_id,
-                    emp.id,
-                    dept_hist.map(|d| d.department_id),
-                    date,
-                )
-                .await?
-            {
-                let config = &policy.rule_config.0;
-                let leave_type_id = policy.leave_type_id;
-
-                // Fetch the assignment record to get the true effective_from
-                let assignment = sqlx::query!(
-                    "SELECT effective_from FROM leave_policy_assignments WHERE id = $1 AND workspace_id = $2",
-                    assignment_id,
-                    workspace_id
-                )
-                .fetch_one(pool)
+            self.process_employee_accruals(workspace_id, &emp, date, force, tz, &mut all_logs)
                 .await?;
-
-                // OPTIMIZED: Pre-compute accrual dates instead of day-by-day iteration
-                let accrual_dates = Self::get_accrual_dates(
-                    &config.frequency,
-                    &config.accrual_timing,
-                    assignment.effective_from,
-                    date,
-                );
-
-                if accrual_dates.is_empty() {
-                    continue;
-                }
-
-                // OPTIMIZED: Batch-fetch qualifying days for all months at once
-                // For start_of_period, the threshold check looks at the PREVIOUS month,
-                // so we need to extend the query range back by one month to capture those entries.
-                let qualifying_range_start = if config.min_work_days_threshold.is_some()
-                    && config.accrual_timing == "start_of_period"
-                {
-                    if assignment.effective_from.month() == 1 {
-                        NaiveDate::from_ymd_opt(assignment.effective_from.year() - 1, 12, 1)
-                            .unwrap_or(assignment.effective_from)
-                    } else {
-                        NaiveDate::from_ymd_opt(
-                            assignment.effective_from.year(),
-                            assignment.effective_from.month() - 1,
-                            1,
-                        )
-                        .unwrap_or(assignment.effective_from)
-                    }
-                } else {
-                    assignment.effective_from
-                };
-
-                let qualifying_days_map = if config.min_work_days_threshold.is_some() {
-                    self.batch_count_qualifying_days(
-                        workspace_id,
-                        emp.id,
-                        qualifying_range_start,
-                        date,
-                        tz,
-                    )
-                    .await?
-                } else {
-                    HashMap::new()
-                };
-
-                // Pre-fetch employment history once per employee
-                let periods = self
-                    .employee_repo
-                    .get_employment_history(emp.workspace_id, emp.id)
-                    .await?;
-
-                for accrual_date in accrual_dates {
-                    let months_service =
-                        Self::calculate_total_months_seniority(&periods, accrual_date);
-
-                    // Look up qualifying days from batch result
-                    let work_days = if config.min_work_days_threshold.is_some() {
-                        // For start_of_period, check the PREVIOUS month's work days
-                        let check_month = if config.accrual_timing == "start_of_period" {
-                            if accrual_date.month() == 1 {
-                                NaiveDate::from_ymd_opt(accrual_date.year() - 1, 12, 1)
-                            } else {
-                                NaiveDate::from_ymd_opt(
-                                    accrual_date.year(),
-                                    accrual_date.month() - 1,
-                                    1,
-                                )
-                            }
-                        } else {
-                            NaiveDate::from_ymd_opt(accrual_date.year(), accrual_date.month(), 1)
-                        };
-                        check_month
-                            .and_then(|m| qualifying_days_map.get(&m).copied())
-                            .unwrap_or(0) as f64
-                    } else {
-                        20.0 // Default: skip threshold check
-                    };
-
-                    let amount = Self::calculate_accrual_amount(config, months_service, work_days);
-
-                    if amount > 0.0 {
-                        use rust_decimal::prelude::FromPrimitive;
-                        let decimal_amount =
-                            rust_decimal::Decimal::from_f64(amount).ok_or_else(|| {
-                                tracing::error!(
-                                    amount,
-                                    "Invalid f64 for leave accrual Decimal conversion"
-                                );
-                                sqlx::Error::Protocol(format!("Cannot convert {amount} to Decimal"))
-                            })?;
-
-                        // Check if a log already exists for this date/type/employee
-                        let existing_log = sqlx::query!(
-                            r#"
-                            SELECT id, amount FROM leave_accrual_logs
-                            WHERE employee_id = $1 AND leave_type_id = $2 AND accrual_date = $3 AND workspace_id = $4
-                            "#,
-                            emp.id,
-                            leave_type_id,
-                            accrual_date,
-                            workspace_id
-                        )
-                        .fetch_optional(pool)
-                        .await?;
-
-                        if let Some(old_log) = existing_log {
-                            // If force is true and amount has changed, re-calculate
-                            if force && old_log.amount != decimal_amount {
-                                let diff = decimal_amount - old_log.amount;
-
-                                let updated_log = sqlx::query_as!(
-                                    LeaveAccrualLog,
-                                    r#"
-                                    UPDATE leave_accrual_logs
-                                    SET amount = $1, notes = COALESCE(notes, '') || ' (Re-calculated)'
-                                    WHERE id = $2 AND workspace_id = $3
-                                    RETURNING id, workspace_id, employee_id, policy_assignment_id,
-                                              accrual_date, amount, leave_type_id, notes,
-                                              created_at as "created_at!"
-                                    "#,
-                                    decimal_amount,
-                                    old_log.id,
-                                    workspace_id
-                                )
-                                .fetch_one(pool)
-                                .await?;
-
-                                sqlx::query!(
-                                    r#"
-                                    UPDATE leave_balances
-                                    SET accrued_amount = accrued_amount + $3, updated_at = NOW()
-                                    WHERE employee_id = $1 AND year = $2 AND leave_type_id = $4
-                                    "#,
-                                    emp.id,
-                                    accrual_date.year(),
-                                    diff,
-                                    leave_type_id
-                                )
-                                .execute(pool)
-                                .await?;
-
-                                all_logs.push(updated_log);
-                            }
-                        } else {
-                            // No log exists, perform insertion
-                            let log = sqlx::query_as!(
-                                LeaveAccrualLog,
-                                r#"
-                                INSERT INTO leave_accrual_logs
-                                    (workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type_id)
-                                VALUES ($1, $2, $3, $4, $5, $6)
-                                ON CONFLICT (employee_id, leave_type_id, accrual_date) DO NOTHING
-                                RETURNING id, workspace_id, employee_id, policy_assignment_id,
-                                          accrual_date, amount, leave_type_id, notes,
-                                          created_at as "created_at!"
-                                "#,
-                                workspace_id,
-                                emp.id,
-                                Some(assignment_id),
-                                accrual_date,
-                                decimal_amount,
-                                leave_type_id
-                            )
-                            .fetch_optional(pool)
-                            .await?;
-
-                            if let Some(l) = log {
-                                sqlx::query!(
-                                    r#"
-                                    INSERT INTO leave_balances (employee_id, year, leave_type_id, entitlement, accrued_amount, carried_over)
-                                    VALUES ($1, $2, $3, 0, $4, 0)
-                                    ON CONFLICT (employee_id, leave_type_id, year)
-                                    DO UPDATE SET
-                                        accrued_amount = leave_balances.accrued_amount + EXCLUDED.accrued_amount,
-                                        updated_at = NOW()
-                                    "#,
-                                    emp.id,
-                                    accrual_date.year(),
-                                    leave_type_id,
-                                    decimal_amount
-                                )
-                                .execute(pool)
-                                .await?;
-
-                                all_logs.push(l);
-                            }
-                        }
-                    }
-                }
-            }
         }
 
         Ok(all_logs)
+    }
+
+    /// Process accruals for a single employee. Extracted to reduce orchestrator complexity.
+    async fn process_employee_accruals(
+        &self,
+        workspace_id: Uuid,
+        emp: &crate::models::Employee,
+        date: NaiveDate,
+        force: bool,
+        tz: Tz,
+        all_logs: &mut Vec<LeaveAccrualLog>,
+    ) -> Result<(), sqlx::Error> {
+        let dept_hist = self
+            .department_repo
+            .get_current_department(workspace_id, emp.id)
+            .await
+            .ok()
+            .flatten();
+
+        let Some((policy, assignment_id, _leave_type_code)) = self
+            .leave_policy_repo
+            .find_active_assignment_for_employee(
+                workspace_id,
+                emp.id,
+                dept_hist.map(|d| d.department_id),
+                date,
+            )
+            .await?
+        else {
+            return Ok(());
+        };
+
+        let config = &policy.rule_config.0;
+        let leave_type_id = policy.leave_type_id;
+
+        // Fetch effective_from via repository
+        let effective_from = self
+            .accrual_log_repo
+            .get_assignment_effective_from(assignment_id, workspace_id)
+            .await?;
+
+        // Pre-compute accrual dates instead of day-by-day iteration
+        let accrual_dates = Self::get_accrual_dates(
+            &config.frequency,
+            &config.accrual_timing,
+            effective_from,
+            date,
+        );
+
+        if accrual_dates.is_empty() {
+            return Ok(());
+        }
+
+        // Batch-fetch qualifying days for all months at once
+        let qualifying_range_start = Self::compute_qualifying_range_start(config, effective_from);
+
+        let qualifying_days_map = if config.min_work_days_threshold.is_some() {
+            self.batch_count_qualifying_days(workspace_id, emp.id, qualifying_range_start, date, tz)
+                .await?
+        } else {
+            HashMap::new()
+        };
+
+        // Pre-fetch employment history once per employee
+        let periods = self
+            .employee_repo
+            .get_employment_history(emp.workspace_id, emp.id)
+            .await?;
+
+        let ctx = AccrualContext {
+            workspace_id,
+            employee_id: emp.id,
+            assignment_id,
+            leave_type_id,
+        };
+
+        for accrual_date in accrual_dates {
+            let months_service = Self::calculate_total_months_seniority(&periods, accrual_date);
+            let work_days =
+                Self::resolve_qualifying_days(config, accrual_date, &qualifying_days_map);
+            let amount = Self::calculate_accrual_amount(config, months_service, work_days);
+
+            if amount > 0.0 {
+                self.persist_accrual(&ctx, accrual_date, amount, force, all_logs)
+                    .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Compute the start of the qualifying-days query range.
+    /// For start_of_period timing, we need to look back one month.
+    fn compute_qualifying_range_start(
+        config: &LeavePolicyConfig,
+        effective_from: NaiveDate,
+    ) -> NaiveDate {
+        if config.min_work_days_threshold.is_some() && config.accrual_timing == "start_of_period" {
+            if effective_from.month() == 1 {
+                NaiveDate::from_ymd_opt(effective_from.year() - 1, 12, 1).unwrap_or(effective_from)
+            } else {
+                NaiveDate::from_ymd_opt(effective_from.year(), effective_from.month() - 1, 1)
+                    .unwrap_or(effective_from)
+            }
+        } else {
+            effective_from
+        }
+    }
+
+    /// Look up qualifying days from the batch result for a specific accrual date.
+    fn resolve_qualifying_days(
+        config: &LeavePolicyConfig,
+        accrual_date: NaiveDate,
+        qualifying_days_map: &HashMap<NaiveDate, i32>,
+    ) -> f64 {
+        if config.min_work_days_threshold.is_some() {
+            let check_month = if config.accrual_timing == "start_of_period" {
+                if accrual_date.month() == 1 {
+                    NaiveDate::from_ymd_opt(accrual_date.year() - 1, 12, 1)
+                } else {
+                    NaiveDate::from_ymd_opt(accrual_date.year(), accrual_date.month() - 1, 1)
+                }
+            } else {
+                NaiveDate::from_ymd_opt(accrual_date.year(), accrual_date.month(), 1)
+            };
+            check_month
+                .and_then(|m| qualifying_days_map.get(&m).copied())
+                .unwrap_or(0) as f64
+        } else {
+            DEFAULT_QUALIFYING_DAYS_BYPASS
+        }
+    }
+
+    /// Persist an accrual log and update the leave balance via the repository.
+    async fn persist_accrual(
+        &self,
+        ctx: &AccrualContext,
+        accrual_date: NaiveDate,
+        amount: f64,
+        force: bool,
+        all_logs: &mut Vec<LeaveAccrualLog>,
+    ) -> Result<(), sqlx::Error> {
+        use rust_decimal::prelude::FromPrimitive;
+        let decimal_amount = rust_decimal::Decimal::from_f64(amount).ok_or_else(|| {
+            tracing::error!(amount, "Invalid f64 for leave accrual Decimal conversion");
+            sqlx::Error::Protocol(format!("Cannot convert {amount} to Decimal"))
+        })?;
+
+        let existing = self
+            .accrual_log_repo
+            .find_by_employee_date_type(
+                ctx.employee_id,
+                ctx.leave_type_id,
+                accrual_date,
+                ctx.workspace_id,
+            )
+            .await?;
+
+        if let Some(old_log) = existing {
+            // If force is true and amount has changed, re-calculate
+            if force && old_log.amount != decimal_amount {
+                let diff = decimal_amount - old_log.amount;
+
+                let updated_log = self
+                    .accrual_log_repo
+                    .update_accrual_amount(old_log.id, ctx.workspace_id, decimal_amount)
+                    .await?;
+
+                self.accrual_log_repo
+                    .adjust_balance_accrual(
+                        ctx.employee_id,
+                        accrual_date.year(),
+                        ctx.leave_type_id,
+                        diff,
+                    )
+                    .await?;
+
+                all_logs.push(updated_log);
+            }
+        } else {
+            // No log exists, perform insertion
+            let log = self
+                .accrual_log_repo
+                .insert_accrual_log(
+                    ctx.workspace_id,
+                    ctx.employee_id,
+                    Some(ctx.assignment_id),
+                    accrual_date,
+                    decimal_amount,
+                    ctx.leave_type_id,
+                )
+                .await?;
+
+            if let Some(l) = log {
+                self.accrual_log_repo
+                    .upsert_balance_accrual(
+                        ctx.employee_id,
+                        accrual_date.year(),
+                        ctx.leave_type_id,
+                        decimal_amount,
+                    )
+                    .await?;
+
+                all_logs.push(l);
+            }
+        }
+
+        Ok(())
     }
 }
 

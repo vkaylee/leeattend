@@ -55,6 +55,7 @@ pub use payroll_rule_repository::PayrollRuleRepository;
 pub use workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 pub mod attendance_log_error_repository;
 pub mod audit_log_repository;
+pub mod leave_accrual_log_repository;
 pub mod leave_policy_repository;
 pub mod overtime_policy_repository;
 pub mod staging_log_repository;

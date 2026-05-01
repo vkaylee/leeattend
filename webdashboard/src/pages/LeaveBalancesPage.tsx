@@ -1,8 +1,7 @@
 import { useState, useCallback } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight, AlertTriangle, Calendar } from "lucide-react";
-import { createPortal } from "react-dom";
+import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { LeaveBalanceDetailModal } from "@/components/leave/LeaveBalanceDetailModal";
@@ -10,6 +9,7 @@ import { LeaveHistoryModal } from "@/components/leave/LeaveHistoryModal";
 import { Combobox } from "@/components/ui/Combobox";
 import { useToast } from "@/components/ui/Toast";
 
+import { useConfirm } from "@/hooks/use-confirm";
 import { useDebounce } from "@/hooks/use-debounce";
 import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
@@ -24,7 +24,7 @@ export default function LeaveBalancesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [showAccrualConfirm, setShowAccrualConfirm] = useState(false);
+  const { confirm, ConfirmationDialog } = useConfirm();
   const limit = 20;
   const debouncedSearch = useDebounce(searchTerm, 500);
 
@@ -96,7 +96,14 @@ export default function LeaveBalancesPage() {
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("leave_balances.subtitle")}</p>
         </div>
         <button
-          onClick={() => setShowAccrualConfirm(true)}
+          onClick={async () => {
+            const ok = await confirm({
+              title: t("leave_balances.run_accrual"),
+              message: t("leave_balances.confirm_accrual"),
+              variant: "warning"
+            });
+            if (ok) accrualMutation.mutate();
+          }}
           disabled={accrualMutation.isPending || selectedYear !== currentYear}
           title={selectedYear !== currentYear ? t("leave_balances.accrual_current_year_only") : undefined}
           className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
@@ -250,41 +257,7 @@ export default function LeaveBalancesPage() {
         <LeaveBalanceDetailModal balance={selectedBalance} isOpen={!!selectedBalance} onClose={() => setSelectedBalance(null)} />
       )}
 
-      {showAccrualConfirm && createPortal(
-        <div role="presentation" className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowAccrualConfirm(false)} onKeyDown={(e) => e.key === 'Escape' && setShowAccrualConfirm(false)}>
-          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" />
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Element has interactive role via onClick/onKeyDown */}
-          <div role="dialog" className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-300 space-y-6" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-amber-50 dark:bg-amber-950 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("leave_balances.run_accrual")}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t("leave_balances.confirm_accrual")}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={() => setShowAccrualConfirm(false)}
-                className="flex-1 px-5 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 min-h-[44px]"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                onClick={() => {
-                  setShowAccrualConfirm(false);
-                  accrualMutation.mutate();
-                }}
-                className="flex-1 px-5 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-lg shadow-primary-200 min-h-[44px]"
-              >
-                {t("common.confirm")}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <ConfirmationDialog />
     </div>
   );
 }

@@ -173,6 +173,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             employee_repo.clone(),
             department_repo.clone(),
             leave_policy_repo.clone(),
+            Arc::new(apiserver::repositories::leave_accrual_log_repository::SqlxLeaveAccrualLogRepository::new(pool.clone())),
             pool.clone(),
         ),
     );
@@ -471,6 +472,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             employee_repo.clone(),
             department_repo.clone(),
             leave_policy_repo.clone(),
+            Arc::new(apiserver::repositories::leave_accrual_log_repository::SqlxLeaveAccrualLogRepository::new(pool.clone())),
             pool.clone(),
         ),
     );
@@ -785,6 +787,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             employee_repo.clone(),
             department_repo.clone(),
             leave_policy_repo.clone(),
+            Arc::new(apiserver::repositories::leave_accrual_log_repository::SqlxLeaveAccrualLogRepository::new(pool.clone())),
             pool.clone(),
         ),
     );

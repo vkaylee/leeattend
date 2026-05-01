@@ -10,6 +10,19 @@ use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
 use std::collections::BTreeMap;
 
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
+
+/// Per-day cell data for the timesheet matrix.
+/// Extracted from an anonymous 8-field tuple for readability.
+struct DayCell {
+    std_work_units: i32,
+    ot_work_units: i32,
+    punch_in: Option<DateTime<Utc>>,
+    punch_out: Option<DateTime<Utc>>,
+    scheduled_start: Option<chrono::NaiveTime>,
+    scheduled_end: Option<chrono::NaiveTime>,
+    shift_symbol: Option<String>,
+    is_holiday: bool,
+}
 use crate::services::import_messages::ExcelReportMessages;
 
 /// Excel file content type for HTTP responses.
@@ -179,43 +192,24 @@ impl ExcelWriter {
         }
 
         // Group by employee name (BTreeMap keys are sorted).
-        // Value: (employee_id_number String, BTreeMap of per-day data (including shift_symbol))
-        #[allow(clippy::type_complexity)]
-        let mut emp_days: BTreeMap<
-            &str,
-            (
-                String,
-                BTreeMap<
-                    NaiveDate,
-                    (
-                        i32,
-                        i32,
-                        Option<DateTime<Utc>>,
-                        Option<DateTime<Utc>>,
-                        Option<chrono::NaiveTime>,
-                        Option<chrono::NaiveTime>,
-                        Option<String>,
-                        bool,
-                    ),
-                >,
-            ),
-        > = BTreeMap::new();
+        // Value: (employee_id_number, BTreeMap of per-day DayCell data)
+        let mut emp_days: BTreeMap<&str, (String, BTreeMap<NaiveDate, DayCell>)> = BTreeMap::new();
         for r in reports {
             let entry = emp_days
                 .entry(r.employee_name.as_str())
                 .or_insert_with(|| (r.employee_id_number.clone(), BTreeMap::new()));
             entry.1.insert(
                 r.date,
-                (
-                    r.std_work_units,
-                    r.ot_work_units,
-                    r.actual_punch_in,
-                    r.actual_punch_out,
-                    r.scheduled_start,
-                    r.scheduled_end,
-                    r.shift_symbol.clone(),
-                    r.is_holiday,
-                ),
+                DayCell {
+                    std_work_units: r.std_work_units,
+                    ot_work_units: r.ot_work_units,
+                    punch_in: r.actual_punch_in,
+                    punch_out: r.actual_punch_out,
+                    scheduled_start: r.scheduled_start,
+                    scheduled_end: r.scheduled_end,
+                    shift_symbol: r.shift_symbol.clone(),
+                    is_holiday: r.is_holiday,
+                },
             );
         }
 
@@ -238,25 +232,15 @@ impl ExcelWriter {
             worksheet.write_string(row, 1, *name)?;
 
             for (day_idx, date) in dates.iter().enumerate() {
-                if let Some(&(
-                    std_u,
-                    ot_u,
-                    punch_in_utc,
-                    punch_out_utc,
-                    sched_start,
-                    sched_end,
-                    ref shift_sym,
-                    is_hol,
-                )) = day_map.get(date)
-                {
+                if let Some(cell) = day_map.get(date) {
                     // Symbol prefix: "S8" → "S8", None → ""
-                    let prefix = shift_sym.as_deref().unwrap_or("");
+                    let prefix = cell.shift_symbol.as_deref().unwrap_or("");
 
                     // Convert work units to hours
-                    let std_h = units_to_hours(std_u, work_unit_minutes);
+                    let std_h = units_to_hours(cell.std_work_units, work_unit_minutes);
 
                     // Calculate late: ceil to nearest work unit, then convert to hours
-                    let late_h = match (punch_in_utc, sched_start) {
+                    let late_h = match (cell.punch_in, cell.scheduled_start) {
                         (Some(pin_utc), Some(sched)) => {
                             let pin_local = pin_utc.with_timezone(&tz);
                             let pin_time = pin_local.time();
@@ -271,7 +255,7 @@ impl ExcelWriter {
                     };
 
                     // Calculate early-leave: ceil to nearest work unit, then convert to hours
-                    let early_leave_h = match (punch_out_utc, sched_end) {
+                    let early_leave_h = match (cell.punch_out, cell.scheduled_end) {
                         (Some(pout_utc), Some(sched)) => {
                             let pout_local = pout_utc.with_timezone(&tz);
                             let pout_time = pout_local.time();
@@ -285,7 +269,7 @@ impl ExcelWriter {
                         _ => 0.0,
                     };
 
-                    let ot_h = units_to_hours(ot_u, work_unit_minutes);
+                    let ot_h = units_to_hours(cell.ot_work_units, work_unit_minutes);
                     let text = format!(
                         "{}{}/{}/{}/{}",
                         prefix,
@@ -294,9 +278,9 @@ impl ExcelWriter {
                         fmt_h(early_leave_h),
                         fmt_h(ot_h)
                     );
-                    let fmt = if is_hol {
+                    let fmt = if cell.is_holiday {
                         &holiday_fmt
-                    } else if ot_u > 0 {
+                    } else if cell.ot_work_units > 0 {
                         &ot_fmt
                     } else {
                         &cell_fmt

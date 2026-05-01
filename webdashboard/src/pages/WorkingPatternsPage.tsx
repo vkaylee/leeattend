@@ -19,11 +19,14 @@ import { useTranslation } from "react-i18next";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import Button from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
+import EmptyState from "@/components/ui/EmptyState";
 import FormField, { LABEL_BASE, INPUT_BASE } from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
+import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
 
+import { useConfirm } from "@/hooks/use-confirm";
 import { cn } from "@/lib/utils";
 
 import {
@@ -42,6 +45,7 @@ export default function WorkingPatternsPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { confirm, ConfirmationDialog } = useConfirm();
 
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -115,10 +119,13 @@ export default function WorkingPatternsPage() {
     },
   });
 
-  const handleDelete = (pattern: WorkingPattern) => {
-    if (confirm(t("patterns.confirm_delete", { name: pattern.name }))) {
-      deleteMutation.mutate(pattern.id);
-    }
+  const handleDelete = async (pattern: WorkingPattern) => {
+    const ok = await confirm({
+      title: t("common.warning", { defaultValue: "Warning" }),
+      message: t("patterns.confirm_delete", { name: pattern.name }),
+      variant: "danger"
+    });
+    if (ok) deleteMutation.mutate(pattern.id);
   };
 
   const addShiftToDay = (dayIdx: number, shiftId: string) => {
@@ -187,19 +194,18 @@ export default function WorkingPatternsPage() {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><CalendarDays size={24} /></div>
-          <div>
-            <h3 data-testid="patterns-title" className="text-2xl font-bold tracking-tight text-slate-700 dark:text-slate-200 uppercase leading-none">{t("patterns.title")}</h3>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("patterns.subtitle")}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => setIsBulkModalOpen(true)} icon={<Users size={18} />}>{t("patterns.bulk_assign_btn").toUpperCase()}</Button>
-          <Button onClick={() => { setIsCreateModalOpen(true); setWeeklyGrid(Array.from({ length: 7 }, () => [])); }} icon={<Plus size={18} />}>{t("patterns.create_btn").toUpperCase()}</Button>
-        </div>
-      </div>
+      <PageHeader
+        title={t("patterns.title")}
+        subtitle={t("patterns.subtitle")}
+        icon={<CalendarDays size={24} />}
+        data-testid="patterns-title"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setIsBulkModalOpen(true)} icon={<Users size={18} />}>{t("patterns.bulk_assign_btn").toUpperCase()}</Button>
+            <Button onClick={() => { setIsCreateModalOpen(true); setWeeklyGrid(Array.from({ length: 7 }, () => [])); }} icon={<Plus size={18} />}>{t("patterns.create_btn").toUpperCase()}</Button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
         {isLoading ? (
@@ -207,11 +213,11 @@ export default function WorkingPatternsPage() {
             <div key={i} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm animate-pulse h-80" />
           ))
         ) : patterns?.length === 0 ? (
-          <div className="col-span-full py-32 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center animate-in zoom-in-95 duration-500">
-            <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-6 border border-slate-100 dark:border-slate-800"><CalendarDays size={40} className="text-slate-200 dark:text-slate-700" /></div>
-            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{t("patterns.empty_title")}</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mt-1 opacity-50 italic">{t("patterns.empty_desc")}</p>
-          </div>
+          <EmptyState
+            icon={<CalendarDays size={40} />}
+            title={t("patterns.empty_title")}
+            description={t("patterns.empty_desc")}
+          />
         ) : patterns?.map(pattern => (
           <div key={pattern.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-8 flex gap-3 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
@@ -413,6 +419,7 @@ export default function WorkingPatternsPage() {
           </div>
         </div>
       </Modal>
+      <ConfirmationDialog />
     </div>
   );
 }

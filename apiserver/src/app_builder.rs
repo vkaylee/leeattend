@@ -159,11 +159,19 @@ impl AppState {
                 pool.clone(),
             ),
         );
+        let leave_accrual_log_repo: Arc<
+            dyn crate::repositories::leave_accrual_log_repository::LeaveAccrualLogRepository,
+        > = Arc::new(
+            crate::repositories::leave_accrual_log_repository::SqlxLeaveAccrualLogRepository::new(
+                worker_pool.clone(),
+            ),
+        );
         let leave_accrual_service = Arc::new(
             crate::services::leave_accrual_service::LeaveAccrualService::new(
                 employee_repo.clone(),
                 department_repo.clone(),
                 leave_policy_repo.clone(),
+                leave_accrual_log_repo,
                 worker_pool.clone(),
             ),
         );

@@ -197,9 +197,9 @@ mod tests {
             "leave_requests",
             "employee_id from workspace-validated MemberContext",
         ),
-        // Leave accrual service: internal accrual logic, employee_id FK-scoped
+        // Leave accrual log repo: balance updates via employee_id FK-scoped from accrual job
         (
-            "leave_accrual_service.rs",
+            "leave_accrual_log_repository.rs",
             "leave_balances",
             "employee_id from workspace-scoped accrual job",
         ),
