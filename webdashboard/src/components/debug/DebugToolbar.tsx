@@ -6,13 +6,17 @@ import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserP
 import { useDebug } from "../../context/DebugContext";
 import { debugApi, ClearDbGroup } from "../../lib/api/debug";
 import { getCurrentWorkspaceId } from "../../lib/api/helpers";
+import { useToast } from "../../components/ui/Toast";
+import { useConfirm } from "../../hooks/use-confirm";
 
 
 type DebugTab = "identity" | "time" | "database";
 
 export const DebugToolbar: React.FC = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { isEnabled, impersonateId, mockDate, setIsEnabled, setImpersonateId, setMockDate, reset } = useDebug();
+  const { confirm, ConfirmationDialog } = useConfirm();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DebugTab>("identity");
   const [tempId, setTempId] = useState(impersonateId || "");
@@ -46,21 +50,26 @@ export const DebugToolbar: React.FC = () => {
   const currentWorkspaceId = getCurrentWorkspaceId();
 
   const handleClearDb = async (group: ClearDbGroup) => {
-    if (!currentWorkspaceId) return alert("No workspace selected");
+    if (!currentWorkspaceId) return toast.error("No workspace selected");
     
     const actionVerb = group === "seed" ? "seed demo" : "wipe";
     const warning = group === "full_reset" ? " This will delete EVERYTHING." : group === "employees" ? " This will delete all employees and their history." : "";
     
-    if (!confirm(`Are you sure you want to ${actionVerb} ${group === "seed" ? "data" : group + " data"}?${warning}`)) return;
+    const ok = await confirm({
+      title: "Confirm " + actionVerb,
+      message: `Are you sure you want to ${actionVerb} ${group === "seed" ? "data" : group + " data"}?${warning}`,
+      variant: group === "seed" ? "warning" : "danger"
+    });
+    if (!ok) return;
     
     setIsWiping(true);
     try {
       await debugApi.clearDb(currentWorkspaceId, group);
       // Invalidate all queries to refresh the UI
       queryClient.invalidateQueries();
-      alert(`${group === "seed" ? "Demo data seeded" : group + " data wiped"} successfully.`);
+      toast.success(`${group === "seed" ? "Demo data seeded" : group + " data wiped"} successfully.`);
     } catch (err) {
-      alert("Operation failed: " + (err as Error).message);
+      toast.error("Operation failed: " + (err as Error).message);
     } finally {
       setIsWiping(false);
     }
@@ -296,6 +305,7 @@ export const DebugToolbar: React.FC = () => {
           </button>
         )}
       </div>
+      <ConfirmationDialog />
     </div>
   );
 };

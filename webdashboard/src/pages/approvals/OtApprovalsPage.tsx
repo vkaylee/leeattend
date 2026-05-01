@@ -19,11 +19,13 @@ import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 
 import { useAttendanceSummaries, useApproveOt } from "@/hooks/use-attendance";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/Toast";
 
 type SourceFilter = "all" | "paper_form" | "self_service";
 
 export default function OtApprovalsPage() {
   const { t } = useTranslation();
+  const toast = useToast();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [paperOtDialogOpen, setPaperOtDialogOpen] = useState(false);
   const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
@@ -52,10 +54,11 @@ export default function OtApprovalsPage() {
             status: approved ? "approved" : "rejected",
             manager_note: approved ? "Approved via Manager Portal" : "Rejected via Manager Portal"
         });
+        toast.success(approved ? "Overtime approved successfully" : "Overtime rejected successfully");
         refetch();
     } catch (e) {
         console.error(e);
-        alert("Action failed");
+        toast.error("Action failed");
     }
   };
 

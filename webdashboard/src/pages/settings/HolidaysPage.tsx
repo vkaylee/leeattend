@@ -4,6 +4,7 @@ import { Plus, Trash2, Pencil, CalendarDays, ChevronLeft, ChevronRight, Info } f
 import { useTranslation } from "react-i18next";
 
 import { Combobox } from "@/components/ui/Combobox";
+import { useConfirm } from "@/hooks/use-confirm";
 
 import { getCurrentWorkspaceId } from "@/lib/api";
 import { fetchHolidays, createHoliday, updateHoliday, deleteHoliday } from "@/lib/api/holidays";
@@ -20,6 +21,7 @@ export default function HolidaysPage() {
     const [showForm, setShowForm] = useState(false);
     const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { confirm, ConfirmationDialog } = useConfirm();
 
     // Form state
     const [formName, setFormName] = useState("");
@@ -120,7 +122,12 @@ export default function HolidaysPage() {
 
     const handleDelete = async (id: string) => {
         if (!wsId) return;
-        if (!confirm(t('holidays.messages.confirm_delete'))) return;
+        const ok = await confirm({
+            title: t('common.confirm_delete', 'Confirm Delete'),
+            message: t('holidays.messages.confirm_delete'),
+            variant: 'danger'
+        });
+        if (!ok) return;
         try {
             await deleteHoliday(wsId, id);
             loadHolidays();
@@ -458,6 +465,7 @@ export default function HolidaysPage() {
                     </table>
                 )}
             </div>
+            <ConfirmationDialog />
         </div>
     );
 }

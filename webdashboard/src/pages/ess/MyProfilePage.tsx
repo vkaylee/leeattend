@@ -22,6 +22,7 @@ import { LABEL_BASE } from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/hooks/use-confirm";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyProfile, useEmergencyContacts } from "@/hooks/use-ess";
@@ -34,6 +35,7 @@ export default function MyProfilePage() {
   const { t } = useTranslation();
   const toast = useToast();
   const { formatDate } = useDateTimeFormatter();
+  const { confirm, ConfirmationDialog } = useConfirm();
   const { employee, profile, isLoading, isError, updateProfile, isUpdating } = useMyProfile();
   const { contacts, addContact, deleteContact, isAdding, isDeleting } = useEmergencyContacts();
 
@@ -76,7 +78,8 @@ export default function MyProfilePage() {
   }
 
   async function handleDeleteContact(contactId: string) {
-    if (!confirm(t("ess.emergency_contact.confirm_delete"))) return;
+    const ok = await confirm({ title: t("common.confirm_delete", "Confirm Delete"), message: t("ess.emergency_contact.confirm_delete"), variant: "danger" });
+    if (!ok) return;
     try {
       await deleteContact(contactId);
       toast.success(t("ess.emergency_contact.delete_success"));
@@ -272,6 +275,7 @@ export default function MyProfilePage() {
           </div>
         </form>
       </Modal>
+      <ConfirmationDialog />
     </div>
   );
 }

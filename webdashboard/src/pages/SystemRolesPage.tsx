@@ -8,8 +8,7 @@ import PageHeader from "@/components/ui/PageHeader";
 
 import { useConfirm } from "@/hooks/use-confirm";
 import { useSystemRoles } from "@/hooks/use-system-roles";
-
-
+import { useToast } from "@/components/ui/Toast";
 const roleDescriptions: Record<string, string> = {
   platform_admin: "system_roles.descriptions.platform_admin",
   support: "system_roles.descriptions.support",
@@ -27,6 +26,7 @@ export default function SystemRolesPage() {
   const { t } = useTranslation();
   const { roles, isLoading, assignRole, revokeRole, isAssigning, isRevoking } = useSystemRoles();
   const { confirm, ConfirmationDialog } = useConfirm();
+  const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [userIdInput, setUserIdInput] = useState("");
@@ -61,8 +61,9 @@ export default function SystemRolesPage() {
     if (isConfirmed) {
       try {
         await revokeRole({ userId, roleName });
+        toast.success(t("system_roles.messages.revoke_success", { role: roleName }));
       } catch (err: unknown) {
-        alert(err instanceof Error ? err.message : t("system_roles.messages.revoke_error"));
+        toast.error(err instanceof Error ? err.message : t("system_roles.messages.revoke_error"));
  
       }
     }

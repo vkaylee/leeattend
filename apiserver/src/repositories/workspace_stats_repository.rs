@@ -43,6 +43,14 @@ impl SqlxWorkspaceStatsRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+
+    async fn get_timezone(&self, workspace_id: Uuid) -> String {
+        sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
+            .bind(workspace_id)
+            .fetch_one(&self.pool)
+            .await
+            .unwrap_or_else(|_| "UTC".to_string())
+    }
 }
 
 #[async_trait]
@@ -54,11 +62,7 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         let today = Utc::now().date_naive();
 
         // Fetch workspace timezone for correct UTC→local conversion
-        let tz_str: String = sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
-            .bind(workspace_id)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap_or_else(|_| "UTC".to_string());
+        let tz_str = self.get_timezone(workspace_id).await;
 
         // Main query: present + on_leave per day (uses only guaranteed tables)
         #[derive(Debug, sqlx::FromRow)]
@@ -123,104 +127,20 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
 
         let late_map: std::collections::HashMap<NaiveDate, i64> = sqlx::query_as::<_, LateRow>(
         r#"
-        WITH active_employees AS (
-            SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE
-        ),
-        first_punches AS (
+        WITH first_punches AS (
             SELECT te.employee_id,
                    (te.punch_in_time AT TIME ZONE $3)::date AS work_date,
                    MIN(te.punch_in_time AT TIME ZONE $3)::time AS first_punch
             FROM time_entries te
             WHERE (te.punch_in_time AT TIME ZONE $3)::date >= ($1::date - INTERVAL '29 days')
               AND (te.punch_in_time AT TIME ZONE $3)::date <= $1::date
-              AND te.employee_id IN (SELECT id FROM active_employees)
+              AND te.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
             GROUP BY te.employee_id, (te.punch_in_time AT TIME ZONE $3)::date
-        ),
-        -- Priority 1: shift_rosters (explicit roster assignment)
-        p1_roster AS (
-            SELECT sr.employee_id, sr.date AS work_date, s.start_time
-            FROM shift_rosters sr
-            JOIN shifts s ON s.id = sr.shift_id
-            WHERE sr.date >= ($1::date - INTERVAL '29 days')
-              AND sr.date <= $1::date
-              AND sr.employee_id IN (SELECT id FROM active_employees)
-              AND sr.shift_id IS NOT NULL
-        ),
-        -- Priority 2: employee working patterns
-        p2_pattern AS (
-            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
-                   fp.employee_id, fp.work_date, s.start_time
-            FROM first_punches fp
-            JOIN employee_working_patterns ewp ON ewp.employee_id = fp.employee_id
-                AND ewp.start_date <= fp.work_date
-                AND (ewp.end_date IS NULL OR ewp.end_date >= fp.work_date)
-            JOIN working_pattern_details wpd ON wpd.pattern_id = ewp.pattern_id
-                AND wpd.day_of_week = EXTRACT(DOW FROM fp.work_date)::int
-            JOIN shifts s ON s.id = wpd.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = fp.employee_id AND p1.work_date = fp.work_date)
-            ORDER BY fp.employee_id, fp.work_date, ewp.created_at DESC
-        ),
-        -- Priority 4: department working patterns
-        p4_dept_pattern AS (
-            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
-                   fp.employee_id, fp.work_date, s.start_time
-            FROM first_punches fp
-            JOIN employee_department_history edh ON edh.employee_id = fp.employee_id
-                AND edh.effective_date <= fp.work_date
-            JOIN departments d ON d.id = edh.department_id
-                AND d.default_working_pattern_id IS NOT NULL
-            JOIN working_pattern_details wpd ON wpd.pattern_id = d.default_working_pattern_id
-                AND wpd.day_of_week = EXTRACT(DOW FROM fp.work_date)::int
-            JOIN shifts s ON s.id = wpd.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = fp.employee_id AND p1.work_date = fp.work_date)
-              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = fp.employee_id AND p2.work_date = fp.work_date)
-            ORDER BY fp.employee_id, fp.work_date, edh.effective_date DESC
-        ),
-        -- Priority 5: employee_shifts (legacy fixed assignment)
-        p5_emp_shift AS (
-            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
-                   fp.employee_id, fp.work_date, s.start_time
-            FROM first_punches fp
-            JOIN employee_shifts es ON es.employee_id = fp.employee_id
-                AND es.start_date <= fp.work_date
-                AND (es.end_date IS NULL OR es.end_date >= fp.work_date)
-            JOIN shifts s ON s.id = es.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = fp.employee_id AND p1.work_date = fp.work_date)
-              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = fp.employee_id AND p2.work_date = fp.work_date)
-              AND NOT EXISTS (SELECT 1 FROM p4_dept_pattern p4 WHERE p4.employee_id = fp.employee_id AND p4.work_date = fp.work_date)
-            ORDER BY fp.employee_id, fp.work_date, es.created_at DESC
-        ),
-        -- Priority 6: department default shifts
-        p6_dept_shift AS (
-            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
-                   fp.employee_id, fp.work_date, s.start_time
-            FROM first_punches fp
-            JOIN employee_department_history edh ON edh.employee_id = fp.employee_id
-                AND edh.effective_date <= fp.work_date
-            JOIN department_default_shifts dds ON dds.department_id = edh.department_id
-            JOIN shifts s ON s.id = dds.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = fp.employee_id AND p1.work_date = fp.work_date)
-              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = fp.employee_id AND p2.work_date = fp.work_date)
-              AND NOT EXISTS (SELECT 1 FROM p4_dept_pattern p4 WHERE p4.employee_id = fp.employee_id AND p4.work_date = fp.work_date)
-              AND NOT EXISTS (SELECT 1 FROM p5_emp_shift p5 WHERE p5.employee_id = fp.employee_id AND p5.work_date = fp.work_date)
-            ORDER BY fp.employee_id, fp.work_date, edh.effective_date DESC
-        ),
-        -- Union all resolved shifts
-        all_resolved AS (
-            SELECT employee_id, work_date, start_time FROM p1_roster
-            UNION ALL
-            SELECT employee_id, work_date, start_time FROM p2_pattern
-            UNION ALL
-            SELECT employee_id, work_date, start_time FROM p4_dept_pattern
-            UNION ALL
-            SELECT employee_id, work_date, start_time FROM p5_emp_shift
-            UNION ALL
-            SELECT employee_id, work_date, start_time FROM p6_dept_shift
         )
         SELECT fp.work_date,
                COUNT(DISTINCT fp.employee_id) AS late_count
         FROM first_punches fp
-        JOIN all_resolved ar ON ar.employee_id = fp.employee_id AND ar.work_date = fp.work_date
+        JOIN resolve_employee_shift($2, fp.work_date) ar ON ar.employee_id = fp.employee_id
         WHERE fp.first_punch > ar.start_time
         GROUP BY fp.work_date
         "#,
@@ -352,12 +272,7 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         // Late per department (only for "today")
         let late_map: std::collections::HashMap<Uuid, i64> = if range == "today" {
             // Fetch workspace timezone for correct UTC→local conversion
-            let tz_str: String =
-                sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
-                    .bind(workspace_id)
-                    .fetch_one(&self.pool)
-                    .await
-                    .unwrap_or_else(|_| "UTC".to_string());
+            let tz_str = self.get_timezone(workspace_id).await;
 
             #[derive(Debug, sqlx::FromRow)]
             struct LateRow {
@@ -522,11 +437,7 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         .unwrap_or(0);
 
         // Fetch workspace timezone for correct UTC→local conversion
-        let tz_str: String = sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
-            .bind(workspace_id)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap_or_else(|_| "UTC".to_string());
+        let tz_str = self.get_timezone(workspace_id).await;
 
         // 2. Present Today (Employees with at least one punch-in today)
         let today = Utc::now().date_naive();
@@ -608,95 +519,17 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         //   > dept working patterns > employee_shifts > department default shifts
         let late_today: i64 = sqlx::query_scalar(
         r#"
-        WITH active_employees AS (
-            SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE
-        ),
-        today_punches AS (
+        WITH today_punches AS (
             SELECT te.employee_id,
                    MIN(te.punch_in_time AT TIME ZONE $4)::time AS first_punch
             FROM time_entries te
             WHERE (te.punch_in_time AT TIME ZONE $4)::date = $3
-              AND te.employee_id IN (SELECT id FROM active_employees)
+              AND te.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
             GROUP BY te.employee_id
-        ),
-        -- Priority 1: shift_rosters (explicit roster assignment)
-        p1_roster AS (
-            SELECT sr.employee_id, s.start_time
-            FROM shift_rosters sr
-            JOIN shifts s ON s.id = sr.shift_id
-            WHERE sr.date = $3
-              AND sr.employee_id IN (SELECT id FROM active_employees)
-              AND sr.shift_id IS NOT NULL
-        ),
-        -- Priority 2: employee working patterns
-        p2_pattern AS (
-            SELECT DISTINCT ON (tp.employee_id)
-                   tp.employee_id, s.start_time
-            FROM today_punches tp
-            JOIN employee_working_patterns ewp ON ewp.employee_id = tp.employee_id
-                AND ewp.start_date <= $3
-                AND (ewp.end_date IS NULL OR ewp.end_date >= $3)
-            JOIN working_pattern_details wpd ON wpd.pattern_id = ewp.pattern_id
-                AND wpd.day_of_week = EXTRACT(DOW FROM $3::date)::int
-            JOIN shifts s ON s.id = wpd.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = tp.employee_id)
-            ORDER BY tp.employee_id, ewp.created_at DESC
-        ),
-        -- Priority 4: department working patterns
-        p4_dept_pattern AS (
-            SELECT DISTINCT ON (tp.employee_id)
-                   tp.employee_id, s.start_time
-            FROM today_punches tp
-            JOIN employee_department_history edh ON edh.employee_id = tp.employee_id
-                AND edh.effective_date <= $3
-            JOIN departments d ON d.id = edh.department_id
-                AND d.default_working_pattern_id IS NOT NULL
-            JOIN working_pattern_details wpd ON wpd.pattern_id = d.default_working_pattern_id
-                AND wpd.day_of_week = EXTRACT(DOW FROM $3::date)::int
-            JOIN shifts s ON s.id = wpd.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = tp.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = tp.employee_id)
-            ORDER BY tp.employee_id, edh.effective_date DESC
-        ),
-        -- Priority 5: employee_shifts (legacy fixed assignment)
-        p5_emp_shift AS (
-            SELECT DISTINCT ON (tp.employee_id)
-                   tp.employee_id, s.start_time
-            FROM today_punches tp
-            JOIN employee_shifts es ON es.employee_id = tp.employee_id
-                AND es.start_date <= $3
-                AND (es.end_date IS NULL OR es.end_date >= $3)
-            JOIN shifts s ON s.id = es.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = tp.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = tp.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p4_dept_pattern p4 WHERE p4.employee_id = tp.employee_id)
-            ORDER BY tp.employee_id, es.created_at DESC
-        ),
-        -- Priority 6: department default shifts
-        p6_dept_shift AS (
-            SELECT DISTINCT ON (tp.employee_id)
-                   tp.employee_id, s.start_time
-            FROM today_punches tp
-            JOIN employee_department_history edh ON edh.employee_id = tp.employee_id
-                AND edh.effective_date <= $3
-            JOIN department_default_shifts dds ON dds.department_id = edh.department_id
-            JOIN shifts s ON s.id = dds.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = tp.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = tp.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p4_dept_pattern p4 WHERE p4.employee_id = tp.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p5_emp_shift p5 WHERE p5.employee_id = tp.employee_id)
-            ORDER BY tp.employee_id, edh.effective_date DESC
-        ),
-        all_resolved AS (
-            SELECT employee_id, start_time FROM p1_roster
-            UNION ALL SELECT employee_id, start_time FROM p2_pattern
-            UNION ALL SELECT employee_id, start_time FROM p4_dept_pattern
-            UNION ALL SELECT employee_id, start_time FROM p5_emp_shift
-            UNION ALL SELECT employee_id, start_time FROM p6_dept_shift
         )
         SELECT COUNT(*)
         FROM today_punches tp
-        JOIN all_resolved ar ON ar.employee_id = tp.employee_id
+        JOIN resolve_employee_shift($2, $3) ar ON ar.employee_id = tp.employee_id
         WHERE tp.first_punch > ar.start_time
         "#,
     )
@@ -712,96 +545,18 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         // Uses same 6-priority shift resolution as late detection
         let early_departure_today: i64 = sqlx::query_scalar(
         r#"
-        WITH active_employees AS (
-            SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE
-        ),
-        today_completed AS (
+        WITH today_completed AS (
             SELECT te.employee_id,
                    MAX(te.punch_out_time AT TIME ZONE $4)::time as last_punch_out
             FROM time_entries te
             WHERE (te.punch_in_time AT TIME ZONE $4)::date = $3
               AND te.punch_out_time IS NOT NULL
-              AND te.employee_id IN (SELECT id FROM active_employees)
+              AND te.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
             GROUP BY te.employee_id
-        ),
-        -- Priority 1: shift_rosters
-        p1_roster AS (
-            SELECT sr.employee_id, s.end_time
-            FROM shift_rosters sr
-            JOIN shifts s ON s.id = sr.shift_id
-            WHERE sr.date = $3
-              AND sr.employee_id IN (SELECT id FROM active_employees)
-              AND sr.shift_id IS NOT NULL
-        ),
-        -- Priority 2: employee working patterns
-        p2_pattern AS (
-            SELECT DISTINCT ON (tc.employee_id)
-                   tc.employee_id, s.end_time
-            FROM today_completed tc
-            JOIN employee_working_patterns ewp ON ewp.employee_id = tc.employee_id
-                AND ewp.start_date <= $3
-                AND (ewp.end_date IS NULL OR ewp.end_date >= $3)
-            JOIN working_pattern_details wpd ON wpd.pattern_id = ewp.pattern_id
-                AND wpd.day_of_week = EXTRACT(DOW FROM $3::date)::int
-            JOIN shifts s ON s.id = wpd.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = tc.employee_id)
-            ORDER BY tc.employee_id, ewp.created_at DESC
-        ),
-        -- Priority 4: department working patterns
-        p4_dept_pattern AS (
-            SELECT DISTINCT ON (tc.employee_id)
-                   tc.employee_id, s.end_time
-            FROM today_completed tc
-            JOIN employee_department_history edh ON edh.employee_id = tc.employee_id
-                AND edh.effective_date <= $3
-            JOIN departments d ON d.id = edh.department_id
-                AND d.default_working_pattern_id IS NOT NULL
-            JOIN working_pattern_details wpd ON wpd.pattern_id = d.default_working_pattern_id
-                AND wpd.day_of_week = EXTRACT(DOW FROM $3::date)::int
-            JOIN shifts s ON s.id = wpd.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = tc.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = tc.employee_id)
-            ORDER BY tc.employee_id, edh.effective_date DESC
-        ),
-        -- Priority 5: employee_shifts
-        p5_emp_shift AS (
-            SELECT DISTINCT ON (tc.employee_id)
-                   tc.employee_id, s.end_time
-            FROM today_completed tc
-            JOIN employee_shifts es ON es.employee_id = tc.employee_id
-                AND es.start_date <= $3
-                AND (es.end_date IS NULL OR es.end_date >= $3)
-            JOIN shifts s ON s.id = es.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = tc.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = tc.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p4_dept_pattern p4 WHERE p4.employee_id = tc.employee_id)
-            ORDER BY tc.employee_id, es.created_at DESC
-        ),
-        -- Priority 6: department default shifts
-        p6_dept_shift AS (
-            SELECT DISTINCT ON (tc.employee_id)
-                   tc.employee_id, s.end_time
-            FROM today_completed tc
-            JOIN employee_department_history edh ON edh.employee_id = tc.employee_id
-                AND edh.effective_date <= $3
-            JOIN department_default_shifts dds ON dds.department_id = edh.department_id
-            JOIN shifts s ON s.id = dds.shift_id
-            WHERE NOT EXISTS (SELECT 1 FROM p1_roster p1 WHERE p1.employee_id = tc.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p2_pattern p2 WHERE p2.employee_id = tc.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p4_dept_pattern p4 WHERE p4.employee_id = tc.employee_id)
-              AND NOT EXISTS (SELECT 1 FROM p5_emp_shift p5 WHERE p5.employee_id = tc.employee_id)
-            ORDER BY tc.employee_id, edh.effective_date DESC
-        ),
-        all_resolved AS (
-            SELECT employee_id, end_time FROM p1_roster
-            UNION ALL SELECT employee_id, end_time FROM p2_pattern
-            UNION ALL SELECT employee_id, end_time FROM p4_dept_pattern
-            UNION ALL SELECT employee_id, end_time FROM p5_emp_shift
-            UNION ALL SELECT employee_id, end_time FROM p6_dept_shift
         )
         SELECT COUNT(*)
         FROM today_completed tc
-        JOIN all_resolved ar ON ar.employee_id = tc.employee_id
+        JOIN resolve_employee_shift($2, $3) ar ON ar.employee_id = tc.employee_id
         WHERE tc.last_punch_out < ar.end_time
         "#,
     )
@@ -975,11 +730,7 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         let today = Utc::now().date_naive();
 
         // Fetch workspace timezone for correct UTC→local conversion
-        let tz_str: String = sqlx::query_scalar("SELECT timezone FROM workspaces WHERE id = $1")
-            .bind(workspace_id)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap_or_else(|_| "UTC".to_string());
+        let tz_str = self.get_timezone(workspace_id).await;
 
         #[derive(Debug, sqlx::FromRow)]
         struct DayRow {
@@ -1000,38 +751,14 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
               AND te.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
             GROUP BY te.employee_id, (te.punch_in_time AT TIME ZONE $3)::date
         ),
-        resolved_shifts AS (
-            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
-                   fp.employee_id, fp.work_date, fp.first_punch, COALESCE(
-                       -- Priority 1: shift_rosters (manual roster)
-                       (SELECT sr.shift_id FROM shift_rosters sr
-                        WHERE sr.employee_id = fp.employee_id AND sr.date = fp.work_date
-                        LIMIT 1),
-                       -- Priority 2: individual working pattern
-                       (SELECT wpd.shift_id FROM working_pattern_details wpd
-                        JOIN employee_working_patterns ewp ON ewp.pattern_id = wpd.pattern_id
-                        WHERE ewp.employee_id = fp.employee_id
-                          AND ewp.start_date <= fp.work_date
-                          AND (ewp.end_date IS NULL OR ewp.end_date >= fp.work_date)
-                          AND wpd.day_of_week = EXTRACT(DOW FROM fp.work_date)::int
-                        ORDER BY ewp.created_at DESC LIMIT 1),
-                       -- Priority 3: employee_shifts (default assignment)
-                       (SELECT es.shift_id FROM employee_shifts es
-                        WHERE es.employee_id = fp.employee_id
-                          AND es.start_date <= fp.work_date
-                          AND (es.end_date IS NULL OR es.end_date >= fp.work_date)
-                        LIMIT 1)
-                   ) AS shift_id
-            FROM first_punches fp
-        ),
         late_entries AS (
-            SELECT rs.work_date,
-                   EXTRACT(ISODOW FROM rs.work_date)::int AS dow,
-                   EXTRACT(EPOCH FROM (rs.first_punch - s.start_time)) / 60.0 AS late_minutes
-            FROM resolved_shifts rs
-            JOIN shifts s ON s.id = rs.shift_id
-            WHERE rs.shift_id IS NOT NULL
-              AND rs.first_punch > s.start_time
+            SELECT fp.work_date,
+                   EXTRACT(ISODOW FROM fp.work_date)::int AS dow,
+                   EXTRACT(EPOCH FROM (fp.first_punch - rs.start_time)) / 60.0 AS late_minutes
+            FROM first_punches fp
+            JOIN resolve_employee_shift($2, fp.work_date) rs ON rs.employee_id = fp.employee_id
+            WHERE rs.start_time IS NOT NULL
+              AND fp.first_punch > rs.start_time
         )
         SELECT dow,
                COUNT(*) AS late_count,

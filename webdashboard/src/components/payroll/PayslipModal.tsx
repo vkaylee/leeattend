@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
 import { Employee, Payslip, Workspace } from '@/lib/api/types';
 
+import { useToast } from '@/components/ui/Toast';
+
 import PayslipDocument from './PayslipDocument';
 
 interface PayslipModalProps {
@@ -26,6 +28,7 @@ export default function PayslipModal({
 }: PayslipModalProps) {
   const { t } = useTranslation();
   const { formatMonthYear } = useDateTimeFormatter();
+  const toast = useToast();
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useCallback(() => {
@@ -34,7 +37,7 @@ export default function PayslipModal({
     // Create a new window for printing
     const printWindow = window.open('', '_blank', 'width=600,height=800');
     if (!printWindow) {
-      alert('Please allow pop-ups to print the payslip.');
+      toast.error('Please allow pop-ups to print the payslip.');
       return;
     }
 

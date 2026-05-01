@@ -17,8 +17,8 @@ import Button from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
-
 import { useToast } from "../components/ui/Toast";
+import { useConfirm } from "../hooks/use-confirm";
 import { 
   fetchAssignmentRules, 
   createAssignmentRule, 
@@ -36,6 +36,7 @@ export default function AssignmentRulesPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { confirm, ConfirmationDialog } = useConfirm();
 
   const [isModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<AssignmentRule | null>(null);
@@ -119,7 +120,7 @@ export default function AssignmentRulesPage() {
                 <td className="px-10 py-6 text-right">
                   <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                     <button onClick={() => openEditModal(rule)} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.edit")}><Pencil size={18} /></button>
-                    <button onClick={() => { if(confirm(t("common.confirm_delete"))) deleteMutation.mutate(rule.id); }} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
+                    <button onClick={async () => { const ok = await confirm({ title: t("common.confirm_delete"), message: "Are you sure you want to delete this rule?", variant: "danger" }); if(ok) deleteMutation.mutate(rule.id); }} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
                   </div>
                 </td>
               </tr>
@@ -230,6 +231,7 @@ export default function AssignmentRulesPage() {
           </div>
         </div>
       </Modal>
+      <ConfirmationDialog />
     </div>
   );
 }
