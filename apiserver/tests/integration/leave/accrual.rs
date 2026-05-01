@@ -250,7 +250,7 @@ async fn test_accrual_recalculation() {
 
     // Change policy to 2.0
     sqlx::query!(
-        "UPDATE leave_policy_definitions SET config = $1 WHERE id = $2",
+        "UPDATE leave_policy_definitions SET rule_config = $1 WHERE id = $2",
         serde_json::json!({
             "frequency": "monthly",
             "accrual_amount": 2.0,
@@ -267,8 +267,12 @@ async fn test_accrual_recalculation() {
         .process_workspace_accruals(ws_id, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), true)
         .await
         .unwrap();
-    
+
     assert_eq!(logs_2.len(), 1);
     assert_eq!(logs_2[0].amount.to_string(), "2.00");
-    assert!(logs_2[0].notes.as_deref().unwrap_or("").contains("Re-calculated"));
+    assert!(logs_2[0]
+        .notes
+        .as_deref()
+        .unwrap_or("")
+        .contains("Re-calculated"));
 }

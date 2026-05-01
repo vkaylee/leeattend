@@ -20,10 +20,6 @@ fi
 cd "$PROJECT_ROOT" || exit 1
 
 echo "🦀 Running cargo inside container environment ($TARGET_CONTAINER) at /workspace$REL_DIR..."
-TIMEOUT_CMD=""
-if [ -n "$TIMEOUT" ]; then
-    TIMEOUT_CMD="timeout $TIMEOUT"
-fi
-
-$TIMEOUT_CMD $TOOLBOX_COMPOSE_CMD run -T --rm -e SQLX_OFFLINE=true --workdir "/workspace$REL_DIR" --entrypoint cargo "$TARGET_CONTAINER" "$@" </dev/null 2>&1
+TIMEOUT_SEC="${TIMEOUT:-600}"
+"$SCRIPT_DIR/safe-run.py" "$TIMEOUT_SEC" $TOOLBOX_COMPOSE_CMD run -T --rm -e SQLX_OFFLINE=true --workdir "/workspace$REL_DIR" --entrypoint cargo "$TARGET_CONTAINER" "$@"
 

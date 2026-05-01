@@ -64,3 +64,5 @@ pub mod attendance_policy_repository;
 pub use attendance_policy_repository::{
     AttendancePolicyRepository, SqlxAttendancePolicyRepository,
 };
+pub mod workspace_stats_repository;
+pub use workspace_stats_repository::{SqlxWorkspaceStatsRepository, WorkspaceStatsRepository};

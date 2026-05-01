@@ -15,6 +15,7 @@ use crate::repositories::shift_swap_repository::ShiftSwapRepository;
 use crate::repositories::staging_log_repository::StagingLogRepository;
 use crate::repositories::time_entry_repository::TimeEntryRepository;
 use crate::repositories::user_repository::UserRepository;
+use crate::repositories::workspace_stats_repository::WorkspaceStatsRepository;
 use crate::repositories::{AgentRepository, EmployeeRepository, WorkspaceRepository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::attendance_import_service::AttendanceImportService;
@@ -85,6 +86,7 @@ pub struct PayrollState {
 pub struct ReportState {
     pub service: Arc<ReportService>,
     pub coordinator: Option<Arc<ReportCoordinator>>,
+    pub stats_repo: Arc<dyn WorkspaceStatsRepository>,
 }
 
 /// Auth, workspace, user management

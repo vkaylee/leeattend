@@ -18,6 +18,7 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 
 | Layer | Where | What it does |
 |-------|-------|--------------|
+| 0. `safe-run.py` | `scripts/safe-run.py` | **ULTIMATE WORKAROUND**: Isolates FDs to a file and uses python threading to detach from PTY. |
 | 1. `dc()` wrapper | `scripts/docker-ops.sh` | All podman-compose via `dc`/`dc_detached` gets `</dev/null` automatically |
 | 2. `dc_detached()` + setsid | `scripts/docker-ops.sh` | Cleanup ops: new session + full FD redirect + 60s hard timeout |
 | 3. `cleanup()` 3-layer kill | `scripts/lifecycle.sh` | Process group kill + `/proc` FD sweep + **cleanup deadline watchdog** (120s) |
@@ -39,6 +40,9 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 AGENT_MODE=1 git commit --no-gpg-sign -m "message" </dev/null
 podman-compose down </dev/null
 ./run-tests.sh --api </dev/null
+
+# ✅ Correct & Bulletproof — Use safe-run.py wrapper (New Standard)
+./scripts/safe-run.py 60 "AGENT_MODE=1 git commit --no-gpg-sign -m 'message'"
 
 # ❌ Wrong — will hang
 git commit -m "message"

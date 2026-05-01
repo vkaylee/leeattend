@@ -72,6 +72,13 @@ impl AppState {
             roster_repo.clone(),
             pool.clone(),
         ));
+        let stats_repo: Arc<
+            dyn crate::repositories::workspace_stats_repository::WorkspaceStatsRepository,
+        > = Arc::new(
+            crate::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(
+                pool.clone(),
+            ),
+        );
         let pairing_service = Arc::new(crate::services::pairing_service::PairingService::new(
             time_entry_repo.clone(),
             roster_repo.clone(),
@@ -325,6 +332,7 @@ impl AppState {
             reports: crate::ReportState {
                 service: report_service,
                 coordinator,
+                stats_repo,
             },
             core: crate::CoreState {
                 auth_service,

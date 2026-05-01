@@ -250,6 +250,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         reports: apiserver::ReportState {
             service: report_service,
             coordinator: None,
+            stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(pool.clone())),
         },
         core: apiserver::CoreState {
             auth_service,
@@ -549,6 +550,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         reports: apiserver::ReportState {
             service: report_service,
             coordinator: None,
+            stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(db_pool.clone())),
         },
         core: apiserver::CoreState {
             auth_service,
@@ -864,6 +866,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         reports: apiserver::ReportState {
             service: report_service,
             coordinator: None,
+            stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(pool.clone())),
         },
         core: apiserver::CoreState {
             auth_service,

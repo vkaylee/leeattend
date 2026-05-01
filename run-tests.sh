@@ -22,6 +22,14 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# --- AI Agent PTY Hang Protection ---
+# If an AI agent runs this script, automatically wrap it in safe-run.py
+# to prevent Podman/Docker daemons from leaking PTY file descriptors.
+if [[ "${AGENT_MODE:-0}" == "1" && "${_SAFE_RUN_ACTIVE:-0}" == "0" ]]; then
+    export _SAFE_RUN_ACTIVE=1
+    echo "🛡️ Agent mode detected. Auto-wrapping run-tests.sh in safe-run.py (1200s timeout)..."
+    exec "$SCRIPT_DIR/scripts/safe-run.py" 1200 "$0" "$@"
+fi
 # --- Environment Setup ---
 export USE_DOCKER=true
 export COMPOSE_PROJECT_NAME="leeattend-test"
