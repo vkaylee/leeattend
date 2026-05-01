@@ -134,14 +134,16 @@ impl RedbStore {
             let log_table = txn
                 .open_table(ATTENDANCE_LOGS)
                 .map_err(|e| StoreError::DbError(e.to_string()))?;
-            log_table
+            if let Some(g) = log_table
                 .get(id)
                 .map_err(|e| StoreError::DbError(e.to_string()))?
-                .map(|g| {
-                    let mut log = StoredLog::from_bytes(g.value()).unwrap();
-                    log.is_synced = 0;
-                    log.to_bytes()
-                })
+            {
+                let mut log = StoredLog::from_bytes(g.value())?;
+                log.is_synced = 0;
+                Some(log.to_bytes())
+            } else {
+                None
+            }
         };
 
         if let Some(bytes) = log_data {

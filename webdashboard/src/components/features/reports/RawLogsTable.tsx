@@ -1,10 +1,13 @@
 import React from "react";
+
 import { SearchX, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
 import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
-import { RawAttendanceLog } from "@/lib/api";
+
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { RawAttendanceLog } from "@/lib/api";
 
 interface RawLogsTableProps {
     rawLogsData: RawAttendanceLog[];

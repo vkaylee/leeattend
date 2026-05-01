@@ -1,16 +1,18 @@
 import React, { useRef, useEffect } from "react";
+
 import { CalendarCheck, FileBarChart, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import Sheet from "@/components/ui/Sheet";
+
 import { useDebug } from "@/context/DebugContext";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 import ConfirmAttendanceModal from "./ConfirmAttendanceModal";
 import ConfirmReprocessModal from "./ConfirmReprocessModal";
 import DailyReportTable from "./DailyReportTable";
-import ResolveUnscheduledModal from "./ResolveUnscheduledModal";
 import RawLogsTable from "./RawLogsTable";
+import ResolveUnscheduledModal from "./ResolveUnscheduledModal";
 import { useEmployeeDailyDrawer } from "./useEmployeeDailyDrawer";
 
 interface EmployeeDailyDrawerProps {
