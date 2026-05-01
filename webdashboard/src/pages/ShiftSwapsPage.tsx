@@ -18,9 +18,10 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import ApprovalListLayout, { TabConfig } from "@/components/templates/ApprovalListLayout";
 import Button from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
-import { LABEL_BASE } from "@/components/ui/FormField";
+import FormField from "@/components/ui/FormField";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
 
@@ -122,412 +123,377 @@ export default function ShiftSwapsPage() {
             </div>
         );
 
+    const tabs: TabConfig[] = [
+        { id: "pending_admin", label: t("shift_swaps.status.pending_admin"), icon: <Clock size={14} />, colorScheme: "amber" },
+        { id: "approved", label: t("shift_swaps.status.approved"), icon: <CheckCircle size={14} />, colorScheme: "emerald" },
+        { id: "rejected", label: t("shift_swaps.status.rejected"), icon: <XCircle size={14} />, colorScheme: "rose" },
+        { id: "cancelled", label: t("shift_swaps.status.cancelled"), icon: <XCircle size={14} />, colorScheme: "slate" },
+    ];
+
+    const tableHeaders = [
+        <th key="date" className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+            {t("shift_swaps.swap_date")}
+        </th>,
+        <th key="requester" className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+            {t("shift_swaps.requester")}
+        </th>,
+        <th key="arrow" className="px-4 py-6 text-center">
+            <ArrowLeftRight size={14} className="text-slate-400 mx-auto" />
+        </th>,
+        <th key="target" className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+            {t("shift_swaps.target")}
+        </th>,
+        <th key="reason" className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+            {t("shift_swaps.reason")}
+        </th>,
+        <th key="status" className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
+            {t("common.status")}
+        </th>,
+        <th key="actions" className="px-10 py-6"></th>,
+    ];
+
     return (
-        <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-                <div className="space-y-1">
-                    <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">
-                        {t("shift_swaps.title")}
-                    </h1>
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">
-                        {t("shift_swaps.subtitle")}
-                    </p>
-                </div>
-                <Button
-                    onClick={() => setShowCreateForm(!showCreateForm)}
-                    icon={<Plus size={18} />}
-                >
+        <ApprovalListLayout
+            title={t("shift_swaps.title")}
+            subtitle={t("shift_swaps.subtitle")}
+            headerActions={
+                <Button onClick={() => setShowCreateForm(!showCreateForm)} icon={<Plus size={18} />}>
                     {t("shift_swaps.create_btn")}
                 </Button>
-            </div>
-
-            {/* Usage Guide */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-800/50 rounded-[2rem] overflow-hidden shadow-sm">
-                <button
-                    onClick={() => setShowGuide(!showGuide)}
-                    className="flex items-center justify-between w-full px-8 py-5 group"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
-                            <HelpCircle size={18} className="text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <span className="text-sm font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest">
-                            {t("shift_swaps.guide.title")}
-                        </span>
-                    </div>
-                    {showGuide ? (
-                        <ChevronDown size={16} className="text-blue-400" />
-                    ) : (
-                        <ChevronRight size={16} className="text-blue-400" />
-                    )}
-                </button>
-                {showGuide && (
-                    <div className="px-8 pb-6 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                        <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed font-medium">
-                            {t("shift_swaps.guide.intro")}
-                        </p>
-
-                        {/* Steps */}
-                        <div className="space-y-3">
-                            <div className="flex items-start gap-3">
-                                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-black">1</span>
-                                <div>
-                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{t("shift_swaps.guide.step1_title")}</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t("shift_swaps.guide.step1_desc")}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-black">2</span>
-                                <div>
-                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{t("shift_swaps.guide.step2_title")}</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t("shift_swaps.guide.step2_desc")}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-black">3</span>
-                                <div>
-                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{t("shift_swaps.guide.step3_title")}</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t("shift_swaps.guide.step3_desc")}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Important notes */}
-                        <div className="mt-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800/50 rounded-xl p-4">
-                            <div className="flex items-start gap-2">
-                                <Info size={14} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{t("shift_swaps.guide.notes_title")}</p>
-                                    <ul className="text-[11px] text-amber-700 dark:text-amber-300/80 space-y-1 list-disc list-inside">
-                                        <li>{t("shift_swaps.guide.note1")}</li>
-                                        <li>{t("shift_swaps.guide.note2")}</li>
-                                        <li>{t("shift_swaps.guide.note3")}</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Create Form */}
-            {showCreateForm && (
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm animate-in slide-in-from-top-4 duration-500">
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest mb-6">
-                        {t("shift_swaps.create_btn")}
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div>
-                            <label className={cn(LABEL_BASE, "block mb-2")}>
-                                {t("shift_swaps.requester")}
-                            </label>
-                            <Combobox
-                                value={requesterId}
-                                onChange={setRequesterId}
-                                options={employees.map((emp) => ({
-                                    value: emp.id,
-                                    label: `${emp.full_name} (${emp.employee_id_number})`
-                                }))}
-                                placeholder={t("shift_swaps.select_employee")}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium py-[5px]"
-                            />
-                        </div>
-                        <div>
-                            <label className={cn(LABEL_BASE, "block mb-2")}>
-                                {t("shift_swaps.target")}
-                            </label>
-                            <Combobox
-                                value={targetId}
-                                onChange={setTargetId}
-                                options={employees
-                                    .filter((emp) => emp.id !== requesterId)
-                                    .map((emp) => ({
-                                        value: emp.id,
-                                        label: `${emp.full_name} (${emp.employee_id_number})`
-                                    }))}
-                                placeholder={t("shift_swaps.select_employee")}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium py-[5px]"
-                            />
-                        </div>
-                        <div>
-                            <label className={cn(LABEL_BASE, "block mb-2")}>
-                                {t("shift_swaps.swap_date")}
-                            </label>
-                            <input
-                                type="date"
-                                value={swapDate}
-                                onChange={(e) => setSwapDate(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 font-medium"
-                            />
-                        </div>
-                        <div>
-                            <label className={cn(LABEL_BASE, "block mb-2")}>
-                                {t("shift_swaps.reason")}
-                            </label>
-                            <input
-                                type="text"
-                                value={reason}
-                                onChange={(e) => setReason(e.target.value)}
-                                placeholder={t("shift_swaps.reason_placeholder")}
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 font-medium"
-                            />
-                        </div>
-                    </div>
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button variant="ghost" onClick={() => setShowCreateForm(false)}>
-                            {t("common.cancel")}
-                        </Button>
-                        <Button
-                            onClick={handleCreate}
-                            disabled={!requesterId || !targetId || !swapDate || createMutation.isPending}
-                            loading={createMutation.isPending}
+            }
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={(id) => setActiveTab(id as TabType)}
+            tableHeaders={tableHeaders}
+            isLoading={isLoading}
+            isEmpty={swaps.length === 0}
+            emptyMessage={t("shift_swaps.messages.no_data")}
+            banner={
+                <>
+                    {/* Usage Guide */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-800/50 rounded-[2rem] overflow-hidden shadow-sm">
+                        <button
+                            onClick={() => setShowGuide(!showGuide)}
+                            className="flex items-center justify-between w-full px-8 py-5 group"
                         >
-                            {createMutation.isPending ? t("common.loading") : t("common.submit")}
-                        </Button>
-                    </div>
-                </div>
-            )}
-
-            {/* Stats Bar */}
-            {stats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in duration-500">
-                    {[
-                        { label: t("shift_swaps.stats.pending"), value: (stats.pending_target || 0) + (stats.pending_admin || 0), color: "amber" },
-                        { label: t("shift_swaps.stats.approved_month"), value: stats.approved_this_month || 0, color: "emerald" },
-                        { label: t("shift_swaps.stats.rejected_month"), value: stats.rejected_this_month || 0, color: "rose" },
-                        { label: t("shift_swaps.stats.total"), value: (stats.approved || 0) + (stats.rejected || 0) + (stats.cancelled || 0), color: "slate" },
-                    ].map((stat) => (
-                        <div key={stat.label} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-                            <p className={`text-2xl font-black tracking-tighter text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.value}</p>
-                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Status Tabs */}
-            <div className="flex flex-wrap bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-                <button
-                    onClick={() => setActiveTab("pending_target")}
-                    className={cn(
-                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-                        activeTab === "pending_target"
-                            ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 shadow-sm border border-slate-100 dark:border-slate-800"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
-                    )}
-                >
-                    <Clock size={14} /> {t("shift_swaps.status.pending_target")}
-                </button>
-                <button
-                    onClick={() => setActiveTab("pending_admin")}
-                    className={cn(
-                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-                        activeTab === "pending_admin"
-                            ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 shadow-sm border border-slate-100 dark:border-slate-800"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
-                    )}
-                >
-                    <Clock size={14} /> {t("shift_swaps.status.pending_admin")}
-                </button>
-                <button
-                    onClick={() => setActiveTab("approved")}
-                    className={cn(
-                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-                        activeTab === "approved"
-                            ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-300 shadow-sm border border-slate-100 dark:border-slate-800"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
-                    )}
-                >
-                    <CheckCircle size={14} /> {t("shift_swaps.status.approved")}
-                </button>
-                <button
-                    onClick={() => setActiveTab("rejected")}
-                    className={cn(
-                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-                        activeTab === "rejected"
-                            ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 shadow-sm border border-slate-100 dark:border-slate-800"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
-                    )}
-                >
-                    <XCircle size={14} /> {t("shift_swaps.status.rejected")}
-                </button>
-                <button
-                    onClick={() => setActiveTab("cancelled")}
-                    className={cn(
-                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-                        activeTab === "cancelled"
-                            ? "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-slate-800"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
-                    )}
-                >
-                    <XCircle size={14} /> {t("shift_swaps.status.cancelled")}
-                </button>
-            </div>
-
-            {/* Table */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                                <th className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-                                    {t("shift_swaps.swap_date")}
-                                </th>
-                                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-                                    {t("shift_swaps.requester")}
-                                </th>
-                                <th className="px-4 py-6 text-center">
-                                    <ArrowLeftRight
-                                        size={14}
-                                        className="text-slate-400 mx-auto"
-                                    />
-                                </th>
-                                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-                                    {t("shift_swaps.target")}
-                                </th>
-                                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-                                    {t("shift_swaps.reason")}
-                                </th>
-                                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
-                                    {t("common.status")}
-                                </th>
-                                <th className="px-10 py-6"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                            {isLoading ? (
-                                <tr>
-                                    <td
-                                        colSpan={7}
-                                        className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse"
-                                    >
-                                        {t("common.loading")}
-                                    </td>
-                                </tr>
-                            ) : swaps.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={7}
-                                        className="px-10 py-32 text-center"
-                                    >
-                                        <div className="flex flex-col items-center gap-4">
-                                            <ArrowLeftRight
-                                                size={40}
-                                                className="text-slate-200 dark:text-slate-700"
-                                            />
-                                            <span className="text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-                                                {t("shift_swaps.messages.no_data")}
-                                            </span>
-                                        </div>
-                                    </td>
-                                </tr>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
+                                    <HelpCircle size={18} className="text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <span className="text-sm font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest">
+                                    {t("shift_swaps.guide.title")}
+                                </span>
+                            </div>
+                            {showGuide ? (
+                                <ChevronDown size={16} className="text-blue-400" />
                             ) : (
-                                swaps.map((swap) => (
-                                    <tr
-                                        key={swap.id}
-                                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group"
-                                    >
-                                        {/* Date */}
-                                        <td className="px-10 py-6">
-                                            <div className="inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                                                <CalendarDays
-                                                    size={14}
-                                                    className="text-primary-600 dark:text-primary-400"
-                                                />
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">
-                                                    {formatDate(swap.swap_date)}
-                                                </span>
-                                            </div>
-                                        </td>
-
-                                        {/* Requester */}
-                                        <td className="px-8 py-6">
-                                            <div>
-                                                <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1">
-                                                    {swap.requester_name || "—"}
-                                                </div>
-                                                <div className="text-[10px] text-primary-600 dark:text-primary-400 font-bold">
-                                                    {swap.requester_shift_name || t("shift_swaps.day_off")}
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        {/* Arrow */}
-                                        <td className="px-4 py-6 text-center">
-                                            <ArrowRight
-                                                size={16}
-                                                className="text-slate-300 dark:text-slate-600 mx-auto"
-                                            />
-                                        </td>
-
-                                        {/* Target */}
-                                        <td className="px-8 py-6">
-                                            <div>
-                                                <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1">
-                                                    {swap.target_name || "—"}
-                                                </div>
-                                                <div className="text-[10px] text-primary-600 dark:text-primary-400 font-bold">
-                                                    {swap.target_shift_name || t("shift_swaps.day_off")}
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        {/* Reason */}
-                                        <td className="px-8 py-6">
-                                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed">
-                                                {swap.reason || t("common.no_notes")}
-                                            </p>
-                                        </td>
-
-                                        {/* Status */}
-                                        <td className="px-8 py-6 text-center">
-                                            <StatusBadge variant={
-                                                swap.status === "pending_admin" ? "warning" :
-                                                swap.status === "approved" ? "success" : "danger"
-                                            }>
-                                                {t(`shift_swaps.status.${swap.status}`)}
-                                            </StatusBadge>
-                                        </td>
-
-                                        {/* Actions */}
-                                        <td className="px-10 py-6 text-right">
-                                            {swap.status === "pending_admin" && (
-                                                <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                                                    <button
-                                                        onClick={() =>
-                                                            approveMutation.mutate({
-                                                                id: swap.id,
-                                                                status: "approved",
-                                                            })
-                                                        }
-                                                        className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90"
-                                                        title={t("common.approve")}
-                                                    >
-                                                        <Check size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() =>
-                                                            approveMutation.mutate({
-                                                                id: swap.id,
-                                                                status: "rejected",
-                                                            })
-                                                        }
-                                                        className="p-3 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-xl shadow-md border border-rose-100 dark:border-rose-800 transition-all active:scale-90"
-                                                        title={t("common.reject")}
-                                                    >
-                                                        <X size={18} />
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
+                                <ChevronRight size={16} className="text-blue-400" />
                             )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+                        </button>
+
+                        {showGuide && (
+                            <div className="px-8 pb-8 animate-in slide-in-from-top-4 duration-300">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-blue-100 dark:border-blue-800/30">
+                                    <div className="space-y-3">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold font-mono text-xs">
+                                            1
+                                        </div>
+                                        <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">
+                                            {t("shift_swaps.guide.step1.title")}
+                                        </h4>
+                                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider leading-relaxed opacity-80">
+                                            {t("shift_swaps.guide.step1.desc")}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold font-mono text-xs">
+                                            2
+                                        </div>
+                                        <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">
+                                            {t("shift_swaps.guide.step2.title")}
+                                        </h4>
+                                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider leading-relaxed opacity-80">
+                                            {t("shift_swaps.guide.step2.desc")}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold font-mono text-xs">
+                                            3
+                                        </div>
+                                        <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">
+                                            {t("shift_swaps.guide.step3.title")}
+                                        </h4>
+                                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider leading-relaxed opacity-80">
+                                            {t("shift_swaps.guide.step3.desc")}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 p-4 bg-white/50 dark:bg-slate-900/30 rounded-2xl flex items-start gap-3">
+                                    <Info size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                                    <p className="text-xs font-bold text-blue-800 dark:text-blue-200 tracking-tight leading-relaxed">
+                                        {t("shift_swaps.guide.note")}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Quick Stats */}
+                    {stats && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-bottom-4 duration-500 delay-100">
+                            {[
+                                {
+                                    key: "pending_admin",
+                                    label: t("shift_swaps.status.pending_admin"),
+                                    value: stats.pending_admin,
+                                    color: "amber",
+                                },
+                                {
+                                    key: "pending_target",
+                                    label: t("shift_swaps.status.pending_target"),
+                                    value: stats.pending_target,
+                                    color: "blue",
+                                },
+                                {
+                                    key: "approved",
+                                    label: t("shift_swaps.status.approved"),
+                                    value: stats.approved,
+                                    color: "emerald",
+                                },
+                                {
+                                    key: "rejected",
+                                    label: t("shift_swaps.status.rejected"),
+                                    value: stats.rejected,
+                                    color: "rose",
+                                },
+                            ].map((stat) => (
+                                <div
+                                    key={stat.key}
+                                    onClick={() => setActiveTab(stat.key as TabType)}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setActiveTab(stat.key as TabType);
+                                        }
+                                    }}
+                                    className={cn(
+                                        "bg-white dark:bg-slate-900 p-5 rounded-[2rem] border shadow-sm cursor-pointer hover:shadow-md transition-all group",
+                                        activeTab === stat.key
+                                            ? `border-${stat.color}-300 dark:border-${stat.color}-700 ring-2 ring-${stat.color}-100 dark:ring-${stat.color}-900`
+                                            : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700",
+                                    )}
+                                >
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
+                                        {stat.label}
+                                    </div>
+                                    <div
+                                        className={`text-3xl font-black tracking-tighter text-${stat.color}-600 dark:text-${stat.color}-400 font-mono`}
+                                    >
+                                        {stat.value}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Create Form */}
+                    {showCreateForm && (
+                        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2rem] shadow-sm animate-in zoom-in-95 duration-300 mb-8">
+                            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight mb-6 flex items-center gap-2">
+                                <ArrowLeftRight className="text-primary-500" />
+                                {t("shift_swaps.create_title")}
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                                {/* Requester (Employee initiating swap) */}
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
+                                        {t("shift_swaps.requester")}
+                                    </label>
+                                    <Combobox
+                                        options={employees.map((e) => ({
+                                            value: e.id,
+                                            label: e.full_name.toUpperCase(),
+                                        }))}
+                                        value={requesterId}
+                                        onChange={setRequesterId}
+                                        placeholder={t("common.employee")}
+                                        className="h-14 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700"
+                                    />
+                                </div>
+
+                                {/* Target (Employee covering shift) */}
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
+                                        {t("shift_swaps.target")}
+                                    </label>
+                                    <Combobox
+                                        options={employees
+                                            .filter((e) => e.id !== requesterId)
+                                            .map((e) => ({
+                                                value: e.id,
+                                                label: e.full_name.toUpperCase(),
+                                            }))}
+                                        value={targetId}
+                                        onChange={setTargetId}
+                                        placeholder={t("common.employee")}
+                                        className="h-14 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700"
+                                        disabled={!requesterId}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                <FormField
+                                    id="swap_date"
+                                    name="swap_date"
+                                    type="date"
+                                    label={t("shift_swaps.swap_date")}
+                                    value={swapDate}
+                                    onChange={(e) => setSwapDate(e.target.value)}
+                                    required
+                                    inputClassName="text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-800"
+                                />
+
+                                <FormField
+                                    id="swap_reason"
+                                    name="reason"
+                                    type="text"
+                                    label={t("shift_swaps.reason")}
+                                    value={reason}
+                                    onChange={(e) => setReason(e.target.value)}
+                                    placeholder={t("common.no_notes")}
+                                    inputClassName="text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-800"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-4 pt-6 border-t border-slate-50 dark:border-slate-800">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowCreateForm(false)}
+                                >
+                                    {t("common.cancel")}
+                                </Button>
+                                <Button
+                                    onClick={handleCreate}
+                                    disabled={
+                                        createMutation.isPending ||
+                                        !requesterId ||
+                                        !targetId ||
+                                        !swapDate
+                                    }
+                                >
+                                    {t("common.save")}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </>
+            }
+        >
+            {swaps.map((swap) => (
+                <tr
+                    key={swap.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group"
+                >
+                    {/* Date */}
+                    <td className="px-10 py-6">
+                        <div className="inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                            <CalendarDays
+                                size={14}
+                                className="text-primary-600 dark:text-primary-400"
+                            />
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">
+                                {formatDate(swap.swap_date)}
+                            </span>
+                        </div>
+                    </td>
+
+                    {/* Requester */}
+                    <td className="px-8 py-6">
+                        <div>
+                            <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1">
+                                {swap.requester_name || "—"}
+                            </div>
+                            <div className="text-[10px] text-primary-600 dark:text-primary-400 font-bold">
+                                {swap.requester_shift_name || t("shift_swaps.day_off")}
+                            </div>
+                        </div>
+                    </td>
+
+                    {/* Arrow */}
+                    <td className="px-4 py-6 text-center">
+                        <ArrowRight
+                            size={16}
+                            className="text-slate-300 dark:text-slate-600 mx-auto"
+                        />
+                    </td>
+
+                    {/* Target */}
+                    <td className="px-8 py-6">
+                        <div>
+                            <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1">
+                                {swap.target_name || "—"}
+                            </div>
+                            <div className="text-[10px] text-primary-600 dark:text-primary-400 font-bold">
+                                {swap.target_shift_name || t("shift_swaps.day_off")}
+                            </div>
+                        </div>
+                    </td>
+
+                    {/* Reason */}
+                    <td className="px-8 py-6">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed">
+                            {swap.reason || t("common.no_notes")}
+                        </p>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-8 py-6 text-center">
+                        <StatusBadge variant={
+                            swap.status === "pending_admin" ? "warning" :
+                            swap.status === "approved" ? "success" : "danger"
+                        }>
+                            {t(`shift_swaps.status.${swap.status}`)}
+                        </StatusBadge>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-10 py-6 text-right">
+                        {swap.status === "pending_admin" && (
+                            <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                <button
+                                    onClick={() =>
+                                        approveMutation.mutate({
+                                            id: swap.id,
+                                            status: "approved",
+                                        })
+                                    }
+                                    className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90"
+                                    title={t("common.approve")}
+                                >
+                                    <Check size={18} />
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        approveMutation.mutate({
+                                            id: swap.id,
+                                            status: "rejected",
+                                        })
+                                    }
+                                    className="p-3 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-xl shadow-md border border-rose-100 dark:border-rose-800 transition-all active:scale-90"
+                                    title={t("common.reject")}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        )}
+                    </td>
+                </tr>
+            ))}
+        </ApprovalListLayout>
     );
 }

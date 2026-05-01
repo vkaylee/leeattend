@@ -50,14 +50,12 @@ export default function AssignmentRulesPage() {
   const { data: departments } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
 
   const createMutation = useMutation({
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic data shape from form state; strict typing would add boilerplate without safety gain
-    mutationFn: (data: Record<string, unknown>) => createAssignmentRule(wsId, data as any),
+    mutationFn: (data: Parameters<typeof createAssignmentRule>[1]) => createAssignmentRule(wsId, data),
     onSuccess: () => { toast.success(t("rules.messages.create_success")); closeModal(); queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); },
   });
 
   const updateMutation = useMutation({
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic data shape from form state; strict typing would add boilerplate without safety gain
-    mutationFn: ({ id, data }: { id: string, data: Record<string, unknown> }) => updateAssignmentRule(wsId, id, data as any),
+    mutationFn: ({ id, data }: { id: string, data: Parameters<typeof updateAssignmentRule>[2] }) => updateAssignmentRule(wsId, id, data),
     onSuccess: () => { toast.success(t("rules.messages.update_success")); closeModal(); queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); },
   });
 

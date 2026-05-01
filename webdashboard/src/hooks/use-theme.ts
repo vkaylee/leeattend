@@ -29,23 +29,21 @@ export function useTheme() {
       setUserColor(localStorage.getItem('user_theme_primary_color'));
     };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handlePreview = (e: any) => {
-      setPreviewColor(e.detail);
+    const handlePreview = (e: Event) => {
+      const customEvent = e as CustomEvent<string | null>;
+      setPreviewColor(customEvent.detail);
     };
 
     window.addEventListener('storage', handleStorage);
     // Custom event for same-tab updates
     window.addEventListener('theme-change', handleStorage);
     // Live preview event
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-    window.addEventListener('theme-preview' as any, handlePreview);
+    window.addEventListener('theme-preview', handlePreview);
     
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('theme-change', handleStorage);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-      window.removeEventListener('theme-preview' as any, handlePreview);
+      window.removeEventListener('theme-preview', handlePreview);
     };
   }, []);
 

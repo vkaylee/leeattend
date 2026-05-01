@@ -31,6 +31,7 @@ interface ComboboxProps {
   autoFocus?: boolean;
   keyboardShortcut?: string | string[];
   clearOnEscape?: boolean; // New prop to allow clearing the selection globally
+  disabled?: boolean;
 }
 
 export function Combobox({
@@ -48,6 +49,7 @@ export function Combobox({
   autoFocus,
   keyboardShortcut,
   clearOnEscape,
+  disabled,
 }: ComboboxProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(autoFocus || false);
@@ -112,7 +114,7 @@ export function Combobox({
 
       <Popover.Trigger asChild>
         {/* eslint-disable-next-line jsx-a11y/no-autofocus -- autoFocus improves UX: immediate keyboard input without extra click */}
-        <button id={id} data-testid={testId} autoFocus={autoFocus} type="button" className={cn("flex w-full items-center justify-between rounded-[1.25rem] border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-5 py-4 text-sm font-bold text-primary-600 dark:text-primary-400 transition-all hover:border-primary-200 dark:hover:border-primary-800 hover:bg-white dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight", className)}>
+        <button id={id} data-testid={testId} autoFocus={autoFocus} disabled={disabled} type="button" className={cn("flex w-full items-center justify-between rounded-[1.25rem] border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-5 py-4 text-sm font-bold text-primary-600 dark:text-primary-400 transition-all hover:border-primary-200 dark:hover:border-primary-800 hover:bg-white dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight disabled:opacity-50 disabled:cursor-not-allowed", className)}>
           <span className="flex items-center gap-3 truncate">
             {selectedOption?.icon}
             {selectedOption ? selectedOption.label : <span className="text-primary-400 font-bold opacity-60 flex items-center gap-2">{placeholder} {keyboardShortcut && <kbd className="hidden sm:inline-flex items-center h-5 px-1.5 text-[10px] uppercase font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-400 dark:text-slate-500 shadow-sm ml-2">{Array.isArray(keyboardShortcut) ? keyboardShortcut[0] : keyboardShortcut}</kbd>}</span>}

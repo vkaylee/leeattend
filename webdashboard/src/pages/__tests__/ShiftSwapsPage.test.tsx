@@ -35,12 +35,12 @@ vi.mock("react-i18next", () => ({
         "shift_swaps.day_off": "Day Off",
         "shift_swaps.guide.title": "How it works",
         "shift_swaps.guide.intro": "Shift swaps allow employees to exchange shifts",
-        "shift_swaps.guide.step1_title": "Step 1",
-        "shift_swaps.guide.step1_desc": "Create a swap request",
-        "shift_swaps.guide.step2_title": "Step 2",
-        "shift_swaps.guide.step2_desc": "Target accepts",
-        "shift_swaps.guide.step3_title": "Step 3",
-        "shift_swaps.guide.step3_desc": "Admin approves",
+        "shift_swaps.guide.step1.title": "Step 1",
+        "shift_swaps.guide.step1.desc": "Create a swap request",
+        "shift_swaps.guide.step2.title": "Step 2",
+        "shift_swaps.guide.step2.desc": "Target accepts",
+        "shift_swaps.guide.step3.title": "Step 3",
+        "shift_swaps.guide.step3.desc": "Admin approves",
         "shift_swaps.guide.notes_title": "Important",
         "shift_swaps.guide.note1": "Note 1",
         "shift_swaps.guide.note2": "Note 2",
@@ -59,6 +59,7 @@ vi.mock("react-i18next", () => ({
         "shift_swaps.messages.create_error": "Failed to create swap",
         "common.cancel": "Cancel",
         "common.submit": "Submit",
+        "common.save": "Save",
         "common.loading": "Loading...",
         "common.status": "Status",
         "common.success": "Success",
@@ -177,10 +178,13 @@ describe("ShiftSwapsPage", () => {
 
   it("renders stats bar with correct values", async () => {
     renderPage();
-    // Pending = pending_target + pending_admin = 1 + 2 = 3
-    // Approved this month = 3
-    const threes = await screen.findAllByText("3");
-    expect(threes.length).toBeGreaterThanOrEqual(1);
+    // Pending Admin = 2
+    // Approved = 5
+    const twos = await screen.findAllByText("2");
+    expect(twos.length).toBeGreaterThanOrEqual(1);
+
+    const fives = await screen.findAllByText("5");
+    expect(fives.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders swap table with data", async () => {
@@ -199,10 +203,10 @@ describe("ShiftSwapsPage", () => {
   it("renders status tabs", async () => {
     renderPage();
     expect(await screen.findByText("Pending Target")).toBeInTheDocument();
-    expect(screen.getByText("Pending Admin")).toBeInTheDocument();
-    expect(screen.getByText("Approved")).toBeInTheDocument();
-    expect(screen.getByText("Rejected")).toBeInTheDocument();
-    expect(screen.getByText("Cancelled")).toBeInTheDocument();
+    expect(screen.getAllByText("Pending Admin").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Approved").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Rejected").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Cancelled").length).toBeGreaterThan(0);
   });
 
   // ── Interaction Tests ─────────────────────────────────────
@@ -211,8 +215,8 @@ describe("ShiftSwapsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const approvedTab = await screen.findByText("Approved");
-    await user.click(approvedTab);
+    const approvedTabs = await screen.findAllByText("Approved");
+    await user.click(approvedTabs[0]);
 
     await waitFor(() => {
       expect(shiftSwapsApi.fetchShiftSwaps).toHaveBeenCalledWith("ws-1", "approved");
@@ -299,7 +303,7 @@ describe("ShiftSwapsPage", () => {
     const createBtn = await screen.findByText("Create Swap");
     await user.click(createBtn);
 
-    const submitBtn = screen.getByText("Submit");
+    const submitBtn = screen.getByText("Save");
     expect(submitBtn.closest("button")).toBeDisabled();
   });
 });
