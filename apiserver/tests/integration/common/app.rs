@@ -34,7 +34,6 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         pool.clone(),
-        None,
     ));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
         pool.clone(),
@@ -337,7 +336,6 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         pool.clone(),
-        None,
     ));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
         pool.clone(),
@@ -656,7 +654,6 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     let employee_service = Arc::new(apiserver::services::EmployeeService::new(
         employee_repo.clone(),
         pool.clone(),
-        None,
     ));
     let time_entry_repo = Arc::new(apiserver::repositories::SqlxTimeEntryRepository::new(
         pool.clone(),

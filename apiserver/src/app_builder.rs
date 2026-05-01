@@ -49,7 +49,6 @@ impl AppState {
         let employee_service = Arc::new(crate::services::EmployeeService::new(
             employee_repo.clone(),
             pool.clone(),
-            redis_pool.clone(),
         ));
         let time_entry_repo = Arc::new(crate::repositories::SqlxTimeEntryRepository::new(
             pool.clone(),
