@@ -88,3 +88,47 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
 
     Err("Invalid file format or empty file. Supported formats: XLSX, XLS, CSV.".to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use calamine::DataType;
+    use chrono::NaiveDate;
+
+    #[test]
+    fn test_cell_to_string() {
+        assert_eq!(cell_to_string(Some(&Data::String(" Hello ".to_string()))), "Hello");
+        assert_eq!(cell_to_string(Some(&Data::Float(123.45))), "123.45");
+        assert_eq!(cell_to_string(Some(&Data::Int(42))), "42");
+        assert_eq!(cell_to_string(Some(&Data::Bool(true))), "true");
+        assert_eq!(cell_to_string(None), "");
+        assert_eq!(cell_to_string(Some(&Data::Empty)), "");
+    }
+
+    #[test]
+    fn test_extract_file_rows_csv() {
+        let csv_data = "emp_id,leave_code,start_date\nE001,AL,2023-01-01\nE002,SL,2023-01-02";
+        let result = extract_file_rows(csv_data.as_bytes()).unwrap();
+        
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].0, 2); // line 2
+        assert_eq!(result[0].1, vec!["E001", "AL", "2023-01-01"]);
+        
+        assert_eq!(result[1].0, 3); // line 3
+        assert_eq!(result[1].1, vec!["E002", "SL", "2023-01-02"]);
+    }
+
+    #[test]
+    fn test_extract_file_rows_empty_csv() {
+        let csv_data = "emp_id,leave_code,start_date\n"; // Only header
+        let result = extract_file_rows(csv_data.as_bytes());
+        assert!(result.is_err(), "Empty file should return error");
+    }
+
+    #[test]
+    fn test_extract_file_rows_invalid_format() {
+        let invalid_data = vec![0x00, 0x01, 0x02, 0x03]; // Random binary data
+        let result = extract_file_rows(&invalid_data);
+        assert!(result.is_err(), "Invalid binary file should return error");
+    }
+}

@@ -60,3 +60,23 @@ impl ExcelFormatUtils {
             .set_font_color(Color::RGB(0xFFFFFF))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_creations() {
+        // Just verify that they create Formats without panic
+        let _ = ExcelFormatUtils::title_format();
+        let _ = ExcelFormatUtils::subtitle_format();
+        let _ = ExcelFormatUtils::header_format();
+        let _ = ExcelFormatUtils::number_format();
+        let _ = ExcelFormatUtils::error_header_format();
+        let _ = ExcelFormatUtils::error_row_format();
+        let _ = ExcelFormatUtils::error_message_format();
+        let _ = ExcelFormatUtils::example_row_format();
+        let _ = ExcelFormatUtils::ref_header_format();
+    }
+}
+

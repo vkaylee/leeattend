@@ -573,6 +573,7 @@ fn parse_duration_type(s: &str) -> LeaveDurationType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::file_parser::cell_to_string;
     use crate::services::import_messages::LeaveImportMessages;
     use chrono::NaiveDate;
 
@@ -841,40 +842,6 @@ mod tests {
         assert_eq!(cell_to_string(Some(&example_row[1])), "CUSTOM");
     }
 
-    // ---- parse_csv tests ----
-
-    #[test]
-
-    // ---- parse_excel_range tests ----
-
-    fn make_range(rows: Vec<Vec<Data>>) -> calamine::Range<Data> {
-        if rows.is_empty() {
-            return calamine::Range::new((0, 0), (0, 0));
-        }
-        let num_rows = rows.len() as u32;
-        let num_cols = rows.first().map_or(0, |r| r.len()) as u32;
-        let mut range = calamine::Range::new(
-            (0, 0),
-            (num_rows.saturating_sub(1), num_cols.saturating_sub(1)),
-        );
-        for (r, row) in rows.iter().enumerate() {
-            for (c, val) in row.iter().enumerate() {
-                range.set_value((r as u32, c as u32), val.clone());
-            }
-        }
-        range
-    }
-
-    fn header_row() -> Vec<Data> {
-        vec![
-            Data::String("Mã NV".into()),
-            Data::String("Loại nghỉ".into()),
-            Data::String("Ngày bắt đầu".into()),
-            Data::String("Ngày kết thúc".into()),
-            Data::String("Lý do".into()),
-            Data::String("Loại thời gian".into()),
-        ]
-    }
 
     // ---- LeaveImportResult tests ----
 
