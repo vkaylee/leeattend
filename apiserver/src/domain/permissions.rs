@@ -106,6 +106,10 @@ pub enum Permission {
     DevicesRead,
     DevicesManage,
 
+    // ── Employment Phases ──────────────────────────────
+    EmploymentPhasesRead,
+    EmploymentPhasesManage,
+
     // ── Recruitment ────────────────────────────────────
     RecruitmentRead,
     RecruitmentManage,
@@ -216,6 +220,8 @@ impl Permission {
             "agents:manage" => Some(Self::AgentsManage),
             "devices:read" => Some(Self::DevicesRead),
             "devices:manage" => Some(Self::DevicesManage),
+            "employment_phases:read" => Some(Self::EmploymentPhasesRead),
+            "employment_phases:manage" => Some(Self::EmploymentPhasesManage),
             "recruitment:read" => Some(Self::RecruitmentRead),
             "recruitment:manage" => Some(Self::RecruitmentManage),
             "feature_flags:read" => Some(Self::FeatureFlagsRead),
@@ -312,6 +318,8 @@ impl Permission {
             Self::AgentsManage => "agents:manage",
             Self::DevicesRead => "devices:read",
             Self::DevicesManage => "devices:manage",
+            Self::EmploymentPhasesRead => "employment_phases:read",
+            Self::EmploymentPhasesManage => "employment_phases:manage",
             Self::RecruitmentRead => "recruitment:read",
             Self::RecruitmentManage => "recruitment:manage",
             Self::FeatureFlagsRead => "feature_flags:read",
@@ -407,6 +415,8 @@ impl Permission {
             "agents:manage",
             "devices:read",
             "devices:manage",
+            "employment_phases:read",
+            "employment_phases:manage",
             "recruitment:read",
             "recruitment:manage",
             "feature_flags:read",
@@ -439,15 +449,15 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
-    /// Lock the total permission count at 89.
+    /// Lock the total permission count at 91.
     /// If you add a new Permission variant, update this number,
     /// `all_permission_strings()`, AND the frontend PermissionSync.test.ts.
     #[test]
-    fn test_total_permission_count_is_89() {
+    fn test_total_permission_count_is_91() {
         let all = Permission::all_permission_strings();
         assert_eq!(
             all.len(),
-            89,
+            91,
             "Permission count changed! Update this test, the UI permissionGroups, AND PermissionSync.test.ts. Current count: {}",
             all.len()
         );
@@ -558,6 +568,8 @@ mod tests {
             Permission::AgentsManage,
             Permission::DevicesRead,
             Permission::DevicesManage,
+            Permission::EmploymentPhasesRead,
+            Permission::EmploymentPhasesManage,
             Permission::RecruitmentRead,
             Permission::RecruitmentManage,
             Permission::FeatureFlagsRead,
@@ -585,8 +597,8 @@ mod tests {
 
         assert_eq!(
             all_variants.len(),
-            89,
-            "Variant list in test is stale — expected 89, got {}",
+            91,
+            "Variant list in test is stale — expected 91, got {}",
             all_variants.len()
         );
 

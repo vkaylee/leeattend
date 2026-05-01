@@ -1,6 +1,7 @@
 use axum::{
     extract::{Path, State},
-    Json,
+    http::StatusCode,
+    response::Json,
 };
 use chrono::NaiveDate;
 use serde::Deserialize;
@@ -8,6 +9,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::{
+    domain::permissions::Permission,
     errors::AppError,
     handlers::common::MemberContext,
     models::{EmployeePhase, EmploymentPhaseDefinition},
@@ -42,7 +44,9 @@ pub async fn create_employment_phase_definition(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(payload): Json<CreateEmploymentPhaseDefinitionRequest>,
-) -> Result<Json<EmploymentPhaseDefinition>, AppError> {
+) -> Result<(StatusCode, Json<EmploymentPhaseDefinition>), AppError> {
+    ctx.require_permission(Permission::EmploymentPhasesManage)?;
+
     let def = EmploymentPhaseRepository::create_definition(
         state.infra.db.api(),
         ctx.workspace_id,
@@ -54,7 +58,7 @@ pub async fn create_employment_phase_definition(
     )
     .await?;
 
-    Ok(Json(def))
+    Ok((StatusCode::CREATED, Json(def)))
 }
 
 pub async fn get_employment_phase_definitions(
@@ -72,6 +76,8 @@ pub async fn assign_employee_phase(
     Path((_ws_id, emp_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<AssignEmployeePhaseRequest>,
 ) -> Result<Json<EmployeePhase>, AppError> {
+    ctx.require_permission(Permission::EmploymentPhasesManage)?;
+
     let phase = EmploymentPhaseRepository::assign_phase(
         state.infra.db.api(),
         ctx.workspace_id,
@@ -92,6 +98,8 @@ pub async fn update_employee_phase_status(
     Path((_ws_id, emp_id, phase_id)): Path<(Uuid, Uuid, Uuid)>,
     Json(payload): Json<UpdateEmployeePhaseStatusRequest>,
 ) -> Result<Json<EmployeePhase>, AppError> {
+    ctx.require_permission(Permission::EmploymentPhasesManage)?;
+
     let phase = EmploymentPhaseRepository::update_phase_status(
         state.infra.db.api(),
         ctx.workspace_id,

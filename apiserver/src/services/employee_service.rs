@@ -610,10 +610,7 @@ mod tests {
             Ok((emps, total))
         }
 
-        async fn get_active_employees(
-            &self,
-            _ws: Uuid,
-        ) -> Result<Vec<Employee>, sqlx::Error> {
+        async fn get_active_employees(&self, _ws: Uuid) -> Result<Vec<Employee>, sqlx::Error> {
             Ok(self.employees.lock().expect("lock").clone())
         }
 
@@ -1125,7 +1122,10 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date");
         let end = NaiveDate::from_ymd_opt(2026, 6, 30).expect("valid date");
 
-        let result = svc.get_turnover_analytics(ws, start, end).await.expect("ok");
+        let result = svc
+            .get_turnover_analytics(ws, start, end)
+            .await
+            .expect("ok");
         assert_eq!(result.total_terminated, 5);
         assert_eq!(result.tenure_distribution.len(), 1);
         assert_eq!(result.by_source.len(), 1);

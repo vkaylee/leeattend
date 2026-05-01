@@ -1550,6 +1550,8 @@ VALUES
   ('a0000000-0000-0000-0000-000000000001', 'agents:manage'),
   ('a0000000-0000-0000-0000-000000000001', 'devices:read'),
   ('a0000000-0000-0000-0000-000000000001', 'devices:manage'),
+  ('a0000000-0000-0000-0000-000000000001', 'employment_phases:read'),
+  ('a0000000-0000-0000-0000-000000000001', 'employment_phases:manage'),
   ('a0000000-0000-0000-0000-000000000001', 'recruitment:read'),
   ('a0000000-0000-0000-0000-000000000001', 'recruitment:manage'),
   ('a0000000-0000-0000-0000-000000000001', 'feature_flags:read'),
@@ -1630,6 +1632,8 @@ VALUES
   ('a0000000-0000-0000-0000-000000000002', 'agents:manage'),
   ('a0000000-0000-0000-0000-000000000002', 'devices:read'),
   ('a0000000-0000-0000-0000-000000000002', 'devices:manage'),
+  ('a0000000-0000-0000-0000-000000000002', 'employment_phases:read'),
+  ('a0000000-0000-0000-0000-000000000002', 'employment_phases:manage'),
   ('a0000000-0000-0000-0000-000000000002', 'recruitment:read'),
   ('a0000000-0000-0000-0000-000000000002', 'recruitment:manage'),
   ('a0000000-0000-0000-0000-000000000002', 'feature_flags:read'),
@@ -1657,7 +1661,9 @@ VALUES
   ('a0000000-0000-0000-0000-000000000003', 'payroll:read'),
   ('a0000000-0000-0000-0000-000000000003', 'departments:read'),
   ('a0000000-0000-0000-0000-000000000003', 'holidays:read'),
-  ('a0000000-0000-0000-0000-000000000003', 'leave:requests:submit')
+  ('a0000000-0000-0000-0000-000000000003', 'leave:requests:submit'),
+  ('a0000000-0000-0000-0000-000000000003', 'employment_phases:read'),
+  ('a0000000-0000-0000-0000-000000000003', 'employment_phases:manage')
 ON CONFLICT DO NOTHING;
 
 -- ShiftManager permissions
@@ -1670,7 +1676,8 @@ VALUES
   ('a0000000-0000-0000-0000-000000000004', 'shifts:assign'),
   ('a0000000-0000-0000-0000-000000000004', 'rosters:read'),
   ('a0000000-0000-0000-0000-000000000004', 'rosters:manage'),
-  ('a0000000-0000-0000-0000-000000000004', 'attendance:logs:read')
+  ('a0000000-0000-0000-0000-000000000004', 'attendance:logs:read'),
+  ('a0000000-0000-0000-0000-000000000004', 'employment_phases:read')
 ON CONFLICT DO NOTHING;
 
 -- TeamLead permissions
