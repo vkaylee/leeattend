@@ -34,12 +34,15 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 | `podman-compose up/down/exec/build` | Podman CLI spawns children |
 | Any script with `&` (background jobs) | Background process inherits PTY |
 | Any `tail -f` in background | Pipe buffer + `grep` keeps PTY fd open |
+| `git log`, `less`, `more` | Pager blocks waiting for user input. Use `--no-pager`. |
+| `rg | awk`, `grep | sed` | Piped commands inherit PTY and hang without `</dev/null` |
 
 ```bash
 # ✅ Correct — AGENT_MODE skips Podman tests in pre-commit hook
 AGENT_MODE=1 git commit --no-gpg-sign -m "message" </dev/null
 podman-compose down </dev/null
 ./run-tests.sh --api </dev/null
+git --no-pager log -n 5
 
 # ✅ Correct & Bulletproof — Use safe-run.py wrapper (New Standard)
 ./scripts/safe-run.py 60 "AGENT_MODE=1 git commit --no-gpg-sign -m 'message'"
@@ -47,6 +50,8 @@ podman-compose down </dev/null
 # ❌ Wrong — will hang
 git commit -m "message"
 podman-compose down
+git log
+rg "pattern" | awk '{print $1}'
 ```
 
 ## 🧪 Testing — MANDATORY RULES

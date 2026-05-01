@@ -182,7 +182,7 @@ export function useReportStream({
     }
 
     const url = buildWebSocketUrl(jobId);
-    console.debug(`[ReportStream] Connecting to ${url}`);
+    console.error(`[ReportStream] Connecting to ${url}`);
 
     setStatus("connecting");
     setError(null);
@@ -191,7 +191,17 @@ export function useReportStream({
       const socket = new WebSocket(url);
       socketRef.current = socket;
 
+      // Add a connection timeout (3 seconds) to prevent infinite hanging
+      // if a firewall or proxy swallows the connection attempt silently.
+      const connectionTimeoutId = setTimeout(() => {
+        if (socket.readyState === WebSocket.CONNECTING) {
+          console.warn("[ReportStream] Connection timeout, closing socket manually");
+          socket.close();
+        }
+      }, 3000);
+
       socket.onopen = () => {
+        clearTimeout(connectionTimeoutId);
         console.debug("[ReportStream] Connected");
         setStatus("streaming");
         retryCountRef.current = 0; // Reset retry count on success
@@ -211,6 +221,7 @@ export function useReportStream({
       };
 
       socket.onclose = (event) => {
+        clearTimeout(connectionTimeoutId);
         console.debug(
           `[ReportStream] Connection closed: code=${event.code}, reason=${event.reason}`
         );

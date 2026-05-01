@@ -4,41 +4,50 @@ safe-run.py
 
 A bulletproof wrapper to run commands without leaking PTY file descriptors.
 Replaces safe-run.sh with robust Python process management.
+Optimized to use PTY for real-time line buffering while preventing background hang.
 """
 
 import sys
 import os
 import subprocess
-import tempfile
 import threading
-import time
 import signal
 import psutil
-from typing import List, Optional, Any
+import pty
+import select
+from typing import List, Optional
 from types import FrameType
 
-def tail_file(filepath: str, stop_event: threading.Event) -> None:
-    """Tails a file to stdout until stop_event is set."""
-    # Wait for file to be created
-    while not os.path.exists(filepath) and not stop_event.is_set():
-        time.sleep(0.05)
-        
-    if not os.path.exists(filepath):
-        return
-
-    with open(filepath, 'r') as f:
-        while not stop_event.is_set():
-            line: str = f.readline()
-            if line:
-                sys.stdout.write(line)
-                sys.stdout.flush()
-            else:
-                time.sleep(0.05)
-        
-        # Read remaining lines
-        for line in f.readlines():
-            sys.stdout.write(line)
-            sys.stdout.flush()
+def read_from_pty(master_fd: int, stop_event: threading.Event) -> None:
+    """Reads from the PTY master until stop_event is set and no more data is available."""
+    while not stop_event.is_set():
+        # Wait up to 0.1s for data to become available
+        r, _, _ = select.select([master_fd], [], [], 0.1)
+        if master_fd in r:
+            try:
+                data = os.read(master_fd, 4096)
+                if not data:
+                    break # EOF
+                # Write directly to sys.stdout's underlying buffer to avoid encoding issues
+                sys.stdout.buffer.write(data)
+                sys.stdout.buffer.flush()
+            except OSError:
+                break # EIO (Input/output error) means slave is closed
+                
+    # One last non-blocking read to drain buffer
+    while True:
+        r, _, _ = select.select([master_fd], [], [], 0.0)
+        if master_fd in r:
+            try:
+                data = os.read(master_fd, 4096)
+                if not data:
+                    break
+                sys.stdout.buffer.write(data)
+                sys.stdout.buffer.flush()
+            except OSError:
+                break
+        else:
+            break
 
 def kill_process_tree(pid: int) -> None:
     """Kills a process and all its descendants using psutil."""
@@ -85,19 +94,14 @@ def main() -> None:
 
     print(f"🛡️ [Python] Running detached command with {timeout_sec}s timeout: {cmd_args}", file=sys.stderr)
 
-    # Create a temporary file that is guaranteed to be deleted when closed/garbage collected
-    fd, logpath = tempfile.mkstemp(prefix="safe-run-", suffix=".log")
-    
-    # We will open it for writing by the subprocess
-    log_fp = os.fdopen(fd, 'w')
-    
-    stop_tail_event = threading.Event()
-    tail_thread = threading.Thread(target=tail_file, args=(logpath, stop_tail_event))
-    tail_thread.start()
+    # Use a PTY to force child processes to use line-buffering
+    master_fd, slave_fd = pty.openpty()
 
-    # Execute directly like a standard unix wrapper (e.g. timeout, nohup)
+    stop_read_event = threading.Event()
+    read_thread = threading.Thread(target=read_from_pty, args=(master_fd, stop_read_event))
+    read_thread.start()
+
     # Hybrid execution: if passed as a single string, assume shell string.
-    # If passed as an array (e.g. from _cargo.sh), execute directly without shell.
     use_shell = len(cmd_args) == 1
     exec_cmd = cmd_args[0] if use_shell else cmd_args
     
@@ -105,7 +109,7 @@ def main() -> None:
         proc = subprocess.Popen(
             exec_cmd,
             shell=use_shell,
-            stdout=log_fp,
+            stdout=slave_fd,
             stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
             start_new_session=True,
@@ -113,17 +117,19 @@ def main() -> None:
         )
     except FileNotFoundError:
         print(f"Error: Command not found: {cmd_args[0]}", file=sys.stderr)
-        log_fp.close()
-        os.remove(logpath)
+        os.close(slave_fd)
+        os.close(master_fd)
         sys.exit(127)
+    
+    # Close slave fd in parent, so only child has it
+    os.close(slave_fd)
     
     def cleanup_and_exit(signum: int, frame: Optional[FrameType]) -> None:
         print("\n⚠️ Interrupted. Killing process tree...", file=sys.stderr)
         kill_process_tree(proc.pid)
-        stop_tail_event.set()
-        tail_thread.join()
-        log_fp.close()
-        os.remove(logpath)
+        stop_read_event.set()
+        read_thread.join()
+        os.close(master_fd)
         sys.exit(130)
 
     signal.signal(signal.SIGINT, cleanup_and_exit)
@@ -139,11 +145,10 @@ def main() -> None:
         exit_code = 124 # standard timeout exit code
     finally:
         # Cleanup
-        stop_tail_event.set()
-        tail_thread.join()
-        log_fp.close()
+        stop_read_event.set()
+        read_thread.join()
         try:
-            os.remove(logpath)
+            os.close(master_fd)
         except OSError:
             pass
 

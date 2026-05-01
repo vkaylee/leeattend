@@ -74,6 +74,7 @@ export default function ReportExportDialog({
       ) {
         console.warn("[ReportExport] WebSocket failed, falling back to polling");
         setUseFallbackPolling(true);
+        setPhase("polling"); // Transition to polling phase so the query is enabled
         setError(null); // Clear error, fallback will handle
       } else {
         setPhase("failed");
@@ -91,6 +92,8 @@ export default function ReportExportDialog({
     }
     return phaseState;
   })();
+
+  console.error(`[ReportDialog] Render: phase=${phase}, phaseState=${phaseState}, jobId=${jobId}, streamStatus=${streamStatus}, useFallbackPolling=${useFallbackPolling}`);
 
   // Fallback polling when WebSocket fails
   const { data: pollingStatus } = useQuery({
@@ -184,7 +187,7 @@ export default function ReportExportDialog({
       subtitle={t("report_export.subtitle")}
       icon={<FileSpreadsheet size={24} />}
       maxWidth="md"
-      data-testid="report-export-dialog"
+      testId="report-export-dialog"
     >
       <div className="p-6 space-y-6">
         {/* Export Info */}

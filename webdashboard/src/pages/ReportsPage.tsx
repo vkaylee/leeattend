@@ -302,7 +302,7 @@ export default function ReportsPage() {
   if (!wsId) return <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
   return (
-    <div className="space-y-10 pb-20 animate-in fade-in duration-700">
+    <div data-testid="reports-page" className="space-y-10 pb-20 animate-in fade-in duration-700">
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
         <div className="space-y-1">
@@ -320,6 +320,7 @@ export default function ReportsPage() {
             <CalendarCheck size={18} /> {t("reports.view_raw_logs").toUpperCase()}
           </Link>
           <button
+            data-testid="export-report-btn"
             onClick={() => setIsExportDialogOpen(true)}
             className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
           >

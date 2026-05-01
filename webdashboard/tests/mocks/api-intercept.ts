@@ -65,39 +65,24 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 3. Workspaces
-    if (pathname.match(/\/api\/workspaces/)) {
-      // Handle GET /api/workspaces/{id}/preferences
-      if (pathname.includes('/preferences')) {
-         return fulfill({
-            dashboard_layout: {},
-            theme: "light",
-            notifications_enabled: true
-          });
-      }
-
-      // Handle Workspace members
-      if (pathname.includes('/members')) {
-        return fulfill([
-          { id: "member-1", user_id: MOCK_USER.id, role: "admin", user: MOCK_USER }
-        ]);
-      }
-
-      if (method === 'GET') {
-        if (pathname === '/api/workspaces' || pathname === '/api/workspaces/') {
-          return fulfill([MOCK_WORKSPACE]);
-        }
-        // Explicitly handle GET /api/workspaces/{id}
-        const wsIdMatch = pathname.match(/\/api\/workspaces\/([^/]+)/);
-        if (wsIdMatch) {
-          return fulfill(MOCK_WORKSPACE);
-        }
-      }
-      
-      if (method === 'POST') {
-        return fulfill(MOCK_WORKSPACE, 201);
-      }
-
+    if (pathname === '/api/workspaces' || pathname === '/api/workspaces/') {
+      if (method === 'GET') return fulfill([MOCK_WORKSPACE]);
+      if (method === 'POST') return fulfill(MOCK_WORKSPACE, 201);
+      return fulfill([MOCK_WORKSPACE]);
+    }
+    
+    // Explicitly handle GET /api/workspaces/{id} (without sub-resources)
+    if (pathname.match(/^\/api\/workspaces\/[^/]+$/)) {
+      if (method === 'GET') return fulfill(MOCK_WORKSPACE);
       return fulfill(MOCK_WORKSPACE);
+    }
+
+    if (pathname.match(/^\/api\/workspaces\/[^/]+\/preferences$/)) {
+      return fulfill({ dashboard_layout: {}, theme: "light", notifications_enabled: true });
+    }
+
+    if (pathname.match(/^\/api\/workspaces\/[^/]+\/members$/)) {
+      return fulfill([ { id: "member-1", user_id: MOCK_USER.id, role: "admin", user: MOCK_USER } ]);
     }
 
     // 4. Employees
@@ -297,6 +282,30 @@ export async function setupApiMocks(page: Page) {
       return fulfill([]);
     }
 
+    // 12. Report Export
+    if (pathname.match(/\/api\/workspaces\/[^/]+\/reports\/export$/) && method === 'POST') {
+      const resp = { job_id: "job-mock-123", total_batches: 5 };
+      console.log(`[MOCK API EXPORT] Sending JSON: ${JSON.stringify(resp)}`);
+      return fulfill(resp, 201);
+    }
+    if (pathname.match(/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+$/) && method === 'GET') {
+      // Simulate completed job
+      return fulfill({
+        job_id: "job-mock-123",
+        status: "completed",
+        progress: { total_batches: 5, completed_batches: 5, failed_batches: 0, percentage: 100 },
+        created_at: new Date().toISOString()
+      });
+    }
+
+    if (pathname.match(/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+\/download$/) && method === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        body: 'mock-file-content'
+      });
+    }
+
     // Mặc định trả về success cho các POST/PUT/DELETE khác để không gãy flow UI
     if (['POST', 'PUT', 'DELETE'].includes(method)) {
       return fulfill({ success: true, id: "new-id" });
@@ -306,5 +315,21 @@ export async function setupApiMocks(page: Page) {
     // vì hầu hết logic UI của bạn duyệt qua list (employees, logs, agents...)
     console.warn(`[MOCK API] UNHANDLED ENDPOINT: ${pathname}. Returning fallback [].`);
     return fulfill([]);
+  });
+
+  // Chặn WebSocket calls để tránh hang (mock stream API)
+  await page.routeWebSocket(/.*/, ws => {
+    console.log(`[MOCK WS] Intercepted WebSocket Call: ${ws.url()}`);
+    if (ws.url().includes('/api/ws/reports/')) {
+      // Simulate connection rejected so it falls back to HTTP polling
+      ws.onMessage(message => {
+        if (message === '{"type":"ping"}') {
+          ws.send('{"type":"pong"}');
+        }
+      });
+      // Triggers onError in useReportStream
+      ws.send('{"type":"ERROR", "message": "Connection lost for mock testing"}');
+      ws.close();
+    }
   });
 }
