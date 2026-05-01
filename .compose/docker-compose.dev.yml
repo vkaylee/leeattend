@@ -4,14 +4,10 @@
 services:
   db:
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
-    env_file:
-      - .env
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
 
   redis:
-    env_file:
-      - .env
     volumes:
       - redis_dev_data:/data
 
@@ -38,8 +34,6 @@ services:
     command: >-
       sh -c 'mkdir -p /var/log/app &&
       cargo watch -w src -w migrations -x "sqlx migrate run" -x run 2>&1 | tee -a /var/log/app/apiserver.log'
-    env_file:
-      - .env
     environment:
       - RUST_BACKTRACE=1
       - RUST_LOG=apiserver=debug,tower_http=debug,sqlx=info
@@ -61,8 +55,6 @@ services:
     depends_on:
       caddy:
         condition: service_started
-    env_file:
-      - .env
     environment:
       - RUST_LOG=info,sqlx::query=error
       - CENTRAL_SERVER_URL=${AGENT_CENTRAL_SERVER_URL:-ws://caddy:80/api/ws}
@@ -83,6 +75,9 @@ services:
       npm run dev -- --host 0.0.0.0 2>&1 | tee -a /var/log/app/webdashboard.log'
     environment:
       - VITE_API_URL=http://apiserver:3000/api
+    ports:
+      - "18080:80"     # Override base mapping to avoid clashing with Caddy on 8080
+      - "5173:5173"    # Expose Vite dev server for direct HMR
     volumes:
       - ./webdashboard:/app
       - webdashboard-node-modules:/app/node_modules

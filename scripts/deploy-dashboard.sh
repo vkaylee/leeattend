@@ -107,19 +107,19 @@ COMPOSE_CMD+=("--entrypoint")
 
 # Step 1: Install dependencies
 echo "📦 [1/3] Installing dependencies..."
-"${COMPOSE_CMD[@]}" npm web_test install --no-audit --no-fund </dev/null
+"${COMPOSE_CMD[@]}" npm webdashboard install --no-audit --no-fund </dev/null
 
 # Step 2: Build the project
 echo "🏗️ [2/3] Building webdashboard..."
 # Vite will automatically pick up VITE_* variables from the environment injected by --env-file
-"${COMPOSE_CMD[@]}" npm web_test run build </dev/null
+"${COMPOSE_CMD[@]}" npm webdashboard run build </dev/null
 
 # Step 3: Deploy to Cloudflare Pages
 echo "☁️ [3/3] Deploying to Cloudflare Pages..."
 # Ensure the project exists before deploying to prevent interactive prompts
-"${COMPOSE_CMD[@]}" bash web_test -c "npx wrangler pages project create \"\$CLOUDFLARE_PROJECT_NAME\" --production-branch \"\${CLOUDFLARE_BRANCH:-main}\" || true" </dev/null
+"${COMPOSE_CMD[@]}" bash webdashboard -c "npx wrangler pages project create \"\$CLOUDFLARE_PROJECT_NAME\" --production-branch \"\${CLOUDFLARE_BRANCH:-main}\" || true" </dev/null
 # We use a bash wrapper inside the container to ensure environment variables are expanded correctly
-"${COMPOSE_CMD[@]}" bash web_test -c "npx wrangler pages deploy dist --project-name \"\$CLOUDFLARE_PROJECT_NAME\" --branch \"\${CLOUDFLARE_BRANCH:-main}\"" </dev/null
+"${COMPOSE_CMD[@]}" bash webdashboard -c "npx wrangler pages deploy dist --project-name \"\$CLOUDFLARE_PROJECT_NAME\" --branch \"\${CLOUDFLARE_BRANCH:-main}\"" </dev/null
 
 echo ""
 echo "✅ Deployment process completed successfully!"

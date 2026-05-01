@@ -59,12 +59,12 @@ leeattend_cleanup() {
 leeattend_setup() {
     echo -e "${BLUE}🏗️ [Parent] Setting up Postgres Environment...${NC}"
 
-    # We need apiserver_test up to run migrations inside it
-    $DOCKER_COMPOSE_CMD up -d test_db apiserver_test </dev/null > /dev/null 2>&1
+    # We need apiserver up to run migrations inside it
+    $DOCKER_COMPOSE_CMD up -d db apiserver </dev/null > /dev/null 2>&1
 
     echo -n "  Waiting for database to be ready (timeout: ${TIMEOUT_DB_WAIT}s)..."
     local db_wait_start=$(date +%s)
-    until $DOCKER_COMPOSE_CMD exec test_db pg_isready -U test_user -d test_database </dev/null > /dev/null 2>&1; do
+    until $DOCKER_COMPOSE_CMD exec db pg_isready -U test_user -d test_database </dev/null > /dev/null 2>&1; do
         printf "."
         sleep 1
         local elapsed=$(($(date +%s) - db_wait_start))
@@ -80,40 +80,40 @@ leeattend_setup() {
     # Clean up zombie test databases from previous runs
     # When nextest kills tests via SIGKILL (timeout), Rust's Drop trait doesn't run,
     # leaving orphan test_db_* databases that consume disk space.
-    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -t -c \
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" db psql -U test_user -d test_database -t -c \
         "SELECT 'DROP DATABASE IF EXISTS \"' || datname || '\";' FROM pg_database WHERE datname LIKE 'test_db_%';" \
         </dev/null 2>/dev/null | \
-        $DOCKER_COMPOSE_CMD exec -T -i -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database \
+        $DOCKER_COMPOSE_CMD exec -T -i -e PGPASSWORD="$PGPASSWORD" db psql -U test_user -d test_database \
         </dev/null > /dev/null 2>&1 || true
 
     # Create template database for Rust tests
-    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS leeattend_test_template;" </dev/null > /dev/null 2>&1 || true
-    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE leeattend_test_template;" </dev/null > /dev/null 2>&1 || true
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS leeattend_test_template;" </dev/null > /dev/null 2>&1 || true
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" db psql -U test_user -d test_database -c "CREATE DATABASE leeattend_test_template;" </dev/null > /dev/null 2>&1 || true
 
 
 
     # Internal URLs
-    local MAIN_DB_URL="postgres://test_user:test_password@test_db:5432/test_database?sslmode=disable"
-    local TEMPLATE_DB_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template?sslmode=disable"
+    local MAIN_DB_URL="postgres://test_user:test_password@db:5432/test_database?sslmode=disable"
+    local TEMPLATE_DB_URL="postgres://test_user:test_password@db:5432/leeattend_test_template?sslmode=disable"
 
     echo -e "  Running migrations..."
-    if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$MAIN_DB_URL'" > "$LOG_DIR/parent_mig_main.log" 2>&1; then
+    if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver bash -c "sqlx migrate run --database-url '$MAIN_DB_URL'" > "$LOG_DIR/parent_mig_main.log" 2>&1; then
         echo -e "${RED}❌ Main migration FAILED. Logs from container:${NC}"
         cat "$LOG_DIR/parent_mig_main.log"
         exit 1
     fi
-    if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$TEMPLATE_DB_URL'" > "$LOG_DIR/parent_mig_template.log" 2>&1; then
+    if ! $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" apiserver bash -c "sqlx migrate run --database-url '$TEMPLATE_DB_URL'" > "$LOG_DIR/parent_mig_template.log" 2>&1; then
         echo -e "${RED}❌ Template migration FAILED. Logs from container:${NC}"
         cat "$LOG_DIR/parent_mig_template.log"
         exit 1
     fi
 
     # echo -e "  Preparing SQLx cache..."
-    # $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" -e DATABASE_URL="$TEMPLATE_DB_URL" apiserver_test bash -c "cargo sqlx prepare -- --all-targets > .test_logs/parent_sqlx_prepare.log 2>&1" || echo -e "${YELLOW}⚠️ SQLx prepare failed (non-fatal).${NC}"
+    # $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" -e DATABASE_URL="$TEMPLATE_DB_URL" apiserver bash -c "cargo sqlx prepare -- --all-targets > .test_logs/parent_sqlx_prepare.log 2>&1" || echo -e "${YELLOW}⚠️ SQLx prepare failed (non-fatal).${NC}"
 
     # Ensure no connections hang on template for CREATE DATABASE TEMPLATE usage
-    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" </dev/null > /dev/null 2>&1
-    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" </dev/null > /dev/null 2>&1
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" </dev/null > /dev/null 2>&1
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" db psql -U test_user -d test_database -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" </dev/null > /dev/null 2>&1
 
 
 

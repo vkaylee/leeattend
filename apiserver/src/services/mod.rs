@@ -7,6 +7,7 @@ pub mod attendance_utils;
 pub mod audit_service;
 pub mod auth_service;
 pub mod employee_service;
+pub mod excel;
 pub mod excel_writer;
 pub mod financial_calculator;
 pub mod import_messages;

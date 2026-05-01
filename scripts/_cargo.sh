@@ -10,11 +10,11 @@ source "$SCRIPT_DIR/_compose-env.sh"
 # Compute relative path from PROJECT_ROOT
 REL_DIR=${CALLER_DIR#$PROJECT_ROOT}
 
-TARGET_CONTAINER="apiserver_test"
+TARGET_CONTAINER="apiserver"
 
-# If we are in agent-main or the arguments explicitly mention agent, use agent_test
+# If we are in agent-main or the arguments explicitly mention agent, use agent-main
 if [[ "$REL_DIR" == *"/agent-main"* ]] || [[ "$*" == *"agent-main"* ]]; then
-    TARGET_CONTAINER="agent_test"
+    TARGET_CONTAINER="agent-main"
 fi
 
 cd "$PROJECT_ROOT" || exit 1

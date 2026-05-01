@@ -2379,7 +2379,27 @@
     "assignee_type": "Assignee Type",
     "select_policy": "Select Policy",
     "select_policy_placeholder": "-- Choose Policy --",
-    "effective_from": "Effective From"
+    "effective_from": "Effective From",
+    "no_assignments_yet": "payroll.no_assignments_yet",
+    "assign_rule": "payroll.assign_rule",
+    "assign_rule_desc": "payroll.assign_rule_desc",
+    "assignment_scope": "payroll.assignment_scope",
+    "select_employee": "payroll.select_employee",
+    "search_employees": "payroll.search_employees",
+    "select_department": "payroll.select_department",
+    "select_department_placeholder": "payroll.select_department_placeholder",
+    "workspace_scope_info": "payroll.workspace_scope_info",
+    "effective_to": "payroll.effective_to",
+    "override_config": "payroll.override_config",
+    "override_config_desc": "payroll.override_config_desc",
+    "override_rate": "payroll.override_rate",
+    "override_base": "payroll.override_base",
+    "base_gross": "payroll.base_gross",
+    "base_gross_alt": "payroll.base_gross_alt",
+    "base_taxable": "payroll.base_taxable",
+    "override_amount": "payroll.override_amount",
+    "override": "payroll.override",
+    "delete_assignment": "payroll.delete_assignment"
   },
   "reports": {
     "title": "Attendance Reports",
@@ -2478,7 +2498,8 @@
     "label": "Reports"
   },
   "payroll_rules": {
-    "scope_workspace": "Workspace Wide"
+    "scope_workspace": "Workspace Wide",
+    "rule_assignments": "payroll_rules.rule_assignments"
   },
   "patterns": {
     "title": "Working Patterns",
@@ -2929,7 +2950,20 @@
       "notes_title": "Important Notes",
       "note1": "Shifts are auto-detected by priority: Manual Roster → Individual Pattern → Assignment Rules → Department Pattern.",
       "note2": "On approval, the system swaps roster entries automatically. Employee A receives B's shift and vice versa.",
-      "note3": "On rejection, rosters remain unchanged. Already processed requests cannot be re-approved."
+      "note3": "On rejection, rosters remain unchanged. Already processed requests cannot be re-approved.",
+      "step1": {
+        "title": "shift_swaps.guide.step1.title",
+        "desc": "shift_swaps.guide.step1.desc"
+      },
+      "step2": {
+        "title": "shift_swaps.guide.step2.title",
+        "desc": "shift_swaps.guide.step2.desc"
+      },
+      "step3": {
+        "title": "shift_swaps.guide.step3.title",
+        "desc": "shift_swaps.guide.step3.desc"
+      },
+      "note": "shift_swaps.guide.note"
     },
     "ess": {
       "my_swaps": "My Shift Swap Requests",
@@ -2943,7 +2977,8 @@
       "create_success": "Swap request sent!",
       "respond_success": "Responded to swap request!",
       "cancel_success": "Swap request cancelled!"
-    }
+    },
+    "create_title": "shift_swaps.create_title"
   },
   "danger": {
     "title": "Danger Zone",
@@ -3151,7 +3186,8 @@
     },
     "messages": {
       "assign_error": "Failed to assign role",
-      "revoke_error": "Failed to revoke role"
+      "revoke_error": "Failed to revoke role",
+      "revoke_success": "system_roles.messages.revoke_success"
     }
   }
 }

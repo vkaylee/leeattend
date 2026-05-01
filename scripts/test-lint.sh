@@ -24,12 +24,12 @@ leeattend_run_lint() {
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # Lint requires DB with migrations (sqlx verifies queries at compile time)
-        BACKEND_CMD="$DOCKER_COMPOSE_CMD exec -T -w /workspace apiserver_test bash -c \"cargo clippy --workspace -- -D warnings && cargo fmt --all -- --check\" </dev/null"
-        WEB_LINT_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run lint </dev/null"
-        WEB_TYPECHECK_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run type-check </dev/null"
+        BACKEND_CMD="$DOCKER_COMPOSE_CMD exec -T -w /workspace apiserver bash -c \"cargo clippy --workspace -- -D warnings && cargo fmt --all -- --check\" </dev/null"
+        WEB_LINT_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard npm run lint </dev/null"
+        WEB_TYPECHECK_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard npm run type-check </dev/null"
         
-        # API Sync via shared volume between apiserver_test and web_test:
-        SYNC_API_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"cargo run -- gen-openapi > /workspace/shared/openapi.json\" </dev/null && $DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts\" </dev/null"
+        # API Sync via shared volume between apiserver and webdashboard:
+        SYNC_API_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver bash -c \"cargo run -- gen-openapi > /workspace/shared/openapi.json\" </dev/null && $DOCKER_COMPOSE_CMD exec -T webdashboard bash -c \"npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts\" </dev/null"
     fi
 
     run_parallel_ordered "Phase 0 Linting" "$filter" \

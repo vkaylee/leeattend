@@ -19,7 +19,7 @@ vi.mock("@tanstack/react-router", () => ({
 // Mock i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => {
+    t: (key: string, fallback?: any) => {
       const translations: Record<string, string> = {
         "rules.title": "Assignment Rules",
         "rules.subtitle": "Configure automatic shift assignment",
@@ -57,7 +57,11 @@ vi.mock("react-i18next", () => ({
         "common.inactive": "Inactive",
         "common.did_you_know": "Did you know?",
       };
-      return translations[key] || fallback || key;
+      const val = translations[key];
+      if (val) return val;
+      if (typeof fallback === "string") return fallback;
+      if (fallback && fallback.defaultValue) return fallback.defaultValue;
+      return key;
     },
     i18n: { language: "en" },
   }),
@@ -281,8 +285,6 @@ describe("AssignmentRulesPage", () => {
 
   it("calls deleteAssignmentRule when delete is confirmed", async () => {
     const user = userEvent.setup();
-    // Mock window.confirm to return true
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     renderPage();
     await screen.findByText("Day Shift Engineers");
@@ -290,18 +292,16 @@ describe("AssignmentRulesPage", () => {
     const deleteBtns = screen.getAllByTitle("Delete");
     await user.click(deleteBtns[0]);
 
-    expect(confirmSpy).toHaveBeenCalledWith("Are you sure you want to delete?");
+    const confirmBtn = await screen.findByText("Confirm");
+    await user.click(confirmBtn);
 
     await waitFor(() => {
       expect(api.deleteAssignmentRule).toHaveBeenCalledWith("ws-1", "rule-1");
     });
-
-    confirmSpy.mockRestore();
   });
 
   it("does not delete when confirm is cancelled", async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
 
     renderPage();
     await screen.findByText("Day Shift Engineers");
@@ -309,8 +309,9 @@ describe("AssignmentRulesPage", () => {
     const deleteBtns = screen.getAllByTitle("Delete");
     await user.click(deleteBtns[0]);
 
-    expect(api.deleteAssignmentRule).not.toHaveBeenCalled();
+    const cancelBtn = await screen.findByText("Cancel");
+    await user.click(cancelBtn);
 
-    confirmSpy.mockRestore();
+    expect(api.deleteAssignmentRule).not.toHaveBeenCalled();
   });
 });

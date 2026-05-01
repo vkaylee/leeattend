@@ -38,8 +38,8 @@ leeattend_run_unit() {
     local WEB_CMD="npm run test -- $TEST_PATTERN --passWithNoTests"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        BACKEND_CMD="$DOCKER_COMPOSE_CMD exec -T -w /workspace apiserver_test bash -c \"cargo nextest run --workspace --lib $TEST_PATTERN $shard_flag --no-tests=pass || [ \\$? -eq 4 ]\" </dev/null"
-        WEB_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run test -- $TEST_PATTERN $shard_flag --passWithNoTests </dev/null"
+        BACKEND_CMD="$DOCKER_COMPOSE_CMD exec -T -w /workspace apiserver bash -c \"cargo nextest run --workspace --lib $TEST_PATTERN $shard_flag --no-tests=pass || [ \\$? -eq 4 ]\" </dev/null"
+        WEB_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard npm run test -- $TEST_PATTERN $shard_flag --passWithNoTests </dev/null"
     fi
 
     run_parallel_ordered "Phase 1 (Unit Tests)" "$COMPONENT_FILTER" \

@@ -1,6 +1,9 @@
 # ==============================================================================
-# Podman Compose — Test Environment
+# Podman Compose — Test Override
 # ==============================================================================
+# This file extends docker-compose.yml to provide the test environment.
+# Services inherit from the base file but override images, networks, and volumes
+# to isolate test data.
 
 networks:
   test_net:
@@ -27,18 +30,15 @@ x-rust-test-base: &rust-test-base
     - shared-data:/workspace/shared
 
 services:
-  test_db:
-    image: public.ecr.aws/docker/library/postgres:16
+  db:
     networks:
       - test_net
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
     environment:
-      TZ: Asia/Bangkok
-      PGTZ: Asia/Bangkok
-      POSTGRES_DB: test_database
-      POSTGRES_USER: test_user
-      POSTGRES_PASSWORD: test_password
-      POSTGRES_HOST_AUTH_METHOD: trust
+      - POSTGRES_DB=test_database
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+      - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
       test: "pg_isready -U test_user -d test_database"
       interval: 5s
@@ -47,31 +47,23 @@ services:
     tmpfs:
       - /var/lib/postgresql/data:size=3072M
 
-  test_redis:
-    image: public.ecr.aws/docker/library/redis:7-alpine
+  redis:
     networks:
       - test_net
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    command: [] # Override base redis-server auth command for tests if needed, but test environment uses no password
 
   db_init:
     <<: *rust-test-base
-    image: localhost/leeattend-test_apiserver_test
+    image: localhost/leeattend-test_apiserver
     build:
-      context: ../apiserver
+      context: ./apiserver
       target: test
     depends_on:
-      test_db:
+      db:
         condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
-      - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database?sslmode=disable
-      - CARGO_TARGET_DIR=/workspace/target
-      - SCCACHE_DIR=/workspace/.sccache
-      - RUSTC_WRAPPER=sccache
+      - DATABASE_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
     entrypoint: ["bash", "-c", "sqlx migrate run && touch /tmp/migration_done && tail -f /dev/null"]
     healthcheck:
       test: ["CMD", "test", "-f", "/tmp/migration_done"]
@@ -79,49 +71,47 @@ services:
       timeout: 5s
       retries: 30
 
-  apiserver_test:
+  apiserver:
     <<: *rust-test-base
-    image: localhost/leeattend-test_apiserver_test
+    image: localhost/leeattend-test_apiserver
     build:
-      context: ../apiserver
+      context: ./apiserver
       target: test
     depends_on:
-      test_db:
+      db:
         condition: service_healthy
-      test_redis:
+      redis:
         condition: service_healthy
       db_init:
         condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
-      - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
-      - REDIS_URL=redis://test_redis:6379
-      - CARGO_TARGET_DIR=/workspace/target
-      - CARGO_BUILD_JOBS=1
-      - SCCACHE_DIR=/workspace/.sccache
-      - RUSTC_WRAPPER=sccache
+      - DATABASE_URL=postgres://test_user:test_password@db:5432/test_database
+      - REDIS_URL=redis://redis:6379
+    healthcheck:
+      test: "echo 'ready'"
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  agent_test:
+  agent-main:
     <<: *rust-test-base
-    image: localhost/leeattend-test_agent_test
+    image: localhost/leeattend-test_agent-main
     build:
-      context: ../agent-main
+      context: ./agent-main
       target: test
     depends_on:
-      - apiserver_test
+      apiserver:
+        condition: service_healthy
     working_dir: /workspace/agent-main
     environment:
       - "DATABASE_URL=:memory:"
-      - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
-      - CARGO_TARGET_DIR=/workspace/target
-      - CARGO_BUILD_JOBS=1
-      - SCCACHE_DIR=/workspace/.sccache
-      - RUSTC_WRAPPER=sccache
+      - CENTRAL_SERVER_URL=ws://apiserver:3001/api/ws
 
   npm_init:
-    image: localhost/leeattend-test_web_test
+    image: localhost/leeattend-test_webdashboard
     build:
-      context: ../webdashboard
+      context: ./webdashboard
       target: test
     networks:
       - test_net
@@ -134,10 +124,10 @@ services:
       - web-node-modules:/workspace/webdashboard/node_modules
       - npm-cache:/workspace/.npm-cache
 
-  web_test:
-    image: localhost/leeattend-test_web_test
+  webdashboard:
+    image: localhost/leeattend-test_webdashboard
     build:
-      context: ../webdashboard
+      context: ./webdashboard
       target: test
     tty: true
     networks:

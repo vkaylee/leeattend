@@ -2379,7 +2379,27 @@
     "assignee_type": "分配类型",
     "select_policy": "选择政策",
     "select_policy_placeholder": "-- 选择政策 --",
-    "effective_from": "生效日期"
+    "effective_from": "生效日期",
+    "no_assignments_yet": "payroll.no_assignments_yet",
+    "assign_rule": "payroll.assign_rule",
+    "assign_rule_desc": "payroll.assign_rule_desc",
+    "assignment_scope": "payroll.assignment_scope",
+    "select_employee": "payroll.select_employee",
+    "search_employees": "payroll.search_employees",
+    "select_department": "payroll.select_department",
+    "select_department_placeholder": "payroll.select_department_placeholder",
+    "workspace_scope_info": "payroll.workspace_scope_info",
+    "effective_to": "payroll.effective_to",
+    "override_config": "payroll.override_config",
+    "override_config_desc": "payroll.override_config_desc",
+    "override_rate": "payroll.override_rate",
+    "override_base": "payroll.override_base",
+    "base_gross": "payroll.base_gross",
+    "base_gross_alt": "payroll.base_gross_alt",
+    "base_taxable": "payroll.base_taxable",
+    "override_amount": "payroll.override_amount",
+    "override": "payroll.override",
+    "delete_assignment": "payroll.delete_assignment"
   },
   "reports": {
     "title": "考勤报告",
@@ -2926,7 +2946,20 @@
       "notes_title": "重要提示",
       "note1": "班次按优先级自动检测：手动排班 → 个人工作模式 → 分配规则 → 部门工作模式。",
       "note2": "审批通过后，系统自动交换排班记录。员工A获得B的班次，反之亦然。",
-      "note3": "拒绝后排班保持不变。已处理的请求不能重新审批。"
+      "note3": "拒绝后排班保持不变。已处理的请求不能重新审批。",
+      "step1": {
+        "title": "shift_swaps.guide.step1.title",
+        "desc": "shift_swaps.guide.step1.desc"
+      },
+      "step2": {
+        "title": "shift_swaps.guide.step2.title",
+        "desc": "shift_swaps.guide.step2.desc"
+      },
+      "step3": {
+        "title": "shift_swaps.guide.step3.title",
+        "desc": "shift_swaps.guide.step3.desc"
+      },
+      "note": "shift_swaps.guide.note"
     },
     "ess": {
       "my_swaps": "我的换班请求",
@@ -2940,10 +2973,12 @@
       "create_success": "换班请求已发送！",
       "respond_success": "已回复换班请求！",
       "cancel_success": "换班请求已取消！"
-    }
+    },
+    "create_title": "shift_swaps.create_title"
   },
   "payroll_rules": {
-    "scope_workspace": "工作区范围"
+    "scope_workspace": "工作区范围",
+    "rule_assignments": "payroll_rules.rule_assignments"
   },
   "danger": {
     "title": "危险区域",
@@ -3148,7 +3183,8 @@
     },
     "messages": {
       "assign_error": "分配角色失败",
-      "revoke_error": "撤销角色失败"
+      "revoke_error": "撤销角色失败",
+      "revoke_success": "system_roles.messages.revoke_success"
     }
   },
   "status_active_caps": "活动",

@@ -4,6 +4,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
+import { ToastProvider } from "@/components/ui/Toast";
+
 import { useConfirm } from "@/hooks/use-confirm";
 import { useSystemRoles } from "@/hooks/use-system-roles";
 
@@ -50,7 +52,11 @@ describe("SystemRolesPage", () => {
     });
   });
 
-  const renderComponent = () => render(<SystemRolesPage />);
+  const renderComponent = () => render(
+    <ToastProvider>
+      <SystemRolesPage />
+    </ToastProvider>
+  );
 
   it("renders correctly", () => {
     renderComponent();

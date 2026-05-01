@@ -45,7 +45,7 @@ leeattend_run_coverage() {
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # apiserver — lcov + html report
-        APISERVER_COV_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \
+        APISERVER_COV_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver bash -c \
 \"mkdir -p /workspace/.test_logs && \
 $COVERAGE_ENV cargo llvm-cov nextest --lib --test integration \
   --lcov --output-path /workspace/.test_logs/coverage-apiserver.lcov \
@@ -59,7 +59,7 @@ $COVERAGE_ENV cargo llvm-cov report \
         # agent-main — lcov + html report
         AGENT_COV_CMD="$DOCKER_COMPOSE_CMD exec -T \
 -e CENTRAL_SERVER_URL=ws://unit-test-invalid:3000 \
-agent_test bash -c \
+agent-main bash -c \
 \"mkdir -p /workspace/.test_logs && \
 $COVERAGE_ENV cargo llvm-cov nextest --lib \
   --lcov --output-path /workspace/.test_logs/coverage-agent.lcov \
@@ -71,7 +71,7 @@ $COVERAGE_ENV cargo llvm-cov report \
   --summary-only 2>&1\""
 
         # web — vitest coverage (outputs to webdashboard/coverage/)
-        WEB_COV_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run test:coverage"
+        WEB_COV_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard npm run test:coverage"
     else
         # Local (non-Docker) fallback
         APISERVER_COV_CMD="cd apiserver && $COVERAGE_ENV cargo llvm-cov nextest --lib --test integration \

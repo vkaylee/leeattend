@@ -277,9 +277,9 @@ parse_cli_args() {
                     echo -e "${BLUE}${BOLD}🧹 Cleaning cache only (keeping containers)...${NC}"
                     rm -rf "$PROJECT_ROOT/target" "$PROJECT_ROOT/.sccache"
                     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-                        dc exec -T apiserver_test bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
-                        dc exec -T agent_test bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
-                        dc exec -T web_test bash -c "rm -rf /workspace/.npm-cache /workspace/webdashboard/node_modules 2>/dev/null || true"
+                        dc exec -T apiserver bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
+                        dc exec -T agent-main bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
+                        dc exec -T webdashboard bash -c "rm -rf /workspace/.npm-cache /workspace/webdashboard/node_modules 2>/dev/null || true"
                     fi
                     echo -e "${GREEN}✅ Cache cleaned!${NC}"
                     exit 0
@@ -371,18 +371,18 @@ parse_cli_args() {
         
         if [[ "${USE_DOCKER:-}" == "true" ]]; then
             echo -e "${YELLOW}=== Cargo (apiserver) ===${NC}"
-            dc exec -T apiserver_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
-            dc exec -T apiserver_test bash -c "sccache --show-stats 2>/dev/null | head -n 10 || echo 'sccache not available'" </dev/null || true
+            dc exec -T apiserver bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
+            dc exec -T apiserver bash -c "sccache --show-stats 2>/dev/null | head -n 10 || echo 'sccache not available'" </dev/null || true
             
             echo ""
             echo -e "${YELLOW}=== Cargo (agent-main) ===${NC}"
-            dc exec -T agent_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
-            dc exec -T agent_test bash -c "sccache --show-stats 2>/dev/null | head -n 10 || echo 'sccache not available'" </dev/null || true
+            dc exec -T agent-main bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
+            dc exec -T agent-main bash -c "sccache --show-stats 2>/dev/null | head -n 10 || echo 'sccache not available'" </dev/null || true
             
             echo ""
             echo -e "${YELLOW}=== NPM ===${NC}"
-            dc exec -T web_test bash -c "du -sh /workspace/.npm-cache 2>/dev/null || echo 'No cache'" || true
-            dc exec -T web_test bash -c "du -sh /workspace/webdashboard/node_modules 2>/dev/null || echo 'No node_modules'" || true
+            dc exec -T webdashboard bash -c "du -sh /workspace/.npm-cache 2>/dev/null || echo 'No cache'" || true
+            dc exec -T webdashboard bash -c "du -sh /workspace/webdashboard/node_modules 2>/dev/null || echo 'No node_modules'" || true
         else
             echo -e "${YELLOW}=== Local Cargo ===${NC}"
             du -sh "$PROJECT_ROOT/target" 2>/dev/null || echo "No cache"
@@ -475,19 +475,19 @@ parse_cli_args() {
         
         if [[ "${USE_DOCKER:-}" == "true" ]]; then
             # Start containers
-            dc build apiserver_test agent_test web_test
-            dc up -d apiserver_test agent_test web_test
+            dc build apiserver agent-main webdashboard
+            dc up -d apiserver agent-main webdashboard
             
             echo -e "${BLUE}📦 Pre-compiling apiserver...${NC}"
-            dc exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
+            dc exec -T apiserver bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
             pid_api=$!
             
             echo -e "${BLUE}📦 Pre-compiling agent-main...${NC}"
-            dc exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
+            dc exec -T agent-main bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
             pid_agent=$!
             
             echo -e "${BLUE}📦 Installing web dependencies...${NC}"
-            dc exec -T web_test npm install --no-audit --no-fund </dev/null &
+            dc exec -T webdashboard npm install --no-audit --no-fund </dev/null &
             pid_web=$!
             
             # Wait for explicit PIDs to complete

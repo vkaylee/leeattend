@@ -12,8 +12,11 @@ import LeaveBalancesPage from "../LeaveBalancesPage";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
- 
-        t: (key: string, fallback?: string) => fallback || key,
+        t: (key: string, fallback?: any) => {
+            if (typeof fallback === 'string') return fallback;
+            if (fallback && fallback.defaultValue) return fallback.defaultValue;
+            return key;
+        },
     }),
 }));
 
@@ -183,8 +186,8 @@ describe("LeaveBalancesPage", () => {
         }, { timeout: 3000 });
 
         fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
-        expect(screen.getByText("common.confirm")).toBeDefined();
-        expect(screen.getByText("common.cancel")).toBeDefined();
+        expect(screen.getByText("Confirm")).toBeDefined();
+        expect(screen.getByText("Cancel")).toBeDefined();
     });
 
     it("cancels accrual when Huỷ is clicked", async () => {
@@ -194,7 +197,7 @@ describe("LeaveBalancesPage", () => {
         }, { timeout: 3000 });
 
         fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
-        fireEvent.click(screen.getByText("common.cancel"));
+        fireEvent.click(screen.getByText("Cancel"));
         expect(api.triggerAccrualRun).not.toHaveBeenCalled();
     });
 
@@ -205,7 +208,7 @@ describe("LeaveBalancesPage", () => {
         }, { timeout: 3000 });
 
         fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
-        fireEvent.click(screen.getByText("common.confirm"));
+        fireEvent.click(screen.getByText("Confirm"));
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalledWith(
@@ -299,7 +302,7 @@ describe("LeaveBalancesPage", () => {
 
         // Open confirm dialog and confirm
         fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
-        fireEvent.click(screen.getByText("common.confirm"));
+        fireEvent.click(screen.getByText("Confirm"));
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalledWith(
@@ -322,7 +325,7 @@ describe("LeaveBalancesPage", () => {
         }, { timeout: 3000 });
 
         fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
-        fireEvent.click(screen.getByText("common.confirm"));
+        fireEvent.click(screen.getByText("Confirm"));
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalled();
@@ -349,7 +352,7 @@ describe("LeaveBalancesPage", () => {
         }, { timeout: 3000 });
 
         fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
-        fireEvent.click(screen.getByText("common.confirm"));
+        fireEvent.click(screen.getByText("Confirm"));
 
         // Wait for mutation to fire
         await waitFor(() => {
@@ -394,7 +397,7 @@ describe("LeaveBalancesPage", () => {
         }, { timeout: 3000 });
 
         fireEvent.click(screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL"));
-        fireEvent.click(screen.getByText("common.confirm"));
+        fireEvent.click(screen.getByText("Confirm"));
 
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalled();

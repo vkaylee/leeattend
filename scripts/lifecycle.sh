@@ -47,7 +47,7 @@ cleanup() {
 
     # Also kill any cargo/nextest processes left inside containers
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        for ctr in apiserver_test agent_test; do
+        for ctr in apiserver agent-main; do
             timeout 5 podman exec "${COMPOSE_PROJECT_NAME}-${ctr}-1" \
                 pkill -f 'cargo|nextest' </dev/null >/dev/null 2>&1 || true
         done

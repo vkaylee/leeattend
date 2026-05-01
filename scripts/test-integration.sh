@@ -24,7 +24,7 @@ leeattend_run_integration() {
     # nextest uses substrings for matching tests.
     local NO_TESTS_FLAG="pass"
 
-    # Integration tests use isolated databases (test_db_{uuid} from template)
+    # Integration tests use isolated databases (db_{uuid} from template)
     # so they can safely run in parallel. Thread count is set in nextest.toml (num-cpus).
     echo -e "${YELLOW}⚙️ Integration mode: Parallel execution enabled (nextest.toml → num-cpus).${NC}"
 
@@ -34,7 +34,7 @@ leeattend_run_integration() {
     fi
 
     # Default URL for internal tests
-    export DATABASE_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
+    export DATABASE_URL="postgres://test_user:test_password@db:5432/leeattend_test_template"
 
     local BACKEND_INT_CMD="cargo nextest run --workspace --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG"
     
@@ -47,10 +47,10 @@ leeattend_run_integration() {
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # DOCKER_DB_URL: Used for sqlx compile-time macro checks (needs schema)
-        local DOCKER_DB_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
+        local DOCKER_DB_URL="postgres://test_user:test_password@db:5432/leeattend_test_template"
         # API_SERVER_DB_URL: Used for the background API server process.
         # MUST NOT use the template DB — holding connections blocks CREATE DATABASE ... TEMPLATE.
-        local API_SERVER_DB_URL="postgres://test_user:test_password@test_db:5432/test_database"
+        local API_SERVER_DB_URL="postgres://test_user:test_password@db:5432/test_database"
         
         if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
             # START API SERVER IN BACKGROUND FOR AGENT INTEGRATION TESTS
@@ -58,13 +58,17 @@ leeattend_run_integration() {
             # podman-compose exec reinitializes compose state on every call,
             # adding ~2-3s overhead per invocation. With 60 health checks,
             # that's 2-3 minutes wasted just on overhead.
-            local _apiserver_ctr="${COMPOSE_PROJECT_NAME}_apiserver_test_1"
+            local _apiserver_ctr="${COMPOSE_PROJECT_NAME}_apiserver_1"
             echo -e "  ${BLUE}🚀 Starting API Server in background inside Docker...${NC}"
             podman exec -d -e DATABASE_URL=$API_SERVER_DB_URL "$_apiserver_ctr" bash -c "cargo run --bin apiserver > /workspace/apiserver/apiserver.log 2>&1" </dev/null
             
             # Wait for server to be ready (direct podman exec for speed)
             echo -n "  Waiting for API Server (timeout: 600s)..."
             for i in {1..600}; do
+                if ! podman container exists "$_apiserver_ctr" 2>/dev/null; then
+                    echo -e "\n  ${RED}❌ Container $_apiserver_ctr unexpectedly died or was removed!${NC}"
+                    break
+                fi
                 if podman exec "$_apiserver_ctr" curl -s http://localhost:3000/api/health </dev/null > /dev/null 2>&1; then
                     echo " Ready!"
                     break
@@ -79,15 +83,15 @@ leeattend_run_integration() {
         fi
 
         local THREADS=${NEXTEST_TEST_THREADS:-1}
-        BACKEND_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL -e NEXTEST_TEST_THREADS=$THREADS -w /workspace apiserver_test bash -c \"cargo nextest run --workspace --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
-        PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test $PW_ARGS --workers 1\" </dev/null"
+        BACKEND_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL -e NEXTEST_TEST_THREADS=$THREADS -w /workspace apiserver bash -c \"cargo nextest run --workspace --test '*' $TEST_PATTERN --no-tests=$NO_TESTS_FLAG\" </dev/null"
+        PW_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard bash -c \"npx playwright test $PW_ARGS --workers 1\" </dev/null"
     fi
 
     if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
         echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
         local prebuild_exit=0
         if [[ "${USE_DOCKER:-}" == "true" ]]; then
-            $DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL -w /workspace apiserver_test bash -c "cargo test --workspace --no-run -j $CARGO_BUILD_JOBS" </dev/null > "$LOG_DIR/prebuild.log" 2>&1
+            $DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL -w /workspace apiserver bash -c "cargo test --workspace --no-run -j $CARGO_BUILD_JOBS" </dev/null > "$LOG_DIR/prebuild.log" 2>&1
             prebuild_exit=$?
         else
             run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT' && DATABASE_URL=$DATABASE_URL cargo test --workspace --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1

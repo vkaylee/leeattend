@@ -60,26 +60,26 @@ AFTER_DB="squash_after"
 # For scalar queries (count, etc.) — tuples-only, unaligned
 psql_scalar() {
     local db="$1"; shift
-    dc exec -T test_db psql -U "$DB_USER" -d "$db" -t -A "$@" </dev/null 2>/dev/null
+    dc exec -T db psql -U "$DB_USER" -d "$db" -t -A "$@" </dev/null 2>/dev/null
 }
 
 # For CSV fingerprint queries — use --csv format
 psql_csv() {
     local db="$1"; shift
-    dc exec -T test_db psql -U "$DB_USER" -d "$db" --csv "$@" </dev/null 2>/dev/null
+    dc exec -T db psql -U "$DB_USER" -d "$db" --csv "$@" </dev/null 2>/dev/null
 }
 
 # Pipe SQL from a file into psql via stdin
 psql_file() {
     local db="$1"
     local file="$2"
-    cat "$file" | dc_stdin exec -T test_db psql -U "$DB_USER" -d "$db" -v ON_ERROR_STOP=1 2>&1
+    cat "$file" | dc_stdin exec -T db psql -U "$DB_USER" -d "$db" -v ON_ERROR_STOP=1 2>&1
 }
 
 create_db() {
     local db="$1"
-    dc exec -T test_db psql -U "$DB_USER" -d "$DB_NAME" -c "DROP DATABASE IF EXISTS $db;" </dev/null 2>/dev/null || true
-    dc exec -T test_db psql -U "$DB_USER" -d "$DB_NAME" -c "CREATE DATABASE $db;" </dev/null 2>/dev/null
+    dc exec -T db psql -U "$DB_USER" -d "$DB_NAME" -c "DROP DATABASE IF EXISTS $db;" </dev/null 2>/dev/null || true
+    dc exec -T db psql -U "$DB_USER" -d "$DB_NAME" -c "CREATE DATABASE $db;" </dev/null 2>/dev/null
 }
 
 # ── Fingerprint functions ─────────────────────────────────────────────────────
@@ -227,10 +227,10 @@ fi
 mkdir -p "$SCRATCH_DIR"
 
 echo -e "${BOLD}${BLUE}═══ Phase: Starting test database ═══${NC}"
-dc up -d test_db </dev/null
+dc up -d db </dev/null
 echo "Waiting for PostgreSQL to be ready..."
 for i in $(seq 1 30); do
-    if dc exec -T test_db pg_isready -U "$DB_USER" </dev/null >/dev/null 2>&1; then
+    if dc exec -T db pg_isready -U "$DB_USER" </dev/null >/dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} PostgreSQL ready"
         break
     fi
@@ -252,7 +252,7 @@ sort "$SCRATCH_DIR/migration_list.txt" -o "$SCRATCH_DIR/migration_list_sorted.tx
 while IFS= read -r f; do
     fname=$(basename "$f")
     # Pipe the SQL file content into psql via stdin
-    result=$(cat "$f" | dc_stdin exec -T test_db psql -U "$DB_USER" -d "$BEFORE_DB" -v ON_ERROR_STOP=1 2>&1) || {
+    result=$(cat "$f" | dc_stdin exec -T db psql -U "$DB_USER" -d "$BEFORE_DB" -v ON_ERROR_STOP=1 2>&1) || {
         echo -e "${RED}✗ Failed on: $fname${NC}"
         echo "$result" > "$SCRATCH_DIR/migration_error.txt"
         tail -5 "$SCRATCH_DIR/migration_error.txt"
@@ -276,7 +276,7 @@ capture_fingerprint "$BEFORE_DB" "before"
 # ── Step 2: pg_dump → single migration ────────────────────────────────────────
 echo -e "\n${BOLD}${BLUE}═══ Phase 2: Generate squashed schema ═══${NC}"
 
-dc exec -T test_db pg_dump --schema-only --no-owner --no-privileges \
+dc exec -T db pg_dump --schema-only --no-owner --no-privileges \
     --no-comments --no-publications --no-subscriptions \
     --exclude-table='_sqlx_migrations' \
     -U "$DB_USER" -d "$BEFORE_DB" </dev/null > "$SCRATCH_DIR/raw_dump.sql" 2>/dev/null
@@ -323,7 +323,7 @@ echo "Creating fresh database '$AFTER_DB'..."
 create_db "$AFTER_DB"
 
 echo "Running squashed migration into '$AFTER_DB'..."
-result=$(cat "$SCRATCH_DIR/initial_schema.sql" | dc_stdin exec -T test_db psql -U "$DB_USER" -d "$AFTER_DB" -v ON_ERROR_STOP=1 2>&1) || {
+result=$(cat "$SCRATCH_DIR/initial_schema.sql" | dc_stdin exec -T db psql -U "$DB_USER" -d "$AFTER_DB" -v ON_ERROR_STOP=1 2>&1) || {
     echo -e "${RED}✗ Squashed migration FAILED to apply!${NC}"
     echo "$result" > "$SCRATCH_DIR/squash_error.txt"
     tail -20 "$SCRATCH_DIR/squash_error.txt"

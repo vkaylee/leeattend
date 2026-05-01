@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO attendance_policies (id, workspace_id, name, is_default) VALUES ($1, $2, 'Dept Policy', false)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5dbe86773691fe986d58ec4b2969d0abd03ccc99375d2d42696d4dbf5a0b38c8"
+}

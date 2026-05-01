@@ -550,12 +550,20 @@ describe("ReportsPage", () => {
   });
 
   it("renders cross-navigation link to raw logs with preserved date range", async () => {
-    renderWithProviders(<ReportsPage />, ["/reports?from=2026-03-01&to=2026-03-31"]);
+    renderWithProviders(<ReportsPage />);
     // Using string matching that is case-insensitive and covers both EN and VI since i18n isn't mocked the same way
     const link = await screen.findByRole("link", { name: /View Raw Logs|Xem nhật ký thô|REPORTS\.VIEW_RAW_LOGS/i });
  
     expect(link).toBeDefined();
-    expect(link.getAttribute("href")).toBe("/attendance-logs?from=2026-03-01&to=2026-03-31");
+
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fromStr = `${lastMonth.getFullYear()}-${pad(lastMonth.getMonth() + 1)}-01`;
+    const toStr = `${lastMonthEnd.getFullYear()}-${pad(lastMonthEnd.getMonth() + 1)}-${pad(lastMonthEnd.getDate())}`;
+
+    expect(link.getAttribute("href")).toBe(`/attendance-logs?from=${fromStr}&to=${toStr}`);
   });
   it("filters the report by selected department", async () => {
     const user = userEvent.setup();

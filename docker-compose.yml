@@ -19,11 +19,11 @@ services:
     networks:
       - backend_net
     environment:
-      TZ: Asia/Bangkok
-      PGTZ: Asia/Bangkok
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      - TZ=Asia/Bangkok
+      - PGTZ=Asia/Bangkok
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     healthcheck:
       <<: *healthcheck-base
       test: "pg_isready -U ${DB_USER} -d ${DB_NAME}"

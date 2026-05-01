@@ -12,4 +12,4 @@ fi
 
 echo "📦 Running npm inside container environment..."
 TIMEOUT_SEC="${TIMEOUT:-600}"
-"$SCRIPT_DIR/safe-run.py" "$TIMEOUT_SEC" $TOOLBOX_COMPOSE_CMD run -T --rm --entrypoint npm web_test "${ARGS[@]}"
+"$SCRIPT_DIR/safe-run.py" "$TIMEOUT_SEC" $TOOLBOX_COMPOSE_CMD run -T --rm --entrypoint npm webdashboard "${ARGS[@]}"

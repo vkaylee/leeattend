@@ -10,13 +10,13 @@ run_lint() {
         local need_web=false
         
         if [[ "$filter" == *"web"* ]]; then
-            # We need apiserver_test for api-sync even if testing web
-            services="web_test apiserver_test npm_init db_init test_db test_redis"
+            # We need apiserver for api-sync even if testing web
+            services="webdashboard apiserver npm_init db_init db redis"
             need_web=true
         elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
-            services="apiserver_test agent_test db_init test_db test_redis"
+            services="apiserver agent-main db_init db redis"
         else
-            services="apiserver_test agent_test web_test db_init npm_init test_db test_redis"
+            services="apiserver agent-main webdashboard db_init npm_init db redis"
             need_web=true
         fi
         
@@ -40,14 +40,14 @@ run_unit() {
         local need_web=false
         
         if [[ "$filter" == *"web"* ]]; then
-            services="web_test npm_init test_db test_redis"
+            services="webdashboard npm_init db redis"
             need_web=true
         elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
             # Unit tests cho API/Agent thường không cần DB thật (dùng memory), 
-            # nhưng ta bật apiserver_test/agent_test container để chạy code trong đó
-            services="apiserver_test agent_test db_init test_db test_redis"
+            # nhưng ta bật apiserver/agent-main container để chạy code trong đó
+            services="apiserver agent-main db_init db redis"
         else
-            services="apiserver_test agent_test web_test db_init npm_init test_db test_redis"
+            services="apiserver agent-main webdashboard db_init npm_init db redis"
             need_web=true
         fi
         
@@ -73,13 +73,13 @@ run_integration() {
         
         if [[ "$filter" == *"web"* ]]; then
             # Web E2E dùng Mock API, KHÔNG cần DB và Backend thật
-            services="web_test npm_init"
+            services="webdashboard npm_init"
             need_web=true
         else
             # Integration tests cho API bắt buộc cần DB thật
-            services="test_db test_redis apiserver_test agent_test db_init"
+            services="db redis apiserver agent-main db_init"
             if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then 
-                services="$services web_test npm_init"
+                services="$services webdashboard npm_init"
                 need_web=true
             fi
         fi

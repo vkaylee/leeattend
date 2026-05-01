@@ -34,7 +34,7 @@ fi
 export USE_DOCKER=true
 export COMPOSE_PROJECT_NAME="leeattend-test"
 export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
+export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
 
 # Cargo cache settings
 export CARGO_TARGET_DIR="$PROJECT_ROOT/target"
@@ -93,19 +93,19 @@ if [[ "$COVERAGE" == "true" ]]; then
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         _cov_services=""
         if [[ "$FILTER" == *"web"* ]]; then
-            _cov_services="web_test"
+            _cov_services="webdashboard"
         elif [[ "$FILTER" == *"apiserver"* || "$FILTER" == *"agent"* ]]; then
-            _cov_services="test_db apiserver_test agent_test"
+            _cov_services="db apiserver agent-main"
         else
-            _cov_services="test_db apiserver_test agent_test web_test"
+            _cov_services="db apiserver agent-main webdashboard"
         fi
         dc build $_cov_services
         dc up -d $_cov_services
         if [[ "$FILTER" == *"web"* || -z "$FILTER" ]]; then
-            wait_for_web_test
+            wait_for_webdashboard
         fi
         if [[ "$FILTER" != *"web"* ]] || [[ -z "$FILTER" ]]; then
-            # Force re-migration: test_db uses tmpfs (RAM disk), so data may
+            # Force re-migration: db uses tmpfs (RAM disk), so data may
             # have been lost if the container was rebuilt/restarted between
             # earlier phases and coverage.  Reset the cache flag so
             # ensure_db_migrated() actually runs migrations again.

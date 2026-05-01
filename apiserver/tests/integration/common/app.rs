@@ -249,7 +249,11 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         },
         reports: apiserver::ReportState {
             service: report_service,
-            coordinator: None,
+            coordinator: if let Ok(url) = std::env::var("REDIS_URL") {
+                if let Ok(redis) = apiserver::queue::RedisPool::new(&url).await {
+                    Some(Arc::new(apiserver::services::ReportCoordinator::new(redis, pool.clone())))
+                } else { None }
+            } else { None },
             stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(pool.clone())),
         },
         core: apiserver::CoreState {
@@ -549,7 +553,11 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         },
         reports: apiserver::ReportState {
             service: report_service,
-            coordinator: None,
+            coordinator: if let Ok(url) = std::env::var("REDIS_URL") {
+                if let Ok(redis) = apiserver::queue::RedisPool::new(&url).await {
+                    Some(Arc::new(apiserver::services::ReportCoordinator::new(redis, db_pool.clone())))
+                } else { None }
+            } else { None },
             stats_repo: Arc::new(apiserver::repositories::workspace_stats_repository::SqlxWorkspaceStatsRepository::new(db_pool.clone())),
         },
         core: apiserver::CoreState {

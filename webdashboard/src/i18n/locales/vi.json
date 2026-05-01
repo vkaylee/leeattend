@@ -2379,7 +2379,27 @@
     "assignee_type": "Đối tượng áp dụng",
     "select_policy": "Chọn chính sách",
     "select_policy_placeholder": "-- Chọn một chính sách --",
-    "effective_from": "Ngày hiệu lực"
+    "effective_from": "Ngày hiệu lực",
+    "no_assignments_yet": "payroll.no_assignments_yet",
+    "assign_rule": "payroll.assign_rule",
+    "assign_rule_desc": "payroll.assign_rule_desc",
+    "assignment_scope": "payroll.assignment_scope",
+    "select_employee": "payroll.select_employee",
+    "search_employees": "payroll.search_employees",
+    "select_department": "payroll.select_department",
+    "select_department_placeholder": "payroll.select_department_placeholder",
+    "workspace_scope_info": "payroll.workspace_scope_info",
+    "effective_to": "payroll.effective_to",
+    "override_config": "payroll.override_config",
+    "override_config_desc": "payroll.override_config_desc",
+    "override_rate": "payroll.override_rate",
+    "override_base": "payroll.override_base",
+    "base_gross": "payroll.base_gross",
+    "base_gross_alt": "payroll.base_gross_alt",
+    "base_taxable": "payroll.base_taxable",
+    "override_amount": "payroll.override_amount",
+    "override": "payroll.override",
+    "delete_assignment": "payroll.delete_assignment"
   },
   "reports": {
     "title": "Báo cáo chấm công",
@@ -2926,7 +2946,20 @@
       "notes_title": "Lưu ý quan trọng",
       "note1": "Ca làm được tự động phát hiện theo thứ tự ưu tiên: Phân ca thủ công → Lịch làm cá nhân → Quy tắc phân bổ → Lịch phòng ban.",
       "note2": "Khi duyệt, hệ thống sẽ tự động đổi ca trong bảng phân ca (Roster). Nhân viên A nhận ca của B và ngược lại.",
-      "note3": "Khi từ chối, lịch phân ca giữ nguyên không thay đổi. Không thể duyệt lại yêu cầu đã được xử lý."
+      "note3": "Khi từ chối, lịch phân ca giữ nguyên không thay đổi. Không thể duyệt lại yêu cầu đã được xử lý.",
+      "step1": {
+        "title": "shift_swaps.guide.step1.title",
+        "desc": "shift_swaps.guide.step1.desc"
+      },
+      "step2": {
+        "title": "shift_swaps.guide.step2.title",
+        "desc": "shift_swaps.guide.step2.desc"
+      },
+      "step3": {
+        "title": "shift_swaps.guide.step3.title",
+        "desc": "shift_swaps.guide.step3.desc"
+      },
+      "note": "shift_swaps.guide.note"
     },
     "ess": {
       "my_swaps": "Yêu cầu đổi ca của tôi",
@@ -2940,10 +2973,12 @@
       "create_success": "Đã gửi yêu cầu đổi ca!",
       "respond_success": "Đã phản hồi yêu cầu đổi ca!",
       "cancel_success": "Đã hủy yêu cầu đổi ca!"
-    }
+    },
+    "create_title": "shift_swaps.create_title"
   },
   "payroll_rules": {
-    "scope_workspace": "Toàn Không gian làm việc"
+    "scope_workspace": "Toàn Không gian làm việc",
+    "rule_assignments": "payroll_rules.rule_assignments"
   },
   "danger": {
     "title": "Vùng nguy hiểm",
@@ -3148,7 +3183,8 @@
     },
     "messages": {
       "assign_error": "Không thể gán vai trò",
-      "revoke_error": "Không thể thu hồi vai trò"
+      "revoke_error": "Không thể thu hồi vai trò",
+      "revoke_success": "system_roles.messages.revoke_success"
     }
   },
   "status_active_caps": "ĐANG HOẠT ĐỘNG",

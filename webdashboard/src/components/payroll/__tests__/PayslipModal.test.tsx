@@ -5,15 +5,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
- 
   useLocation: () => ({ pathname: "/", search: "", hash: "" }),
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
 
+import { ToastProvider } from "@/components/ui/Toast";
+
 import { Employee, Payslip, Workspace } from "@/lib/api/types";
 
- 
 import PayslipModal from "../PayslipModal";
+
 
 // Mock i18next
 vi.mock("react-i18next", () => ({
@@ -126,7 +127,9 @@ const queryClient = new QueryClient({
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
     <QueryClientProvider client={queryClient}>
+      <ToastProvider>
         {ui}
+      </ToastProvider>
     </QueryClientProvider>
   );
 };
