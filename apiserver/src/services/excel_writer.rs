@@ -43,22 +43,10 @@ impl ExcelWriter {
         let mut workbook = Workbook::new();
         let worksheet = workbook.add_worksheet().set_name(msgs.summary_sheet_name)?;
 
-        let title_format = Format::new()
-            .set_bold()
-            .set_font_size(14)
-            .set_font_color(Color::RGB(0x1F4E79));
-
-        let subtitle_format = Format::new()
-            .set_italic()
-            .set_font_color(Color::RGB(0x5B5B5B));
-
-        let header_format = Format::new()
-            .set_bold()
-            .set_align(FormatAlign::Center)
-            .set_background_color(Color::RGB(0x4472C4))
-            .set_font_color(Color::RGB(0xFFFFFF));
-
-        let number_format = Format::new().set_align(FormatAlign::Right);
+        let title_format = crate::utils::excel_format_utils::ExcelFormatUtils::title_format();
+        let subtitle_format = crate::utils::excel_format_utils::ExcelFormatUtils::subtitle_format();
+        let header_format = crate::utils::excel_format_utils::ExcelFormatUtils::header_format();
+        let number_format = crate::utils::excel_format_utils::ExcelFormatUtils::number_format();
 
         worksheet.write_string_with_format(
             0,
@@ -156,18 +144,9 @@ impl ExcelWriter {
             .add_worksheet()
             .set_name(msgs.timesheet_sheet_name)?;
 
-        let title_fmt = Format::new()
-            .set_bold()
-            .set_font_size(14)
-            .set_font_color(Color::RGB(0x1F4E79));
-        let subtitle_fmt = Format::new()
-            .set_italic()
-            .set_font_color(Color::RGB(0x5B5B5B));
-        let header_fmt = Format::new()
-            .set_bold()
-            .set_align(FormatAlign::Center)
-            .set_background_color(Color::RGB(0x4472C4))
-            .set_font_color(Color::RGB(0xFFFFFF));
+        let title_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::title_format();
+        let subtitle_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::subtitle_format();
+        let header_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::header_format();
         let cell_fmt = Format::new().set_align(FormatAlign::Center);
         let ot_fmt = Format::new()
             .set_align(FormatAlign::Center)
@@ -349,18 +328,9 @@ impl ExcelWriter {
             .add_worksheet()
             .set_name(msgs.raw_details_sheet_name)?;
 
-        let title_fmt = Format::new()
-            .set_bold()
-            .set_font_size(14)
-            .set_font_color(Color::RGB(0x1F4E79));
-        let subtitle_fmt = Format::new()
-            .set_italic()
-            .set_font_color(Color::RGB(0x5B5B5B));
-        let header_fmt = Format::new()
-            .set_bold()
-            .set_align(FormatAlign::Center)
-            .set_background_color(Color::RGB(0x4472C4))
-            .set_font_color(Color::RGB(0xFFFFFF));
+        let title_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::title_format();
+        let subtitle_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::subtitle_format();
+        let header_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::header_format();
         let time_fmt = Format::new().set_align(FormatAlign::Center);
         let status_present = Format::new()
             .set_font_color(Color::RGB(0x2E7D32))

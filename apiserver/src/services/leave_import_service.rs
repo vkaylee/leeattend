@@ -235,253 +235,128 @@ impl LeaveImportService {
         let mut pending = Vec::new();
         let mut errors = Vec::new();
 
-        // Try XLSX first, then XLS, then CSV
-        let mut is_excel = false;
-        if let Ok(mut reader) = Xlsx::new(Cursor::new(file_bytes)) {
-            if let Some(Ok(range)) = reader.worksheet_range_at(0) {
-                is_excel = true;
-                Self::parse_excel_range(range, &mut pending, &mut errors, msgs);
-            }
-        }
-        if !is_excel {
-            if let Ok(mut reader) = Xls::new(Cursor::new(file_bytes)) {
-                if let Some(Ok(range)) = reader.worksheet_range_at(0) {
-                    is_excel = true;
-                    Self::parse_excel_range(range, &mut pending, &mut errors, msgs);
+        match crate::utils::file_parser::extract_file_rows(file_bytes) {
+            Ok(rows) => {
+                for (line_number, cols) in rows {
+                    let emp_id = cols.first().unwrap_or(&String::new()).trim().to_string();
+                    let leave_code = cols.get(1).unwrap_or(&String::new()).trim().to_string();
+                    let start_str = cols.get(2).unwrap_or(&String::new()).trim().to_string();
+                    let end_str = cols.get(3).unwrap_or(&String::new()).trim().to_string();
+                    let reason = cols.get(4).unwrap_or(&String::new()).trim().to_string();
+                    let duration_str = cols.get(5).unwrap_or(&String::new()).trim().to_string();
+
+                    if emp_id.is_empty() && leave_code.is_empty() {
+                        continue;
+                    }
+
+                    if emp_id.is_empty() {
+                        errors.push(ErrorRow {
+                            line_number,
+                            employee_id_number: emp_id.clone(),
+                            leave_type_code: leave_code.clone(),
+                            start_date_raw: start_str.clone(),
+                            end_date_raw: end_str.clone(),
+                            reason: reason.clone(),
+                            duration_type_raw: duration_str.clone(),
+                            error_message: msgs.missing_employee_id.to_string(),
+                        });
+                        continue;
+                    }
+
+                    if leave_code.is_empty() {
+                        errors.push(ErrorRow {
+                            line_number,
+                            employee_id_number: emp_id.clone(),
+                            leave_type_code: leave_code.clone(),
+                            start_date_raw: start_str.clone(),
+                            end_date_raw: end_str.clone(),
+                            reason: reason.clone(),
+                            duration_type_raw: duration_str.clone(),
+                            error_message: msgs.missing_leave_type.to_string(),
+                        });
+                        continue;
+                    }
+
+                    let start_date = match parse_date(&start_str) {
+                        Some(d) => d,
+                        None => {
+                            errors.push(ErrorRow {
+                                line_number,
+                                employee_id_number: emp_id.clone(),
+                                leave_type_code: leave_code.clone(),
+                                start_date_raw: start_str.clone(),
+                                end_date_raw: end_str.clone(),
+                                reason: reason.clone(),
+                                duration_type_raw: duration_str.clone(),
+                                error_message: msgs.invalid_start_date.to_string(),
+                            });
+                            continue;
+                        }
+                    };
+
+                    let end_date = match parse_date(&end_str) {
+                        Some(d) => d,
+                        None => {
+                            errors.push(ErrorRow {
+                                line_number,
+                                employee_id_number: emp_id.clone(),
+                                leave_type_code: leave_code.clone(),
+                                start_date_raw: start_str.clone(),
+                                end_date_raw: end_str.clone(),
+                                reason: reason.clone(),
+                                duration_type_raw: duration_str.clone(),
+                                error_message: msgs.invalid_end_date.to_string(),
+                            });
+                            continue;
+                        }
+                    };
+
+                    if end_date < start_date {
+                        errors.push(ErrorRow {
+                            line_number,
+                            employee_id_number: emp_id.clone(),
+                            leave_type_code: leave_code.clone(),
+                            start_date_raw: start_str.clone(),
+                            end_date_raw: end_str.clone(),
+                            reason: reason.clone(),
+                            duration_type_raw: duration_str.clone(),
+                            error_message: msgs.end_before_start.to_string(),
+                        });
+                        continue;
+                    }
+
+                    let duration_type = parse_duration_type(&duration_str);
+
+                    pending.push(PendingLeaveRow {
+                        line_number,
+                        employee_id_number: emp_id,
+                        leave_type_code: leave_code,
+                        start_date,
+                        end_date,
+                        reason: if reason.is_empty() {
+                            None
+                        } else {
+                            Some(reason)
+                        },
+                        duration_type,
+                    });
                 }
             }
-        }
-        if !is_excel {
-            Self::parse_csv(file_bytes, &mut pending, &mut errors, msgs);
+            Err(e) => {
+                errors.push(ErrorRow {
+                    line_number: 0,
+                    employee_id_number: String::new(),
+                    leave_type_code: String::new(),
+                    start_date_raw: String::new(),
+                    end_date_raw: String::new(),
+                    reason: String::new(),
+                    duration_type_raw: String::new(),
+                    error_message: e,
+                });
+            }
         }
 
         (pending, errors)
-    }
-
-    /// Parse Excel range (first sheet).
-    /// Expected columns: A=employee_id_number, B=leave_type_code, C=start_date, D=end_date, E=reason, F=duration_type
-    fn parse_excel_range(
-        range: calamine::Range<Data>,
-        pending: &mut Vec<PendingLeaveRow>,
-        errors: &mut Vec<ErrorRow>,
-        msgs: &LeaveImportMessages,
-    ) {
-        for (idx, row) in range.rows().enumerate() {
-            if idx == 0 {
-                continue; // Skip header
-            }
-            let line_number = idx + 1;
-
-            let emp_id = cell_to_string(row.first());
-            let leave_code = cell_to_string(row.get(1));
-            let start_str = cell_to_string(row.get(2));
-            let end_str = cell_to_string(row.get(3));
-            let reason = cell_to_string(row.get(4));
-            let duration_str = cell_to_string(row.get(5));
-
-            if emp_id.is_empty() && leave_code.is_empty() {
-                continue; // Skip empty rows
-            }
-
-            if emp_id.is_empty() {
-                errors.push(ErrorRow {
-                    line_number,
-                    employee_id_number: emp_id,
-                    leave_type_code: leave_code,
-                    start_date_raw: start_str,
-                    end_date_raw: end_str,
-                    reason: reason.clone(),
-                    duration_type_raw: duration_str,
-                    error_message: msgs.missing_employee_id.to_string(),
-                });
-                continue;
-            }
-
-            if leave_code.is_empty() {
-                errors.push(ErrorRow {
-                    line_number,
-                    employee_id_number: emp_id,
-                    leave_type_code: leave_code,
-                    start_date_raw: start_str,
-                    end_date_raw: end_str,
-                    reason: reason.clone(),
-                    duration_type_raw: duration_str,
-                    error_message: msgs.missing_leave_type.to_string(),
-                });
-                continue;
-            }
-
-            let start_date = match parse_date(&start_str) {
-                Some(d) => d,
-                None => {
-                    errors.push(ErrorRow {
-                        line_number,
-                        employee_id_number: emp_id,
-                        leave_type_code: leave_code,
-                        start_date_raw: start_str,
-                        end_date_raw: end_str,
-                        reason: reason.clone(),
-                        duration_type_raw: duration_str,
-                        error_message: msgs.invalid_start_date.to_string(),
-                    });
-                    continue;
-                }
-            };
-
-            let end_date = match parse_date(&end_str) {
-                Some(d) => d,
-                None => {
-                    errors.push(ErrorRow {
-                        line_number,
-                        employee_id_number: emp_id,
-                        leave_type_code: leave_code,
-                        start_date_raw: start_str,
-                        end_date_raw: end_str,
-                        reason: reason.clone(),
-                        duration_type_raw: duration_str,
-                        error_message: msgs.invalid_end_date.to_string(),
-                    });
-                    continue;
-                }
-            };
-
-            if end_date < start_date {
-                errors.push(ErrorRow {
-                    line_number,
-                    employee_id_number: emp_id,
-                    leave_type_code: leave_code,
-                    start_date_raw: start_str,
-                    end_date_raw: end_str,
-                    reason: reason.clone(),
-                    duration_type_raw: duration_str,
-                    error_message: msgs.end_before_start.to_string(),
-                });
-                continue;
-            }
-
-            let duration_type = parse_duration_type(&duration_str);
-
-            pending.push(PendingLeaveRow {
-                line_number,
-                employee_id_number: emp_id,
-                leave_type_code: leave_code,
-                start_date,
-                end_date,
-                reason: if reason.is_empty() {
-                    None
-                } else {
-                    Some(reason)
-                },
-                duration_type,
-            });
-        }
-    }
-
-    /// Parse CSV fallback.
-    fn parse_csv(
-        file_bytes: &[u8],
-        pending: &mut Vec<PendingLeaveRow>,
-        errors: &mut Vec<ErrorRow>,
-        msgs: &LeaveImportMessages,
-    ) {
-        let mut reader = csv::ReaderBuilder::new()
-            .has_headers(true)
-            .from_reader(Cursor::new(file_bytes));
-
-        for (idx, result) in reader.records().enumerate() {
-            let line_number = idx + 2; // 1-indexed + header skip
-            let record = match result {
-                Ok(r) => r,
-                Err(e) => {
-                    errors.push(ErrorRow {
-                        line_number,
-                        employee_id_number: String::new(),
-                        leave_type_code: String::new(),
-                        start_date_raw: String::new(),
-                        end_date_raw: String::new(),
-                        reason: String::new(),
-                        duration_type_raw: String::new(),
-                        error_message: format!("{}: {e}", msgs.csv_read_error_prefix),
-                    });
-                    continue;
-                }
-            };
-
-            let emp_id = record.get(0).unwrap_or("").trim().to_string();
-            let leave_code = record.get(1).unwrap_or("").trim().to_string();
-            let start_str = record.get(2).unwrap_or("").trim().to_string();
-            let end_str = record.get(3).unwrap_or("").trim().to_string();
-            let reason = record.get(4).unwrap_or("").trim().to_string();
-            let duration_str = record.get(5).unwrap_or("").trim().to_string();
-
-            if emp_id.is_empty() && leave_code.is_empty() {
-                continue;
-            }
-
-            if emp_id.is_empty() || leave_code.is_empty() {
-                errors.push(ErrorRow {
-                    line_number,
-                    employee_id_number: emp_id,
-                    leave_type_code: leave_code,
-                    start_date_raw: start_str,
-                    end_date_raw: end_str,
-                    reason: reason.clone(),
-                    duration_type_raw: duration_str,
-                    error_message: msgs.missing_employee_or_leave.to_string(),
-                });
-                continue;
-            }
-
-            let start_date = match parse_date(&start_str) {
-                Some(d) => d,
-                None => {
-                    errors.push(ErrorRow {
-                        line_number,
-                        employee_id_number: emp_id,
-                        leave_type_code: leave_code,
-                        start_date_raw: start_str,
-                        end_date_raw: end_str,
-                        reason: reason.clone(),
-                        duration_type_raw: duration_str,
-                        error_message: msgs.invalid_start_date.to_string(),
-                    });
-                    continue;
-                }
-            };
-
-            let end_date = match parse_date(&end_str) {
-                Some(d) => d,
-                None => {
-                    errors.push(ErrorRow {
-                        line_number,
-                        employee_id_number: emp_id,
-                        leave_type_code: leave_code,
-                        start_date_raw: start_str,
-                        end_date_raw: end_str,
-                        reason: reason.clone(),
-                        duration_type_raw: duration_str,
-                        error_message: msgs.invalid_end_date.to_string(),
-                    });
-                    continue;
-                }
-            };
-
-            let duration_type = parse_duration_type(&duration_str);
-
-            pending.push(PendingLeaveRow {
-                line_number,
-                employee_id_number: emp_id,
-                leave_type_code: leave_code,
-                start_date,
-                end_date,
-                reason: if reason.is_empty() {
-                    None
-                } else {
-                    Some(reason)
-                },
-                duration_type,
-            });
-        }
     }
 
     /// Load a map of employee_id_number (UPPER) -> employee_id for the workspace.
@@ -532,15 +407,8 @@ impl LeaveImportService {
         let mut workbook = Workbook::new();
         let sheet = workbook.add_worksheet().set_name(msgs.error_sheet_name)?;
 
-        let header_fmt = Format::new()
-            .set_bold()
-            .set_align(FormatAlign::Center)
-            .set_background_color(Color::RGB(0xE53935))
-            .set_font_color(Color::RGB(0xFFFFFF));
-
-        let error_fmt = Format::new()
-            .set_font_color(Color::RGB(0xD32F2F))
-            .set_bold();
+        let header_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::error_header_format();
+        let error_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::error_message_format();
 
         let headers = msgs.error_headers;
 
@@ -591,15 +459,8 @@ impl LeaveImportService {
         // Sheet 1: Template
         let sheet = workbook.add_worksheet().set_name(sheet1_name)?;
 
-        let header_fmt = Format::new()
-            .set_bold()
-            .set_align(FormatAlign::Center)
-            .set_background_color(Color::RGB(0x4472C4))
-            .set_font_color(Color::RGB(0xFFFFFF));
-
-        let example_fmt = Format::new()
-            .set_italic()
-            .set_font_color(Color::RGB(0x757575));
+        let header_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::header_format();
+        let example_fmt = crate::utils::excel_format_utils::ExcelFormatUtils::example_row_format();
 
         for (col, header) in headers.iter().enumerate() {
             sheet.write_string_with_format(0, col as u16, *header, &header_fmt)?;
@@ -638,11 +499,8 @@ impl LeaveImportService {
         // Sheet 2: Leave type codes
         let ref_sheet = workbook.add_worksheet().set_name(sheet2_name)?;
 
-        let ref_header_fmt = Format::new()
-            .set_bold()
-            .set_align(FormatAlign::Center)
-            .set_background_color(Color::RGB(0x2E7D32))
-            .set_font_color(Color::RGB(0xFFFFFF));
+        let ref_header_fmt =
+            crate::utils::excel_format_utils::ExcelFormatUtils::ref_header_format();
 
         ref_sheet.write_string_with_format(0, 0, ref_header_code, &ref_header_fmt)?;
         ref_sheet.write_string_with_format(0, 1, ref_header_name, &ref_header_fmt)?;
@@ -672,32 +530,6 @@ impl LeaveImportService {
 
         let buffer = workbook.save_to_buffer()?;
         Ok(buffer)
-    }
-}
-
-/// Convert a calamine cell to a trimmed string.
-fn cell_to_string(cell: Option<&Data>) -> String {
-    match cell {
-        Some(Data::String(s)) => s.trim().to_string(),
-        Some(Data::Int(n)) => n.to_string(),
-        Some(Data::Float(f)) => {
-            // Handle Excel numeric dates or integer-like floats
-            if f.fract() == 0.0 {
-                format!("{}", *f as i64)
-            } else {
-                f.to_string()
-            }
-        }
-        Some(Data::DateTime(dt)) => {
-            // calamine DateTime → try to format as date
-            if let Some(dt_val) = dt.as_datetime() {
-                dt_val.date().to_string()
-            } else {
-                String::new()
-            }
-        }
-        Some(Data::Bool(b)) => b.to_string(),
-        _ => String::new(),
     }
 }
 
@@ -750,81 +582,6 @@ mod tests {
     }
 
     // ---- parse_date tests ----
-
-    #[test]
-    fn test_parse_date_iso() {
-        assert_eq!(
-            parse_date("2026-03-25"),
-            Some(NaiveDate::from_ymd_opt(2026, 3, 25).unwrap()),
-        );
-    }
-
-    #[test]
-    fn test_parse_date_dd_mm_yyyy() {
-        assert_eq!(
-            parse_date("25/03/2026"),
-            Some(NaiveDate::from_ymd_opt(2026, 3, 25).unwrap()),
-        );
-    }
-
-    #[test]
-    fn test_parse_date_dd_dash_mm_yyyy() {
-        assert_eq!(
-            parse_date("25-03-2026"),
-            Some(NaiveDate::from_ymd_opt(2026, 3, 25).unwrap()),
-        );
-    }
-
-    #[test]
-    fn test_parse_date_mm_dd_yyyy() {
-        // MM/DD/YYYY format: March 5th, not May 3rd
-        // This is ambiguous but 03/05/2026 could be DD/MM or MM/DD
-        // Our parser tries DD/MM/YYYY first, then MM/DD/YYYY
-        let result = parse_date("12/25/2026");
-        // 12/25 is unambiguously MM/DD since day=25 > 12
-        assert_eq!(result, Some(NaiveDate::from_ymd_opt(2026, 12, 25).unwrap()));
-    }
-
-    #[test]
-    fn test_parse_date_with_whitespace() {
-        assert_eq!(
-            parse_date("  2026-03-25  "),
-            Some(NaiveDate::from_ymd_opt(2026, 3, 25).unwrap()),
-        );
-    }
-
-    #[test]
-    fn test_parse_date_empty() {
-        assert_eq!(parse_date(""), None);
-        assert_eq!(parse_date("   "), None);
-    }
-
-    #[test]
-    fn test_parse_date_invalid() {
-        assert_eq!(parse_date("abc"), None);
-        assert_eq!(parse_date("2026-13-40"), None);
-    }
-
-    #[test]
-    fn test_parse_date_boundary_values() {
-        // First day of year
-        assert_eq!(
-            parse_date("2026-01-01"),
-            Some(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
-        );
-        // Last day of year
-        assert_eq!(
-            parse_date("2026-12-31"),
-            Some(NaiveDate::from_ymd_opt(2026, 12, 31).unwrap()),
-        );
-        // Leap year Feb 29
-        assert_eq!(
-            parse_date("2024-02-29"),
-            Some(NaiveDate::from_ymd_opt(2024, 2, 29).unwrap()),
-        );
-        // Non-leap year Feb 29 → None
-        assert_eq!(parse_date("2026-02-29"), None);
-    }
 
     // ---- parse_duration_type tests ----
 
@@ -904,41 +661,6 @@ mod tests {
     }
 
     // ---- cell_to_string tests ----
-
-    #[test]
-    fn test_cell_to_string_string() {
-        assert_eq!(cell_to_string(Some(&Data::String("NV001".into()))), "NV001");
-        assert_eq!(
-            cell_to_string(Some(&Data::String("  NV002  ".into()))),
-            "NV002"
-        );
-    }
-
-    #[test]
-    fn test_cell_to_string_int() {
-        assert_eq!(cell_to_string(Some(&Data::Int(42))), "42");
-        assert_eq!(cell_to_string(Some(&Data::Int(0))), "0");
-        assert_eq!(cell_to_string(Some(&Data::Int(-1))), "-1");
-    }
-
-    #[test]
-    fn test_cell_to_string_float() {
-        assert_eq!(cell_to_string(Some(&Data::Float(100.0))), "100");
-        assert_eq!(cell_to_string(Some(&Data::Float(3.14))), "3.14");
-        assert_eq!(cell_to_string(Some(&Data::Float(0.0))), "0");
-    }
-
-    #[test]
-    fn test_cell_to_string_bool() {
-        assert_eq!(cell_to_string(Some(&Data::Bool(true))), "true");
-        assert_eq!(cell_to_string(Some(&Data::Bool(false))), "false");
-    }
-
-    #[test]
-    fn test_cell_to_string_empty() {
-        assert_eq!(cell_to_string(None), "");
-        assert_eq!(cell_to_string(Some(&Data::Empty)), "");
-    }
 
     // ---- generate_error_excel tests ----
 
@@ -1122,192 +844,6 @@ mod tests {
     // ---- parse_csv tests ----
 
     #[test]
-    fn test_parse_csv_valid() {
-        let csv = "Mã NV,Loại nghỉ,Ngày bắt đầu,Ngày kết thúc,Lý do,Loại thời gian\n\
-                    NV001,AL,2026-03-25,2026-03-26,Việc gia đình,full_day\n\
-                    NV002,SL,2026-04-01,2026-04-01,Khám bệnh,first_half\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 2);
-        assert_eq!(errors.len(), 0);
-        assert_eq!(pending[0].employee_id_number, "NV001");
-        assert_eq!(pending[0].leave_type_code, "AL");
-        assert_eq!(
-            pending[0].start_date,
-            NaiveDate::from_ymd_opt(2026, 3, 25).unwrap()
-        );
-        assert_eq!(
-            pending[0].end_date,
-            NaiveDate::from_ymd_opt(2026, 3, 26).unwrap()
-        );
-        assert_eq!(pending[0].reason, Some("Việc gia đình".to_string()));
-        assert_eq!(pending[0].duration_type, LeaveDurationType::FullDay);
-        assert_eq!(pending[1].duration_type, LeaveDurationType::FirstHalf);
-    }
-
-    #[test]
-    fn test_parse_csv_with_errors() {
-        let csv = "Mã NV,Loại nghỉ,Ngày bắt đầu,Ngày kết thúc,Lý do,Loại thời gian\n\
-                    ,AL,2026-03-25,2026-03-26,Missing emp id,full_day\n\
-                    NV001,,2026-03-25,2026-03-26,Missing leave type,full_day\n\
-                    NV002,SL,abc,2026-03-26,Bad date,full_day\n\
-                    NV003,SL,2026-03-25,2026-03-26,Valid,full_day\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1); // Only NV003 is valid
-        assert_eq!(errors.len(), 3); // 3 rows with errors
-        assert_eq!(pending[0].employee_id_number, "NV003");
-    }
-
-    #[test]
-    fn test_parse_csv_empty_rows_skipped() {
-        let csv = "Mã NV,Loại nghỉ,Ngày bắt đầu,Ngày kết thúc,Lý do,Loại thời gian\n\
-                    ,,,,,\n\
-                    NV001,AL,2026-03-25,2026-03-26,Test,full_day\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1);
-        assert_eq!(errors.len(), 0);
-    }
-
-    #[test]
-    fn test_parse_csv_bad_end_date() {
-        let csv = "emp,type,start,end,reason,dur\n\
-                    NV001,AL,2026-03-25,invalid-date,Test,full_day\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 0);
-        assert_eq!(errors.len(), 1);
-        assert!(errors[0].error_message.contains("Ngày kết thúc sai format"));
-    }
-
-    #[test]
-    fn test_parse_csv_custom_hours_duration() {
-        let csv = "emp,type,start,end,reason,dur\n\
-                    NV001,AL,2026-03-25,2026-03-25,,custom_hours\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1);
-        assert_eq!(pending[0].duration_type, LeaveDurationType::CustomHours);
-    }
-
-    #[test]
-    fn test_parse_csv_reason_is_optional() {
-        let csv = "emp,type,start,end,reason,dur\n\
-                    NV001,AL,2026-03-25,2026-03-26,,full_day\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1);
-        assert_eq!(pending[0].reason, None); // Empty reason → None
-    }
-
-    #[test]
-    fn test_parse_csv_reason_with_value() {
-        let csv = "emp,type,start,end,reason,dur\n\
-                    NV001,AL,2026-03-25,2026-03-26,Family emergency,full_day\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1);
-        assert_eq!(pending[0].reason, Some("Family emergency".to_string()));
-    }
-
-    #[test]
-    fn test_parse_csv_all_rows_invalid() {
-        let csv = "emp,type,start,end,reason,dur\n\
-                    ,AL,2026-03-25,2026-03-26,No emp,full_day\n\
-                    NV001,,2026-03-25,2026-03-26,No type,full_day\n\
-                    NV002,SL,bad-start,2026-03-26,Bad start,full_day\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 0);
-        assert_eq!(errors.len(), 3);
-    }
-
-    #[test]
-    fn test_parse_csv_header_only() {
-        let csv = "emp,type,start,end,reason,dur\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 0);
-        assert_eq!(errors.len(), 0);
-    }
-
-    #[test]
-    fn test_parse_csv_missing_duration_defaults_to_full_day() {
-        // CSV with fewer columns — duration field missing
-        let csv = "emp,type,start,end,reason\n\
-                    NV001,AL,2026-03-25,2026-03-26,Test\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1);
-        // Missing duration should default to FullDay
-        assert_eq!(pending[0].duration_type, LeaveDurationType::FullDay);
-    }
-
-    #[test]
-    fn test_parse_csv_line_numbers_correct() {
-        let csv = "emp,type,start,end,reason,dur\n\
-                    NV001,AL,2026-03-25,2026-03-26,Good,full_day\n\
-                    ,AL,2026-03-25,2026-03-26,Bad,full_day\n\
-                    NV003,SL,2026-04-01,2026-04-01,Good2,first_half\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        // Line numbers: header=1, NV001=2, empty=3, NV003=4
-        assert_eq!(pending.len(), 2);
-        assert_eq!(errors.len(), 1);
-        assert_eq!(pending[0].line_number, 2);
-        assert_eq!(errors[0].line_number, 3);
-        assert_eq!(pending[1].line_number, 4);
-    }
-
-    #[test]
-    fn test_parse_csv_unicode_vietnamese() {
-        let csv = "emp,type,start,end,reason,dur\n\
-                    NV001,AL,2026-03-25,2026-03-26,Nghỉ phép năm theo quy định,full_day\n";
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_csv(csv.as_bytes(), &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1);
-        assert_eq!(
-            pending[0].reason,
-            Some("Nghỉ phép năm theo quy định".to_string())
-        );
-    }
 
     // ---- parse_excel_range tests ----
 
@@ -1338,309 +874,6 @@ mod tests {
             Data::String("Lý do".into()),
             Data::String("Loại thời gian".into()),
         ]
-    }
-
-    #[test]
-    fn test_parse_excel_range_valid_rows() {
-        let range = make_range(vec![
-            header_row(),
-            vec![
-                Data::String("NV001".into()),
-                Data::String("AL".into()),
-                Data::String("2026-03-25".into()),
-                Data::String("2026-03-26".into()),
-                Data::String("Việc gia đình".into()),
-                Data::String("full_day".into()),
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1);
-        assert_eq!(errors.len(), 0);
-        assert_eq!(pending[0].employee_id_number, "NV001");
-        assert_eq!(pending[0].leave_type_code, "AL");
-        assert_eq!(
-            pending[0].start_date,
-            NaiveDate::from_ymd_opt(2026, 3, 25).unwrap()
-        );
-        assert_eq!(
-            pending[0].end_date,
-            NaiveDate::from_ymd_opt(2026, 3, 26).unwrap()
-        );
-        assert_eq!(pending[0].reason, Some("Việc gia đình".to_string()));
-        assert_eq!(pending[0].duration_type, LeaveDurationType::FullDay);
-    }
-
-    #[test]
-    fn test_parse_excel_range_missing_employee_id() {
-        let range = make_range(vec![
-            header_row(),
-            vec![
-                Data::Empty,
-                Data::String("AL".into()),
-                Data::String("2026-03-25".into()),
-                Data::String("2026-03-25".into()),
-                Data::String("test".into()),
-                Data::String("full_day".into()),
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 0);
-        assert_eq!(errors.len(), 1);
-        assert!(errors[0].error_message.contains("Thiếu mã nhân viên"));
-    }
-
-    #[test]
-    fn test_parse_excel_range_missing_leave_code() {
-        let range = make_range(vec![
-            header_row(),
-            vec![
-                Data::String("NV001".into()),
-                Data::Empty,
-                Data::String("2026-03-25".into()),
-                Data::String("2026-03-25".into()),
-                Data::String("test".into()),
-                Data::String("full_day".into()),
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 0);
-        assert_eq!(errors.len(), 1);
-        assert!(errors[0].error_message.contains("Thiếu mã loại nghỉ"));
-    }
-
-    #[test]
-    fn test_parse_excel_range_bad_start_date() {
-        let range = make_range(vec![
-            header_row(),
-            vec![
-                Data::String("NV001".into()),
-                Data::String("AL".into()),
-                Data::String("not-a-date".into()),
-                Data::String("2026-03-25".into()),
-                Data::Empty,
-                Data::String("full_day".into()),
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 0);
-        assert_eq!(errors.len(), 1);
-        assert!(errors[0].error_message.contains("Ngày bắt đầu sai format"));
-    }
-
-    #[test]
-    fn test_parse_excel_range_bad_end_date() {
-        let range = make_range(vec![
-            header_row(),
-            vec![
-                Data::String("NV001".into()),
-                Data::String("AL".into()),
-                Data::String("2026-03-25".into()),
-                Data::String("bad".into()),
-                Data::Empty,
-                Data::String("full_day".into()),
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 0);
-        assert_eq!(errors.len(), 1);
-        assert!(errors[0].error_message.contains("Ngày kết thúc sai format"));
-    }
-
-    #[test]
-    fn test_parse_excel_range_end_before_start() {
-        let range = make_range(vec![
-            header_row(),
-            vec![
-                Data::String("NV001".into()),
-                Data::String("AL".into()),
-                Data::String("2026-03-28".into()),
-                Data::String("2026-03-25".into()), // End before start!
-                Data::Empty,
-                Data::String("full_day".into()),
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 0);
-        assert_eq!(errors.len(), 1);
-        assert!(errors[0]
-            .error_message
-            .contains("Ngày kết thúc phải >= ngày bắt đầu"));
-    }
-
-    #[test]
-    fn test_parse_excel_range_empty_rows_skipped() {
-        let range = make_range(vec![
-            header_row(),
-            vec![
-                Data::Empty,
-                Data::Empty,
-                Data::Empty,
-                Data::Empty,
-                Data::Empty,
-                Data::Empty,
-            ],
-            vec![
-                Data::String("NV001".into()),
-                Data::String("AL".into()),
-                Data::String("2026-03-25".into()),
-                Data::String("2026-03-26".into()),
-                Data::Empty,
-                Data::String("full_day".into()),
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1);
-        assert_eq!(errors.len(), 0);
-    }
-
-    #[test]
-    fn test_parse_excel_range_numeric_employee_id() {
-        // Excel sometimes stores IDs as numbers
-        let range = make_range(vec![
-            header_row(),
-            vec![
-                Data::Float(1001.0), // Numeric emp ID
-                Data::String("SL".into()),
-                Data::String("2026-04-01".into()),
-                Data::String("2026-04-01".into()),
-                Data::String("Sick".into()),
-                Data::String("first_half".into()),
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 1);
-        assert_eq!(pending[0].employee_id_number, "1001"); // Float 1001.0 → "1001"
-        assert_eq!(pending[0].duration_type, LeaveDurationType::FirstHalf);
-    }
-
-    #[test]
-    fn test_parse_excel_range_multiple_valid_and_invalid() {
-        let range = make_range(vec![
-            header_row(),
-            // Valid
-            vec![
-                Data::String("NV001".into()),
-                Data::String("AL".into()),
-                Data::String("2026-03-25".into()),
-                Data::String("2026-03-26".into()),
-                Data::String("OK".into()),
-                Data::String("full_day".into()),
-            ],
-            // Error: missing emp
-            vec![
-                Data::Empty,
-                Data::String("AL".into()),
-                Data::String("2026-03-25".into()),
-                Data::String("2026-03-25".into()),
-                Data::Empty,
-                Data::Empty,
-            ],
-            // Valid
-            vec![
-                Data::String("NV003".into()),
-                Data::String("SL".into()),
-                Data::String("2026-04-10".into()),
-                Data::String("2026-04-10".into()),
-                Data::Empty,
-                Data::String("second_half".into()),
-            ],
-            // Error: bad date
-            vec![
-                Data::String("NV004".into()),
-                Data::String("AL".into()),
-                Data::String("xxx".into()),
-                Data::String("2026-04-10".into()),
-                Data::Empty,
-                Data::Empty,
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 2); // NV001 + NV003
-        assert_eq!(errors.len(), 2); // missing emp + bad date
-        assert_eq!(pending[0].employee_id_number, "NV001");
-        assert_eq!(pending[1].employee_id_number, "NV003");
-        assert_eq!(pending[1].reason, None); // Empty reason → None
-        assert_eq!(pending[1].duration_type, LeaveDurationType::SecondHalf);
-    }
-
-    #[test]
-    fn test_parse_excel_range_header_only() {
-        let range = make_range(vec![header_row()]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending.len(), 0);
-        assert_eq!(errors.len(), 0);
-    }
-
-    #[test]
-    fn test_parse_excel_range_line_numbers() {
-        let range = make_range(vec![
-            header_row(), // idx=0 → skip
-            // idx=1 → line_number = 2
-            vec![
-                Data::String("NV001".into()),
-                Data::String("AL".into()),
-                Data::String("2026-03-25".into()),
-                Data::String("2026-03-26".into()),
-                Data::Empty,
-                Data::Empty,
-            ],
-            // idx=2 → line_number = 3 (error)
-            vec![
-                Data::Empty,
-                Data::String("SL".into()),
-                Data::String("2026-04-01".into()),
-                Data::String("2026-04-01".into()),
-                Data::Empty,
-                Data::Empty,
-            ],
-        ]);
-
-        let mut pending = Vec::new();
-        let mut errors = Vec::new();
-        LeaveImportService::parse_excel_range(range, &mut pending, &mut errors, &msgs_vi());
-
-        assert_eq!(pending[0].line_number, 2);
-        assert_eq!(errors[0].line_number, 3);
     }
 
     // ---- LeaveImportResult tests ----

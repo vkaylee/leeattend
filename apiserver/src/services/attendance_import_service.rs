@@ -197,77 +197,48 @@ impl AttendanceImportService {
         let mut errors = Vec::new();
         let mut pending_rows: Vec<PendingRow> = Vec::new();
 
-        let mut is_excel = false;
-        if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
-            if let Some(Ok(range)) = reader.worksheet_range_at(0) {
-                is_excel = true;
-                Self::parse_excel_range(
-                    range,
-                    &mut pending_rows,
-                    &mut errors,
-                    Some(&date_format),
-                    Some(&time_format),
-                    &timezone,
-                    &msgs,
-                );
-            }
-        } else if let Ok(mut reader) = Xls::new(Cursor::new(&file_bytes)) {
-            if let Some(Ok(range)) = reader.worksheet_range_at(0) {
-                is_excel = true;
-                Self::parse_excel_range(
-                    range,
-                    &mut pending_rows,
-                    &mut errors,
-                    Some(&date_format),
-                    Some(&time_format),
-                    &timezone,
-                    &msgs,
-                );
-            }
-        }
+        match crate::utils::file_parser::extract_file_rows(&file_bytes) {
+            Ok(rows) => {
+                for (current_line, cols) in rows {
+                    let raw_emp_id = cols.first().map(|s| s.as_str()).unwrap_or("").trim();
+                    let emp_id_number = normalize_employee_id(raw_emp_id);
+                    let emp_dt_str = cols.get(2).map(|s| s.as_str()).unwrap_or("").trim();
 
-        if !is_excel {
-            let mut reader = csv::ReaderBuilder::new()
-                .has_headers(true)
-                .from_reader(Cursor::new(&file_bytes));
-            let records: Vec<_> = reader.records().flatten().collect();
-            for (idx, record) in records.into_iter().enumerate() {
-                let current_line = idx + 2;
-                let raw_emp_id = record.get(0).unwrap_or("").trim();
-                let emp_id_number = normalize_employee_id(raw_emp_id);
-                let emp_dt_str = record.get(2).unwrap_or("").trim();
-
-                if emp_id_number.is_empty() || emp_dt_str.is_empty() {
-                    errors.push(fmt_msg(
-                        msgs.missing_employee_or_time,
-                        &[("line", &current_line.to_string())],
-                    ));
-                    continue;
-                }
-
-                match AttendanceAdjustmentService::parse_datetime(
-                    emp_dt_str,
-                    &timezone,
-                    Some(&date_format),
-                    Some(&time_format),
-                ) {
-                    Ok(dt) => {
-                        pending_rows.push(PendingRow {
-                            emp_id_number,
-                            punch_time: dt,
-                            line_number: current_line,
-                        });
-                    }
-                    Err(_e) => {
-                        errors.push(format!(
-                            "{} [Raw: '{emp_dt_str}']",
-                            fmt_msg(
-                                msgs.missing_employee_or_time,
-                                &[("line", &current_line.to_string())],
-                            )
+                    if emp_id_number.is_empty() || emp_dt_str.is_empty() {
+                        errors.push(fmt_msg(
+                            msgs.missing_employee_or_time,
+                            &[("line", &current_line.to_string())],
                         ));
+                        continue;
                     }
-                };
+
+                    match AttendanceAdjustmentService::parse_datetime(
+                        emp_dt_str,
+                        &timezone,
+                        Some(&date_format),
+                        Some(&time_format),
+                    ) {
+                        Ok(dt) => {
+                            pending_rows.push(PendingRow {
+                                emp_id_number,
+                                punch_time: dt,
+                                line_number: current_line,
+                            });
+                        }
+                        Err(_e) => {
+                            errors.push(format!(
+                                "{} [Raw: '{emp_dt_str}']",
+                                fmt_msg(
+                                    msgs.missing_employee_or_time,
+                                    &[("line", &current_line.to_string())],
+                                )
+                            ));
+                        }
+                    };
+                }
+            }
+            Err(e) => {
+                errors.push(e);
             }
         }
 
@@ -796,88 +767,6 @@ impl AttendanceImportService {
             Ok(Some(employee_id))
         } else {
             Ok(None)
-        }
-    }
-
-    fn parse_excel_range(
-        range: calamine::Range<Data>,
-        pending_rows: &mut Vec<PendingRow>,
-        errors: &mut Vec<String>,
-        preferred_date: Option<&str>,
-        preferred_time: Option<&str>,
-        timezone: &str,
-        msgs: &AttendanceImportMessages,
-    ) {
-        for (idx, row) in range.rows().skip(1).enumerate() {
-            let current_line = idx + 2;
-            let raw_id = match row.first() {
-                Some(Data::String(s)) => s.clone(),
-                Some(Data::Float(f)) => f.to_string(),
-                Some(Data::Int(i)) => i.to_string(),
-                _ => {
-                    errors.push(fmt_msg(
-                        msgs.missing_employee_id,
-                        &[("line", &current_line.to_string())],
-                    ));
-                    continue;
-                }
-            };
-            let emp_id_number = normalize_employee_id(&raw_id);
-
-            let punch_time = match row.get(2) {
-                Some(Data::String(s)) => match AttendanceAdjustmentService::parse_datetime(
-                    s.trim(),
-                    timezone,
-                    preferred_date,
-                    preferred_time,
-                ) {
-                    Ok(dt) => Some(dt),
-                    Err(_e) => {
-                        errors.push(format!(
-                            "{} [Raw: '{s}']",
-                            fmt_msg(
-                                msgs.missing_time_data,
-                                &[("line", &current_line.to_string()), ("emp", &emp_id_number),],
-                            )
-                        ));
-                        None
-                    }
-                },
-                Some(cell_data) => {
-                    if let Some(naive) = cell_data.as_datetime() {
-                        let tz: Tz = crate::utils::tz::parse_workspace_tz(timezone);
-                        match tz.from_local_datetime(&naive) {
-                            chrono::LocalResult::Single(dt) => Some(dt.with_timezone::<Utc>(&Utc)),
-                            _ => Some(DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc)),
-                        }
-                    } else {
-                        errors.push(fmt_msg(
-                            msgs.invalid_datetime,
-                            &[
-                                ("line", &current_line.to_string()),
-                                ("emp", &emp_id_number),
-                                ("raw", &cell_data.to_string()),
-                            ],
-                        ));
-                        None
-                    }
-                }
-                _ => {
-                    errors.push(fmt_msg(
-                        msgs.missing_time_data,
-                        &[("line", &current_line.to_string()), ("emp", &emp_id_number)],
-                    ));
-                    None
-                }
-            };
-
-            if let Some(dt) = punch_time {
-                pending_rows.push(PendingRow {
-                    emp_id_number,
-                    punch_time: dt,
-                    line_number: current_line,
-                });
-            }
         }
     }
 
