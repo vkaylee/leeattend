@@ -38,7 +38,6 @@ pub struct EmployeeBasicInfo {
 // Trait: EmployeeRepository — DIP abstraction over employee data access
 // ---------------------------------------------------------------------------
 #[async_trait]
-#[allow(clippy::too_many_arguments)]
 pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
     async fn find_by_number(
         &self,
@@ -61,12 +60,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
     async fn get_all_employees(
         &self,
         workspace_id: Uuid,
-        search_query: Option<String>,
-        page: i64,
-        limit: i64,
-        sort_by: Option<String>,
-        sort_dir: Option<String>,
-        department_id: Option<Vec<Uuid>>,
+        options: crate::models::EmployeeFilterOptions,
     ) -> Result<(Vec<Employee>, i64), sqlx::Error>;
 
     async fn get_active_employees(&self, workspace_id: Uuid) -> Result<Vec<Employee>, sqlx::Error>;
@@ -80,24 +74,14 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
     async fn get_paginated_employee_ids(
         &self,
         workspace_id: Uuid,
-        filter_ids: Option<&Vec<Uuid>>,
-        department_id: Option<Uuid>,
-        page: i64,
-        limit: i64,
-        sort_desc: bool,
+        args: crate::models::EmployeePaginationArgs<'_>,
     ) -> Result<(Vec<EmployeeBasicInfo>, i64), sqlx::Error>;
 
     async fn update_employee(
         &self,
         id: Uuid,
         workspace_id: Uuid,
-        user_id: Option<Uuid>,
-        full_name: Option<String>,
-        employee_id_number: Option<String>,
-        hire_date: Option<NaiveDate>,
-        termination_date: Option<NaiveDate>,
-        tags: Option<Vec<String>>,
-        is_active: Option<bool>,
+        req: &crate::models::UpdateEmployeeRequest,
     ) -> Result<Option<Employee>, sqlx::Error>;
 
     async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, sqlx::Error>;
@@ -173,15 +157,7 @@ pub trait EmployeeRepository: super::PoolBacked + Send + Sync {
         &self,
         id: Uuid,
         workspace_id: Uuid,
-        name: Option<String>,
-        referrer_employee_id: Option<Uuid>,
-        referral_bonus_amount: Option<Decimal>,
-        referral_bonus_paid: Option<bool>,
-        agency_contact_name: Option<String>,
-        agency_contact_email: Option<String>,
-        agency_fee_amount: Option<Decimal>,
-        agency_fee_paid: Option<bool>,
-        notes: Option<String>,
+        req: &crate::models::UpdateRecruitmentSourceRequest,
     ) -> Result<Option<RecruitmentSource>, sqlx::Error>;
 
     async fn delete_recruitment_source(
@@ -257,24 +233,9 @@ impl EmployeeRepository for SqlxEmployeeRepository {
     async fn get_all_employees(
         &self,
         workspace_id: Uuid,
-        search_query: Option<String>,
-        page: i64,
-        limit: i64,
-        sort_by: Option<String>,
-        sort_dir: Option<String>,
-        department_id: Option<Vec<Uuid>>,
+        options: crate::models::EmployeeFilterOptions,
     ) -> Result<(Vec<Employee>, i64), sqlx::Error> {
-        core_queries::get_all_employees(
-            &self.pool,
-            workspace_id,
-            search_query,
-            page,
-            limit,
-            sort_by,
-            sort_dir,
-            department_id,
-        )
-        .await
+        core_queries::get_all_employees(&self.pool, workspace_id, options).await
     }
 
     async fn get_active_employees(&self, workspace_id: Uuid) -> Result<Vec<Employee>, sqlx::Error> {
@@ -292,50 +253,18 @@ impl EmployeeRepository for SqlxEmployeeRepository {
     async fn get_paginated_employee_ids(
         &self,
         workspace_id: Uuid,
-        filter_ids: Option<&Vec<Uuid>>,
-        department_id: Option<Uuid>,
-        page: i64,
-        limit: i64,
-        sort_desc: bool,
+        args: crate::models::EmployeePaginationArgs<'_>,
     ) -> Result<(Vec<EmployeeBasicInfo>, i64), sqlx::Error> {
-        core_queries::get_paginated_employee_ids(
-            &self.pool,
-            workspace_id,
-            filter_ids,
-            department_id,
-            page,
-            limit,
-            sort_desc,
-        )
-        .await
+        core_queries::get_paginated_employee_ids(&self.pool, workspace_id, args).await
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn update_employee(
         &self,
         id: Uuid,
         workspace_id: Uuid,
-        user_id: Option<Uuid>,
-        full_name: Option<String>,
-        employee_id_number: Option<String>,
-        hire_date: Option<NaiveDate>,
-        termination_date: Option<NaiveDate>,
-        tags: Option<Vec<String>>,
-        is_active: Option<bool>,
+        req: &crate::models::UpdateEmployeeRequest,
     ) -> Result<Option<Employee>, sqlx::Error> {
-        core_queries::update_employee(
-            &self.pool,
-            id,
-            workspace_id,
-            user_id,
-            full_name,
-            employee_id_number,
-            hire_date,
-            termination_date,
-            tags,
-            is_active,
-        )
-        .await
+        core_queries::update_employee(&self.pool, id, workspace_id, req).await
     }
 
     async fn delete_employee(&self, id: Uuid, workspace_id: Uuid) -> Result<u64, sqlx::Error> {
@@ -446,36 +375,13 @@ impl EmployeeRepository for SqlxEmployeeRepository {
         recruitment_queries::get_recruitment_source_by_id(&self.pool, id, workspace_id).await
     }
 
-    #[allow(clippy::too_many_arguments)]
     async fn update_recruitment_source(
         &self,
         id: Uuid,
         workspace_id: Uuid,
-        name: Option<String>,
-        referrer_employee_id: Option<Uuid>,
-        referral_bonus_amount: Option<Decimal>,
-        referral_bonus_paid: Option<bool>,
-        agency_contact_name: Option<String>,
-        agency_contact_email: Option<String>,
-        agency_fee_amount: Option<Decimal>,
-        agency_fee_paid: Option<bool>,
-        notes: Option<String>,
+        req: &crate::models::UpdateRecruitmentSourceRequest,
     ) -> Result<Option<RecruitmentSource>, sqlx::Error> {
-        recruitment_queries::update_recruitment_source(
-            &self.pool,
-            id,
-            workspace_id,
-            name,
-            referrer_employee_id,
-            referral_bonus_amount,
-            referral_bonus_paid,
-            agency_contact_name,
-            agency_contact_email,
-            agency_fee_amount,
-            agency_fee_paid,
-            notes,
-        )
-        .await
+        recruitment_queries::update_recruitment_source(&self.pool, id, workspace_id, req).await
     }
 
     async fn delete_recruitment_source(

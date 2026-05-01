@@ -25,11 +25,11 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useAllEmployees } from "@/hooks/use-employees";
 import { cn } from "@/lib/utils";
 
 
 import {
-    fetchEmployees,
     getCurrentWorkspaceId,
     
 } from "../lib/api";
@@ -71,12 +71,7 @@ export default function ShiftSwapsPage() {
         enabled: !!wsId,
     });
 
-    const { data: employeesData } = useQuery({
-        queryKey: ["employees", wsId],
-        queryFn: () => fetchEmployees(wsId!, 1, 3000),
-        enabled: !!wsId,
-    });
-    const employees = employeesData?.data || [];
+    const { employees } = useAllEmployees(wsId);
 
     const createMutation = useMutation({
         mutationFn: (data: {

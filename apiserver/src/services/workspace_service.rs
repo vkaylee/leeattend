@@ -11,7 +11,21 @@ impl WorkspaceService {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+}
 
+pub struct UpdateWorkspaceArgs {
+    pub ws_id: Uuid,
+    pub name: Option<String>,
+    pub date_format: Option<String>,
+    pub time_format: Option<String>,
+    pub timezone: Option<String>,
+    pub theme_primary_color: Option<String>,
+    pub default_language: Option<String>,
+    pub holiday_overnight_strategy: Option<String>,
+    pub default_holiday_ot_multiplier: Option<rust_decimal::Decimal>,
+}
+
+impl WorkspaceService {
     #[tracing::instrument(skip_all, err)]
     pub async fn create_workspace(&self, name: &str, owner_id: Uuid) -> Result<Workspace, String> {
         let db = &self.pool;
@@ -93,30 +107,18 @@ impl WorkspaceService {
         Ok((primary_role_id, extra_roles))
     }
 
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
-    pub async fn update_workspace(
-        &self,
-        ws_id: Uuid,
-        name: Option<String>,
-        date_format: Option<String>,
-        time_format: Option<String>,
-        timezone: Option<String>,
-        theme_primary_color: Option<String>,
-        default_language: Option<String>,
-        holiday_overnight_strategy: Option<String>,
-        default_holiday_ot_multiplier: Option<rust_decimal::Decimal>,
-    ) -> Result<Workspace, String> {
+    pub async fn update_workspace(&self, args: UpdateWorkspaceArgs) -> Result<Workspace, String> {
         let mut query = String::from("UPDATE workspaces SET ");
         let mut has_fields = false;
         let mut arg_idx = 1;
 
-        if name.is_some() {
+        if args.name.is_some() {
             query.push_str(&format!("name = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
-        if date_format.is_some() {
+        if args.date_format.is_some() {
             if has_fields {
                 query.push_str(", ");
             }
@@ -124,7 +126,7 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
-        if time_format.is_some() {
+        if args.time_format.is_some() {
             if has_fields {
                 query.push_str(", ");
             }
@@ -132,7 +134,7 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
-        if timezone.is_some() {
+        if args.timezone.is_some() {
             if has_fields {
                 query.push_str(", ");
             }
@@ -140,7 +142,7 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
-        if theme_primary_color.is_some() {
+        if args.theme_primary_color.is_some() {
             if has_fields {
                 query.push_str(", ");
             }
@@ -148,7 +150,7 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
-        if default_language.is_some() {
+        if args.default_language.is_some() {
             if has_fields {
                 query.push_str(", ");
             }
@@ -157,7 +159,7 @@ impl WorkspaceService {
             has_fields = true;
         }
 
-        if holiday_overnight_strategy.is_some() {
+        if args.holiday_overnight_strategy.is_some() {
             if has_fields {
                 query.push_str(", ");
             }
@@ -165,7 +167,7 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
-        if default_holiday_ot_multiplier.is_some() {
+        if args.default_holiday_ot_multiplier.is_some() {
             if has_fields {
                 query.push_str(", ");
             }
@@ -182,32 +184,32 @@ impl WorkspaceService {
 
         let mut q = sqlx::query_as::<_, Workspace>(&query);
 
-        if let Some(n) = name {
+        if let Some(n) = args.name {
             q = q.bind(n);
         }
-        if let Some(d) = date_format {
+        if let Some(d) = args.date_format {
             q = q.bind(d);
         }
-        if let Some(t) = time_format {
+        if let Some(t) = args.time_format {
             q = q.bind(t);
         }
-        if let Some(tz) = timezone {
+        if let Some(tz) = args.timezone {
             q = q.bind(tz);
         }
-        if let Some(tpc) = theme_primary_color {
+        if let Some(tpc) = args.theme_primary_color {
             q = q.bind(tpc);
         }
-        if let Some(dl) = default_language {
+        if let Some(dl) = args.default_language {
             q = q.bind(dl);
         }
 
-        if let Some(hos) = holiday_overnight_strategy {
+        if let Some(hos) = args.holiday_overnight_strategy {
             q = q.bind(hos);
         }
-        if let Some(dhom) = default_holiday_ot_multiplier {
+        if let Some(dhom) = args.default_holiday_ot_multiplier {
             q = q.bind(dhom);
         }
-        q = q.bind(ws_id);
+        q = q.bind(args.ws_id);
 
         let ws = q.fetch_one(&self.pool).await.map_err(|e| e.to_string())?;
         Ok(ws)

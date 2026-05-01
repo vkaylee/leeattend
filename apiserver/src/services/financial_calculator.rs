@@ -29,6 +29,39 @@ pub struct DeductionsResult {
     pub rule_results: Vec<super::payroll_rule_evaluator::RuleEvaluationResult>,
 }
 
+pub struct CalculateIncentivesArgs {
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub total_std_units: i32,
+    pub total_late_early_count: i32,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+}
+
+pub struct CalculateDeductionsArgs<'a> {
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub department_id: Option<Uuid>,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub base_values: &'a std::collections::HashMap<String, Decimal>,
+    pub segment_snapshots: &'a [SegmentSnapshot],
+}
+
+pub struct AssemblePayslipArgs {
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub total_base_pay: Decimal,
+    pub total_overtime_pay: Decimal,
+    pub total_holiday_work_premium: Decimal,
+    pub total_incentive_amount: Decimal,
+    pub deductions_amount: Decimal,
+    pub total_std_units: i32,
+    pub total_ot_units: i32,
+}
+
 pub struct FinancialCalculator;
 
 impl FinancialCalculator {
@@ -85,35 +118,30 @@ impl FinancialCalculator {
     // Incentives
     // -----------------------------------------------------------------------
 
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
     pub async fn calculate_incentives(
         pool: &PgPool,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        total_std_units: i32,
-        total_late_early_count: i32,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
+        args: CalculateIncentivesArgs,
     ) -> Result<IncentivesResult, AppError> {
-        let active_policies = payroll_repository::get_active_incentive_policies(pool, workspace_id)
-            .await
-            .map_err(AppError::Sqlx)?;
+        let active_policies =
+            payroll_repository::get_active_incentive_policies(pool, args.workspace_id)
+                .await
+                .map_err(AppError::Sqlx)?;
         let mut incentive_results = Vec::new();
         let mut total_incentive_amount = Decimal::ZERO;
 
         let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
             pool,
-            employee_id,
-            start_date,
-            end_date,
-            workspace_id,
+            args.employee_id,
+            args.start_date,
+            args.end_date,
+            args.workspace_id,
         )
         .await
         .map_err(|e| {
             tracing::error!(
                 "Failed to fetch leave breakdown for employee {}: {}",
-                employee_id,
+                args.employee_id,
                 e
             );
             AppError::Internal("Internal error".into())
@@ -121,11 +149,11 @@ impl FinancialCalculator {
 
         if !active_policies.is_empty() {
             let context = IncentiveContext {
-                total_work_units: total_std_units,
+                total_work_units: args.total_std_units,
                 total_leave_days: leave_breakdown.total_days,
                 unpaid_leave_days: leave_breakdown.unpaid_days,
                 sick_leave_days: leave_breakdown.sick_days,
-                late_early_count: total_late_early_count,
+                late_early_count: args.total_late_early_count,
             };
 
             for policy in active_policies {
@@ -150,24 +178,17 @@ impl FinancialCalculator {
     // Deductions
     // -----------------------------------------------------------------------
 
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
     pub async fn calculate_deductions(
         pool: &PgPool,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        department_id: Option<Uuid>,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        base_values: &std::collections::HashMap<String, Decimal>,
-        segment_snapshots: &[SegmentSnapshot],
+        args: CalculateDeductionsArgs<'_>,
     ) -> Result<DeductionsResult, AppError> {
         let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
             pool,
-            employee_id,
-            start_date,
-            end_date,
-            workspace_id,
+            args.employee_id,
+            args.start_date,
+            args.end_date,
+            args.workspace_id,
         )
         .await
         .map_err(|e| {
@@ -177,7 +198,7 @@ impl FinancialCalculator {
 
         let mut deductions_amount = Decimal::ZERO;
         if leave_breakdown.unpaid_days > 0.0 {
-            if let Some(last_snap) = segment_snapshots.last() {
+            if let Some(last_snap) = args.segment_snapshots.last() {
                 let daily_rate =
                     Self::calculate_daily_rate(last_snap.total_base, last_snap.std_working_days);
                 deductions_amount = daily_rate
@@ -200,17 +221,17 @@ impl FinancialCalculator {
                        AND lr.start_date <= h.date
                        AND lr.end_date >= h.date
                  )"#,
-            workspace_id,
-            start_date,
-            end_date,
-            employee_id
+            args.workspace_id,
+            args.start_date,
+            args.end_date,
+            args.employee_id
         )
         .fetch_one(pool)
         .await
         .unwrap_or(0);
 
         if unpaid_holiday_days > 0 {
-            if let Some(last_snap) = segment_snapshots.last() {
+            if let Some(last_snap) = args.segment_snapshots.last() {
                 let daily_rate =
                     Self::calculate_daily_rate(last_snap.total_base, last_snap.std_working_days);
                 deductions_amount += daily_rate * Decimal::from(unpaid_holiday_days);
@@ -220,12 +241,12 @@ impl FinancialCalculator {
         // Evaluate statutory deductions via new Rule Engine
         let rule_results = PayrollRuleEvaluator::evaluate_rules(
             pool,
-            workspace_id,
-            employee_id,
-            department_id,
-            start_date,
-            end_date,
-            base_values,
+            args.workspace_id,
+            args.employee_id,
+            args.department_id,
+            args.start_date,
+            args.end_date,
+            args.base_values,
         )
         .await?;
 
@@ -243,37 +264,24 @@ impl FinancialCalculator {
     // Payslip Assembly
     // -----------------------------------------------------------------------
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn assemble_payslip(
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        total_base_pay: Decimal,
-        total_overtime_pay: Decimal,
-        total_holiday_work_premium: Decimal,
-        total_incentive_amount: Decimal,
-        deductions_amount: Decimal,
-        total_std_units: i32,
-        total_ot_units: i32,
-    ) -> Payslip {
+    pub fn assemble_payslip(args: AssemblePayslipArgs) -> Payslip {
         Payslip {
             id: Uuid::new_v4(),
-            employee_id,
-            workspace_id,
-            period_start: start_date,
-            period_end: end_date,
-            base_pay_amount: total_base_pay,
-            overtime_pay_amount: total_overtime_pay,
-            deductions_amount,
-            holiday_work_premium_amount: total_holiday_work_premium,
-            net_pay_amount: total_base_pay
-                + total_overtime_pay
-                + total_incentive_amount
-                + total_holiday_work_premium
-                - deductions_amount,
-            standard_units: total_std_units,
-            overtime_units: total_ot_units,
+            employee_id: args.employee_id,
+            workspace_id: args.workspace_id,
+            period_start: args.start_date,
+            period_end: args.end_date,
+            base_pay_amount: args.total_base_pay,
+            overtime_pay_amount: args.total_overtime_pay,
+            deductions_amount: args.deductions_amount,
+            holiday_work_premium_amount: args.total_holiday_work_premium,
+            net_pay_amount: args.total_base_pay
+                + args.total_overtime_pay
+                + args.total_incentive_amount
+                + args.total_holiday_work_premium
+                - args.deductions_amount,
+            standard_units: args.total_std_units,
+            overtime_units: args.total_ot_units,
             status: "draft".to_string(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -359,19 +367,19 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date");
         let end = NaiveDate::from_ymd_opt(2026, 1, 31).expect("valid date");
 
-        let slip = FinancialCalculator::assemble_payslip(
-            Uuid::new_v4(),
-            emp,
-            start,
-            end,
-            Decimal::from(10000), // base
-            Decimal::from(2000),  // OT
-            Decimal::from(500),   // holiday premium
-            Decimal::from(300),   // incentive
-            Decimal::from(800),   // deductions
-            26,                   // std units
-            10,                   // OT units
-        );
+        let slip = FinancialCalculator::assemble_payslip(AssemblePayslipArgs {
+            workspace_id: Uuid::new_v4(),
+            employee_id: emp,
+            start_date: start,
+            end_date: end,
+            total_base_pay: Decimal::from(10000),    // base
+            total_overtime_pay: Decimal::from(2000), // OT
+            total_holiday_work_premium: Decimal::from(500), // holiday premium
+            total_incentive_amount: Decimal::from(300), // incentive
+            deductions_amount: Decimal::from(800),   // deductions
+            total_std_units: 26,                     // std units
+            total_ot_units: 10,                      // OT units
+        });
 
         assert_eq!(slip.employee_id, emp);
         assert_eq!(slip.period_start, start);
@@ -393,19 +401,19 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date");
         let end = NaiveDate::from_ymd_opt(2026, 3, 31).expect("valid date");
 
-        let slip = FinancialCalculator::assemble_payslip(
-            Uuid::new_v4(),
-            emp,
-            start,
-            end,
-            Decimal::ZERO,
-            Decimal::ZERO,
-            Decimal::ZERO,
-            Decimal::ZERO,
-            Decimal::ZERO,
-            0,
-            0,
-        );
+        let slip = FinancialCalculator::assemble_payslip(AssemblePayslipArgs {
+            workspace_id: Uuid::new_v4(),
+            employee_id: emp,
+            start_date: start,
+            end_date: end,
+            total_base_pay: Decimal::ZERO,
+            total_overtime_pay: Decimal::ZERO,
+            total_holiday_work_premium: Decimal::ZERO,
+            total_incentive_amount: Decimal::ZERO,
+            deductions_amount: Decimal::ZERO,
+            total_std_units: 0,
+            total_ot_units: 0,
+        });
 
         assert_eq!(slip.net_pay_amount, Decimal::ZERO);
         assert_eq!(slip.standard_units, 0);
@@ -499,19 +507,19 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2026, 2, 1).expect("valid date");
         let end = NaiveDate::from_ymd_opt(2026, 2, 28).expect("valid date");
 
-        let slip = FinancialCalculator::assemble_payslip(
-            Uuid::new_v4(),
-            emp,
-            start,
-            end,
-            Decimal::from(1000), // base
-            Decimal::ZERO,       // OT
-            Decimal::ZERO,       // holiday premium
-            Decimal::ZERO,       // incentive
-            Decimal::from(3000), // deductions > income
-            10,
-            0,
-        );
+        let slip = FinancialCalculator::assemble_payslip(AssemblePayslipArgs {
+            workspace_id: Uuid::new_v4(),
+            employee_id: emp,
+            start_date: start,
+            end_date: end,
+            total_base_pay: Decimal::from(1000),       // base
+            total_overtime_pay: Decimal::ZERO,         // OT
+            total_holiday_work_premium: Decimal::ZERO, // holiday premium
+            total_incentive_amount: Decimal::ZERO,     // incentive
+            deductions_amount: Decimal::from(3000),    // deductions > income
+            total_std_units: 10,
+            total_ot_units: 0,
+        });
 
         // net = 1000 + 0 + 0 + 0 - 3000 = -2000
         assert_eq!(slip.net_pay_amount, Decimal::from(-2000));
@@ -523,19 +531,19 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date");
         let end = NaiveDate::from_ymd_opt(2026, 3, 31).expect("valid date");
 
-        let slip = FinancialCalculator::assemble_payslip(
-            Uuid::new_v4(),
-            emp,
-            start,
-            end,
-            Decimal::from(20000), // base
-            Decimal::from(5000),  // OT
-            Decimal::from(2000),  // holiday
-            Decimal::from(3000),  // incentive
-            Decimal::from(1000),  // deductions
-            160,
-            40,
-        );
+        let slip = FinancialCalculator::assemble_payslip(AssemblePayslipArgs {
+            workspace_id: Uuid::new_v4(),
+            employee_id: emp,
+            start_date: start,
+            end_date: end,
+            total_base_pay: Decimal::from(20000),    // base
+            total_overtime_pay: Decimal::from(5000), // OT
+            total_holiday_work_premium: Decimal::from(2000), // holiday
+            total_incentive_amount: Decimal::from(3000), // incentive
+            deductions_amount: Decimal::from(1000),  // deductions
+            total_std_units: 160,
+            total_ot_units: 40,
+        });
 
         // net = 20000 + 5000 + 3000 + 2000 - 1000 = 29000
         assert_eq!(slip.net_pay_amount, Decimal::from(29000));

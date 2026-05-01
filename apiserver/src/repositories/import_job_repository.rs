@@ -24,6 +24,7 @@ pub trait ImportJobRepository: super::PoolBacked + Send + Sync {
         target_type: Option<String>,
     ) -> Result<Option<AttendanceImportJob>, sqlx::Error>;
     async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, sqlx::Error>;
+    async fn update_job_total_rows(&self, id: Uuid, total_rows: i32) -> Result<(), sqlx::Error>;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,6 +67,9 @@ impl ImportJobRepository for SqlxImportJobRepository {
     async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, sqlx::Error> {
         get_pending_jobs(&self.pool).await
     }
+    async fn update_job_total_rows(&self, id: Uuid, total_rows: i32) -> Result<(), sqlx::Error> {
+        update_job_total_rows(&self.pool, id, total_rows).await
+    }
 }
 
 pub async fn create_job(pool: &PgPool, job: &AttendanceImportJob) -> Result<(), sqlx::Error> {
@@ -105,6 +109,20 @@ pub async fn update_job_progress(
     .bind(id)
     .execute(pool)
     .await?;
+    Ok(())
+}
+
+pub async fn update_job_total_rows(
+    pool: &PgPool,
+    id: Uuid,
+    total_rows: i32,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1, updated_at = $2 WHERE id = $3")
+        .bind(total_rows)
+        .bind(Utc::now())
+        .bind(id)
+        .execute(pool)
+        .await?;
     Ok(())
 }
 

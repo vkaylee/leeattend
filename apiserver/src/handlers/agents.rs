@@ -22,7 +22,7 @@ use crate::models::{
     AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device,
     TrustAgentRequest, UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
 };
-use crate::services::AgentLogEntry;
+use crate::services::{AgentLogEntry, AgentLogEntryArgs};
 use crate::AppState;
 
 // --- WebSocket Handlers ---
@@ -98,16 +98,16 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                 })
                                             } else {
                                                 // Fallback: synchronous processing (no Redis)
-                                                let entry = AgentLogEntry::new(
+                                                let entry = AgentLogEntry::new(AgentLogEntryArgs {
                                                     workspace_id,
-                                                    user_id_number.to_string(),
-                                                    punch_time_str.to_string(),
-                                                    Some(device_id.to_string()),
-                                                    Some(data.clone()),
-                                                    ws_tz.clone(),
-                                                    ws_date_fmt.clone(),
-                                                    ws_time_fmt.clone(),
-                                                );
+                                                    employee_id_number: user_id_number.to_string(),
+                                                    punch_time_raw: punch_time_str.to_string(),
+                                                    device_id: Some(device_id.to_string()),
+                                                    raw_data: Some(data.clone()),
+                                                    timezone: ws_tz.clone(),
+                                                    date_fmt: ws_date_fmt.clone(),
+                                                    time_fmt: ws_time_fmt.clone(),
+                                                });
                                                 state_clone
                                                     .attendance
                                                     .log_service

@@ -198,18 +198,20 @@ impl EmployeeService {
 
         let tx = self.pool.begin().await.map_err(AppError::Sqlx)?;
 
+        let update_req = UpdateEmployeeRequest {
+            user_id: None,
+            full_name: None,
+            employee_id_number: None,
+            hire_date: None,
+            termination_date: None,
+            tags: None,
+            is_active: Some(true),
+            max_concurrent_workers: None,
+            recruitment_source_id: None,
+        };
+
         self.repo
-            .update_employee(
-                employee_id,
-                workspace_id,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some(true),
-            )
+            .update_employee(employee_id, workspace_id, &update_req)
             .await
             .map_err(AppError::Sqlx)?;
 
@@ -266,28 +268,14 @@ impl EmployeeService {
             .ok_or(AppError::NotFound("Employee not found".into()))
     }
 
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
     pub async fn get_all_employees(
         &self,
         workspace_id: Uuid,
-        search_query: Option<String>,
-        page: i64,
-        limit: i64,
-        sort_by: Option<String>,
-        sort_dir: Option<String>,
-        department_id: Option<Vec<Uuid>>,
+        options: crate::models::EmployeeFilterOptions,
     ) -> Result<(Vec<Employee>, i64), AppError> {
         self.repo
-            .get_all_employees(
-                workspace_id,
-                search_query,
-                page,
-                limit,
-                sort_by,
-                sort_dir,
-                department_id,
-            )
+            .get_all_employees(workspace_id, options)
             .await
             .map_err(AppError::Sqlx)
     }
@@ -308,19 +296,7 @@ impl EmployeeService {
 
         let employee = self
             .repo
-            .update_employee(
-                id,
-                workspace_id,
-                req.user_id,
-                req.full_name,
-                req.employee_id_number
-                    .clone()
-                    .map(|s| normalize_employee_id(&s)),
-                req.hire_date,
-                req.termination_date,
-                req.tags,
-                req.is_active,
-            )
+            .update_employee(id, workspace_id, &req)
             .await?
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
@@ -413,19 +389,7 @@ impl EmployeeService {
         req: crate::models::UpdateRecruitmentSourceRequest,
     ) -> Result<crate::models::RecruitmentSource, AppError> {
         self.repo
-            .update_recruitment_source(
-                id,
-                workspace_id,
-                req.name,
-                req.referrer_employee_id,
-                req.referral_bonus_amount,
-                req.referral_bonus_paid,
-                req.agency_contact_name,
-                req.agency_contact_email,
-                req.agency_fee_amount,
-                req.agency_fee_paid,
-                req.notes,
-            )
+            .update_recruitment_source(id, workspace_id, &req)
             .await?
             .ok_or(AppError::NotFound("Recruitment source not found".into()))
     }

@@ -59,25 +59,31 @@ async fn test_process_log_success_with_timezone() {
     let (service, _) = AttendanceLogService::new(
         pool.clone(),
         pairing,
-        100,
-        10,
-        1000,
-        emp_repo,
-        rl_repo,
-        st_repo,
-        er_repo,
+        apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
+            buffer_capacity: 100,
+            batch_size: 10,
+            flush_interval_ms: 1000,
+        },
+        apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
+            employee_repo: emp_repo,
+            raw_log_repo: rl_repo,
+            staging_repo: st_repo,
+            error_repo: er_repo,
+        },
     );
     let result = service
         .process_log(
-            workspace_id,
-            "EMP_VN_001",
-            punch_time_raw,
-            LogSource::Device,
-            Some("DEV_01".to_string()),
-            None,
-            "Asia/Ho_Chi_Minh",
-            Some("YYYY-MM-DD"),
-            Some("24h"),
+            apiserver::services::attendance_log_service::ProcessLogArgs {
+                workspace_id,
+                employee_id_number: "EMP_VN_001",
+                punch_time_raw,
+                source: LogSource::Device,
+                device_id: Some("DEV_01".to_string()),
+                raw_data: None,
+                timezone: "Asia/Ho_Chi_Minh",
+                date_fmt: Some("YYYY-MM-DD"),
+                time_fmt: Some("24h"),
+            },
         )
         .await;
 
@@ -152,27 +158,33 @@ async fn test_same_second_punch_with_different_status_allowed() {
     let (service, _) = AttendanceLogService::new(
         pool.clone(),
         pairing,
-        100,
-        10,
-        1000,
-        emp_repo,
-        rl_repo,
-        st_repo,
-        er_repo,
+        apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
+            buffer_capacity: 100,
+            batch_size: 10,
+            flush_interval_ms: 1000,
+        },
+        apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
+            employee_repo: emp_repo,
+            raw_log_repo: rl_repo,
+            staging_repo: st_repo,
+            error_repo: er_repo,
+        },
     );
 
     // 1. First punch (check-in)
     let res1 = service
         .process_log(
-            workspace_id,
-            "EMP001",
-            punch_time_raw,
-            LogSource::Device,
-            Some("DEV_01".to_string()),
-            Some(serde_json::json!({"punch": 0, "status": 1})),
-            "UTC",
-            Some("YYYY-MM-DD"),
-            Some("24h"),
+            apiserver::services::attendance_log_service::ProcessLogArgs {
+                workspace_id,
+                employee_id_number: "EMP001",
+                punch_time_raw,
+                source: LogSource::Device,
+                device_id: Some("DEV_01".to_string()),
+                raw_data: Some(serde_json::json!({"punch": 0, "status": 1})),
+                timezone: "UTC",
+                date_fmt: Some("YYYY-MM-DD"),
+                time_fmt: Some("24h"),
+            },
         )
         .await;
     assert!(res1.unwrap(), "First log should be saved");
@@ -180,15 +192,17 @@ async fn test_same_second_punch_with_different_status_allowed() {
     // 2. Second punch at EXACTLY same time but different status (check-out)
     let res2 = service
         .process_log(
-            workspace_id,
-            "EMP001",
-            punch_time_raw,
-            LogSource::Device,
-            Some("DEV_01".to_string()),
-            Some(serde_json::json!({"punch": 1, "status": 1})),
-            "UTC",
-            Some("YYYY-MM-DD"),
-            Some("24h"),
+            apiserver::services::attendance_log_service::ProcessLogArgs {
+                workspace_id,
+                employee_id_number: "EMP001",
+                punch_time_raw,
+                source: LogSource::Device,
+                device_id: Some("DEV_01".to_string()),
+                raw_data: Some(serde_json::json!({"punch": 1, "status": 1})),
+                timezone: "UTC",
+                date_fmt: Some("YYYY-MM-DD"),
+                time_fmt: Some("24h"),
+            },
         )
         .await;
     assert!(
@@ -199,15 +213,17 @@ async fn test_same_second_punch_with_different_status_allowed() {
     // 3. Exact duplicate (same time, punch, status) - should be skipped
     let res3 = service
         .process_log(
-            workspace_id,
-            "EMP001",
-            punch_time_raw,
-            LogSource::Device,
-            Some("DEV_01".to_string()),
-            Some(serde_json::json!({"punch": 0, "status": 1})),
-            "UTC",
-            Some("YYYY-MM-DD"),
-            Some("24h"),
+            apiserver::services::attendance_log_service::ProcessLogArgs {
+                workspace_id,
+                employee_id_number: "EMP001",
+                punch_time_raw,
+                source: LogSource::Device,
+                device_id: Some("DEV_01".to_string()),
+                raw_data: Some(serde_json::json!({"punch": 0, "status": 1})),
+                timezone: "UTC",
+                date_fmt: Some("YYYY-MM-DD"),
+                time_fmt: Some("24h"),
+            },
         )
         .await;
     assert!(

@@ -573,8 +573,8 @@ fn parse_duration_type(s: &str) -> LeaveDurationType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::file_parser::cell_to_string;
     use crate::services::import_messages::LeaveImportMessages;
+    use crate::utils::file_parser::cell_to_string;
     use chrono::NaiveDate;
 
     /// Vietnamese messages (matches the original hardcoded strings for test backwards-compat).
@@ -841,7 +841,6 @@ mod tests {
         let example_row: Vec<_> = range.rows().nth(1).unwrap().to_vec();
         assert_eq!(cell_to_string(Some(&example_row[1])), "CUSTOM");
     }
-
 
     // ---- LeaveImportResult tests ----
 

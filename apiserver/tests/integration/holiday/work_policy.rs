@@ -148,15 +148,17 @@ async fn test_payroll_holiday_work_with_multiplier() {
             apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
         );
         apiserver::services::payroll_service::PayrollService::new(
-            pr,
-            dr,
-            tr,
-            wr,
-            hr,
-            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
-                pool.clone(),
-            )),
-            pool.clone(),
+            apiserver::services::payroll_service::PayrollServiceArgs {
+                payroll_repo: pr,
+                department_repo: dr,
+                time_entry_repo: tr,
+                workspace_repo: wr,
+                holiday_repo: hr,
+                roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                    pool.clone(),
+                )),
+                pool: pool.clone(),
+            },
         )
     }
     .calculate_monthly_payslip(
@@ -309,15 +311,17 @@ async fn test_payroll_holiday_work_no_credit() {
             apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
         );
         apiserver::services::payroll_service::PayrollService::new(
-            pr,
-            dr,
-            tr,
-            wr,
-            hr,
-            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
-                pool.clone(),
-            )),
-            pool.clone(),
+            apiserver::services::payroll_service::PayrollServiceArgs {
+                payroll_repo: pr,
+                department_repo: dr,
+                time_entry_repo: tr,
+                workspace_repo: wr,
+                holiday_repo: hr,
+                roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                    pool.clone(),
+                )),
+                pool: pool.clone(),
+            },
         )
     }
     .calculate_monthly_payslip(
@@ -457,15 +461,17 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
             apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
         );
         apiserver::services::payroll_service::PayrollService::new(
-            pr,
-            dr,
-            tr,
-            wr,
-            hr,
-            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
-                pool.clone(),
-            )),
-            pool.clone(),
+            apiserver::services::payroll_service::PayrollServiceArgs {
+                payroll_repo: pr,
+                department_repo: dr,
+                time_entry_repo: tr,
+                workspace_repo: wr,
+                holiday_repo: hr,
+                roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+                    pool.clone(),
+                )),
+                pool: pool.clone(),
+            },
         )
     }
     .calculate_monthly_payslip(

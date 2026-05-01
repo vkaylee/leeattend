@@ -5,6 +5,27 @@ use uuid::Uuid;
 
 use crate::models::enums::RecruitmentSourceType;
 
+// ── Filter Models ───────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Default)]
+pub struct EmployeeFilterOptions {
+    pub search_query: Option<String>,
+    pub page: i64,
+    pub limit: i64,
+    pub sort_by: Option<String>,
+    pub sort_dir: Option<String>,
+    pub department_ids: Option<Vec<Uuid>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EmployeePaginationArgs<'a> {
+    pub filter_ids: Option<&'a Vec<Uuid>>,
+    pub department_id: Option<Uuid>,
+    pub page: i64,
+    pub limit: i64,
+    pub sort_desc: bool,
+}
+
 // ── Recruitment Source Models ───────────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

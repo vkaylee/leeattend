@@ -17,8 +17,8 @@ import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useAllEmployees } from "@/hooks/use-employees";
 import {
-  fetchEmployees,
   submitLeaveRequest,
   fetchWorkspaceLeaveRequests,
   approveLeaveRequest,
@@ -51,8 +51,7 @@ export default function LeaveRequestsPage() {
   const [startTime, setStartTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
 
-  const { data: employeesData } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: !!wsId });
-  const employees = employeesData?.data || [];
+  const { employees } = useAllEmployees(wsId);
   const { data: balances = [] } = useQuery({ queryKey: ["leave-balances", wsId, selectedEmpId], queryFn: () => fetchEmployeeLeaveBalances(wsId!, selectedEmpId), enabled: !!wsId && !!selectedEmpId });
   const { data: requests = [], isLoading: requestsLoading } = useQuery({ queryKey: ["leave-requests", wsId, activeTab], queryFn: () => fetchWorkspaceLeaveRequests(wsId!, activeTab), enabled: !!wsId });
   const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId!), enabled: !!wsId });

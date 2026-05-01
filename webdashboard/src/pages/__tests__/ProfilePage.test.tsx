@@ -9,7 +9,6 @@ import { ToastProvider } from "../../components/ui/Toast";
 import * as useProfileHook from "../../hooks/use-profile";
 import * as useThemeHook from "../../hooks/use-theme";
 import * as api from "../../lib/api";
-import { ROUTES } from "../../lib/routes";
 import ProfilePage from "../ProfilePage";
 
 // Mock TanStack Router
@@ -58,14 +57,14 @@ vi.mock("react-i18next", () => ({
 
 // Mock Combobox
 vi.mock("../../components/ui/Combobox", () => ({
-  Combobox: ({ options, value, onChange, placeholder, "data-testid": testId }: any) => (
+  Combobox: ({ options, value, onChange, placeholder, "data-testid": testId }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; placeholder?: string; "data-testid"?: string }) => (
     <select
       data-testid={testId || "mock-combobox"}
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
       <option value="">{placeholder || "Select..."}</option>
-      {options.map((opt: any) => (
+      {options.map((opt: { value: string; label: string }) => (
         <option key={opt.value} value={opt.value}>
           {opt.label}
         </option>
@@ -107,7 +106,7 @@ describe("ProfilePage", () => {
     });
 
     vi.spyOn(useProfileHook, "useProfile").mockReturnValue({
-      user: mockUser as any,
+      user: mockUser as ReturnType<typeof useProfileHook.useProfile>["user"],
       isLoading: false,
       isError: false,
       error: null,

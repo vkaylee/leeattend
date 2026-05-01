@@ -9,20 +9,34 @@ use crate::models::{
 
 pub struct PayrollRuleRepository;
 
+pub struct CreatePayrollRuleDefinitionArgs<'a> {
+    pub pool: &'a PgPool,
+    pub workspace_id: Uuid,
+    pub name: &'a str,
+    pub description: Option<&'a str>,
+    pub code: &'a str,
+    pub category: PayrollRuleCategory,
+    pub applies_to: RuleAppliesTo,
+    pub calculation_method: PayrollCalculationMethod,
+    pub rule_config: &'a serde_json::Value,
+    pub is_mandatory: bool,
+    pub display_order: i32,
+}
+
+pub struct AssignPayrollRuleArgs<'a> {
+    pub pool: &'a PgPool,
+    pub workspace_id: Uuid,
+    pub rule_definition_id: Uuid,
+    pub assignee_type: AssigneeType,
+    pub assignee_id: Option<Uuid>,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
+    pub override_config: Option<&'a serde_json::Value>,
+}
+
 impl PayrollRuleRepository {
-    #[allow(clippy::too_many_arguments)]
     pub async fn create_definition(
-        pool: &PgPool,
-        workspace_id: Uuid,
-        name: &str,
-        description: Option<&str>,
-        code: &str,
-        category: PayrollRuleCategory,
-        applies_to: RuleAppliesTo,
-        calculation_method: PayrollCalculationMethod,
-        rule_config: &serde_json::Value,
-        is_mandatory: bool,
-        display_order: i32,
+        args: CreatePayrollRuleDefinitionArgs<'_>,
     ) -> Result<PayrollRuleDefinition, AppError> {
         let row = sqlx::query_as!(
             PayrollRuleDefinition,
@@ -39,18 +53,18 @@ impl PayrollRuleRepository {
                 calculation_method as "calculation_method: PayrollCalculationMethod", 
                 rule_config, is_mandatory, is_active, display_order, created_at, updated_at
             "#,
-            workspace_id,
-            name,
-            description,
-            code,
-            category.to_string(),
-            applies_to.to_string(),
-            calculation_method.to_string(),
-            rule_config,
-            is_mandatory,
-            display_order
+            args.workspace_id,
+            args.name,
+            args.description,
+            args.code,
+            args.category.to_string(),
+            args.applies_to.to_string(),
+            args.calculation_method.to_string(),
+            args.rule_config,
+            args.is_mandatory,
+            args.display_order
         )
-        .fetch_one(pool)
+        .fetch_one(args.pool)
         .await
         .map_err(|e| {
             if let sqlx::Error::Database(db_err) = &e {
@@ -175,16 +189,8 @@ impl PayrollRuleRepository {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub async fn assign_rule(
-        pool: &PgPool,
-        workspace_id: Uuid,
-        rule_definition_id: Uuid,
-        assignee_type: AssigneeType,
-        assignee_id: Option<Uuid>,
-        effective_from: chrono::NaiveDate,
-        effective_to: Option<chrono::NaiveDate>,
-        override_config: Option<&serde_json::Value>,
+        args: AssignPayrollRuleArgs<'_>,
     ) -> Result<PayrollRuleAssignment, AppError> {
         let row = sqlx::query_as!(
             PayrollRuleAssignment,
@@ -200,15 +206,15 @@ impl PayrollRuleRepository {
                 assignee_id, effective_from, effective_to, 
                 override_config, created_at
             "#,
-            workspace_id,
-            rule_definition_id,
-            assignee_type.to_string(),
-            assignee_id,
-            effective_from,
-            effective_to,
-            override_config
+            args.workspace_id,
+            args.rule_definition_id,
+            args.assignee_type.to_string(),
+            args.assignee_id,
+            args.effective_from,
+            args.effective_to,
+            args.override_config
         )
-        .fetch_one(pool)
+        .fetch_one(args.pool)
         .await
         .map_err(|e| {
             if let sqlx::Error::Database(db_err) = &e {

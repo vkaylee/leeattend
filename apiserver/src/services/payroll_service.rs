@@ -72,25 +72,26 @@ pub struct SegmentSnapshot {
     pub(crate) source: String,
 }
 
+pub struct PayrollServiceArgs {
+    pub payroll_repo: Arc<dyn PayrollRepository>,
+    pub department_repo: Arc<dyn DepartmentRepository>,
+    pub time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
+    pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub holiday_repo: Arc<dyn HolidayRepositoryTrait>,
+    pub roster_repo: Arc<dyn RosterRepository>,
+    pub pool: PgPool,
+}
+
 impl PayrollService {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        payroll_repo: Arc<dyn PayrollRepository>,
-        department_repo: Arc<dyn DepartmentRepository>,
-        time_entry_repo: Arc<dyn time_entry_repository::TimeEntryRepository>,
-        workspace_repo: Arc<dyn WorkspaceRepository>,
-        holiday_repo: Arc<dyn HolidayRepositoryTrait>,
-        roster_repo: Arc<dyn RosterRepository>,
-        pool: PgPool,
-    ) -> Self {
+    pub fn new(args: PayrollServiceArgs) -> Self {
         Self {
-            payroll_repo,
-            department_repo,
-            time_entry_repo,
-            workspace_repo,
-            holiday_repo,
-            roster_repo,
-            pool,
+            payroll_repo: args.payroll_repo,
+            department_repo: args.department_repo,
+            time_entry_repo: args.time_entry_repo,
+            workspace_repo: args.workspace_repo,
+            holiday_repo: args.holiday_repo,
+            roster_repo: args.roster_repo,
+            pool: args.pool,
         }
     }
 
@@ -317,16 +318,18 @@ impl PayrollService {
 
             // B. Attendance — delegated to AttendanceMatcher
             let att = AttendanceMatcher::process_segment_attendance(
-                pool,
-                &ctx,
-                seg_start,
-                seg_end,
-                segment_total_base,
-                segment_ot_base,
-                &std_config,
-                &attendance_policy,
-                seg_units_per_day,
-                &mut policy_cache,
+                crate::services::attendance_matcher::ProcessSegmentAttendanceArgs {
+                    pool,
+                    ctx: &ctx,
+                    seg_start,
+                    seg_end,
+                    segment_total_base,
+                    segment_ot_base,
+                    std_config: &std_config,
+                    attendance_rules: &attendance_policy,
+                    seg_units_per_day,
+                    policy_cache: &mut policy_cache,
+                },
             )
             .await;
 
@@ -397,12 +400,14 @@ impl PayrollService {
         // Phase 5: Incentives — delegated to FinancialCalculator
         let incentives = FinancialCalculator::calculate_incentives(
             pool,
-            workspace_id,
-            employee_id,
-            total_std_units,
-            total_late_early_count,
-            ctx.start_date,
-            ctx.end_date,
+            crate::services::financial_calculator::CalculateIncentivesArgs {
+                workspace_id,
+                employee_id,
+                total_std_units,
+                total_late_early_count,
+                start_date: ctx.start_date,
+                end_date: ctx.end_date,
+            },
         )
         .await?;
 
@@ -436,29 +441,33 @@ impl PayrollService {
 
         let deductions = FinancialCalculator::calculate_deductions(
             pool,
-            workspace_id,
-            employee_id,
-            last_department_id,
-            ctx.start_date,
-            ctx.end_date,
-            &base_values,
-            &segment_snapshots,
+            crate::services::financial_calculator::CalculateDeductionsArgs {
+                workspace_id,
+                employee_id,
+                department_id: last_department_id,
+                start_date: ctx.start_date,
+                end_date: ctx.end_date,
+                base_values: &base_values,
+                segment_snapshots: &segment_snapshots,
+            },
         )
         .await?;
 
         // Phase 7: Assemble Payslip — delegated to FinancialCalculator
         let payslip = FinancialCalculator::assemble_payslip(
-            workspace_id,
-            employee_id,
-            ctx.start_date,
-            ctx.end_date,
-            total_base_pay,
-            total_overtime_pay,
-            total_holiday_work_premium,
-            incentives.total_amount,
-            deductions.amount,
-            total_std_units,
-            total_ot_units,
+            crate::services::financial_calculator::AssemblePayslipArgs {
+                workspace_id,
+                employee_id,
+                start_date: ctx.start_date,
+                end_date: ctx.end_date,
+                total_base_pay,
+                total_overtime_pay,
+                total_holiday_work_premium,
+                total_incentive_amount: incentives.total_amount,
+                deductions_amount: deductions.amount,
+                total_std_units,
+                total_ot_units,
+            },
         );
 
         // Phase 8: Persist — delegated to PayslipPersister
@@ -472,7 +481,6 @@ impl PayrollService {
     }
 
     /// Helper extracted to move Database operations out of the calculation flow
-    #[allow(clippy::too_many_arguments)]
     async fn persist_calculated_payslip(
         &self,
         payslip: Payslip,
@@ -490,16 +498,18 @@ impl PayrollService {
             self.payroll_repo
                 .create_payslip_segment(
                     created_payslip.id,
-                    snap.seg_start,
-                    snap.seg_end,
-                    snap.department_id,
-                    snap.total_base,
-                    snap.std_working_days,
-                    snap.hours_per_day,
-                    snap.actual_worked_days,
-                    snap.paid_days,
-                    snap.amount,
-                    Some(snap.source),
+                    &crate::models::CreatePayslipSegmentArgs {
+                        start_date: snap.seg_start,
+                        end_date: snap.seg_end,
+                        department_id: snap.department_id,
+                        applied_base_salary: snap.total_base,
+                        applied_std_days: snap.std_working_days,
+                        hours_per_day: snap.hours_per_day,
+                        actual_work_days: snap.actual_worked_days,
+                        paid_work_days: snap.paid_days,
+                        amount: snap.amount,
+                        std_days_source: Some(snap.source),
+                    },
                 )
                 .await
                 .map_err(AppError::Sqlx)?;

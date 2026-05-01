@@ -29,6 +29,19 @@ pub struct SegmentAttendanceResult {
     pub late_early_count: i32,
 }
 
+pub struct ProcessSegmentAttendanceArgs<'a> {
+    pub pool: &'a PgPool,
+    pub ctx: &'a PayrollContext,
+    pub seg_start: NaiveDate,
+    pub seg_end: NaiveDate,
+    pub segment_total_base: Decimal,
+    pub segment_ot_base: Decimal,
+    pub std_config: &'a crate::domain::policy::resolver::StandardMonthConfig,
+    pub attendance_rules: &'a crate::models::AttendanceRules,
+    pub seg_units_per_day: Decimal,
+    pub policy_cache: &'a mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
+}
+
 pub struct AttendanceMatcher;
 
 impl AttendanceMatcher {
@@ -37,22 +50,12 @@ impl AttendanceMatcher {
     /// Iterates each calendar day in `[seg_start, seg_end]`, resolves shifts,
     /// matches time‑entries to shifts, calculates standard/OT units, holiday
     /// premiums, and OT pay.
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all)]
     pub async fn process_segment_attendance(
-        pool: &PgPool,
-        ctx: &PayrollContext,
-        seg_start: NaiveDate,
-        seg_end: NaiveDate,
-        segment_total_base: Decimal,
-        segment_ot_base: Decimal,
-        std_config: &crate::domain::policy::resolver::StandardMonthConfig,
-        attendance_rules: &crate::models::AttendanceRules,
-        seg_units_per_day: Decimal,
-        policy_cache: &mut HashMap<Uuid, Vec<crate::models::OvertimeRule>>,
+        args: ProcessSegmentAttendanceArgs<'_>,
     ) -> SegmentAttendanceResult {
-        let employee_id = ctx.employee_id;
-        let workspace_id = ctx.workspace.id;
+        let employee_id = args.ctx.employee_id;
+        let workspace_id = args.ctx.workspace.id;
 
         let mut segment_std_units = 0i32;
         let mut segment_ot_units = 0i32;
@@ -60,26 +63,26 @@ impl AttendanceMatcher {
         let mut holiday_work_premium = Decimal::ZERO;
         let mut late_early_count = 0i32;
 
-        let mut current_date = seg_start;
-        while current_date <= seg_end {
+        let mut current_date = args.seg_start;
+        while current_date <= args.seg_end {
             // Resolve shift from pre-loaded roster data (in-memory, zero DB queries)
             let (shift_ids, _, _) = roster::resolve_effective_shift_from_data(
-                &ctx.roster_data,
-                &ctx.payroll_roster_map,
+                &args.ctx.roster_data,
+                &args.ctx.payroll_roster_map,
                 employee_id,
-                &ctx.emp_id_number,
-                ctx.emp_tags.as_ref(),
+                &args.ctx.emp_id_number,
+                args.ctx.emp_tags.as_ref(),
                 current_date,
             );
 
             // Collect resolved shifts sorted by start_time for OT ceiling
             let mut day_shifts: Vec<_> = shift_ids
                 .iter()
-                .filter_map(|opt| opt.and_then(|id| ctx.roster_data.shifts.get(&id)))
+                .filter_map(|opt| opt.and_then(|id| args.ctx.roster_data.shifts.get(&id)))
                 .collect();
             day_shifts.sort_by_key(|s| s.start_time);
 
-            if let Some(entries) = ctx.daily_entries_map.get(&current_date) {
+            if let Some(entries) = args.ctx.daily_entries_map.get(&current_date) {
                 let work_entries: Vec<_> = entries
                     .iter()
                     .filter(|e| e.entry_type == "work" || e.entry_type.is_empty())
@@ -95,16 +98,19 @@ impl AttendanceMatcher {
                 for (shift_idx, s) in day_shifts.iter().enumerate() {
                     // OT ceiling: cap late OT at next shift's start time
                     let ot_ceiling = day_shifts.get(shift_idx + 1).and_then(|next_s| {
-                        ctx.tz
+                        args.ctx
+                            .tz
                             .from_local_datetime(&current_date.and_time(next_s.start_time))
                             .single()
                     });
 
-                    let start_dt = ctx
+                    let start_dt = args
+                        .ctx
                         .tz
                         .from_local_datetime(&current_date.and_time(s.start_time))
                         .single();
-                    let end_dt = ctx
+                    let end_dt = args
+                        .ctx
                         .tz
                         .from_local_datetime(&current_date.and_time(s.end_time))
                         .single();
@@ -118,10 +124,11 @@ impl AttendanceMatcher {
                         let matching_entries: Vec<_> = work_entries
                             .iter()
                             .filter(|entry| {
-                                let punch_in = entry.punch_in_time.with_timezone(&ctx.tz);
+                                let punch_in = entry.punch_in_time.with_timezone(&args.ctx.tz);
                                 let prev_end = if shift_idx > 0 {
                                     day_shifts.get(shift_idx - 1).and_then(|prev_s| {
-                                        ctx.tz
+                                        args.ctx
+                                            .tz
                                             .from_local_datetime(
                                                 &current_date.and_time(prev_s.end_time),
                                             )
@@ -137,14 +144,14 @@ impl AttendanceMatcher {
                             .collect();
 
                         for entry in matching_entries {
-                            let punch_in = entry.punch_in_time.with_timezone(&ctx.tz);
+                            let punch_in = entry.punch_in_time.with_timezone(&args.ctx.tz);
                             if let Some(punch_out_raw) = entry.punch_out_time {
-                                let punch_out = punch_out_raw.with_timezone(&ctx.tz);
+                                let punch_out = punch_out_raw.with_timezone(&args.ctx.tz);
 
                                 let rules = PolicyResolver::resolve_with_shift_overrides(
-                                    pool,
+                                    args.pool,
                                     employee_id,
-                                    ctx.workspace.id,
+                                    args.ctx.workspace.id,
                                     current_date,
                                     &crate::domain::policy::resolver::ShiftPolicyOverrides {
                                         grace_period_minutes: Some(
@@ -152,7 +159,8 @@ impl AttendanceMatcher {
                                         ),
                                         is_break_auto_deduct: Some(s.is_break_auto_deduct),
                                         allow_early_ot: Some(s.allow_early_ot),
-                                        early_arrival_strategy: attendance_rules
+                                        early_arrival_strategy: args
+                                            .attendance_rules
                                             .early_arrival_strategy,
                                         is_break_overtime: entry.is_break_overtime,
                                     },
@@ -160,35 +168,40 @@ impl AttendanceMatcher {
                                 .await;
 
                                 let (std_u, ot_u) = AttendanceCalculator::calculate_daily_units(
-                                    punch_in,
-                                    punch_out,
-                                    Some(start),
-                                    Some(end),
-                                    s.break_duration_minutes,
-                                    actual_break_minutes,
-                                    attendance_rules.work_unit_minutes,
-                                    &attendance_rules.rounding_policy,
-                                    &rules,
-                                    ot_ceiling,
+                                    &crate::services::attendance_calculator::DailyCalcInput {
+                                        punch_in,
+                                        punch_out,
+                                        shift_start: Some(start),
+                                        shift_end: Some(end),
+                                        scheduled_break_minutes: s.break_duration_minutes,
+                                        actual_break_minutes,
+                                        work_unit: args.attendance_rules.work_unit_minutes,
+                                        rounding_policy: args
+                                            .attendance_rules
+                                            .rounding_policy
+                                            .to_string(),
+                                        rules: rules.clone(),
+                                        ot_ceiling,
+                                    },
                                 );
                                 segment_std_units += std_u;
                                 segment_ot_units += ot_u;
 
                                 // --- HOLIDAY WORK COMPENSATION ---
-                                if let Some(holiday) = ctx.holidays_map.get(&current_date) {
+                                if let Some(holiday) = args.ctx.holidays_map.get(&current_date) {
                                     let daily_rate = FinancialCalculator::calculate_daily_rate(
-                                        segment_total_base,
-                                        std_config.std_working_days,
+                                        args.segment_total_base,
+                                        args.std_config.std_working_days,
                                     );
                                     if holiday.is_credit_on_work {
                                         segment_std_units +=
-                                            seg_units_per_day.to_i32().unwrap_or(0);
+                                            args.seg_units_per_day.to_i32().unwrap_or(0);
                                     }
                                     let multiplier =
                                         holiday.ot_multiplier.unwrap_or(Decimal::from(3));
                                     if multiplier > Decimal::ONE {
                                         let worked_fraction =
-                                            Decimal::from(std_u) / seg_units_per_day;
+                                            Decimal::from(std_u) / args.seg_units_per_day;
                                         holiday_work_premium += worked_fraction
                                             * daily_rate
                                             * (multiplier - Decimal::ONE);
@@ -198,7 +211,7 @@ impl AttendanceMatcher {
                                 if ot_u > 0 {
                                     if let Some(policy_id) =
                                         OvertimePolicyRepository::resolve_policy_for_employee(
-                                            pool,
+                                            args.pool,
                                             employee_id,
                                             workspace_id,
                                             current_date,
@@ -206,10 +219,12 @@ impl AttendanceMatcher {
                                         .await
                                         .unwrap_or(None)
                                     {
-                                        let rules = if let Some(r) = policy_cache.get(&policy_id) {
+                                        let rules = if let Some(r) =
+                                            args.policy_cache.get(&policy_id)
+                                        {
                                             r.clone()
                                         } else {
-                                            let r = match OvertimePolicyRepository::get_policy_with_rules(pool, workspace_id, policy_id).await {
+                                            let r = match OvertimePolicyRepository::get_policy_with_rules(args.pool, workspace_id, policy_id).await {
                                                 Ok(Some((_, rules))) => rules,
                                                 Ok(None) => Vec::new(),
                                                 Err(e) => {
@@ -217,15 +232,15 @@ impl AttendanceMatcher {
                                                     Vec::new()
                                                 }
                                             };
-                                            policy_cache.insert(policy_id, r.clone());
+                                            args.policy_cache.insert(policy_id, r.clone());
                                             r
                                         };
 
                                         let hourly_rate =
                                             FinancialCalculator::calculate_hourly_rate(
-                                                segment_ot_base,
-                                                std_config.std_working_days,
-                                                std_config.hours_per_day,
+                                                args.segment_ot_base,
+                                                args.std_config.std_working_days,
+                                                args.std_config.hours_per_day,
                                             );
 
                                         let mut total_ot_pay = Decimal::ZERO;
@@ -233,11 +248,13 @@ impl AttendanceMatcher {
                                             let ot_end = std::cmp::min(punch_out, start);
                                             let daily_splits =
                                                 OvertimeEngine::split_interval_by_day(
-                                                    punch_in, ot_end, &ctx.tz,
+                                                    punch_in,
+                                                    ot_end,
+                                                    &args.ctx.tz,
                                                 );
                                             for (date, intervals) in daily_splits {
                                                 let day_is_holiday =
-                                                    ctx.holidays_map.contains_key(&date);
+                                                    args.ctx.holidays_map.contains_key(&date);
                                                 total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, day_is_holiday, &intervals, hourly_rate);
                                             }
                                         }
@@ -251,11 +268,11 @@ impl AttendanceMatcher {
                                                 OvertimeEngine::split_interval_by_day(
                                                     ot_start,
                                                     ot_end_for_pay,
-                                                    &ctx.tz,
+                                                    &args.ctx.tz,
                                                 );
                                             for (date, intervals) in daily_splits {
                                                 let day_is_holiday =
-                                                    ctx.holidays_map.contains_key(&date);
+                                                    args.ctx.holidays_map.contains_key(&date);
                                                 total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, day_is_holiday, &intervals, hourly_rate);
                                             }
                                         }
@@ -263,12 +280,14 @@ impl AttendanceMatcher {
                                     } else {
                                         let hourly_rate =
                                             FinancialCalculator::calculate_hourly_rate(
-                                                segment_ot_base,
-                                                std_config.std_working_days,
-                                                std_config.hours_per_day,
+                                                args.segment_ot_base,
+                                                args.std_config.std_working_days,
+                                                args.std_config.hours_per_day,
                                             );
                                         segment_ot_pay += (Decimal::from(ot_u)
-                                            * Decimal::from(attendance_rules.work_unit_minutes)
+                                            * Decimal::from(
+                                                args.attendance_rules.work_unit_minutes,
+                                            )
                                             / Decimal::from(60))
                                             * hourly_rate
                                             * Decimal::from_f64(DEFAULT_OT_MULTIPLIER)
@@ -277,7 +296,7 @@ impl AttendanceMatcher {
                                 }
 
                                 // Violation detection for IncentiveContext
-                                if !ctx.holidays_map.contains_key(&current_date) {
+                                if !args.ctx.holidays_map.contains_key(&current_date) {
                                     let is_late = punch_in
                                         > start
                                             + chrono::Duration::minutes(
@@ -296,24 +315,26 @@ impl AttendanceMatcher {
                 // Fallback: entries with no matching shift (day_shifts is empty)
                 if day_shifts.is_empty() {
                     for entry in &work_entries {
-                        let punch_in = entry.punch_in_time.with_timezone(&ctx.tz);
+                        let punch_in = entry.punch_in_time.with_timezone(&args.ctx.tz);
                         if let Some(punch_out_raw) = entry.punch_out_time {
-                            let punch_out = punch_out_raw.with_timezone(&ctx.tz);
+                            let punch_out = punch_out_raw.with_timezone(&args.ctx.tz);
                             segment_std_units += AttendanceCalculator::calculate_units(
                                 (punch_out - punch_in).num_minutes() as i32,
-                                attendance_rules.work_unit_minutes,
-                                &attendance_rules.rounding_policy,
+                                args.attendance_rules.work_unit_minutes,
+                                &args.attendance_rules.rounding_policy,
                             );
                         }
                     }
                 }
-            } else if let Some(holiday) = ctx.holidays_map.get(&current_date) {
+            } else if let Some(holiday) = args.ctx.holidays_map.get(&current_date) {
                 // Paid holiday with no attendance → auto-credit standard day
                 if holiday.is_paid {
                     let credit_units = if holiday.holiday_type == "half_day" {
-                        (seg_units_per_day / Decimal::from(2)).to_i32().unwrap_or(0)
+                        (args.seg_units_per_day / Decimal::from(2))
+                            .to_i32()
+                            .unwrap_or(0)
                     } else {
-                        seg_units_per_day.to_i32().unwrap_or(0)
+                        args.seg_units_per_day.to_i32().unwrap_or(0)
                     };
                     segment_std_units += credit_units;
                 }

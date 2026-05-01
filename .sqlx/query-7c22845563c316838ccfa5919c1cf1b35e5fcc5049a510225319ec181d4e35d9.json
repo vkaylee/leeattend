@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT is_holiday, holiday_name, actual_work_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_holiday",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "holiday_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "actual_work_minutes",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "7c22845563c316838ccfa5919c1cf1b35e5fcc5049a510225319ec181d4e35d9"
+}

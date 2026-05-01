@@ -132,17 +132,17 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
         > = std::sync::Arc::new(
             apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
         );
-        PayrollService::new(
-            pr,
-            dr,
-            tr,
-            wr,
-            hr,
-            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
+            payroll_repo: pr,
+            department_repo: dr,
+            time_entry_repo: tr,
+            workspace_repo: wr,
+            holiday_repo: hr,
+            roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
-            pool.clone(),
-        )
+            pool: pool.clone(),
+        })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)
     .await
@@ -273,17 +273,17 @@ async fn test_grace_period_nonzero_shift_overrides() {
         > = std::sync::Arc::new(
             apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
         );
-        PayrollService::new(
-            pr,
-            dr,
-            tr,
-            wr,
-            hr,
-            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
+            payroll_repo: pr,
+            department_repo: dr,
+            time_entry_repo: tr,
+            workspace_repo: wr,
+            holiday_repo: hr,
+            roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
-            pool.clone(),
-        )
+            pool: pool.clone(),
+        })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2026, 1)
     .await

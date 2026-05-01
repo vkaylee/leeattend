@@ -9,7 +9,7 @@ use uuid::Uuid;
 // Trait: TimeEntryRepository — DIP abstraction over time entry data access
 // ---------------------------------------------------------------------------
 #[async_trait]
-#[allow(clippy::too_many_arguments)]
+
 pub trait TimeEntryRepository: super::PoolBacked + Send + Sync {
     async fn create_time_entry(&self, entry: &TimeEntry) -> Result<(), sqlx::Error>;
     async fn get_time_entry_by_id(
@@ -43,11 +43,7 @@ pub trait TimeEntryRepository: super::PoolBacked + Send + Sync {
     async fn get_paginated_logs(
         &self,
         workspace_id: Uuid,
-        p_employee_id: Option<Uuid>,
-        p_from: Option<DateTime<Utc>>,
-        p_to: Option<DateTime<Utc>>,
-        p_limit: i64,
-        p_offset: i64,
+        filter: crate::models::TimeEntryLogFilter,
     ) -> Result<Vec<TimeEntryWithEmployee>, sqlx::Error>;
     async fn count_logs(
         &self,
@@ -120,26 +116,12 @@ impl TimeEntryRepository for SqlxTimeEntryRepository {
     ) -> Result<Vec<TimeEntry>, sqlx::Error> {
         get_employee_time_entries(&self.pool, workspace_id, employee_id, from, to).await
     }
-    #[allow(clippy::too_many_arguments)]
     async fn get_paginated_logs(
         &self,
         workspace_id: Uuid,
-        p_employee_id: Option<Uuid>,
-        p_from: Option<DateTime<Utc>>,
-        p_to: Option<DateTime<Utc>>,
-        p_limit: i64,
-        p_offset: i64,
+        filter: crate::models::TimeEntryLogFilter,
     ) -> Result<Vec<TimeEntryWithEmployee>, sqlx::Error> {
-        get_paginated_logs(
-            &self.pool,
-            workspace_id,
-            p_employee_id,
-            p_from,
-            p_to,
-            p_limit,
-            p_offset,
-        )
-        .await
+        get_paginated_logs(&self.pool, workspace_id, filter).await
     }
     async fn count_logs(
         &self,
@@ -277,11 +259,7 @@ pub async fn get_employee_time_entries(
 pub async fn get_paginated_logs(
     pool: &PgPool,
     workspace_id: Uuid,
-    p_employee_id: Option<Uuid>,
-    p_from: Option<DateTime<Utc>>,
-    p_to: Option<DateTime<Utc>>,
-    p_limit: i64,
-    p_offset: i64,
+    filter: crate::models::TimeEntryLogFilter,
 ) -> Result<Vec<TimeEntryWithEmployee>, sqlx::Error> {
     let mut sql = r#"
         SELECT 
@@ -295,15 +273,15 @@ pub async fn get_paginated_logs(
     .to_string();
     let mut param_idx = 2;
 
-    if p_employee_id.is_some() {
+    if filter.employee_id.is_some() {
         sql.push_str(&format!(" AND te.employee_id = ${param_idx}"));
         param_idx += 1;
     }
-    if p_from.is_some() {
+    if filter.from.is_some() {
         sql.push_str(&format!(" AND te.punch_in_time >= ${param_idx}"));
         param_idx += 1;
     }
-    if p_to.is_some() {
+    if filter.to.is_some() {
         sql.push_str(&format!(" AND te.punch_in_time <= ${param_idx}"));
         param_idx += 1;
     }
@@ -316,17 +294,21 @@ pub async fn get_paginated_logs(
 
     let mut query = query_as::<_, TimeEntryWithEmployee>(&sql).bind(workspace_id);
 
-    if let Some(id) = p_employee_id {
+    if let Some(id) = filter.employee_id {
         query = query.bind(id);
     }
-    if let Some(f) = p_from {
+    if let Some(f) = filter.from {
         query = query.bind(f);
     }
-    if let Some(t) = p_to {
+    if let Some(t) = filter.to {
         query = query.bind(t);
     }
 
-    query.bind(p_limit).bind(p_offset).fetch_all(pool).await
+    query
+        .bind(filter.limit)
+        .bind(filter.offset)
+        .fetch_all(pool)
+        .await
 }
 
 pub async fn count_logs(

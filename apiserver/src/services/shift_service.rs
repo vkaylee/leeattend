@@ -15,37 +15,16 @@ impl ShiftService {
         Self { pool }
     }
 
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
     pub async fn create_shift(
         &self,
         workspace_id: Uuid,
-        name: String,
-        report_symbol: Option<String>,
-        start_time: NaiveTime,
-        end_time: NaiveTime,
-        break_duration_minutes: i32,
-        break_start: Option<NaiveTime>,
-        break_end: Option<NaiveTime>,
-        is_break_auto_deduct: bool,
-        break_is_overtime: bool,
-        early_punch_in_grace_period_minutes: i32,
-        allow_early_ot: bool,
+        req: &crate::models::CreateShiftRequest,
     ) -> Result<Shift, AppError> {
         shift_repository::create_shift(
             &self.pool,
             workspace_id,
-            name,
-            report_symbol,
-            start_time,
-            end_time,
-            break_duration_minutes,
-            break_start,
-            break_end,
-            is_break_auto_deduct,
-            break_is_overtime,
-            early_punch_in_grace_period_minutes,
-            allow_early_ot,
+            req,
             true, // is_active
             None, // parent_shift_id
         )
@@ -82,24 +61,9 @@ impl ShiftService {
 
         if req.is_correction || !has_time_changes {
             // Direct update
-            shift_repository::update_shift_direct(
-                pool,
-                workspace_id,
-                shift_id,
-                req.name,
-                req.report_symbol,
-                req.start_time,
-                req.end_time,
-                req.break_duration_minutes,
-                req.break_start,
-                req.break_end,
-                req.is_break_auto_deduct,
-                req.break_is_overtime,
-                req.early_punch_in_grace_period_minutes,
-                req.allow_early_ot,
-            )
-            .await
-            .map_err(AppError::Sqlx)
+            shift_repository::update_shift_direct(pool, workspace_id, shift_id, &req)
+                .await
+                .map_err(AppError::Sqlx)
         } else {
             // Create new version
             let effective_date = req
@@ -117,17 +81,19 @@ impl ShiftService {
             let new_shift = shift_repository::create_shift(
                 &mut *tx,
                 old_shift.workspace_id,
-                req.name,
-                req.report_symbol,
-                req.start_time,
-                req.end_time,
-                req.break_duration_minutes,
-                req.break_start,
-                req.break_end,
-                req.is_break_auto_deduct,
-                req.break_is_overtime,
-                req.early_punch_in_grace_period_minutes,
-                req.allow_early_ot,
+                &crate::models::CreateShiftRequest {
+                    name: req.name,
+                    report_symbol: req.report_symbol,
+                    start_time: req.start_time,
+                    end_time: req.end_time,
+                    break_duration_minutes: req.break_duration_minutes,
+                    break_start: req.break_start,
+                    break_end: req.break_end,
+                    is_break_auto_deduct: req.is_break_auto_deduct,
+                    break_is_overtime: req.break_is_overtime,
+                    early_punch_in_grace_period_minutes: req.early_punch_in_grace_period_minutes,
+                    allow_early_ot: req.allow_early_ot,
+                },
                 true,
                 Some(shift_id),
             )

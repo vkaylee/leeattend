@@ -46,13 +46,17 @@ impl ClaimStagedLogsHandler {
             AttendanceLogService::new(
                 db.clone(),
                 pairing_svc,
-                1,
-                1,
-                1000,
-                employee_repo,
-                raw_log_repo,
-                staging_repo,
-                error_repo,
+                crate::services::attendance_log_service::AttendanceLogServiceConfig {
+                    buffer_capacity: 1,
+                    batch_size: 1,
+                    flush_interval_ms: 1000,
+                },
+                crate::services::attendance_log_service::AttendanceLogServiceDeps {
+                    employee_repo,
+                    raw_log_repo,
+                    staging_repo,
+                    error_repo,
+                },
             )
         };
 

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO payroll_rule_assignments (id, workspace_id, rule_definition_id, assignee_type, assignee_id, effective_from)\n        VALUES ($1, $2, $3, 'employee', $4, '2026-01-01')\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2cd410be383d3cc0f1c62620b67843e44a11789a0f6f2ae52b5a4930f0f174af"
+}

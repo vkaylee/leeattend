@@ -2,6 +2,31 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
+pub struct SavePayrollSettings {
+    pub std_working_day_mode: String,
+    pub fixed_std_days: rust_decimal::Decimal,
+    pub working_days_per_week: i32,
+    pub hours_per_day: rust_decimal::Decimal,
+    pub max_ot_hours_per_day: Option<rust_decimal::Decimal>,
+    pub max_ot_hours_per_month: Option<rust_decimal::Decimal>,
+    pub effective_date: NaiveDate,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreatePayslipSegmentArgs {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub department_id: Option<Uuid>,
+    pub applied_base_salary: rust_decimal::Decimal,
+    pub applied_std_days: rust_decimal::Decimal,
+    pub hours_per_day: rust_decimal::Decimal,
+    pub actual_work_days: rust_decimal::Decimal,
+    pub paid_work_days: rust_decimal::Decimal,
+    pub amount: rust_decimal::Decimal,
+    pub std_days_source: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct PayslipSegment {
     pub id: Uuid,

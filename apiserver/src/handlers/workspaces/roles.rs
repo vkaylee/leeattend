@@ -85,16 +85,16 @@ pub async fn assign_extra_role(
     .fetch_one(state.infra.db.api())
     .await?;
 
-    AuditHelper::log(
-        &state.core.audit_repo,
-        ctx.workspace_id,
-        Some(ctx.user_id),
-        Some(user_id),
-        Some(extra_role.id),
-        "assign_extra_role",
-        Some(serde_json::json!({ "role_id": req.role_id, "expires_at": req.expires_at })),
-        &headers,
-    )
+    AuditHelper::log(crate::services::audit_service::AuditLogArgs {
+        repo: &state.core.audit_repo,
+        workspace_id: ctx.workspace_id,
+        actor_id: Some(ctx.user_id),
+        target_user_id: Some(user_id),
+        target_resource_id: Some(extra_role.id),
+        action: "assign_extra_role",
+        details: Some(serde_json::json!({ "role_id": req.role_id, "expires_at": req.expires_at })),
+        headers: &headers,
+    })
     .await;
 
     if let Some(redis_pool) = state.infra.redis.clone() {
@@ -125,16 +125,16 @@ pub async fn revoke_extra_role(
         .await?;
 
     if res.rows_affected() > 0 {
-        AuditHelper::log(
-            &state.core.audit_repo,
-            ctx.workspace_id,
-            Some(ctx.user_id),
-            Some(user_id),
-            Some(role_id),
-            "revoke_extra_role",
-            None,
-            &headers,
-        )
+        AuditHelper::log(crate::services::audit_service::AuditLogArgs {
+            repo: &state.core.audit_repo,
+            workspace_id: ctx.workspace_id,
+            actor_id: Some(ctx.user_id),
+            target_user_id: Some(user_id),
+            target_resource_id: Some(role_id),
+            action: "revoke_extra_role",
+            details: None,
+            headers: &headers,
+        })
         .await;
 
         if let Some(redis_pool) = state.infra.redis.clone() {

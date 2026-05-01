@@ -56,17 +56,19 @@ pub async fn create_payroll_rule_definition(
     Json(payload): Json<CreatePayrollRuleDefinitionRequest>,
 ) -> Result<Json<PayrollRuleDefinition>, AppError> {
     let def = PayrollRuleRepository::create_definition(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        &payload.name,
-        payload.description.as_deref(),
-        &payload.code,
-        payload.category,
-        payload.applies_to,
-        payload.calculation_method,
-        &payload.rule_config,
-        payload.is_mandatory.unwrap_or(false),
-        payload.display_order.unwrap_or(0),
+        crate::repositories::payroll_rule_repository::CreatePayrollRuleDefinitionArgs {
+            pool: state.infra.db.api(),
+            workspace_id: ctx.workspace_id,
+            name: &payload.name,
+            description: payload.description.as_deref(),
+            code: &payload.code,
+            category: payload.category,
+            applies_to: payload.applies_to,
+            calculation_method: payload.calculation_method,
+            rule_config: &payload.rule_config,
+            is_mandatory: payload.is_mandatory.unwrap_or(false),
+            display_order: payload.display_order.unwrap_or(0),
+        },
     )
     .await?;
 
@@ -119,14 +121,16 @@ pub async fn assign_payroll_rule(
     Json(payload): Json<AssignPayrollRuleRequest>,
 ) -> Result<Json<PayrollRuleAssignment>, AppError> {
     let assignment = PayrollRuleRepository::assign_rule(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        rule_id,
-        payload.assignee_type,
-        payload.assignee_id,
-        payload.effective_from,
-        payload.effective_to,
-        payload.override_config.as_ref(),
+        crate::repositories::payroll_rule_repository::AssignPayrollRuleArgs {
+            pool: state.infra.db.api(),
+            workspace_id: ctx.workspace_id,
+            rule_definition_id: rule_id,
+            assignee_type: payload.assignee_type,
+            assignee_id: payload.assignee_id,
+            effective_from: payload.effective_from,
+            effective_to: payload.effective_to,
+            override_config: payload.override_config.as_ref(),
+        },
     )
     .await?;
 

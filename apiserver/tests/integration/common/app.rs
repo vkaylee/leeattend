@@ -101,6 +101,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
             adj_repo.clone(),
             employee_repo.clone(),
             time_entry_repo.clone(),
+            workspace_repo.clone(),
             pool.clone(),
             None,
         ),
@@ -119,13 +120,15 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
     );
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
-        payroll_repo.clone(),
-        department_repo.clone(),
-        time_entry_repo.clone(),
-        workspace_repo.clone(),
-        holiday_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
+        apiserver::services::payroll_service::PayrollServiceArgs {
+            payroll_repo: payroll_repo.clone(),
+            department_repo: department_repo.clone(),
+            time_entry_repo: time_entry_repo.clone(),
+            workspace_repo: workspace_repo.clone(),
+            holiday_repo: holiday_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            pool: pool.clone(),
+        },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
         pool.clone(),
@@ -202,13 +205,17 @@ pub async fn spawn_app() -> (String, TestDatabase) {
                 AttendanceLogService::new(
                     pool.clone(),
                     pairing_service.clone(),
-                    100,
-                    10,
-                    1000,
-                    employee_repo.clone(),
-                    raw_log_repo.clone(),
-                    staging_repo.clone(),
-                    error_repo,
+                    apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
+                        buffer_capacity: 100,
+                        batch_size: 10,
+                        flush_interval_ms: 1000,
+                    },
+                    apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
+                        employee_repo: employee_repo.clone(),
+                        raw_log_repo: raw_log_repo.clone(),
+                        staging_repo: staging_repo.clone(),
+                        error_repo,
+                    },
                 )
                 .0,
             ),
@@ -392,6 +399,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             adj_repo.clone(),
             employee_repo.clone(),
             time_entry_repo.clone(),
+            workspace_repo.clone(),
             pool.clone(),
             None,
         ),
@@ -410,13 +418,15 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
     );
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
-        payroll_repo.clone(),
-        department_repo.clone(),
-        time_entry_repo.clone(),
-        workspace_repo.clone(),
-        holiday_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
+        apiserver::services::payroll_service::PayrollServiceArgs {
+            payroll_repo: payroll_repo.clone(),
+            department_repo: department_repo.clone(),
+            time_entry_repo: time_entry_repo.clone(),
+            workspace_repo: workspace_repo.clone(),
+            holiday_repo: holiday_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            pool: pool.clone(),
+        },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
         pool.clone(),
@@ -493,13 +503,17 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
                 AttendanceLogService::new(
                     db_pool.clone(),
                     pairing_service.clone(),
-                    100,
-                    10,
-                    1000,
-                    employee_repo.clone(),
-                    raw_log_repo.clone(),
-                    staging_repo.clone(),
-                    error_repo,
+                    apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
+                        buffer_capacity: 100,
+                        batch_size: 10,
+                        flush_interval_ms: 1000,
+                    },
+                    apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
+                        employee_repo: employee_repo.clone(),
+                        raw_log_repo: raw_log_repo.clone(),
+                        staging_repo: staging_repo.clone(),
+                        error_repo,
+                    },
                 )
                 .0,
             ),
@@ -699,6 +713,7 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
             adj_repo.clone(),
             employee_repo.clone(),
             time_entry_repo.clone(),
+            workspace_repo.clone(),
             pool.clone(),
             None,
         ),
@@ -717,13 +732,15 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         apiserver::repositories::department_repository::SqlxDepartmentRepository::new(pool.clone()),
     );
     let payroll_service = Arc::new(apiserver::services::payroll_service::PayrollService::new(
-        payroll_repo.clone(),
-        department_repo.clone(),
-        time_entry_repo.clone(),
-        workspace_repo.clone(),
-        holiday_repo.clone(),
-        roster_repo.clone(),
-        pool.clone(),
+        apiserver::services::payroll_service::PayrollServiceArgs {
+            payroll_repo: payroll_repo.clone(),
+            department_repo: department_repo.clone(),
+            time_entry_repo: time_entry_repo.clone(),
+            workspace_repo: workspace_repo.clone(),
+            holiday_repo: holiday_repo.clone(),
+            roster_repo: roster_repo.clone(),
+            pool: pool.clone(),
+        },
     ));
     let auth_service = Arc::new(apiserver::services::auth_service::AuthService::new(
         pool.clone(),
@@ -800,13 +817,17 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
                 AttendanceLogService::new(
                     pool.clone(),
                     pairing_service.clone(),
-                    100,
-                    10,
-                    1000,
-                    employee_repo.clone(),
-                    raw_log_repo.clone(),
-                    staging_repo.clone(),
-                    error_repo,
+                    apiserver::services::attendance_log_service::AttendanceLogServiceConfig {
+                        buffer_capacity: 100,
+                        batch_size: 10,
+                        flush_interval_ms: 1000,
+                    },
+                    apiserver::services::attendance_log_service::AttendanceLogServiceDeps {
+                        employee_repo: employee_repo.clone(),
+                        raw_log_repo: raw_log_repo.clone(),
+                        staging_repo: staging_repo.clone(),
+                        error_repo,
+                    },
                 )
                 .0,
             ),

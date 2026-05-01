@@ -153,19 +153,16 @@ pub(crate) fn build_employee_search_sql(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn get_all_employees(
     pool: &PgPool,
     workspace_id: Uuid,
-    search_query: Option<String>,
-    page: i64,
-    limit: i64,
-    sort_by: Option<String>,
-    sort_dir: Option<String>,
-    department_ids: Option<Vec<Uuid>>,
+    options: crate::models::EmployeeFilterOptions,
 ) -> Result<(Vec<Employee>, i64), sqlx::Error> {
-    let search_sql =
-        build_employee_search_sql(&search_query, sort_by.as_deref(), sort_dir.as_deref());
+    let search_sql = build_employee_search_sql(
+        &options.search_query,
+        options.sort_by.as_deref(),
+        options.sort_dir.as_deref(),
+    );
 
     // Department filter clause — uses next available bind position.
     // Count query: $1=ws, optionally $2=search, then dept_ids.
@@ -185,14 +182,15 @@ pub async fn get_all_employees(
     let mut count_query = query_scalar::<_, i64>(&count_sql).bind(workspace_id);
     if search_sql.has_search {
         #[allow(clippy::expect_used)]
-        let raw_q = search_query
+        let raw_q = options
+            .search_query
             .as_ref()
             .expect("search_query verified non-empty by has_search")
             .trim()
             .to_string();
         count_query = count_query.bind(format!("%{raw_q}%"));
     }
-    count_query = count_query.bind(department_ids.as_deref());
+    count_query = count_query.bind(options.department_ids.as_deref());
     let total = count_query.fetch_one(pool).await?;
 
     // Data query — always bind $5 (raw search or None) so $6 is always department_ids.
@@ -214,7 +212,8 @@ pub async fn get_all_employees(
 
     if search_sql.has_search {
         #[allow(clippy::expect_used)]
-        let raw_q = search_query
+        let raw_q = options
+            .search_query
             .as_ref()
             .expect("search_query verified non-empty by has_search")
             .trim()
@@ -224,13 +223,14 @@ pub async fn get_all_employees(
         db_query = db_query.bind(Option::<String>::None);
     }
 
-    let offset = (page - 1) * limit;
-    db_query = db_query.bind(limit).bind(offset);
+    let offset = (options.page - 1) * options.limit;
+    db_query = db_query.bind(options.limit).bind(offset);
 
     // $5 — raw search term for ranking, or None when not searching
     if search_sql.has_search {
         #[allow(clippy::expect_used)]
-        let raw_q = search_query
+        let raw_q = options
+            .search_query
             .as_ref()
             .expect("search_query verified non-empty by has_search")
             .trim()
@@ -241,29 +241,23 @@ pub async fn get_all_employees(
     }
 
     // $6 — department_ids filter (uuid array)
-    db_query = db_query.bind(department_ids.as_deref());
+    db_query = db_query.bind(options.department_ids.as_deref());
 
     let employees = db_query.fetch_all(pool).await?;
 
     Ok((employees, total))
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn update_employee(
     pool: &PgPool,
     id: Uuid,
     workspace_id: Uuid,
-    user_id: Option<Uuid>,
-    full_name: Option<String>,
-    employee_id_number: Option<String>,
-    hire_date: Option<NaiveDate>,
-    termination_date: Option<NaiveDate>,
-    tags: Option<Vec<String>>,
-    is_active: Option<bool>,
+    req: &crate::models::UpdateEmployeeRequest,
 ) -> Result<Option<Employee>, sqlx::Error> {
     let mut tx = pool.begin().await?;
 
-    let normalized_id = employee_id_number
+    let normalized_id = req
+        .employee_id_number
         .as_ref()
         .map(|id| normalize_employee_id(id));
 
@@ -280,17 +274,17 @@ pub async fn update_employee(
     )
     .bind(id)
     .bind(workspace_id)
-    .bind(user_id)
-    .bind(full_name)
+    .bind(req.user_id)
+    .bind(&req.full_name)
     .bind(normalized_id)
-    .bind(tags.as_deref())
-    .bind(is_active)
+    .bind(req.tags.as_deref())
+    .bind(req.is_active)
     .bind(Utc::now())
     .execute(&mut *tx)
     .await?;
 
     // Update latest employment period if hire_date or termination_date is provided
-    if hire_date.is_some() || termination_date.is_some() {
+    if req.hire_date.is_some() || req.termination_date.is_some() {
         // Find the latest period id
         let latest_period_id = query_scalar!(
             "SELECT id FROM employment_periods WHERE employee_id = $1 ORDER BY hire_date DESC LIMIT 1",
@@ -307,8 +301,8 @@ pub async fn update_employee(
                     updated_at = $4
                 WHERE id = $1",
                 pid,
-                hire_date,
-                termination_date,
+                req.hire_date,
+                req.termination_date,
                 Utc::now()
             )
             .execute(&mut *tx)
@@ -553,15 +547,10 @@ pub async fn get_active_employee_ids(
 /// # Arguments
 /// * `sort_desc` - If true, ORDER BY full_name DESC; if false, ORDER BY full_name ASC
 /// * `department_id` - Optional: filter employees belonging to this department
-#[allow(clippy::too_many_arguments)]
 pub async fn get_paginated_employee_ids(
     pool: &PgPool,
     workspace_id: Uuid,
-    filter_ids: Option<&Vec<Uuid>>,
-    department_id: Option<Uuid>,
-    page: i64,
-    limit: i64,
-    sort_desc: bool,
+    args: crate::models::EmployeePaginationArgs<'_>,
 ) -> Result<(Vec<EmployeeBasicInfo>, i64), sqlx::Error> {
     // Count query
     let total: i64 = query_scalar(
@@ -574,16 +563,16 @@ pub async fn get_paginated_employee_ids(
            ))"#,
     )
     .bind(workspace_id)
-    .bind(filter_ids)
-    .bind(department_id)
+    .bind(args.filter_ids)
+    .bind(args.department_id)
     .fetch_one(pool)
     .await?;
 
     // Data query with pagination and dynamic ORDER BY
     // SAFETY: order_dir is a hardcoded &str ("DESC" or "ASC"), never user input.
     // sqlx doesn't support binding ORDER direction as a parameter.
-    let offset = (page - 1) * limit;
-    let order_dir = if sort_desc { "DESC" } else { "ASC" };
+    let offset = (args.page - 1) * args.limit;
+    let order_dir = if args.sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
         r#"SELECT id, full_name, employee_id_number FROM employees
            WHERE workspace_id = $1 AND is_active = true
@@ -598,10 +587,10 @@ pub async fn get_paginated_employee_ids(
 
     let employees = query_as::<_, EmployeeBasicInfo>(&sql)
         .bind(workspace_id)
-        .bind(filter_ids)
-        .bind(limit)
+        .bind(args.filter_ids)
+        .bind(args.limit)
         .bind(offset)
-        .bind(department_id)
+        .bind(args.department_id)
         .fetch_all(pool)
         .await?;
 

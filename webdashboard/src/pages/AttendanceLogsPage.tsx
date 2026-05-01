@@ -28,8 +28,9 @@ import { LABEL_BASE } from "@/components/ui/FormField";
 import _StatusBadge from "@/components/ui/StatusBadge";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { fetchRawAttendanceLogs, fetchEmployees, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
+import { fetchRawAttendanceLogs, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
 import { RawAttendanceLog, Employee } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -95,18 +96,16 @@ export default function AttendanceLogsPage() {
     setDateRange({ start, end });
   }, []);
 
-  const { data: employeesData } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: !!wsId });
-  const _employees = employeesData?.data || [];
+  const { employees: _employees } = useAllEmployees(wsId);
 
   // Optimized lookup map to prevent O(N) search in render loop
   const employeeMap = useMemo(() => {
     const map = new Map<string, Employee>();
-    const emps = employeesData?.data || [];
-    emps.forEach(emp => {
+    _employees.forEach(emp => {
       map.set(emp.id, emp);
     });
     return map;
-  }, [employeesData?.data]);
+  }, [_employees]);
 
   const {
     data: recordedPages,

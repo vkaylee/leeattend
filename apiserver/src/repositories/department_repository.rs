@@ -10,7 +10,7 @@ use crate::models::{Department, DepartmentPayrollConfig, EmployeeDepartmentHisto
 // Trait: DepartmentRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-#[allow(clippy::too_many_arguments)]
+#[async_trait]
 pub trait DepartmentRepository: super::PoolBacked + Send + Sync {
     async fn create_department(
         &self,
@@ -29,10 +29,7 @@ pub trait DepartmentRepository: super::PoolBacked + Send + Sync {
         &self,
         workspace_id: Uuid,
         id: Uuid,
-        name: Option<String>,
-        description: Option<String>,
-        manager_id: Option<Uuid>,
-        default_working_pattern_id: Option<Option<Uuid>>,
+        req: crate::models::UpdateDepartmentRequest,
     ) -> Result<Department, sqlx::Error>;
     async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>;
     async fn get_departments(&self, workspace_id: Uuid) -> Result<Vec<Department>, sqlx::Error>;
@@ -107,26 +104,13 @@ impl DepartmentRepository for SqlxDepartmentRepository {
     ) -> Result<Option<Department>, sqlx::Error> {
         get_department_by_id(&self.pool, workspace_id, id).await
     }
-    #[allow(clippy::too_many_arguments)]
     async fn update_department(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-        name: Option<String>,
-        description: Option<String>,
-        manager_id: Option<Uuid>,
-        default_working_pattern_id: Option<Option<Uuid>>,
+        req: crate::models::UpdateDepartmentRequest,
     ) -> Result<Department, sqlx::Error> {
-        update_department(
-            &self.pool,
-            workspace_id,
-            id,
-            name,
-            description,
-            manager_id,
-            default_working_pattern_id,
-        )
-        .await
+        update_department(&self.pool, workspace_id, id, req).await
     }
     async fn delete_department(&self, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
         delete_department(&self.pool, workspace_id, id).await
@@ -233,15 +217,12 @@ pub async fn update_department(
     pool: &PgPool,
     workspace_id: Uuid,
     id: Uuid,
-    name: Option<String>,
-    description: Option<String>,
-    manager_id: Option<Uuid>,
-    default_working_pattern_id: Option<Option<Uuid>>,
+    req: crate::models::UpdateDepartmentRequest,
 ) -> Result<Department, sqlx::Error> {
-    if name.is_none()
-        && description.is_none()
-        && manager_id.is_none()
-        && default_working_pattern_id.is_none()
+    if req.name.is_none()
+        && req.description.is_none()
+        && req.manager_id.is_none()
+        && req.default_working_pattern_id.is_none()
     {
         return get_department_by_id(pool, workspace_id, id)
             .await?
@@ -252,19 +233,19 @@ pub async fn update_department(
     let mut updates = Vec::new();
     let mut next_bind = 1;
 
-    if name.is_some() {
+    if req.name.is_some() {
         updates.push(format!("name = ${next_bind}"));
         next_bind += 1;
     }
-    if description.is_some() {
+    if req.description.is_some() {
         updates.push(format!("description = ${next_bind}"));
         next_bind += 1;
     }
-    if manager_id.is_some() {
+    if req.manager_id.is_some() {
         updates.push(format!("manager_id = ${next_bind}"));
         next_bind += 1;
     }
-    if default_working_pattern_id.is_some() {
+    if req.default_working_pattern_id.is_some() {
         updates.push(format!("default_working_pattern_id = ${next_bind}"));
         next_bind += 1;
     }
@@ -279,16 +260,16 @@ pub async fn update_department(
 
     let mut q = sqlx::query_as::<_, Department>(&query);
 
-    if let Some(v) = name {
+    if let Some(v) = req.name {
         q = q.bind(v);
     }
-    if let Some(v) = description {
+    if let Some(v) = req.description {
         q = q.bind(v);
     }
-    if let Some(v) = manager_id {
+    if let Some(v) = req.manager_id {
         q = q.bind(v);
     }
-    if let Some(v) = default_working_pattern_id {
+    if let Some(v) = req.default_working_pattern_id {
         q = q.bind(v); // Some(None) will bind NULL
     }
 

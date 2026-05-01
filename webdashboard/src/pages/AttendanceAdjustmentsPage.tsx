@@ -20,12 +20,12 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useAllEmployees } from "@/hooks/use-employees";
 import { cn } from "@/lib/utils";
 
 
 import { 
   fetchWorkspaceAttendanceAdjustments, 
-  fetchEmployees, 
   approveAttendanceAdjustment, 
   getCurrentWorkspaceId 
 } from "../lib/api";
@@ -46,12 +46,7 @@ export default function AttendanceAdjustmentsPage() {
     queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId!, activeTab), 
     enabled: !!wsId 
   });
-  const { data: employeesData } = useQuery({ 
-    queryKey: ["employees", wsId], 
-    queryFn: () => fetchEmployees(wsId!, 1, 3000), 
-    enabled: !!wsId 
-  });
-  const employees = employeesData?.data || [];
+  const { employees } = useAllEmployees(wsId);
 
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: string }) => approveAttendanceAdjustment(wsId!, data.id, { status: data.status }),

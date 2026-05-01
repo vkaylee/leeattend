@@ -53,6 +53,9 @@ async fn test_import_csv_with_line_errors() {
         adj_repo,
         employee_repo,
         te_repo,
+        std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+            pool: pool.clone(),
+        }),
         pool.clone(),
         None,
     )

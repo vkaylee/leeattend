@@ -56,27 +56,15 @@ pub async fn create_holiday(
 ) -> AppResult<(axum::http::StatusCode, Json<Holiday>)> {
     ctx.require_permission(Permission::HolidaysManage)?;
 
-    let holiday = HolidayRepository::create(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        &req.name,
-        req.date,
-        &req.holiday_type,
-        req.is_paid,
-        req.leave_type_id,
-        req.ot_multiplier,
-        req.description.as_deref(),
-        req.work_threshold_percent,
-        req.is_credit_on_work,
-    )
-    .await
-    .map_err(|e| {
-        if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
-            AppError::Conflict(format!("A holiday already exists on {}", req.date))
-        } else {
-            AppError::Internal(e.to_string())
-        }
-    })?;
+    let holiday = HolidayRepository::create(state.infra.db.api(), ctx.workspace_id, &req)
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("unique") || e.to_string().contains("duplicate") {
+                AppError::Conflict(format!("A holiday already exists on {}", req.date))
+            } else {
+                AppError::Internal(e.to_string())
+            }
+        })?;
 
     Ok((axum::http::StatusCode::CREATED, Json(holiday)))
 }
@@ -90,23 +78,10 @@ pub async fn update_holiday(
 ) -> AppResult<Json<Holiday>> {
     ctx.require_permission(Permission::HolidaysManage)?;
 
-    let holiday = HolidayRepository::update(
-        state.infra.db.api(),
-        ctx.workspace_id,
-        id,
-        req.name.as_deref(),
-        req.date,
-        req.holiday_type.as_deref(),
-        req.is_paid,
-        req.leave_type_id,
-        req.ot_multiplier,
-        req.description.as_deref(),
-        req.work_threshold_percent,
-        req.is_credit_on_work,
-    )
-    .await
-    .map_err(|e| AppError::Internal(e.to_string()))?
-    .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
+    let holiday = HolidayRepository::update(state.infra.db.api(), ctx.workspace_id, id, &req)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?
+        .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
 
     Ok(Json(holiday))
 }

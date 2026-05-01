@@ -90,17 +90,17 @@ async fn test_payroll_std_days_source_traceability() {
         > = std::sync::Arc::new(
             apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
         );
-        PayrollService::new(
-            pr,
-            dr,
-            tr,
-            wr,
-            hr,
-            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
+            payroll_repo: pr,
+            department_repo: dr,
+            time_entry_repo: tr,
+            workspace_repo: wr,
+            holiday_repo: hr,
+            roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
-            pool.clone(),
-        )
+            pool: pool.clone(),
+        })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 1)
     .await
@@ -116,13 +116,15 @@ async fn test_payroll_std_days_source_traceability() {
     payroll_repository::update_payroll_settings(
         &pool,
         workspace_id,
-        "fixed".to_string(),
-        Decimal::from(24),
-        5,
-        Decimal::from(8),
-        None,
-        None,
-        NaiveDate::from_ymd_opt(2024, 2, 1).unwrap(),
+        &apiserver::models::SavePayrollSettings {
+            std_working_day_mode: "fixed".to_string(),
+            fixed_std_days: Decimal::from(24),
+            working_days_per_week: 5,
+            hours_per_day: Decimal::from(8),
+            max_ot_hours_per_day: None,
+            max_ot_hours_per_month: None,
+            effective_date: NaiveDate::from_ymd_opt(2024, 2, 1).unwrap(),
+        },
     )
     .await
     .unwrap();
@@ -156,17 +158,17 @@ async fn test_payroll_std_days_source_traceability() {
         > = std::sync::Arc::new(
             apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
         );
-        PayrollService::new(
-            pr,
-            dr,
-            tr,
-            wr,
-            hr,
-            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
+            payroll_repo: pr,
+            department_repo: dr,
+            time_entry_repo: tr,
+            workspace_repo: wr,
+            holiday_repo: hr,
+            roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
-            pool.clone(),
-        )
+            pool: pool.clone(),
+        })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 2)
     .await
@@ -218,17 +220,17 @@ async fn test_payroll_std_days_source_traceability() {
         > = std::sync::Arc::new(
             apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
         );
-        PayrollService::new(
-            pr,
-            dr,
-            tr,
-            wr,
-            hr,
-            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
+            payroll_repo: pr,
+            department_repo: dr,
+            time_entry_repo: tr,
+            workspace_repo: wr,
+            holiday_repo: hr,
+            roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
-            pool.clone(),
-        )
+            pool: pool.clone(),
+        })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 3)
     .await
@@ -280,17 +282,17 @@ async fn test_payroll_std_days_source_traceability() {
         > = std::sync::Arc::new(
             apiserver::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
         );
-        PayrollService::new(
-            pr,
-            dr,
-            tr,
-            wr,
-            hr,
-            Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
+        PayrollService::new(apiserver::services::payroll_service::PayrollServiceArgs {
+            payroll_repo: pr,
+            department_repo: dr,
+            time_entry_repo: tr,
+            workspace_repo: wr,
+            holiday_repo: hr,
+            roster_repo: Arc::new(apiserver::repositories::roster::SqlxRosterRepository::new(
                 pool.clone(),
             )),
-            pool.clone(),
-        )
+            pool: pool.clone(),
+        })
     }
     .calculate_monthly_payslip(employee_id, workspace_id, 2024, 4)
     .await

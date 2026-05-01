@@ -101,29 +101,29 @@ impl AttendanceHandler {
         // 5. Calculate based on report type
         let result_json = match payload.config.report_type {
             ReportType::Summary => {
-                Self::calculate_summary(
+                Self::calculate_summary(CalculateBatchArgs {
                     pool,
-                    &schedules,
-                    &entries_map,
+                    schedules: &schedules,
+                    entries_map: &entries_map,
                     workspace_id,
                     start_date,
                     end_date,
-                    &workspace_config,
+                    _workspace_config: &workspace_config,
                     tz,
-                )
+                })
                 .await?
             }
             ReportType::Detail => {
-                Self::calculate_detail(
+                Self::calculate_detail(CalculateBatchArgs {
                     pool,
-                    &schedules,
-                    &entries_map,
+                    schedules: &schedules,
+                    entries_map: &entries_map,
                     workspace_id,
                     start_date,
                     end_date,
-                    &workspace_config,
+                    _workspace_config: &workspace_config,
                     tz,
-                )
+                })
                 .await?
             }
         };
@@ -176,23 +176,26 @@ impl AttendanceHandler {
 
         Ok(())
     }
+}
 
+struct CalculateBatchArgs<'a> {
+    pool: &'a PgPool,
+    schedules: &'a [crate::models::EmployeeSchedule],
+    entries_map: &'a HashMap<Uuid, Vec<TimeEntry>>,
+    workspace_id: Uuid,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    _workspace_config: &'a CachedWorkspaceConfig,
+    tz: Tz,
+}
+
+impl AttendanceHandler {
     /// Calculate summary attendance for batch of employees.
-    #[allow(clippy::too_many_arguments)]
-    async fn calculate_summary(
-        pool: &PgPool,
-        schedules: &[crate::models::EmployeeSchedule],
-        entries_map: &HashMap<Uuid, Vec<TimeEntry>>,
-        workspace_id: Uuid,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        _workspace_config: &CachedWorkspaceConfig,
-        tz: Tz,
-    ) -> Result<String, String> {
+    async fn calculate_summary(args: CalculateBatchArgs<'_>) -> Result<String, String> {
         use sqlx::Row;
 
         let mut summaries: Vec<AttendanceSummary> = Vec::new();
-        let emp_ids: Vec<Uuid> = schedules.iter().map(|s| s.employee_id).collect();
+        let emp_ids: Vec<Uuid> = args.schedules.iter().map(|s| s.employee_id).collect();
 
         // Batch fetch leave data
         let leave_data: HashMap<Uuid, i64> = sqlx::query(
@@ -209,9 +212,9 @@ impl AttendanceHandler {
             "#,
         )
         .bind(&emp_ids)
-        .bind(start_date)
-        .bind(end_date)
-        .fetch_all(pool)
+        .bind(args.start_date)
+        .bind(args.end_date)
+        .fetch_all(args.pool)
         .await
         .map_err(|e| format!("Failed to fetch leave data: {e}"))?
         .into_iter()
@@ -225,26 +228,27 @@ impl AttendanceHandler {
 
         // Batch fetch working conditions for all employees (eliminates N+1)
         let conditions_map = PolicyResolver::resolve_attendance_rules_batch(
-            pool,
+            args.pool,
             &emp_ids,
-            workspace_id,
-            start_date,
-            end_date,
+            args.workspace_id,
+            args.start_date,
+            args.end_date,
         )
         .await
         .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
-            pool,
+            args.pool,
             &emp_ids,
-            workspace_id,
-            start_date, // Using start_date as proxy for the report period
+            args.workspace_id,
+            args.start_date, // Using start_date as proxy for the report period
         )
         .await
         .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;
 
-        for emp_sched in schedules {
-            let entries = entries_map
+        for emp_sched in args.schedules {
+            let entries = args
+                .entries_map
                 .get(&emp_sched.employee_id)
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
@@ -268,7 +272,7 @@ impl AttendanceHandler {
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
             let entries_by_date =
-                crate::services::attendance_utils::group_entries_by_date(entries, tz);
+                crate::services::attendance_utils::group_entries_by_date(entries, args.tz);
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
@@ -280,10 +284,10 @@ impl AttendanceHandler {
 
                 let actual_punch_in = day_entries
                     .first()
-                    .map(|e| e.punch_in_time.with_timezone(&tz));
+                    .map(|e| e.punch_in_time.with_timezone(&args.tz));
                 let actual_punch_out = day_entries
                     .last()
-                    .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
+                    .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&args.tz)));
 
                 if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
                     let actual_break_minutes: i32 = day_entries
@@ -313,10 +317,10 @@ impl AttendanceHandler {
                     // Handle shift times
                     let shift_start_dt = daily
                         .start_time
-                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                        .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
                     let shift_end_dt = daily
                         .end_time
-                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                        .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
 
                     let (shift_start, shift_end) =
                         if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
@@ -329,16 +333,18 @@ impl AttendanceHandler {
                         };
 
                     let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
-                        punch_in,
-                        punch_out,
-                        shift_start,
-                        shift_end,
-                        daily.break_duration_minutes.unwrap_or(0),
-                        actual_break_minutes,
-                        emp_attendance_rules.work_unit_minutes,
-                        &emp_attendance_rules.rounding_policy,
-                        &rules,
-                        None,
+                        &crate::services::attendance_calculator::DailyCalcInput {
+                            punch_in,
+                            punch_out,
+                            shift_start,
+                            shift_end,
+                            scheduled_break_minutes: daily.break_duration_minutes.unwrap_or(0),
+                            actual_break_minutes,
+                            work_unit: emp_attendance_rules.work_unit_minutes,
+                            rounding_policy: emp_attendance_rules.rounding_policy.to_string(),
+                            rules: rules.clone(),
+                            ot_ceiling: None,
+                        },
                     );
 
                     total_std_units += std_units;
@@ -359,43 +365,34 @@ impl AttendanceHandler {
         serde_json::to_string(&summaries).map_err(|e| format!("Failed to serialize: {e}"))
     }
 
-    /// Calculate detailed daily attendance for batch of employees.
-    #[allow(clippy::too_many_arguments)]
-    async fn calculate_detail(
-        pool: &PgPool,
-        schedules: &[crate::models::EmployeeSchedule],
-        entries_map: &HashMap<Uuid, Vec<TimeEntry>>,
-        workspace_id: Uuid,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        _workspace_config: &CachedWorkspaceConfig,
-        tz: Tz,
-    ) -> Result<String, String> {
+    #[tracing::instrument(skip_all, err)]
+    async fn calculate_detail(args: CalculateBatchArgs<'_>) -> Result<String, String> {
         let mut reports: Vec<DailyAttendanceReport> = Vec::new();
-        let emp_ids: Vec<Uuid> = schedules.iter().map(|s| s.employee_id).collect();
+        let emp_ids: Vec<Uuid> = args.schedules.iter().map(|s| s.employee_id).collect();
 
         // Batch fetch working conditions for all employees (eliminates N+1)
         let conditions_map = PolicyResolver::resolve_attendance_rules_batch(
-            pool,
+            args.pool,
             &emp_ids,
-            workspace_id,
-            start_date,
-            end_date,
+            args.workspace_id,
+            args.start_date,
+            args.end_date,
         )
         .await
         .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
-            pool,
+            args.pool,
             &emp_ids,
-            workspace_id,
-            start_date, // Using start_date as proxy for the report period
+            args.workspace_id,
+            args.start_date, // Using start_date as proxy for the report period
         )
         .await
         .map_err(|e| format!("Failed to fetch attendance rules: {e}"))?;
 
-        for emp_sched in schedules {
-            let entries = entries_map
+        for emp_sched in args.schedules {
+            let entries = args
+                .entries_map
                 .get(&emp_sched.employee_id)
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
@@ -417,7 +414,7 @@ impl AttendanceHandler {
 
             // Pre-group entries by date once — O(entries) instead of O(entries × days)
             let entries_by_date =
-                crate::services::attendance_utils::group_entries_by_date(entries, tz);
+                crate::services::attendance_utils::group_entries_by_date(entries, args.tz);
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
@@ -429,10 +426,10 @@ impl AttendanceHandler {
 
                 let actual_punch_in = day_entries
                     .first()
-                    .map(|e| e.punch_in_time.with_timezone(&tz));
+                    .map(|e| e.punch_in_time.with_timezone(&args.tz));
                 let actual_punch_out = day_entries
                     .last()
-                    .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
+                    .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&args.tz)));
 
                 let mut std_work_units = 0;
                 let mut ot_work_units = 0;
@@ -450,10 +447,10 @@ impl AttendanceHandler {
 
                         let shift_start_dt = daily
                             .start_time
-                            .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                            .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
                         let shift_end_dt = daily
                             .end_time
-                            .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                            .and_then(|t| args.tz.from_local_datetime(&date.and_time(t)).single());
 
                         // Build rules from pre-fetched conditions (no DB call)
                         let mut rules = PolicyResolver::build_rules_from_conditions(
@@ -483,16 +480,18 @@ impl AttendanceHandler {
                             };
 
                         let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
-                            punch_in,
-                            punch_out,
-                            shift_start,
-                            shift_end,
-                            daily.break_duration_minutes.unwrap_or(0),
-                            actual_break_minutes,
-                            emp_attendance_rules.work_unit_minutes,
-                            &emp_attendance_rules.rounding_policy,
-                            &rules,
-                            None,
+                            &crate::services::attendance_calculator::DailyCalcInput {
+                                punch_in,
+                                punch_out,
+                                shift_start,
+                                shift_end,
+                                scheduled_break_minutes: daily.break_duration_minutes.unwrap_or(0),
+                                actual_break_minutes,
+                                work_unit: emp_attendance_rules.work_unit_minutes,
+                                rounding_policy: emp_attendance_rules.rounding_policy.to_string(),
+                                rules: rules.clone(),
+                                ot_ceiling: None,
+                            },
                         );
 
                         std_work_units = std_units;

@@ -72,15 +72,17 @@ async fn test_update_workspace_time_format() {
     // 2. Update to 12h
     let updated_ws = WorkspaceService::new(pool.clone())
         .update_workspace(
-            ws_id,
-            None,
-            None,
-            Some("12h".to_string()),
-            None,
-            None,
-            None,
-            None,
-            None,
+            apiserver::services::workspace_service::UpdateWorkspaceArgs {
+                ws_id,
+                name: None,
+                date_format: None,
+                time_format: Some("12h".to_string()),
+                timezone: None,
+                theme_primary_color: None,
+                default_language: None,
+                holiday_overnight_strategy: None,
+                default_holiday_ot_multiplier: None,
+            },
         )
         .await
         .expect("Failed to update workspace");

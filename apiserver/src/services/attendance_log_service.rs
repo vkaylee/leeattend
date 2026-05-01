@@ -27,20 +27,39 @@ pub struct AttendanceLogService {
     log_buffer: Arc<AgentLogBuffer>,
 }
 
+pub struct AttendanceLogServiceConfig {
+    pub buffer_capacity: usize,
+    pub batch_size: usize,
+    pub flush_interval_ms: u64,
+}
+
+pub struct AttendanceLogServiceDeps {
+    pub employee_repo: Arc<dyn EmployeeRepository>,
+    pub raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
+    pub staging_repo: Arc<dyn StagingLogRepository>,
+    pub error_repo: Arc<dyn AttendanceLogErrorRepository>,
+}
+
+pub struct ProcessLogArgs<'a> {
+    pub workspace_id: Uuid,
+    pub employee_id_number: &'a str,
+    pub punch_time_raw: &'a str,
+    pub source: LogSource,
+    pub device_id: Option<String>,
+    pub raw_data: Option<serde_json::Value>,
+    pub timezone: &'a str,
+    pub date_fmt: Option<&'a str>,
+    pub time_fmt: Option<&'a str>,
+}
+
 impl AttendanceLogService {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         pool: PgPool,
         pairing_service: Arc<PairingService>,
-        buffer_capacity: usize,
-        batch_size: usize,
-        flush_interval_ms: u64,
-        employee_repo: Arc<dyn EmployeeRepository>,
-        raw_log_repo: Arc<dyn RawAttendanceLogRepository>,
-        staging_repo: Arc<dyn StagingLogRepository>,
-        error_repo: Arc<dyn AttendanceLogErrorRepository>,
+        config: AttendanceLogServiceConfig,
+        deps: AttendanceLogServiceDeps,
     ) -> (Self, tokio::task::JoinHandle<()>) {
-        let (log_buffer, log_receiver) = AgentLogBuffer::new(buffer_capacity);
+        let (log_buffer, log_receiver) = AgentLogBuffer::new(config.buffer_capacity);
         let log_buffer = Arc::new(log_buffer);
 
         let pool_clone = pool.clone();
@@ -50,17 +69,17 @@ impl AttendanceLogService {
                 pool_clone,
                 pairing_clone,
                 log_receiver,
-                batch_size,
-                flush_interval_ms,
+                config.batch_size,
+                config.flush_interval_ms,
             )
             .await;
         });
 
         let service = Self {
-            employee_repo,
-            raw_log_repo,
-            staging_repo,
-            error_repo,
+            employee_repo: deps.employee_repo,
+            raw_log_repo: deps.raw_log_repo,
+            staging_repo: deps.staging_repo,
+            error_repo: deps.error_repo,
             pool,
             pairing_service,
             log_buffer,
@@ -110,17 +129,17 @@ impl AttendanceLogService {
     /// Unknown users and validation errors are swallowed with 200 OK to prevent agent retries.
     #[tracing::instrument(skip_all, err)]
     pub async fn ingest_agent_log(&self, entry: AgentLogEntry) -> Result<(), String> {
-        self.process_log(
-            entry.workspace_id,
-            &entry.employee_id_number,
-            &entry.punch_time_raw,
-            LogSource::Device,
-            entry.device_id,
-            entry.raw_data,
-            &entry.timezone,
-            Some(&entry.date_fmt),
-            Some(&entry.time_fmt),
-        )
+        self.process_log(ProcessLogArgs {
+            workspace_id: entry.workspace_id,
+            employee_id_number: &entry.employee_id_number,
+            punch_time_raw: &entry.punch_time_raw,
+            source: LogSource::Device,
+            device_id: entry.device_id,
+            raw_data: entry.raw_data,
+            timezone: &entry.timezone,
+            date_fmt: Some(&entry.date_fmt),
+            time_fmt: Some(&entry.time_fmt),
+        })
         .await
         .map(|_| ()) // Convert Result<bool, String> to Result<(), String>
     }
@@ -132,50 +151,41 @@ impl AttendanceLogService {
     /// - Case 2: Employee NOT found → insert to attendance_staging_logs → Ok(false)
     /// - Case 3: Parse/validation error → insert to attendance_log_errors → Ok(false)
     /// - Case 4: Database connection error → Err(msg) (agent should retry)
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
-    pub async fn process_log(
-        &self,
-        workspace_id: Uuid,
-        employee_id_number: &str,
-        punch_time_raw: &str,
-        source: LogSource,
-        device_id: Option<String>,
-        raw_data: Option<serde_json::Value>,
-        // Workspace config for naive parsing
-        timezone: &str,
-        date_fmt: Option<&str>,
-        time_fmt: Option<&str>,
-    ) -> Result<bool, String> {
+    pub async fn process_log(&self, args: ProcessLogArgs<'_>) -> Result<bool, String> {
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
-        let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
+        let raw_data = args.raw_data.map(AgentLogEntry::sanitize_json_value);
         // 1. Resolve employee_id from employee_id_number and workspace_id
         let employee = match self
             .employee_repo
-            .find_by_number(workspace_id, employee_id_number)
+            .find_by_number(args.workspace_id, args.employee_id_number)
             .await
         {
             Ok(Some(emp)) => emp,
             Ok(None) => {
                 // Case 2: Unknown user → Stage for later review (NOT an error)
                 let fingerprint = Self::calculate_fingerprint(
-                    device_id.as_deref(),
-                    employee_id_number,
-                    punch_time_raw,
+                    args.device_id.as_deref(),
+                    args.employee_id_number,
+                    args.punch_time_raw,
                     raw_data.as_ref(),
                 );
 
                 // Parse timestamp for staging (best effort)
-                let punch_time =
-                    parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
-                        .unwrap_or_else(|_| Utc::now());
+                let punch_time = parse_datetime_with_tz(
+                    args.punch_time_raw,
+                    args.timezone,
+                    args.date_fmt,
+                    args.time_fmt,
+                )
+                .unwrap_or_else(|_| Utc::now());
 
                 let _ = self
                     .staging_repo
                     .create_staging_log(
-                        workspace_id,
-                        device_id,
-                        employee_id_number,
+                        args.workspace_id,
+                        args.device_id.clone(),
+                        args.employee_id_number,
                         punch_time,
                         raw_data,
                         &fingerprint,
@@ -184,8 +194,8 @@ impl AttendanceLogService {
 
                 warn!(
                     "Unknown user {} staged for workspace {} (fingerprint: {})",
-                    employee_id_number,
-                    workspace_id,
+                    args.employee_id_number,
+                    args.workspace_id,
                     &fingerprint[..8]
                 );
                 return Ok(false); // SUCCESS - don't retry
@@ -199,29 +209,33 @@ impl AttendanceLogService {
         };
 
         // 2. Parse punch_time with workspace configuration
-        let punch_time = match parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
-        {
+        let punch_time = match parse_datetime_with_tz(
+            args.punch_time_raw,
+            args.timezone,
+            args.date_fmt,
+            args.time_fmt,
+        ) {
             Ok(dt) => dt,
             Err(e) => {
                 // Case 3: Validation error → Log with fingerprint (NOT retry)
-                let msg = format!("Failed to parse timestamp '{punch_time_raw}': {e}");
+                let msg = format!("Failed to parse timestamp '{}': {}", args.punch_time_raw, e);
                 error!("{}", msg);
 
                 let fingerprint = Self::calculate_fingerprint(
-                    device_id.as_deref(),
-                    employee_id_number,
-                    punch_time_raw,
+                    args.device_id.as_deref(),
+                    args.employee_id_number,
+                    args.punch_time_raw,
                     raw_data.as_ref(),
                 );
 
                 let _ = self
                     .error_repo
                     .create_error_log_with_fingerprint(
-                        workspace_id,
-                        device_id,
+                        args.workspace_id,
+                        args.device_id.clone(),
                         raw_data,
                         &msg,
-                        &format!("{source:?}"),
+                        &format!("{:?}", args.source),
                         &fingerprint,
                     )
                     .await;
@@ -235,11 +249,11 @@ impl AttendanceLogService {
 
         let raw_log = RawAttendanceLog {
             id: Uuid::new_v4(),
-            workspace_id,
+            workspace_id: args.workspace_id,
             employee_id: employee.id,
             punch_time,
-            source,
-            device_id,
+            source: args.source,
+            device_id: args.device_id,
             raw_data,
             punch,
             status,
@@ -251,7 +265,7 @@ impl AttendanceLogService {
             Ok(true) => {
                 info!(
                     "Successfully saved log for {} ({}) at {} (UTC) from {:?}",
-                    employee.full_name, employee_id_number, punch_time, raw_log.source
+                    employee.full_name, args.employee_id_number, punch_time, raw_log.source
                 );
 
                 // 5. Trigger Pairing Logic
@@ -264,7 +278,7 @@ impl AttendanceLogService {
             Ok(false) => {
                 info!(
                     "Duplicate log skipped for {} at {}",
-                    employee_id_number, punch_time
+                    args.employee_id_number, punch_time
                 );
                 Ok(false)
             }

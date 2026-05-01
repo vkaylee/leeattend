@@ -16,6 +16,17 @@ use crate::repositories::{
 };
 use crate::services::AttendanceCalculator;
 
+pub struct EnterPaperOtArgs {
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub date: NaiveDate,
+    pub claimed_minutes: i32,
+    pub reason: String,
+    pub entered_by_user_id: Uuid,
+    pub photo_url: Option<String>,
+    pub allow_exceed: bool,
+}
+
 pub struct AttendanceSummaryService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
@@ -152,14 +163,20 @@ impl AttendanceSummaryService {
                     .await;
 
                     let buckets = AttendanceCalculator::calculate_buckets(
-                        punch_in,
-                        punch_out,
-                        Some(start),
-                        Some(end),
-                        daily_schedule.break_duration_minutes.unwrap_or(0),
-                        actual_break_minutes,
-                        &policy_rules,
-                        None,
+                        &crate::services::attendance_calculator::DailyCalcInput {
+                            punch_in,
+                            punch_out,
+                            shift_start: Some(start),
+                            shift_end: Some(end),
+                            scheduled_break_minutes: daily_schedule
+                                .break_duration_minutes
+                                .unwrap_or(0),
+                            actual_break_minutes,
+                            work_unit: 0,
+                            rounding_policy: "".to_string(),
+                            rules: policy_rules.clone(),
+                            ot_ceiling: None,
+                        },
                     );
 
                     // System Detected OT = Early OT + Late OT
@@ -384,36 +401,28 @@ impl AttendanceSummaryService {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
     pub async fn enter_paper_ot(
         &self,
-        workspace_id: Uuid,
-        employee_id: Uuid,
-        date: NaiveDate,
-        claimed_minutes: i32,
-        reason: String,
-        entered_by_user_id: Uuid,
-        photo_url: Option<String>,
-        allow_exceed: bool,
+        args: EnterPaperOtArgs,
     ) -> Result<AttendanceDailySummary, String> {
         // 1. Check existing summary
         let existing: Option<AttendanceDailySummary> = sqlx::query_as!(
             AttendanceDailySummary,
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND workspace_id = $2 AND date = $3",
-            employee_id, workspace_id, date
+            args.employee_id, args.workspace_id, args.date
         )
         .fetch_optional(&self.pool)
         .await
         .map_err(|e: sqlx::Error| e.to_string())?;
 
         // 2. Validate against system detected (if not allowing exceed)
-        if !allow_exceed {
+        if !args.allow_exceed {
             if let Some(ref ex) = existing {
-                if claimed_minutes > ex.system_detected_ot_minutes {
+                if args.claimed_minutes > ex.system_detected_ot_minutes {
                     return Err(format!(
                         "Claimed {} minutes exceeds system detected {} minutes",
-                        claimed_minutes, ex.system_detected_ot_minutes
+                        args.claimed_minutes, ex.system_detected_ot_minutes
                     ));
                 }
             }
@@ -447,8 +456,8 @@ impl AttendanceSummaryService {
                 updated_at = CURRENT_TIMESTAMP
             RETURNING id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as "ot_status: OtStatus", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at
             "#,
-            employee_id, date, claimed_minutes, reason,
-            entered_by_user_id, now, photo_url
+            args.employee_id, args.date, args.claimed_minutes, args.reason,
+            args.entered_by_user_id, now, args.photo_url
         )
         .fetch_one(&self.pool)
         .await

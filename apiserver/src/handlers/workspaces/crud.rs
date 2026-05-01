@@ -1366,17 +1366,17 @@ pub async fn update_workspace(
     state
         .core
         .workspace_service
-        .update_workspace(
-            ctx.workspace_id,
-            req.name,
-            req.date_format,
-            req.time_format,
-            req.timezone,
-            req.theme_primary_color,
-            req.default_language,
-            req.holiday_overnight_strategy,
-            req.default_holiday_ot_multiplier,
-        )
+        .update_workspace(crate::services::workspace_service::UpdateWorkspaceArgs {
+            ws_id: ctx.workspace_id,
+            name: req.name,
+            date_format: req.date_format,
+            time_format: req.time_format,
+            timezone: req.timezone,
+            theme_primary_color: req.theme_primary_color,
+            default_language: req.default_language,
+            holiday_overnight_strategy: req.holiday_overnight_strategy,
+            default_holiday_ot_multiplier: req.default_holiday_ot_multiplier,
+        })
         .await
         .map(Json)
         .map_err(AppError::from)

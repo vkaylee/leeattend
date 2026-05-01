@@ -96,6 +96,7 @@ impl AppState {
                 adj_repo.clone(),
                 employee_repo.clone(),
                 time_entry_repo.clone(),
+                workspace_repo.clone(),
                 worker_pool.clone(),
                 redis_pool.clone(),
             ),
@@ -175,13 +176,15 @@ impl AppState {
                 crate::repositories::holiday_repository::SqlxHolidayRepository::new(pool.clone()),
             );
         let payroll_service = Arc::new(crate::services::payroll_service::PayrollService::new(
-            payroll_repo.clone(),
-            department_repo.clone(),
-            time_entry_repo.clone(),
-            workspace_repo.clone(),
-            holiday_repo.clone(),
-            roster_repo.clone(),
-            pool.clone(),
+            crate::services::payroll_service::PayrollServiceArgs {
+                payroll_repo: payroll_repo.clone(),
+                department_repo: department_repo.clone(),
+                time_entry_repo: time_entry_repo.clone(),
+                workspace_repo: workspace_repo.clone(),
+                holiday_repo: holiday_repo.clone(),
+                roster_repo: roster_repo.clone(),
+                pool: pool.clone(),
+            },
         ));
         let jwt_secret = if cfg!(debug_assertions) {
             std::env::var("JWT_SECRET").unwrap_or_else(|_| {
@@ -225,13 +228,17 @@ impl AppState {
         let (attendance_service, log_worker_handle) = AttendanceLogService::new(
             worker_pool.clone(),
             pairing_service.clone(),
-            buffer_capacity,
-            batch_size,
-            flush_interval_ms,
-            employee_repo.clone(),
-            raw_log_repo.clone(),
-            staging_repo.clone(),
-            error_repo.clone(),
+            crate::services::attendance_log_service::AttendanceLogServiceConfig {
+                buffer_capacity,
+                batch_size,
+                flush_interval_ms,
+            },
+            crate::services::attendance_log_service::AttendanceLogServiceDeps {
+                employee_repo: employee_repo.clone(),
+                raw_log_repo: raw_log_repo.clone(),
+                staging_repo: staging_repo.clone(),
+                error_repo: error_repo.clone(),
+            },
         );
         let attendance_service = Arc::new(attendance_service);
 

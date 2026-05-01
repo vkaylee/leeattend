@@ -17,6 +17,29 @@ use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{employee, SqlxWorkspaceRepository, TimeEntryRepository};
 use crate::services::AttendanceCalculator;
 
+pub struct AttendanceReportArgs {
+    pub workspace_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+    pub employee_ids: Option<Vec<Uuid>>,
+    pub department_id: Option<Uuid>,
+    pub sort: Option<AttendanceReportSort>,
+}
+
+pub struct CalculateDayUnitsArgs<'a, 'b> {
+    pub day_entries: &'a [&'a crate::models::TimeEntry],
+    pub daily: &'b crate::models::EffectiveSchedule,
+    pub date: NaiveDate,
+    pub tz: Tz,
+    pub employee_id: Uuid,
+    pub workspace_id: Uuid,
+    pub early_arrival_strategy: crate::models::EarlyArrivalStrategy,
+    pub work_unit_minutes: i32,
+    pub rounding_policy: &'a str,
+}
+
 pub struct ReportService {
     time_entry_repo: Arc<dyn TimeEntryRepository>,
     roster_repo: Arc<dyn RosterRepository>,
@@ -40,57 +63,50 @@ impl ReportService {
     ///
     /// Consolidates the identical logic previously duplicated in
     /// `get_daily_attendance_report` and `get_workspace_attendance_summary`.
-    #[allow(clippy::too_many_arguments)]
-    async fn calculate_day_units(
-        &self,
-        day_entries: &[&crate::models::TimeEntry],
-        daily: &crate::models::EffectiveSchedule,
-        date: NaiveDate,
-        tz: Tz,
-        employee_id: Uuid,
-        workspace_id: Uuid,
-        early_arrival_strategy: crate::models::EarlyArrivalStrategy,
-        work_unit_minutes: i32,
-        rounding_policy: &str,
-    ) -> (i32, i32) {
+    async fn calculate_day_units(&self, args: CalculateDayUnitsArgs<'_, '_>) -> (i32, i32) {
         // Day-off or no shift assigned → 0 work hours.
         // Without shift boundaries the calculator would treat all punch time
         // as "standard" minutes, inflating the report for roster day-offs.
-        if daily.shift_id.is_none() {
+        if args.daily.shift_id.is_none() {
             return (0, 0);
         }
 
-        let actual_punch_in = day_entries
+        let actual_punch_in = args
+            .day_entries
             .first()
-            .map(|e| e.punch_in_time.with_timezone(&tz));
-        let actual_punch_out = day_entries
+            .map(|e| e.punch_in_time.with_timezone(&args.tz));
+        let actual_punch_out = args
+            .day_entries
             .last()
-            .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
+            .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&args.tz)));
 
         if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
-            let actual_break_minutes: i32 = day_entries
+            let actual_break_minutes: i32 = args
+                .day_entries
                 .iter()
                 .filter(|e| e.entry_type == "break")
                 .map(|e| e.duration_minutes.unwrap_or(0))
                 .sum();
 
-            let shift_start_dt = daily
+            let shift_start_dt = args
+                .daily
                 .start_time
-                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-            let shift_end_dt = daily
+                .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
+            let shift_end_dt = args
+                .daily
                 .end_time
-                .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                .and_then(|t| args.tz.from_local_datetime(&args.date.and_time(t)).single());
 
             let rules = PolicyResolver::resolve_with_shift_overrides(
                 &self.pool,
-                employee_id,
-                workspace_id,
-                date,
+                args.employee_id,
+                args.workspace_id,
+                args.date,
                 &ShiftPolicyOverrides {
-                    grace_period_minutes: daily.early_punch_in_grace_period_minutes,
-                    is_break_auto_deduct: daily.is_break_auto_deduct,
-                    allow_early_ot: daily.allow_early_ot,
-                    early_arrival_strategy,
+                    grace_period_minutes: args.daily.early_punch_in_grace_period_minutes,
+                    is_break_auto_deduct: args.daily.is_break_auto_deduct,
+                    allow_early_ot: args.daily.allow_early_ot,
+                    early_arrival_strategy: args.early_arrival_strategy,
                     is_break_overtime: false,
                 },
             )
@@ -99,7 +115,7 @@ impl ReportService {
             // Handle shift boundaries (with overnight shift support)
             let (shift_start, shift_end) =
                 if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                    if daily.end_time < daily.start_time {
+                    if args.daily.end_time < args.daily.start_time {
                         end += chrono::Duration::days(1);
                     }
                     (Some(start), Some(end))
@@ -108,39 +124,34 @@ impl ReportService {
                 };
 
             AttendanceCalculator::calculate_daily_units(
-                punch_in,
-                punch_out,
-                shift_start,
-                shift_end,
-                daily.break_duration_minutes.unwrap_or(0),
-                actual_break_minutes,
-                work_unit_minutes,
-                rounding_policy,
-                &rules,
-                None,
+                &crate::services::attendance_calculator::DailyCalcInput {
+                    punch_in,
+                    punch_out,
+                    shift_start,
+                    shift_end,
+                    scheduled_break_minutes: args.daily.break_duration_minutes.unwrap_or(0),
+                    actual_break_minutes,
+                    work_unit: args.work_unit_minutes,
+                    rounding_policy: args.rounding_policy.to_string(),
+                    rules: rules.clone(),
+                    ot_ceiling: None,
+                },
             )
         } else {
             (0, 0)
         }
     }
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
     pub async fn get_daily_attendance_report(
         &self,
-        workspace_id: Uuid,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        page: Option<i64>,
-        limit: Option<i64>,
-        employee_ids: Option<Vec<Uuid>>,
-        department_id: Option<Uuid>,
+        args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, AppError> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
         let workspace_repo = SqlxWorkspaceRepository {
             pool: self.pool.clone(),
         };
         let workspace = workspace_repo
-            .get_workspace_by_id(workspace_id)
+            .get_workspace_by_id(args.workspace_id)
             .await
             .map_err(|e| {
                 tracing::error!("Error fetching workspace: {}", e);
@@ -151,18 +162,20 @@ impl ReportService {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         // 1. PAGINATION AT DATABASE LEVEL
-        let page = page.unwrap_or(1);
-        let limit = limit.unwrap_or(20);
+        let page = args.page.unwrap_or(1);
+        let limit = args.limit.unwrap_or(20);
 
         // Daily report always uses ASC sort (no sort parameter exposed)
         let (paginated_employees, total_employees) = employee::get_paginated_employee_ids(
             &self.pool,
-            workspace_id,
-            employee_ids.as_ref(),
-            department_id,
-            page,
-            limit,
-            false, // sort_desc = false -> ORDER BY full_name ASC
+            args.workspace_id,
+            crate::models::EmployeePaginationArgs {
+                filter_ids: args.employee_ids.as_ref(),
+                department_id: args.department_id,
+                page,
+                limit,
+                sort_desc: false, // ORDER BY full_name ASC
+            },
         )
         .await
         .map_err(|e| {
@@ -186,28 +199,37 @@ impl ReportService {
         // 3. Get schedules ONLY for paginated employees
         let schedules = self
             .roster_repo
-            .get_workspace_schedules(None, workspace_id, start_date, end_date, Some(&emp_ids))
+            .get_workspace_schedules(
+                None,
+                args.workspace_id,
+                args.start_date,
+                args.end_date,
+                Some(&emp_ids),
+            )
             .await
             .map_err(AppError::Sqlx)?;
 
         // 4. Convert NaiveDate to DateTime<Utc> using Workspace Timezone
-        let (start_dt, end_dt) =
-            crate::services::attendance_utils::date_range_to_utc_checked(tz, start_date, end_date)
-                .ok_or(AppError::Validation("Invalid request".into()))?;
+        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
+            tz,
+            args.start_date,
+            args.end_date,
+        )
+        .ok_or(AppError::Validation("Invalid request".into()))?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt)
+            .get_workspace_time_entries_batch(args.workspace_id, &emp_ids, start_dt, end_dt)
             .await
             .map_err(AppError::Sqlx)?;
 
         // 5a. BATCH fetch holidays for the date range
         let holidays_map = HolidayRepository::get_holidays_in_range(
             &self.pool,
-            workspace_id,
-            start_date,
-            end_date,
+            args.workspace_id,
+            args.start_date,
+            args.end_date,
         )
         .await
         .map_err(AppError::Sqlx)?;
@@ -219,10 +241,10 @@ impl ReportService {
                WHERE workspace_id = $1
                  AND employee_id = ANY($2)
                  AND date >= $3 AND date <= $4"#,
-            workspace_id,
+            args.workspace_id,
             &emp_ids,
-            start_date,
-            end_date
+            args.start_date,
+            args.end_date
         )
         .fetch_all(&self.pool)
         .await
@@ -241,10 +263,10 @@ impl ReportService {
         // 5c. BATCH fetch approved leave requests for holiday-leave status detection
         let leave_date_set = crate::services::attendance_utils::build_leave_date_set(
             &self.pool,
-            workspace_id,
+            args.workspace_id,
             &emp_ids,
-            start_date,
-            end_date,
+            args.start_date,
+            args.end_date,
         )
         .await
         .map_err(AppError::Sqlx)?;
@@ -253,8 +275,8 @@ impl ReportService {
         let attendance_rules_map = PolicyResolver::resolve_attendance_policy_batch(
             &self.pool,
             &emp_ids,
-            workspace_id,
-            start_date, // proxy date for the report period
+            args.workspace_id,
+            args.start_date, // proxy date for the report period
         )
         .await
         .map_err(AppError::Sqlx)?;
@@ -298,17 +320,17 @@ impl ReportService {
                     });
 
                 let (std_work_units, ot_work_units) = self
-                    .calculate_day_units(
+                    .calculate_day_units(CalculateDayUnitsArgs {
                         day_entries,
-                        &daily,
+                        daily: &daily,
                         date,
                         tz,
-                        emp_sched.employee_id,
-                        workspace.id,
-                        emp_attendance_rules.early_arrival_strategy,
-                        emp_attendance_rules.work_unit_minutes,
-                        &emp_attendance_rules.rounding_policy,
-                    )
+                        employee_id: emp_sched.employee_id,
+                        workspace_id: workspace.id,
+                        early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
+                        work_unit_minutes: emp_attendance_rules.work_unit_minutes,
+                        rounding_policy: &emp_attendance_rules.rounding_policy,
+                    })
                     .await;
 
                 // --- STATUS DETERMINATION (using shared attendance_utils) ---
@@ -401,18 +423,10 @@ impl ReportService {
     /// 2. Batch fetch schedules and time entries (eliminates N+1)
     /// 3. Apply AttendanceCalculator for each day (same as detail report)
     /// 4. Aggregate daily results per employee
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err)]
     pub async fn get_workspace_attendance_summary(
         &self,
-        workspace_id: Uuid,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        sort: Option<AttendanceReportSort>,
-        page: Option<i64>,
-        limit: Option<i64>,
-        employee_ids: Option<Vec<Uuid>>,
-        department_id: Option<Uuid>,
+        args: AttendanceReportArgs,
     ) -> Result<PaginatedResponse<AttendanceSummary>, AppError> {
         use sqlx::Row;
         use std::collections::HashMap;
@@ -422,7 +436,7 @@ impl ReportService {
             pool: self.pool.clone(),
         };
         let workspace = workspace_repo
-            .get_workspace_by_id(workspace_id)
+            .get_workspace_by_id(args.workspace_id)
             .await
             .map_err(|e| {
                 tracing::error!("Error fetching workspace: {}", e);
@@ -433,21 +447,23 @@ impl ReportService {
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
 
         // 1. PAGINATION AT DATABASE LEVEL
-        let page = page.unwrap_or(1);
-        let limit = limit.unwrap_or(20);
+        let page = args.page.unwrap_or(1);
+        let limit = args.limit.unwrap_or(20);
 
         // Determine sort direction for name sorting at DB level
         // NameDesc -> ORDER BY full_name DESC; all others -> ORDER BY full_name ASC
-        let sort_desc = matches!(sort, Some(AttendanceReportSort::NameDesc));
+        let sort_desc = matches!(args.sort, Some(AttendanceReportSort::NameDesc));
 
         let (paginated_employees, total_employees) = employee::get_paginated_employee_ids(
             &self.pool,
-            workspace_id,
-            employee_ids.as_ref(),
-            department_id,
-            page,
-            limit,
-            sort_desc,
+            args.workspace_id,
+            crate::models::EmployeePaginationArgs {
+                filter_ids: args.employee_ids.as_ref(),
+                department_id: args.department_id,
+                page,
+                limit,
+                sort_desc,
+            },
         )
         .await
         .map_err(|e| {
@@ -471,19 +487,28 @@ impl ReportService {
         // 3. Get schedules ONLY for paginated employees
         let schedules = self
             .roster_repo
-            .get_workspace_schedules(None, workspace_id, start_date, end_date, Some(&emp_ids))
+            .get_workspace_schedules(
+                None,
+                args.workspace_id,
+                args.start_date,
+                args.end_date,
+                Some(&emp_ids),
+            )
             .await
             .map_err(AppError::Sqlx)?;
 
         // 4. Convert dates to UTC for time entry query
-        let (start_dt, end_dt) =
-            crate::services::attendance_utils::date_range_to_utc_checked(tz, start_date, end_date)
-                .ok_or(AppError::Validation("Invalid request".into()))?;
+        let (start_dt, end_dt) = crate::services::attendance_utils::date_range_to_utc_checked(
+            tz,
+            args.start_date,
+            args.end_date,
+        )
+        .ok_or(AppError::Validation("Invalid request".into()))?;
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = self
             .time_entry_repo
-            .get_workspace_time_entries_batch(workspace_id, &emp_ids, start_dt, end_dt)
+            .get_workspace_time_entries_batch(args.workspace_id, &emp_ids, start_dt, end_dt)
             .await
             .map_err(AppError::Sqlx)?;
 
@@ -502,8 +527,8 @@ impl ReportService {
             "#,
         )
         .bind(&emp_ids)
-        .bind(start_date)
-        .bind(end_date)
+        .bind(args.start_date)
+        .bind(args.end_date)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| {
@@ -524,7 +549,7 @@ impl ReportService {
             &self.pool,
             &emp_ids,
             workspace.id,
-            start_date, // proxy date for the report period
+            args.start_date, // proxy date for the report period
         )
         .await
         .map_err(AppError::Sqlx)?;
@@ -564,17 +589,17 @@ impl ReportService {
                     .unwrap_or(&[]);
 
                 let (std_units, ot_units) = self
-                    .calculate_day_units(
+                    .calculate_day_units(CalculateDayUnitsArgs {
                         day_entries,
                         daily,
                         date,
                         tz,
-                        emp_sched.employee_id,
-                        workspace.id,
-                        emp_attendance_rules.early_arrival_strategy,
-                        emp_attendance_rules.work_unit_minutes,
-                        &emp_attendance_rules.rounding_policy,
-                    )
+                        employee_id: emp_sched.employee_id,
+                        workspace_id: workspace.id,
+                        early_arrival_strategy: emp_attendance_rules.early_arrival_strategy,
+                        work_unit_minutes: emp_attendance_rules.work_unit_minutes,
+                        rounding_policy: &emp_attendance_rules.rounding_policy,
+                    })
                     .await;
 
                 employee_total_std += std_units;
@@ -604,7 +629,7 @@ impl ReportService {
             .collect();
 
         // 9. Sort within batch (for calculated fields only)
-        if let Some(s) = &sort {
+        if let Some(s) = &args.sort {
             match s {
                 AttendanceReportSort::NameAsc | AttendanceReportSort::NameDesc => {
                     // Already sorted from DB - no action needed

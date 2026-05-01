@@ -633,7 +633,7 @@ mod tests {
         let mut found_refresh = false;
 
         for cookie in headers.get_all(SET_COOKIE) {
-            let cookie_str = cookie.to_str().unwrap();
+            let cookie_str = cookie.to_str().expect("valid cookie string");
             if cookie_str.starts_with("access_token=") {
                 assert!(cookie_str.contains("SameSite=None"));
                 assert!(cookie_str.contains("Secure"));
@@ -658,7 +658,7 @@ mod tests {
         let headers = clear_auth_cookies();
 
         for cookie in headers.get_all(SET_COOKIE) {
-            let cookie_str = cookie.to_str().unwrap();
+            let cookie_str = cookie.to_str().expect("valid cookie string");
             assert!(cookie_str.contains("SameSite=None"));
             assert!(cookie_str.contains("Secure"));
             assert!(cookie_str.contains("Max-Age=0"));
@@ -672,7 +672,7 @@ mod tests {
         let headers = create_auth_cookies("tok_access", "tok_refresh");
 
         for cookie in headers.get_all(SET_COOKIE) {
-            let cookie_str = cookie.to_str().unwrap();
+            let cookie_str = cookie.to_str().expect("valid cookie string");
             assert!(
                 cookie_str.contains("Domain=.vlee.dev"),
                 "Cookie missing Domain attribute: {cookie_str}"
@@ -690,7 +690,7 @@ mod tests {
         let headers = create_auth_cookies("tok_access", "tok_refresh");
 
         for cookie in headers.get_all(SET_COOKIE) {
-            let cookie_str = cookie.to_str().unwrap();
+            let cookie_str = cookie.to_str().expect("valid cookie string");
             assert!(
                 !cookie_str.contains("Domain="),
                 "Cookie should NOT have Domain when COOKIE_DOMAIN is unset: {cookie_str}"
@@ -705,7 +705,7 @@ mod tests {
         let headers = clear_auth_cookies();
 
         for cookie in headers.get_all(SET_COOKIE) {
-            let cookie_str = cookie.to_str().unwrap();
+            let cookie_str = cookie.to_str().expect("valid cookie string");
             assert!(cookie_str.contains("Domain=.vlee.dev"));
             assert!(cookie_str.contains("Max-Age=0"));
         }
@@ -723,7 +723,7 @@ mod tests {
         let mut found_refresh = false;
 
         for cookie in headers.get_all(SET_COOKIE) {
-            let cookie_str = cookie.to_str().unwrap();
+            let cookie_str = cookie.to_str().expect("valid cookie string");
             if cookie_str.starts_with("access_token=my_access_123;") {
                 found_access = true;
                 assert!(cookie_str.contains("Max-Age=3600"));
@@ -744,7 +744,7 @@ mod tests {
         let headers = create_auth_cookies("tok", "ref");
 
         for cookie in headers.get_all(SET_COOKIE) {
-            let cookie_str = cookie.to_str().unwrap();
+            let cookie_str = cookie.to_str().expect("valid cookie string");
             assert!(
                 !cookie_str.contains("Domain="),
                 "Empty COOKIE_DOMAIN should not produce Domain attr: {cookie_str}"

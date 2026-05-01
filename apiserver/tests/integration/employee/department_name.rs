@@ -111,10 +111,20 @@ async fn test_get_all_employees_includes_department_name() {
     transfer(&pool, emp1, dept_id, today).await;
     // emp2 has no department
 
-    let (employees, total) =
-        employee::get_all_employees(&pool, ws_id, None, 1, 50, None, None, None)
-            .await
-            .unwrap();
+    let (employees, total) = employee::get_all_employees(
+        &pool,
+        ws_id,
+        apiserver::models::EmployeeFilterOptions {
+            search_query: None,
+            page: 1,
+            limit: 50,
+            sort_by: None,
+            sort_dir: None,
+            department_ids: None,
+        },
+    )
+    .await
+    .unwrap();
 
     assert_eq!(total, 2);
 

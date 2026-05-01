@@ -8,7 +8,6 @@ use uuid::Uuid;
 // Trait: LeavePolicyRepository — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-#[allow(clippy::too_many_arguments)]
 pub trait LeavePolicyRepository: super::PoolBacked + Send + Sync {
     async fn create_policy_definition(
         &self,

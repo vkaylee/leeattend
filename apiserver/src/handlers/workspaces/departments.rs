@@ -55,14 +55,7 @@ pub async fn update_department(
     let dept = state
         .payroll
         .department_repo
-        .update_department(
-            ctx.workspace_id,
-            id,
-            req.name,
-            req.description,
-            req.manager_id,
-            req.default_working_pattern_id,
-        )
+        .update_department(ctx.workspace_id, id, req)
         .await?;
 
     Ok(Json(dept))

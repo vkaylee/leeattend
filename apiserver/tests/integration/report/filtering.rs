@@ -43,7 +43,16 @@ async fn test_daily_report_employee_filtering() {
 
     // Filter by emp1
     let result_1 = report_service
-        .get_daily_attendance_report(workspace_id, date, date, None, None, Some(vec![emp1]), None)
+        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
+            workspace_id,
+            start_date: date,
+            end_date: date,
+            page: None,
+            limit: None,
+            employee_ids: Some(vec![emp1]),
+            department_id: None,
+            sort: None,
+        })
         .await
         .expect("Failed to get report");
     assert_eq!(result_1.data.len(), 1);
@@ -51,15 +60,16 @@ async fn test_daily_report_employee_filtering() {
 
     // Filter by emp2, emp3
     let result_23 = report_service
-        .get_daily_attendance_report(
+        .get_daily_attendance_report(apiserver::services::report_service::AttendanceReportArgs {
             workspace_id,
-            date,
-            date,
-            None,
-            None,
-            Some(vec![emp2, emp3]),
-            None,
-        )
+            start_date: date,
+            end_date: date,
+            page: None,
+            limit: None,
+            employee_ids: Some(vec![emp2, emp3]),
+            department_id: None,
+            sort: None,
+        })
         .await
         .expect("Failed to get report");
     assert_eq!(result_23.data.len(), 2);

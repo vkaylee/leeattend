@@ -97,7 +97,10 @@ mod tests {
 
     #[test]
     fn test_cell_to_string() {
-        assert_eq!(cell_to_string(Some(&Data::String(" Hello ".to_string()))), "Hello");
+        assert_eq!(
+            cell_to_string(Some(&Data::String(" Hello ".to_string()))),
+            "Hello"
+        );
         assert_eq!(cell_to_string(Some(&Data::Float(123.45))), "123.45");
         assert_eq!(cell_to_string(Some(&Data::Int(42))), "42");
         assert_eq!(cell_to_string(Some(&Data::Bool(true))), "true");
@@ -109,11 +112,11 @@ mod tests {
     fn test_extract_file_rows_csv() {
         let csv_data = "emp_id,leave_code,start_date\nE001,AL,2023-01-01\nE002,SL,2023-01-02";
         let result = extract_file_rows(csv_data.as_bytes()).unwrap();
-        
+
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].0, 2); // line 2
         assert_eq!(result[0].1, vec!["E001", "AL", "2023-01-01"]);
-        
+
         assert_eq!(result[1].0, 3); // line 3
         assert_eq!(result[1].1, vec!["E002", "SL", "2023-01-02"]);
     }

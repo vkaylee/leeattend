@@ -54,27 +54,31 @@ impl LogIngestionHandler {
             AttendanceLogService::new(
                 db.clone(),
                 pairing_svc,
-                1,
-                1,
-                1000,
-                employee_repo,
-                raw_log_repo,
-                staging_repo,
-                error_repo,
+                crate::services::attendance_log_service::AttendanceLogServiceConfig {
+                    buffer_capacity: 1,
+                    batch_size: 1,
+                    flush_interval_ms: 1000,
+                },
+                crate::services::attendance_log_service::AttendanceLogServiceDeps {
+                    employee_repo,
+                    raw_log_repo,
+                    staging_repo,
+                    error_repo,
+                },
             )
         };
         log_svc
-            .process_log(
-                payload.workspace_id,
-                &payload.employee_id_number,
-                &payload.punch_time_raw,
-                LogSource::Device,
-                payload.device_id.clone(),
-                payload.raw_data.clone(),
-                &payload.timezone,
-                Some(&payload.date_fmt),
-                Some(&payload.time_fmt),
-            )
+            .process_log(crate::services::attendance_log_service::ProcessLogArgs {
+                workspace_id: payload.workspace_id,
+                employee_id_number: &payload.employee_id_number,
+                punch_time_raw: &payload.punch_time_raw,
+                source: LogSource::Device,
+                device_id: payload.device_id.clone(),
+                raw_data: payload.raw_data.clone(),
+                timezone: &payload.timezone,
+                date_fmt: Some(&payload.date_fmt),
+                time_fmt: Some(&payload.time_fmt),
+            })
             .await
             .map(|_| ())
     }

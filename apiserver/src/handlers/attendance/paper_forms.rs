@@ -55,14 +55,16 @@ pub async fn enter_paper_ot(
         .attendance
         .summary_service
         .enter_paper_ot(
-            ctx.workspace_id,
-            employee_id,
-            req.date,
-            req.claimed_minutes,
-            req.reason,
-            ctx.user_id,
-            req.paper_form_photo_url,
-            req.allow_exceed_system_detected,
+            crate::services::attendance_summary_service::EnterPaperOtArgs {
+                workspace_id: ctx.workspace_id,
+                employee_id,
+                date: req.date,
+                claimed_minutes: req.claimed_minutes,
+                reason: req.reason,
+                entered_by_user_id: ctx.user_id,
+                photo_url: req.paper_form_photo_url,
+                allow_exceed: req.allow_exceed_system_detected,
+            },
         )
         .await
         .map_err(|e| AppError::Validation(format!("Enter Paper OT Error: {e}")))?;
@@ -275,14 +277,16 @@ pub async fn bulk_upload_paper_ot(
             .attendance
             .summary_service
             .enter_paper_ot(
-                ctx.workspace_id,
-                employee.id,
-                date,
-                minutes,
-                reason,
-                ctx.user_id,
-                None,  // No photo URL for bulk upload
-                false, // Don't allow exceed for bulk upload
+                crate::services::attendance_summary_service::EnterPaperOtArgs {
+                    workspace_id: ctx.workspace_id,
+                    employee_id: employee.id,
+                    date,
+                    claimed_minutes: minutes,
+                    reason,
+                    entered_by_user_id: ctx.user_id,
+                    photo_url: None,     // No photo URL for bulk upload
+                    allow_exceed: false, // Don't allow exceed for bulk upload
+                },
             )
             .await
         {

@@ -31,27 +31,28 @@ pub struct AgentLogEntry {
     pub time_fmt: String,
 }
 
+pub struct AgentLogEntryArgs {
+    pub workspace_id: Uuid,
+    pub employee_id_number: String,
+    pub punch_time_raw: String,
+    pub device_id: Option<String>,
+    pub raw_data: Option<serde_json::Value>,
+    pub timezone: String,
+    pub date_fmt: String,
+    pub time_fmt: String,
+}
+
 impl AgentLogEntry {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        workspace_id: Uuid,
-        employee_id_number: String,
-        punch_time_raw: String,
-        device_id: Option<String>,
-        raw_data: Option<serde_json::Value>,
-        timezone: String,
-        date_fmt: String,
-        time_fmt: String,
-    ) -> Self {
+    pub fn new(args: AgentLogEntryArgs) -> Self {
         Self {
-            workspace_id,
-            employee_id_number: Self::sanitize_string(employee_id_number),
-            punch_time_raw: Self::sanitize_string(punch_time_raw),
-            device_id: device_id.map(Self::sanitize_string),
-            raw_data: raw_data.map(Self::sanitize_json_value),
-            timezone,
-            date_fmt,
-            time_fmt,
+            workspace_id: args.workspace_id,
+            employee_id_number: Self::sanitize_string(args.employee_id_number),
+            punch_time_raw: Self::sanitize_string(args.punch_time_raw),
+            device_id: args.device_id.map(Self::sanitize_string),
+            raw_data: args.raw_data.map(Self::sanitize_json_value),
+            timezone: args.timezone,
+            date_fmt: args.date_fmt,
+            time_fmt: args.time_fmt,
         }
     }
 
@@ -322,16 +323,16 @@ mod tests {
 
     #[test]
     fn test_sanitize_agent_log_entry() {
-        let entry = AgentLogEntry::new(
-            Uuid::new_v4(),
-            "EMP\0001 ".to_string(), // Null byte and trailing space
-            "2026-01-26\0 09:00:00".to_string(),
-            Some("D\01".to_string()),
-            None,
-            "UTC".to_string(),
-            "YYYY-MM-DD".to_string(),
-            "24h".to_string(),
-        );
+        let entry = AgentLogEntry::new(AgentLogEntryArgs {
+            workspace_id: Uuid::new_v4(),
+            employee_id_number: "EMP\0001 ".to_string(), // Null byte and trailing space
+            punch_time_raw: "2026-01-26\0 09:00:00".to_string(),
+            device_id: Some("D\01".to_string()),
+            raw_data: None,
+            timezone: "UTC".to_string(),
+            date_fmt: "YYYY-MM-DD".to_string(),
+            time_fmt: "24h".to_string(),
+        });
 
         assert_eq!(entry.employee_id_number, "EMP001");
         assert_eq!(entry.punch_time_raw, "2026-01-26 09:00:00");
@@ -366,16 +367,16 @@ mod tests {
             "status": 1
         });
 
-        let entry = AgentLogEntry::new(
-            Uuid::new_v4(),
-            "EMP001".to_string(),
-            "2026-01-26 09:00:00".to_string(),
-            None,
-            Some(raw),
-            "UTC".to_string(),
-            "YYYY-MM-DD".to_string(),
-            "24h".to_string(),
-        );
+        let entry = AgentLogEntry::new(AgentLogEntryArgs {
+            workspace_id: Uuid::new_v4(),
+            employee_id_number: "EMP001".to_string(),
+            punch_time_raw: "2026-01-26 09:00:00".to_string(),
+            device_id: None,
+            raw_data: Some(raw),
+            timezone: "UTC".to_string(),
+            date_fmt: "YYYY-MM-DD".to_string(),
+            time_fmt: "24h".to_string(),
+        });
 
         let data = entry.raw_data.unwrap();
         assert_eq!(data["user_id"], "emp001");
@@ -421,16 +422,16 @@ mod tests {
 
     #[test]
     fn test_sanitize_string_only_null_bytes() {
-        let entry = AgentLogEntry::new(
-            Uuid::new_v4(),
-            "\0\0\0".to_string(),
-            "\0".to_string(),
-            None,
-            None,
-            "UTC".to_string(),
-            "YYYY-MM-DD".to_string(),
-            "24h".to_string(),
-        );
+        let entry = AgentLogEntry::new(AgentLogEntryArgs {
+            workspace_id: Uuid::new_v4(),
+            employee_id_number: "\0\0\0".to_string(),
+            punch_time_raw: "\0".to_string(),
+            device_id: None,
+            raw_data: None,
+            timezone: "UTC".to_string(),
+            date_fmt: "YYYY-MM-DD".to_string(),
+            time_fmt: "24h".to_string(),
+        });
         assert_eq!(entry.employee_id_number, "");
         assert_eq!(entry.punch_time_raw, "");
     }

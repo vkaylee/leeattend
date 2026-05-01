@@ -79,4 +79,3 @@ mod tests {
         let _ = ExcelFormatUtils::ref_header_format();
     }
 }
-

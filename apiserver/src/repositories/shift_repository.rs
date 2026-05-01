@@ -4,21 +4,10 @@ use uuid::Uuid;
 
 use crate::models::Shift;
 
-#[allow(clippy::too_many_arguments)]
 pub async fn create_shift<'a, E>(
     executor: E,
     workspace_id: Uuid,
-    name: String,
-    report_symbol: Option<String>,
-    start_time: NaiveTime,
-    end_time: NaiveTime,
-    break_duration_minutes: i32,
-    break_start: Option<NaiveTime>,
-    break_end: Option<NaiveTime>,
-    is_break_auto_deduct: bool,
-    break_is_overtime: bool,
-    early_punch_in_grace_period_minutes: i32,
-    allow_early_ot: bool,
+    req: &crate::models::CreateShiftRequest,
     is_active: bool,
     parent_shift_id: Option<Uuid>,
 ) -> Result<Shift, sqlx::Error>
@@ -41,17 +30,17 @@ where
             early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
             created_at as "created_at!", updated_at as "updated_at!""#,
         workspace_id,
-        name,
-        report_symbol,
-        start_time,
-        end_time,
-        break_duration_minutes,
-        break_start,
-        break_end,
-        is_break_auto_deduct,
-        break_is_overtime,
-        early_punch_in_grace_period_minutes,
-        allow_early_ot,
+        &req.name,
+        req.report_symbol.as_deref(),
+        req.start_time,
+        req.end_time,
+        req.break_duration_minutes,
+        req.break_start,
+        req.break_end,
+        req.is_break_auto_deduct,
+        req.break_is_overtime,
+        req.early_punch_in_grace_period_minutes,
+        req.allow_early_ot,
         is_active,
         parent_shift_id
     )
@@ -101,22 +90,11 @@ pub async fn get_workspace_shifts(
     .await
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn update_shift_direct(
     pool: &PgPool,
     workspace_id: Uuid,
     id: Uuid,
-    name: String,
-    report_symbol: Option<String>,
-    start_time: NaiveTime,
-    end_time: NaiveTime,
-    break_duration_minutes: i32,
-    break_start: Option<NaiveTime>,
-    break_end: Option<NaiveTime>,
-    is_break_auto_deduct: bool,
-    break_is_overtime: bool,
-    early_punch_in_grace_period_minutes: i32,
-    allow_early_ot: bool,
+    req: &crate::models::UpdateShiftRequest,
 ) -> Result<Shift, sqlx::Error> {
     query_as!(
         Shift,
@@ -133,17 +111,17 @@ pub async fn update_shift_direct(
             early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
             created_at as "created_at!", updated_at as "updated_at!""#,
         id,
-        name,
-        report_symbol,
-        start_time,
-        end_time,
-        break_duration_minutes,
-        break_start,
-        break_end,
-        is_break_auto_deduct,
-        break_is_overtime,
-        early_punch_in_grace_period_minutes,
-        allow_early_ot,
+        &req.name,
+        req.report_symbol.as_deref(),
+        req.start_time,
+        req.end_time,
+        req.break_duration_minutes,
+        req.break_start,
+        req.break_end,
+        req.is_break_auto_deduct,
+        req.break_is_overtime,
+        req.early_punch_in_grace_period_minutes,
+        req.allow_early_ot,
         workspace_id
     )
     .fetch_one(pool)

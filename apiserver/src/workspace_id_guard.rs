@@ -338,7 +338,7 @@ mod tests {
 
         for file_path in &rs_files {
             let content = fs::read_to_string(file_path).expect("Failed to read file");
-            let file_name = file_path.file_name().unwrap().to_str().unwrap();
+            let file_name = file_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
             // Skip test-only files and this guard test itself
             if file_name == "workspace_id_guard.rs" {
@@ -485,7 +485,7 @@ mod tests {
                 .unwrap_or(file_path.as_path())
                 .to_str()
                 .unwrap_or("");
-            let file_name = file_path.file_name().unwrap().to_str().unwrap();
+            let file_name = file_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
             // Skip this guard file itself
             if file_name == "workspace_id_guard.rs" {
@@ -583,7 +583,7 @@ mod tests {
                 .unwrap_or(file_path.as_path())
                 .to_str()
                 .unwrap_or("");
-            let file_name = file_path.file_name().unwrap().to_str().unwrap();
+            let file_name = file_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
             if file_name == "workspace_id_guard.rs"
                 || file_name == "common.rs"

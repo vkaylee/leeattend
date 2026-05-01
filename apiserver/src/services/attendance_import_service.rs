@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::errors::AppError;
-use calamine::{Data, DataType, Reader, Xls, Xlsx};
+
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
@@ -36,11 +36,13 @@ struct PendingEmployee {
     line_number: usize,
 }
 
+#[derive(Clone)]
 pub struct AttendanceImportService {
     import_repo: Arc<dyn ImportJobRepository>,
     adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
     employee_repo: Arc<dyn EmployeeRepository>,
     time_entry_repo: Arc<dyn TimeEntryRepository>,
+    workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
     pool: PgPool,
     redis: Option<crate::queue::RedisPool>,
 }
@@ -51,6 +53,7 @@ impl AttendanceImportService {
         adj_repo: Arc<dyn AttendanceAdjustmentRepository>,
         employee_repo: Arc<dyn EmployeeRepository>,
         time_entry_repo: Arc<dyn TimeEntryRepository>,
+        workspace_repo: Arc<dyn crate::repositories::workspace_repository::WorkspaceRepository>,
         pool: PgPool,
         redis: Option<crate::queue::RedisPool>,
     ) -> Self {
@@ -59,6 +62,7 @@ impl AttendanceImportService {
             adj_repo,
             employee_repo,
             time_entry_repo,
+            workspace_repo,
             pool,
             redis,
         }
@@ -92,21 +96,8 @@ impl AttendanceImportService {
             AppError::Internal("Internal error".into())
         })?;
 
-        let pool_clone = self.pool.clone();
-        let import_repo = self.import_repo.clone();
-        let adj_repo = self.adj_repo.clone();
-        let employee_repo = self.employee_repo.clone();
-        let time_entry_repo = self.time_entry_repo.clone();
-        let redis = self.redis.clone();
+        let svc = self.clone();
         tokio::spawn(async move {
-            let svc = Self {
-                import_repo,
-                adj_repo,
-                employee_repo,
-                time_entry_repo,
-                pool: pool_clone,
-                redis,
-            };
             let _ = svc.process_job(job_id).await;
         });
 
@@ -121,21 +112,8 @@ impl AttendanceImportService {
                     "Resuming import job: {} (target: {})",
                     job.id, job.target_type
                 );
-                let pool_clone = self.pool.clone();
-                let import_repo = self.import_repo.clone();
-                let adj_repo = self.adj_repo.clone();
-                let employee_repo = self.employee_repo.clone();
-                let time_entry_repo = self.time_entry_repo.clone();
-                let redis = self.redis.clone();
+                let svc = self.clone();
                 tokio::spawn(async move {
-                    let svc = Self {
-                        import_repo,
-                        adj_repo,
-                        employee_repo,
-                        time_entry_repo,
-                        pool: pool_clone,
-                        redis,
-                    };
                     let _ = svc.process_job(job.id).await;
                 });
             }
@@ -143,20 +121,28 @@ impl AttendanceImportService {
     }
 
     async fn process_job(&self, job_id: Uuid) -> Result<(), ()> {
-        let pool = self.pool.clone();
         let job = match self.import_repo.get_job_by_id(job_id).await {
             Ok(Some(j)) => j,
             _ => return Err(()),
         };
 
-        let workspace = match crate::repositories::workspace_repository::WorkspaceRepository::get_workspace_by_id(
-            &crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: pool.clone() },
-            job.workspace_id
-        ).await {
+        let workspace = match self
+            .workspace_repo
+            .get_workspace_by_id(job.workspace_id)
+            .await
+        {
             Ok(Some(ws)) => ws,
             _ => {
                 error!("WORKSPACE_NOT_FOUND for job {}", job_id);
-                let _ = self.import_repo.update_job_progress(job_id, job.processed_rows, ImportJobStatus::Failed, Some("Workspace not found".to_string())).await;
+                let _ = self
+                    .import_repo
+                    .update_job_progress(
+                        job_id,
+                        job.processed_rows,
+                        ImportJobStatus::Failed,
+                        Some("Workspace not found".to_string()),
+                    )
+                    .await;
                 return Err(());
             }
         };
@@ -244,10 +230,9 @@ impl AttendanceImportService {
 
         let total_rows = pending_rows.len() as i32 + errors.len() as i32;
 
-        let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
-            .bind(total_rows)
-            .bind(job_id)
-            .execute(&pool)
+        let _ = self
+            .import_repo
+            .update_job_total_rows(job_id, total_rows)
             .await;
 
         if !errors.is_empty() {
@@ -379,6 +364,16 @@ impl AttendanceImportService {
         msgs: &AttendanceImportMessages,
     ) -> Result<(), ()> {
         let pool = self.pool.clone();
+
+        let workspace_tz = match self
+            .workspace_repo
+            .get_workspace_by_id(job.workspace_id)
+            .await
+        {
+            Ok(Some(ws)) => ws.timezone.parse::<Tz>().unwrap_or(Tz::UTC),
+            _ => Tz::UTC,
+        };
+
         let file_path = match &job.file_path {
             Some(p) => p,
             None => return Err(()),
@@ -404,73 +399,64 @@ impl AttendanceImportService {
         let mut errors = Vec::new();
         let mut pending_employees: Vec<PendingEmployee> = Vec::new();
 
-        let mut is_excel = false;
-        if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
-            if let Some(Ok(range)) = reader.worksheet_range_at(0) {
-                is_excel = true;
-                Self::parse_employee_excel_range(range, &mut pending_employees, &mut errors, msgs);
-            }
-        } else if let Ok(mut reader) = Xls::new(Cursor::new(&file_bytes)) {
-            if let Some(Ok(range)) = reader.worksheet_range_at(0) {
-                is_excel = true;
-                Self::parse_employee_excel_range(range, &mut pending_employees, &mut errors, msgs);
-            }
-        }
+        match crate::utils::file_parser::extract_file_rows(&file_bytes) {
+            Ok(rows) => {
+                for (current_line, cols) in rows {
+                    let raw_id = cols.first().map(|s| s.as_str()).unwrap_or("").trim();
+                    let id_number = normalize_employee_id(raw_id);
+                    let full_name = cols
+                        .get(1)
+                        .map(|s| s.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    let hire_date_raw = cols.get(2).map(|s| s.as_str()).unwrap_or("").trim();
 
-        if !is_excel {
-            let mut reader = csv::ReaderBuilder::new()
-                .has_headers(true)
-                .from_reader(Cursor::new(&file_bytes));
-            for (idx, record) in reader.records().flatten().enumerate() {
-                let current_line = idx + 2;
-                let raw_id = record.get(0).unwrap_or("").trim();
-                let id_number = normalize_employee_id(raw_id);
-                let full_name = record.get(1).unwrap_or("").trim().to_string();
-                let hire_date_str = record.get(2).unwrap_or("").trim();
+                    if id_number.is_empty() || full_name.is_empty() {
+                        errors.push(fmt_msg(
+                            msgs.missing_employee_or_id,
+                            &[("line", &current_line.to_string())],
+                        ));
+                        continue;
+                    }
 
-                if id_number.is_empty() || full_name.is_empty() {
-                    errors.push(fmt_msg(
-                        msgs.missing_employee_or_id,
-                        &[("line", &current_line.to_string())],
-                    ));
-                    continue;
+                    // Extract date part if file_parser included time string (e.g. from Excel Datetime)
+                    let hire_date_str = hire_date_raw.split(' ').next().unwrap_or(hire_date_raw);
+
+                    let hire_date = if hire_date_str.is_empty() {
+                        Utc::now().with_timezone(&workspace_tz).date_naive()
+                    } else {
+                        NaiveDate::parse_from_str(hire_date_str, "%Y-%m-%d")
+                            .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%d/%m/%Y"))
+                            .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%m/%d/%Y"))
+                            .unwrap_or_else(|_| {
+                                Utc::now().with_timezone(&workspace_tz).date_naive()
+                            })
+                    };
+
+                    let department_name = cols
+                        .get(3)
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty());
+
+                    pending_employees.push(PendingEmployee {
+                        id_number,
+                        full_name,
+                        hire_date,
+                        department_name,
+                        line_number: current_line,
+                    });
                 }
-
-                let hire_date = if hire_date_str.is_empty() {
-                    Utc::now()
-                        .with_timezone(&Tz::Asia__Ho_Chi_Minh)
-                        .date_naive()
-                } else {
-                    NaiveDate::parse_from_str(hire_date_str, "%Y-%m-%d")
-                        .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%d/%m/%Y"))
-                        .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%m/%d/%Y"))
-                        .unwrap_or_else(|_| {
-                            Utc::now()
-                                .with_timezone(&Tz::Asia__Ho_Chi_Minh)
-                                .date_naive()
-                        })
-                };
-
-                let department_name = record
-                    .get(3)
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty());
-
-                pending_employees.push(PendingEmployee {
-                    id_number,
-                    full_name,
-                    hire_date,
-                    department_name,
-                    line_number: current_line,
-                });
+            }
+            Err(e) => {
+                errors.push(e);
             }
         }
 
         let total_rows = pending_employees.len() as i32 + errors.len() as i32;
-        let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
-            .bind(total_rows)
-            .bind(job_id)
-            .execute(&pool)
+        let _ = self
+            .import_repo
+            .update_job_total_rows(job_id, total_rows)
             .await;
 
         if !errors.is_empty() {
@@ -659,81 +645,6 @@ impl AttendanceImportService {
         Ok(())
     }
 
-    fn parse_employee_excel_range(
-        range: calamine::Range<Data>,
-        pending: &mut Vec<PendingEmployee>,
-        errors: &mut Vec<String>,
-        msgs: &AttendanceImportMessages,
-    ) {
-        for (idx, row) in range.rows().skip(1).enumerate() {
-            let current_line = idx + 2;
-            let raw_id = match row.first() {
-                Some(Data::String(s)) => s.clone(),
-                Some(Data::Float(f)) => f.to_string(),
-                Some(Data::Int(i)) => i.to_string(),
-                _ => {
-                    errors.push(fmt_msg(
-                        msgs.missing_employee_id,
-                        &[("line", &current_line.to_string())],
-                    ));
-                    continue;
-                }
-            };
-            let id_number = normalize_employee_id(&raw_id);
-            let full_name = match row.get(1) {
-                Some(Data::String(s)) => s.trim().to_string(),
-                _ => {
-                    errors.push(fmt_msg(
-                        msgs.missing_employee_name,
-                        &[("line", &current_line.to_string())],
-                    ));
-                    continue;
-                }
-            };
-            let hire_date = match row.get(2) {
-                Some(Data::String(s)) => NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d")
-                    .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%d/%m/%Y"))
-                    .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%m/%d/%Y"))
-                    .unwrap_or_else(|_| {
-                        Utc::now()
-                            .with_timezone(&Tz::Asia__Ho_Chi_Minh)
-                            .date_naive()
-                    }),
-                Some(cell_data) => cell_data
-                    .as_datetime()
-                    .map(|ndt| ndt.date())
-                    .unwrap_or_else(|| {
-                        Utc::now()
-                            .with_timezone(&Tz::Asia__Ho_Chi_Minh)
-                            .date_naive()
-                    }),
-                _ => Utc::now()
-                    .with_timezone(&Tz::Asia__Ho_Chi_Minh)
-                    .date_naive(),
-            };
-
-            let department_name = row.get(3).and_then(|cell| match cell {
-                Data::Empty => None,
-                _ => {
-                    let s = cell.to_string();
-                    if s.trim().is_empty() {
-                        None
-                    } else {
-                        Some(s.trim().to_string())
-                    }
-                }
-            });
-
-            pending.push(PendingEmployee {
-                id_number,
-                full_name,
-                hire_date,
-                department_name,
-                line_number: current_line,
-            });
-        }
-    }
-
     async fn process_employee_import_row(
         pool: &PgPool,
         job: &AttendanceImportJob,
@@ -817,13 +728,17 @@ impl AttendanceImportService {
             let (log_svc, _h) = crate::services::AttendanceLogService::new(
                 pool.clone(),
                 ps,
-                1,
-                1,
-                1000,
-                emp_repo,
-                rl_repo,
-                st_repo,
-                er_repo,
+                crate::services::attendance_log_service::AttendanceLogServiceConfig {
+                    buffer_capacity: 1,
+                    batch_size: 1,
+                    flush_interval_ms: 1000,
+                },
+                crate::services::attendance_log_service::AttendanceLogServiceDeps {
+                    employee_repo: emp_repo,
+                    raw_log_repo: rl_repo,
+                    staging_repo: st_repo,
+                    error_repo: er_repo,
+                },
             );
             match log_svc
                 .process_parsed_log(

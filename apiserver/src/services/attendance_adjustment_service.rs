@@ -46,8 +46,18 @@ impl AttendanceAdjustmentService {
         let te_repo = Arc::new(crate::repositories::SqlxTimeEntryRepository::new(
             pool.clone(),
         ));
-        let import_svc =
-            AttendanceImportService::new(import_repo, adj_repo, employee_repo, te_repo, pool, None);
+        let workspace_repo = Arc::new(
+            crate::repositories::workspace_repository::SqlxWorkspaceRepository::new(pool.clone()),
+        );
+        let import_svc = AttendanceImportService::new(
+            import_repo,
+            adj_repo,
+            employee_repo,
+            te_repo,
+            workspace_repo,
+            pool,
+            None,
+        );
         import_svc.resume_all_pending_jobs().await;
     }
 

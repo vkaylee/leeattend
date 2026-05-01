@@ -83,16 +83,16 @@ pub async fn add_workspace_member(
     .execute(state.infra.db.api())
     .await?;
 
-    AuditHelper::log(
-        &state.core.audit_repo,
-        ctx.workspace_id,
-        Some(ctx.user_id),
-        Some(user_id),
-        None,
-        "add_member",
-        Some(serde_json::json!({ "role_id": req.role_id })),
-        &headers,
-    )
+    AuditHelper::log(crate::services::audit_service::AuditLogArgs {
+        repo: &state.core.audit_repo,
+        workspace_id: ctx.workspace_id,
+        actor_id: Some(ctx.user_id),
+        target_user_id: Some(user_id),
+        target_resource_id: None,
+        action: "add_member",
+        details: Some(serde_json::json!({ "role_id": req.role_id })),
+        headers: &headers,
+    })
     .await;
 
     if let Some(redis_pool) = state.infra.redis.clone() {
@@ -131,19 +131,19 @@ pub async fn update_workspace_member_role(
         .await
         .map_err(AppError::from)?;
 
-    AuditHelper::log(
-        &state.core.audit_repo,
-        ctx.workspace_id,
-        Some(ctx.user_id),
-        Some(user_id),
-        None,
-        "update_member_role",
-        Some(serde_json::json!({
+    AuditHelper::log(crate::services::audit_service::AuditLogArgs {
+        repo: &state.core.audit_repo,
+        workspace_id: ctx.workspace_id,
+        actor_id: Some(ctx.user_id),
+        target_user_id: Some(user_id),
+        target_resource_id: None,
+        action: "update_member_role",
+        details: Some(serde_json::json!({
             "old_role_id": old_role_id,
             "new_role_id": req.role_id
         })),
-        &headers,
-    )
+        headers: &headers,
+    })
     .await;
 
     if let Some(redis_pool) = state.infra.redis.clone() {
@@ -181,16 +181,16 @@ pub async fn remove_workspace_member(
         .await
         .map_err(AppError::from)?;
 
-    AuditHelper::log(
-        &state.core.audit_repo,
-        ctx.workspace_id,
-        Some(ctx.user_id),
-        Some(user_id),
-        None,
-        "remove_member",
-        None,
-        &headers,
-    )
+    AuditHelper::log(crate::services::audit_service::AuditLogArgs {
+        repo: &state.core.audit_repo,
+        workspace_id: ctx.workspace_id,
+        actor_id: Some(ctx.user_id),
+        target_user_id: Some(user_id),
+        target_resource_id: None,
+        action: "remove_member",
+        details: None,
+        headers: &headers,
+    })
     .await;
 
     if let Some(redis_pool) = state.infra.redis.clone() {

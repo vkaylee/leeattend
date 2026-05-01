@@ -66,20 +66,11 @@ pub async fn get_recruitment_source_by_id(
     .await
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn update_recruitment_source(
     pool: &PgPool,
     id: Uuid,
     workspace_id: Uuid,
-    name: Option<String>,
-    referrer_employee_id: Option<Uuid>,
-    referral_bonus_amount: Option<Decimal>,
-    referral_bonus_paid: Option<bool>,
-    agency_contact_name: Option<String>,
-    agency_contact_email: Option<String>,
-    agency_fee_amount: Option<Decimal>,
-    agency_fee_paid: Option<bool>,
-    notes: Option<String>,
+    req: &crate::models::UpdateRecruitmentSourceRequest,
 ) -> Result<Option<RecruitmentSource>, sqlx::Error> {
     sqlx::query_as::<_, RecruitmentSource>(
         r#"UPDATE recruitment_sources SET
@@ -98,15 +89,15 @@ pub async fn update_recruitment_source(
     )
     .bind(id)
     .bind(workspace_id)
-    .bind(name)
-    .bind(referrer_employee_id)
-    .bind(referral_bonus_amount)
-    .bind(referral_bonus_paid)
-    .bind(agency_contact_name)
-    .bind(agency_contact_email)
-    .bind(agency_fee_amount)
-    .bind(agency_fee_paid)
-    .bind(notes)
+    .bind(&req.name)
+    .bind(req.referrer_employee_id)
+    .bind(req.referral_bonus_amount)
+    .bind(req.referral_bonus_paid)
+    .bind(&req.agency_contact_name)
+    .bind(&req.agency_contact_email)
+    .bind(req.agency_fee_amount)
+    .bind(req.agency_fee_paid)
+    .bind(&req.notes)
     .fetch_optional(pool)
     .await
 }

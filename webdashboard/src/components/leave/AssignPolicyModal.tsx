@@ -9,8 +9,8 @@ import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 
+import { useAllEmployees } from "@/hooks/use-employees";
 import {
-  fetchEmployees,
   fetchDepartments,
   fetchLeavePolicies,
   fetchLeaveTypes,
@@ -34,8 +34,7 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
   const [assignDeptId, setAssignDeptId] = useState<string>("");
   const [assignPolicyId, setAssignPolicyId] = useState<string>("");
 
-  const { data: employeesData, isLoading: employeesLoading } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: isOpen && !!wsId });
-  const employees = employeesData?.data || [];
+  const { employees, isLoading: employeesLoading } = useAllEmployees(wsId, { enabled: isOpen });
   const { data: departments = [], isLoading: departmentsLoading } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId!), enabled: isOpen && !!wsId });
     const { data: policies = [], isLoading: policiesLoading } = useQuery({ queryKey: ["leave-policies", wsId], queryFn: () => fetchLeavePolicies(wsId!), enabled: isOpen && !!wsId });
   const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId!), enabled: isOpen && !!wsId });

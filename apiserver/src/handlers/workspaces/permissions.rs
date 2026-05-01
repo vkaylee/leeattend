@@ -69,16 +69,18 @@ pub async fn assign_extra_permission(
     .fetch_one(state.infra.db.api())
     .await?;
 
-    AuditHelper::log(
-        &state.core.audit_repo,
-        ctx.workspace_id,
-        Some(ctx.user_id),
-        Some(user_id),
-        None,
-        "assign_permission",
-        Some(serde_json::json!({ "permission": req.permission, "expires_at": req.expires_at })),
-        &headers,
-    )
+    AuditHelper::log(crate::services::audit_service::AuditLogArgs {
+        repo: &state.core.audit_repo,
+        workspace_id: ctx.workspace_id,
+        actor_id: Some(ctx.user_id),
+        target_user_id: Some(user_id),
+        target_resource_id: None,
+        action: "assign_permission",
+        details: Some(
+            serde_json::json!({ "permission": req.permission, "expires_at": req.expires_at }),
+        ),
+        headers: &headers,
+    })
     .await;
 
     if let Some(redis_pool) = state.infra.redis.clone() {
@@ -113,16 +115,16 @@ pub async fn revoke_extra_permission(
     .await?;
 
     if res.rows_affected() > 0 {
-        AuditHelper::log(
-            &state.core.audit_repo,
-            ctx.workspace_id,
-            Some(ctx.user_id),
-            Some(user_id),
-            None,
-            "revoke_permission",
-            Some(serde_json::json!({ "permission_id": perm_id })),
-            &headers,
-        )
+        AuditHelper::log(crate::services::audit_service::AuditLogArgs {
+            repo: &state.core.audit_repo,
+            workspace_id: ctx.workspace_id,
+            actor_id: Some(ctx.user_id),
+            target_user_id: Some(user_id),
+            target_resource_id: None,
+            action: "revoke_permission",
+            details: Some(serde_json::json!({ "permission_id": perm_id })),
+            headers: &headers,
+        })
         .await;
 
         if let Some(redis_pool) = state.infra.redis.clone() {

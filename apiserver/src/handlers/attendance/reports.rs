@@ -50,7 +50,7 @@ pub async fn get_attendance_report(
         let report = state
             .reports
             .service
-            .get_daily_attendance_report(
+            .get_daily_attendance_report(crate::services::report_service::AttendanceReportArgs {
                 workspace_id,
                 start_date,
                 end_date,
@@ -58,7 +58,8 @@ pub async fn get_attendance_report(
                 limit,
                 employee_ids,
                 department_id,
-            )
+                sort: None,
+            })
             .await?;
 
         Ok(Json(
@@ -69,14 +70,16 @@ pub async fn get_attendance_report(
             .reports
             .service
             .get_workspace_attendance_summary(
-                workspace_id,
-                start_date,
-                end_date,
-                sort,
-                page,
-                limit,
-                employee_ids,
-                department_id,
+                crate::services::report_service::AttendanceReportArgs {
+                    workspace_id,
+                    start_date,
+                    end_date,
+                    page,
+                    limit,
+                    employee_ids,
+                    department_id,
+                    sort,
+                },
             )
             .await?;
 

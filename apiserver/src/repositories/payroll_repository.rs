@@ -14,7 +14,6 @@ use crate::models::{
 // Trait: PayrollRepository — DIP abstraction over payroll data access
 // ---------------------------------------------------------------------------
 #[async_trait]
-#[allow(clippy::too_many_arguments)]
 pub trait PayrollRepository: super::PoolBacked + Send + Sync {
     async fn get_active_incentive_policies(
         &self,
@@ -60,13 +59,7 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
     async fn update_payroll_settings(
         &self,
         workspace_id: Uuid,
-        std_working_day_mode: String,
-        fixed_std_days: Decimal,
-        working_days_per_week: i32,
-        hours_per_day: Decimal,
-        max_ot_hours_per_day: Option<Decimal>,
-        max_ot_hours_per_month: Option<Decimal>,
-        effective_date: NaiveDate,
+        req: &crate::models::SavePayrollSettings,
     ) -> Result<PayrollSettings, sqlx::Error>;
 
     async fn get_salary_component_definitions(
@@ -124,16 +117,7 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
     async fn create_payslip_segment(
         &self,
         payslip_id: Uuid,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        department_id: Option<Uuid>,
-        applied_base_salary: Decimal,
-        applied_std_days: Decimal,
-        hours_per_day: Decimal,
-        actual_work_days: Decimal,
-        paid_work_days: Decimal,
-        amount: Decimal,
-        std_days_source: Option<String>,
+        args: &crate::models::CreatePayslipSegmentArgs,
     ) -> Result<(), sqlx::Error>;
 
     async fn get_payslip_segments(
@@ -206,30 +190,12 @@ impl PayrollRepository for SqlxPayrollRepository {
     ) -> Result<Option<PayrollSettings>, sqlx::Error> {
         get_payroll_settings_at(&self.pool, workspace_id, date).await
     }
-    #[allow(clippy::too_many_arguments)]
     async fn update_payroll_settings(
         &self,
         workspace_id: Uuid,
-        std_working_day_mode: String,
-        fixed_std_days: Decimal,
-        working_days_per_week: i32,
-        hours_per_day: Decimal,
-        max_ot_hours_per_day: Option<Decimal>,
-        max_ot_hours_per_month: Option<Decimal>,
-        effective_date: NaiveDate,
+        req: &crate::models::SavePayrollSettings,
     ) -> Result<PayrollSettings, sqlx::Error> {
-        update_payroll_settings(
-            &self.pool,
-            workspace_id,
-            std_working_day_mode,
-            fixed_std_days,
-            working_days_per_week,
-            hours_per_day,
-            max_ot_hours_per_day,
-            max_ot_hours_per_month,
-            effective_date,
-        )
-        .await
+        update_payroll_settings(&self.pool, workspace_id, req).await
     }
     async fn get_salary_component_definitions(
         &self,
@@ -307,36 +273,12 @@ impl PayrollRepository for SqlxPayrollRepository {
         get_salary_components_history(&self.pool, workspace_id, employee_id, start_date, end_date)
             .await
     }
-    #[allow(clippy::too_many_arguments)]
     async fn create_payslip_segment(
         &self,
         payslip_id: Uuid,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-        department_id: Option<Uuid>,
-        applied_base_salary: Decimal,
-        applied_std_days: Decimal,
-        hours_per_day: Decimal,
-        actual_work_days: Decimal,
-        paid_work_days: Decimal,
-        amount: Decimal,
-        std_days_source: Option<String>,
+        args: &crate::models::CreatePayslipSegmentArgs,
     ) -> Result<(), sqlx::Error> {
-        create_payslip_segment(
-            &self.pool,
-            payslip_id,
-            start_date,
-            end_date,
-            department_id,
-            applied_base_salary,
-            applied_std_days,
-            hours_per_day,
-            actual_work_days,
-            paid_work_days,
-            amount,
-            std_days_source,
-        )
-        .await
+        create_payslip_segment(&self.pool, payslip_id, args).await
     }
     async fn get_payslip_segments(
         &self,
@@ -528,17 +470,10 @@ pub async fn get_payroll_settings_at(
     .await
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn update_payroll_settings(
     pool: &PgPool,
     workspace_id: Uuid,
-    std_working_day_mode: String,
-    fixed_std_days: Decimal,
-    working_days_per_week: i32,
-    hours_per_day: Decimal,
-    max_ot_hours_per_day: Option<Decimal>,
-    max_ot_hours_per_month: Option<Decimal>,
-    effective_date: NaiveDate,
+    req: &crate::models::SavePayrollSettings,
 ) -> Result<PayrollSettings, sqlx::Error> {
     query_as!(
         PayrollSettings,
@@ -554,13 +489,13 @@ pub async fn update_payroll_settings(
                updated_at = EXCLUDED.updated_at
            RETURNING workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, max_ot_hours_per_day, max_ot_hours_per_month, effective_date, created_at as "created_at!", updated_at as "updated_at!""#,
         workspace_id,
-        std_working_day_mode,
-        fixed_std_days,
-        working_days_per_week,
-        hours_per_day,
-        max_ot_hours_per_day,
-        max_ot_hours_per_month,
-        effective_date,
+        req.std_working_day_mode,
+        req.fixed_std_days,
+        req.working_days_per_week,
+        req.hours_per_day,
+        req.max_ot_hours_per_day,
+        req.max_ot_hours_per_month,
+        req.effective_date,
         Utc::now()
     )
     .fetch_one(pool)
@@ -806,20 +741,10 @@ pub async fn get_salary_components_history(
         .collect())
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn create_payslip_segment(
     pool: &PgPool,
     payslip_id: Uuid,
-    start_date: NaiveDate,
-    end_date: NaiveDate,
-    department_id: Option<Uuid>,
-    applied_base_salary: Decimal,
-    applied_std_days: Decimal,
-    hours_per_day: Decimal,
-    actual_work_days: Decimal,
-    paid_work_days: Decimal,
-    amount: Decimal,
-    std_days_source: Option<String>,
+    args: &crate::models::CreatePayslipSegmentArgs,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
@@ -832,16 +757,16 @@ pub async fn create_payslip_segment(
         "#,
     )
     .bind(payslip_id)
-    .bind(start_date)
-    .bind(end_date)
-    .bind(department_id)
-    .bind(applied_base_salary)
-    .bind(applied_std_days)
-    .bind(hours_per_day)
-    .bind(actual_work_days)
-    .bind(paid_work_days)
-    .bind(amount)
-    .bind(std_days_source)
+    .bind(args.start_date)
+    .bind(args.end_date)
+    .bind(args.department_id)
+    .bind(args.applied_base_salary)
+    .bind(args.applied_std_days)
+    .bind(args.hours_per_day)
+    .bind(args.actual_work_days)
+    .bind(args.paid_work_days)
+    .bind(args.amount)
+    .bind(&args.std_days_source)
     .execute(pool)
     .await?;
 

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO departments (id, workspace_id, name) VALUES ($1, $2, 'Engineering')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "56949de61426c65edd1dbaa3ec1c565672f94d709af68d32d151f27b35b09a8a"
+}

@@ -25,7 +25,7 @@ pub enum HolidayLeaveResult {
 // Trait: HolidayRepositoryTrait — DIP abstraction
 // ---------------------------------------------------------------------------
 #[async_trait]
-#[allow(clippy::too_many_arguments)]
+#[async_trait]
 pub trait HolidayRepositoryTrait: super::PoolBacked + Send + Sync {
     async fn list(
         &self,
@@ -37,29 +37,13 @@ pub trait HolidayRepositoryTrait: super::PoolBacked + Send + Sync {
     async fn create_holiday(
         &self,
         workspace_id: Uuid,
-        name: &str,
-        date: NaiveDate,
-        holiday_type: &str,
-        is_paid: bool,
-        leave_type_id: Option<Uuid>,
-        ot_multiplier: Option<rust_decimal::Decimal>,
-        description: Option<&str>,
-        work_threshold_percent: Option<i32>,
-        is_credit_on_work: bool,
+        req: &crate::models::CreateHolidayRequest,
     ) -> Result<Holiday, sqlx::Error>;
     async fn update_holiday(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-        name: Option<&str>,
-        date: Option<NaiveDate>,
-        holiday_type: Option<&str>,
-        is_paid: Option<bool>,
-        leave_type_id: Option<Uuid>,
-        ot_multiplier: Option<rust_decimal::Decimal>,
-        description: Option<&str>,
-        work_threshold_percent: Option<i32>,
-        is_credit_on_work: Option<bool>,
+        req: &crate::models::UpdateHolidayRequest,
     ) -> Result<Option<Holiday>, sqlx::Error>;
     async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, sqlx::Error>;
     async fn get_holidays_in_range(
@@ -104,65 +88,20 @@ impl HolidayRepositoryTrait for SqlxHolidayRepository {
     ) -> Result<Option<Holiday>, sqlx::Error> {
         HolidayRepository::get_by_id(&self.pool, workspace_id, id).await
     }
-    #[allow(clippy::too_many_arguments)]
     async fn create_holiday(
         &self,
         workspace_id: Uuid,
-        name: &str,
-        date: NaiveDate,
-        holiday_type: &str,
-        is_paid: bool,
-        leave_type_id: Option<Uuid>,
-        ot_multiplier: Option<rust_decimal::Decimal>,
-        description: Option<&str>,
-        work_threshold_percent: Option<i32>,
-        is_credit_on_work: bool,
+        req: &crate::models::CreateHolidayRequest,
     ) -> Result<Holiday, sqlx::Error> {
-        HolidayRepository::create(
-            &self.pool,
-            workspace_id,
-            name,
-            date,
-            holiday_type,
-            is_paid,
-            leave_type_id,
-            ot_multiplier,
-            description,
-            work_threshold_percent,
-            is_credit_on_work,
-        )
-        .await
+        HolidayRepository::create(&self.pool, workspace_id, req).await
     }
-    #[allow(clippy::too_many_arguments)]
     async fn update_holiday(
         &self,
         workspace_id: Uuid,
         id: Uuid,
-        name: Option<&str>,
-        date: Option<NaiveDate>,
-        holiday_type: Option<&str>,
-        is_paid: Option<bool>,
-        leave_type_id: Option<Uuid>,
-        ot_multiplier: Option<rust_decimal::Decimal>,
-        description: Option<&str>,
-        work_threshold_percent: Option<i32>,
-        is_credit_on_work: Option<bool>,
+        req: &crate::models::UpdateHolidayRequest,
     ) -> Result<Option<Holiday>, sqlx::Error> {
-        HolidayRepository::update(
-            &self.pool,
-            workspace_id,
-            id,
-            name,
-            date,
-            holiday_type,
-            is_paid,
-            leave_type_id,
-            ot_multiplier,
-            description,
-            work_threshold_percent,
-            is_credit_on_work,
-        )
-        .await
+        HolidayRepository::update(&self.pool, workspace_id, id, req).await
     }
     async fn delete(&self, workspace_id: Uuid, id: Uuid) -> Result<bool, sqlx::Error> {
         HolidayRepository::delete(&self.pool, workspace_id, id).await
@@ -233,19 +172,10 @@ impl HolidayRepository {
     }
 
     /// Creates a new holiday. Returns error if (workspace_id, date) already exists.
-    #[allow(clippy::too_many_arguments)]
     pub async fn create(
         pool: &PgPool,
         workspace_id: Uuid,
-        name: &str,
-        date: NaiveDate,
-        holiday_type: &str,
-        is_paid: bool,
-        leave_type_id: Option<Uuid>,
-        ot_multiplier: Option<rust_decimal::Decimal>,
-        description: Option<&str>,
-        work_threshold_percent: Option<i32>,
-        is_credit_on_work: bool,
+        req: &crate::models::CreateHolidayRequest,
     ) -> Result<Holiday, sqlx::Error> {
         sqlx::query_as::<_, Holiday>(
             "INSERT INTO holidays
@@ -254,34 +184,25 @@ impl HolidayRepository {
              RETURNING *",
         )
         .bind(workspace_id)
-        .bind(name)
-        .bind(date)
-        .bind(holiday_type)
-        .bind(is_paid)
-        .bind(leave_type_id)
-        .bind(ot_multiplier)
-        .bind(description)
-        .bind(work_threshold_percent)
-        .bind(is_credit_on_work)
+        .bind(&req.name)
+        .bind(req.date)
+        .bind(&req.holiday_type)
+        .bind(req.is_paid)
+        .bind(req.leave_type_id)
+        .bind(req.ot_multiplier)
+        .bind(&req.description)
+        .bind(req.work_threshold_percent)
+        .bind(req.is_credit_on_work)
         .fetch_one(pool)
         .await
     }
 
     /// Updates an existing holiday by ID.
-    #[allow(clippy::too_many_arguments)]
     pub async fn update(
         pool: &PgPool,
         workspace_id: Uuid,
         id: Uuid,
-        name: Option<&str>,
-        date: Option<NaiveDate>,
-        holiday_type: Option<&str>,
-        is_paid: Option<bool>,
-        leave_type_id: Option<Uuid>,
-        ot_multiplier: Option<rust_decimal::Decimal>,
-        description: Option<&str>,
-        work_threshold_percent: Option<i32>,
-        is_credit_on_work: Option<bool>,
+        req: &crate::models::UpdateHolidayRequest,
     ) -> Result<Option<Holiday>, sqlx::Error> {
         sqlx::query_as::<_, Holiday>(
             "UPDATE holidays SET
@@ -299,15 +220,15 @@ impl HolidayRepository {
              RETURNING *",
         )
         .bind(id)
-        .bind(name)
-        .bind(date)
-        .bind(holiday_type)
-        .bind(is_paid)
-        .bind(leave_type_id)
-        .bind(ot_multiplier)
-        .bind(description)
-        .bind(work_threshold_percent)
-        .bind(is_credit_on_work)
+        .bind(&req.name)
+        .bind(req.date)
+        .bind(&req.holiday_type)
+        .bind(req.is_paid)
+        .bind(req.leave_type_id)
+        .bind(req.ot_multiplier)
+        .bind(&req.description)
+        .bind(req.work_threshold_percent)
+        .bind(req.is_credit_on_work)
         .bind(workspace_id)
         .fetch_optional(pool)
         .await

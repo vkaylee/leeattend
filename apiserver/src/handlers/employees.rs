@@ -83,12 +83,14 @@ pub async fn get_employees(
         .service
         .get_all_employees(
             workspace_id,
-            query.q,
-            page,
-            limit,
-            query.sort_by,
-            query.sort_dir,
-            department_ids,
+            crate::models::EmployeeFilterOptions {
+                search_query: query.q,
+                page,
+                limit,
+                sort_by: query.sort_by,
+                sort_dir: query.sort_dir,
+                department_ids,
+            },
         )
         .await?;
 

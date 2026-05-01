@@ -59,11 +59,20 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
         std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
             pool.clone(),
         ));
-    let job_id =
-        AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone(), None)
-            .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
-            .await
-            .map_err(|s| format!("Import failed with status: {}", s))?;
+    let job_id = AttendanceImportService::new(
+        import_repo,
+        adj_repo,
+        emp_repo,
+        te_repo,
+        std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+            pool: pool.clone(),
+        }),
+        pool.clone(),
+        None,
+    )
+    .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
+    .await
+    .map_err(|s| format!("Import failed with status: {}", s))?;
 
     // Wait for job completion
     let mut job_finished = false;
@@ -170,11 +179,20 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
         std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
             pool.clone(),
         ));
-    let job_id =
-        AttendanceImportService::new(import_repo, adj_repo, emp_repo, te_repo, pool.clone(), None)
-            .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
-            .await
-            .map_err(|s| format!("Import failed with status: {}", s))?;
+    let job_id = AttendanceImportService::new(
+        import_repo,
+        adj_repo,
+        emp_repo,
+        te_repo,
+        std::sync::Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+            pool: pool.clone(),
+        }),
+        pool.clone(),
+        None,
+    )
+    .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
+    .await
+    .map_err(|s| format!("Import failed with status: {}", s))?;
 
     // Wait for job completion
     let mut job_finished = false;

@@ -41,7 +41,7 @@ pub use workspace_service::WorkspaceService;
 pub mod agent_log_buffer;
 pub mod attendance_log_service;
 
-pub use agent_log_buffer::{AgentLogBuffer, AgentLogEntry};
+pub use agent_log_buffer::{AgentLogBuffer, AgentLogEntry, AgentLogEntryArgs};
 
 pub mod attendance_summary_service;
 pub use attendance_summary_service::AttendanceSummaryService;

@@ -79,20 +79,7 @@ pub async fn create_shift(
     let shift = state
         .shifts
         .service
-        .create_shift(
-            workspace_id,
-            req.name,
-            req.report_symbol,
-            req.start_time,
-            req.end_time,
-            req.break_duration_minutes,
-            req.break_start,
-            req.break_end,
-            req.is_break_auto_deduct,
-            req.break_is_overtime,
-            req.early_punch_in_grace_period_minutes,
-            req.allow_early_ot,
-        )
+        .create_shift(workspace_id, &req)
         .await?;
 
     if let Some(cache) = &state.infra.roster_cache {

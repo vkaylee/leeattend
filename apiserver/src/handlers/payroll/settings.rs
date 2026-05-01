@@ -95,13 +95,15 @@ pub async fn update_payroll_settings(
         .repo
         .update_payroll_settings(
             workspace_id,
-            mode,
-            fixed_days,
-            days_per_week,
-            hours_per_day,
-            max_ot_per_day,
-            max_ot_per_month,
-            effective_date,
+            &crate::models::SavePayrollSettings {
+                std_working_day_mode: mode,
+                fixed_std_days: fixed_days,
+                working_days_per_week: days_per_week,
+                hours_per_day,
+                max_ot_hours_per_day: max_ot_per_day,
+                max_ot_hours_per_month: max_ot_per_month,
+                effective_date,
+            },
         )
         .await?;
 

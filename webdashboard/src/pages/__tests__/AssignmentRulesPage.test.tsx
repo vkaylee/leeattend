@@ -1,7 +1,7 @@
 import React from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -65,14 +65,14 @@ vi.mock("react-i18next", () => ({
 
 // Mock Combobox
 vi.mock("../../components/ui/Combobox", () => ({
-  Combobox: ({ options, value, onChange, placeholder, "data-testid": testId }: any) => (
+  Combobox: ({ options, value, onChange, placeholder, "data-testid": testId }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; placeholder?: string; "data-testid"?: string }) => (
     <select
       data-testid={testId}
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
       <option value="">{placeholder}</option>
-      {options.map((opt: any) => (
+      {options.map((opt: { value: string; label: string }) => (
         <option key={opt.value} value={opt.value}>
           {opt.label}
         </option>
