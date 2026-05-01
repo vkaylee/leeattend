@@ -1470,14 +1470,14 @@ ALTER TABLE ONLY public.workspace_roles
 -- ═══════════════════════════════════════════════════════════════════
 
 -- Seed System Roles with deterministic UUIDs
-INSERT INTO workspace_roles (id, workspace_id, name, description, color, is_system)
+INSERT INTO workspace_roles (id, workspace_id, name, description, color, is_system, scope_type)
 VALUES 
-  ('a0000000-0000-0000-0000-000000000001', NULL, 'owner', 'Workspace owner with full access', 'rose', TRUE),
-  ('a0000000-0000-0000-0000-000000000002', NULL, 'admin', 'Administrator with full access', 'rose', TRUE),
-  ('a0000000-0000-0000-0000-000000000003', NULL, 'hr_manager', 'Manage people and time', 'indigo', TRUE),
-  ('a0000000-0000-0000-0000-000000000004', NULL, 'shift_manager', 'Manage shifts', 'amber', TRUE),
-  ('a0000000-0000-0000-0000-000000000005', NULL, 'team_lead', 'Manage team members', 'blue', TRUE),
-  ('a0000000-0000-0000-0000-000000000006', NULL, 'employee', 'Default employee access', 'slate', TRUE)
+  ('a0000000-0000-0000-0000-000000000001', NULL, 'owner', 'Workspace owner with full access', 'rose', TRUE, 'global'),
+  ('a0000000-0000-0000-0000-000000000002', NULL, 'admin', 'Administrator with full access', 'rose', TRUE, 'global'),
+  ('a0000000-0000-0000-0000-000000000003', NULL, 'hr_manager', 'Manage people and time', 'indigo', TRUE, 'global'),
+  ('a0000000-0000-0000-0000-000000000004', NULL, 'shift_manager', 'Manage shifts', 'amber', TRUE, 'global'),
+  ('a0000000-0000-0000-0000-000000000005', NULL, 'team_lead', 'Manage team members', 'blue', TRUE, 'scoped'),
+  ('a0000000-0000-0000-0000-000000000006', NULL, 'employee', 'Default employee access', 'slate', TRUE, 'scoped')
 ON CONFLICT DO NOTHING;
 
 -- Seed Permissions for System Roles
