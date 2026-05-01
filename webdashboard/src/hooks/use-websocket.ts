@@ -12,8 +12,7 @@ export type ReportStreamMessage =
 export type WsMessage = 
   | { type: "handshake"; client_type: "dashboard" | "agent" }
   | ReportStreamMessage
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | { type: string; [key: string]: any }; // Fallback for other message types
+  | { type: string; [key: string]: unknown }; // Fallback for other message types
 
 export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);

@@ -20,20 +20,20 @@ vi.mock("react-i18next", () => ({
 
 // Mock Recharts to avoid rendering SVG in tests
 vi.mock("recharts", () => ({
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     BarChart: ({ children, ...props }: any) => (
         <div data-testid="bar-chart" data-layout={props.layout} {...props}>{children as React.ReactNode}</div>
     ),
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     Bar: (props: any) => <div data-testid={`bar-${props.dataKey}`} />,
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     XAxis: (props: any) => <div data-testid="x-axis" data-type={props.type} />,
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     YAxis: (props: any) => <div data-testid="y-axis" data-type={props.type} />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     Tooltip: (_props: any) => <div data-testid="tooltip" />,
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     ResponsiveContainer: ({ children }: any) => (
         <div data-testid="responsive-container">{children as React.ReactNode}</div>
     ),
@@ -65,7 +65,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("renders loading spinner when data is loading", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: undefined,
             isLoading: true,
@@ -78,7 +78,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("renders empty state when no data available", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: [],
             isLoading: false,
@@ -91,7 +91,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("renders chart with data when unexcused absences data is available", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -104,7 +104,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("renders chart with horizontal (vertical) layout", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -117,7 +117,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("renders stacked bars: consecutive + remaining_unexcused (no excused leave)", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -131,7 +131,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("displays chart title and subtitle", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -144,7 +144,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("shows 7 Days and 30 Days toggle buttons", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -157,7 +157,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("shows group-by toggle buttons (Department and Employee)", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -170,7 +170,7 @@ describe("UnexcusedAbsencesChart", () => {
     });
 
     it("calls useUnexcusedAbsences with groupBy parameter", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
             data: mockData,
             isLoading: false,

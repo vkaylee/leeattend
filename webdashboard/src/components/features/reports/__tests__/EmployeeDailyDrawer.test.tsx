@@ -16,7 +16,7 @@ import EmployeeDailyDrawer from "../EmployeeDailyDrawer";
 vi.mock("@tanstack/react-router", () => ({
     useNavigate: () => vi.fn(),
     useLocation: () => ({ pathname: "/", search: "", hash: "" }),
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
 }));
 

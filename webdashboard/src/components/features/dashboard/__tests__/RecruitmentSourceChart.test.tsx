@@ -17,17 +17,17 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("recharts", () => ({
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     PieChart: ({ children, ...props }: any) => (
         <div data-testid="pie-chart" {...props}>{children as React.ReactNode}</div>
     ),
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     Pie: ({ children, ...props }: any) => (
         <div data-testid="pie" {...props}>{children as React.ReactNode}</div>
     ),
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     Cell: (props: any) => <div data-testid="cell" {...props} />,
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     ResponsiveContainer: ({ children }: any) => (
         <div data-testid="responsive-container">{children as React.ReactNode}</div>
     ),
@@ -60,7 +60,7 @@ describe("RecruitmentSourceChart", () => {
     });
 
     it("renders loading spinner when data is loading", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
             data: undefined,
             isLoading: true,
@@ -73,7 +73,7 @@ describe("RecruitmentSourceChart", () => {
     });
 
     it("renders empty state when no data available", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
             data: [],
             isLoading: false,
@@ -86,7 +86,7 @@ describe("RecruitmentSourceChart", () => {
     });
 
     it("renders empty state when all counts are zero", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
             data: [{ source_type: "direct", source_name: "Direct", count: 0 }],
             isLoading: false,
@@ -98,7 +98,7 @@ describe("RecruitmentSourceChart", () => {
     });
 
     it("renders pie chart when data is available", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -111,7 +111,7 @@ describe("RecruitmentSourceChart", () => {
     });
 
     it("displays inline legend with source names and counts", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
             data: mockData,
             isLoading: false,
@@ -125,7 +125,7 @@ describe("RecruitmentSourceChart", () => {
     });
 
     it("displays the correct chart title and subtitle", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
             data: mockData,
             isLoading: false,

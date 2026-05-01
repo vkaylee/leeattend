@@ -3,11 +3,11 @@ import React, { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserPlus, UserMinus } from "lucide-react";
 
+import { useToast } from "../../components/ui/Toast";
 import { useDebug } from "../../context/DebugContext";
+import { useConfirm } from "../../hooks/use-confirm";
 import { debugApi, ClearDbGroup } from "../../lib/api/debug";
 import { getCurrentWorkspaceId } from "../../lib/api/helpers";
-import { useToast } from "../../components/ui/Toast";
-import { useConfirm } from "../../hooks/use-confirm";
 
 
 type DebugTab = "identity" | "time" | "database";

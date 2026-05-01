@@ -1,11 +1,12 @@
 import React from "react";
+
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
-import OtApprovalsPage from "../approvals/OtApprovalsPage";
 import * as attendanceHooks from "../../hooks/use-attendance";
+import OtApprovalsPage from "../approvals/OtApprovalsPage";
 
 // Mock i18next
 vi.mock("react-i18next", () => ({

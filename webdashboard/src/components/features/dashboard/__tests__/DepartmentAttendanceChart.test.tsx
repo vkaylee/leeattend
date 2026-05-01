@@ -129,7 +129,7 @@ describe("DepartmentAttendanceChart", () => {
     });
 
     it("shows Today and This Week toggle buttons", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useDepartmentAttendance as any).mockReturnValue({
             data: mockDeptData,
             isLoading: false,

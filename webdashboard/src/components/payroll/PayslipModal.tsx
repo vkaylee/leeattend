@@ -4,10 +4,11 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { useToast } from '@/components/ui/Toast';
+
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
 import { Employee, Payslip, Workspace } from '@/lib/api/types';
 
-import { useToast } from '@/components/ui/Toast';
 
 import PayslipDocument from './PayslipDocument';
 
@@ -241,7 +242,7 @@ export default function PayslipModal({
         printWindow.close();
       }
     }, 500);
-  }, [employee.full_name]);
+  }, [employee.full_name, toast]);
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>

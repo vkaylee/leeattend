@@ -108,7 +108,7 @@ describe("useInfiniteScroll", () => {
                 isFetchingNextPage: false,
                 fetchNextPage,
             });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
             (ref as any).current = div;
             return ref;
         });

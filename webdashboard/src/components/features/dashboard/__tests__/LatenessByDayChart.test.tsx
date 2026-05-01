@@ -127,7 +127,7 @@ describe("LatenessByDayChart", () => {
     });
 
     it("displays the correct chart title and subtitle", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useLatenessByDay as any).mockReturnValue({
             data: mockData,
             isLoading: false,

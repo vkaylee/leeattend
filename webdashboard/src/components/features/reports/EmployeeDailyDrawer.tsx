@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { RefreshCw, Check, CheckCircle, CalendarCheck, SearchX, FileBarChart, AlertTriangle, Clock  } from "lucide-react";
+import { CalendarCheck, SearchX, FileBarChart, Clock  } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import InfiniteScrollSentinel from "@/components/common/InfiniteScrollSentinel";
-import Modal from "@/components/ui/Modal";
 import Sheet from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toast";
+
 
 import { useDebug } from "@/context/DebugContext";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -24,12 +24,13 @@ import {
     RawAttendanceLog,
     fetchShifts,
     upsertRoster,
-    Shift,
 } from "@/lib/api";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 
-
+import ConfirmAttendanceModal from "./ConfirmAttendanceModal";
+import ConfirmReprocessModal from "./ConfirmReprocessModal";
 import DailyReportTable from "./DailyReportTable";
+import ResolveUnscheduledModal from "./ResolveUnscheduledModal";
 
 interface EmployeeDailyDrawerProps {
     isOpen: boolean;
@@ -99,16 +100,12 @@ export default function EmployeeDailyDrawer({
         employeeName: string;
         date: string;
     } | null>(null);
-    const [confirmModal, setConfirmModal] = useState<{
+    const [confirmModalData, setConfirmModalData] = useState<{
         row: DailyAttendanceReport;
         existingRequest?: AttendanceAdjustmentRequest;
-        punchIn: string;
-        punchOut: string;
-        reason: string;
     } | null>(null);
-    const [resolveModal, setResolveModal] = useState<{
+    const [resolveModalData, setResolveModalData] = useState<{
         row: DailyAttendanceReport;
-        selectedShiftId: string;
     } | null>(null);
 
     // Fetch daily data for this single employee
@@ -224,7 +221,7 @@ export default function EmployeeDailyDrawer({
             queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
             queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
             setConfirmingRow(null);
-            setConfirmModal(null);
+            setConfirmModalData(null);
             toast.success(t("reports.confirm.success"));
         },
         onError: () => {
@@ -267,7 +264,7 @@ export default function EmployeeDailyDrawer({
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-            setResolveModal(null);
+            setResolveModalData(null);
             toast.success(t("reports.unscheduled.success"));
         },
         onError: () => {
@@ -280,14 +277,14 @@ export default function EmployeeDailyDrawer({
     };
 
     const handleResolveUnscheduled = (row: DailyAttendanceReport) => {
-        setResolveModal({ row, selectedShiftId: "" });
+        setResolveModalData({ row });
     };
 
-    const handleResolveSubmit = () => {
-        if (!resolveModal || !resolveModal.selectedShiftId) return;
+    const handleResolveSubmit = (shiftId: string) => {
+        if (!resolveModalData) return;
         resolveUnscheduledMutation.mutate({
-            row: resolveModal.row,
-            shiftId: resolveModal.selectedShiftId,
+            row: resolveModalData.row,
+            shiftId,
         });
     };
 
@@ -307,32 +304,12 @@ export default function EmployeeDailyDrawer({
     };
 
     const handleConfirmClick = (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => {
-        const utcToLocalHHmm = (iso: string | null | undefined): string => {
-            if (!iso) return "";
-            const d = new Date(iso);
-            if (isNaN(d.getTime())) {
-                return iso.substring(0, 5);
-            }
-            return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-        };
-
-        const punchIn =
-            utcToLocalHHmm(existing?.requested_punch_in_time) ||
-            utcToLocalHHmm(row.actual_punch_in) ||
-            row.scheduled_start?.substring(0, 5) ||
-            "";
-        const punchOut =
-            utcToLocalHHmm(existing?.requested_punch_out_time) ||
-            utcToLocalHHmm(row.actual_punch_out) ||
-            row.scheduled_end?.substring(0, 5) ||
-            "";
-        const reason = existing?.reason || "";
-        setConfirmModal({ row, existingRequest: existing, punchIn, punchOut, reason });
+        setConfirmModalData({ row, existingRequest: existing });
     };
 
-    const handleConfirmSubmit = () => {
-        if (!confirmModal) return;
-        const { row, existingRequest } = confirmModal;
+    const handleConfirmSubmit = ({ punchIn, punchOut, reason }: { punchIn: string; punchOut: string; reason: string }) => {
+        if (!confirmModalData) return;
+        const { row, existingRequest } = confirmModalData;
         const rowKey = `${row.employee_id}-${row.date}`;
         setConfirmingRow(rowKey);
 
@@ -348,10 +325,10 @@ export default function EmployeeDailyDrawer({
 
             const modifiedRow = {
                 ...row,
-                actual_punch_in: createIsoFromLocal(row.date, confirmModal.punchIn),
-                actual_punch_out: createIsoFromLocal(row.date, confirmModal.punchOut),
+                actual_punch_in: createIsoFromLocal(row.date, punchIn),
+                actual_punch_out: createIsoFromLocal(row.date, punchOut),
             };
-            confirmMutation.mutate({ row: modifiedRow as DailyAttendanceReport, reason: confirmModal.reason });
+            confirmMutation.mutate({ row: modifiedRow as DailyAttendanceReport, reason });
         }
     };
 
@@ -513,252 +490,35 @@ export default function EmployeeDailyDrawer({
                 </div>
             </Sheet>
 
-            {/* Reprocess Confirmation Modal */}
-            <Modal
+            {/* Extracted Modals */}
+            <ConfirmReprocessModal
+                key={confirmDialog ? `reprocess-${confirmDialog.employeeId}-${confirmDialog.date}` : "reprocess-empty"}
                 isOpen={!!confirmDialog}
-                onClose={() => !reprocessMutation.isPending && setConfirmDialog(null)}
-                title={t("reports.reprocess.confirm_title")}
-                icon={<RefreshCw size={24} />}
-                maxWidth="md"
-            >
-                <div className="space-y-10 pt-4 animate-in fade-in duration-500">
-                    <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-                        <p className="text-base font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight leading-relaxed text-center italic opacity-80">
-                            "
-                            {confirmDialog &&
-                                t("reports.reprocess.confirm_message", {
-                                    employee: confirmDialog.employeeName,
-                                    date: formatDate(confirmDialog.date),
-                                })}
-                            "
-                        </p>
-                    </div>
-                    <div className="flex gap-6 border-t border-slate-50 dark:border-slate-800 pt-2">
-                        <button
-                            onClick={() => setConfirmDialog(null)}
-                            className="flex-1 px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
-                            disabled={reprocessMutation.isPending}
-                        >
-                            {t("common.cancel")}
-                        </button>
-                        <button
-                            onClick={handleConfirmReprocess}
-                            disabled={reprocessMutation.isPending}
-                            className="flex-[1.5] bg-slate-900 hover:bg-primary-700 text-white font-bold px-8 py-4 rounded-2xl flex items-center justify-center gap-4 transition-all active:scale-95 disabled:opacity-50 shadow-2xl shadow-slate-400 dark:shadow-black/40 text-xs uppercase tracking-widest"
-                        >
-                            {reprocessMutation.isPending ? (
-                                <RefreshCw className="w-5 h-5 animate-spin" />
-                            ) : (
-                                <Check size={20} />
-                            )}{" "}
-                            {t("reports.reprocess.confirm").toUpperCase()}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+                onClose={() => setConfirmDialog(null)}
+                dialogData={confirmDialog}
+                isPending={reprocessMutation.isPending}
+                onConfirm={handleConfirmReprocess}
+            />
 
-            {/* Confirm Attendance Modal */}
-            <Modal
-                isOpen={!!confirmModal}
-                onClose={() => !confirmMutation.isPending && setConfirmModal(null)}
-                title={t("reports.confirm.modal_title")}
-                subtitle={t("reports.confirm.modal_subtitle")}
-                icon={<CheckCircle size={24} />}
-                maxWidth="md"
-            >
-                {confirmModal && (
-                    <div className="space-y-6 pt-2 animate-in fade-in duration-500">
-                        {/* Employee & Date info */}
-                        <div className="grid grid-cols-2 gap-4 p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
-                            <div>
-                                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                    {t("reports.confirm.employee")}
-                                </label>
-                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">
-                                    {confirmModal.row.employee_name}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                    {t("reports.confirm.date")}
-                                </label>
-                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">
-                                    {formatDate(confirmModal.row.date)}
-                                </p>
-                            </div>
-                        </div>
+            <ConfirmAttendanceModal
+                key={confirmModalData ? `confirm-${confirmModalData.row.date}` : "confirm-empty"}
+                isOpen={!!confirmModalData}
+                onClose={() => setConfirmModalData(null)}
+                row={confirmModalData?.row || null}
+                existingRequest={confirmModalData?.existingRequest}
+                isPending={confirmMutation.isPending}
+                onSubmit={handleConfirmSubmit}
+            />
 
-                        {/* Existing request banner */}
-                        {confirmModal.existingRequest && (
-                            <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-2xl border border-orange-200 dark:border-orange-800">
-                                <p className="text-xs font-bold text-orange-600 dark:text-orange-300 uppercase tracking-wider">
-                                    {t("reports.confirm.existing_request")}
-                                </p>
-                                {confirmModal.existingRequest.reason && (
-                                    <p className="text-sm text-orange-700 dark:text-orange-200 mt-2 italic">
-                                        &ldquo;{confirmModal.existingRequest.reason}&rdquo;
-                                    </p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Punch In / Out */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-                                    {t("reports.confirm.punch_in")}
-                                </label>
-                                <input
-                                    type="time"
-                                    value={confirmModal.punchIn}
-                                    onChange={(e) => setConfirmModal({ ...confirmModal, punchIn: e.target.value })}
-                                    disabled={!!confirmModal.existingRequest}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-                                    {t("reports.confirm.punch_out")}
-                                </label>
-                                <input
-                                    type="time"
-                                    value={confirmModal.punchOut}
-                                    onChange={(e) => setConfirmModal({ ...confirmModal, punchOut: e.target.value })}
-                                    disabled={!!confirmModal.existingRequest}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Reason */}
-                        {!confirmModal.existingRequest && (
-                            <div>
-                                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-                                    {t("reports.confirm.reason")}
-                                </label>
-                                <input
-                                    type="text"
-                                    value={confirmModal.reason}
-                                    onChange={(e) => setConfirmModal({ ...confirmModal, reason: e.target.value })}
-                                    placeholder={t("reports.confirm.reason_placeholder")}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                />
-                            </div>
-                        )}
-
-                        {/* Buttons */}
-                        <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
-                            <button
-                                onClick={() => setConfirmModal(null)}
-                                className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
-                                disabled={confirmMutation.isPending}
-                            >
-                                {t("common.cancel")}
-                            </button>
-                            <button
-                                onClick={handleConfirmSubmit}
-                                disabled={confirmMutation.isPending || (!confirmModal.existingRequest && !confirmModal.punchIn)}
-                                className="flex-[1.5] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
-                            >
-                                {confirmMutation.isPending ? (
-                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <CheckCircle size={18} />
-                                )}
-                                {confirmModal.existingRequest ? t("reports.confirm.approve") : t("reports.confirm.submit")}
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </Modal>
-
-            {/* Unscheduled Work Resolution Modal */}
-            <Modal
-                isOpen={!!resolveModal}
-                onClose={() => !resolveUnscheduledMutation.isPending && setResolveModal(null)}
-                title={t("reports.unscheduled.resolve_title")}
-                icon={<AlertTriangle size={24} />}
-            >
-                {resolveModal && (
-                    <div className="space-y-6">
-                        {/* Employee + Date info */}
-                        <div className="flex items-center gap-4 p-4 bg-amber-50 dark:bg-amber-950 rounded-2xl border border-amber-200 dark:border-amber-800">
-                            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900 flex items-center justify-center text-amber-600 dark:text-amber-300 shadow-inner">
-                                <AlertTriangle size={20} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
-                                    {resolveModal.row.employee_name}
-                                </p>
-                                <p className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 uppercase">
-                                    {formatDate(resolveModal.row.date)}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Punch times display */}
-                        {resolveModal.row.actual_punch_in && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t("reports.confirm.punch_in")}</p>
-                                    <p className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200">{formatTime(resolveModal.row.actual_punch_in)}</p>
-                                </div>
-                                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t("reports.confirm.punch_out")}</p>
-                                    <p className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200">{formatTime(resolveModal.row.actual_punch_out)}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Shift selector */}
-                        <div>
-                            <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-                                {t("reports.unscheduled.select_shift")}
-                            </label>
-                            <select
-                                value={resolveModal.selectedShiftId}
-                                onChange={(e) => setResolveModal({ ...resolveModal, selectedShiftId: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            >
-                                <option value="">-- {t("reports.unscheduled.select_shift")} --</option>
-                                {(shifts || []).map((shift: Shift) => (
-                                    <option key={shift.id} value={shift.id}>
-                                        {shift.name} ({shift.start_time?.substring(0, 5)} — {shift.end_time?.substring(0, 5)})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Explanation note */}
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 italic leading-relaxed">
-                            {t("reports.unscheduled.resolve_subtitle")}
-                        </p>
-
-                        {/* Buttons */}
-                        <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
-                            <button
-                                onClick={() => setResolveModal(null)}
-                                className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
-                                disabled={resolveUnscheduledMutation.isPending}
-                            >
-                                {t("common.cancel")}
-                            </button>
-                            <button
-                                onClick={handleResolveSubmit}
-                                disabled={resolveUnscheduledMutation.isPending || !resolveModal.selectedShiftId}
-                                className="flex-[1.5] bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
-                            >
-                                {resolveUnscheduledMutation.isPending ? (
-                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <CalendarCheck size={18} />
-                                )}
-                                {t("reports.unscheduled.submit")}
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </Modal>
+            <ResolveUnscheduledModal
+                key={resolveModalData ? `resolve-${resolveModalData.row.date}` : "resolve-empty"}
+                isOpen={!!resolveModalData}
+                onClose={() => setResolveModalData(null)}
+                row={resolveModalData?.row || null}
+                shifts={shifts}
+                isPending={resolveUnscheduledMutation.isPending}
+                onSubmit={handleResolveSubmit}
+            />
         </>
     );
 }

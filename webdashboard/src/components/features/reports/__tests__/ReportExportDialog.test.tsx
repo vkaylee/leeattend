@@ -27,7 +27,7 @@ vi.mock("@/hooks/use-report-stream", () => ({
 
 // Mock Modal component
 vi.mock("@/components/ui/Modal", () => ({
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
   default: ({ isOpen, title, children, ...props }: any) =>
     isOpen ? (
       <div data-testid="modal" {...props}>
@@ -223,7 +223,7 @@ describe("ReportExportDialog - Integration Tests", () => {
 
       // Mock WebSocket status changes
  
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
       (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         // Simulate connecting -> streaming transition
         return mockStreamHook({
@@ -276,7 +276,7 @@ describe("ReportExportDialog - Integration Tests", () => {
   describe("Progress Updates", () => {
     it("should display progress bar during streaming", async () => {
  
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
       (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
@@ -299,7 +299,7 @@ describe("ReportExportDialog - Integration Tests", () => {
 
     it("should update progress fill width based on stream progress", async () => {
  
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
       (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
@@ -469,7 +469,7 @@ describe("ReportExportDialog - Integration Tests", () => {
       const user = userEvent.setup();
 
  
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
       (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
@@ -530,7 +530,7 @@ describe("ReportExportDialog - Integration Tests", () => {
 
     it("should have accessible progress bar structure", async () => {
  
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
       (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",

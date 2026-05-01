@@ -125,7 +125,7 @@ describe("LeaveTypesChart", () => {
     });
 
     it("displays the correct chart title and subtitle", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useLeaveTypesBreakdown as any).mockReturnValue({
             data: mockData,
             isLoading: false,

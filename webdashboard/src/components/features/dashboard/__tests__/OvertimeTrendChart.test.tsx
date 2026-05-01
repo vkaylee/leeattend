@@ -126,7 +126,7 @@ describe("OvertimeTrendChart", () => {
     });
 
     it("displays the correct chart title and subtitle", () => {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
         (dashboardHooks.useOvertimeTrend as any).mockReturnValue({
             data: mockOtData,
             isLoading: false,
