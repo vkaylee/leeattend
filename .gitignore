@@ -72,3 +72,4 @@ backups/
 docker-test-cache/
 apiserver/.sqlx
 .migration-squash-work/
+scratch/
