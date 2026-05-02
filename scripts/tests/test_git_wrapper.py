@@ -145,6 +145,48 @@ def test_atexit_cleanup(monkeypatch):
     # This shouldn't raise any exception
     cleanup_func()
 
+def test_commit_auto_inject_no_gpg_sign(monkeypatch):
+    """Test that --no-gpg-sign is automatically injected."""
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '-m', 'Msg'])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    assert '--no-gpg-sign' in called_cmd
+
+def test_commit_with_existing_no_gpg_sign(monkeypatch):
+    """Test that --no-gpg-sign is not injected twice."""
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '--no-gpg-sign', '-m', 'Msg'])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    assert called_cmd.count('--no-gpg-sign') == 1
+
+def test_commit_with_s_flag(monkeypatch):
+    """Test that --no-gpg-sign is not injected if -S or --gpg-sign is present."""
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '-S', '-m', 'Msg'])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    assert '--no-gpg-sign' not in called_cmd
+    
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '--gpg-sign', '-m', 'Msg'])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call2, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd2 = mock_call2.call_args[0][0]
+    assert '--no-gpg-sign' not in called_cmd2
+
 def test_timeout_env_var(monkeypatch):
     """Test GIT_TIMEOUT env var."""
     monkeypatch.setenv('GIT_TIMEOUT', '300')
