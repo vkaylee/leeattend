@@ -27,7 +27,7 @@ vi.mock("@tanstack/react-router", () => ({
         }
       });
       const qs = params.toString();
-      if (qs) href += `?${qs}`;
+      if (qs) href += `?${qs ?? ""}`;
     }
     return <a href={href} {...props}>{children}</a>;
   },

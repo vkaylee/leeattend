@@ -78,7 +78,7 @@ export default function JobStatusDistributionChart({ data, isLoading }: Props) {
               "bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-700/50",
               "hover:scale-105 transition-transform duration-200 cursor-default"
             )}
-            data-testid={`legend-${entry.status}`}
+            data-testid={`legend-${entry.status ?? ""}`}
             key={entry.status}
           >
             <span

@@ -75,7 +75,7 @@ export default function RegisterPage() {
               { id: "confirm_password", label: "confirm_password", type: "password", placeholder: "••••••••", auto: "new-password" }
             ].map((field) => (
               <div className="space-y-2 px-1" key={field.id}>
-                <label className={LABEL_BASE} htmlFor={field.id}>{t(`auth.${field.label}`)}</label>
+                <label className={LABEL_BASE} htmlFor={field.id}>{t(`auth.${field.label ?? ""}`)}</label>
                 <input autoComplete={field.auto} className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm tracking-tight shadow-inner" id={field.id} name={field.id} onChange={handleChange} placeholder={field.placeholder} required type={field.type} value={formData[field.id as keyof typeof formData]} />
               </div>
             ))}

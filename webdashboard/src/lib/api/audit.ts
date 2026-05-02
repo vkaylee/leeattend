@@ -16,7 +16,7 @@ export const fetchAuditLogs = async (
     if (params.startDate) query.append("start_date", params.startDate);
     if (params.endDate) query.append("end_date", params.endDate);
 
-    const response = await apiFetch(`${API_BASE_URL}/workspaces/${workspaceId}/audit-logs?${query}`);
+    const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${workspaceId ?? ""}/audit-logs?${query ?? ""}`);
     if (!response.ok) {
         throw new Error("Failed to fetch audit logs");
     }

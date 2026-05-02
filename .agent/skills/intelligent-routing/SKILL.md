@@ -189,6 +189,14 @@ User: "Use @backend-specialist to review this"
 → Use explicitly mentioned agent
 ```
 
+### Rule 5: Rule Compliance Gate (CRITICAL - GEMINI.md 3.0)
+
+**Before proposing ANY code, commands, or architectural changes, the AI MUST:**
+1.  **READ** `GEMINI.md` to refresh active context.
+2.  **MAP** the intended action to specific Rule IDs (e.g., Rule 4.8 for Python).
+3.  **VALIDATE** that the proposed tool usage (e.g., `run_command`) matches the project's safety standard.
+*❌ Failure Condition*: Proceeding without explicit Rule ID mapping is a P0 Protocol Violation.
+
 ## Edge Cases
 
 ### Case 1: Generic Question

@@ -90,10 +90,10 @@ E002,2026-01-28,90,Urgent order completion`;
 
     const headers = "line_number,employee_id,error_message";
     const rows = uploadResult.errors
-      .map(e => `${e.line_number},${e.employee_id},"${e.error_message}"`)
+      .map(e => `${e.line_number ?? ""},${e.employee_id ?? ""},"${e.error_message ?? ""}"`)
       .join("\n");
 
-    const csvContent = `${headers}\n${rows}`;
+    const csvContent = `${headers ?? ""}\n${rows ?? ""}`;
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -344,7 +344,7 @@ E002,2026-01-28,90,Urgent order completion`;
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-300 flex-shrink-0" />
                     <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
                       {t("approvals.bulk_upload.success_message", { count: uploadResult.success_count }) ||
-                        `${uploadResult.success_count} OT claims entered successfully`}
+                        `${uploadResult.success_count ?? ""} OT claims entered successfully`}
                     </p>
                   </div>
                 )}

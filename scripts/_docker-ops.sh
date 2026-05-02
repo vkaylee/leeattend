@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# Guard: Prevent direct execution. Must be sourced or run via official entry point.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "\033[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.\033[0m"
+    echo -e "👉 This script is an internal module. Use: \033[1m./test.sh\033[0m"
+    exit 1
+fi
+
+
+# Guard: Prevent direct execution. Must be sourced or run via official entry point.
+if [[ "" == "/bin/bash" ]]; then
+    echo -e "[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.[0m"
+    echo -e "👉 This script is an internal module. Use: [1m./test.sh[0m"
+    exit 1
+fi
+
+
 # ── Podman Compose wrappers ─────────────────────────────────────────
 #
 # dc()          — Normal use. Redirects stdin only (</dev/null).

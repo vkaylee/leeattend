@@ -50,7 +50,7 @@ vi.mock("date-fns", async () => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      return `${year ?? ""}-${month ?? ""}-${day ?? ""}`;
     },
   };
 });
@@ -70,14 +70,14 @@ vi.mock("react-i18next", () => ({
         "shifts.empty_state.title": "Select personnel to continue",
         "shifts.empty_state.desc": "Please select an employee from the left list to start scheduling.",
         "shifts.current_week_roster": "Current Week Roster",
-        "shifts.days_selected": `${params?.count} days selected`,
+        "shifts.days_selected": `${params?.count ?? ""} days selected`,
         "shifts.assign_selected_btn": "Assign shift to selected",
         "shifts.off_day": "OFF",
         "shifts.actions.copy_previous": "Copy previous week",
         "shifts.actions.assign_all_week": "Assign all this week",
         "shifts.actions.clear_week": "Clear this week",
         "shifts.modal.select_shift_title": "Select Work Shift",
-        "shifts.modal.select_shift_subtitle": `Choose shift for ${params?.count} selected days`,
+        "shifts.modal.select_shift_subtitle": `Choose shift for ${params?.count ?? ""} selected days`,
         "shifts.modal.mark_as_off": "Mark selected days as off/rest day",
         "common.employees": "Employees",
         "common.people": "people",
@@ -102,7 +102,7 @@ vi.mock("@/hooks/use-datetime", () => ({
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
-      return `${day}/${month}/${year}`;
+      return `${day ?? ""}/${month ?? ""}/${year ?? ""}`;
     },
     formatTime: (time: string) => time.substring(0, 5),
     formatDateTime: (datetime: string) => datetime,

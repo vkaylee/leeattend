@@ -269,7 +269,7 @@ export default function HolidaysPage() {
                                         onChange={setFormLeaveTypeId}
                                         options={leaveTypes.filter(lt => lt.is_paid).map(lt => ({
                                             value: lt.id,
-                                            label: `${lt.name} (${lt.code})`
+                                            label: `${lt.name ?? ""} (${lt.code ?? ""})`
                                         }))}
                                         placeholder={t('holidays.fields.auto_first_paid')}
                                         value={formLeaveTypeId}
@@ -396,7 +396,7 @@ export default function HolidaysPage() {
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                                            {t(`holidays.fields.types.${h.holiday_type}`)}
+                                            {t(`holidays.fields.types.${h.holiday_type ?? ""}`)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-center">
@@ -414,7 +414,7 @@ export default function HolidaysPage() {
                                         )}
                                     </td>
                                     <td className="px-4 py-3 text-center font-mono font-bold text-sm text-orange-600 dark:text-orange-400">
-                                        {h.ot_multiplier ? `${h.ot_multiplier}×` : "—"}
+                                        {h.ot_multiplier ? `${h.ot_multiplier ?? ""}×` : "—"}
                                     </td>
                                     <td className="px-4 py-3 text-center text-sm">
                                         {h.is_credit_on_work ? (
@@ -424,7 +424,7 @@ export default function HolidaysPage() {
                                         )}
                                     </td>
                                     <td className="px-4 py-3 text-center font-mono text-sm text-slate-600 dark:text-slate-400">
-                                        {h.work_threshold_percent != null ? `${h.work_threshold_percent}%` : "—"}
+                                        {h.work_threshold_percent != null ? `${h.work_threshold_percent ?? ""}%` : "—"}
                                     </td>
                                     <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
                                         {h.description || "—"}

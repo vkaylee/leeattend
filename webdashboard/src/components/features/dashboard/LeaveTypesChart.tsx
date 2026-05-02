@@ -77,7 +77,7 @@ export default function LeaveTypesChart() {
                                 stroke="none"
                             >
                                 {chartData.map((entry, index) => (
-                                    <Cell fill={entry.color} key={`cell-${index}`} />
+                                    <Cell fill={entry.color} key={`cell-${index ?? ""}`} />
                                 ))}
                             </Pie>
                             <Tooltip

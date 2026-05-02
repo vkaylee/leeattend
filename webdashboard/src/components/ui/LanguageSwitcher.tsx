@@ -79,7 +79,7 @@ export function LanguageSwitcher({ compact = false, className }: LanguageSwitche
                     ? 'bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 font-semibold'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
-                data-testid={`language-option-${lang.code}`}
+                data-testid={`language-option-${lang.code ?? ""}`}
                 key={lang.code}
                 onClick={() => handleSelect(lang.code)}
                 type="button"

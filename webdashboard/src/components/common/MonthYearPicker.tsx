@@ -45,7 +45,7 @@ export function MonthYearPicker({
       <div className="grid grid-cols-3 gap-3">
         {Array.from({ length: 12 }, (_, index) => index + 1).map((m) => (
           <button
-            aria-label={t("common.month_short", { defaultValue: `Tháng ${m}`, month: m })}
+            aria-label={t("common.month_short", { defaultValue: `Tháng ${m ?? ""}`, month: m })}
             className={cn(
               "py-3.5 rounded-[1.25rem] text-sm font-bold transition-all border",
               month === m

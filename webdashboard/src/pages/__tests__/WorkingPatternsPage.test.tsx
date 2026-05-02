@@ -70,8 +70,8 @@ vi.mock('react-i18next', () => ({
  
   useTranslation: () => ({
     t: (key: string, options?: Record<string, unknown>) => {
-        if (key === "patterns.messages.bulk_assign_success_count") return `Success: ${options?.count}`;
-        if (key === "patterns.messages.bulk_assign_conflict") return `Conflict: ${options?.count}`;
+        if (key === "patterns.messages.bulk_assign_success_count") return `Success: ${options?.count ?? ""}`;
+        if (key === "patterns.messages.bulk_assign_conflict") return `Conflict: ${options?.count ?? ""}`;
         return key;
     },
     i18n: {

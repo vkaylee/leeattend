@@ -16,6 +16,7 @@ fi
 
 leeattend_run_unit() {
     local filter_input="${1:-}"
+    local mode="${MODE:-all}"
     
     # Extract filter and optional pattern
     local COMPONENT_FILTER=$(echo "$filter_input" | cut -d':' -f1)
@@ -42,7 +43,16 @@ leeattend_run_unit() {
         WEB_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard bun run test -- $TEST_PATTERN $shard_flag --passWithNoTests </dev/null"
     fi
 
-    run_parallel_ordered "Phase 1 (Unit Tests)" "$COMPONENT_FILTER" \
-        "1|rust-backend|apiserver|$BACKEND_CMD" \
-        "4|webdashboard|webdashboard|$WEB_CMD"
+    local TASKS=()
+    # Always run backend unit in 'api', 'integration', or 'all'
+    if [[ "$mode" == "all" || "$mode" == "api" || "$mode" == "integration" ]]; then
+        TASKS+=("1|rust-backend|apiserver|$BACKEND_CMD")
+    fi
+
+    # Run web unit in 'web' or 'all'
+    if [[ "$mode" == "all" || "$mode" == "web" ]]; then
+        TASKS+=("4|webdashboard|webdashboard|$WEB_CMD")
+    fi
+
+    run_parallel_ordered "Phase 1 (Unit Tests)" "$COMPONENT_FILTER" "${TASKS[@]}"
 }

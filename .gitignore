@@ -21,6 +21,7 @@ processed_logs.txt
 
 # Python
 __pycache__/
+.coverage
 *.py[cod]
 *$py.class
 venv/
@@ -77,3 +78,4 @@ apiserver/.sqlx
 .migration-squash-work/
 scratch/
 *.txt
+.venv/

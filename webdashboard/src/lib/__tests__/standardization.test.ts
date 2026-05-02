@@ -14,7 +14,7 @@ describe("API Standardization Enforcement", () => {
       // This regex matches "fetch(" but not "apiFetch("
       const directFetchMatch = content.match(/(?<!api)fetch\(/g);
       
-      expect(directFetchMatch, `File ${file} contains direct fetch() calls. Use apiFetch() instead.`).toBeNull();
+      expect(directFetchMatch, `File ${file ?? ""} contains direct fetch() calls. Use apiFetch() instead.`).toBeNull();
     }
   });
 
@@ -25,7 +25,7 @@ describe("API Standardization Enforcement", () => {
       // If the file makes API calls, it should import apiFetch
       if (content.includes("apiFetch(")) {
         const importMatch = /import\s*{[^}]*apiFetch[^}]*}\s*from\s*"(\.\/helpers|..\/api\/helpers)"/.exec(content);
-        expect(importMatch, `File ${file} uses apiFetch but does not import it correctly from helpers.`).not.toBeNull();
+        expect(importMatch, `File ${file ?? ""} uses apiFetch but does not import it correctly from helpers.`).not.toBeNull();
       }
     }
   });

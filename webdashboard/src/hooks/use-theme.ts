@@ -67,7 +67,7 @@ export function useTheme() {
     };
 
     Object.entries(shades).forEach(([shade, color]) => {
-      root.style.setProperty(`--primary-${shade}`, color);
+      root.style.setProperty(`--primary-${shade ?? ""}`, color);
     });
 
     root.style.setProperty('--sidebar-primary', primaryColor);

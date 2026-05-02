@@ -270,7 +270,7 @@ export default function NavigableList<T>({
                             {isLoading ? (
                                 // Loading skeletons
                                 Array.from({ length: skeletonRows }).map((_, index) => (
-                                    <tr key={`skeleton-${index}`}>
+                                    <tr key={`skeleton-${index ?? ""}`}>
                                         {visibleColumns.map((col) => (
                                             <td className={cn("px-8 py-5", col.cellClassName)} key={col.key}>
                                                 <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
@@ -310,8 +310,8 @@ export default function NavigableList<T>({
                                                         ? "bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-inset ring-primary-500/50"
                                                         : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                             )}
-                                            data-testid={testIdPrefix ? `${testIdPrefix}-${key}` : undefined}
-                                            id={`${rowIdPrefix}-${index}`}
+                                            data-testid={testIdPrefix ? `${testIdPrefix ?? ""}-${key ?? ""}` : undefined}
+                                            id={`${rowIdPrefix ?? ""}-${index ?? ""}`}
                                             key={key}
                                             onClick={() => { onSelect(item); }}
                                         >

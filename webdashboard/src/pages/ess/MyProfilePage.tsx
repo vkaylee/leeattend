@@ -144,7 +144,7 @@ export default function MyProfilePage() {
                 { label: "national_id", key: "national_id", icon: ShieldCheck, placeholder: "xxx xxx xxx xxx" }
               ].map(field => (
                 <div key={field.key} className="space-y-3 px-1">
-                  <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
+                  <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label ?? ""}`)}</label>
                   { }
                   <input type={field.type} value={(formData as Record<string, string>)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" placeholder={field.placeholder} />
                 </div>
@@ -183,7 +183,7 @@ export default function MyProfilePage() {
                 { label: "bank_branch", key: "bank_branch", icon: MapPin, placeholder: t("ess.branch_placeholder") }
               ].map(field => (
                 <div key={field.key} className="space-y-3 px-1">
-                  <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
+                  <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label ?? ""}`)}</label>
                   { }
                   <input type="text" value={(formData as Record<string, string>)[field.key] || ""} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm font-mono" placeholder={field.placeholder} />
                 </div>

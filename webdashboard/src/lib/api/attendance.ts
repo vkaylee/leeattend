@@ -19,7 +19,7 @@ export async function punchIn(
   wsId: string,
   data: { employee_id: string; entry_type?: string; note?: string },
 ): Promise<TimeEntry> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/time/punch-in`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/time/punch-in`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -32,7 +32,7 @@ export async function punchOut(
   employeeId: string,
   data: { note?: string },
 ): Promise<TimeEntry> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/time/punch-out/${employeeId}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/time/punch-out/${employeeId ?? ""}`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -47,7 +47,7 @@ export async function fetchTimeHistory(
   end: string,
 ): Promise<TimeEntry[]> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/time/history/${employeeId}?start=${start}&end=${end}`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/time/history/${employeeId ?? ""}?start=${start ?? ""}&end=${end ?? ""}`,
   );
   if (!response.ok) throw new Error("Failed to fetch time history");
   return response.json() as Promise<TimeEntry[]>;
@@ -58,7 +58,7 @@ export async function updateTimeEntry(
   id: string,
   data: Partial<TimeEntry>,
 ): Promise<TimeEntry> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/time/entries/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/time/entries/${id ?? ""}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
@@ -67,7 +67,7 @@ export async function updateTimeEntry(
 }
 
 export async function deleteTimeEntry(wsId: string, id: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/time/entries/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/time/entries/${id ?? ""}`, {
     method: "DELETE",
   });
   if (!response.ok) throw new Error("Failed to delete time entry");
@@ -84,7 +84,7 @@ export async function submitAttendanceAdjustment(
     reason?: string;
   }
 ): Promise<AttendanceAdjustmentRequest> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/adjustments`, {
     method: "POST",
     body: JSON.stringify({ is_break_overtime: false, ...data }),
   });
@@ -97,8 +97,8 @@ export async function fetchWorkspaceAttendanceAdjustments(
   status?: string
 ): Promise<AttendanceAdjustmentRequest[]> {
   const url = status
-    ? `${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments?status=${status}`
-    : `${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments`;
+    ? `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/adjustments?status=${status ?? ""}`
+    : `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/adjustments`;
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch attendance adjustments");
   return response.json() as Promise<AttendanceAdjustmentRequest[]>;
@@ -107,7 +107,7 @@ export async function fetchWorkspaceAttendanceAdjustments(
 export async function fetchMyAttendanceAdjustments(
   employeeId: string
 ): Promise<AttendanceAdjustmentRequest[]> {
-  const response = await apiFetch(`${API_BASE_URL}/employees/${employeeId}/attendance/adjustments`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/employees/${employeeId ?? ""}/attendance/adjustments`);
   if (!response.ok) throw new Error("Failed to fetch my attendance adjustments");
   return response.json() as Promise<AttendanceAdjustmentRequest[]>;
 }
@@ -117,7 +117,7 @@ export async function approveAttendanceAdjustment(
   requestId: string,
   data: { status: string }
 ): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments/${requestId}/approve`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/adjustments/${requestId ?? ""}/approve`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -140,8 +140,8 @@ export async function fetchAttendanceLogs(params: {
 
   const wsId = getCurrentWorkspaceId();
   const url = wsId
-    ? `${API_BASE_URL}/workspaces/${wsId}/attendance/logs?${searchParams.toString()}`
-    : `${API_BASE_URL}/attendance/logs?${searchParams.toString()}`;
+    ? `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/logs?${searchParams.toString()}`
+    : `${API_BASE_URL ?? ""}/attendance/logs?${searchParams.toString()}`;
 
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch attendance logs");
@@ -165,7 +165,7 @@ export async function fetchRawAttendanceLogs(params: {
   const wsId = getCurrentWorkspaceId();
   if (!wsId) throw new Error("Workspace not selected");
 
-  const url = `${API_BASE_URL}/workspaces/${wsId}/attendance/raw-logs?${searchParams.toString()}`;
+  const url = `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/raw-logs?${searchParams.toString()}`;
 
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch raw attendance logs");
@@ -200,7 +200,7 @@ export async function fetchAttendanceReport(
   }
 
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/reports/attendance?${params.toString()}`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/reports/attendance?${params.toString()}`,
   );
   if (!response.ok) throw new Error("Failed to fetch attendance report");
   return response.json() as Promise<PaginatedResponse<AttendanceSummary | DailyAttendanceReport>>;
@@ -228,7 +228,7 @@ export async function uploadAttendance(
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}${endpoint}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}${endpoint ?? ""}`, {
     method: "POST",
     body: formData,
   });
@@ -241,8 +241,8 @@ export async function fetchLatestImportJob(
   targetType?: string
 ): Promise<AttendanceImportJob | null> {
   const url = targetType
-    ? `${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest?target_type=${targetType}`
-    : `${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest`;
+    ? `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/import-jobs/latest?target_type=${targetType ?? ""}`
+    : `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/import-jobs/latest`;
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch latest import job");
   return response.json() as Promise<AttendanceImportJob | null>;
@@ -252,7 +252,7 @@ export async function fetchImportJobStatus(
   wsId: string,
   jobId: string
 ): Promise<AttendanceImportJob> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/${jobId}`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/import-jobs/${jobId ?? ""}`);
   if (!response.ok) throw new Error("Failed to fetch import job status");
   return response.json() as Promise<AttendanceImportJob>;
 }
@@ -264,7 +264,7 @@ export async function reprocessAttendance(
   endDate: string
 ): Promise<void> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/attendance/reprocess/${employeeId}?start_date=${startDate}&end_date=${endDate}`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/reprocess/${employeeId ?? ""}?start_date=${startDate ?? ""}&end_date=${endDate ?? ""}`,
     {
       method: "POST",
       timeout: TIMEOUT.REPORT_OPERATION,
@@ -279,7 +279,7 @@ export async function reprocessAllAttendance(
   endDate: string
 ): Promise<{ message: string; job_id: string }> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/attendance/reprocess-all?start_date=${startDate}&end_date=${endDate}`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/reprocess-all?start_date=${startDate ?? ""}&end_date=${endDate ?? ""}`,
     {
       method: "POST",
     }
@@ -308,7 +308,7 @@ export async function fetchGenericJobStatus(
   wsId: string,
   jobId: string
 ): Promise<GenericJobStatus> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/jobs/${jobId}`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/jobs/${jobId ?? ""}`);
   if (!response.ok) throw new Error("Failed to fetch job status");
   return response.json() as Promise<GenericJobStatus>;
 }
@@ -380,7 +380,7 @@ export async function claimOt(
   employeeId: string,
   data: { date: string; claimed_minutes: number; reason?: string }
 ): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/claim-ot/${employeeId}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/claim-ot/${employeeId ?? ""}`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -392,7 +392,7 @@ export async function approveOt(
   employeeId: string,
   data: { date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
 ): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/approve-ot/${employeeId}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/approve-ot/${employeeId ?? ""}`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -411,7 +411,7 @@ export async function fetchAttendanceSummaries(
   });
   if (employeeId) params.append("employee_id", employeeId);
 
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/summaries?${params.toString()}`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/summaries?${params.toString()}`);
   if (!response.ok) throw new Error("Failed to fetch attendance summaries");
   return response.json() as Promise<AttendanceDailySummary[]>;
 }
@@ -427,7 +427,7 @@ export async function enterPaperOt(
   }
 ): Promise<AttendanceDailySummary> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/attendance/enter-paper-ot/${employeeId}`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/enter-paper-ot/${employeeId ?? ""}`,
     {
       method: "POST",
       body: JSON.stringify(data),
@@ -457,7 +457,7 @@ export async function bulkUploadPaperOt(
   formData.append("file", file);
 
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/attendance/bulk-upload-paper-ot`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/bulk-upload-paper-ot`,
     {
       method: "POST",
       body: formData,
@@ -512,7 +512,7 @@ export async function fetchStagingLogs(
   });
 
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/attendance/staging-logs?${params.toString()}`
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/staging-logs?${params.toString()}`
   );
   if (!response.ok) throw new Error("Failed to fetch staging logs");
   return response.json() as Promise<StagingLogsResponse>;
@@ -524,7 +524,7 @@ export async function resolveStagingLog(
   employeeId: string
 ): Promise<void> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/attendance/staging-logs/${logId}/resolve`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/staging-logs/${logId ?? ""}/resolve`,
     {
       method: "POST",
       body: JSON.stringify({ employee_id: employeeId }),
@@ -538,7 +538,7 @@ export async function dismissStagingLog(
   logId: string
 ): Promise<void> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/attendance/staging-logs/${logId}`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/staging-logs/${logId ?? ""}`,
     {
       method: "DELETE",
     }
@@ -553,7 +553,7 @@ export async function createReportExportJob(
   request: CreateReportExportRequest
 ): Promise<CreateReportExportResponse> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/reports/export`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/reports/export`,
     {
       method: "POST",
       body: JSON.stringify(request),
@@ -572,7 +572,7 @@ export async function fetchExportJobStatus(
   jobId: string
 ): Promise<ReportExportJob> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/reports/jobs/${jobId}`
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/reports/jobs/${jobId ?? ""}`
   );
   if (!response.ok) throw new Error("Failed to fetch export job status");
   return response.json() as Promise<ReportExportJob>;
@@ -583,7 +583,7 @@ export async function cancelExportJob(
   jobId: string
 ): Promise<void> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/reports/jobs/${jobId}`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/reports/jobs/${jobId ?? ""}`,
     { method: "DELETE" }
   );
   if (!response.ok) throw new Error("Failed to cancel export job");
@@ -594,7 +594,7 @@ export async function downloadExportReport(
   jobId: string
 ): Promise<Blob> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/reports/jobs/${jobId}/download`,
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/reports/jobs/${jobId ?? ""}/download`,
     {
       timeout: TIMEOUT.REPORT_OPERATION, // 3 minutes for large Excel file download
     }
@@ -606,7 +606,7 @@ export async function downloadExportReport(
 // --- Worker Monitoring (Global Infrastructure) ---
 
 export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
-  const response = await apiFetch(`${API_BASE_URL}/monitor/overview`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/monitor/overview`);
   if (!response.ok) throw new Error("Failed to fetch monitor overview");
   return response.json() as Promise<WorkerMonitorStats>;
 }
@@ -636,13 +636,13 @@ export interface UpdateAttendanceRulesRequest {
 }
 
 export async function fetchDefaultAttendanceRules(wsId: string): Promise<AttendanceRules> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/default`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/policies/default`);
   if (!response.ok) throw new Error("Failed to fetch default attendance rules");
   return response.json() as Promise<AttendanceRules>;
 }
 
 export async function fetchAttendancePolicyVersions(wsId: string): Promise<AttendancePolicyVersion[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/default/versions`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/policies/default/versions`);
   if (!response.ok) throw new Error("Failed to fetch attendance policy versions");
   return response.json() as Promise<AttendancePolicyVersion[]>;
 }
@@ -666,7 +666,7 @@ export interface UpsertPolicyAssignmentRequest {
 }
 
 export async function fetchPolicyAssignments(wsId: string): Promise<PolicyAssignmentResponse[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/assignments`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/policies/assignments`);
   if (!response.ok) throw new Error("Failed to fetch policy assignments");
   return response.json() as Promise<PolicyAssignmentResponse[]>;
 }
@@ -675,7 +675,7 @@ export async function upsertPolicyAssignment(
   wsId: string,
   data: UpsertPolicyAssignmentRequest
 ): Promise<PolicyAssignmentResponse> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/assignments`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/policies/assignments`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -684,7 +684,7 @@ export async function upsertPolicyAssignment(
 }
 
 export async function deletePolicyAssignment(wsId: string, assignmentId: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/assignments/${assignmentId}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/policies/assignments/${assignmentId ?? ""}`, {
     method: "DELETE",
   });
   if (!response.ok) throw new Error("Failed to delete policy assignment");
@@ -694,7 +694,7 @@ export async function updateDefaultAttendanceRules(
   wsId: string,
   data: UpdateAttendanceRulesRequest
 ): Promise<AttendancePolicyVersion> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/policies/default`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/attendance/policies/default`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });

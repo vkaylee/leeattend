@@ -37,11 +37,17 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 | `git log`, `less`, `more` | Pager blocks waiting for user input. Use `--no-pager`. |
 | `rg | awk`, `grep | sed` | Piped commands inherit PTY and hang without `</dev/null` |
 
+**🚨 STRICTLY BANNED INLINE COMMANDS & PATTERNS (Deadlock Triggers):**
+> **Do NOT use these via AI terminal tools.** They cause infinite PTY hangs due to unclosed quotes or waiting for stdin.
+- **Banned Interpreters**: `python -c`, `python3 -c`, `node -e`, `ruby -e`, `perl -e`, `php -r`
+- **Banned Patterns**: Heredocs (`cat <<EOF` or `cat >> file <<EOF`)
+- **Solution**: Always write logic to a physical script file in `scripts/ai-tools/` and run it via `./scripts/_safe_run.py`.
+
 ```bash
 # ✅ Correct — AGENT_MODE skips Podman tests in pre-commit hook
 AGENT_MODE=1 git commit --no-gpg-sign -m "message" </dev/null
 podman-compose down </dev/null
-./run-tests.sh --api </dev/null
+./test.sh --api </dev/null
 git --no-pager log -n 5
 
 # ✅ Correct & Bulletproof — Use safe-run.py wrapper (New Standard)
@@ -58,7 +64,7 @@ rg "pattern" | awk '{print $1}'
 
 > [!WARNING]
 > **NEVER run `cargo test`, `npm test`, `npx playwright test`, or any test command directly.** 
-> This project uses Podman-based test isolation. The ONLY way to run tests is through `./run-tests.sh`.
+> This project uses Podman-based test isolation. The ONLY way to run tests is through `./test.sh`.
 > 
 > **NEVER run `cargo`, `npm`, or `sqlx` directly for development tasks.**
 > ALWAYS use the hermetic toolbox wrappers: `./scripts/_cargo.sh`, `./scripts/_npm.sh`, `./scripts/_sqlx.sh`.
@@ -67,9 +73,9 @@ rg "pattern" | awk '{print $1}'
 
 | Scope | Command | Purpose |
 |---------------|---------|---------|
-| **Frontend** | `./run-tests.sh --web </dev/null` | Lint, Unit (Vitest), E2E (Playwright) |
-| **Backend** | `./run-tests.sh --api </dev/null` | Lint, Unit (Rust), Integration (SQLx) |
-| **Full Suite** | `./run-tests.sh --all </dev/null` | Comprehensive verification |
+| **Frontend** | `./test.sh --web </dev/null` | Lint, Unit (Vitest), E2E (Playwright) |
+| **Backend** | `./test.sh --api </dev/null` | Lint, Unit (Rust), Integration (SQLx) |
+| **Full Suite** | `./test.sh --all </dev/null` | Comprehensive verification |
 
 **After fixing code, ALWAYS verify with the appropriate domain flag above before claiming done.**
 
@@ -81,7 +87,7 @@ rg "pattern" | awk '{print $1}'
 | Agent (ZK Worker) | Rust | `agent-main/` |
 | Web Dashboard | React + TypeScript | `webdashboard/` |
 | Containers | Compose | `docker-compose*.yml` |
-| Tests | Rust + Playwright | `./run-tests.sh` |
+| Tests | Rust + Playwright | `./test.sh` |
 
 ## 📝 Commit Convention
 

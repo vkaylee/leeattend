@@ -41,7 +41,7 @@ export const clearAuthSession = () => {
   localStorage.removeItem("refresh_token");
 
   // Call backend to clear HttpOnly cookies
-  fetch(`${API_BASE_URL}/auth/logout`, { 
+  fetch(`${API_BASE_URL ?? ""}/auth/logout`, { 
     method: "POST", 
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -59,7 +59,7 @@ function getHeaders() {
   }
   const token = getAccessToken();
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token ?? ""}`;
   } else {
     // Fallback for dev mode
     const userId = getCurrentUserId();
@@ -135,8 +135,8 @@ export async function apiFetch(
   // If url already starts with http/https or the API_BASE_URL, don't prepend API_BASE_URL
   let fullUrl = url;
   if (!url.startsWith("http") && !url.startsWith(API_BASE_URL)) {
-    const path = url.startsWith("/") ? url : `/${url}`;
-    fullUrl = `${API_BASE_URL}${path}`;
+    const path = url.startsWith("/") ? url : `/${url ?? ""}`;
+    fullUrl = `${API_BASE_URL ?? ""}${path ?? ""}`;
   }
 
   try {
@@ -153,7 +153,7 @@ export async function apiFetch(
       const refreshToken = getRefreshToken();
       if (refreshToken) {
         try {
-          const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          const refreshResponse = await fetch(`${API_BASE_URL ?? ""}/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include", // Send HttpOnly cookies
@@ -166,7 +166,7 @@ export async function apiFetch(
             setRefreshToken(data.refresh_token);
 
             // Retry original request with new token
-            const retryHeaders = { ...headers, Authorization: `Bearer ${data.access_token}` };
+            const retryHeaders = { ...headers, Authorization: `Bearer ${data.access_token ?? ""}` };
             const retryResponse = await fetch(fullUrl, {
               ...fetchOptions,
               headers: retryHeaders,
@@ -197,6 +197,6 @@ export async function apiFetch(
 }
 
 export async function fetchHealth(): Promise<{ status: string }> {
-  const response = await apiFetch(`${API_BASE_URL}/health`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/health`);
   return response.json() as Promise<{ status: string }>;
 }

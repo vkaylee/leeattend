@@ -187,14 +187,14 @@ export default function DailyReportTable({
             </tr>
           ) : (
             data.map((row: DailyAttendanceReport, index: number) => {
-              const rowKey = `${row.employee_id}-${row.date}`;
+              const rowKey = `${row.employee_id ?? ""}-${row.date ?? ""}`;
               const isReprocessing = reprocessingRow === rowKey;
               const isConfirming = confirmingRow === rowKey;
               const isExpanded = expandedDebugRows.has(rowKey);
               const existingAdjustment = adjustmentMap[rowKey];
 
               return (
-                <React.Fragment key={`${rowKey}-${index}`}>
+                <React.Fragment key={`${rowKey ?? ""}-${index ?? ""}`}>
                   <tr
                     className={cn(
                       "transition-all group",
@@ -221,7 +221,7 @@ export default function DailyReportTable({
                             <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mt-1.5 opacity-70 italic">
                               {row.break_start
                                 ? `${t("common.break")}: ${row.break_start.substring(0, 5)}-${row.break_end?.substring(0, 5)}`
-                                : `${t("common.break")}: ${row.break_duration_minutes}m`}
+                                : `${t("common.break")}: ${row.break_duration_minutes ?? ""}m`}
                             </span>
                           )}
                         </div>
@@ -244,13 +244,13 @@ export default function DailyReportTable({
                       </div>
                     </td>
 
-                    <td className="px-4 py-2.5 text-right" title={`${row.std_work_units} units`}>
+                    <td className="px-4 py-2.5 text-right" title={`${row.std_work_units ?? ""} units`}>
                       <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter leading-none">
                         {formatUnitsToHours(row.std_work_units, workUnitMinutes)}h
                       </div>
                     </td>
 
-                    <td className="px-4 py-2.5 text-right" title={row.ot_work_units > 0 ? `${row.ot_work_units} units` : undefined}>
+                    <td className="px-4 py-2.5 text-right" title={row.ot_work_units > 0 ? `${row.ot_work_units ?? ""} units` : undefined}>
                       {row.ot_work_units > 0 ? (
                         <div className="flex flex-col items-end gap-1">
                           <div>

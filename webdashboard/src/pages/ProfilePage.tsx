@@ -220,9 +220,9 @@ function ChangePasswordForm() {
         { id: "confirm", label: "confirm_password", key: "confirm_password" }
       ].map((field) => (
         <div key={field.id} className="space-y-3 px-1">
-          <label className={LABEL_BASE}>{t(`profile.security.${field.label}`)}</label>
+          <label className={LABEL_BASE}>{t(`profile.security.${field.label ?? ""}`)}</label>
           <div className="relative group">
-            <input type="password" required data-testid={`${field.id}-password-input`} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-300 outline-none transition-all pr-14 font-bold text-sm tracking-tight shadow-sm" value={(formData as Record<string, string>)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} />
+            <input type="password" required data-testid={`${field.id ?? ""}-password-input`} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-300 outline-none transition-all pr-14 font-bold text-sm tracking-tight shadow-sm" value={(formData as Record<string, string>)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} />
             { }
             <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-orange-500 transition-colors" size={20} />
           </div>

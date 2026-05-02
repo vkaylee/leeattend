@@ -72,7 +72,7 @@ vi.mock("@/components/employees/WorkingConditionConfig", () => ({
 const mockEmployee = (id: string, name: string, active = true, department?: string): Employee => ({
     id,
     full_name: name,
-    employee_id_number: `EMP-${id}`,
+    employee_id_number: `EMP-${id ?? ""}`,
     workspace_id: "test-ws-id",
     is_active: active,
     hire_date: "2025-01-01",
@@ -325,7 +325,7 @@ describe("EmployeesPage", () => {
         for (const th of ths) {
             if (th.textContent?.includes(text)) return th;
         }
-        throw new Error(`Header containing "${text}" not found`);
+        throw new Error(`Header containing "${text ?? ""}" not found`);
     };
 
     it("sends sort_by=name and sort_dir=asc when clicking Name header", async () => {

@@ -132,7 +132,7 @@ export default function DashboardPage() {
           rendered.add(id);
           rendered.add(otherId);
           elements.push(
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" key={`pair-${id}`}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" key={`pair-${id ?? ""}`}>
               <WidgetRenderer widgetId="leave_types" />
               <WidgetRenderer widgetId="lateness_by_day" />
             </div>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
                       icon={stat.icon}
                       isLoading={isLoading}
                       key={index}
-                      label={t(`dashboard.hr.${stat.label}`)}
+                      label={t(`dashboard.hr.${stat.label ?? ""}`)}
                       size="sm"
                       value={stat.value ?? 0}
                     />
@@ -227,7 +227,7 @@ export default function DashboardPage() {
                           <PieChart>
                             <Pie cx="50%" cy="50%" data={donutData} dataKey="value" innerRadius={70} outerRadius={110} paddingAngle={3} stroke="none">
                               {donutData.map((entry, index) => (
-                                <Cell fill={entry.color} key={`cell-${index}`} />
+                                <Cell fill={entry.color} key={`cell-${index ?? ""}`} />
                               ))}
                             </Pie>
                             <Tooltip contentStyle={{ borderRadius: "1rem", border: "none", boxShadow: "0 8px 30px rgba(0,0,0,.1)", fontSize: "12px", fontWeight: 600 }} />
@@ -263,7 +263,7 @@ export default function DashboardPage() {
                         colorClasses={item.color}
                         icon={item.icon}
                         key={index}
-                        label={t(`dashboard.hr.${item.label}`)}
+                        label={t(`dashboard.hr.${item.label ?? ""}`)}
                         mono={item.mono}
                         size="lg"
                         value={item.value}
@@ -338,8 +338,8 @@ export default function DashboardPage() {
                 { label: "active_devices", value: activeDevices, icon: ShieldCheck, color: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800" }
               ].map((stat, index) => (
                 <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden" key={index}>
-                  <div className={`${stat.color} w-14 sm:w-16 h-14 sm:h-16 rounded-[1.5rem] flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 group-hover:rotate-3 transition-all shadow-inner border`}><stat.icon size={28} /></div>
-                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-2">{t(`dashboard.system.${stat.label}`)}</p>
+                  <div className={`${stat.color ?? ""} w-14 sm:w-16 h-14 sm:h-16 rounded-[1.5rem] flex items-center justify-center mb-6 sm:mb-8 group-hover:scale-110 group-hover:rotate-3 transition-all shadow-inner border`}><stat.icon size={28} /></div>
+                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-2">{t(`dashboard.system.${stat.label ?? ""}`)}</p>
                   <p className="text-4xl sm:text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter">{isLoading ? "..." : stat.value}</p>
                   <stat.icon className="absolute -right-6 -bottom-6 w-28 sm:w-32 h-28 sm:h-32 text-slate-50 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
                 </div>

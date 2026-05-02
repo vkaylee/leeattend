@@ -20,7 +20,14 @@ trigger: always_on
 
 ### 2. Selective Skill Loading
 - Do NOT read every single skill file. Check the `skills:` frontmatter in the Agent file, then read ONLY the sections of the `SKILL.md` that are relevant to the user's immediate request.
-*❌ Failure Condition:* Overloading context with irrelevant skill data causes hallucinations and drops critical instructions.
+
+### 3. MANDATORY Rule Compliance Mapping (NEW)
+> 🔴 **MANDATORY:** For EVERY `COMPLEX CODE` or `DESIGN/UI` request, the AI MUST:
+> 1. Create/Update a `{task-slug}.md` plan file.
+> 2. Include a top-level section: `## 🛡️ Rule Compliance Check`.
+> 3. Explicitly list at least 3 Rule IDs from this `GEMINI.md` that apply to the current task.
+> 4. **STOP** and wait for user confirmation if any rule is ambiguous.
+*❌ Failure Condition:* Proposing code or commands without an explicit Rule Compliance mapping is a P0 Protocol Violation.
 
 ---
 
@@ -71,7 +78,7 @@ When a feature spans multiple domains (e.g., API + UI):
 ### 4.3 Testing Standards
 - **Testing Pyramid:** Prioritize Unit > Integration > E2E. Use AAA Pattern (Arrange-Act-Assert).
 - **Code Coverage:** Minimum **80%** coverage for all new business logic.
-- **Mandatory Pass:** Task is NOT complete until `./run-tests.sh` passes successfully.
+- **Mandatory Pass:** Task is NOT complete until `./test.sh` passes successfully.
 
 ### 4.4 Error Handling & Observability
 - **Structured Errors:** Use domain-specific error types (e.g., `AppError`). Never throw generic `Error`.
@@ -97,14 +104,26 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 - **Memory Retention:** Document major architectural shifts in `.ai/ADRs/` to retain long-term AI context.
 - **Clean Workspace:** Do NOT save `.txt` or temporary planning files in project root. Use `/tmp/` or prefix `ai_` (added to `.gitignore`).
 
-### 4.8 PTY & FD Leak Safety (CRITICAL)
+### 4.8 Script Discipline & PTY Safety (NEW)
+> 🔴 **MANDATORY SUPREME RULE (ANTI-LAZINESS):** You are STRICTLY FORBIDDEN from using inline code execution flags (`python -c`, `node -e`, etc.) or multiline string commands (Heredocs).
+> - **CONSEQUENCE**: Using these causes infinite PTY Deadlocks.
+> - **Protocol:** You MUST read `AGENTS.md` for the full list of banned commands. Always create physical script files in `scripts/ai-tools/` and execute them via `./scripts/_safe_run.py`.
+
+### 4.9 The Universal Command Rule: "Logic belongs to Files" (CRITICAL)
+> 🔴 **MANDATORY:** Any command (Bash, Python, Node, etc.) that contains **Logic** (loops, conditionals, multi-line blocks, or complex piping) MUST be placed in a physical script file.
+- **Never** use inline strings for complex automation.
+- **Threshold**: If a command exceeds 1 line or 100 characters, it belongs in a file.
+- **Result**: This ensures repeatability, easier debugging, and zero PTY hangs.
+*❌ Failure Condition:* Proposing a complex one-liner is a P0 Protocol Violation.
+
+### 4.10 PTY & FD Leak Safety (CRITICAL)
 > 🔴 **MANDATORY:** AI environments (like Antigravity) use strict PTY stream tracking. Any background process holding `stdout`/`stderr` will cause an infinite hang.
 - **NEVER** run background scripts (`&`) or pipes (`|`) that inherit the PTY's `stdout/stderr` without full redirection.
 - **ALWAYS** append `</dev/null >/dev/null 2>&1` to ANY background command.
 - **NEVER** leave orphaned processes (like `tail -f` or `grep`) running after the main script exits.
 *❌ Failure Condition:* The AI agent hangs indefinitely waiting for a background command's EOF.
 
-### 4.10 Hermetic Toolbox (Zero Host Dependency)
+### 4.11 Hermetic Toolbox (Zero Host Dependency)
 > 🔴 **MANDATORY:** NEVER run `cargo`, `npm`, or `sqlx` directly on the host machine. These tools run inside isolated Podman containers via wrapper scripts to guarantee a reproducible, host-agnostic environment.
 
 | Tool | ❌ WRONG (Direct on Host) | ✅ RIGHT (Inside Container) | Target Container |
@@ -163,7 +182,7 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 1. `./scripts/_cargo.sh check` / `./scripts/_npm.sh run typecheck` (Type Safety)
 2. `./scripts/_cargo.sh clippy` / `./scripts/_npm.sh run lint` (Linting)
 3. `./scripts/_sqlx.sh migrate run` (Schema)
-4. `./run-tests.sh` (Tests)
+4. `./test.sh` (Tests)
 
 *❌ Failure Condition:* Running `cargo` or `npm` directly instead of the wrapper scripts breaks container isolation.
 
@@ -181,14 +200,14 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 - **Project Structure:** `/apiserver` (Rust Backend), `/webdashboard` (React SPA), `/agent-main` (Rust Worker).
 
 ### Hermetic Toolbox Scripts
-All commands run **inside Podman containers**, never on the host.
+All commands run **inside Podman containers**, never on the host. Internal utility scripts and modules MUST start with an underscore (`_`) prefix.
 
 | Script | Replaces | Container | Purpose |
 | :--- | :--- | :--- | :--- |
 | `./scripts/_cargo.sh <cmd>` | `cargo` | `apiserver_test` | Rust compilation, checks, clippy |
 | `./scripts/_npm.sh <cmd>` | `npm` | `web_test` | Node.js installs, builds, type checks |
 | `./scripts/_sqlx.sh <cmd>` | `sqlx` | `apiserver_test` | DB migrations, schema validation |
-| `./run-tests.sh --all` | (orchestrator) | Multiple | Full test suite |
-| `./run-tests.sh --api` | (orchestrator) | `apiserver_test` | Quick API check |
+| `./scripts/_sync-api.sh` | (manual) | Multiple | Generate TS types from OpenAPI |
+| `./test.sh --all` | (orchestrator) | Multiple | Full test suite |
 
 ---

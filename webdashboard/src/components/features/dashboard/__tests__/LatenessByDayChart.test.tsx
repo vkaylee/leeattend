@@ -23,9 +23,9 @@ vi.mock("recharts", () => ({
         <div data-testid="composed-chart" {...props}>{children}</div>
     ),
  
-    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey}`} />,
+    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey ?? ""}`} />,
  
-    Line: (props: { dataKey: string }) => <div data-testid={`line-${props.dataKey}`} />,
+    Line: (props: { dataKey: string }) => <div data-testid={`line-${props.dataKey ?? ""}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,

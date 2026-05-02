@@ -1,7 +1,24 @@
 #!/bin/bash
 
+# Guard: Prevent direct execution. Must be sourced or run via official entry point.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "\033[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.\033[0m"
+    echo -e "👉 This script is an internal module. Use: \033[1m./test.sh\033[0m"
+    exit 1
+fi
+
+
+# Guard: Prevent direct execution. Must be sourced or run via official entry point.
+if [[ "" == "/bin/bash" ]]; then
+    echo -e "[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.[0m"
+    echo -e "👉 This script is an internal module. Use: [1m./test.sh[0m"
+    exit 1
+fi
+
+
 # --- Database backup/restore functions ---
-_DEV_COMPOSE_CMD="podman-compose -p leeattend-dev -f $SCRIPT_DIR/docker-compose.yml -f $SCRIPT_DIR/.compose/docker-compose.dev.yml"
+_COMPOSE_ENGINE="${DOCKER_COMPOSE_CMD:-podman-compose}"
+_DEV_COMPOSE_CMD="$_COMPOSE_ENGINE -p leeattend-dev -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/.compose/docker-compose.dev.yml"
 
 db_backup() {
     local backup_dir="$SCRIPT_DIR/backups"
@@ -13,7 +30,7 @@ db_backup() {
     # Load .env for DB credentials
     set -a
     # shellcheck disable=SC1091
-    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/.env"
+    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/_.env"
     set +a
     local db_user="${DB_USER:-postgres}"
     local db_name="${DB_NAME:-leeattend}"
@@ -66,7 +83,7 @@ db_restore() {
     # Load .env for DB credentials
     set -a
     # shellcheck disable=SC1091
-    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/.env"
+    [ -f "$SCRIPT_DIR/.env" ] && source "$SCRIPT_DIR/_.env"
     set +a
     local db_user="${DB_USER:-postgres}"
     local db_name="${DB_NAME:-leeattend}"

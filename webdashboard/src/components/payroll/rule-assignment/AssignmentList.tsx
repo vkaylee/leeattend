@@ -80,7 +80,7 @@ export function AssignmentList({ grouped, deptMap, onDelete, isDeleting }: Props
             <div className="flex items-center gap-2 px-1">
               <Icon className={colors.text + " opacity-60"} size={12} />
               <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
-                {t(`payroll.scope_level_${scope}`, `${scope} level`)} ({items.length})
+                {t(`payroll.scope_level_${scope ?? ""}`, `${scope ?? ""} level`)} ({items.length})
               </span>
             </div>
             {items.map((a) => (
@@ -118,7 +118,7 @@ export function AssignmentList({ grouped, deptMap, onDelete, isDeleting }: Props
                         <span className="flex items-center gap-1 text-[9px] font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-md border border-orange-200 dark:border-orange-800">
                           <Sliders size={9} /> {t("payroll.override", "OVERRIDE")}
                           {a.override_config.rate != null &&
-                            ` ${a.override_config.rate}%`}
+                            ` ${a.override_config.rate ?? ""}%`}
                           {a.override_config.amount != null &&
                             ` ₫${Number(
                               a.override_config.amount

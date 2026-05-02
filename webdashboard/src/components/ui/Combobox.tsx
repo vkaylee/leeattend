@@ -107,7 +107,7 @@ export function Combobox({
 
   return (
     <Popover.Root onOpenChange={setOpen} open={open}>
-      <select aria-hidden="true" className="sr-only" data-testid={testId ? `${testId}-select` : undefined} id={id ? `${id}-select` : undefined} onChange={(e) => { onChange(e.target.value); }} tabIndex={-1} value={value}>
+      <select aria-hidden="true" className="sr-only" data-testid={testId ? `${testId ?? ""}-select` : undefined} id={id ? `${id ?? ""}-select` : undefined} onChange={(e) => { onChange(e.target.value); }} tabIndex={-1} value={value}>
         <option value="">{placeholder}</option>
         {options.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
       </select>
@@ -141,10 +141,10 @@ export function Combobox({
                       "relative flex cursor-pointer select-none items-center rounded-2xl px-4 py-3.5 text-sm font-bold outline-none transition-all hover:bg-primary-50 dark:hover:bg-primary-950 hover:text-primary-600 dark:hover:text-primary-300 data-[selected=true]:bg-primary-50 dark:data-[selected=true]:bg-primary-950 data-[selected=true]:text-primary-600 dark:data-[selected=true]:text-primary-300 uppercase tracking-tight",
                       value === option.value && "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-inner"
                     )}
-                    data-testid={testId ? `${testId}-option-${option.value}` : `combo-option-${option.value}`}
+                    data-testid={testId ? `${testId ?? ""}-option-${option.value ?? ""}` : `combo-option-${option.value ?? ""}`}
                     key={option.value}
                     onSelect={() => { onChange(option.value); setOpen(false); }}
-                    value={`${option.label} ${typeof option.description === 'string' ? option.description : ""} ${option.value}`}
+                    value={`${option.label ?? ""} ${typeof option.description === 'string' ? option.description : ""} ${option.value ?? ""}`}
                   >
                     <div className="flex flex-1 items-center gap-4">
                       {option.icon}

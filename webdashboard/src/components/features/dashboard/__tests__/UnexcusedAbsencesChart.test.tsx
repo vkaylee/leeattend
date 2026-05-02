@@ -26,7 +26,7 @@ vi.mock("recharts", () => ({
         <div data-layout={props.layout} data-testid="bar-chart" {...props}>{children as React.ReactNode}</div>
     ),
  
-    Bar: (props: any) => <div data-testid={`bar-${props.dataKey}`} />,
+    Bar: (props: any) => <div data-testid={`bar-${props.dataKey ?? ""}`} />,
  
     XAxis: (props: any) => <div data-testid="x-axis" data-type={props.type} />,
  

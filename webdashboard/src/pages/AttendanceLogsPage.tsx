@@ -115,8 +115,8 @@ export default function AttendanceLogsPage() {
   } = useInfiniteQuery({
     queryKey: ["attendance-raw-logs", wsId, employeeId, dateRange],
     queryFn: ({ pageParam }) => {
-      const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
-      const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
+      const from = dateRange.start ? new Date(`${dateRange.start ?? ""}T00:00:00`).toISOString() : undefined;
+      const to = dateRange.end ? new Date(`${dateRange.end ?? ""}T23:59:59`).toISOString() : undefined;
       return fetchRawAttendanceLogs({ employee_id: employeeId === "all" ? undefined : employeeId, from, to, page: pageParam, limit: PAGE_SIZE });
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -295,13 +295,13 @@ export default function AttendanceLogsPage() {
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm p-2 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
               {["this_month", "last_month"].map(mode => (
-                <button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} key={mode} onClick={() => { handleFilterModeChange(mode as "this_month" | "last_month" | "custom" | "specific_month"); }}>{t(`common.filters.${mode}`)}</button>
+                <button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} key={mode} onClick={() => { handleFilterModeChange(mode as "this_month" | "last_month" | "custom" | "specific_month"); }}>{t(`common.filters.${mode ?? ""}`)}</button>
               ))}
               <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-1" />
               <div className="relative group">
                 <button className={cn("flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>
                   { }
-                  <CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month")}
+                  <CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month ?? ""}/${specificMonth.year ?? ""}` : t("common.filters.specific_month")}
                 </button>
                 <div className="absolute left-0 top-full mt-2 z-[100] hidden group-hover:block animate-in zoom-in-95 duration-200 origin-top-left"><MonthYearPicker month={specificMonth.month} onChange={handleSpecificMonthChange} year={specificMonth.year} /></div>
               </div>

@@ -56,7 +56,7 @@ export const DebugToolbar: React.FC = () => {
     
     const ok = await confirm({
       title: "Confirm " + actionVerb,
-      message: `Are you sure you want to ${actionVerb} ${group === "seed" ? "data" : group + " data"}?${warning}`,
+      message: `Are you sure you want to ${actionVerb ?? ""} ${group === "seed" ? "data" : group + " data"}?${warning ?? ""}`,
       variant: group === "seed" ? "warning" : "danger"
     });
     if (!ok) return;

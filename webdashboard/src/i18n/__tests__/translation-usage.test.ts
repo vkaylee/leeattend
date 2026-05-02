@@ -18,7 +18,7 @@ const KEY_WHITELIST = [
 function getAllKeys(object: JsonObject, prefix = ''): { key: string; value: string }[] {
   return Object.keys(object).reduce((keys: { key: string; value: string }[], key: string) => {
     const value = object[key];
-    const newPrefix = prefix ? `${prefix}.${key}` : key;
+    const newPrefix = prefix ? `${prefix ?? ""}.${key ?? ""}` : key;
 
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       return [...keys, ...getAllKeys(value, newPrefix)];
@@ -90,19 +90,19 @@ describe('Translation Usage', () => {
     if (missingKeys.length > 0) {
       console.error('Found translation keys in code that are missing from locale files:');
       const grouped = missingKeys.reduce<Record<string, string[]>>((accumulator, { file, key, lang }) => {
-        const fileKey = `${file} [${lang}]`;
+        const fileKey = `${file ?? ""} [${lang ?? ""}]`;
         if (!accumulator[fileKey]) accumulator[fileKey] = [];
         accumulator[fileKey].push(key);
         return accumulator;
       }, {});
 
       Object.entries(grouped).forEach(([fileLang, keys]) => {
-        console.error(`  ${fileLang}: ${Array.from(new Set(keys)).sort().join(', ')}`);
+        console.error(`  ${fileLang ?? ""}: ${Array.from(new Set(keys)).sort().join(', ')}`);
       });
     }
 
     fs.writeFileSync('missing-keys.json', JSON.stringify(missingKeys, null, 2));
-    expect(missingKeys.length, `Found ${missingKeys.length} missing translation keys across all languages.`).toBe(0);
+    expect(missingKeys.length, `Found ${missingKeys.length ?? ""} missing translation keys across all languages.`).toBe(0);
   });
 
   it('should not have untranslated keys (value matches key name)', () => {
@@ -120,7 +120,7 @@ describe('Translation Usage', () => {
     if (untranslated.length > 0) {
       console.warn('Found potentially untranslated keys (value equals key path):');
       untranslated.forEach(({ lang, key }) => {
-        console.warn(`  [${lang}] ${key}`);
+        console.warn(`  [${lang ?? ""}] ${key ?? ""}`);
       });
     }
 
@@ -173,9 +173,9 @@ describe('Translation Usage', () => {
 
     if (hardcodedStrings.length > 0) {
       const relative = (p: string) => path.relative(path.resolve(__dirname, '../../..'), p);
-      console.error(`Found ${hardcodedStrings.length} potential hardcoded strings:`);
+      console.error(`Found ${hardcodedStrings.length ?? ""} potential hardcoded strings:`);
       hardcodedStrings.slice(0, 20).forEach(({ file, line, text }) => {
-        console.error(`  ${relative(file)}:${line}: "${text}"`);
+        console.error(`  ${relative(file)}:${line ?? ""}: "${text ?? ""}"`);
       });
     }
 
@@ -204,7 +204,7 @@ describe('Translation Usage', () => {
     if (mismatches.length > 0) {
       console.error('Locale files are not synchronized:');
       mismatches.forEach(({ lang, missing }) => {
-        console.error(`  [${lang}] is missing ${missing.length} keys: ${missing.slice(0, 5).join(', ')}...`);
+        console.error(`  [${lang ?? ""}] is missing ${missing.length ?? ""} keys: ${missing.slice(0, 5).join(', ')}...`);
       });
     }
 

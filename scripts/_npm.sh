@@ -1,15 +1,8 @@
 #!/bin/bash
-# Toolbox Wrapper for bun
+# Proxy for Orchestrator Toolbox (NPM/Bun)
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-source "$SCRIPT_DIR/_compose-env.sh"
+VENV_PYTHON=$("$SCRIPT_DIR/_ensure-venv.sh")
 
-# Intercept typecheck typo common for AI agents
-ARGS=("$@")
-if [[ "${ARGS[0]}" == "run" && "${ARGS[1]}" == "typecheck" ]]; then
-    ARGS[1]="type-check"
-fi
-
-echo "📦 Running bun inside container environment..."
-TIMEOUT_SEC="${TIMEOUT:-600}"
-"$SCRIPT_DIR/safe-run.py" "$TIMEOUT_SEC" $TOOLBOX_COMPOSE_CMD run -T --rm --entrypoint bash webdashboard -c "npm install -g bun && bun ${ARGS[*]}"
+# Pass all arguments to orchestrator run command
+$VENV_PYTHON "$SCRIPT_DIR/_orchestrator.py" run npm "$@"

@@ -12,10 +12,10 @@ import AgentAccordionCard from "../AgentAccordionCard";
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, options?: { name?: string }) => {
-      if (key === "agents.messages.confirm_delete") return `Delete ${options?.name}?`;
-      if (key === "agents.messages.confirm_revoke") return `Revoke ${options?.name}?`;
+      if (key === "agents.messages.confirm_delete") return `Delete ${options?.name ?? ""}?`;
+      if (key === "agents.messages.confirm_revoke") return `Revoke ${options?.name ?? ""}?`;
  
-      if (key === "agents.messages.confirm_approve") return `Approve ${options?.name}?`;
+      if (key === "agents.messages.confirm_approve") return `Approve ${options?.name ?? ""}?`;
       if (key === "common.confirm") return "Confirm";
       if (key === "common.warning") return "Warning";
       return key;
@@ -76,7 +76,7 @@ describe("AgentAccordionCard", () => {
     });
 
     // Click delete button
-    const deleteButton = screen.getByTestId(`agent-delete-${mockAgent.id}`);
+    const deleteButton = screen.getByTestId(`agent-delete-${mockAgent.id ?? ""}`);
     await user.click(deleteButton);
 
     // Verify modal appears
@@ -109,7 +109,7 @@ describe("AgentAccordionCard", () => {
     });
 
     // Click toggle trust button
-    const trustButton = screen.getByTestId(`agent-trust-toggle-${mockAgent.id}`);
+    const trustButton = screen.getByTestId(`agent-trust-toggle-${mockAgent.id ?? ""}`);
     await user.click(trustButton);
 
     // Verify modal appears

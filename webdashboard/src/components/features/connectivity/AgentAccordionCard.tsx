@@ -92,14 +92,14 @@ export default function AgentAccordionCard({
         "hover:shadow-lg hover:shadow-primary-100/20",
         !agent.is_active && "opacity-50 grayscale"
       )}
-      data-testid={`agent-card-${agent.id}`}
+      data-testid={`agent-card-${agent.id ?? ""}`}
     >
       {/* Header row - clickable to expand */}
       { }
       { }
       <div
         className="flex items-center gap-6 p-8 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
-        data-testid={`agent-header-${agent.id}`}
+        data-testid={`agent-header-${agent.id ?? ""}`}
         onClick={onToggleExpand}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -127,7 +127,7 @@ export default function AgentAccordionCard({
 
         {/* Agent info */}
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-tight truncate" data-testid={`agent-name-${agent.id}`}>
+          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-tight truncate" data-testid={`agent-name-${agent.id ?? ""}`}>
             {agent.name}
           </div>
           <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold uppercase opacity-70">
@@ -144,19 +144,19 @@ export default function AgentAccordionCard({
                 ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
                 : "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800"
             )}
-            data-testid={`agent-trust-status-${agent.id}`}
+            data-testid={`agent-trust-status-${agent.id ?? ""}`}
           >
             {agent.is_trusted ? t("common.agents.status.trusted") : t("common.agents.status.pending")}
           </span>
           {!agent.is_active && (
-            <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700" data-testid={`agent-inactive-badge-${agent.id}`}>
+            <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700" data-testid={`agent-inactive-badge-${agent.id ?? ""}`}>
               {t("common.status_inactive")}
             </span>
           )}
         </div>
 
         {/* Device count badge */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-lg shrink-0" data-testid={`agent-device-count-${agent.id}`}>
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-lg shrink-0" data-testid={`agent-device-count-${agent.id ?? ""}`}>
           <HardDrive className="text-slate-400 dark:text-slate-500" size={14} />
           <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{devices.length}</span>
         </div>
@@ -176,7 +176,7 @@ export default function AgentAccordionCard({
           onKeyDown={(e) => { e.stopPropagation(); }}
           role="presentation"
         >
-          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-edit-${agent.id}`} onClick={() => { onEdit(agent); }} title={t("common.edit")}>
+          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-edit-${agent.id ?? ""}`} onClick={() => { onEdit(agent); }} title={t("common.edit")}>
             <Pencil size={18} />
           </button>
           <button
@@ -186,12 +186,12 @@ export default function AgentAccordionCard({
                 ? "text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 bg-white dark:bg-slate-900"
                 : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
             )}
-            data-testid={`agent-trust-toggle-${agent.id}`}
+            data-testid={`agent-trust-toggle-${agent.id ?? ""}`}
             onClick={handleToggleTrust}
           >
             {agent.is_trusted ? t("common.revoke") : t("common.approve")}
           </button>
-          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-delete-${agent.id}`} onClick={handleDelete} title={t("common.delete")}>
+          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-delete-${agent.id ?? ""}`} onClick={handleDelete} title={t("common.delete")}>
             <Trash2 size={18} />
           </button>
         </div>
@@ -229,7 +229,7 @@ export default function AgentAccordionCard({
             {!!onAddDevice && (
               <button
                 className="group relative flex items-center justify-center p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[1.5rem] text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 hover:bg-primary-50 dark:bg-primary-950/30 transition-all gap-4"
-                data-testid={`add-device-btn-${agent.id}`}
+                data-testid={`add-device-btn-${agent.id ?? ""}`}
                 onClick={() => { onAddDevice(agent.id); }}
               >
                 <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">

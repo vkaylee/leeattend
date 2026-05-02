@@ -34,7 +34,7 @@ services:
   db:
     image: public.ecr.aws/docker/library/postgres:16-alpine
     profiles:
-      - backend
+      - infra-db
     networks:
       - test_net
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
@@ -54,14 +54,19 @@ services:
   redis:
     image: public.ecr.aws/docker/library/redis:7-alpine
     profiles:
-      - backend
+      - infra-redis
     networks:
       - test_net
     command: []
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   db_init:
     profiles:
-      - backend
+      - infra-db-init
     <<: *rust-test-base
     image: localhost/leeattend-test_apiserver
     build:
@@ -73,7 +78,7 @@ services:
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
-    entrypoint: ["bash", "-c", "sqlx migrate run && touch /tmp/migration_done && tail -f /dev/null"]
+    entrypoint: ["bash", "-c", "sqlx migrate run && psql -h db -U test_user -d postgres -c \"CREATE DATABASE leeattend_test_template TEMPLATE test_database\" && touch /tmp/migration_done && tail -f /dev/null"]
     healthcheck:
       test: ["CMD", "test", "-f", "/tmp/migration_done"]
       interval: 2s
@@ -82,7 +87,9 @@ services:
 
   apiserver:
     profiles:
-      - backend
+      - lint-api
+      - unit-api
+      - int-api
     <<: *rust-test-base
     image: localhost/leeattend-test_apiserver
     build:
@@ -90,8 +97,6 @@ services:
       target: test
     depends_on:
       db:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       db_init:
         condition: service_healthy
@@ -107,7 +112,7 @@ services:
 
   agent-main:
     profiles:
-      - backend
+      - int-api
     <<: *rust-test-base
     image: localhost/leeattend-test_agent-main
     build:
@@ -123,7 +128,9 @@ services:
 
   bun_init:
     profiles:
-      - frontend
+      - lint-web
+      - unit-web
+      - e2e-web
     image: localhost/leeattend-test_webdashboard
     build:
       context: ../webdashboard
@@ -131,9 +138,14 @@ services:
     networks:
       - test_net
     working_dir: /workspace/webdashboard
-    command: sh -c "npm install -g bun && bun install"
     environment:
       - BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
+    entrypoint: ["sh", "-c", "bun install && touch /tmp/bun_install_done && tail -f /dev/null"]
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/bun_install_done"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
     volumes:
       - ${PROJECT_ROOT}:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
@@ -141,12 +153,17 @@ services:
 
   webdashboard:
     profiles:
-      - frontend
+      - lint-web
+      - unit-web
+      - e2e-web
     image: localhost/leeattend-test_webdashboard
     build:
       context: ../webdashboard
       target: test
     tty: true
+    depends_on:
+      bun_init:
+        condition: service_healthy
     networks:
       - test_net
     entrypoint: tail -f /dev/null

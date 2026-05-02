@@ -74,7 +74,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
     if (v === 15) return t("common.workspace_settings.work_unit_options.15min");
     if (v === 30) return t("common.workspace_settings.work_unit_options.30min");
     if (v === 60) return t("common.workspace_settings.work_unit_options.60min");
-    return `${v} min`;
+    return `${v ?? ""} min`;
   };
 
   const roundingLabel = (v: string) => {

@@ -143,7 +143,7 @@ export default function WorkspacePermissionsPage() {
                     );
                   }}
                 >
-                  {t(`roles.${role.name}`, { defaultValue: role.name })}
+                  {t(`roles.${role.name ?? ""}`, { defaultValue: role.name })}
                   {!!role.is_system && <span className="ml-2 text-[9px] text-slate-400 font-normal uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{t('common.system', { defaultValue: 'System' })}</span>}
                 </DropdownMenuCheckboxItem>
               ))}
@@ -222,8 +222,8 @@ export default function WorkspacePermissionsPage() {
                 {visibleRoles.map(role => (
                   <th className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-6 text-center min-w-[140px]" key={role.id}>
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate w-full px-2" title={t(`roles.${role.name}`, { defaultValue: role.name })}>
-                        {t(`roles.${role.name}`, { defaultValue: role.name })}
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate w-full px-2" title={t(`roles.${role.name ?? ""}`, { defaultValue: role.name })}>
+                        {t(`roles.${role.name ?? ""}`, { defaultValue: role.name })}
                       </h4>
                       {role.is_system ? (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500">{t('common.system', { defaultValue: 'System' })}</span>
@@ -246,7 +246,7 @@ export default function WorkspacePermissionsPage() {
                     >
                       <div className="flex items-center gap-2">
                         <group.icon className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t(`permissions.groups.${group.id}`, { defaultValue: group.name })}</span>
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t(`permissions.groups.${group.id ?? ""}`, { defaultValue: group.name })}</span>
                       </div>
                     </td>
                   </tr>
@@ -257,8 +257,8 @@ export default function WorkspacePermissionsPage() {
                       <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-b border-r border-slate-100 dark:border-slate-800 p-4 pl-6">
                         <div className="flex items-start gap-2">
                           <div>
-                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{t(`permissions.items.${perm.id}.name`, { defaultValue: perm.name })}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">{t(`permissions.items.${perm.id}.desc`, { defaultValue: perm.desc })}</p>
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{t(`permissions.items.${perm.id ?? ""}.name`, { defaultValue: perm.name })}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{t(`permissions.items.${perm.id ?? ""}.desc`, { defaultValue: perm.desc })}</p>
                           </div>
                         </div>
                       </td>
@@ -268,7 +268,7 @@ export default function WorkspacePermissionsPage() {
                         const isSystem = role.is_system;
                         
                         return (
-                          <td className="border-b border-slate-100 dark:border-slate-800 p-4 text-center" key={`${role.id}-${perm.id}`}>
+                          <td className="border-b border-slate-100 dark:border-slate-800 p-4 text-center" key={`${role.id ?? ""}-${perm.id ?? ""}`}>
                             <label className={cn(
                               "relative inline-flex items-center justify-center w-6 h-6 rounded-lg border-2 transition-all",
                               isSystem || !hasManagePermission ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-indigo-400",

@@ -120,7 +120,7 @@ function ThemeToggle() {
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-700"
               : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
           )}
-          data-testid={`theme-toggle-${opt.value}`}
+          data-testid={`theme-toggle-${opt.value ?? ""}`}
           key={opt.value}
           onClick={() => { setMode(opt.value); }}
           title={opt.label}

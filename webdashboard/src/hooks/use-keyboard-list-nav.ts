@@ -52,7 +52,7 @@ export function useKeyboardListNav<T>({
 
         if (focusedIndex === 0) {
             // Special case: scroll container to top to avoid sticky header overlap
-            const row = document.getElementById(`${rowIdPrefix}-0`);
+            const row = document.getElementById(`${rowIdPrefix ?? ""}-0`);
             const container = row?.closest(".overflow-auto");
             if (container) {
                 container.scrollTo({ top: 0, behavior: "smooth" });
@@ -61,7 +61,7 @@ export function useKeyboardListNav<T>({
                 row?.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }
         } else {
-            const row = document.getElementById(`${rowIdPrefix}-${focusedIndex}`);
+            const row = document.getElementById(`${rowIdPrefix ?? ""}-${focusedIndex ?? ""}`);
             if (row) {
                 row.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }

@@ -46,7 +46,7 @@ export default function TimeSettings() {
 
   if (!workspace || !rules) return null;
 
-  return <TimeSettingsContent key={`${workspace.id}-${versions.length}`} rules={rules} versions={versions} workspace={workspace} />;
+  return <TimeSettingsContent key={`${workspace.id ?? ""}-${versions.length ?? ""}`} rules={rules} versions={versions} workspace={workspace} />;
 }
 
 type TabType = "general" | "patterns" | "rules";
@@ -167,7 +167,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
     if (v === 15) return t("common.workspace_settings.work_unit_options.15min");
     if (v === 30) return t("common.workspace_settings.work_unit_options.30min");
     if (v === 60) return t("common.workspace_settings.work_unit_options.60min");
-    return `${v} min`;
+    return `${v ?? ""} min`;
   };
   const roundingLabel = (v: string) => {
     const map: Record<string, string> = { 

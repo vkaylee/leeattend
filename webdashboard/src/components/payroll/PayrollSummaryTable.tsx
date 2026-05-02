@@ -121,8 +121,8 @@ export default function PayrollSummaryTable({
              <Info className="text-primary-600 dark:text-primary-400" size={16} />
              <p className="text-xs font-bold text-primary-900">
                {selectedIds.size === filteredEmployees.length 
-                 ? t("payroll.selection.all_filtered_selected", { count: selectedIds.size, defaultValue: `All ${selectedIds.size} employees in this list are selected.` })
-                 : t("payroll.selection.count_selected", { count: selectedIds.size, defaultValue: `${selectedIds.size} employees selected.` })
+                 ? t("payroll.selection.all_filtered_selected", { count: selectedIds.size, defaultValue: `All ${selectedIds.size ?? ""} employees in this list are selected.` })
+                 : t("payroll.selection.count_selected", { count: selectedIds.size, defaultValue: `${selectedIds.size ?? ""} employees selected.` })
                }
              </p>
           </div>
@@ -131,7 +131,7 @@ export default function PayrollSummaryTable({
               className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
               onClick={selectAllFiltered}
             >
-              {t("payroll.selection.select_all_filtered", { count: filteredEmployees.length, defaultValue: `Select all ${filteredEmployees.length} employees` })}
+              {t("payroll.selection.select_all_filtered", { count: filteredEmployees.length, defaultValue: `Select all ${filteredEmployees.length ?? ""} employees` })}
             </button>
           )}
         </div>
@@ -164,7 +164,7 @@ export default function PayrollSummaryTable({
                   <td className="px-10 py-6" onClick={(e) => { e.stopPropagation(); }}>
                     <button 
                       className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:border-primary-300")}
-                      data-testid={`select-employee-${emp.id}`} 
+                      data-testid={`select-employee-${emp.id ?? ""}`} 
                       onClick={() => { onToggleSelect(emp.id); }}
                     >
                       {!!isSelected && <Check size={14} strokeWidth={4} />}

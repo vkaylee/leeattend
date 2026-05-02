@@ -131,7 +131,7 @@ export default function DeviceListItem({
           ? "bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 opacity-60"
           : "bg-white dark:bg-slate-900 border-transparent hover:border-primary-100 dark:hover:border-primary-900 shadow-sm",
       )}
-      data-testid={`device-item-${device.id}`}
+      data-testid={`device-item-${device.id ?? ""}`}
     >
       {/* 1. TOP BAR: Name, IP, Status & Menu */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-50 dark:border-slate-800/50">
@@ -165,21 +165,21 @@ export default function DeviceListItem({
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" data-testid={`device-menu-${device.id}`}>
+              <button className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" data-testid={`device-menu-${device.id ?? ""}`}>
                 <MoreVertical size={16} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 p-2 rounded-xl shadow-2xl">
-              <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-refresh-${device.id}`} disabled={isRefreshing} onSelect={handleRefresh}>
+              <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-refresh-${device.id ?? ""}`} disabled={isRefreshing} onSelect={handleRefresh}>
                 <RefreshCw className={cn(isRefreshing && "animate-spin")} size={14} />
                 {isRefreshing ? t("common.loading") : t("common.refresh")}
               </DropdownMenuItem>
               {!!onEdit && (
-                <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-edit-${device.id}`} onSelect={() => { onEdit(device); }}>
+                <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-edit-${device.id ?? ""}`} onSelect={() => { onEdit(device); }}>
                   <Pencil size={14} /> {t("devices.table.edit")}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase text-rose-600 focus:text-rose-600" data-testid={`device-delete-${device.id}`} onSelect={() => { setShowDeleteModal(true); }}>
+              <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase text-rose-600 focus:text-rose-600" data-testid={`device-delete-${device.id ?? ""}`} onSelect={() => { setShowDeleteModal(true); }}>
                 <Trash2 size={14} /> {t("devices.table.delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -274,7 +274,7 @@ export default function DeviceListItem({
               ? "text-rose-500 border-rose-100 dark:border-rose-900/50 hover:bg-rose-500 hover:text-white"
               : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
           )}
-          data-testid={`device-toggle-${device.id}`}
+          data-testid={`device-toggle-${device.id ?? ""}`}
           disabled={isToggling}
           onClick={() => { setShowToggleModal(true); }}
         >
@@ -283,21 +283,21 @@ export default function DeviceListItem({
       </div>
 
       {/* Modals */}
-      <Modal icon={<Power size={20} />} isOpen={showToggleModal} maxWidth="sm" onClose={() => { setShowToggleModal(false); }} testId={`toggle-modal-${device.id}`} title={t(device.is_enabled ? "devices.modal.disable_title" : "devices.modal.enable_title")}>
+      <Modal icon={<Power size={20} />} isOpen={showToggleModal} maxWidth="sm" onClose={() => { setShowToggleModal(false); }} testId={`toggle-modal-${device.id ?? ""}`} title={t(device.is_enabled ? "devices.modal.disable_title" : "devices.modal.enable_title")}>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">{t(device.is_enabled ? "devices.confirm_disable" : "devices.confirm_enable", { name: device.name })}</p>
         <div className="flex justify-end gap-3">
-          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`toggle-cancel-${device.id}`} onClick={() => { setShowToggleModal(false); }}>{t("common.cancel")}</button>
-          <button className={cn("px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl transition-colors", device.is_enabled ? "bg-rose-600 text-white" : "bg-emerald-600 text-white")} data-testid={`toggle-confirm-${device.id}`} onClick={handleToggleConfirm}>
+          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`toggle-cancel-${device.id ?? ""}`} onClick={() => { setShowToggleModal(false); }}>{t("common.cancel")}</button>
+          <button className={cn("px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl transition-colors", device.is_enabled ? "bg-rose-600 text-white" : "bg-emerald-600 text-white")} data-testid={`toggle-confirm-${device.id ?? ""}`} onClick={handleToggleConfirm}>
             {device.is_enabled ? t("common.disable") : t("common.enable")}
           </button>
         </div>
       </Modal>
 
-      <Modal icon={<AlertTriangle size={20} />} isOpen={showDeleteModal} maxWidth="sm" onClose={() => { setShowDeleteModal(false); }} testId={`delete-modal-${device.id}`} title={t("devices.modal.delete_title")}>
+      <Modal icon={<AlertTriangle size={20} />} isOpen={showDeleteModal} maxWidth="sm" onClose={() => { setShowDeleteModal(false); }} testId={`delete-modal-${device.id ?? ""}`} title={t("devices.modal.delete_title")}>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">{t("devices.toast.delete_confirm", { name: device.name })}</p>
         <div className="flex justify-end gap-3">
-          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`delete-cancel-${device.id}`} onClick={() => { setShowDeleteModal(false); }}>{t("common.cancel")}</button>
-          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-rose-600 text-white rounded-xl transition-colors" data-testid={`delete-confirm-${device.id}`} onClick={handleDeleteConfirm}>{t("devices.table.delete")}</button>
+          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`delete-cancel-${device.id ?? ""}`} onClick={() => { setShowDeleteModal(false); }}>{t("common.cancel")}</button>
+          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-rose-600 text-white rounded-xl transition-colors" data-testid={`delete-confirm-${device.id ?? ""}`} onClick={handleDeleteConfirm}>{t("devices.table.delete")}</button>
         </div>
       </Modal>
     </div>

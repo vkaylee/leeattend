@@ -70,7 +70,7 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
               {t("ess.ot.claim_title") || "Claim Overtime"}
             </Dialog.Title>
             <Dialog.Description className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              {t("ess.ot.claim_desc") || `For date: ${summary.date}`}
+              {t("ess.ot.claim_desc") || `For date: ${summary.date ?? ""}`}
             </Dialog.Description>
           </div>
           

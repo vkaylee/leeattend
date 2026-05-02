@@ -179,7 +179,7 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 dialogData={confirmDialog}
                 isOpen={!!confirmDialog}
                 isPending={reprocessMutationPending}
-                key={confirmDialog ? `reprocess-${confirmDialog.employeeId}-${confirmDialog.date}` : "reprocess-empty"}
+                key={confirmDialog ? `reprocess-${confirmDialog.employeeId ?? ""}-${confirmDialog.date ?? ""}` : "reprocess-empty"}
                 onClose={() => { setConfirmDialog(null); }}
                 onConfirm={handleConfirmReprocess}
             />
@@ -188,7 +188,7 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 existingRequest={confirmModalData?.existingRequest}
                 isOpen={!!confirmModalData}
                 isPending={confirmMutationPending}
-                key={confirmModalData ? `confirm-${confirmModalData.row.date}` : "confirm-empty"}
+                key={confirmModalData ? `confirm-${confirmModalData.row.date ?? ""}` : "confirm-empty"}
                 onClose={() => { setConfirmModalData(null); }}
                 onSubmit={handleConfirmSubmit}
                 row={confirmModalData?.row || null}
@@ -197,7 +197,7 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
             <ResolveUnscheduledModal
                 isOpen={!!resolveModalData}
                 isPending={resolveUnscheduledMutationPending}
-                key={resolveModalData ? `resolve-${resolveModalData.row.date}` : "resolve-empty"}
+                key={resolveModalData ? `resolve-${resolveModalData.row.date ?? ""}` : "resolve-empty"}
                 onClose={() => { setResolveModalData(null); }}
                 onSubmit={handleResolveSubmit}
                 row={resolveModalData?.row || null}

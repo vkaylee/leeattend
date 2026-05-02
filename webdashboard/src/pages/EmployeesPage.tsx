@@ -236,7 +236,7 @@ export default function EmployeesPage() {
                               ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400"
                               : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                           )}
-                          data-testid={`dept-filter-option-${d.id}`}
+                          data-testid={`dept-filter-option-${d.id ?? ""}`}
                           key={d.id}
                           onClick={() => { toggleDeptFilter(d.id); }}
                           type="button"
@@ -336,7 +336,7 @@ export default function EmployeesPage() {
             return (
               <button
                 className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-full text-[10px] font-bold uppercase tracking-wide border border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900 transition-colors group"
-                data-testid={`dept-chip-${id}`}
+                data-testid={`dept-chip-${id ?? ""}`}
                 key={id}
                 onClick={() => { toggleDeptFilter(id); }}
                 type="button"

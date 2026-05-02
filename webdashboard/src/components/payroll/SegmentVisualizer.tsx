@@ -44,8 +44,8 @@ export default function SegmentVisualizer({ segments, periodStart, periodEnd, cl
           <div 
             className={cn("h-full first:rounded-l-full last:rounded-r-full hover:brightness-110 hover:scale-y-110 transition-all bg-gradient-to-b relative group cursor-help", colorClass)}
             key={index}
-            style={{ width: `${width}%` }}
-            title={`${seg.reason}: ${seg.start_date} - ${seg.end_date}`}
+            style={{ width: `${width ?? ""}%` }}
+            title={`${seg.reason ?? ""}: ${seg.start_date ?? ""} - ${seg.end_date ?? ""}`}
           />
         );
       })}

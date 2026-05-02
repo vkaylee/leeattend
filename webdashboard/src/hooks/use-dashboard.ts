@@ -82,7 +82,7 @@ export function useDepartmentAttendance(range: "today" | "week" = "today") {
       if (!workspace) throw new Error("No workspace selected");
 
       const response = await apiFetch(
-        `/dashboard/department-attendance?range=${range}`
+        `/dashboard/department-attendance?range=${range ?? ""}`
       );
 
       if (!response.ok) {
@@ -119,7 +119,7 @@ export function useUnexcusedAbsences(startDate?: string, endDate?: string, group
       if (endDate) params.set("end_date", endDate);
       if (groupBy) params.set("group_by", groupBy);
       const qs = params.toString();
-      const response = await apiFetch(`/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`);
+      const response = await apiFetch(`/dashboard/unexcused-absences${qs ? `?${qs ?? ""}` : ""}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch unexcused absences");
@@ -304,7 +304,7 @@ export function useTurnoverAnalytics(startDate: string, endDate: string) {
       if (!workspace) throw new Error("No workspace selected");
 
       const response = await apiFetch(
-        `/dashboard/turnover-analytics?start=${startDate}&end=${endDate}`
+        `/dashboard/turnover-analytics?start=${startDate ?? ""}&end=${endDate ?? ""}`
       );
 
       if (!response.ok) {

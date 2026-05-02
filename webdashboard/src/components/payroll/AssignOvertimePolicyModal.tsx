@@ -104,7 +104,7 @@ export default function AssignOvertimePolicyModal({
                     'flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all',
                     selectedType === opt.id ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'
                   )}
-                  data-testid={`assignee-type-${opt.id}`}
+                  data-testid={`assignee-type-${opt.id ?? ""}`}
                   key={opt.id}
                   onClick={() => {
  

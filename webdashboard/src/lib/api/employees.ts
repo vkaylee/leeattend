@@ -8,7 +8,7 @@ export async function fetchEmployees(
   limit = 50
 ): Promise<PaginatedResponse<Employee>> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/employees?page=${page.toString()}&limit=${limit.toString()}`
+    `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees?page=${page.toString()}&limit=${limit.toString()}`
   );
   if (!response.ok) throw new Error("Failed to fetch employees");
   return response.json() as Promise<PaginatedResponse<Employee>>;
@@ -18,7 +18,7 @@ export async function fetchEmployees(
 
  
 export async function fetchEmploymentPhases(wsId: string): Promise<EmploymentPhaseDefinition[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employment-phases`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employment-phases`);
   if (!response.ok) throw new Error("Failed to fetch employment phases");
   return response.json() as Promise<EmploymentPhaseDefinition[]>;
 }
@@ -26,7 +26,7 @@ export async function fetchEmploymentPhases(wsId: string): Promise<EmploymentPha
  
  
 export async function createEmploymentPhase(wsId: string, data: Partial<EmploymentPhaseDefinition>): Promise<EmploymentPhaseDefinition> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employment-phases`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employment-phases`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -35,7 +35,7 @@ export async function createEmploymentPhase(wsId: string, data: Partial<Employme
 }
 
 export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${employeeId ?? ""}/conditions`);
   if (!response.ok) throw new Error("Failed to fetch working conditions");
   return response.json() as Promise<WorkingCondition[]>;
 }
@@ -45,7 +45,7 @@ export async function createWorkingCondition(
   employeeId: string,
   condition: Partial<WorkingCondition>
 ): Promise<WorkingCondition> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${employeeId ?? ""}/conditions`, {
     method: "POST",
     body: JSON.stringify(condition),
   });
@@ -54,7 +54,7 @@ export async function createWorkingCondition(
 }
 
 export async function deleteWorkingCondition(wsId: string, employeeId: string, conditionId: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions/${conditionId}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${employeeId ?? ""}/conditions/${conditionId ?? ""}`, {
     method: "DELETE",
   });
   if (!response.ok) throw new Error("Failed to delete working condition");
@@ -84,13 +84,13 @@ export async function searchEmployees(
   if (departmentIds && departmentIds.length > 0) {
     queryParams.append("department_id", departmentIds.join(","));
   }
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees?${queryParams.toString()}`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees?${queryParams.toString()}`);
   if (!response.ok) throw new Error("Failed to search employees");
   return response.json() as Promise<PaginatedResponse<Employee>>;
 }
 
 export async function fetchEmployee(wsId: string, id: string): Promise<Employee> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${id ?? ""}`);
   if (!response.ok) throw new Error("Failed to fetch employee");
   return response.json() as Promise<Employee>;
 }
@@ -99,7 +99,7 @@ export async function fetchEmploymentHistory(
   wsId: string,
   id: string
 ): Promise<EmploymentPeriod[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}/history`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${id ?? ""}/history`);
   if (!response.ok) throw new Error("Failed to fetch employment history");
   return response.json() as Promise<EmploymentPeriod[]>;
 }
@@ -109,7 +109,7 @@ export async function rehireEmployee(
   id: string,
   data: { hire_date: string }
 ): Promise<Employee> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}/rehire`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${id ?? ""}/rehire`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -124,7 +124,7 @@ export async function createEmployee(
   wsId: string,
   employee: Partial<Employee>,
 ): Promise<Employee> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees`, {
     method: "POST",
     body: JSON.stringify(employee),
   });
@@ -137,7 +137,7 @@ export async function updateEmployee(
   id: string,
   employee: Partial<Employee>,
 ): Promise<Employee> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${id ?? ""}`, {
     method: "PUT",
     body: JSON.stringify(employee),
   });
@@ -146,7 +146,7 @@ export async function updateEmployee(
 }
 
 export async function deleteEmployee(wsId: string, id: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${id ?? ""}`, {
     method: "DELETE",
   });
   if (!response.ok) throw new Error("Failed to delete employee");
@@ -157,7 +157,7 @@ export async function transferEmployee(
   employeeId: string,
   data: { department_id: string; effective_date: string; notes?: string }
 ): Promise<EmployeeDepartmentHistory> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/departments`, {
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${employeeId ?? ""}/departments`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -166,7 +166,7 @@ export async function transferEmployee(
 }
 
 export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/departments`);
+  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${employeeId ?? ""}/departments`);
   if (!response.ok) throw new Error("Failed to fetch dept history");
   return response.json() as Promise<EmployeeDepartmentHistory[]>;
 }

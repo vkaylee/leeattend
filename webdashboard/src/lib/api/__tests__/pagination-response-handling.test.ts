@@ -240,7 +240,7 @@ describe("Pagination Response Handling", () => {
   describe("Edge Cases and Error Scenarios", () => {
     it("should handle large dataset pagination", () => {
       const largeData = Array.from({ length: 1000 }, (_, index) => ({
-        id: `item-${index}`,
+        id: `item-${index ?? ""}`,
       }));
 
       const response: PaginatedResponse<{ id: string }> = {
@@ -300,7 +300,7 @@ describe("Pagination Response Handling", () => {
           data.filter((x) => x);
           data.find((x) => x);
           expect(data.length).toBeGreaterThanOrEqual(0);
-        }).not.toThrow(`Should not throw for ${name}`);
+        }).not.toThrow(`Should not throw for ${name ?? ""}`);
       });
     });
 

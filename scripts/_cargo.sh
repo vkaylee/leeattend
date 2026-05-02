@@ -1,25 +1,9 @@
 #!/bin/bash
-# Toolbox Wrapper for Cargo
-
-# Capture where the user is currently calling the script from
-CALLER_DIR="$PWD"
+# Proxy for Orchestrator Toolbox (Cargo)
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-source "$SCRIPT_DIR/_compose-env.sh"
+VENV_PYTHON=$("$SCRIPT_DIR/_ensure-venv.sh")
 
-# Compute relative path from PROJECT_ROOT
-REL_DIR=${CALLER_DIR#$PROJECT_ROOT}
-
-TARGET_CONTAINER="apiserver"
-
-# If we are in agent-main or the arguments explicitly mention agent, use agent-main
-if [[ "$REL_DIR" == *"/agent-main"* ]] || [[ "$*" == *"agent-main"* ]]; then
-    TARGET_CONTAINER="agent-main"
-fi
-
-cd "$PROJECT_ROOT" || exit 1
-
-echo "🦀 Running cargo inside container environment ($TARGET_CONTAINER) at /workspace$REL_DIR..."
-TIMEOUT_SEC="${TIMEOUT:-600}"
-"$SCRIPT_DIR/safe-run.py" "$TIMEOUT_SEC" $TOOLBOX_COMPOSE_CMD run -T --rm -e SQLX_OFFLINE=true --workdir "/workspace$REL_DIR" --entrypoint cargo "$TARGET_CONTAINER" "$@"
+# Pass all arguments to orchestrator run command
+$VENV_PYTHON "$SCRIPT_DIR/_orchestrator.py" run cargo "$@"
 

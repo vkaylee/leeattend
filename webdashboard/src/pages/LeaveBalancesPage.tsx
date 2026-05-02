@@ -168,7 +168,7 @@ export default function LeaveBalancesPage() {
               ) : (balances).map((balance, index) => (
                 <DesktopBalanceRow
                   balance={balance}
-                  key={`${balance.employee_id}-${balance.leave_type_id}-${index}`}
+                  key={`${balance.employee_id ?? ""}-${balance.leave_type_id ?? ""}-${index ?? ""}`}
                   onViewDetails={() => { setSelectedBalance(balance); }}
                   onViewHistory={() => { setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name }); }}
                 />
@@ -186,7 +186,7 @@ export default function LeaveBalancesPage() {
           ) : (balances).map((balance, index) => (
             <MobileBalanceCard
               balance={balance}
-              key={`${balance.employee_id}-${balance.leave_type_id}-${index}`}
+              key={`${balance.employee_id ?? ""}-${balance.leave_type_id ?? ""}-${index ?? ""}`}
               onViewDetails={() => { setSelectedBalance(balance); }}
               onViewHistory={() => { setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name }); }}
             />

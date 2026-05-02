@@ -20,7 +20,7 @@ export const lazyLoadBackend: BackendModule = {
         .then((module_) => { callback(null, module_.default || module_); })
         .catch((error) => { callback(error, null); });
     } else {
-      callback(new Error(`Language ${lng} not found`), null);
+      callback(new Error(`Language ${lng ?? ""} not found`), null);
     }
   },
 };

@@ -73,12 +73,12 @@ export default function PayrollTable({
         );
 
         return (
-          <div className={cn("group bg-white dark:bg-slate-900 border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 dark:border-primary-800 rounded-[2.5rem] shadow-2xl shadow-primary-100/20 dark:shadow-black/20" : "border-slate-100 dark:border-slate-800 hover:border-primary-100 dark:border-primary-800 rounded-[2rem] shadow-sm dark:shadow-black/10 hover:shadow-lg hover:shadow-primary-100/10")} data-testid={`payslip-card-${slip.id}`} key={slip.id}>
+          <div className={cn("group bg-white dark:bg-slate-900 border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 dark:border-primary-800 rounded-[2.5rem] shadow-2xl shadow-primary-100/20 dark:shadow-black/20" : "border-slate-100 dark:border-slate-800 hover:border-primary-100 dark:border-primary-800 rounded-[2rem] shadow-sm dark:shadow-black/10 hover:shadow-lg hover:shadow-primary-100/10")} data-testid={`payslip-card-${slip.id ?? ""}`} key={slip.id}>
             <div 
               className={cn("p-8 flex items-center justify-between cursor-pointer transition-colors", isExpanded ? "bg-primary-50 dark:bg-primary-950/30 dark:bg-primary-950/30" : "hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50")} 
  
  
-              data-testid={`toggle-card-${slip.id}`} 
+              data-testid={`toggle-card-${slip.id ?? ""}`} 
               onClick={() => { setExpandedId(isExpanded ? null : slip.id); }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(isExpanded ? null : slip.id); } }}
               role="button"
@@ -125,7 +125,7 @@ export default function PayrollTable({
                 <div className="h-px bg-gradient-to-r from-transparent via-slate-100 to-transparent mb-10" />
                 
                 {slipAdjustments.length > 0 && (
-                  <div className="px-10 py-6 bg-amber-50 dark:bg-amber-950 border-y border-amber-100 dark:border-amber-800/50 flex items-center justify-between animate-in slide-in-from-top-4 duration-500 mb-8 rounded-2xl" data-testid={`pending-adj-banner-${slip.id}`}>
+                  <div className="px-10 py-6 bg-amber-50 dark:bg-amber-950 border-y border-amber-100 dark:border-amber-800/50 flex items-center justify-between animate-in slide-in-from-top-4 duration-500 mb-8 rounded-2xl" data-testid={`pending-adj-banner-${slip.id ?? ""}`}>
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-amber-500 shadow-sm border border-amber-100 dark:border-amber-800"><AlertTriangle size={24} /></div>
                       <div>

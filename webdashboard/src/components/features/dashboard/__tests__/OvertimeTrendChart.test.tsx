@@ -26,7 +26,7 @@ vi.mock("recharts", () => ({
         <div data-testid="area-chart" {...props}>{children}</div>
     ),
  
-    Area: (props: { dataKey: string }) => <div data-testid={`area-${props.dataKey}`} />,
+    Area: (props: { dataKey: string }) => <div data-testid={`area-${props.dataKey ?? ""}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,

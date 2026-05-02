@@ -56,7 +56,7 @@ export default function ConnectivityTopology() {
 
   async function handleRefreshDevice(agentId: string, deviceId: string) {
     try {
-      console.log(`Refreshing device ${deviceId} on agent ${agentId}`);
+      console.log(`Refreshing device ${deviceId ?? ""} on agent ${agentId ?? ""}`);
       await sendCommand({
         id: agentId,
         command: {
@@ -72,7 +72,7 @@ export default function ConnectivityTopology() {
  
       console.error("Refresh failed:", e);
       const message = e instanceof Error ? e.message : "";
-      toast.error(`${t("devices.toast.refresh_error")} ${message ? `(${message})` : ""}`);
+      toast.error(`${t("devices.toast.refresh_error")} ${message ? `(${message ?? ""})` : ""}`);
     }
   }
 

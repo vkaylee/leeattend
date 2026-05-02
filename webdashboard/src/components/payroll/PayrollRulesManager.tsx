@@ -80,7 +80,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
                     <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{rule.name}</p>
                     <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70">
                       {rule.category} • {rule.calculation_method} 
-                      {rule.calculation_method === "percentage" && ` (${rule.rule_config?.rate}%)`}
+                      {rule.calculation_method === "percentage" && ` (${rule.rule_config?.rate ?? ""}%)`}
                       {rule.calculation_method === "fixed" && ` (Fixed Amount)`}
                     </p>
                   </div>
@@ -224,8 +224,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
             {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- Label associated via htmlFor; rule false-positive on dynamic IDs */}
                 <label className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
                   (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
-                )} htmlFor={`rule-${field.key}`}>
-                  <input checked={!!(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`rule-${field.key}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
+                )} htmlFor={`rule-${field.key ?? ""}`}>
+                  <input checked={!!(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`rule-${field.key ?? ""}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
                   <div>
                     <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon className="opacity-50" size={14} /> {field.label}</p>
                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{field.desc}</p>

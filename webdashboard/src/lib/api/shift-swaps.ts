@@ -27,8 +27,8 @@ export async function fetchShiftSwaps(
     wsId: string,
     status?: ShiftSwapStatus,
 ): Promise<ShiftSwapRequest[]> {
-    let url = `${API_BASE_URL}/workspaces/${wsId}/shift-swaps`;
-    if (status) url += `?status=${status}`;
+    let url = `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/shift-swaps`;
+    if (status) url += `?status=${status ?? ""}`;
     const response = await apiFetch(url);
     if (!response.ok) throw new Error("Failed to fetch shift swaps");
     return response.json() as Promise<ShiftSwapRequest[]>;
@@ -44,7 +44,7 @@ export async function createShiftSwap(
     },
 ): Promise<ShiftSwapRequest> {
     const response = await apiFetch(
-        `${API_BASE_URL}/workspaces/${wsId}/shift-swaps`,
+        `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/shift-swaps`,
         {
             method: "POST",
             body: JSON.stringify(data),
@@ -60,7 +60,7 @@ export async function approveShiftSwap(
     data: { status: ShiftSwapStatus },
 ): Promise<void> {
     const response = await apiFetch(
-        `${API_BASE_URL}/workspaces/${wsId}/shift-swaps/${swapId}/approve`,
+        `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/shift-swaps/${swapId ?? ""}/approve`,
         {
             method: "PUT",
             body: JSON.stringify(data),
@@ -83,7 +83,7 @@ export async function fetchShiftSwapStats(
     wsId: string,
 ): Promise<SwapStats> {
     const response = await apiFetch(
-        `${API_BASE_URL}/workspaces/${wsId}/shift-swaps/stats`,
+        `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/shift-swaps/stats`,
     );
     if (!response.ok) throw new Error("Failed to fetch swap stats");
     return response.json() as Promise<SwapStats>;

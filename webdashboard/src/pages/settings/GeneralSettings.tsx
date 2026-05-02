@@ -168,7 +168,7 @@ function DarkModeSelector() {
           <button
             key={opt.value}
             onClick={() => setMode(opt.value)}
-            data-testid={`dark-mode-option-${opt.value}`}
+            data-testid={`dark-mode-option-${opt.value ?? ""}`}
             className={cn(
               "flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all active:scale-95",
               mode === opt.value

@@ -1,9 +1,8 @@
 #!/bin/bash
-# Toolbox Wrapper for SQLx
+# Proxy for Orchestrator Toolbox (SQLx)
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-source "$SCRIPT_DIR/_compose-env.sh"
+VENV_PYTHON=$("$SCRIPT_DIR/_ensure-venv.sh")
 
-echo "🗄️ Running sqlx inside container environment..."
-TIMEOUT_SEC="${TIMEOUT:-600}"
-"$SCRIPT_DIR/safe-run.py" "$TIMEOUT_SEC" $TOOLBOX_COMPOSE_CMD run -T --rm --entrypoint sqlx apiserver "$@"
+# Pass all arguments to orchestrator run command
+$VENV_PYTHON "$SCRIPT_DIR/_orchestrator.py" run sqlx "$@"

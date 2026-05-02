@@ -43,7 +43,7 @@ function buildWebSocketUrl(jobId: string): string {
   const host = window.location.host;
   const token = getAccessToken();
   const params = token ? `?token=${encodeURIComponent(token)}` : "";
-  return `${protocol}//${host}/api/ws/reports/${jobId}${params}`;
+  return `${protocol ?? ""}//${host ?? ""}/api/ws/reports/${jobId ?? ""}${params ?? ""}`;
 }
 
 /**
@@ -63,7 +63,7 @@ async function tryRefreshToken(): Promise<boolean> {
   if (!refreshToken) return false;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const response = await fetch(`${API_BASE_URL ?? ""}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -137,7 +137,7 @@ export function useReportStream({
           setStatus("streaming");
 
           console.debug(
-            `[ReportStream] Received chunk ${chunkMessage.batch_index + 1}/${chunkMessage.total_batches}`
+            `[ReportStream] Received chunk ${chunkMessage.batch_index + 1}/${chunkMessage.total_batches ?? ""}`
           );
           break;
         }
@@ -151,7 +151,7 @@ export function useReportStream({
           chunksRef.current = [];
           setChunks(finalChunks);
           console.debug(
-            `[ReportStream] Complete: ${message.total_records} records`
+            `[ReportStream] Complete: ${message.total_records ?? ""} records`
           );
           onCompleteRef.current?.(finalChunks);
           break;
@@ -161,7 +161,7 @@ export function useReportStream({
           setStatus("error");
           setError(message.message);
           shouldReconnectRef.current = false;
-          console.debug(`[ReportStream] Error: ${message.message}`);
+          console.debug(`[ReportStream] Error: ${message.message ?? ""}`);
           onErrorRef.current?.(message.message);
           break;
         }
@@ -184,7 +184,7 @@ export function useReportStream({
     }
 
     const url = buildWebSocketUrl(jobId);
-    console.error(`[ReportStream] Connecting to ${url}`);
+    console.error(`[ReportStream] Connecting to ${url ?? ""}`);
 
     setStatus("connecting");
     setError(null);
@@ -225,7 +225,7 @@ export function useReportStream({
       socket.onclose = (event) => {
         clearTimeout(connectionTimeoutId);
         console.debug(
-          `[ReportStream] Connection closed: code=${event.code}, reason=${event.reason}`
+          `[ReportStream] Connection closed: code=${event.code ?? ""}, reason=${event.reason ?? ""}`
         );
 
         // Handle auth failure: code 1006 on first attempt = HTTP 401 (upgrade rejected)
@@ -263,7 +263,7 @@ export function useReportStream({
         ) {
           const delay = getBackoffDelay(retryCountRef.current);
           console.debug(
-            `[ReportStream] Reconnecting in ${delay}ms (attempt ${retryCountRef.current + 1}/${maxRetries})`
+            `[ReportStream] Reconnecting in ${delay ?? ""}ms (attempt ${retryCountRef.current + 1}/${maxRetries ?? ""})`
           );
 
           retryCountRef.current++;

@@ -127,7 +127,7 @@ export function AssignmentFormModal({
                   className={cn(
                     "flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 transition-all active:scale-[0.97]",
                     isActive
-                      ? `${colors.bg} ${colors.border} shadow-lg`
+                      ? `${colors.bg ?? ""} ${colors.border ?? ""} shadow-lg`
                       : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900"
                   )}
                   key={scope}
@@ -151,7 +151,7 @@ export function AssignmentFormModal({
                         : "text-slate-500 dark:text-slate-400"
                     )}
                   >
-                    {t(`payroll.scope_${scope}`, scope)}
+                    {t(`payroll.scope_${scope ?? ""}`, scope)}
                   </span>
                 </button>
               );

@@ -80,8 +80,8 @@ export async function generateExcel(
 
   // Title row (row 1)
   const titleText = reportType === "summary"
-    ? `Attendance Summary Report${workspaceName ? ` - ${workspaceName}` : ""}`
-    : `Attendance Detail Report${workspaceName ? ` - ${workspaceName}` : ""}`;
+    ? `Attendance Summary Report${workspaceName ? ` - ${workspaceName ?? ""}` : ""}`
+    : `Attendance Detail Report${workspaceName ? ` - ${workspaceName ?? ""}` : ""}`;
 
   const titleCell = worksheet.getCell("A1");
   titleCell.value = titleText;
@@ -91,7 +91,7 @@ export async function generateExcel(
   // Date range row (row 2)
   if (dateRange) {
     const rangeCell = worksheet.getCell("A2");
-    rangeCell.value = `Period: ${dateRange.start} to ${dateRange.end}`;
+    rangeCell.value = `Period: ${dateRange.start ?? ""} to ${dateRange.end ?? ""}`;
     rangeCell.font = { italic: true, color: { argb: "FF5B5B5B" } };
     worksheet.mergeCells(2, 1, 2, columns.length);
   }
@@ -181,7 +181,7 @@ export async function generateExcel(
   });
 
   const timestamp = new Date().toISOString().slice(0, 10);
-  const defaultFilename = `attendance-${reportType}-${timestamp}.xlsx`;
+  const defaultFilename = `attendance-${reportType ?? ""}-${timestamp ?? ""}.xlsx`;
   saveAs(blob, filename || defaultFilename);
 
   onProgress?.(100);

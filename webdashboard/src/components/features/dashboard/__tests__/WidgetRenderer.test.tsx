@@ -53,7 +53,7 @@ describe("WidgetRenderer", () => {
         async (widgetId) => {
             render(<WidgetRenderer widgetId={widgetId} />);
             expect(
-                await screen.findByTestId(`chart-${widgetId}`)
+                await screen.findByTestId(`chart-${widgetId ?? ""}`)
             ).toBeInTheDocument();
         }
     );

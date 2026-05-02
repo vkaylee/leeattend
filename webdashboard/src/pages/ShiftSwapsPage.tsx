@@ -256,7 +256,7 @@ export default function ShiftSwapsPage() {
                                     className={cn(
                                         "bg-white dark:bg-slate-900 p-5 rounded-[2rem] border shadow-sm cursor-pointer hover:shadow-md transition-all group",
                                         activeTab === stat.key
-                                            ? `border-${stat.color}-300 dark:border-${stat.color}-700 ring-2 ring-${stat.color}-100 dark:ring-${stat.color}-900`
+                                            ? `border-${stat.color ?? ""}-300 dark:border-${stat.color ?? ""}-700 ring-2 ring-${stat.color ?? ""}-100 dark:ring-${stat.color ?? ""}-900`
                                             : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700",
                                     )}
                                     key={stat.key}
@@ -274,7 +274,7 @@ export default function ShiftSwapsPage() {
                                         {stat.label}
                                     </div>
                                     <div
-                                        className={`text-3xl font-black tracking-tighter text-${stat.color}-600 dark:text-${stat.color}-400 font-mono`}
+                                        className={`text-3xl font-black tracking-tighter text-${stat.color ?? ""}-600 dark:text-${stat.color ?? ""}-400 font-mono`}
                                     >
                                         {stat.value}
                                     </div>
@@ -454,7 +454,7 @@ export default function ShiftSwapsPage() {
                             swap.status === "pending_admin" ? "warning" :
                             swap.status === "approved" ? "success" : "danger"
                         }>
-                            {t(`shift_swaps.status.${swap.status}`)}
+                            {t(`shift_swaps.status.${swap.status ?? ""}`)}
                         </StatusBadge>
                     </td>
 

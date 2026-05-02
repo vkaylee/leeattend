@@ -92,7 +92,7 @@ export default function ReportExportDialog({
     return phaseState;
   })();
 
-  console.error(`[ReportDialog] Render: phase=${phase}, phaseState=${phaseState}, jobId=${jobId}, streamStatus=${streamStatus}, useFallbackPolling=${useFallbackPolling}`);
+  console.error(`[ReportDialog] Render: phase=${phase ?? ""}, phaseState=${phaseState ?? ""}, jobId=${jobId ?? ""}, streamStatus=${streamStatus ?? ""}, useFallbackPolling=${useFallbackPolling ?? ""}`);
 
   // Fallback polling when WebSocket fails
   const { data: pollingStatus } = useQuery({
@@ -151,7 +151,7 @@ export default function ReportExportDialog({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `attendance-report-${startDate}-to-${endDate}.xlsx`;
+      a.download = `attendance-report-${startDate ?? ""}-to-${endDate ?? ""}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

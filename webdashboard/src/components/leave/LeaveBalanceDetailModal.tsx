@@ -256,7 +256,7 @@ function HistoryItemRow({ item }: { item: LeaveHistoryItem }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
           <span className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight truncate">
-            {item.reason || t(`leave_balances.transaction_type.${item.transaction_type}`)}
+            {item.reason || t(`leave_balances.transaction_type.${item.transaction_type ?? ""}`)}
           </span>
           <span className={cn(
             "font-mono font-bold text-sm",
@@ -269,7 +269,7 @@ function HistoryItemRow({ item }: { item: LeaveHistoryItem }) {
           <Calendar size={10} />
           {new Date(item.date).toLocaleDateString()}
           <span className="w-1 h-1 bg-slate-200 dark:bg-slate-600 rounded-full" />
-          {t(`leave_balances.transaction_type.${item.transaction_type}`)}
+          {t(`leave_balances.transaction_type.${item.transaction_type ?? ""}`)}
         </div>
       </div>
     </div>

@@ -47,7 +47,7 @@ const items: TestItem[] = [
 
 const columns: NavigableListColumn<TestItem>[] = [
     { key: "name", header: "Name", cell: (item) => item.name },
-    { key: "value", header: "Value", cell: (item) => `${item.value}`, cellClassName: "text-right" },
+    { key: "value", header: "Value", cell: (item) => `${item.value ?? ""}`, cellClassName: "text-right" },
 ];
 
 const defaultProps = {
@@ -263,7 +263,7 @@ describe("NavigableList", () => {
         const user = userEvent.setup();
         const sortableCols: NavigableListColumn<TestItem>[] = [
             { key: "name", header: "Name", cell: (item) => item.name, onHeaderClick: onSort },
-            { key: "value", header: "Value", cell: (item) => `${item.value}` },
+            { key: "value", header: "Value", cell: (item) => `${item.value ?? ""}` },
         ];
 
         render(<NavigableList {...defaultProps} columns={sortableCols} />);
@@ -274,7 +274,7 @@ describe("NavigableList", () => {
     it("makes sortable headers have cursor-pointer class", () => {
         const sortableCols: NavigableListColumn<TestItem>[] = [
             { key: "name", header: "Name", cell: (item) => item.name, onHeaderClick: vi.fn() },
-            { key: "value", header: "Value", cell: (item) => `${item.value}` },
+            { key: "value", header: "Value", cell: (item) => `${item.value ?? ""}` },
         ];
         const { container } = render(<NavigableList {...defaultProps} columns={sortableCols} />);
         const headers = container.querySelectorAll("th");

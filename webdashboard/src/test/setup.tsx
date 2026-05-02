@@ -11,12 +11,12 @@ const resolveKey = (key: string, object: Record<string, unknown>, variables?: Re
     result = fallbackKey.split('.').reduce((o: unknown, index) => (o as Record<string, unknown>)?.[index], object) as string | undefined;
   }
   if (!result) {
-    console.warn(`Missing key in test mock: ${key}`);
+    console.warn(`Missing key in test mock: ${key ?? ""}`);
     return key;
   }
   // Handle i18next-style {{variable}} interpolation
   if (variables && typeof result === 'string') {
-    return result.replace(/\{\{(\w+)\}\}/g, (_, variableName) => String(variables[variableName] ?? `{{${variableName}}}`));
+    return result.replace(/\{\{(\w+)\}\}/g, (_, variableName) => String(variables[variableName] ?? `{{${variableName ?? ""}}}`));
   }
   return result;
 };
@@ -100,7 +100,7 @@ vi.mock("@/components/ui/Combobox", () => ({
       <option value="">Select...</option>
       {options.map((opt) => (
         <option 
-          data-testid={testId ? `${testId}-option-${opt.value}` : `combo-option-${opt.value}`} 
+          data-testid={testId ? `${testId ?? ""}-option-${opt.value ?? ""}` : `combo-option-${opt.value ?? ""}`} 
           key={opt.value}
           value={opt.value}
         >

@@ -22,7 +22,7 @@ function getRating(name: string, value: number): VitalMetric["rating"] {
 
 function reportMetric(metric: VitalMetric) {
   if (import.meta.env.DEV) {
-    console.log(`[Web Vitals] ${metric.name}: ${metric.value} (${metric.rating})`);
+    console.log(`[Web Vitals] ${metric.name ?? ""}: ${metric.value ?? ""} (${metric.rating ?? ""})`);
   }
 }
 

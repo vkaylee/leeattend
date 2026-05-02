@@ -111,7 +111,7 @@ export function EmployeeSearch({
 
     // Escape regex characters from query
     const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    const regex = new RegExp(`(${escapedQuery ?? ""})`, 'gi');
     const parts = text.split(regex);
 
     return (

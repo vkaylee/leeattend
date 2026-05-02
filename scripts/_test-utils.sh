@@ -33,7 +33,7 @@ export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export LOG_DIR="$PROJECT_ROOT/.test_logs"
 
 # Source debug utilities
-source "$PROJECT_ROOT/scripts/debug-logs.sh"
+source "$PROJECT_ROOT/scripts/_debug-logs.sh"
 
 mkdir -p "$LOG_DIR"
 

@@ -116,7 +116,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
                 const proratedAmount = dailyRate * totalPaidDays;
 
                 return (
-                  <tr className='group' data-testid={`salary-component-${index}`} key={index}>
+                  <tr className='group' data-testid={`salary-component-${index ?? ""}`} key={index}>
                     <td className='py-4'>
                       <div className='flex items-center gap-3'>
                         <div className='w-1.5 h-1.5 bg-blue-600 rounded-full' />
@@ -137,7 +137,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
 
               {/* Base Salary Segments (if no components available) */}
               {(!payslip.salary_components || payslip.salary_components.length === 0) && payslip.segments?.map((seg, index) => (
-                <tr className='group' data-testid={`salary-segment-${index}`} key={index}>
+                <tr className='group' data-testid={`salary-segment-${index ?? ""}`} key={index}>
                   <td className='py-4'>
                     <div className='flex items-center gap-3'>
                       <div className='w-1.5 h-1.5 bg-blue-600 rounded-full' />
@@ -175,7 +175,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
 
               {/* Incentives */}
               {payslip.incentives?.map((inc, index) => (
-                <tr data-testid={`incentive-${index}`} key={index}>
+                <tr data-testid={`incentive-${index ?? ""}`} key={index}>
                   <td className='py-4'>
                     <div className='flex items-center gap-3'>
                       <div className='w-1.5 h-1.5 bg-amber-400 rounded-full' />

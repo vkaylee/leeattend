@@ -150,8 +150,8 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
                     <td className="px-8 py-6"><div className={cn("text-sm font-bold uppercase tracking-tight", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-500 dark:text-slate-400")}>{record.is_virtual ? t("common.from_start") : formatDate(record.effective_date)}</div></td>
                     <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-500 dark:text-slate-400")}>{record.std_working_days} {t("common.days_short")}</span></td>
                     <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-300 dark:text-slate-600")}>{record.hours_per_day}h / {t("common.day_short")}</span></td>
-                    <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_day != null ? `${record.max_ot_hours_per_day}h` : '∞'}</span></td>
-                    <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_month != null ? `${record.max_ot_hours_per_month}h` : '∞'}</span></td>
+                    <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_day != null ? `${record.max_ot_hours_per_day ?? ""}h` : '∞'}</span></td>
+                    <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_month != null ? `${record.max_ot_hours_per_month ?? ""}h` : '∞'}</span></td>
                   </tr>
                 );
               })}
