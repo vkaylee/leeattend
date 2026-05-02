@@ -37,6 +37,9 @@ node_modules/
 out/
 build/
 .eslintcache
+.pnpm-store/
+lint_results.json
+lint_results.txt
 
 # Generated Files
 openapi.json
