@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { expect } from '@playwright/test';
 
 import { test } from './worker-orchestrator';

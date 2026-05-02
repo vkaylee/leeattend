@@ -14,10 +14,10 @@ import type { ThemeMode } from '@/hooks/use-dark-mode';
 
 import { DarkModeContext } from '@/context/dark-mode-context-definition';
 
-import Navbar from '../Navbar';
+import Navbar from '../navbar';
 
 // Mock dependencies that Navbar's children need
-vi.mock('@/components/ui/LanguageSwitcher', () => ({
+vi.mock('@/components/ui/language-switcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher-mock" />,
 }));
 

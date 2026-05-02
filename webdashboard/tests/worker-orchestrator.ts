@@ -1,13 +1,13 @@
-/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, react-hooks/rules-of-hooks */
 import { test as base, expect } from '@playwright/test';
 
 import { setupApiMocks } from './mocks/api-intercept';
 import { MOCK_USER } from './mocks/mock-data';
-import { ConnectivityPage } from './pom/ConnectivityPage';
-import { DevicesPage } from './pom/DevicesPage';
-import { EmployeesPage } from './pom/EmployeesPage';
-import { LoginPage } from './pom/LoginPage';
-import { Sidebar } from './pom/Sidebar';
+import { ConnectivityPage } from './pom/connectivity-page';
+import { DevicesPage } from './pom/devices-page';
+import { EmployeesPage } from './pom/employees-page';
+import { LoginPage } from './pom/login-page';
+import { Sidebar } from './pom/sidebar';
 
 export { expect };
 

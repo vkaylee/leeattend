@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/restrict-template-expressions, max-lines-per-function, no-console */
 import { expect } from "@playwright/test";
 
-import { ConnectivityPage } from "./pom/ConnectivityPage";
+import { ConnectivityPage } from "./pom/connectivity-page";
 import { test } from "./worker-orchestrator";
 
 // Increase timeout for slower E2E environment

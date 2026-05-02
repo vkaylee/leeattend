@@ -5,11 +5,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import type { PaginatedResponse, Employee } from "../../lib/api/types";
 
-import { ToastProvider } from "../../components/ui/Toast";
+import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
-import AttendanceLogsPage from "../AttendanceLogsPage";
-import LeaveRequestsPage from "../LeaveRequestsPage";
-import PayrollPage from "../PayrollPage";
+import AttendanceLogsPage from "../attendance-logs-page";
+import LeaveRequestsPage from "../leave-requests-page";
+import PayrollPage from "../payroll-page";
 
 /**
  * Integration tests for components using paginated API responses.

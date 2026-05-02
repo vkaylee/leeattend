@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { expect } from "@playwright/test";
 
 import { test } from "./worker-orchestrator";

@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import React from "react";
 
-import MainLayout from "@/components/layout/MainLayout";
+import MainLayout from "@/components/layout/main-layout";
 import { workspaceKeys } from "@/hooks/use-workspace";
 import { fetchWorkspaces, getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
 

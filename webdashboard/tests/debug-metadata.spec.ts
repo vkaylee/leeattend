@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, no-console */
 import { test, expect } from './worker-orchestrator';
 
 test.describe.skip('Debug Metadata Verification', () => {

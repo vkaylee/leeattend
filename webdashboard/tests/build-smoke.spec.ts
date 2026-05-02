@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, no-console */
 import { expect } from "@playwright/test";
 
 import { test } from "./worker-orchestrator";

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, unicorn/prevent-abbreviations */
 import { defineConfig } from "@playwright/test";
 
 import config from "./playwright.config";

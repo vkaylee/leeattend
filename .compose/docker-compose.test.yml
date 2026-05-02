@@ -131,6 +131,7 @@ services:
       - lint-web
       - unit-web
       - e2e-web
+      - frontend
     image: localhost/leeattend-test_webdashboard
     build:
       context: ../webdashboard
@@ -156,6 +157,7 @@ services:
       - lint-web
       - unit-web
       - e2e-web
+      - frontend
     image: localhost/leeattend-test_webdashboard
     build:
       context: ../webdashboard

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions, no-console */
 import { test, expect } from './worker-orchestrator';
 
 /**

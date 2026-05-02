@@ -77,7 +77,7 @@ if (typeof window !== "undefined" && !window.confirm) {
 
 // Mock Combobox to be a simple select for existing tests to work
 
-vi.mock("@/components/ui/Combobox", () => ({
+vi.mock("@/components/ui/combobox", () => ({
   Combobox: ({ 
     options, 
     value, 

@@ -1,6 +1,6 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import ShiftsPage from "@/pages/ShiftsPage";
+import ShiftsPage from "@/pages/shifts-page";
 
 export const Route = createLazyFileRoute('/_authenticated/_workspace/shifts')({
   component: ShiftsPage,

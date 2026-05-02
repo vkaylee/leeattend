@@ -4,8 +4,8 @@ import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 
-import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { DebugToolbar } from "@/components/debug/DebugToolbar";
+import { ErrorBoundary } from "@/components/common/error-boundary";
+import { DebugToolbar } from "@/components/debug/debug-toolbar";
 
 export interface RouterContext {
   queryClient: QueryClient;
