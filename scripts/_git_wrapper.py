@@ -59,6 +59,10 @@ def main():
             # Add -F <temp_file>
             processed_args.append('-F')
             processed_args.append(temp_path)
+            
+        # Prevent PTY hangs with GPG agent by injecting --no-gpg-sign if not already present
+        if '--no-gpg-sign' not in processed_args and '-S' not in processed_args and '--gpg-sign' not in processed_args:
+            processed_args.append('--no-gpg-sign')
     else:
         processed_args = args
         
