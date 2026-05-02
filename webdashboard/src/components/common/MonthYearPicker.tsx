@@ -1,17 +1,16 @@
-import React from "react";
-
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
 interface MonthYearPickerProps {
-  month: number;
-  year: number;
-  onChange: (month: number, year: number) => void;
-  variant?: "grid" | "list";
-  showShortcuts?: boolean;
   className?: string;
+  month: number;
+  onChange: (month: number, year: number) => void;
+  showShortcuts?: boolean;
+  variant?: "grid" | "list";
+  year: number;
 }
 
 /**
@@ -37,18 +36,15 @@ export function MonthYearPicker({
     <div className={cn("flex flex-col gap-6 p-2 bg-white dark:bg-slate-900 rounded-[2rem]", className)}>
       {/* Year Selector */}
       <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-700/50 p-1 rounded-2xl shadow-inner border border-slate-200 dark:border-slate-700/50">
-        <button onClick={(e) => { e.preventDefault(); handleYearChange(-1); }} className="w-10 h-10 flex items-center justify-center hover:bg-white dark:hover:bg-slate-900 rounded-xl text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all shadow-sm active:scale-90 hover:shadow-md"><ChevronLeft size={20} /></button>
+        <button className="w-10 h-10 flex items-center justify-center hover:bg-white dark:hover:bg-slate-900 rounded-xl text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all shadow-sm active:scale-90 hover:shadow-md" onClick={(e) => { e.preventDefault(); handleYearChange(-1); }}><ChevronLeft size={20} /></button>
         <span className="text-lg font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase">{year}</span>
-        <button onClick={(e) => { e.preventDefault(); handleYearChange(1); }} className="w-10 h-10 flex items-center justify-center hover:bg-white dark:hover:bg-slate-900 rounded-xl text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all shadow-sm active:scale-90 hover:shadow-md"><ChevronRight size={20} /></button>
+        <button className="w-10 h-10 flex items-center justify-center hover:bg-white dark:hover:bg-slate-900 rounded-xl text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all shadow-sm active:scale-90 hover:shadow-md" onClick={(e) => { e.preventDefault(); handleYearChange(1); }}><ChevronRight size={20} /></button>
       </div>
 
       {/* Month Grid */}
       <div className="grid grid-cols-3 gap-3">
-        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+        {Array.from({ length: 12 }, (_, index) => index + 1).map((m) => (
           <button
-            key={m}
-            type="button"
-            onClick={() => handleMonthClick(m)}
             aria-label={t("common.month_short", { defaultValue: `Tháng ${m}`, month: m })}
             className={cn(
               "py-3.5 rounded-[1.25rem] text-sm font-bold transition-all border",
@@ -56,6 +52,9 @@ export function MonthYearPicker({
                 ? "bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-100 scale-105 z-10"
                 : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:bg-primary-950 hover:text-primary-600 dark:text-primary-400 border-slate-100 dark:border-slate-800"
             )}
+            key={m}
+            onClick={() => { handleMonthClick(m); }}
+            type="button"
           >
             {m}
           </button>
@@ -63,10 +62,10 @@ export function MonthYearPicker({
       </div>
 
       {/* Shortcuts */}
-      {showShortcuts && (
+      {!!showShortcuts && (
         <div className="flex gap-3 pt-2 border-t border-slate-50 dark:border-slate-800">
-          <button type="button" onClick={setLastMonth} className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95">{t("common.filters.last_month")}</button>
-          <button type="button" onClick={setCurrentMonth} className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95">{t("common.filters.this_month")}</button>
+          <button className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95" onClick={setLastMonth} type="button">{t("common.filters.last_month")}</button>
+          <button className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95" onClick={setCurrentMonth} type="button">{t("common.filters.this_month")}</button>
         </div>
       )}
     </div>

@@ -1,6 +1,5 @@
-import React from "react";
-
 import { History, Zap, ShieldCheck } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDateTimeFormatter } from "../../hooks/use-datetime";
@@ -35,7 +34,7 @@ export function AssignmentHistory({ history, selectedEmployee }: AssignmentHisto
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {history?.filter(h => h.employee_id === selectedEmployee?.id || !selectedEmployee).map(h => (
-              <tr key={h.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50" key={h.id}>
                 <td className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400">
                   {formatDateTime(h.created_at)}
                 </td>
@@ -69,7 +68,7 @@ export function AssignmentHistory({ history, selectedEmployee }: AssignmentHisto
             ))}
             {(!history || history.length === 0) && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("common.no_history")}</td>
+                <td className="p-8 text-center text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest" colSpan={5}>{t("common.no_history")}</td>
               </tr>
             )}
           </tbody>

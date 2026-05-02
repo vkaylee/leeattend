@@ -1,10 +1,8 @@
-import { useMemo } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/Toast";
-
 import { fetchDepartments } from "@/lib/api/departments";
 import {
   fetchPayrollRuleAssignments,
@@ -39,7 +37,7 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
         queryKey: ["payroll-rule-assignments", ruleId],
       });
     },
-    onError: (err: Error) => toast.error(err.message || t("common.error", "Error")),
+    onError: (error: Error) => { toast.error(error.message || t("common.error", "Error")); },
   });
 
   const deleteMutation = useMutation({
@@ -51,7 +49,7 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
         queryKey: ["payroll-rule-assignments", ruleId],
       });
     },
-    onError: (err: Error) => toast.error(err.message || t("common.error", "Error")),
+    onError: (error: Error) => { toast.error(error.message || t("common.error", "Error")); },
   });
 
   const deptMap = useMemo(() => {

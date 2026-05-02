@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock TanStack Router
@@ -10,7 +11,6 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import { Employee, Payslip, Workspace } from "@/lib/api/types";
 
 import PayslipModal from "../PayslipModal";
@@ -144,9 +144,9 @@ describe("PayslipModal", () => {
   it("renders modal with payslip data when open", () => {
     renderWithProviders(
       <PayslipModal
+        employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        employee={mockEmployee}
         payslip={mockPayslip}
         workspace={mockWorkspace}
       />
@@ -161,9 +161,9 @@ describe("PayslipModal", () => {
   it("displays formatted month and year correctly", () => {
     renderWithProviders(
       <PayslipModal
+        employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        employee={mockEmployee}
         payslip={mockPayslip}
         workspace={mockWorkspace}
       />
@@ -176,9 +176,9 @@ describe("PayslipModal", () => {
   it("renders print button with correct styling", () => {
     renderWithProviders(
       <PayslipModal
+        employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        employee={mockEmployee}
         payslip={mockPayslip}
         workspace={mockWorkspace}
       />
@@ -206,9 +206,9 @@ describe("PayslipModal", () => {
 
     renderWithProviders(
       <PayslipModal
+        employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        employee={mockEmployee}
         payslip={mockPayslip}
         workspace={mockWorkspace}
       />
@@ -232,17 +232,17 @@ describe("PayslipModal", () => {
   it("calls onClose callback when close button clicked", () => {
     renderWithProviders(
       <PayslipModal
+        employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        employee={mockEmployee}
         payslip={mockPayslip}
         workspace={mockWorkspace}
       />
     );
 
     // Find the close button (the one with X icon)
-    const closeBtn = screen.getAllByRole("button").find(b => b.querySelector(".lucide-x"));
-    if (closeBtn) fireEvent.click(closeBtn);
+    const closeButton = screen.getAllByRole("button").find(b => b.querySelector(".lucide-x"));
+    if (closeButton) fireEvent.click(closeButton);
 
     expect(onClose).toHaveBeenCalled();
   });
@@ -250,9 +250,9 @@ describe("PayslipModal", () => {
   it("does not render modal content when closed", () => {
     renderWithProviders(
       <PayslipModal
+        employee={mockEmployee}
         isOpen={false}
         onClose={onClose}
-        employee={mockEmployee}
         payslip={mockPayslip}
         workspace={mockWorkspace}
       />
@@ -265,9 +265,9 @@ describe("PayslipModal", () => {
   it("passes correct props to PayslipDocument child", () => {
     renderWithProviders(
       <PayslipModal
+        employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        employee={mockEmployee}
         payslip={mockPayslip}
         workspace={mockWorkspace}
       />
@@ -285,9 +285,9 @@ describe("PayslipModal", () => {
   it("renders footer warning about print/PDF", () => {
     renderWithProviders(
       <PayslipModal
+        employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        employee={mockEmployee}
         payslip={mockPayslip}
         workspace={mockWorkspace}
       />
@@ -307,9 +307,9 @@ describe("PayslipModal", () => {
 
     renderWithProviders(
       <PayslipModal
+        employee={mockEmployee}
         isOpen={true}
         onClose={onClose}
-        employee={mockEmployee}
         payslip={malformedPayslip}
         workspace={mockWorkspace}
       />

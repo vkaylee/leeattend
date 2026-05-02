@@ -5,23 +5,23 @@ import { apiFetch } from "@/lib/api";
 import { useWorkspace } from "./use-workspace";
 
 export interface WorkspaceStats {
-  total_employees: number;
-  present_today: number;
-  pending_leave_requests: number;
+  absent_today: number;
+  avg_work_hours_today: number;
+  early_departure_today: number;
   estimated_monthly_payroll: string;
   late_today: number;
-  absent_today: number;
   on_leave_today: number;
-  early_departure_today: number;
-  avg_work_hours_today: number;
+  pending_leave_requests: number;
+  present_today: number;
+  total_employees: number;
 }
 
 export interface AttendanceTrendPoint {
-  date: string;
-  present: number;
-  late: number;
   absent: number;
+  date: string;
+  late: number;
   on_leave: number;
+  present: number;
 }
 
 export function useDashboardStats() {
@@ -65,12 +65,12 @@ export function useAttendanceTrend() {
 }
 
 export interface DepartmentAttendancePoint {
+  absent: number;
   department_id: string;
   department_name: string;
-  on_time: number;
   late: number;
-  absent: number;
   on_leave: number;
+  on_time: number;
 }
 
 export function useDepartmentAttendance(range: "today" | "week" = "today") {
@@ -96,14 +96,14 @@ export function useDepartmentAttendance(range: "today" | "week" = "today") {
 }
 
 export interface UnexcusedAbsencesPoint {
+  consecutive_count: number;
   department_id: string;
   department_name: string;
   employee_id?: string;
   employee_name?: string;
-  unexcused_count: number;
-  consecutive_count: number;
   total_absent_count: number;
   total_leave_count: number;
+  unexcused_count: number;
 }
 
 export function useUnexcusedAbsences(startDate?: string, endDate?: string, groupBy?: "department" | "employee") {
@@ -132,9 +132,9 @@ export function useUnexcusedAbsences(startDate?: string, endDate?: string, group
 }
 
 export interface OvertimeTrendPoint {
+  approved_ot_hours: number;
   date: string;
   system_ot_hours: number;
-  approved_ot_hours: number;
 }
 
 export function useOvertimeTrend() {
@@ -160,9 +160,9 @@ export function useOvertimeTrend() {
 // ── Peak Check-in/Check-out Times ──────────────────────────
 
 export interface PeakTimeSlot {
-  time_slot: string; // e.g. "07:30-08:00"
   check_in: number;
   check_out: number;
+  time_slot: string; // e.g. "07:30-08:00"
 }
 
 export function usePeakTimes() {
@@ -188,8 +188,8 @@ export function usePeakTimes() {
 // ── Leave Types Breakdown ──────────────────────────────────
 
 export interface LeaveTypeBreakdown {
-  leave_type: string; // e.g. "Sick", "Annual", "Maternity"
   count: number;
+  leave_type: string; // e.g. "Sick", "Annual", "Maternity"
 }
 
 export function useLeaveTypesBreakdown() {
@@ -215,9 +215,9 @@ export function useLeaveTypesBreakdown() {
 // ── Lateness by Day of Week ────────────────────────────────
 
 export interface LatenessByDay {
+  avg_late_minutes: number;
   day: string; // e.g. "Mon", "Tue", ...
   late_count: number;
-  avg_late_minutes: number;
 }
 
 export function useLatenessByDay() {
@@ -243,9 +243,9 @@ export function useLatenessByDay() {
 // ── Recruitment Source Breakdown ──────────────────────────────────
 
 export interface RecruitmentSourceBreakdown {
-  source_type: string;
-  source_name: string;
   count: number;
+  source_name: string;
+  source_type: string;
 }
 
 export function useRecruitmentSourceBreakdown() {
@@ -276,23 +276,23 @@ export interface TurnoverTenureBucket {
 }
 
 export interface TurnoverBySource {
-  source_type: string;
-  source_name: string;
   count: number;
+  source_name: string;
+  source_type: string;
 }
 
 export interface TurnoverByDepartment {
-  department_name: string;
   count: number;
+  department_name: string;
 }
 
 export interface TurnoverAnalytics {
-  tenure_distribution: TurnoverTenureBucket[];
-  by_source: TurnoverBySource[];
   by_department: TurnoverByDepartment[];
-  total_terminated: number;
-  period_start: string;
+  by_source: TurnoverBySource[];
   period_end: string;
+  period_start: string;
+  tenure_distribution: TurnoverTenureBucket[];
+  total_terminated: number;
 }
 
 export function useTurnoverAnalytics(startDate: string, endDate: string) {

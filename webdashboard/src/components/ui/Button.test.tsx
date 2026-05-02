@@ -1,6 +1,6 @@
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 import Button from "./Button";
@@ -27,34 +27,34 @@ describe("Button Component", () => {
 
   it("applies primary variant classes by default", () => {
     render(<Button>Primary</Button>);
-    const btn = screen.getByRole("button");
-    expect(btn.className).toContain("bg-primary-600");
+    const button = screen.getByRole("button");
+    expect(button.className).toContain("bg-primary-600");
   });
 
   it("applies outline variant classes", () => {
     render(<Button variant="outline">Outline</Button>);
-    const btn = screen.getByRole("button");
-    expect(btn.className).toContain("border");
-    expect(btn.className).not.toContain("bg-primary-600");
+    const button = screen.getByRole("button");
+    expect(button.className).toContain("border");
+    expect(button.className).not.toContain("bg-primary-600");
   });
 
   it("applies secondary variant classes", () => {
     render(<Button variant="secondary">Secondary</Button>);
-    const btn = screen.getByRole("button");
-    expect(btn.className).toContain("bg-slate-900");
+    const button = screen.getByRole("button");
+    expect(button.className).toContain("bg-slate-900");
   });
 
   it("applies ghost variant classes", () => {
     render(<Button variant="ghost">Ghost</Button>);
-    const btn = screen.getByRole("button");
-    expect(btn.className).not.toContain("bg-primary-600");
-    expect(btn.className).not.toContain("shadow-xl");
+    const button = screen.getByRole("button");
+    expect(button.className).not.toContain("bg-primary-600");
+    expect(button.className).not.toContain("shadow-xl");
   });
 
   it("applies destructive variant classes", () => {
     render(<Button variant="destructive">Delete</Button>);
-    const btn = screen.getByRole("button");
-    expect(btn.className).toContain("bg-rose-600");
+    const button = screen.getByRole("button");
+    expect(button.className).toContain("bg-rose-600");
   });
 
   // ── Sizes ───────────────────────────────────────────────────────
@@ -88,12 +88,12 @@ describe("Button Component", () => {
 
   it("disables button and shows spinner when loading", () => {
     render(
-      <Button loading icon={<span data-testid="icon">★</span>}>
+      <Button icon={<span data-testid="icon">★</span>} loading>
         Loading
       </Button>,
     );
-    const btn = screen.getByRole("button");
-    expect(btn).toBeDisabled();
+    const button = screen.getByRole("button");
+    expect(button).toBeDisabled();
     // The icon should be replaced by Loader2 spinner
     expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
   });
@@ -122,7 +122,7 @@ describe("Button Component", () => {
   it("does not call onClick when disabled", () => {
     const handler = vi.fn();
     render(
-      <Button onClick={handler} disabled>
+      <Button disabled onClick={handler}>
         Click
       </Button>,
     );
@@ -141,7 +141,7 @@ describe("Button Component", () => {
 
   it("passes through data-testid and aria attributes", () => {
     render(
-      <Button data-testid="my-btn" aria-label="Save changes">
+      <Button aria-label="Save changes" data-testid="my-btn">
         Save
       </Button>,
     );

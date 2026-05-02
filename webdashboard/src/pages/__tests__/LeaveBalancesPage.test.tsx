@@ -1,11 +1,10 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api";
 
 import LeaveBalancesPage from "../LeaveBalancesPage";
@@ -14,7 +13,7 @@ vi.mock("react-i18next", () => ({
     useTranslation: () => ({
         t: (key: string, fallback?: any) => {
             if (typeof fallback === 'string') return fallback;
-            if (fallback && fallback.defaultValue) return fallback.defaultValue;
+            if (fallback?.defaultValue) return fallback.defaultValue;
             return key;
         },
     }),
@@ -39,7 +38,7 @@ vi.mock("@/lib/api", async () => {
 
 vi.mock("@/components/leave/LeaveHistoryModal", () => ({
     LeaveHistoryModal: (props: { leaveTypeId: string; leaveTypeName: string; employeeId: string; isOpen: boolean }) => (
-        <div data-testid="leave-history-modal" data-leavetypeid={props.leaveTypeId} data-leavetypename={props.leaveTypeName} data-employeeid={props.employeeId}>
+        <div data-employeeid={props.employeeId} data-leavetypeid={props.leaveTypeId} data-leavetypename={props.leaveTypeName} data-testid="leave-history-modal">
             {props.isOpen ? "MOCKED_LEAVE_HISTORY_MODAL" : null}
         </div>
     ),
@@ -99,7 +98,7 @@ describe("LeaveBalancesPage", () => {
  
         vi.mocked(api.fetchWorkspaceLeaveBalances).mockResolvedValue(mockBalances as unknown as Awaited<ReturnType<typeof api.fetchWorkspaceLeaveBalances>>);
  
-        vi.mocked(api.triggerAccrualRun).mockResolvedValue({ job_id: "", status: "completed", message: "Processed 2 accrual entries synchronously" } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
+        vi.mocked(api.triggerAccrualRun).mockResolvedValue({ job_id: "", status: "completed", message: "Processed 2 accrual entries synchronously" });
     });
 
     function renderPage() {
@@ -158,8 +157,8 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        const yearSelect = screen.getByRole("combobox") as HTMLSelectElement;
-        expect(yearSelect.value).toBe(String(new Date().getFullYear()));
+        const yearSelect = screen.getByRole("combobox");
+        expect((yearSelect as HTMLSelectElement).value).toBe(String(new Date().getFullYear()));
     });
 
     it("calls API with year param when year is changed", async () => {
@@ -231,15 +230,15 @@ describe("LeaveBalancesPage", () => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
 
-        const accrualBtn = screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL").closest("button");
-        expect(accrualBtn).not.toBeDisabled();
+        const accrualButton = screen.getByText("LEAVE_BALANCES.RUN_ACCRUAL").closest("button");
+        expect(accrualButton).not.toBeDisabled();
 
         // Change year to prev year
         const yearSelect = screen.getByRole("combobox");
         fireEvent.change(yearSelect, { target: { value: String(new Date().getFullYear() - 1) } });
 
         await waitFor(() => {
-            expect(accrualBtn).toBeDisabled();
+            expect(accrualButton).toBeDisabled();
         });
     });
 
@@ -262,7 +261,7 @@ describe("LeaveBalancesPage", () => {
             total: 0,
             page: 1,
             limit: 20,
-        } as unknown as Awaited<ReturnType<typeof api.fetchWorkspaceLeaveBalances>>);
+        });
         renderPage();
         await waitFor(() => {
             expect(screen.getAllByText("attendance_logs.messages.no_data").length).toBeGreaterThan(0);
@@ -294,7 +293,7 @@ describe("LeaveBalancesPage", () => {
             job_id: "job-123",
             status: "queued",
             message: "Accrual job enqueued for background processing",
-        } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
+        });
         renderPage();
         await waitFor(() => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
@@ -318,7 +317,7 @@ describe("LeaveBalancesPage", () => {
             job_id: "",
             status: "completed",
             message: "Processed 5 accrual entries synchronously",
-        } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
+        });
         renderPage();
         await waitFor(() => {
             expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
@@ -339,12 +338,12 @@ describe("LeaveBalancesPage", () => {
             job_id: "job-poll-1",
             status: "queued",
             message: "Enqueued",
-        } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
+        });
         // First poll: still processing. Second poll: completed.
  
         vi.mocked(api.fetchJobStatus)
-            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "processing", completed_at: null, error_message: null } as unknown as Awaited<ReturnType<typeof api.fetchJobStatus>>)
-            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "completed", completed_at: "2026-02-28T12:00:00Z", error_message: null } as unknown as Awaited<ReturnType<typeof api.fetchJobStatus>>);
+            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "processing", completed_at: null, error_message: null })
+            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "completed", completed_at: "2026-02-28T12:00:00Z", error_message: null });
 
         renderPage();
         await waitFor(() => {
@@ -382,14 +381,14 @@ describe("LeaveBalancesPage", () => {
             job_id: "job-fail-1",
             status: "queued",
             message: "Enqueued",
-        } as unknown as Awaited<ReturnType<typeof api.triggerAccrualRun>>);
+        });
  
         vi.mocked(api.fetchJobStatus).mockResolvedValue({
             job_id: "job-fail-1",
             status: "failed",
             completed_at: "2026-02-28T12:00:00Z",
             error_message: "Accrual processing failed: DB error",
-        } as unknown as Awaited<ReturnType<typeof api.fetchJobStatus>>);
+        });
 
         renderPage();
         await waitFor(() => {

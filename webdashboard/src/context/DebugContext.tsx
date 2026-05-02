@@ -2,15 +2,15 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 
 interface DebugState {
   impersonateId: string | null;
-  mockDate: string | null;
   isEnabled: boolean;
+  mockDate: string | null;
 }
 
 interface DebugContextType extends DebugState {
-  setImpersonateId: (id: string | null) => void;
-  setMockDate: (date: string | null) => void;
-  setIsEnabled: (enabled: boolean) => void;
   reset: () => void;
+  setImpersonateId: (id: string | null) => void;
+  setIsEnabled: (enabled: boolean) => void;
+  setMockDate: (date: string | null) => void;
 }
 
 const DebugContext = createContext<DebugContextType | undefined>(undefined);
@@ -55,11 +55,11 @@ export const DebugProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Only enable in development mode
-  const isDev = import.meta.env.DEV;
+  const isDevelopment = import.meta.env.DEV;
 
   return (
     <DebugContext.Provider value={{ 
-      isEnabled: isDev && isEnabled, 
+      isEnabled: isDevelopment && isEnabled, 
       impersonateId, 
       mockDate, 
       setIsEnabled, 

@@ -1,19 +1,17 @@
-import React, { useState } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Activity, Globe, Monitor, User } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Combobox } from "@/components/ui/Combobox";
-
 import { getCurrentWorkspaceId, fetchAuditLogs, AuditLog  } from "@/lib/api";
 
 
-const formatDateTime = (dateStr: string, lng: string = 'en-US') => {
+const formatDateTime = (dateString: string, lng = 'en-US') => {
     return new Intl.DateTimeFormat(lng === 'vi' ? 'vi-VN' : lng === 'zh' ? 'zh-CN' : 'en-US', {
         dateStyle: 'medium',
         timeStyle: 'medium',
-    }).format(new Date(dateStr));
+    }).format(new Date(dateString));
 };
 
 export default function AuditLogPage() {
@@ -70,7 +68,7 @@ export default function AuditLogPage() {
 
                     <div className="flex flex-wrap items-center gap-3">
                         <Combobox
-                            value={actionFilter}
+                            className="w-[280px] text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 py-[5px]"
                             onChange={(value) => { setActionFilter(value); setPage(1); }}
                             options={[
                                 { value: "user_login", label: `[${t("audit_logs.filters.groups.user_auth")}] ${t("auth.login.title")}` },
@@ -86,21 +84,21 @@ export default function AuditLogPage() {
                                 { value: "shift_swap_request", label: `[${t("audit_logs.filters.groups.domain")}] ${t("attendance.shift_swap.request")}` },
                             ]}
                             placeholder={t("audit_logs.filters.all_actions")}
-                            className="w-[280px] text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 py-[5px]"
+                            value={actionFilter}
                         />
                         <div className="flex items-center gap-2">
                             <input aria-label={t("audit_logs.filters.start_date")}
+                                className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                onChange={(e) => { setStartDateFilter(e.target.value); setPage(1); }}
                                 type="date"
                                 value={startDateFilter}
-                                onChange={(e) => { setStartDateFilter(e.target.value); setPage(1); }}
-                                className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                             />
                             <span className="text-slate-400">-</span>
                             <input aria-label={t("audit_logs.filters.end_date")}
+                                className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                onChange={(e) => { setEndDateFilter(e.target.value); setPage(1); }}
                                 type="date"
                                 value={endDateFilter}
-                                onChange={(e) => { setEndDateFilter(e.target.value); setPage(1); }}
-                                className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                             />
                         </div>
                     </div>
@@ -119,8 +117,8 @@ export default function AuditLogPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                             {isLoading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <tr key={i} className="animate-pulse bg-slate-50 dark:bg-slate-800/30">
+                                Array.from({ length: 5 }).map((_, index) => (
+                                    <tr className="animate-pulse bg-slate-50 dark:bg-slate-800/30" key={index}>
                                         <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div></td>
                                         <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-20"></div></td>
                                         <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32"></div></td>
@@ -130,19 +128,19 @@ export default function AuditLogPage() {
                                 ))
                             ) : isError ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-red-500 dark:text-red-400">
+                                    <td className="px-6 py-8 text-center text-red-500 dark:text-red-400" colSpan={5}>
                                         {t("audit_logs.messages.error_loading")}
                                     </td>
                                 </tr>
                             ) : !data || data.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                                    <td className="px-6 py-12 text-center text-slate-500 dark:text-slate-400" colSpan={5}>
                                         {t("audit_logs.messages.no_logs")}
                                     </td>
                                 </tr>
                             ) : (
                                 data.data.map((log: AuditLog) => (
-                                    <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" key={log.id}>
                                         <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">
                                             {formatDateTime(log.created_at, i18n.language)}
                                         </td>
@@ -159,11 +157,11 @@ export default function AuditLogPage() {
                                                         {log.actor_id ? log.actor_id.substring(0, 8) + '...' : t("audit_logs.messages.system")}
                                                     </span>
                                                 </div>
-                                                {log.target_user_id && (
+                                                {!!log.target_user_id && (
                                                     <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                                                        {t("audit_logs.messages.target")} <span title={log.target_user_id} className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">{log.target_user_id.substring(0, 8)}...</span>
+                                                        {t("audit_logs.messages.target")} <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded" title={log.target_user_id}>{log.target_user_id.substring(0, 8)}...</span>
                                                     </div>
-                                                )}
+                                                  )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 max-w-[300px]">
@@ -177,18 +175,18 @@ export default function AuditLogPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
-                                                {log.ip_address && (
+                                                {!!log.ip_address && (
                                                     <div className="flex items-center gap-1.5" title="IP Address">
                                                         <Globe className="h-3.5 w-3.5" />
                                                         <span className="truncate w-24">{log.ip_address}</span>
                                                     </div>
-                                                )}
-                                                {log.user_agent && (
+                                                  )}
+                                                {!!log.user_agent && (
                                                     <div className="flex items-center gap-1.5" title={log.user_agent}>
                                                         <Monitor className="h-3.5 w-3.5" />
                                                         <span className="truncate w-24">{log.user_agent}</span>
                                                     </div>
-                                                )}
+                                                  )}
                                             </div>
                                         </td>
                                     </tr>
@@ -198,31 +196,31 @@ export default function AuditLogPage() {
                     </table>
                 </div>
 
-                {data && data.total > 0 && (
+                {!!data && data.total > 0 && (
                     <div className="border-t border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/10">
                         <div className="text-sm text-slate-500 dark:text-slate-400">
                             {t("audit_logs.pagination.showing")} <span className="font-medium text-slate-900 dark:text-white">{((page - 1) * limit) + 1}</span> {t("audit_logs.pagination.to")} <span className="font-medium text-slate-900 dark:text-white">{Math.min(page * limit, data.total)}</span> {t("audit_logs.pagination.of")} <span className="font-medium text-slate-900 dark:text-white">{data.total}</span> {t("audit_logs.pagination.entries")}
                         </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1 || isLoading}
                                 className="flex items-center justify-center h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                disabled={page === 1 || isLoading}
+                                onClick={() => { setPage(p => Math.max(1, p - 1)); }}
                             >
                                 <ChevronLeft className="h-4 w-4 mr-1" />
                                 {t("audit_logs.pagination.previous")}
                             </button>
                             <button
-                                onClick={() => setPage(p => p + 1)}
-                                disabled={page * limit >= data.total || isLoading}
                                 className="flex items-center justify-center h-8 px-3 rounded-md border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                disabled={page * limit >= data.total || isLoading}
+                                onClick={() => { setPage(p => p + 1); }}
                             >
                                 {t("audit_logs.pagination.next")}
                                 <ChevronRight className="h-4 w-4 ml-1" />
                             </button>
                         </div>
                     </div>
-                )}
+                  )}
             </div>
         </div>
     );

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider, useQuery  } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { EmployeeSearch } from "../EmployeeSearch";
@@ -42,7 +43,7 @@ describe("EmployeeSearch Component", () => {
     const onChange = vi.fn();
     // We test the internal handleSelect by bypassing the complex Radix UI
     // and just checking if the component passes correct data to Combobox
-    render(<EmployeeSearch workspaceId="ws-1" onChange={onChange} />, { wrapper });
+    render(<EmployeeSearch onChange={onChange} workspaceId="ws-1" />, { wrapper });
 
     // Fallback select is used when Radix trigger is not fully rendered in JSDOM
     expect(screen.getByRole("combobox")).toBeDefined();
@@ -60,7 +61,7 @@ describe("EmployeeSearch Component", () => {
     // In multi-mode, EmployeeSearch manages 'selectedMeta' internally when handleSelect is called.
     // To test initial chips, we'd need to mock the internal state or pass it as prop.
     // For now, we verify it renders without crashing.
-    render(<EmployeeSearch workspaceId="ws-1" multiple value={value} onChange={onChange} />, { wrapper });
+    render(<EmployeeSearch multiple onChange={onChange} value={value} workspaceId="ws-1" />, { wrapper });
 
     // With the new useEffect, it should find '1' in mockEmployees and show 'John Doe'
     // It appears in both the chip and the hidden select option
@@ -84,7 +85,7 @@ describe("EmployeeSearch Component", () => {
     } as unknown as never);
 
     const onChange = vi.fn();
-    render(<EmployeeSearch workspaceId="ws-1" onChange={onChange} />, { wrapper });
+    render(<EmployeeSearch onChange={onChange} workspaceId="ws-1" />, { wrapper });
 
     // The combobox should be rendered with options in the exact order from the API
     const combobox = screen.getByRole("combobox");
@@ -108,7 +109,7 @@ describe("EmployeeSearch Component", () => {
 
     const onChange = vi.fn();
     render(
-      <EmployeeSearch workspaceId="ws-1" onChange={onChange} keyboardShortcut="/" />,
+      <EmployeeSearch keyboardShortcut="/" onChange={onChange} workspaceId="ws-1" />,
       { wrapper }
     );
 
@@ -128,9 +129,9 @@ describe("EmployeeSearch Component", () => {
 
     render(
       <EmployeeSearch
-        workspaceId="ws-1"
         onChange={onChange}
         onSelectEmployee={onSelectEmployee}
+        workspaceId="ws-1"
       />,
       { wrapper }
     );
@@ -164,9 +165,9 @@ describe("EmployeeSearch Component", () => {
 
     render(
       <EmployeeSearch
-        workspaceId="ws-1"
         onChange={onChange}
         onSelectEmployee={onSelectEmployee}
+        workspaceId="ws-1"
       />,
       { wrapper }
     );

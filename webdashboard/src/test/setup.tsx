@@ -4,19 +4,19 @@ import { vi } from "vitest";
 import viLocale from "../i18n/locales/vi.json";
 
 // Helper to resolve nested keys
-const resolveKey = (key: string, obj: Record<string, unknown>, vars?: Record<string, unknown>): string => {
-  let result = key.split('.').reduce((o: unknown, i) => (o as Record<string, unknown>)?.[i], obj) as string | undefined;
+const resolveKey = (key: string, object: Record<string, unknown>, variables?: Record<string, unknown>): string => {
+  let result = key.split('.').reduce((o: unknown, index) => (o as Record<string, unknown>)?.[index], object) as string | undefined;
   if (!result && key.startsWith('common.')) {
     const fallbackKey = key.substring(7);
-    result = fallbackKey.split('.').reduce((o: unknown, i) => (o as Record<string, unknown>)?.[i], obj) as string | undefined;
+    result = fallbackKey.split('.').reduce((o: unknown, index) => (o as Record<string, unknown>)?.[index], object) as string | undefined;
   }
   if (!result) {
     console.warn(`Missing key in test mock: ${key}`);
     return key;
   }
   // Handle i18next-style {{variable}} interpolation
-  if (vars && typeof result === 'string') {
-    return result.replace(/\{\{(\w+)\}\}/g, (_, varName) => String(vars[varName] ?? `{{${varName}}}`));
+  if (variables && typeof result === 'string') {
+    return result.replace(/\{\{(\w+)\}\}/g, (_, variableName) => String(variables[variableName] ?? `{{${variableName}}}`));
   }
   return result;
 };
@@ -24,7 +24,7 @@ const resolveKey = (key: string, obj: Record<string, unknown>, vars?: Record<str
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, vars?: Record<string, unknown>) => resolveKey(key, viLocale as Record<string, unknown>, vars),
+    t: (key: string, variables?: Record<string, unknown>) => resolveKey(key, viLocale, variables),
     i18n: {
       changeLanguage: () => Promise.resolve(),
       language: 'vi',
@@ -53,7 +53,7 @@ class MockEventSource {
   readonly CLOSED = 2;
 
   url: string;
-  readyState: number = 0;
+  readyState = 0;
   onopen = null;
   onmessage = null;
   onerror = null;
@@ -87,22 +87,22 @@ vi.mock("@/components/ui/Combobox", () => ({
   }: { 
     options: { value: string; label: string }[]; 
     value: string; 
-    onChange: (val: string) => void; 
+    onChange: (value_: string) => void; 
     id?: string; 
     "data-testid"?: string 
   }) => (
     <select aria-label="Role"
-      id={id}
       data-testid={testId}
+      id={id}
+      onChange={(e) => { onChange(e.target.value); }}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
     >
       <option value="">Select...</option>
       {options.map((opt) => (
         <option 
-          key={opt.value} 
+          data-testid={testId ? `${testId}-option-${opt.value}` : `combo-option-${opt.value}`} 
+          key={opt.value}
           value={opt.value}
-          data-testid={testId ? `${testId}-option-${opt.value}` : `combo-option-${opt.value}`}
         >
           {opt.label}
         </option>

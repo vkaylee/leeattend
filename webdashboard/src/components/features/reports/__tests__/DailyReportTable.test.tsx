@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import { DailyAttendanceReport } from "@/lib/api";
@@ -177,7 +178,7 @@ describe("DailyReportTable", () => {
                 status: "unscheduled",
                 scheduled_start: null,
                 scheduled_end: null,
-            } as DailyAttendanceReport,
+            },
         ];
         render(<DailyReportTable {...defaultProps} data={dataWithUnscheduled} />);
 
@@ -192,7 +193,7 @@ describe("DailyReportTable", () => {
             {
                 ...mockData[0],
                 status: "unscheduled",
-            } as DailyAttendanceReport,
+            },
         ];
         render(
             <DailyReportTable

@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { renderHook } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { useInfiniteScroll } from "../use-infinite-scroll";
@@ -20,8 +21,8 @@ describe("useInfiniteScroll", () => {
 
         // Use a class-style mock so `new IntersectionObserver(...)` works
         class MockIO {
-            constructor(cb: IntersectionObserverCallback) {
-                capturedCallback = cb;
+            constructor(callback: IntersectionObserverCallback) {
+                capturedCallback = callback;
             }
             observe = observeMock;
             unobserve = vi.fn();

@@ -1,11 +1,10 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api/payroll";
 
 import PayrollSettingsSection from "../PayrollSettingsSection";
@@ -68,14 +67,14 @@ describe("PayrollSettingsSection", () => {
     vi.mocked(api.updatePayrollSettings).mockResolvedValue({} as unknown as never);
     renderWithProviders(<PayrollSettingsSection wsId={mockWsId} />);
 
-    const addBtn = await screen.findByText(/common.add_new/i);
-    fireEvent.click(addBtn);
+    const addButton = await screen.findByText(/common.add_new/i);
+    fireEvent.click(addButton);
 
     const daysInput = await screen.findByDisplayValue("26");
     fireEvent.change(daysInput, { target: { value: "24" } });
 
-    const saveBtn = screen.getByText(/common.save/i);
-    fireEvent.click(saveBtn);
+    const saveButton = screen.getByText(/common.save/i);
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(api.updatePayrollSettings).toHaveBeenCalledWith(mockWsId, expect.objectContaining({

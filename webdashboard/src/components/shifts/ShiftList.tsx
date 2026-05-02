@@ -1,15 +1,14 @@
-import React from "react";
-
 import { ChevronRight, Clock, Zap, Pencil, Trash2 } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDateTimeFormatter } from "../../hooks/use-datetime";
 import { Shift } from "../../lib/api";
 
 interface ShiftListProps {
-  shifts: Shift[] | undefined;
-  onEdit: (shift: Shift) => void;
   onDelete?: (shift: Shift) => void;
+  onEdit: (shift: Shift) => void;
+  shifts: Shift[] | undefined;
 }
 
 export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
@@ -33,7 +32,7 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
         </thead>
         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
           {shifts?.map(shift => (
-            <tr key={shift.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">
+            <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group" key={shift.id}>
               <td className="px-8 py-6">
                 <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">{shift.name}</div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold tracking-tighter mt-1">{shift.id}</div>
@@ -57,34 +56,32 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
                       <span className="text-slate-300 dark:text-slate-600 font-bold">-</span>
                       <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold font-mono">{shift.break_end.substring(0, 5)}</span>
                     </div>
-                    {shift.is_break_auto_deduct && (
+                    {!!shift.is_break_auto_deduct && (
                       <div className="text-[8px] font-bold text-blue-500 uppercase tracking-widest flex items-center gap-1 opacity-80">
-                        <Zap size={10} className="fill-blue-500" /> {t("shifts.auto_deduct")}
+                        <Zap className="fill-blue-500" size={10} /> {t("shifts.auto_deduct")}
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2 font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                    <Clock size={14} className="text-slate-200 dark:text-slate-700" />
+                    <Clock className="text-slate-200 dark:text-slate-700" size={14} />
                     {shift.break_duration_minutes} {t("common.minutes")}
                   </div>
                 )}
               </td>
               <td className="px-8 py-6 text-right">
                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <button onClick={() => onEdit(shift)} className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}><Pencil size={18} /></button>
-                  {onDelete && (
-                    <button onClick={() => onDelete(shift)} className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
-                  )}
+                  <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onEdit(shift); }} title={t("common.edit")}><Pencil size={18} /></button>
+                  {!!onDelete && <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onDelete(shift); }} title={t("common.delete")}><Trash2 size={18} /></button>}
                 </div>
               </td>
             </tr>
           ))}
           {shifts?.length === 0 && (
             <tr>
-              <td colSpan={4} className="py-32 text-center bg-slate-50 dark:bg-slate-800/30">
+              <td className="py-32 text-center bg-slate-50 dark:bg-slate-800/30" colSpan={4}>
                 <div className="bg-white dark:bg-slate-900 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100 dark:border-slate-800">
-                  <Clock size={32} className="text-slate-200 dark:text-slate-700" />
+                  <Clock className="text-slate-200 dark:text-slate-700" size={32} />
                 </div>
                 <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{t("shifts.messages.no_shifts")}</h3>
                 <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">{t("shifts.directory_title")} is empty</p>

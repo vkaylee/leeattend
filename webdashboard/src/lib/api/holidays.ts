@@ -7,11 +7,11 @@ export async function fetchHolidays(
     year?: number,
 ): Promise<Holiday[]> {
     const url = year
-        ? `${API_BASE_URL}/workspaces/${wsId}/holidays?year=${year}`
+        ? `${API_BASE_URL}/workspaces/${wsId}/holidays?year=${year.toString()}`
         : `${API_BASE_URL}/workspaces/${wsId}/holidays`;
     const response = await apiFetch(url);
     if (!response.ok) throw new Error('Failed to fetch holidays');
-    return response.json();
+    return response.json() as Promise<Holiday[]>;
 }
 
 export async function createHoliday(
@@ -26,7 +26,7 @@ export async function createHoliday(
         if (response.status === 409) throw new Error('A holiday already exists on this date');
         throw new Error('Failed to create holiday');
     }
-    return response.json();
+    return response.json() as Promise<Holiday>;
 }
 
 export async function updateHoliday(
@@ -39,7 +39,7 @@ export async function updateHoliday(
         body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to update holiday');
-    return response.json();
+    return response.json() as Promise<Holiday>;
 }
 
 export async function deleteHoliday(

@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -57,9 +57,9 @@ describe("RoleManagementModal", () => {
     vi.mocked(api.fetchMemberRoles).mockResolvedValue({
       primary: EMPLOYEE_ROLE_ID,
       extra: []
-    } as unknown as never);
+    });
  
-    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockWorkspaceRoles as unknown as never);
+    vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockWorkspaceRoles);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -73,14 +73,14 @@ describe("RoleManagementModal", () => {
   };
 
   it("renders correctly when open", async () => {
-    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<RoleManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
     expect(await screen.findByText(/Quản lý quyền hạn/i)).toBeDefined();
     // In Premium UI, labels are uppercased in the component
     expect(await screen.findByText(/QUYỀN CHÍNH/i)).toBeDefined();
   });
 
   it("loads workspace roles dynamically and displays primary role", async () => {
-    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<RoleManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
 
     // Should have called fetchWorkspaceRoles
     await waitFor(() => {
@@ -92,7 +92,7 @@ describe("RoleManagementModal", () => {
     const user = userEvent.setup();
  
     vi.mocked(api.updateWorkspaceMemberRole).mockResolvedValue({} as never);
-    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<RoleManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
 
     // Wait for roles to load
     await waitFor(() => {
@@ -104,8 +104,8 @@ describe("RoleManagementModal", () => {
     fireEvent.change(primaryRoleSelect, { target: { value: ADMIN_ROLE_ID } });
 
     // Confirm the modal
-    const confirmModalBtn = await screen.findByRole("button", { name: /Confirm|Xác nhận/i });
-    await user.click(confirmModalBtn);
+    const confirmModalButton = await screen.findByRole("button", { name: /Confirm|Xác nhận/i });
+    await user.click(confirmModalButton);
 
     await waitFor(() => {
       expect(api.updateWorkspaceMemberRole).toHaveBeenCalledWith("test-ws-id", "user-1", ADMIN_ROLE_ID);
@@ -116,7 +116,7 @@ describe("RoleManagementModal", () => {
     const user = userEvent.setup();
  
     vi.mocked(api.assignExtraRole).mockResolvedValue({} as never);
-    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<RoleManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
 
     // Wait for roles to load
     await waitFor(() => {
@@ -148,11 +148,11 @@ describe("RoleManagementModal", () => {
     vi.mocked(api.fetchMemberRoles).mockResolvedValue({
       primary: EMPLOYEE_ROLE_ID,
       extra: [{ id: "extra-role-1", role_id: ADMIN_ROLE_ID, workspace_id: "test-ws-id", user_id: "user-1", assigned_at: "2026-01-01T00:00:00Z", expires_at: "2027-01-01T00:00:00Z" }]
-    } as unknown as never);
+    });
  
     vi.mocked(api.revokeExtraRole).mockResolvedValue({} as never);
 
-    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<RoleManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
 
     // Should display the resolved role name from workspace roles
     const adminTexts = await screen.findAllByText(/admin/i);
@@ -160,12 +160,12 @@ describe("RoleManagementModal", () => {
 
     // Find the revoke button
     const extraRoleItem = adminTexts[0].closest("div");
-    const revokeBtn = extraRoleItem!.parentElement!.querySelector('button');
-    await user.click(revokeBtn!);
+    const revokeButton = extraRoleItem!.parentElement!.querySelector('button');
+    await user.click(revokeButton!);
 
     // Confirm the modal
-    const confirmModalBtn = await screen.findByRole("button", { name: /Confirm|Xác nhận/i });
-    await user.click(confirmModalBtn);
+    const confirmModalButton = await screen.findByRole("button", { name: /Confirm|Xác nhận/i });
+    await user.click(confirmModalButton);
 
     await waitFor(() => {
       expect(api.revokeExtraRole).toHaveBeenCalledWith("test-ws-id", "user-1", "extra-role-1");
@@ -177,9 +177,9 @@ describe("RoleManagementModal", () => {
     vi.mocked(api.fetchMemberRoles).mockResolvedValue({
       primary: EMPLOYEE_ROLE_ID,
       extra: [{ id: "extra-1", role_id: ADMIN_ROLE_ID, workspace_id: "test-ws-id", user_id: "user-1", assigned_at: "", expires_at: "2027-01-01T00:00:00Z" }]
-    } as unknown as never);
+    });
 
-    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<RoleManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
 
     await waitFor(() => {
       expect(api.fetchWorkspaceRoles).toHaveBeenCalled();
@@ -195,13 +195,13 @@ describe("RoleManagementModal", () => {
 
     const options = extraRoleSelect.querySelectorAll("option");
 
-    const optionValues = Array.from(options).map(o => (o as HTMLOptionElement).value);
+    const optionValues = Array.from(options).map(o => (o).value);
     expect(optionValues).not.toContain(EMPLOYEE_ROLE_ID);
     expect(optionValues).not.toContain(ADMIN_ROLE_ID);
   });
 
   it("does not render when isOpen is false", () => {
-    renderWithProviders(<RoleManagementModal userId="user-1" isOpen={false} onClose={() => {}} />);
+    renderWithProviders(<RoleManagementModal isOpen={false} onClose={() => {}} userId="user-1" />);
     expect(screen.queryByText(/Quản lý quyền hạn/i)).toBeNull();
   });
 });

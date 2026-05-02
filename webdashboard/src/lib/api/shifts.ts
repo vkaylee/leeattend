@@ -6,7 +6,7 @@ import { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster } from "./types
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts`);
   if (!response.ok) throw new Error("Failed to fetch shifts");
-  return response.json();
+  return response.json() as Promise<Shift[]>;
 }
 
 export async function createShift(wsId: string, data: Partial<Shift>): Promise<Shift> {
@@ -15,7 +15,7 @@ export async function createShift(wsId: string, data: Partial<Shift>): Promise<S
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create shift");
-  return response.json();
+  return response.json() as Promise<Shift>;
 }
 
 export async function updateShift(
@@ -28,7 +28,7 @@ export async function updateShift(
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to update shift");
-  return response.json();
+  return response.json() as Promise<Shift>;
 }
 
 export async function assignShift(
@@ -46,13 +46,13 @@ export const fetchWorkspaceSchedules = async (wsId: string, startDate: string, e
   const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/schedules?${params}`);
   if (!response.ok) throw new Error("Failed to fetch schedules");
-  return response.json();
+  return response.json() as Promise<EmployeeSchedule[]>;
 };
 
 export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHistory[]> => {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-history`);
   if (!response.ok) throw new Error("Failed to fetch assignment history");
-  return response.json();
+  return response.json() as Promise<AssignmentHistory[]>;
 };
 
 export const fetchEmployeeRosters = async (
@@ -69,7 +69,7 @@ export const fetchEmployeeRosters = async (
   
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch rosters");
-  return response.json();
+  return response.json() as Promise<ShiftRoster[]>;
 }
  
 
@@ -79,7 +79,7 @@ export async function upsertRoster(wsId: string, employeeId: string, data: Parti
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to upsert roster");
-  return response.json();
+  return response.json() as Promise<ShiftRoster>;
 }
  
 

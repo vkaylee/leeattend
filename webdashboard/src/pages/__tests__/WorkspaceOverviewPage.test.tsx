@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useWorkspace, useWorkspaceMembers, useWorkspaceRoles } from "../../hooks/use-workspace";
@@ -63,9 +63,9 @@ describe("WorkspaceOverviewPage", () => {
       isLoading: false,
       isAdding: false,
       isRemoving: false,
-      addMember: vi.fn() as unknown as (_args: unknown) => Promise<void>,
-      removeMember: vi.fn() as unknown as (_args: unknown) => Promise<void>,
-    } as unknown as ReturnType<typeof useWorkspaceMembers>);
+      addMember: vi.fn(),
+      removeMember: vi.fn(),
+    });
     
     vi.mocked(useWorkspaceRoles).mockReturnValue({ 
       roles: [
@@ -76,9 +76,9 @@ describe("WorkspaceOverviewPage", () => {
       isCreating: false,
       isUpdating: false,
       isDeleting: false,
-      createRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
-      updateRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
-      deleteRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+      createRole: vi.fn() as unknown as (_arguments: unknown) => Promise<unknown>,
+      updateRole: vi.fn() as unknown as (_arguments: unknown) => Promise<unknown>,
+      deleteRole: vi.fn() as unknown as (_arguments: unknown) => Promise<unknown>,
     } as unknown as ReturnType<typeof useWorkspaceRoles>);
     
     vi.mocked(api.apiFetch).mockResolvedValue({

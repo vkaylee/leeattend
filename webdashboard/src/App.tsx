@@ -1,8 +1,7 @@
-import React, { Suspense } from "react";
-
 import * as Sentry from "@sentry/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
+import React, { Suspense } from "react";
 
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { NewVersionBanner } from "./components/common/NewVersionBanner";
@@ -30,10 +29,10 @@ function AppContent() {
 
   return (
     <>
-      {hasNewVersion && (
+      {!!hasNewVersion && (
         <NewVersionBanner
-          onRefresh={() => window.location.reload()}
           onDismiss={dismiss}
+          onRefresh={() => { window.location.reload(); }}
         />
       )}
       <RouterProvider router={router} />

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 import * as helpers from "@/lib/api/helpers";
@@ -59,7 +60,7 @@ describe("LeaveSettings Page", () => {
  
     vi.mocked(api.fetchLeavePolicies).mockResolvedValue([] as never);
  
-    vi.mocked(api.fetchLeavePolicyAssignments).mockResolvedValue(mockAssignments as never);
+    vi.mocked(api.fetchLeavePolicyAssignments).mockResolvedValue(mockAssignments);
   });
 
   it("renders all three main tabs", () => {

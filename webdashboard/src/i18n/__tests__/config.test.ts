@@ -33,8 +33,8 @@ describe('i18n config lazyLoadBackend', () => {
 
   it('should return an error for an unsupported language', async () => {
     const error = await new Promise((resolve) => {
-      lazyLoadBackend.read('fr', 'translation', (err, _data) => {
-        resolve(err);
+      lazyLoadBackend.read('fr', 'translation', (error_, _data) => {
+        resolve(error_);
       });
     });
 

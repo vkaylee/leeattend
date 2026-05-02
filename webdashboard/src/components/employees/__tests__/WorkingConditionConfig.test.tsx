@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -25,7 +25,7 @@ vi.mock("@/lib/api/employees", () => ({
   ]),
   createWorkingCondition: vi.fn(),
  
-  deleteWorkingCondition: (...args: unknown[]) => mockDelete(...args)
+  deleteWorkingCondition: (...arguments_: unknown[]) => mockDelete(...arguments_)
 }));
 
 // Mock translation
@@ -74,16 +74,16 @@ describe("WorkingConditionConfig", () => {
     // We can find the button by getting all buttons and picking the one that looks like delete
     const buttons = screen.getAllByRole("button");
     // The first button is "Add btn" or "Cancel", the second one is inside the condition
-    const deleteBtn = buttons[buttons.length - 1];
-    await user.click(deleteBtn);
+    const deleteButton = buttons[buttons.length - 1];
+    await user.click(deleteButton);
 
     // Confirm dialog should appear
     expect(await screen.findByText("Warning")).toBeDefined();
     expect(await screen.findByText("Delete policy?")).toBeDefined();
 
     // Click confirm
-    const confirmBtn = screen.getByRole("button", { name: "Confirm" });
-    await user.click(confirmBtn);
+    const confirmButton = screen.getByRole("button", { name: "Confirm" });
+    await user.click(confirmButton);
 
     await waitFor(() => {
       expect(mockDelete).toHaveBeenCalledWith("ws-1", "emp-1", "cond-1");

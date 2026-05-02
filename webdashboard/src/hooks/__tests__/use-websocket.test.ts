@@ -1,10 +1,11 @@
 import { renderHook, act } from "@testing-library/react";
+
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import { useWebSocket } from "../use-websocket";
 
 describe("useWebSocket Hook", () => {
-  let mockOnOpen: ((ev?: Event) => void) | null;
+  let mockOnOpen: ((event_?: Event) => void) | null;
  
   let mockSend: ReturnType<typeof vi.fn>;
  
@@ -14,13 +15,13 @@ describe("useWebSocket Hook", () => {
     static OPEN = 1;
     readyState = 1; // WebSocket.OPEN
     constructor() {}
-    send = vi.fn().mockImplementation((val: string) => {
-      if (mockSend) (mockSend as (v: string) => void)(val);
+    send = vi.fn().mockImplementation((value: string) => {
+      if (mockSend) (mockSend as (v: string) => void)(value);
     });
     close = vi.fn().mockImplementation(() => {
       if (mockClose) (mockClose as () => void)();
     });
-    set onopen(fn: ((ev?: Event) => void) | null) { mockOnOpen = fn; }
+    set onopen(function_: ((event_?: Event) => void) | null) { mockOnOpen = function_; }
     set onmessage(_: unknown) { }
     set onclose(_: unknown) { }
   }

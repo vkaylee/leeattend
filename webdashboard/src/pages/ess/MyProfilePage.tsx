@@ -146,7 +146,7 @@ export default function MyProfilePage() {
                 <div key={field.key} className="space-y-3 px-1">
                   <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
                   { }
-                  <input type={field.type} value={(formData as Record<string, string>)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" placeholder={field.placeholder} />
+                  <input type={field.type} value={(formData as Record<string, string>)[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" placeholder={field.placeholder} />
                 </div>
               ))}
               <div className="space-y-3 px-1">
@@ -185,7 +185,7 @@ export default function MyProfilePage() {
                 <div key={field.key} className="space-y-3 px-1">
                   <label className={LABEL_BASE}><field.icon size={12} className="inline mr-2" /> {t(`ess.${field.label}`)}</label>
                   { }
-                  <input type="text" value={(formData as Record<string, string>)[field.key] || ""} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm font-mono" placeholder={field.placeholder} />
+                  <input type="text" value={(formData as Record<string, string>)[field.key] || ""} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm font-mono" placeholder={field.placeholder} />
                 </div>
               ))}
             </div>
@@ -240,7 +240,7 @@ export default function MyProfilePage() {
         <form onSubmit={handleAddContact} className="space-y-8 pt-4 animate-in fade-in duration-500">
           <div className="space-y-3 px-1">
             <label className={LABEL_BASE}>{t("ess.contact_name")}</label>
-            <input type="text" required value={newContact.contact_name} onChange={(e) => setNewContact({ ...newContact, contact_name: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" />
+            <input type="text" required value={newContact.contact_name} onChange={(e) => setNewContact({ ...newContact, contact_name: e.target.value })} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" />
           </div>
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-3 px-1">

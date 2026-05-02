@@ -1,5 +1,4 @@
 import { useCallback, useState, useEffect } from 'react';
-
 import { useTranslation } from 'react-i18next';
 
 import { useProfile } from './use-profile';
@@ -8,9 +7,9 @@ export type SupportedLanguage = 'en' | 'vi' | 'zh';
 
 export interface LanguageOption {
   code: SupportedLanguage;
+  flag: string;
   name: string;
   nativeName: string;
-  flag: string;
 }
 
 // Supported languages with metadata

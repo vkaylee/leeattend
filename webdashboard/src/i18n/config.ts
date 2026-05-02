@@ -1,7 +1,8 @@
+import { initReactI18next } from 'react-i18next';
+
 // eslint-disable-next-line import-x/no-named-as-default
 import i18n, { BackendModule } from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import { initReactI18next } from 'react-i18next';
 
 const localeLoaders: Record<string, () => Promise<{ default: Record<string, unknown> }>> = {
   en: () => import('./locales/en.json'),
@@ -16,8 +17,8 @@ export const lazyLoadBackend: BackendModule = {
     const lng = language.split('-')[0];
     if (localeLoaders[lng]) {
       localeLoaders[lng]()
-        .then((mod) => callback(null, mod.default || mod))
-        .catch((err) => callback(err, null));
+        .then((module_) => { callback(null, module_.default || module_); })
+        .catch((error) => { callback(error, null); });
     } else {
       callback(new Error(`Language ${lng} not found`), null);
     }

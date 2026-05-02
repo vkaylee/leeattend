@@ -1,7 +1,6 @@
 import { Page } from '@playwright/test';
 
 import { Device } from '../../src/lib/api/types';
-
 import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS, MOCK_AGENTS, MOCK_DEVICES_INITIAL } from './mock-data';
 
 // --- Stateful mock stores (reset per page via setupApiMocks) ---
@@ -15,7 +14,7 @@ export async function setupApiMocks(page: Page) {
 
   // Chặn các request gọi đến Backend API (/api/...)
   // Loại trừ các file tĩnh (.ts, .js, .css, .jsx, .tsx) của Vite
-  await page.route(url => url.pathname.startsWith('/api/') && !url.pathname.match(/\.(ts|js|css|jsx|tsx)$/), async (route) => {
+  await page.route(url => url.pathname.startsWith('/api/') && !(/\.(ts|js|css|jsx|tsx)$/.exec(url.pathname)), async (route) => {
     const url = route.request().url();
     const method = route.request().method();
     const pathname = new URL(url).pathname;
@@ -38,7 +37,7 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 2. Auth & Profile
-    if (pathname.match(/\/api\/me(\/|$)/) || pathname.match(/\/api\/auth\/profile/)) {
+    if ((/\/api\/me(\/|$)/.exec(pathname)) || (/\/api\/auth\/profile/.exec(pathname))) {
       if (pathname.includes('/permissions')) {
         return fulfill({
           permissions: ["workspace.admin", "devices.manage", "agents.manage"],
@@ -49,7 +48,7 @@ export async function setupApiMocks(page: Page) {
       return fulfill(MOCK_USER);
     }
 
-    if (pathname.match(/\/api\/auth\/login/) || pathname.match(/\/api\/debug\/login/)) {
+    if ((/\/api\/auth\/login/.exec(pathname)) || (/\/api\/debug\/login/.exec(pathname))) {
       return fulfill({
         access_token: "mock-access-token",
         refresh_token: "mock-refresh-token",
@@ -57,7 +56,7 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    if (pathname.match(/\/api\/auth\/refresh/)) {
+    if (/\/api\/auth\/refresh/.exec(pathname)) {
       return fulfill({
         access_token: "mock-access-token-refreshed",
         refresh_token: "mock-refresh-token-new"
@@ -72,21 +71,21 @@ export async function setupApiMocks(page: Page) {
     }
     
     // Explicitly handle GET /api/workspaces/{id} (without sub-resources)
-    if (pathname.match(/^\/api\/workspaces\/[^/]+$/)) {
+    if (/^\/api\/workspaces\/[^/]+$/.exec(pathname)) {
       if (method === 'GET') return fulfill(MOCK_WORKSPACE);
       return fulfill(MOCK_WORKSPACE);
     }
 
-    if (pathname.match(/^\/api\/workspaces\/[^/]+\/preferences$/)) {
+    if (/^\/api\/workspaces\/[^/]+\/preferences$/.exec(pathname)) {
       return fulfill({ dashboard_layout: {}, theme: "light", notifications_enabled: true });
     }
 
-    if (pathname.match(/^\/api\/workspaces\/[^/]+\/members$/)) {
+    if (/^\/api\/workspaces\/[^/]+\/members$/.exec(pathname)) {
       return fulfill([ { id: "member-1", user_id: MOCK_USER.id, role: "admin", user: MOCK_USER } ]);
     }
 
     // 4. Employees
-    if (pathname.match(/\/api\/employees/)) {
+    if (/\/api\/employees/.exec(pathname)) {
       return fulfill({
         data: MOCK_EMPLOYEES,
         pagination: { total_count: MOCK_EMPLOYEES.length, page: 1, page_size: 50, totalpages: 1 }
@@ -94,12 +93,12 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 5. Departments
-    if (pathname.match(/\/api\/departments/)) {
+    if (/\/api\/departments/.exec(pathname)) {
       return fulfill(MOCK_DEPARTMENTS);
     }
 
     // 6. Attendance Logs
-    if (pathname.match(/\/api\/attendance\/logs/)) {
+    if (/\/api\/attendance\/logs/.exec(pathname)) {
       return fulfill({
         data: [
           { id: "log-1", employee_id: "emp-mock-1", punch_time: "2026-01-15T08:00:00Z", punch_type: "in", source: "device", device_name: "Main Door" }
@@ -109,53 +108,53 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 7. Dashboard Stats & Trends
-    if (pathname.match(/\/api\/dashboard\/workspace-stats/)) {
+    if (/\/api\/dashboard\/workspace-stats/.exec(pathname)) {
       return fulfill({ employee_count: 2, present_today: 1, on_leave: 0, pending_requests: 0 });
     }
 
-    if (pathname.match(/\/api\/dashboard\/attendance-trend/)) {
+    if (/\/api\/dashboard\/attendance-trend/.exec(pathname)) {
       return fulfill([
         { date: "2026-01-10", present: 20, absent: 2, late: 1 },
         { date: "2026-01-11", present: 22, absent: 0, late: 0 }
       ]);
     }
 
-    if (pathname.match(/\/api\/dashboard\/unexcused-absences/)) {
+    if (/\/api\/dashboard\/unexcused-absences/.exec(pathname)) {
       return fulfill({
         data: [],
         pagination: { total_count: 0, page: 1, page_size: 50, totalpages: 0 }
       });
     }
 
-    if (pathname.match(/\/api\/dashboard\/overtime-trend/)) {
+    if (/\/api\/dashboard\/overtime-trend/.exec(pathname)) {
       return fulfill([
         { date: "2026-01-10", hours: 5.5 },
         { date: "2026-01-11", hours: 3.2 }
       ]);
     }
 
-    if (pathname.match(/\/api\/dashboard\/peak-times/)) {
+    if (/\/api\/dashboard\/peak-times/.exec(pathname)) {
       return fulfill([
         { hour: 8, count: 15 },
         { hour: 9, count: 5 }
       ]);
     }
 
-    if (pathname.match(/\/api\/dashboard\/leave-types/)) {
+    if (/\/api\/dashboard\/leave-types/.exec(pathname)) {
       return fulfill([
         { type: "SICK", count: 2 },
         { type: "ANNUAL", count: 5 }
       ]);
     }
 
-    if (pathname.match(/\/api\/dashboard\/lateness-by-day/)) {
+    if (/\/api\/dashboard\/lateness-by-day/.exec(pathname)) {
       return fulfill([
         { day: "Mon", count: 3 },
         { day: "Tue", count: 1 }
       ]);
     }
 
-    if (pathname.match(/\/api\/dashboard\/preferences/)) {
+    if (/\/api\/dashboard\/preferences/.exec(pathname)) {
       return fulfill({
         dashboard_layout: {},
         theme: "light",
@@ -163,12 +162,12 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    if (pathname.match(/\/api\/health/)) {
+    if (/\/api\/health/.exec(pathname)) {
       return fulfill({ status: "ok" });
     }
 
     // 8. Authorized Agents (READ)
-    if (pathname.match(/\/api\/authorized-agents(\/|$)/)) {
+    if (/\/api\/authorized-agents(\/|$)/.exec(pathname)) {
       if (method === 'GET') {
         const mockAgents = MOCK_AGENTS.map(a => ({
           ...a,
@@ -187,7 +186,7 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 9. Agent Status (realtime polling)
-    if (pathname.match(/\/api\/agents(\/|$)/) || pathname.match(/\/api\/agents\/status/)) {
+    if ((/\/api\/agents(\/|$)/.exec(pathname)) || (/\/api\/agents\/status/.exec(pathname))) {
       return fulfill([
         {
           agent_id: "agent-mock-1",
@@ -204,7 +203,7 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 10. Devices — STATEFUL CRUD
-    if (pathname.match(/\/api\/devices(\/|$)/)) {
+    if (/\/api\/devices(\/|$)/.exec(pathname)) {
       // GET /api/devices
       if (method === 'GET' && (pathname === '/api/devices' || pathname === '/api/devices/')) {
         return fulfill(devices);
@@ -232,17 +231,17 @@ export async function setupApiMocks(page: Page) {
       }
 
       // Extract device ID from URL pattern /api/devices/{id}
-      const idMatch = pathname.match(/\/api\/devices\/([^/]+)/);
+      const idMatch = /\/api\/devices\/([^/]+)/.exec(pathname);
       if (idMatch) {
         const deviceId = idMatch[1];
 
         // PUT /api/devices/:id (update)
         if (method === 'PUT') {
           const body = JSON.parse(route.request().postData() || '{}');
-          const idx = devices.findIndex(d => d.id === deviceId);
-          if (idx >= 0) {
-            devices[idx] = { ...devices[idx], ...body };
-            return fulfill(devices[idx]);
+          const index = devices.findIndex(d => d.id === deviceId);
+          if (index >= 0) {
+            devices[index] = { ...devices[index], ...body };
+            return fulfill(devices[index]);
           }
           return fulfill({ error: "not found" }, 404);
         }
@@ -283,12 +282,12 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 12. Report Export
-    if (pathname.match(/\/api\/workspaces\/[^/]+\/reports\/export$/) && method === 'POST') {
+    if ((/\/api\/workspaces\/[^/]+\/reports\/export$/.exec(pathname)) && method === 'POST') {
       const resp = { job_id: "job-mock-123", total_batches: 5 };
       console.log(`[MOCK API EXPORT] Sending JSON: ${JSON.stringify(resp)}`);
       return fulfill(resp, 201);
     }
-    if (pathname.match(/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+$/) && method === 'GET') {
+    if ((/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+$/.exec(pathname)) && method === 'GET') {
       // Simulate completed job
       return fulfill({
         job_id: "job-mock-123",
@@ -298,7 +297,7 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    if (pathname.match(/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+\/download$/) && method === 'GET') {
+    if ((/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+\/download$/.exec(pathname)) && method === 'GET') {
       return route.fulfill({
         status: 200,
         contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

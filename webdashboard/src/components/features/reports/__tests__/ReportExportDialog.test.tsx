@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
@@ -150,8 +151,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await user.click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await user.click(startButton);
 
       await waitFor(() => {
         expect(attendanceApi.createReportExportJob).toHaveBeenCalledWith(
@@ -178,8 +179,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await user.click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await user.click(startButton);
 
       await waitFor(() => {
         expect(useReportStream).toHaveBeenCalledWith(
@@ -203,8 +204,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...props} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await user.click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await user.click(startButton);
 
       await waitFor(() => {
         expect(attendanceApi.createReportExportJob).toHaveBeenCalledWith(
@@ -236,8 +237,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await user.click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await user.click(startButton);
 
       await waitFor(() => {
         const statusText = screen.getByTestId("report-export-status-text");
@@ -252,8 +253,8 @@ describe("ReportExportDialog - Integration Tests", () => {
       );
 
       // Verify component handles completed state when set
-      const startBtn = screen.getByTestId("report-export-start-button");
-      expect(startBtn).toBeInTheDocument();
+      const startButton = screen.getByTestId("report-export-start-button");
+      expect(startButton).toBeInTheDocument();
 
       // Component has mechanism to handle completion
       expect(screen.getByTestId("report-export-dialog")).toBeInTheDocument();
@@ -265,8 +266,8 @@ describe("ReportExportDialog - Integration Tests", () => {
       );
 
       // Verify component can display errors
-      const startBtn = screen.getByTestId("report-export-start-button");
-      expect(startBtn).toBeInTheDocument();
+      const startButton = screen.getByTestId("report-export-start-button");
+      expect(startButton).toBeInTheDocument();
 
       // Component has error display infrastructure
       expect(screen.getByTestId("report-export-dialog")).toBeInTheDocument();
@@ -288,8 +289,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await userEvent.setup().click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await userEvent.setup().click(startButton);
 
       await waitFor(() => {
         const progressBar = screen.getByTestId("report-export-progress-bar");
@@ -311,8 +312,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await userEvent.setup().click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await userEvent.setup().click(startButton);
 
       await waitFor(() => {
         const progressFill = screen.getByTestId("report-export-progress-fill");
@@ -356,8 +357,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await userEvent.setup().click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await userEvent.setup().click(startButton);
 
       // Fallback notice should appear if fallback is active
       const fallbackNotice = screen.queryByTestId("report-export-fallback-notice");
@@ -383,8 +384,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await userEvent.setup().click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await userEvent.setup().click(startButton);
 
       await waitFor(() => {
         const errorDiv = screen.queryByTestId("report-export-error");
@@ -407,13 +408,13 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await userEvent.setup().click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await userEvent.setup().click(startButton);
 
       await waitFor(() => {
-        const retryBtn = screen.queryByTestId("report-export-retry-button");
-        if (retryBtn) {
-          expect(retryBtn).toBeInTheDocument();
+        const retryButton = screen.queryByTestId("report-export-retry-button");
+        if (retryButton) {
+          expect(retryButton).toBeInTheDocument();
         }
       });
     });
@@ -428,8 +429,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await userEvent.setup().click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await userEvent.setup().click(startButton);
 
       await waitFor(() => {
         // Component should handle the error gracefully
@@ -459,8 +460,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const cancelBtn = screen.getByTestId("report-export-cancel-button");
-      await user.click(cancelBtn);
+      const cancelButton = screen.getByTestId("report-export-cancel-button");
+      await user.click(cancelButton);
 
       expect(mockOnClose).toHaveBeenCalled();
     });
@@ -481,13 +482,13 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await user.click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await user.click(startButton);
 
       await waitFor(() => {
-        const backgroundBtn = screen.queryByTestId("report-export-background-button");
-        if (backgroundBtn) {
-          expect(backgroundBtn).toBeInTheDocument();
+        const backgroundButton = screen.queryByTestId("report-export-background-button");
+        if (backgroundButton) {
+          expect(backgroundButton).toBeInTheDocument();
         }
       });
     });
@@ -506,11 +507,11 @@ describe("ReportExportDialog - Integration Tests", () => {
       // Download functionality is conditionally rendered based on phase state
       // This test verifies the infrastructure exists
       const user = userEvent.setup();
-      const startBtn = screen.getByTestId("report-export-start-button");
-      expect(startBtn).toBeEnabled();
+      const startButton = screen.getByTestId("report-export-start-button");
+      expect(startButton).toBeEnabled();
 
       // Clicking start initiates the export process
-      await user.click(startBtn);
+      await user.click(startButton);
       expect(attendanceApi.createReportExportJob).toHaveBeenCalled();
     });
   });
@@ -542,8 +543,8 @@ describe("ReportExportDialog - Integration Tests", () => {
         <ReportExportDialog {...defaultProps} />
       );
 
-      const startBtn = screen.getByTestId("report-export-start-button");
-      await userEvent.setup().click(startBtn);
+      const startButton = screen.getByTestId("report-export-start-button");
+      await userEvent.setup().click(startButton);
 
       await waitFor(() => {
         const progressBar = screen.getByTestId("report-export-progress-bar");

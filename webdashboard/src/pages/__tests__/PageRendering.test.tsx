@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
@@ -99,7 +99,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     fetchEmploymentHistory: vi.fn(() => Promise.resolve([])),
     fetchRawAttendanceLogs: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
     fetchMyEmployeeProfile: vi.fn(() => Promise.resolve({ id: "emp-1", full_name: "Test User" })),
-  } as unknown as Record<string, unknown>;
+  };
 });
 
 vi.mock("recharts", () => ({
@@ -144,7 +144,7 @@ describe("Page Rendering", () => {
     // Wait for the title which might be translated
     await waitFor(() => {
       const titles = screen.getAllByRole("heading");
-      expect(titles.some(h => /Employees/i.test(h.textContent!) || /Nhân viên/i.test(h.textContent!))).toBe(true);
+      expect(titles.some(h => /Employees/i.test(h.textContent) || /Nhân viên/i.test(h.textContent))).toBe(true);
     });
   });
 
@@ -152,7 +152,7 @@ describe("Page Rendering", () => {
     renderPage(<LeaveBalancesPage />);
     await waitFor(() => {
       const titles = screen.getAllByRole("heading");
-      expect(titles.some(h => /Leave Balances/i.test(h.textContent!) || /Số dư nghỉ phép/i.test(h.textContent!))).toBe(true);
+      expect(titles.some(h => /Leave Balances/i.test(h.textContent) || /Số dư nghỉ phép/i.test(h.textContent))).toBe(true);
     });
   });
 
@@ -160,7 +160,7 @@ describe("Page Rendering", () => {
     renderPage(<AttendanceLogsPage />);
     await waitFor(() => {
       const titles = screen.getAllByRole("heading");
-      expect(titles.some(h => /Attendance Logs/i.test(h.textContent!) || /Nhật ký quẹt thẻ/i.test(h.textContent!))).toBe(true);
+      expect(titles.some(h => /Attendance Logs/i.test(h.textContent) || /Nhật ký quẹt thẻ/i.test(h.textContent))).toBe(true);
     });
   });
 

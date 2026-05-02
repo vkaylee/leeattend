@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { ToastProvider } from '../../components/ui/Toast';
@@ -12,7 +13,7 @@ import PayrollPage from '../PayrollPage';
 // Partially mock the API library
  
 vi.mock('../../lib/api', async () => {
-  const actual = await vi.importActual('../../lib/api') as Record<string, unknown>;
+  const actual = await vi.importActual('../../lib/api');
   return {
     ...actual,
     fetchEmployees: vi.fn(),
@@ -23,7 +24,7 @@ vi.mock('../../lib/api', async () => {
     getCurrentWorkspaceId: vi.fn(() => 'test-ws-id'),
     fetchWorkspaceAttendanceAdjustments: vi.fn(),
     fetchWorkspace: vi.fn(),
-  } as unknown as Record<string, unknown>;
+  };
 });
 
 vi.mock("../../hooks/use-workspace", () => ({
@@ -47,7 +48,7 @@ describe('PayrollPage', () => {
       total: 0,
       page: 1,
       limit: 3000,
-    } as unknown as PaginatedResponse<Employee>);
+    });
     vi.mocked(api.searchEmployees).mockResolvedValue({
  
       data: [],
@@ -58,7 +59,7 @@ describe('PayrollPage', () => {
  
       limit: 100,
  
-    } as unknown as PaginatedResponse<Employee>);
+    });
     vi.mocked(useWorkspace).mockReturnValue({
       workspace: {
         id: "test-ws-id",
@@ -68,9 +69,9 @@ describe('PayrollPage', () => {
       isLoading: false,
       isError: false,
     } as unknown as ReturnType<typeof useWorkspace>);
-    vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([] as unknown as Payslip[]);
-    vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([] as unknown as Payslip[]);
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([] as unknown as AttendanceAdjustmentRequest[]);
+    vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([]);
+    vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([] as unknown as never);
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue('test-ws-id');
   });
 
@@ -82,7 +83,7 @@ describe('PayrollPage', () => {
       total: 1,
       page: 1,
       limit: 3000,
-    } as unknown as PaginatedResponse<Employee>);
+    });
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -107,7 +108,7 @@ describe('PayrollPage', () => {
       total: 1,
       page: 1,
       limit: 3000,
-    } as unknown as PaginatedResponse<Employee>);
+    });
     vi.mocked(useWorkspace).mockReturnValue({
       workspace: {
         id: "test-ws-id",

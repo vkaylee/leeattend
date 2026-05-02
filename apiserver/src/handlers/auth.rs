@@ -180,18 +180,10 @@ pub async fn register(
     }
 
     // 4b. Auto-assign platform_admin to the very first user registered
-    let user_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
-        .fetch_one(&mut *tx)
-        .await?;
+    let user_count = user_repository::user_count_tx(&mut *tx).await?;
 
     if user_count == 1 {
-        sqlx::query(
-            "INSERT INTO user_system_roles (user_id, role_id) \
-             SELECT $1, id FROM system_roles WHERE name = 'platform_admin'",
-        )
-        .bind(user.id)
-        .execute(&mut *tx)
-        .await?;
+        user_repository::assign_platform_admin_tx(&mut *tx, user.id).await?;
 
         tracing::info!(
             user_id = %user.id,
@@ -353,11 +345,11 @@ pub async fn change_password(
     // 4. Hash new password
     let new_hash = AuthService::hash_password(&req.new_password).map_err(AppError::from)?;
 
-    // 5. Update DB
-    sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
-        .bind(new_hash)
-        .bind(user_id)
-        .execute(state.infra.db.api())
+    // 5. Update DB via repository
+    state
+        .core
+        .user_repo
+        .update_password_hash(user_id, &new_hash)
         .await?;
 
     // 6. Revoke all sessions (Force re-login)
@@ -421,14 +413,11 @@ pub async fn get_me(
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
     // Fetch system-level roles (platform_admin, support, etc.)
-    let system_roles: Vec<String> = sqlx::query_scalar(
-        "SELECT sr.name FROM user_system_roles usr \
-         JOIN system_roles sr ON sr.id = usr.role_id \
-         WHERE usr.user_id = $1",
-    )
-    .bind(user_id)
-    .fetch_all(state.infra.db.api())
-    .await?;
+    let system_roles = state
+        .core
+        .user_repo
+        .get_system_roles_for_user(user_id)
+        .await?;
 
     Ok(Json(UserResponse {
         id: user.id,
@@ -467,15 +456,11 @@ pub async fn update_me(
     UserId(user_id): UserId,
     Json(req): Json<UpdateUserRequest>,
 ) -> AppResult<Json<UserResponse>> {
-    let user = sqlx::query_as::<_, User>(
-        "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio) WHERE id = $4 RETURNING *"
-    )
-    .bind(req.full_name)
-    .bind(req.avatar_url)
-    .bind(req.bio)
-    .bind(user_id)
-    .fetch_one(state.infra.db.api())
-    .await?;
+    let user = state
+        .core
+        .user_repo
+        .update_user_profile(user_id, req.full_name, req.avatar_url, req.bio)
+        .await?;
 
     Ok(Json(UserResponse {
         id: user.id,
@@ -494,15 +479,11 @@ pub async fn get_users(
     ctx: crate::handlers::common::MemberContext,
 ) -> AppResult<Json<Vec<UserResponse>>> {
     // Scope to workspace members only to prevent cross-tenant data exposure
-    let users = sqlx::query_as::<_, User>(
-        "SELECT u.* FROM users u \
-         JOIN workspace_members wm ON u.id = wm.user_id \
-         WHERE wm.workspace_id = $1 \
-         ORDER BY u.created_at DESC",
-    )
-    .bind(ctx.workspace_id)
-    .fetch_all(state.infra.db.api())
-    .await?;
+    let users = state
+        .core
+        .user_repo
+        .get_workspace_users(ctx.workspace_id)
+        .await?;
 
     let user_responses: Vec<UserResponse> = users
         .into_iter()

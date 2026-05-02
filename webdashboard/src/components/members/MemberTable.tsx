@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import {
 
   Shield,
@@ -9,12 +7,12 @@ import {
   Mail,
   User as UserIcon,
 } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/PermissionGate";
 import PermissionManagementModal from "@/components/features/settings/PermissionManagementModal";
 import RoleManagementModal from "@/components/features/settings/RoleManagementModal";
-
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 import { WorkspaceRole } from "@/lib/api";
@@ -64,12 +62,12 @@ export default function MemberTable() {
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {members.map((member) => (
-                <tr key={member.user_id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+                <tr className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all" key={member.user_id}>
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold shadow-inner border border-primary-100 dark:border-primary-800/50 overflow-hidden group-hover:scale-110 transition-transform">
                         {member.avatar_url ? (
-                          <img src={member.avatar_url} alt="Member avatar" className="w-full h-full object-cover" />
+                          <img alt="Member avatar" className="w-full h-full object-cover" src={member.avatar_url} />
                         ) : (
                           <span className="text-lg uppercase">{(member.full_name || member.email).substring(0, 2)}</span>
                         )}
@@ -77,7 +75,7 @@ export default function MemberTable() {
                       <div>
                         <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name || t("common.no_name")}</div>
                         <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-2 opacity-70">
-                          <Mail size={12} className="text-primary-400" /> {member.email}
+                          <Mail className="text-primary-400" size={12} /> {member.email}
                         </div>
                       </div>
                     </div>
@@ -98,7 +96,7 @@ export default function MemberTable() {
                               "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm",
                               roleColorMap[primaryRole.color] || roleColorMap.slate
                             )}>
-                              {primaryRole.is_system && primaryRole.name.toLowerCase() === "owner" && <Shield size={10} />}
+                              {!!primaryRole.is_system && primaryRole.name.toLowerCase() === "owner" && <Shield size={10} />}
                               {primaryRole.name}
                             </span>
                             
@@ -113,10 +111,10 @@ export default function MemberTable() {
                                   <div className="p-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 border border-slate-100 dark:border-slate-800 flex flex-col gap-2">
                                     <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-100 dark:border-slate-800">Extra Roles</span>
                                     {extraRoles.map(er => (
-                                      <span key={er.id} className={cn(
+                                      <span className={cn(
                                         "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
                                         roleColorMap[er.color] || roleColorMap.slate
-                                      )}>
+                                      )} key={er.id}>
                                         {er.name}
                                       </span>
                                     ))}
@@ -132,14 +130,14 @@ export default function MemberTable() {
                   <td className="px-10 py-6 text-right">
                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                       <PermissionGate permission="members:roles:manage">
-                        <button onClick={() => handleManageRoles(member.user_id)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("members.table.manage_roles")}><UserCog size={20} /></button>
+                        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManageRoles(member.user_id); }} title={t("members.table.manage_roles")}><UserCog size={20} /></button>
                       </PermissionGate>
                       <PermissionGate permission="members:roles:manage">
-                        <button onClick={() => handleManagePermissions(member.user_id)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })}><KeyRound size={20} /></button>
+                        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:text-amber-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { handleManagePermissions(member.user_id); }} title={t("members.table.manage_permissions", { defaultValue: "Manage Permissions" })}><KeyRound size={20} /></button>
                       </PermissionGate>
                       {roles.find(r => r.id === member.role_id)?.name.toLowerCase() !== "owner" && (
                         <PermissionGate permission="members:remove">
-                          <button onClick={() => handleRemoveMember(member.user_id)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("members.table.remove_member")}><Trash2 size={20} /></button>
+                          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => handleRemoveMember(member.user_id)} title={t("members.table.remove_member")}><Trash2 size={20} /></button>
                         </PermissionGate>
                       )}
                     </div>
@@ -158,12 +156,10 @@ export default function MemberTable() {
         </div>
       </div>
 
-      {selectedUserId && (
-        <>
-          <RoleManagementModal isOpen={isRoleModalOpen} onClose={() => setIsRoleModalOpen(false)} userId={selectedUserId} />
-          <PermissionManagementModal isOpen={isPermModalOpen} onClose={() => setIsPermModalOpen(false)} userId={selectedUserId} />
-        </>
-      )}
+      {!!selectedUserId && <>
+          <RoleManagementModal isOpen={isRoleModalOpen} onClose={() => { setIsRoleModalOpen(false); }} userId={selectedUserId} />
+          <PermissionManagementModal isOpen={isPermModalOpen} onClose={() => { setIsPermModalOpen(false); }} userId={selectedUserId} />
+        </>}
       <ConfirmationDialog />
     </>
   );

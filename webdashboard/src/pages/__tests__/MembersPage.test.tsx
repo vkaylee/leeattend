@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -67,7 +67,7 @@ describe("MembersPage", () => {
       { id: "role-owner", name: "Owner", is_system: true, color: "rose", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
       { id: "role-admin", name: "Admin", is_system: true, color: "indigo", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
       { id: "role-member", name: "Member", is_system: true, color: "slate", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" }
-    ] as unknown as Awaited<ReturnType<typeof api.fetchWorkspaceRoles>>);
+    ]);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -92,12 +92,12 @@ describe("MembersPage", () => {
 
   it("handles inviting a new member", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.addWorkspaceMember).mockResolvedValue(undefined as unknown as void);
+    vi.mocked(api.addWorkspaceMember).mockResolvedValue(undefined);
 
     renderWithProviders(<MembersPage />);
 
-    const inviteBtn = await screen.findByText(/Invite Member|Mời thành viên/i, {}, { timeout: 30000 });
-    await user.click(inviteBtn);
+    const inviteButton = await screen.findByText(/Invite Member|Mời thành viên/i, {}, { timeout: 30000 });
+    await user.click(inviteButton);
 
     // Wait for modal subtitle (members.invite.subtitle)
     expect(await screen.findByText(/Manage Staff|Quản lý nhân sự/i)).toBeDefined();
@@ -105,8 +105,8 @@ describe("MembersPage", () => {
     const emailInput = screen.getByPlaceholderText(/dongnghiep@congty.com|email/i);
     await user.type(emailInput, "new@example.com");
 
-    const submitBtn = await screen.findByText(/Send Invitation|Gửi lời mời/i);
-    await user.click(submitBtn);
+    const submitButton = await screen.findByText(/Send Invitation|Gửi lời mời/i);
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(api.addWorkspaceMember).toHaveBeenCalledWith("test-ws-id", "new@example.com", "role-owner");
@@ -116,7 +116,7 @@ describe("MembersPage", () => {
 
   it("handles removing a member", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.removeWorkspaceMember).mockResolvedValue(undefined as unknown as void);
+    vi.mocked(api.removeWorkspaceMember).mockResolvedValue(undefined);
 
     renderWithProviders(<MembersPage />);
 
@@ -127,8 +127,8 @@ describe("MembersPage", () => {
     await user.click(removeBtns[0]);
 
     // MemberTable uses useConfirm hook which renders a custom dialog.
-    const confirmBtn = await screen.findByText(/Confirm|Xác nhận|common\.confirm/i, {}, { timeout: 3000 });
-    await user.click(confirmBtn);
+    const confirmButton = await screen.findByText(/Confirm|Xác nhận|common\.confirm/i, {}, { timeout: 3000 });
+    await user.click(confirmButton);
 
     await waitFor(() => {
       expect(api.removeWorkspaceMember).toHaveBeenCalledWith("test-ws-id", "user-2");
@@ -152,10 +152,10 @@ describe("MembersPage", () => {
     if (!adminRow) throw new Error("Could not find Admin User row");
 
     // "Manage Roles" should be the button with the UserCog icon / role management title
-    const manageBtn = adminRow.querySelector('button[title*="Manage Roles"], button[title*="Quản lý quyền"]') as HTMLButtonElement;
-    if (!manageBtn) throw new Error("Could not find Manage Roles button in Admin User row");
+    const manageButton = adminRow.querySelector('button[title*="Manage Roles"], button[title*="Quản lý quyền"]')!;
+    if (!manageButton) throw new Error("Could not find Manage Roles button in Admin User row");
 
-    await user.click(manageBtn);
+    await user.click(manageButton);
 
     expect(await screen.findByText(/Manage Member Roles|Quản lý quyền hạn/i)).toBeDefined();
     expect(api.fetchMemberRoles).toHaveBeenCalledWith("test-ws-id", "user-2");

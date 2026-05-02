@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api/payroll";
 
 import BonusPolicyManager from "../BonusPolicyManager";
@@ -43,7 +43,7 @@ describe("BonusPolicyManager", () => {
   beforeEach(() => {
     vi.clearAllMocks();
  
-    vi.mocked(api.fetchIncentivePolicies).mockResolvedValue([] as unknown as never);
+    vi.mocked(api.fetchIncentivePolicies).mockResolvedValue([]);
   });
 
   it("renders correctly and opens creation form", async () => {
@@ -51,8 +51,8 @@ describe("BonusPolicyManager", () => {
     
     expect(screen.getByText(/payroll.incentives.title/i)).toBeDefined();
     
-    const addBtn = screen.getByText(/payroll.incentives.add_btn/i);
-    fireEvent.click(addBtn);
+    const addButton = screen.getByText(/payroll.incentives.add_btn/i);
+    fireEvent.click(addButton);
     
     expect(screen.getByPlaceholderText(/e.g. Diligence Bonus/i)).toBeDefined();
     expect(screen.getByText(/payroll.incentives.tiers_config/i)).toBeDefined();
@@ -66,8 +66,8 @@ describe("BonusPolicyManager", () => {
     expect(screen.getAllByText(/#/i).length).toBe(2);
     
     // Add tier
-    const addTierBtn = screen.getByText(/common.add/i);
-    fireEvent.click(addTierBtn);
+    const addTierButton = screen.getByText(/common.add/i);
+    fireEvent.click(addTierButton);
     expect(screen.getAllByText(/#/i).length).toBe(3);
   });
 
@@ -81,8 +81,8 @@ describe("BonusPolicyManager", () => {
     const nameInput = screen.getByPlaceholderText(/e.g. Diligence Bonus/i);
     fireEvent.change(nameInput, { target: { value: "Monthly Diligence" } });
     
-    const saveBtn = screen.getByText(/common.save_settings/i);
-    fireEvent.click(saveBtn);
+    const saveButton = screen.getByText(/common.save_settings/i);
+    fireEvent.click(saveButton);
     
     await waitFor(() => {
       expect(api.createIncentivePolicy).toHaveBeenCalledWith(mockWsId, expect.objectContaining({

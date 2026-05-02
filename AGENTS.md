@@ -65,16 +65,13 @@ rg "pattern" | awk '{print $1}'
 > 
 > **AI Agents**: Always append `</dev/null` to prevent PTY hangs.
 
-| What you want | Command |
-|---------------|---------|
-| Quick API check (lint + unit + integration) | `./run-tests.sh --api </dev/null` |
-| Full test suite | `./run-tests.sh --all </dev/null` |
-| Single test | `./run-tests.sh --api --test-only --test=test_name </dev/null` |
-| See what would run | `./run-tests.sh --api --dry-run` |
-| Read failure logs | `cat .test_logs/latest-failure.log` |
-| Full help | `./run-tests.sh --help` |
+| Scope | Command | Purpose |
+|---------------|---------|---------|
+| **Frontend** | `./run-tests.sh --web </dev/null` | Lint, Unit (Vitest), E2E (Playwright) |
+| **Backend** | `./run-tests.sh --api </dev/null` | Lint, Unit (Rust), Integration (SQLx) |
+| **Full Suite** | `./run-tests.sh --all </dev/null` | Comprehensive verification |
 
-**After fixing code, ALWAYS verify with `./run-tests.sh` before claiming done.**
+**After fixing code, ALWAYS verify with the appropriate domain flag above before claiming done.**
 
 ## 🏗️ Project Structure
 

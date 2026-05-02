@@ -1,6 +1,6 @@
+import { render, screen } from "@testing-library/react";
 import React from "react";
 
-import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 
@@ -8,12 +8,12 @@ import SearchBox from "../SearchBox";
 
 describe("SearchBox", () => {
     it("renders with placeholder text", () => {
-        render(<SearchBox value="" onChange={() => { }} placeholder="Search employees..." />);
+        render(<SearchBox onChange={() => { }} placeholder="Search employees..." value="" />);
         expect(screen.getByPlaceholderText("Search employees...")).toBeDefined();
     });
 
     it("renders the search icon", () => {
-        const { container } = render(<SearchBox value="" onChange={() => { }} />);
+        const { container } = render(<SearchBox onChange={() => { }} value="" />);
         const svg = container.querySelector("svg");
         expect(svg).toBeDefined();
     });
@@ -21,7 +21,7 @@ describe("SearchBox", () => {
     it("calls onChange when typing", async () => {
         const onChange = vi.fn();
         const user = userEvent.setup();
-        render(<SearchBox value="" onChange={onChange} data-testid="search" />);
+        render(<SearchBox data-testid="search" onChange={onChange} value="" />);
 
         const input = screen.getByTestId("search");
         await user.type(input, "A");
@@ -29,14 +29,14 @@ describe("SearchBox", () => {
     });
 
     it("shows clear X button when value is non-empty", () => {
-        const { container } = render(<SearchBox value="hello" onChange={() => { }} />);
+        const { container } = render(<SearchBox onChange={() => { }} value="hello" />);
         // X button should be present as a button inside the component
         const buttons = container.querySelectorAll("button");
         expect(buttons.length).toBe(1);
     });
 
     it("does NOT show clear X button when value is empty", () => {
-        const { container } = render(<SearchBox value="" onChange={() => { }} />);
+        const { container } = render(<SearchBox onChange={() => { }} value="" />);
         const buttons = container.querySelectorAll("button");
         expect(buttons.length).toBe(0);
     });
@@ -44,10 +44,10 @@ describe("SearchBox", () => {
     it("calls onChange with empty string when X is clicked", async () => {
         const onChange = vi.fn();
         const user = userEvent.setup();
-        const { container } = render(<SearchBox value="hello" onChange={onChange} />);
+        const { container } = render(<SearchBox onChange={onChange} value="hello" />);
 
-        const clearBtn = container.querySelector("button")!;
-        await user.click(clearBtn);
+        const clearButton = container.querySelector("button")!;
+        await user.click(clearButton);
         expect(onChange).toHaveBeenCalledWith("");
     });
 
@@ -55,7 +55,7 @@ describe("SearchBox", () => {
         const selectSpy = vi.spyOn(HTMLInputElement.prototype, "select");
         const user = userEvent.setup();
  
-        render(<SearchBox value="hello" onChange={() => { }} data-testid="search" />);
+        render(<SearchBox data-testid="search" onChange={() => { }} value="hello" />);
 
         const input = screen.getByTestId("search");
         await user.click(input);
@@ -65,7 +65,7 @@ describe("SearchBox", () => {
     });
 
     it("applies custom className", () => {
-        const { container } = render(<SearchBox value="" onChange={() => { }} className="custom-class" />);
+        const { container } = render(<SearchBox className="custom-class" onChange={() => { }} value="" />);
         const wrapper = container.firstChild as HTMLElement;
         expect(wrapper.className).toContain("custom-class");
     });

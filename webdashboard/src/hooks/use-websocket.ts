@@ -66,9 +66,9 @@ export function useWebSocket() {
     };
   }, []);
 
-  const sendMessage = (msg: WsMessage) => {
+  const sendMessage = (message: WsMessage) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(msg));
+      socketRef.current.send(JSON.stringify(message));
     }
   };
 

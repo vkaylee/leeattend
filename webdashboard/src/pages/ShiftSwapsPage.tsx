@@ -1,5 +1,3 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     ArrowLeftRight,
@@ -16,6 +14,7 @@ import {
     ChevronRight,
     Info,
 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import ApprovalListLayout, { TabConfig } from "@/components/templates/ApprovalListLayout";
@@ -24,11 +23,9 @@ import { Combobox } from "@/components/ui/Combobox";
 import FormField from "@/components/ui/FormField";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
-
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { cn } from "@/lib/utils";
-
 
 import {
     getCurrentWorkspaceId,
@@ -62,7 +59,7 @@ export default function ShiftSwapsPage() {
 
     const { data: swaps = [], isLoading } = useQuery({
         queryKey: ["shift-swaps", wsId, activeTab],
-        queryFn: () => fetchShiftSwaps(wsId!, activeTab as ShiftSwapStatus),
+        queryFn: () => fetchShiftSwaps(wsId!, activeTab),
         enabled: !!wsId,
     });
 
@@ -131,67 +128,54 @@ export default function ShiftSwapsPage() {
     ];
 
     const tableHeaders = [
-        <th key="date" className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+        <th className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" key="date">
             {t("shift_swaps.swap_date")}
         </th>,
-        <th key="requester" className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" key="requester">
             {t("shift_swaps.requester")}
         </th>,
-        <th key="arrow" className="px-4 py-6 text-center">
-            <ArrowLeftRight size={14} className="text-slate-400 mx-auto" />
+        <th className="px-4 py-6 text-center" key="arrow">
+            <ArrowLeftRight className="text-slate-400 mx-auto" size={14} />
         </th>,
-        <th key="target" className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" key="target">
             {t("shift_swaps.target")}
         </th>,
-        <th key="reason" className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]" key="reason">
             {t("shift_swaps.reason")}
         </th>,
-        <th key="status" className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
+        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center" key="status">
             {t("common.status")}
         </th>,
-        <th key="actions" className="px-10 py-6"></th>,
+        <th className="px-10 py-6" key="actions"></th>,
     ];
 
     return (
         <ApprovalListLayout
-            title={t("shift_swaps.title")}
-            subtitle={t("shift_swaps.subtitle")}
-            headerActions={
-                <Button onClick={() => setShowCreateForm(!showCreateForm)} icon={<Plus size={18} />}>
-                    {t("shift_swaps.create_btn")}
-                </Button>
-            }
-            tabs={tabs}
             activeTab={activeTab}
-            onTabChange={(id) => setActiveTab(id as TabType)}
-            tableHeaders={tableHeaders}
-            isLoading={isLoading}
-            isEmpty={swaps.length === 0}
-            emptyMessage={t("shift_swaps.messages.no_data")}
             banner={
                 <>
                     {/* Usage Guide */}
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-800/50 rounded-[2rem] overflow-hidden shadow-sm">
                         <button
-                            onClick={() => setShowGuide(!showGuide)}
                             className="flex items-center justify-between w-full px-8 py-5 group"
+                            onClick={() => { setShowGuide(!showGuide); }}
                         >
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
-                                    <HelpCircle size={18} className="text-blue-600 dark:text-blue-400" />
+                                    <HelpCircle className="text-blue-600 dark:text-blue-400" size={18} />
                                 </div>
                                 <span className="text-sm font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest">
                                     {t("shift_swaps.guide.title")}
                                 </span>
                             </div>
                             {showGuide ? (
-                                <ChevronDown size={16} className="text-blue-400" />
+                                <ChevronDown className="text-blue-400" size={16} />
                             ) : (
-                                <ChevronRight size={16} className="text-blue-400" />
+                                <ChevronRight className="text-blue-400" size={16} />
                             )}
                         </button>
 
-                        {showGuide && (
+                        {!!showGuide && (
                             <div className="px-8 pb-8 animate-in slide-in-from-top-4 duration-300">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-blue-100 dark:border-blue-800/30">
                                     <div className="space-y-3">
@@ -230,17 +214,17 @@ export default function ShiftSwapsPage() {
                                 </div>
 
                                 <div className="mt-6 p-4 bg-white/50 dark:bg-slate-900/30 rounded-2xl flex items-start gap-3">
-                                    <Info size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                                    <Info className="text-blue-500 mt-0.5 shrink-0" size={16} />
                                     <p className="text-xs font-bold text-blue-800 dark:text-blue-200 tracking-tight leading-relaxed">
                                         {t("shift_swaps.guide.note")}
                                     </p>
                                 </div>
                             </div>
-                        )}
+                          )}
                     </div>
 
                     {/* Quick Stats */}
-                    {stats && (
+                    {!!stats && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-bottom-4 duration-500 delay-100">
                             {[
                                 {
@@ -269,22 +253,22 @@ export default function ShiftSwapsPage() {
                                 },
                             ].map((stat) => (
                                 <div
-                                    key={stat.key}
-                                    onClick={() => setActiveTab(stat.key as TabType)}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
-                                            e.preventDefault();
-                                            setActiveTab(stat.key as TabType);
-                                        }
-                                    }}
                                     className={cn(
                                         "bg-white dark:bg-slate-900 p-5 rounded-[2rem] border shadow-sm cursor-pointer hover:shadow-md transition-all group",
                                         activeTab === stat.key
                                             ? `border-${stat.color}-300 dark:border-${stat.color}-700 ring-2 ring-${stat.color}-100 dark:ring-${stat.color}-900`
                                             : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700",
                                     )}
+                                    key={stat.key}
+                                    onClick={() => { setActiveTab(stat.key as TabType); }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setActiveTab(stat.key as TabType);
+                                        }
+                                    }}
+                                    role="button"
+                                    tabIndex={0}
                                 >
                                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
                                         {stat.label}
@@ -297,10 +281,10 @@ export default function ShiftSwapsPage() {
                                 </div>
                             ))}
                         </div>
-                    )}
+                      )}
 
                     {/* Create Form */}
-                    {showCreateForm && (
+                    {!!showCreateForm && (
                         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2rem] shadow-sm animate-in zoom-in-95 duration-300 mb-8">
                             <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight mb-6 flex items-center gap-2">
                                 <ArrowLeftRight className="text-primary-500" />
@@ -314,14 +298,14 @@ export default function ShiftSwapsPage() {
                                         {t("shift_swaps.requester")}
                                     </label>
                                     <Combobox
+                                        className="h-14 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700"
+                                        onChange={setRequesterId}
                                         options={employees.map((e) => ({
                                             value: e.id,
                                             label: e.full_name.toUpperCase(),
                                         }))}
-                                        value={requesterId}
-                                        onChange={setRequesterId}
                                         placeholder={t("common.employee")}
-                                        className="h-14 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700"
+                                        value={requesterId}
                                     />
                                 </div>
 
@@ -331,17 +315,17 @@ export default function ShiftSwapsPage() {
                                         {t("shift_swaps.target")}
                                     </label>
                                     <Combobox
+                                        className="h-14 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700"
+                                        disabled={!requesterId}
+                                        onChange={setTargetId}
                                         options={employees
                                             .filter((e) => e.id !== requesterId)
                                             .map((e) => ({
                                                 value: e.id,
                                                 label: e.full_name.toUpperCase(),
                                             }))}
-                                        value={targetId}
-                                        onChange={setTargetId}
                                         placeholder={t("common.employee")}
-                                        className="h-14 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700"
-                                        disabled={!requesterId}
+                                        value={targetId}
                                     />
                                 </div>
                             </div>
@@ -349,62 +333,75 @@ export default function ShiftSwapsPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                                 <FormField
                                     id="swap_date"
-                                    name="swap_date"
-                                    type="date"
-                                    label={t("shift_swaps.swap_date")}
-                                    value={swapDate}
-                                    onChange={(e) => setSwapDate(e.target.value)}
-                                    required
                                     inputClassName="text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-800"
+                                    label={t("shift_swaps.swap_date")}
+                                    name="swap_date"
+                                    onChange={(e) => { setSwapDate(e.target.value); }}
+                                    required
+                                    type="date"
+                                    value={swapDate}
                                 />
 
                                 <FormField
                                     id="swap_reason"
-                                    name="reason"
-                                    type="text"
-                                    label={t("shift_swaps.reason")}
-                                    value={reason}
-                                    onChange={(e) => setReason(e.target.value)}
-                                    placeholder={t("common.no_notes")}
                                     inputClassName="text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-800"
+                                    label={t("shift_swaps.reason")}
+                                    name="reason"
+                                    onChange={(e) => { setReason(e.target.value); }}
+                                    placeholder={t("common.no_notes")}
+                                    type="text"
+                                    value={reason}
                                 />
                             </div>
 
                             <div className="flex justify-end gap-4 pt-6 border-t border-slate-50 dark:border-slate-800">
                                 <Button
+                                    onClick={() => { setShowCreateForm(false); }}
                                     variant="outline"
-                                    onClick={() => setShowCreateForm(false)}
                                 >
                                     {t("common.cancel")}
                                 </Button>
                                 <Button
-                                    onClick={handleCreate}
                                     disabled={
                                         createMutation.isPending ||
                                         !requesterId ||
                                         !targetId ||
                                         !swapDate
                                     }
+                                    onClick={handleCreate}
                                 >
                                     {t("common.save")}
                                 </Button>
                             </div>
                         </div>
-                    )}
+                      )}
                 </>
             }
+            emptyMessage={t("shift_swaps.messages.no_data")}
+            headerActions={
+                <Button icon={<Plus size={18} />} onClick={() => { setShowCreateForm(!showCreateForm); }}>
+                    {t("shift_swaps.create_btn")}
+                </Button>
+            }
+            isEmpty={swaps.length === 0}
+            isLoading={isLoading}
+            onTabChange={(id) => { setActiveTab(id as TabType); }}
+            subtitle={t("shift_swaps.subtitle")}
+            tableHeaders={tableHeaders}
+            tabs={tabs}
+            title={t("shift_swaps.title")}
         >
             {swaps.map((swap) => (
                 <tr
-                    key={swap.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group"
+                    key={swap.id}
                 >
                     {/* Date */}
                     <td className="px-10 py-6">
                         <div className="inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-inner">
                             <CalendarDays
-                                size={14}
                                 className="text-primary-600 dark:text-primary-400"
+                                size={14}
                             />
                             <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">
                                 {formatDate(swap.swap_date)}
@@ -427,8 +424,8 @@ export default function ShiftSwapsPage() {
                     {/* Arrow */}
                     <td className="px-4 py-6 text-center">
                         <ArrowRight
-                            size={16}
                             className="text-slate-300 dark:text-slate-600 mx-auto"
+                            size={16}
                         />
                     </td>
 
@@ -466,25 +463,25 @@ export default function ShiftSwapsPage() {
                         {swap.status === "pending_admin" && (
                             <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
                                 <button
+                                    className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90"
                                     onClick={() =>
-                                        approveMutation.mutate({
+                                        { approveMutation.mutate({
                                             id: swap.id,
                                             status: "approved",
-                                        })
+                                        }); }
                                     }
-                                    className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90"
                                     title={t("common.approve")}
                                 >
                                     <Check size={18} />
                                 </button>
                                 <button
+                                    className="p-3 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-xl shadow-md border border-rose-100 dark:border-rose-800 transition-all active:scale-90"
                                     onClick={() =>
-                                        approveMutation.mutate({
+                                        { approveMutation.mutate({
                                             id: swap.id,
                                             status: "rejected",
-                                        })
+                                        }); }
                                     }
-                                    className="p-3 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-xl shadow-md border border-rose-100 dark:border-rose-800 transition-all active:scale-90"
                                     title={t("common.reject")}
                                 >
                                     <X size={18} />

@@ -6,11 +6,11 @@ test.describe.skip('Sidebar Navigation', () => {
     await page.goto('/login');
     
     // 2. Wait for login page to be ready
-    const fastLoginBtn = page.getByTestId('fast-login-btn');
-    await expect(fastLoginBtn).toBeVisible({ timeout: 30000 });
+    const fastLoginButton = page.getByTestId('fast-login-btn');
+    await expect(fastLoginButton).toBeVisible({ timeout: 30000 });
     
     // 3. Click Fast Login
-    await fastLoginBtn.click();
+    await fastLoginButton.click();
 
     // 4. Wait for dashboard to load
     await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 30000 });
@@ -33,10 +33,10 @@ test.describe.skip('Sidebar Navigation', () => {
     await page.goto('/login');
     
     // Wait for login page to be ready
-    const fastLoginBtn = page.getByTestId('fast-login-btn');
-    await expect(fastLoginBtn).toBeVisible({ timeout: 30000 });
+    const fastLoginButton = page.getByTestId('fast-login-btn');
+    await expect(fastLoginButton).toBeVisible({ timeout: 30000 });
     
-    await fastLoginBtn.click();
+    await fastLoginButton.click();
     
     // Wait for dashboard to load properly
     await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 30000 });

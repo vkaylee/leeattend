@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useDeviceInfo, devicesKeys } from "../use-devices";
@@ -13,7 +13,7 @@ vi.mock("@/lib/api", () => ({
     createDevice: vi.fn(),
     updateDevice: vi.fn(),
     deleteDevice: vi.fn(),
-    fetchDeviceInfo: (...args: unknown[]) => mockFetchDeviceInfo(...args),
+    fetchDeviceInfo: (...arguments_: unknown[]) => mockFetchDeviceInfo(...arguments_),
 }));
 
 function createWrapper() {
@@ -52,7 +52,7 @@ describe("useDeviceInfo", () => {
             { wrapper: createWrapper() }
         );
 
-        await waitFor(() => expect(result.current.data).toBeDefined());
+        await waitFor(() => { expect(result.current.data).toBeDefined(); });
 
         expect(mockFetchDeviceInfo).toHaveBeenCalledWith("dev-1");
         expect(result.current.data).toEqual(mockInfo);
@@ -87,10 +87,10 @@ describe("useDeviceInfo", () => {
             { wrapper: createWrapper() }
         );
 
-        await waitFor(() => expect(result.current.error).toBeTruthy());
+        await waitFor(() => { expect(result.current.error).toBeTruthy(); });
 
         expect(result.current.error).toBeInstanceOf(Error);
-        expect((result.current.error as Error).message).toBe("Agent offline");
+        expect((result.current.error!).message).toBe("Agent offline");
     });
 
     it("generates correct query keys", () => {

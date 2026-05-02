@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Building2, 
@@ -14,15 +12,14 @@ import {
   ChevronRight,
   Filter
 } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
 
 import Button from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
 import { LABEL_BASE } from "@/components/ui/FormField";
 import Sheet from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toast";
-
 import { 
   fetchPolicyAssignments, 
   upsertPolicyAssignment, 
@@ -148,11 +145,11 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
           </div>
           <div className="flex items-center gap-3">
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-              <button onClick={() => setActiveFilter("ALL")} className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "ALL" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")}>{t("attendance_policy_overrides.filters.all")}</button>
-              <button onClick={() => setActiveFilter("GROUP")} className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "GROUP" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")}>{t("attendance_policy_overrides.filters.depts")}</button>
-              <button onClick={() => setActiveFilter("USER")} className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "USER" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")}>{t("attendance_policy_overrides.filters.users")}</button>
+              <button className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "ALL" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")} onClick={() => { setActiveFilter("ALL"); }}>{t("attendance_policy_overrides.filters.all")}</button>
+              <button className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "GROUP" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")} onClick={() => { setActiveFilter("GROUP"); }}>{t("attendance_policy_overrides.filters.depts")}</button>
+              <button className={cn("px-4 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition-all", activeFilter === "USER" ? "bg-white dark:bg-slate-900 shadow-sm text-slate-800 dark:text-slate-200" : "text-slate-500 hover:text-slate-700")} onClick={() => { setActiveFilter("USER"); }}>{t("attendance_policy_overrides.filters.users")}</button>
             </div>
-            <Button icon={<Plus size={18} />} onClick={() => setIsDrawerOpen(true)}>{t("attendance_policy_overrides.add_button")}</Button>
+            <Button icon={<Plus size={18} />} onClick={() => { setIsDrawerOpen(true); }}>{t("attendance_policy_overrides.add_button")}</Button>
           </div>
         </div>
       </div>
@@ -167,7 +164,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
         ) : (
           <div className="space-y-4">
             {filteredAssignments.map(assignment => (
-              <div key={assignment.id} className="group relative border border-slate-100 dark:border-slate-800 rounded-2xl p-6 bg-slate-50/50 dark:bg-slate-800/20 hover:bg-white dark:hover:bg-slate-800 transition-all flex items-center justify-between">
+              <div className="group relative border border-slate-100 dark:border-slate-800 rounded-2xl p-6 bg-slate-50/50 dark:bg-slate-800/20 hover:bg-white dark:hover:bg-slate-800 transition-all flex items-center justify-between" key={assignment.id}>
                 <div className="flex items-center gap-5">
                   <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm border", assignment.target_type === "GROUP" ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400" : "bg-teal-50 dark:bg-teal-950/30 border-teal-100 dark:border-teal-800 text-teal-600 dark:text-teal-400")}>
                     {assignment.target_type === "GROUP" ? <Building2 size={24} /> : <User size={24} />}
@@ -200,7 +197,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button onClick={() => deleteMutation.mutate(assignment.id)} className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors">
+                  <button className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors" onClick={() => { deleteMutation.mutate(assignment.id); }}>
                     <Trash2 size={18} />
                   </button>
                   <button className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -215,9 +212,9 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
 
       <Sheet
         isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        title={t("attendance_policy_overrides.drawer.add_title")}
+        onClose={() => { setIsDrawerOpen(false); }}
         subtitle={t("attendance_policy_overrides.drawer.add_subtitle")}
+        title={t("attendance_policy_overrides.drawer.add_title")}
       >
         <div className="space-y-8">
           <div className="space-y-4">
@@ -243,10 +240,10 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
             <div>
               <label className={LABEL_BASE}>{t("attendance_policy_overrides.drawer.select_target_type", { type: targetType === "GROUP" ? t("attendance_policy_overrides.labels.department") : t("attendance_policy_overrides.labels.employee") })}</label>
               <Combobox
-                options={targetOptions}
-                value={targetId}
                 onChange={setTargetId}
+                options={targetOptions}
                 placeholder={t("attendance_policy_overrides.drawer.search_placeholder", { type: targetType === "GROUP" ? t("attendance_policy_overrides.labels.department") : t("attendance_policy_overrides.labels.employee") })}
+                value={targetId}
               />
             </div>
           </div>
@@ -257,30 +254,30 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
             <div className="space-y-5 bg-slate-50/50 dark:bg-slate-800/30 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
               <div className="space-y-3">
                 <label className={LABEL_BASE}>{t("common.workspace_settings.valid_from") || "Effective From"}</label>
-                <input type="date" value={validFrom} onChange={e => setValidFrom(e.target.value)} className="w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" />
+                <input className="w-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" onChange={e => { setValidFrom(e.target.value); }} type="date" value={validFrom} />
               </div>
 
               <div className="space-y-3">
                 <label className={LABEL_BASE}>{t("common.workspace_settings.work_unit")}</label>
-                <Combobox options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnitMinutes.toString()} onChange={(v) => setWorkUnitMinutes(parseInt(v))} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" />
+                <Combobox className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" onChange={(v) => { setWorkUnitMinutes(parseInt(v)); }} options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnitMinutes.toString()} />
               </div>
 
               <div className="space-y-3">
                 <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
-                <Combobox options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy} onChange={setRoundingPolicy} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" />
+                <Combobox className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14" onChange={setRoundingPolicy} options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy} />
               </div>
 
               <div className="space-y-3">
                 <label className={LABEL_BASE}>{t("common.workspace_settings.early_arrival_strategy")}</label>
                 <Combobox
+                  className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14"
+                  onChange={(v) => { setEarlyArrivalStrategy(v as "allow" | "block" | "clamp"); }}
                   options={[
                     { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> },
                     { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> },
                     { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
                   ]}
                   value={earlyArrivalStrategy}
-                  onChange={(v) => setEarlyArrivalStrategy(v as "allow" | "block" | "clamp")}
-                  className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-14"
                 />
                 { }
               </div>
@@ -290,8 +287,8 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
             <Button 
               className="w-full" 
-              onClick={handleSave} 
-              loading={upsertMutation.isPending}
+              loading={upsertMutation.isPending} 
+              onClick={handleSave}
             >
               {t("attendance_policy_overrides.drawer.save_button")}
             </Button>

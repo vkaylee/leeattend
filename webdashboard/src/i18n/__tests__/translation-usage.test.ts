@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-
 import { describe, it, expect } from 'vitest';
 
 import en from '../locales/en.json';
@@ -8,7 +7,7 @@ import vi from '../locales/vi.json';
 import zh from '../locales/zh.json';
 
  
-type JsonObject = { [key: string]: any };
+type JsonObject = Record<string, any>;
 
 const locales = { en, vi, zh };
 
@@ -16,9 +15,9 @@ const KEY_WHITELIST = [
   'common.languages.', // Dynamic language keys
 ];
 
-function getAllKeys(obj: JsonObject, prefix = ''): { key: string; value: string }[] {
-  return Object.keys(obj).reduce((keys: { key: string; value: string }[], key: string) => {
-    const value = obj[key];
+function getAllKeys(object: JsonObject, prefix = ''): { key: string; value: string }[] {
+  return Object.keys(object).reduce((keys: { key: string; value: string }[], key: string) => {
+    const value = object[key];
     const newPrefix = prefix ? `${prefix}.${key}` : key;
 
     if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -90,12 +89,12 @@ describe('Translation Usage', () => {
 
     if (missingKeys.length > 0) {
       console.error('Found translation keys in code that are missing from locale files:');
-      const grouped = missingKeys.reduce((acc, { file, key, lang }) => {
+      const grouped = missingKeys.reduce<Record<string, string[]>>((accumulator, { file, key, lang }) => {
         const fileKey = `${file} [${lang}]`;
-        if (!acc[fileKey]) acc[fileKey] = [];
-        acc[fileKey].push(key);
-        return acc;
-      }, {} as Record<string, string[]>);
+        if (!accumulator[fileKey]) accumulator[fileKey] = [];
+        accumulator[fileKey].push(key);
+        return accumulator;
+      }, {});
 
       Object.entries(grouped).forEach(([fileLang, keys]) => {
         console.error(`  ${fileLang}: ${Array.from(new Set(keys)).sort().join(', ')}`);
@@ -136,7 +135,7 @@ describe('Translation Usage', () => {
     const hardcodedStrings: { file: string; line: number; text: string }[] = [];
 
     const textNodeRegex = />([^<>{}\n\s][^<>{}\n]*[^<>{}\n\s])</g;
-    const attrRegex = /\b(placeholder|title|label)\s*=\s*['"]([^'"]+)['"]/g;
+    const attributeRegex = /\b(placeholder|title|label)\s*=\s*['"]([^'"]+)['"]/g;
 
     files.forEach((file) => {
       if (file.includes('lib/api') || file.includes('lib/utils') || file.includes('DebugToolbar')) return;
@@ -163,7 +162,7 @@ describe('Translation Usage', () => {
           }
         }
 
-        while ((match = attrRegex.exec(line)) !== null) {
+        while ((match = attributeRegex.exec(line)) !== null) {
           const text = match[2].trim();
           if (text.length > 2 && /[a-zA-Z]/.test(text)) {
             hardcodedStrings.push({ file, line: index + 1, text });

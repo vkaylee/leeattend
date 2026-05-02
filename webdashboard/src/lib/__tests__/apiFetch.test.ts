@@ -50,7 +50,7 @@ describe("apiFetch utility", () => {
 
     await apiFetch("/test", { method: "POST", body: new FormData() });
 
-    const callHeaders = (vi.mocked(fetch).mock.calls[0][1] as RequestInit).headers as Record<string, string>;
+    const callHeaders = (vi.mocked(fetch).mock.calls[0][1]!).headers as Record<string, string>;
     expect(callHeaders["Content-Type"]).toBeUndefined();
   });
 

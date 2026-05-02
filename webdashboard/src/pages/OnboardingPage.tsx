@@ -1,15 +1,12 @@
-import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-
 import { useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, Plus, LogOut } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
 import { LABEL_BASE } from "@/components/ui/FormField";
-
 import { useWorkspaces, workspaceKeys } from "@/hooks/use-workspace";
-
 import { setCurrentWorkspaceId } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 
@@ -51,8 +48,8 @@ export default function OnboardingPage() {
       {/* Top Right Actions */}
       <div className="absolute top-6 right-6 z-50">
         <button
-          onClick={handleLogout}
           className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+          onClick={handleLogout}
         >
           {t("common.logout")}
           <LogOut size={16} />
@@ -64,7 +61,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-premium-2xl border border-white/60 p-12 animate-in zoom-in-95 duration-1000 relative z-10">
         <div className="flex flex-col items-center gap-8 mb-12">
           <div className="bg-slate-900 w-24 h-24 rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-slate-400 dark:shadow-black/40 rotate-3 transform hover:rotate-0 transition-all duration-700 group">
-            <LayoutDashboard size={40} className="text-white group-hover:scale-110 transition-transform" />
+            <LayoutDashboard className="text-white group-hover:scale-110 transition-transform" size={40} />
           </div>
           <div className="text-center space-y-3">
             <h1 className="text-4xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter leading-none uppercase">
@@ -76,30 +73,30 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-10">
+        <form className="space-y-10" onSubmit={handleSubmit}>
           <div className="space-y-3 px-1">
             <label className={LABEL_BASE}>
               {t("onboarding.org_name_label")}
             </label>
             <input
  
-              type="text"
-              placeholder={t("onboarding.org_name_placeholder")}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 focus:border-primary-200 dark:border-primary-800 transition-all font-bold uppercase tracking-tight shadow-inner"
+              className="w-full px-6 py-4.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 focus:border-primary-200 dark:border-primary-800 transition-all font-bold tracking-tight shadow-inner"
               disabled={isSubmitting}
+              onChange={(e) => { setName(e.target.value); }}
+              placeholder={t("onboarding.org_name_placeholder")}
+              type="text"
+              value={name}
             />
           </div>
 
           <Button
-            type="submit"
-            disabled={isSubmitting || !name.trim()}
-            loading={isSubmitting}
-            icon={isSubmitting ? undefined : <Plus size={18} />}
-            size="lg"
-            variant="secondary"
             className="w-full"
+            disabled={isSubmitting || !name.trim()}
+            icon={isSubmitting ? undefined : <Plus size={18} />}
+            loading={isSubmitting}
+            size="lg"
+            type="submit"
+            variant="secondary"
           >
             {t("onboarding.start_now_btn").toUpperCase()}
           </Button>

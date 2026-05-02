@@ -13,28 +13,28 @@ const LABEL_BASE =
 // ── Component ──────────────────────────────────────────────────────
 
 export interface FormFieldProps {
+  /** Wrapper className */
+  className?: string;
+  "data-testid"?: string;
+  defaultValue?: string;
+  disabled?: boolean;
+  /** HTML id */
+  id?: string;
+  /** Extra className for the input element (e.g. "font-mono") */
+  inputClassName?: string;
   label: string;
   /** HTML name attribute */
   name?: string;
-  /** Input type — "textarea" renders a <textarea> */
-  type?: "text" | "date" | "time" | "tel" | "email" | "number" | "textarea";
-  required?: boolean;
-  defaultValue?: string;
-  value?: string;
   onChange?: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => void;
   placeholder?: string;
-  /** Extra className for the input element (e.g. "font-mono") */
-  inputClassName?: string;
-  /** HTML id */
-  id?: string;
-  "data-testid"?: string;
+  required?: boolean;
   /** Textarea rows (default: 5) */
   rows?: number;
-  /** Wrapper className */
-  className?: string;
-  disabled?: boolean;
+  /** Input type — "textarea" renders a <textarea> */
+  type?: "text" | "date" | "time" | "tel" | "email" | "number" | "textarea";
+  value?: string;
 }
 
  
@@ -70,30 +70,30 @@ const FormField = memo(function FormField({
 
   return (
     <div className={cn("space-y-3 px-1", className)}>
-      <label htmlFor={inputId} className={LABEL_BASE}>
+      <label className={LABEL_BASE} htmlFor={inputId}>
         {label}
       </label>
       {type === "textarea" ? (
         <textarea
           {...sharedProps}
-          onChange={onChange as React.ChangeEventHandler<HTMLTextAreaElement>}
-          rows={rows}
           className={cn(
             INPUT_BASE,
             "font-medium text-sm resize-none",
             inputClassName,
           )}
+          onChange={onChange}
+          rows={rows}
         />
       ) : (
         <input
           {...sharedProps}
-          type={type}
-          onChange={onChange as React.ChangeEventHandler<HTMLInputElement>}
           className={cn(
             INPUT_BASE,
             "font-medium text-sm",
             inputClassName,
           )}
+          onChange={onChange}
+          type={type}
         />
       )}
     </div>

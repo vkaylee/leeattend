@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import { Employee, Payslip, Workspace } from "@/lib/api/types";
@@ -143,9 +144,9 @@ describe("PayslipDocument", () => {
       />
     );
 
-    const doc = container.querySelector("#payslip-document");
-    expect(doc).toBeDefined();
-    expect(doc?.className).toContain("bg-white");
+    const document_ = container.querySelector("#payslip-document");
+    expect(document_).toBeDefined();
+    expect(document_?.className).toContain("bg-white");
   });
 
   it("displays company header with workspace name", () => {

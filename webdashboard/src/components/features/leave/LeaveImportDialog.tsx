@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Download, AlertTriangle, XCircle } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import Modal from "@/components/ui/Modal";
+import type { LeaveImportJob } from "@/lib/api/leaves";
 
+import Modal from "@/components/ui/Modal";
 import {
   uploadLeaveExcel,
   fetchLatestLeaveImport,
@@ -13,8 +13,6 @@ import {
   getCurrentWorkspaceId,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-import type { LeaveImportJob } from "@/lib/api/leaves";
 
 interface LeaveImportDialogProps {
   isOpen: boolean;
@@ -38,7 +36,7 @@ export default function LeaveImportDialog({
   // Check for latest import when dialog opens
   useEffect(() => {
     if (!isOpen || !wsId) return;
-    fetchLatestLeaveImport(wsId).then((job) => {
+    void fetchLatestLeaveImport(wsId).then((job) => {
       if (job) {
         const created = new Date(job.created_at);
         const now = new Date();
@@ -50,11 +48,11 @@ export default function LeaveImportDialog({
   }, [isOpen, wsId]);
 
   // Polling for job status
-  const startPolling = useCallback((wsIdVal: string) => {
+  const startPolling = useCallback((wsIdValue: string) => {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
       try {
-        const job = await fetchLatestLeaveImport(wsIdVal);
+        const job = await fetchLatestLeaveImport(wsIdValue);
         if (job) {
           setImportJob(job);
           if (job.status !== "processing" && job.status !== "pending") {
@@ -79,9 +77,9 @@ export default function LeaveImportDialog({
   }, [importJob?.status, wsId, startPolling]);
 
   // Reset state when dialog closes
-  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
-  if (isOpen !== prevIsOpen) {
-    setPrevIsOpen(isOpen);
+  const [previousIsOpen, setPreviousIsOpen] = useState(isOpen);
+  if (isOpen !== previousIsOpen) {
+    setPreviousIsOpen(isOpen);
     if (!isOpen) setFile(null);
   }
 
@@ -120,13 +118,13 @@ export default function LeaveImportDialog({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t("leave_import.title", "Import đơn nghỉ phép")}
-      subtitle={t("leave_import.subtitle", "Upload file Excel để tạo đơn nghỉ phép hàng loạt")}
       icon={<Upload size={24} />}
+      isOpen={isOpen}
       maxWidth="lg"
+      onClose={onClose}
+      subtitle={t("leave_import.subtitle", "Upload file Excel để tạo đơn nghỉ phép hàng loạt")}
       testId="leave-import-dialog"
+      title={t("leave_import.title", "Import đơn nghỉ phép")}
     >
       {importJob && (isProcessing || isFinished) ? (
         /* ===== PROGRESS / RESULT VIEW ===== */
@@ -135,13 +133,13 @@ export default function LeaveImportDialog({
             <div className="flex items-center gap-4">
               <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-inner border border-slate-200 dark:border-slate-700">
                 {isProcessing ? (
-                  <Loader2 size={20} className="text-primary-600 dark:text-primary-400 animate-spin" />
+                  <Loader2 className="text-primary-600 dark:text-primary-400 animate-spin" size={20} />
                 ) : importJob.status === "completed" && !importJob.error_log ? (
-                  <CheckCircle2 size={20} className="text-emerald-500" />
+                  <CheckCircle2 className="text-emerald-500" size={20} />
                 ) : importJob.status === "completed" && importJob.error_log ? (
-                  <AlertTriangle size={20} className="text-amber-500" />
+                  <AlertTriangle className="text-amber-500" size={20} />
                 ) : (
-                  <XCircle size={20} className="text-rose-500" />
+                  <XCircle className="text-rose-500" size={20} />
                 )}
               </div>
               <div>
@@ -179,14 +177,12 @@ export default function LeaveImportDialog({
               )}
               style={{ width: `${importJob.total_rows ? (importJob.processed_rows / importJob.total_rows) * 100 : (isProcessing ? 15 : 0)}%` }}
             >
-              {isProcessing && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
-              )}
+              {!!isProcessing && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />}
             </div>
           </div>
 
           {/* Error details */}
-          {importJob.status === "completed" && importJob.error_log && (() => {
+          {importJob.status === "completed" && !!importJob.error_log && (() => {
             const info = getErrorInfo(importJob);
             return (
               <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-amber-200 dark:border-amber-900/50 shadow-sm">
@@ -195,10 +191,10 @@ export default function LeaveImportDialog({
                     .replace("{{success}}", String(info?.success_count ?? importJob.processed_rows))
                     .replace("{{errors}}", String(info?.error_count ?? 0))}
                 </p>
-                {info?.error_file_path && wsId && (
+                {!!info?.error_file_path && !!wsId && (
                   <button
-                    onClick={() => downloadLeaveImportErrors(wsId, importJob.id).catch(() => {})}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-all border border-amber-200 dark:border-amber-800 active:scale-95"
+                    onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => {}); }}
                   >
                     <Download size={14} /> {t("leave_import.download_errors", "Tải file lỗi")}
                   </button>
@@ -207,7 +203,7 @@ export default function LeaveImportDialog({
             );
           })()}
 
-          {importJob.status === "failed" && importJob.error_log && (
+          {importJob.status === "failed" && !!importJob.error_log && (
             <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/50 shadow-sm">
               <h4 className="text-[10px] font-bold text-rose-600 dark:text-rose-400 mb-2 flex items-center gap-2 uppercase tracking-[0.25em]">
                 <AlertCircle size={14} /> {t("leave_import.error_detail", "Chi tiết lỗi")}
@@ -218,22 +214,20 @@ export default function LeaveImportDialog({
 
           {/* Footer buttons */}
           <div className="pt-3 flex gap-4 border-t border-slate-200 dark:border-slate-800">
-            {isFinished && (
-              <>
+            {!!isFinished && <>
                 <button
-                  onClick={() => { setImportJob(null); }}
                   className="flex-1 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+                  onClick={() => { setImportJob(null); }}
                 >
                   {t("leave_import.upload_another", "Upload file khác")}
                 </button>
                 <button
-                  onClick={onClose}
                   className="flex-1 px-10 py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg active:scale-95"
+                  onClick={onClose}
                 >
                   {t("common.close", "Đóng").toUpperCase()}
                 </button>
-              </>
-            )}
+              </>}
           </div>
         </div>
       ) : (
@@ -261,6 +255,7 @@ export default function LeaveImportDialog({
 
           {/* Download Template Button */}
           <button
+            className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl text-emerald-700 dark:text-emerald-300 font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all active:scale-[0.98] group disabled:opacity-50"
             disabled={downloadingTemplate || !wsId}
             onClick={async () => {
               if (!wsId) return;
@@ -271,9 +266,8 @@ export default function LeaveImportDialog({
                 setDownloadingTemplate(false);
               }
             }}
-            className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl text-emerald-700 dark:text-emerald-300 font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all active:scale-[0.98] group disabled:opacity-50"
           >
-            {downloadingTemplate ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} className="group-hover:animate-bounce" />}
+            {downloadingTemplate ? <Loader2 className="animate-spin" size={16} /> : <Download className="group-hover:animate-bounce" size={16} />}
             {t("leave_import.download_template", "Tải file mẫu Excel")}
           </button>
 
@@ -287,35 +281,35 @@ export default function LeaveImportDialog({
                 : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30"
             )}
             onClick={() => document.getElementById("leave-import-file-input")?.click()}
-            role="button"
-            tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 document.getElementById("leave-import-file-input")?.click();
               }
             }}
+            role="button"
+            tabIndex={0}
           >
             <input
-              id="leave-import-file-input"
-              aria-label="File Upload"
-              type="file"
-              className="hidden"
               accept=".xlsx,.xls,.csv"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              aria-label="File Upload"
+              className="hidden"
+              id="leave-import-file-input"
+              onChange={(e) => { setFile(e.target.files?.[0] || null); }}
+              type="file"
             />
             {file ? (
               <div className="text-center animate-in zoom-in-95 duration-500">
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-200/50 dark:shadow-emerald-900/30 rotate-3 group-hover:rotate-0 transition-transform">
-                  <FileText size={28} className="text-emerald-600 dark:text-emerald-300" />
+                  <FileText className="text-emerald-600 dark:text-emerald-300" size={28} />
                 </div>
                 <p className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase">{file.name}</p>
                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                   {(file.size / 1024).toFixed(1)} KB — {t("leave_import.ready", "SẴN SÀNG UPLOAD")}
                 </p>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setFile(null); }}
                   className="mt-5 text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest hover:text-rose-700 dark:hover:text-rose-300 transition-all bg-white dark:bg-slate-900 px-5 py-2 rounded-lg border border-rose-200 dark:border-rose-800 shadow-sm hover:shadow-md active:scale-90"
+                  onClick={(e) => { e.stopPropagation(); setFile(null); }}
                 >
                   {t("leave_import.select_another", "Chọn file khác")}
                 </button>
@@ -323,7 +317,7 @@ export default function LeaveImportDialog({
             ) : (
               <div className="text-center group-hover:scale-105 transition-transform duration-500">
                 <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg border border-slate-200 dark:border-slate-700 -rotate-3 group-hover:rotate-0 transition-all">
-                  <Upload size={28} className="text-slate-400 dark:text-slate-500" />
+                  <Upload className="text-slate-400 dark:text-slate-500" size={28} />
                 </div>
                 <p className="font-bold text-slate-800 dark:text-slate-200 mb-1 text-lg tracking-tight uppercase">
                   {t("leave_import.drop_prompt", "Nhấn để chọn file Excel")}
@@ -338,18 +332,18 @@ export default function LeaveImportDialog({
           {/* Footer buttons */}
           <div className="flex gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
             <button
-              onClick={onClose}
               className="flex-1 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+              onClick={onClose}
             >
               {t("common.cancel", "Hủy")}
             </button>
             <button
-              disabled={!file || uploading}
-              onClick={handleUpload}
               className="flex-[1.5] py-3 bg-primary-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-200/50 dark:shadow-primary-900/30 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+              disabled={!file || uploading}
+              onClick={() => { void handleUpload(); }}
             >
               {uploading ? (
-                <><Loader2 size={18} className="animate-spin" /> {t("leave_import.uploading", "ĐANG UPLOAD...")}</>
+                <><Loader2 className="animate-spin" size={18} /> {t("leave_import.uploading", "ĐANG UPLOAD...")}</>
               ) : (
                 t("leave_import.start_import", "BẮT ĐẦU IMPORT").toUpperCase()
               )}

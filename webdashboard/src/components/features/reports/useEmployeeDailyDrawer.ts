@@ -1,10 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
-
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/Toast";
-
 import {
     fetchAttendanceReport,
     DailyAttendanceReport,
@@ -20,10 +18,10 @@ import {
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 
 interface UseEmployeeDailyDrawerProps {
+    dateRange: { start: string; end: string };
+    employeeId: string;
     isOpen: boolean;
     workspaceId: string;
-    employeeId: string;
-    dateRange: { start: string; end: string };
     workUnitMinutes: number;
 }
 
@@ -94,7 +92,7 @@ export function useEmployeeDailyDrawer({
         queryFn: ({ pageParam }) => {
             const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
             const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
-            return fetchRawAttendanceLogs({ employee_id: employeeId, from, to, page: pageParam as number, limit: 100 });
+            return fetchRawAttendanceLogs({ employee_id: employeeId, from, to, page: pageParam, limit: 100 });
         },
         getNextPageParam: (lastPage, allPages) => {
             if (!lastPage.data || lastPage.data.length < 100) return undefined;
@@ -112,9 +110,9 @@ export function useEmployeeDailyDrawer({
 
     const adjustmentMap = useMemo(() => {
         const map: Record<string, AttendanceAdjustmentRequest> = {};
-        pendingAdjustments?.forEach((req) => {
-            const key = `${req.employee_id}-${req.requested_date}`;
-            map[key] = req;
+        pendingAdjustments?.forEach((request) => {
+            const key = `${request.employee_id}-${request.requested_date}`;
+            map[key] = request;
         });
         return map;
     }, [pendingAdjustments]);
@@ -187,11 +185,11 @@ export function useEmployeeDailyDrawer({
             }),
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-            const msg =
+            const message =
                 variables.action === "approved"
                     ? t("reports.ot_approve.success_approved")
                     : t("reports.ot_approve.success_rejected");
-            toast.success(msg);
+            toast.success(message);
         },
         onError: () => {
             toast.error(t("reports.ot_approve.error"));
@@ -263,9 +261,9 @@ export function useEmployeeDailyDrawer({
         if (existingRequest) {
             confirmMutation.mutate({ row, existingRequestId: existingRequest.id });
         } else {
-            const createIsoFromLocal = (dateStr: string, hhmm: string): string | null => {
+            const createIsoFromLocal = (dateString: string, hhmm: string): string | null => {
                 if (!hhmm) return null;
-                const [y, m, d] = dateStr.split("-").map(Number);
+                const [y, m, d] = dateString.split("-").map(Number);
                 const [hours, mins] = hhmm.split(":").map(Number);
                 return new Date(y, m - 1, d, hours, mins, 0).toISOString();
             };
@@ -275,7 +273,7 @@ export function useEmployeeDailyDrawer({
                 actual_punch_in: createIsoFromLocal(row.date, punchIn),
                 actual_punch_out: createIsoFromLocal(row.date, punchOut),
             };
-            confirmMutation.mutate({ row: modifiedRow as DailyAttendanceReport, reason });
+            confirmMutation.mutate({ row: modifiedRow, reason });
         }
     };
 

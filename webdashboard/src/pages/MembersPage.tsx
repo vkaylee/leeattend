@@ -1,6 +1,5 @@
-import { useState } from "react";
-
 import { Users, UserPlus } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/PermissionGate";
@@ -31,9 +30,9 @@ export default function MembersPage() {
 
         <PermissionGate permission="members:invite">
           <Button
-            onClick={() => setIsInviteOpen(true)}
             data-testid="invite-member-trigger"
             icon={<UserPlus size={18} />}
+            onClick={() => { setIsInviteOpen(true); }}
           >
             {t("members.invite.title").toUpperCase()}
           </Button>
@@ -46,7 +45,7 @@ export default function MembersPage() {
 
       <InviteMemberDialog
         isOpen={isInviteOpen}
-        onClose={() => setIsInviteOpen(false)}
+        onClose={() => { setIsInviteOpen(false); }}
       />
     </div>
   );

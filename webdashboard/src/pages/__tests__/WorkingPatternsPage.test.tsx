@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -37,7 +37,6 @@ vi.mock("@/components/common/EmployeeSearch", () => ({
     return (
       <div data-testid="employee-search-mock">
         <button 
-          type="button"
           onClick={() => {
             if (multiple) {
               handler(["emp-1", "emp-2"]);
@@ -45,10 +44,11 @@ vi.mock("@/components/common/EmployeeSearch", () => ({
               handler("emp-1");
             }
           }}
+          type="button"
         >
           Select Employees Mock
         </button>
-        {multiple && Array.isArray(value) && value.includes("emp-1") && <span>Selected: John Doe</span>}
+        {!!multiple && Array.isArray(value) && value.includes("emp-1") && <span>Selected: John Doe</span>}
       </div>
     );
   }
@@ -111,8 +111,8 @@ describe("WorkingPatternsPage", () => {
       page: 1,
       limit: 50,
  
-    } as unknown as PaginatedResponse<Employee>);
-    vi.mocked(api.fetchPatternDetails).mockResolvedValue([] as unknown as WorkingPatternDetail[]);
+    });
+    vi.mocked(api.fetchPatternDetails).mockResolvedValue([]);
   });
 
   it("renders patterns list", async () => {
@@ -156,7 +156,7 @@ describe("WorkingPatternsPage", () => {
     vi.mocked(api.bulkAssignPattern).mockResolvedValue({
         success_count: 2,
         failed_employees: []
-    } as unknown as BulkAssignResponse);
+    });
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -199,7 +199,7 @@ describe("WorkingPatternsPage", () => {
     vi.mocked(api.bulkAssignPattern).mockResolvedValue({
         success_count: 0,
         failed_employees: ["emp-1"]
-    } as unknown as BulkAssignResponse);
+    });
 
     render(
       <QueryClientProvider client={queryClient}>

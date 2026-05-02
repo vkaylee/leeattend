@@ -12,4 +12,4 @@ fi
 
 echo "📦 Running bun inside container environment..."
 TIMEOUT_SEC="${TIMEOUT:-600}"
-"$SCRIPT_DIR/safe-run.py" "$TIMEOUT_SEC" $TOOLBOX_COMPOSE_CMD run -T --rm --entrypoint bash webdashboard -c "npm install -g bun && bun ${ARGS[@]}"
+"$SCRIPT_DIR/safe-run.py" "$TIMEOUT_SEC" $TOOLBOX_COMPOSE_CMD run -T --rm --entrypoint bash webdashboard -c "npm install -g bun && bun ${ARGS[*]}"

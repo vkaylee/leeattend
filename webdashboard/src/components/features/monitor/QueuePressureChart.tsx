@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
-import { cn } from "@/lib/utils";
-
 import type { QueuePressureData, PressureLevel } from "@/hooks/use-monitor-charts";
+
+import { cn } from "@/lib/utils";
 
 interface Props {
   data: QueuePressureData;
@@ -59,13 +60,13 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
         </h5>
         {/* Pressure level badge */}
         <span
-          data-testid="pressure-badge"
           className={cn(
             "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
             pressure.color,
             pressure.bg,
             pressure.border
           )}
+          data-testid="pressure-badge"
         >
           {pressure.label}
         </span>
@@ -85,21 +86,21 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
           </p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={chartData} layout="vertical" barCategoryGap="30%">
+        <ResponsiveContainer height={160} width="100%">
+          <BarChart barCategoryGap="30%" data={chartData} layout="vertical">
             <CartesianGrid
               horizontal={false}
-              strokeDasharray="3 3"
               stroke="rgba(148,163,184,0.15)"
+              strokeDasharray="3 3"
             />
-            <XAxis type="number" hide />
+            <XAxis hide type="number" />
             <YAxis
-              type="category"
-              dataKey="name"
-              width={80}
-              tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }}
               axisLine={false}
+              dataKey="name"
+              tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }}
               tickLine={false}
+              type="category"
+              width={80}
             />
             <Tooltip
               contentStyle={{
@@ -111,9 +112,9 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
                 fontWeight: 600,
               }}
             />
-            <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={20}>
-              {chartData.map((entry, i) => (
-                <Cell key={i} fill={entry.fill} />
+            <Bar barSize={20} dataKey="value" radius={[0, 8, 8, 0]}>
+              {chartData.map((entry, index) => (
+                <Cell fill={entry.fill} key={index} />
               ))}
             </Bar>
           </BarChart>

@@ -162,7 +162,7 @@ export default function ProfilePage() {
                   <div className="h-12 w-px bg-slate-100 dark:bg-slate-700 mx-2" />
                   <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner group">
                     <input type="color" value={primaryColor} onChange={(e) => setUserTheme(e.target.value)} className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 overflow-hidden shadow-sm" />
-                    <input type="text" value={primaryColor} onChange={(e) => setUserTheme(e.target.value)} className="bg-transparent border-none text-sm font-mono font-bold text-slate-600 dark:text-slate-300 w-24 outline-none uppercase tracking-tighter" />
+                    <input type="text" value={primaryColor} onChange={(e) => setUserTheme(e.target.value)} className="bg-transparent border-none text-sm font-mono font-bold text-slate-600 dark:text-slate-300 w-24 outline-none tracking-tighter" />
                   </div>
                 </div>
               </div>

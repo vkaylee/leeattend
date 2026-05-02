@@ -14,22 +14,22 @@ export function isAgentOnline(lastSeenAt: string | null | undefined): boolean {
   return now - lastSeen < 90000;
 }
 
-export function formatTime(timeStr: string | null | undefined, timeFormat: string | undefined): string {
-  if (!timeStr) return "--:--";
+export function formatTime(timeString: string | null | undefined, timeFormat: string | undefined): string {
+  if (!timeString) return "--:--";
   // timeStr is expected to be HH:mm or HH:mm:ss
   try {
     const referenceDate = new Date();
-    const date = parse(timeStr.substring(0, 8), timeStr.includes(":") && timeStr.split(":").length >= 3 ? "HH:mm:ss" : "HH:mm", referenceDate);
+    const date = parse(timeString.substring(0, 8), timeString.includes(":") && timeString.split(":").length >= 3 ? "HH:mm:ss" : "HH:mm", referenceDate);
     const pattern = timeFormat === "12h" ? "hh:mm a" : "HH:mm";
     return format(date, pattern);
   } catch {
-    return timeStr.substring(0, 5);
+    return timeString.substring(0, 5);
   }
 }
 
-export function formatDateTime(dateTimeStr: string | null | undefined, timeFormat: string | undefined): string {
-  if (!dateTimeStr) return "--:--";
-  const date = new Date(dateTimeStr);
+export function formatDateTime(dateTimeString: string | null | undefined, timeFormat: string | undefined): string {
+  if (!dateTimeString) return "--:--";
+  const date = new Date(dateTimeString);
   const pattern = timeFormat === "12h" ? "dd/MM/yyyy hh:mm a" : "dd/MM/yyyy HH:mm";
   return format(date, pattern);
 }

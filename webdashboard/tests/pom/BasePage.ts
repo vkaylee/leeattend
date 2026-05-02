@@ -3,7 +3,7 @@ import { Page, expect } from '@playwright/test';
 export class BasePage {
   constructor(protected readonly page: Page) {}
 
-  async goto(path: string = '/') {
+  async goto(path = '/') {
     await this.page.goto(path);
   }
 

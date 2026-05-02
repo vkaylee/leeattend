@@ -1,7 +1,7 @@
-import React from 'react';
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
+
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 import * as api from '@/lib/api';
@@ -93,8 +93,8 @@ describe('LeaveHistoryModal', () => {
         fireEvent.click(screen.getByText('leave_balances.history.tab_adjust'));
 
         await waitFor(() => {
-            const select = screen.getByRole('combobox') as HTMLSelectElement;
-            expect(select.value).toBe('lt-1');
+            const select = screen.getByRole('combobox');
+            expect((select as HTMLSelectElement).value).toBe('lt-1');
         });
     });
 

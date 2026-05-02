@@ -1,19 +1,18 @@
-import { useState } from "react";
-
 import * as Dialog from "@radix-ui/react-dialog";
-import { format } from "date-fns";
 import { X, Upload, FileText, Calendar } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import { format } from "date-fns";
 
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { useEnterPaperOt } from "@/hooks/use-attendance";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 
 interface Props {
-  open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  open: boolean;
 }
 
 export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
@@ -68,13 +67,13 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
       onSuccess?.();
  
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to submit";
-      setError(msg);
+      const message = e instanceof Error ? e.message : "Failed to submit";
+      setError(message);
     }
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
+    <Dialog.Root onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }} open={open}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl rounded-[2rem]">
@@ -86,21 +85,21 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
             {t("approvals.paper_ot.description") || "Enter overtime claim from signed paper form"}
           </Dialog.Description>
 
-          <button onClick={() => onOpenChange(false)} className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+          <button className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" onClick={() => { onOpenChange(false); }}>
             <X className="h-4 w-4" />
           </button>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
             {/* Employee Selector */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
                 {t("common.employee") || "Employee"}
               </label>
               <EmployeeSearch
-                workspaceId={wsId}
-                value={employeeId}
-                onChange={(val) => setEmployeeId(Array.isArray(val) ? val[0] || "" : val)}
+                onChange={(value) => { setEmployeeId(Array.isArray(value) ? value[0] || "" : value); }}
                 placeholder={t("approvals.paper_ot.select_employee") || "Search employee..."}
+                value={employeeId}
+                workspaceId={wsId}
               />
             </div>
 
@@ -112,11 +111,11 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
               <div className="relative">
                 <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <input
+                  className="w-full pl-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm focus:ring-2 focus:ring-primary-600"
+                  max={format(new Date(), "yyyy-MM-dd")}
+                  onChange={(e) => { setDate(e.target.value); }}
                   type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  max={format(new Date(), "yyyy-MM-dd")}
-                  className="w-full pl-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm focus:ring-2 focus:ring-primary-600"
                 />
               </div>
             </div>
@@ -127,12 +126,12 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
                 {t("approvals.paper_ot.minutes") || "OT Minutes"}
               </label>
               <input
+                className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm font-mono focus:ring-2 focus:ring-primary-600"
+                min={1}
+                onChange={(e) => { setMinutes(parseInt(e.target.value) || 0); }}
+                placeholder="120"
                 type="number"
                 value={minutes || ""}
-                onChange={(e) => setMinutes(parseInt(e.target.value) || 0)}
-                min={1}
-                className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm font-mono focus:ring-2 focus:ring-primary-600"
-                placeholder="120"
               />
             </div>
 
@@ -142,11 +141,11 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
                 {t("common.reason") || "Reason"}
               </label>
               <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={3}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-primary-600"
+                onChange={(e) => { setReason(e.target.value); }}
                 placeholder={t("approvals.paper_ot.reason_placeholder") || "Paper form #1234 - Production line"}
+                rows={3}
+                value={reason}
               />
             </div>
 
@@ -162,7 +161,7 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
             </div>
 
             {/* Error Message */}
-            {error && (
+            {!!error && (
               <div className="text-xs font-bold text-rose-500 uppercase tracking-wide bg-rose-50 dark:bg-rose-950 p-3 rounded-lg">
                 {error}
               </div>
@@ -171,16 +170,16 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
             {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-2">
               <button
-                type="button"
-                onClick={() => onOpenChange(false)}
                 className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                onClick={() => { onOpenChange(false); }}
+                type="button"
               >
                 {t("common.cancel") || "Cancel"}
               </button>
               <button
-                type="submit"
-                disabled={isSubmitting}
                 className="px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-primary-700 disabled:opacity-50"
+                disabled={isSubmitting}
+                type="submit"
               >
                 {isSubmitting ? (t("common.saving") || "Saving...") : (t("common.submit") || "Submit")}
               </button>

@@ -1,14 +1,12 @@
-import { useState, useCallback } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { LeaveBalanceDetailModal } from "@/components/leave/LeaveBalanceDetailModal";
 import { LeaveHistoryModal } from "@/components/leave/LeaveHistoryModal";
 import { Combobox } from "@/components/ui/Combobox";
 import { useToast } from "@/components/ui/Toast";
-
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDebounce } from "@/hooks/use-debounce";
 import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
@@ -30,7 +28,7 @@ export default function LeaveBalancesPage() {
 
   // Generate year options: current year ± 2
   const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  const yearOptions = Array.from({ length: 5 }, (_, index) => currentYear - 2 + index);
 
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string, name: string, leaveTypeId?: string, leaveTypeName?: string } | null>(null);
   const [selectedBalance, setSelectedBalance] = useState<WorkspaceLeaveBalance | null>(null);
@@ -46,7 +44,7 @@ export default function LeaveBalancesPage() {
     const POLL_INTERVAL = 2000; // 2 seconds
     const MAX_POLLS = 60; // 2 min max
 
-    for (let i = 0; i < MAX_POLLS; i++) {
+    for (let index = 0; index < MAX_POLLS; index++) {
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
       try {
         const status = await fetchJobStatus(wsId!, jobId);
@@ -81,7 +79,7 @@ export default function LeaveBalancesPage() {
         toast.success(data.message || t("common.success"));
       }
     },
-    onError: () => toast.error(t("common.error"))
+    onError: () => { toast.error(t("common.error")); }
   });
 
   const balances = paginatedData?.data || [];
@@ -96,6 +94,8 @@ export default function LeaveBalancesPage() {
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("leave_balances.subtitle")}</p>
         </div>
         <button
+          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
+          disabled={accrualMutation.isPending || selectedYear !== currentYear}
           onClick={async () => {
             const ok = await confirm({
               title: t("leave_balances.run_accrual"),
@@ -104,9 +104,7 @@ export default function LeaveBalancesPage() {
             });
             if (ok) accrualMutation.mutate();
           }}
-          disabled={accrualMutation.isPending || selectedYear !== currentYear}
           title={selectedYear !== currentYear ? t("leave_balances.accrual_current_year_only") : undefined}
-          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
         >
           <PlayCircle size={18} /> <span className="whitespace-nowrap">{accrualMutation.isPending ? t("common.processing").toUpperCase() : t("leave_balances.run_accrual").toUpperCase()}</span>
         </button>
@@ -126,7 +124,7 @@ export default function LeaveBalancesPage() {
             <div className="flex items-center gap-2 ml-2">
               <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
               <Combobox
-                value={selectedYear.toString()}
+                className="w-24 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider focus:ring-2 focus:ring-primary-500/20 py-[5px]"
                 onChange={(value) => {
                   if (value) {
                     setSelectedYear(Number(value));
@@ -135,17 +133,17 @@ export default function LeaveBalancesPage() {
                 }}
                 options={yearOptions.map(y => ({ value: y.toString(), label: y.toString() }))}
                 placeholder="Select Year"
-                className="w-24 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider focus:ring-2 focus:ring-primary-500/20 py-[5px]"
+                value={selectedYear.toString()}
               />
             </div>
           </div>
 
           <div className="relative group w-full md:w-80">
             <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" size={18} />
-            <input type="text" placeholder={t("common.search_placeholder")} className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm min-h-[44px]" value={searchTerm} onChange={(e) => {
+            <input className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm min-h-[44px]" onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setPage(1); // Reset to page 1 on search
-              }}
+              }} placeholder={t("common.search_placeholder")} type="text" value={searchTerm}
             />
           </div>
         </div>
@@ -164,15 +162,15 @@ export default function LeaveBalancesPage() {
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {isLoading && !balances.length ? (
-                <tr><td colSpan={5} className="px-6 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
+                <tr><td className="px-6 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse" colSpan={5}>{t("common.loading")}</td></tr>
               ) : balances.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
-              ) : (balances as WorkspaceLeaveBalance[]).map((balance, idx) => (
+                <tr><td className="px-6 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={5}>{t("attendance_logs.messages.no_data")}</td></tr>
+              ) : (balances).map((balance, index) => (
                 <DesktopBalanceRow
-                  key={`${balance.employee_id}-${balance.leave_type_id}-${idx}`}
                   balance={balance}
-                  onViewDetails={() => setSelectedBalance(balance)}
-                  onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name })}
+                  key={`${balance.employee_id}-${balance.leave_type_id}-${index}`}
+                  onViewDetails={() => { setSelectedBalance(balance); }}
+                  onViewHistory={() => { setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name }); }}
                 />
               ))}
             </tbody>
@@ -185,12 +183,12 @@ export default function LeaveBalancesPage() {
             <div className="px-5 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</div>
           ) : balances.length === 0 ? (
             <div className="px-5 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</div>
-          ) : (balances as WorkspaceLeaveBalance[]).map((balance, idx) => (
+          ) : (balances).map((balance, index) => (
             <MobileBalanceCard
-              key={`${balance.employee_id}-${balance.leave_type_id}-${idx}`}
               balance={balance}
-              onViewDetails={() => setSelectedBalance(balance)}
-              onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name })}
+              key={`${balance.employee_id}-${balance.leave_type_id}-${index}`}
+              onViewDetails={() => { setSelectedBalance(balance); }}
+              onViewHistory={() => { setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name }); }}
             />
           ))}
         </div>
@@ -204,32 +202,32 @@ export default function LeaveBalancesPage() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
                 className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={page === 1}
+                onClick={() => { setPage(p => Math.max(1, p - 1)); }}
               >
                 <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
               </button>
 
               <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
                   // Simple logic to show window around current page
-                  let p = i + 1;
+                  let p = index + 1;
                   if (totalPages > 5) {
-                    if (page > 3) p = page - 2 + i;
-                    if (p > totalPages) p = totalPages - (4 - i);
+                    if (page > 3) p = page - 2 + index;
+                    if (p > totalPages) p = totalPages - (4 - index);
                   }
 
                   return (
                     <button
-                      key={p}
-                      onClick={() => setPage(p)}
                       className={cn(
                         "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition-all",
                         page === p
                           ? "bg-primary-600 text-white shadow-md shadow-indigo-100"
                           : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                       )}
+                      key={p}
+                      onClick={() => { setPage(p); }}
                     >
                       {p}
                     </button>
@@ -238,9 +236,9 @@ export default function LeaveBalancesPage() {
               </div>
 
               <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
                 className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={page === totalPages}
+                onClick={() => { setPage(p => Math.min(totalPages, p + 1)); }}
               >
                 <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
               </button>
@@ -249,13 +247,9 @@ export default function LeaveBalancesPage() {
         )}
       </div>
 
-      {selectedEmployee && (
-        <LeaveHistoryModal wsId={wsId!} employeeId={selectedEmployee.id} employeeName={selectedEmployee.name} leaveTypeId={selectedEmployee.leaveTypeId} leaveTypeName={selectedEmployee.leaveTypeName} isOpen={!!selectedEmployee} onClose={() => setSelectedEmployee(null)} />
-      )}
+      {!!selectedEmployee && <LeaveHistoryModal employeeId={selectedEmployee.id} employeeName={selectedEmployee.name} isOpen={!!selectedEmployee} leaveTypeId={selectedEmployee.leaveTypeId} leaveTypeName={selectedEmployee.leaveTypeName} onClose={() => { setSelectedEmployee(null); }} wsId={wsId!} />}
 
-      {selectedBalance && (
-        <LeaveBalanceDetailModal balance={selectedBalance} isOpen={!!selectedBalance} onClose={() => setSelectedBalance(null)} />
-      )}
+      {!!selectedBalance && <LeaveBalanceDetailModal balance={selectedBalance} isOpen={!!selectedBalance} onClose={() => { setSelectedBalance(null); }} />}
 
       <ConfirmationDialog />
     </div>
@@ -331,18 +325,18 @@ function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
       </td>
 
       {/* Action Buttons */}
-      <td className="px-6 py-6 text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="px-6 py-6 text-right" onClick={(e) => { e.stopPropagation(); }}>
         <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-all">
           <button
-            onClick={onViewDetails}
             className="p-2.5 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:bg-primary-900 rounded-xl border border-primary-200 dark:border-primary-800 transition-all active:scale-90 min-w-[44px] min-h-[44px]"
+            onClick={onViewDetails}
             title={t("leave_balances.view_details")}
           >
             <Eye className="h-5 w-5" />
           </button>
           <button
-            onClick={onViewHistory}
             className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 transition-all active:scale-90 min-w-[44px] min-h-[44px]"
+            onClick={onViewHistory}
             title={t("leave_balances.table.history_tooltip")}
           >
             <History className="h-5 w-5" />
@@ -420,15 +414,15 @@ function MobileBalanceCard({ balance, onViewDetails, onViewHistory }: {
       {/* Action Buttons */}
       <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
         <button
-          onClick={onViewDetails}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold uppercase tracking-wider text-xs rounded-xl transition-all active:scale-95 shadow-lg shadow-primary-200 min-h-[44px]"
+          onClick={onViewDetails}
         >
           <Eye className="h-5 w-5" />
           <span>{t("leave_balances.view_details")}</span>
         </button>
         <button
-          onClick={onViewHistory}
           className="p-3.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl transition-all active:scale-95 min-w-[44px] min-h-[44px] flex-shrink-0"
+          onClick={onViewHistory}
           title={t("leave_balances.table.history_tooltip")}
         >
           <History className="h-5 w-5" />

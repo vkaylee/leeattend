@@ -1,6 +1,5 @@
-import React, { useEffect } from "react";
-
 import { Navigate, Outlet, useLocation } from "@tanstack/react-router";
+import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "@/hooks/use-profile";
@@ -46,7 +45,7 @@ export default function AuthGuard() {
 
   if (isError || !user) {
     // Chuyển hướng sang login kèm theo state "from" để quay lại sau
-    return <Navigate to={ROUTES.LOGIN} replace />;
+    return <Navigate replace to={ROUTES.LOGIN} />;
   }
 
   return <Outlet />;

@@ -3,17 +3,17 @@ import type { ReactNode } from "react";
 import { useMyPermissions } from "@/hooks/use-permissions";
 
 interface PermissionGateProps {
-    /** Single permission to check */
-    permission?: string;
-    /** Multiple permissions — user needs at least ONE */
-    anyOf?: string[];
     /** Multiple permissions — user needs ALL */
     allOf?: string[];
+    /** Multiple permissions — user needs at least ONE */
+    anyOf?: string[];
+    children: ReactNode;
     /** Department context for scoped permissions */
     departmentId?: string;
     /** What to render when the user lacks permission (default: nothing) */
     fallback?: ReactNode;
-    children: ReactNode;
+    /** Single permission to check */
+    permission?: string;
 }
 
 /**

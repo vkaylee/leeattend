@@ -1,6 +1,6 @@
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, fireEvent } from "@testing-library/react";
 import { Command } from "cmdk";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -16,7 +16,7 @@ vi.mock("@radix-ui/react-popover", () => ({
 // eslint-disable-next-line jsx-a11y/no-static-element-interactions
 // eslint-disable-next-line jsx-a11y/click-events-have-key-events
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div data-testid="popover-root" data-open={open} onClick={() => onOpenChange?.(!open)}>
+      <div data-open={open} data-testid="popover-root" onClick={() => onOpenChange?.(!open)}>
         {children}
       </div>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,14 +32,14 @@ vi.mock("@radix-ui/react-popover", () => ({
  
 vi.mock("cmdk", () => ({
   Command: Object.assign(
-    ({ children, value, _onValueChange }: { children: React.ReactNode, value?: string, _onValueChange?: (val: string) => void }) => (
+    ({ children, value, _onValueChange }: { children: React.ReactNode, value?: string, _onValueChange?: (value_: string) => void }) => (
       <div data-testid="cmdk-root" data-value={value}>{children}</div>
  
     ),
     {
       Input: vi.fn(({ autoFocus, placeholder }: { autoFocus?: boolean, placeholder?: string }) => (
  
-        <input data-testid="cmdk-input" data-autofocus={autoFocus} placeholder={placeholder} />
+        <input data-autofocus={autoFocus} data-testid="cmdk-input" placeholder={placeholder} />
  
       )),
  
@@ -62,13 +62,13 @@ describe("Combobox AutoFocus", () => {
 
   it("starts with popover open when autoFocus is true", () => {
     // eslint-disable-next-line jsx-a11y/no-autofocus
-    render(<Combobox options={options} onChange={() => { }} autoFocus={true} />);
+    render(<Combobox autoFocus={true} onChange={() => { }} options={options} />);
     const root = screen.getByTestId("popover-root");
     expect(root.getAttribute("data-open")).toBe("true");
   });
 
   it("always passes autoFocus=true to Command.Input", () => {
-    render(<Combobox options={options} onChange={() => { }} />);
+    render(<Combobox onChange={() => { }} options={options} />);
     expect(Command.Input).toHaveBeenCalledWith(
       expect.objectContaining({ autoFocus: true }),
       undefined
@@ -89,10 +89,10 @@ describe("Combobox Keyboard Shortcut", () => {
   it("opens the popover when keyboard shortcut is pressed", () => {
     render(
       <Combobox
-        options={options}
-        onChange={() => { }}
         keyboardShortcut="/"
+        onChange={() => { }}
         onSearchChange={() => { }}
+        options={options}
       />
     );
 
@@ -111,10 +111,10 @@ describe("Combobox Keyboard Shortcut", () => {
     const onSearchChange = vi.fn();
     render(
       <Combobox
-        options={options}
-        onChange={() => { }}
         keyboardShortcut="/"
+        onChange={() => { }}
         onSearchChange={onSearchChange}
+        options={options}
       />
     );
 
@@ -128,10 +128,10 @@ describe("Combobox Keyboard Shortcut", () => {
       <div>
         <input data-testid="other-input" />
         <Combobox
-          options={options}
-          onChange={() => { }}
           keyboardShortcut="/"
+          onChange={() => { }}
           onSearchChange={onSearchChange}
+          options={options}
         />
       </div>
     );
@@ -147,10 +147,10 @@ describe("Combobox Keyboard Shortcut", () => {
     const onSearchChange1 = vi.fn();
     const { unmount: unmount1 } = render(
       <Combobox
-        options={options}
-        onChange={() => { }}
         keyboardShortcut={["/", "Enter"]}
+        onChange={() => { }}
         onSearchChange={onSearchChange1}
+        options={options}
       />
     );
 
@@ -162,10 +162,10 @@ describe("Combobox Keyboard Shortcut", () => {
     const onSearchChange2 = vi.fn();
     render(
       <Combobox
-        options={options}
-        onChange={() => { }}
         keyboardShortcut={["/", "Enter"]}
+        onChange={() => { }}
         onSearchChange={onSearchChange2}
+        options={options}
       />
     );
 
@@ -178,13 +178,13 @@ describe("Combobox Keyboard Shortcut", () => {
     const onSearchChange = vi.fn();
     render(
       <Combobox
-        options={options}
- 
-        onChange={() => { }}
-        keyboardShortcut="Enter"
-        onSearchChange={onSearchChange}
         // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus={true} // Starts open
+ 
+        keyboardShortcut="Enter"
+        onChange={() => { }}
+        onSearchChange={onSearchChange}
+        options={options}
       />
     );
 
@@ -205,11 +205,11 @@ describe("Combobox Keyboard Shortcut", () => {
 
     render(
       <Combobox
-        options={options}
-        value="1"
+        clearOnEscape={true}
         onChange={onChange}
         onSearchChange={onSearchChange}
-        clearOnEscape={true}
+        options={options}
+        value="1"
       />
     );
 
@@ -233,7 +233,7 @@ describe("Combobox First Item Highlight", () => {
       { value: "emp-2", label: "Bob", description: "1656" },
     ];
 
-    render(<Combobox options={options} onChange={() => { }} />);
+    render(<Combobox onChange={() => { }} options={options} />);
 
     const cmdkRoot = screen.getByTestId("cmdk-root");
     // The cmdk value should be constructed from the first option
@@ -248,13 +248,13 @@ describe("Combobox First Item Highlight", () => {
       { value: "emp-3", label: "Charlie", description: "9999" },
     ];
 
-    const { rerender } = render(<Combobox options={options1} onChange={() => { }} />);
+    const { rerender } = render(<Combobox onChange={() => { }} options={options1} />);
 
     let cmdkRoot = screen.getByTestId("cmdk-root");
     expect(cmdkRoot.getAttribute("data-value")).toBe("Alice 1541 emp-1");
 
     // Re-render with new options (simulating server-side search returning different results)
-    rerender(<Combobox options={options2} onChange={() => { }} />);
+    rerender(<Combobox onChange={() => { }} options={options2} />);
 
     cmdkRoot = screen.getByTestId("cmdk-root");
     expect(cmdkRoot.getAttribute("data-value")).toBe("Charlie 9999 emp-3");

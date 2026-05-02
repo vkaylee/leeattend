@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -37,7 +37,7 @@ vi.mock('react-i18next', () => ({
  
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) => {
-      if (options && options.defaultValue) return options.defaultValue;
+      if (options?.defaultValue) return options.defaultValue;
       return key;
     },
     i18n: {
@@ -70,7 +70,7 @@ describe("DepartmentsPage", () => {
  
     vi.mocked(api.fetchUsers).mockResolvedValue([
       { id: "user-1", full_name: "Manager One", email: "manager1@example.com" }
-    ] as unknown as User[]);
+    ]);
  
     vi.mocked(api.fetchWorkingPatterns).mockResolvedValue([
       { id: "pat-1", name: "Standard Pattern" }
@@ -141,8 +141,8 @@ describe("DepartmentsPage", () => {
     await screen.findByText("Engineering");
 
     // Use title which we added during modernization
-    const editBtn = await screen.findByTitle(/common.edit/i);
-    await user.click(editBtn);
+    const editButton = await screen.findByTitle(/common.edit/i);
+    await user.click(editButton);
 
     const nameInput = await screen.findByLabelText(/departments.form.name_label/i);
     await user.clear(nameInput);
@@ -166,12 +166,12 @@ describe("DepartmentsPage", () => {
 
     await screen.findByText("Engineering");
     
-    const deleteBtn = await screen.findByTitle(/common.delete/i);
-    await user.click(deleteBtn);
+    const deleteButton = await screen.findByTitle(/common.delete/i);
+    await user.click(deleteButton);
 
     // Confirm the useConfirm modal
-    const confirmModalBtn = await screen.findByRole("button", { name: "Confirm" });
-    fireEvent.click(confirmModalBtn);
+    const confirmModalButton = await screen.findByRole("button", { name: "Confirm" });
+    fireEvent.click(confirmModalButton);
 
     await waitFor(() => {
       expect(api.deleteDepartment).toHaveBeenCalledWith("test-ws-id", "dept-1");

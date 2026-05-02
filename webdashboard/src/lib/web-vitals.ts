@@ -1,10 +1,10 @@
 import { onCLS, onFCP, onINP, onLCP, onTTFB } from "web-vitals";
 
-type VitalMetric = {
+interface VitalMetric {
   name: string;
-  value: number;
   rating: "good" | "needs-improvement" | "poor";
-};
+  value: number;
+}
 
 function getRating(name: string, value: number): VitalMetric["rating"] {
   const thresholds: Record<string, [number, number]> = {
@@ -31,9 +31,9 @@ export function trackWebVitals() {
     reportMetric({ name, value, rating: getRating(name, value) });
   };
 
-  onCLS((m) => report("CLS", m.value));
-  onFCP((m) => report("FCP", m.value));
-  onINP((m) => report("INP", m.value));
-  onLCP((m) => report("LCP", m.value));
-  onTTFB((m) => report("TTFB", m.value));
+  onCLS((m) => { report("CLS", m.value); });
+  onFCP((m) => { report("FCP", m.value); });
+  onINP((m) => { report("INP", m.value); });
+  onLCP((m) => { report("LCP", m.value); });
+  onTTFB((m) => { report("TTFB", m.value); });
 }

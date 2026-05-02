@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as api from "@/lib/api";
@@ -41,7 +42,7 @@ describe("useAuthorizedAgents hook", () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
     expect(api.fetchAuthorizedAgents).toHaveBeenCalledWith(false);
     expect(result.current.agents).toEqual(mockAgents);
   });
@@ -55,7 +56,7 @@ describe("useAuthorizedAgents hook", () => {
     });
 
     // 1. Initial call should be with false
-    await waitFor(() => expect(api.fetchAuthorizedAgents).toHaveBeenCalledWith(false));
+    await waitFor(() => { expect(api.fetchAuthorizedAgents).toHaveBeenCalledWith(false); });
 
     // 2. Toggle includeInactive
     result.current.setIncludeInactive(true);

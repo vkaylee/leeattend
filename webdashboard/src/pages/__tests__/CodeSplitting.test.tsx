@@ -1,11 +1,10 @@
-import React, { Suspense, createElement, lazy } from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouter as _createRouter, RouterProvider as _RouterProvider } from "@tanstack/react-router";
 import { render, screen, waitFor } from "@testing-library/react";
+import React, { Suspense, createElement, lazy } from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
- 
 import { ToastProvider } from "../../components/ui/Toast";
 import i18n from "../../i18n/config";
 
@@ -139,67 +138,67 @@ vi.mock("recharts", () => ({
 
 describe("TanStack Router .lazy.tsx file structure", () => {
     it("lazy route for dashboard exports Route with createLazyFileRoute", async () => {
-        const mod = await import("../../routes/_authenticated/_workspace/index.lazy");
-        expect(mod.Route).toBeDefined();
-        expect(mod.Route.options.component).toBeDefined();
+        const module_ = await import("../../routes/_authenticated/_workspace/index.lazy");
+        expect(module_.Route).toBeDefined();
+        expect(module_.Route.options.component).toBeDefined();
     });
 
     it("lazy route for employees exports Route with EmployeesPage", async () => {
-        const mod = await import(/* @vite-ignore */ "../../routes/_authenticated/_workspace/employees.lazy");
-        expect(mod.Route).toBeDefined();
-        expect(mod.Route.options.component).toBeDefined();
+        const module_ = await import(/* @vite-ignore */ "../../routes/_authenticated/_workspace/employees.lazy");
+        expect(module_.Route).toBeDefined();
+        expect(module_.Route.options.component).toBeDefined();
     });
 
     it("lazy route for login exports Route with LoginPage", async () => {
-        const mod = await import(/* @vite-ignore */ "../../routes/login.lazy");
-        expect(mod.Route).toBeDefined();
-        expect(mod.Route.options.component).toBeDefined();
+        const module_ = await import(/* @vite-ignore */ "../../routes/login.lazy");
+        expect(module_.Route).toBeDefined();
+        expect(module_.Route.options.component).toBeDefined();
     });
 
     it("lazy route for reports exports Route with ReportsPage", async () => {
-        const mod = await import(/* @vite-ignore */ "../../routes/_authenticated/_workspace/reports.lazy");
-        expect(mod.Route).toBeDefined();
-        expect(mod.Route.options.component).toBeDefined();
+        const module_ = await import(/* @vite-ignore */ "../../routes/_authenticated/_workspace/reports.lazy");
+        expect(module_.Route).toBeDefined();
+        expect(module_.Route.options.component).toBeDefined();
     });
 
     it("lazy route for settings/general exports Route with GeneralSettings", async () => {
-        const mod = await import("../../routes/_authenticated/_workspace/workspace/settings/general.lazy");
-        expect(mod.Route).toBeDefined();
-        expect(mod.Route.options.component).toBeDefined();
+        const module_ = await import("../../routes/_authenticated/_workspace/workspace/settings/general.lazy");
+        expect(module_.Route).toBeDefined();
+        expect(module_.Route.options.component).toBeDefined();
     });
 
     it("skeleton route (employees) has no component", async () => {
-        const mod = await import("../../routes/_authenticated/_workspace/employees");
-        expect(mod.Route).toBeDefined();
-        expect(mod.Route.options.component).toBeUndefined();
+        const module_ = await import("../../routes/_authenticated/_workspace/employees");
+        expect(module_.Route).toBeDefined();
+        expect(module_.Route.options.component).toBeUndefined();
     });
 
     it("skeleton route (dashboard) has no component", async () => {
-        const mod = await import("../../routes/_authenticated/_workspace/index");
-        expect(mod.Route).toBeDefined();
-        expect(mod.Route.options.component).toBeUndefined();
+        const module_ = await import("../../routes/_authenticated/_workspace/index");
+        expect(module_.Route).toBeDefined();
+        expect(module_.Route.options.component).toBeUndefined();
     });
 
     it("layout route _workspace retains MainLayout component", async () => {
-        const mod = await import("../../routes/_authenticated/_workspace");
-        expect(mod.Route.options.component).toBeDefined();
-        expect(mod.Route.options.beforeLoad).toBeDefined();
+        const module_ = await import("../../routes/_authenticated/_workspace");
+        expect(module_.Route.options.component).toBeDefined();
+        expect(module_.Route.options.beforeLoad).toBeDefined();
     });
 
     it("layout route _infra retains InfraLayout component", async () => {
-        const mod = await import("../../routes/_authenticated/_infra");
-        expect(mod.Route.options.component).toBeDefined();
+        const module_ = await import("../../routes/_authenticated/_infra");
+        expect(module_.Route.options.component).toBeDefined();
     });
 
     it("settings layout retains SettingsLayout component", async () => {
-        const mod = await import("../../routes/_authenticated/_workspace/workspace/settings");
-        expect(mod.Route.options.component).toBeDefined();
+        const module_ = await import("../../routes/_authenticated/_workspace/workspace/settings");
+        expect(module_.Route.options.component).toBeDefined();
     });
 
     it("auth layout retains beforeLoad and component", async () => {
-        const mod = await import("../../routes/_authenticated");
-        expect(mod.Route.options.beforeLoad).toBeDefined();
-        expect(mod.Route.options.component).toBeDefined();
+        const module_ = await import("../../routes/_authenticated");
+        expect(module_.Route.options.beforeLoad).toBeDefined();
+        expect(module_.Route.options.component).toBeDefined();
     });
 });
 
@@ -257,19 +256,19 @@ describe("Page-level code splitting", () => {
         await waitFor(() => {
             const headings = screen.getAllByRole("heading");
             expect(headings.some(h =>
-                /Employees/i.test(h.textContent!) || /Nhân viên/i.test(h.textContent!)
+                /Employees/i.test(h.textContent) || /Nhân viên/i.test(h.textContent)
             )).toBe(true);
         }, { timeout: 5000 });
     });
 
     it("ShiftsPage imports and becomes a defined component", async () => {
-        const mod = await import("../ShiftsPage");
-        expect(mod.default).toBeDefined();
+        const module_ = await import("../ShiftsPage");
+        expect(module_.default).toBeDefined();
     });
 
     it("ReportsPage imports and becomes a defined component", async () => {
-        const mod = await import("../ReportsPage");
-        expect(mod.default).toBeDefined();
+        const module_ = await import("../ReportsPage");
+        expect(module_.default).toBeDefined();
     });
 
     it("shows suspense fallback while page is loading", async () => {
@@ -293,7 +292,7 @@ describe("Page-level code splitting", () => {
 
         expect(screen.getByTestId("suspense-fallback")).toBeInTheDocument();
 
-        (resolveImport as (value: unknown) => void)({ default: () => <div data-testid="loaded-component">Loaded</div> });
+        (resolveImport)({ default: () => <div data-testid="loaded-component">Loaded</div> });
 
         await waitFor(() => {
             expect(screen.getByTestId("loaded-component")).toBeInTheDocument();

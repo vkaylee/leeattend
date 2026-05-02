@@ -30,12 +30,12 @@ const VARIANT_STYLES = {
 export type StatusBadgeVariant = keyof typeof VARIANT_STYLES;
 
 export interface StatusBadgeProps {
-  variant?: StatusBadgeVariant;
   children: React.ReactNode;
+  className?: string;
   icon?: React.ReactNode;
   /** Pulse animation for "pending" states */
   pulse?: boolean;
-  className?: string;
+  variant?: StatusBadgeVariant;
 }
 
  

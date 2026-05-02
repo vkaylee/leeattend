@@ -5,8 +5,8 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     test.setTimeout(180000);
     
     // Capture console messages and errors
-    page.on('console', msg => console.log(`[BROWSER] ${msg.type().toUpperCase()}: ${msg.text()}`));
-    page.on('pageerror', err => console.log(`[BROWSER ERROR] ${err.message}`));
+    page.on('console', message => { console.log(`[BROWSER] ${message.type().toUpperCase()}: ${message.text()}`); });
+    page.on('pageerror', error => { console.log(`[BROWSER ERROR] ${error.message}`); });
 
     console.log('--- Starting Leave Policy Assignment Integration Test ---');
     
@@ -22,9 +22,9 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     await page.goto('/employees');
     await expect(page.getByTestId('employees-title')).toBeVisible({ timeout: 15000 });
     
-    const addEmpBtn = page.getByTestId('add-employee-btn');
-    await expect(addEmpBtn).toBeEnabled({ timeout: 15000 });
-    await addEmpBtn.click({ force: true });
+    const addEmpButton = page.getByTestId('add-employee-btn');
+    await expect(addEmpButton).toBeEnabled({ timeout: 15000 });
+    await addEmpButton.click({ force: true });
     
     // Wait for form input directly
     console.log('Waiting for Add Employee form...');
@@ -50,9 +50,9 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
 
     // 4. Switch to Policies Tab and create a policy
     await page.getByTestId('leave-tab-policies').click();
-    const addPolicyBtn = page.getByTestId('add-policy-btn');
-    await expect(addPolicyBtn).toBeVisible({ timeout: 15000 });
-    await addPolicyBtn.click();
+    const addPolicyButton = page.getByTestId('add-policy-btn');
+    await expect(addPolicyButton).toBeVisible({ timeout: 15000 });
+    await addPolicyButton.click();
 
     const policyName = `Policy-${Date.now()}`;
     await page.fill('input[id="policy-name"]', policyName);
@@ -62,9 +62,9 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
 
     // 5. Switch to Assignments Tab and assign
     await page.getByTestId('leave-tab-assignments').click();
-    const assignBtn = page.getByTestId('assign-policy-btn');
-    await expect(assignBtn).toBeVisible({ timeout: 15000 });
-    await assignBtn.click();
+    const assignButton = page.getByTestId('assign-policy-btn');
+    await expect(assignButton).toBeVisible({ timeout: 15000 });
+    await assignButton.click();
     
     console.log('Filling assignment modal...');
     await page.getByTestId('assign-type-select').click();

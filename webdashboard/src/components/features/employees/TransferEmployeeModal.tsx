@@ -1,26 +1,25 @@
-import React from "react";
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { Building2 } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
+
+import { format } from "date-fns";
 
 import Button from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
 import FormField from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-
 import { transferEmployee, Department } from "@/lib/api";
 
 interface TransferEmployeeModalProps {
+  departments: Department[] | undefined;
+  employeeId: string | null;
   isOpen: boolean;
   onClose: () => void;
-  employeeId: string | null;
-  wsId: string;
-  departments: Department[] | undefined;
   selectedDeptId: string;
   setSelectedDeptId: (id: string) => void;
+  wsId: string;
 }
 
 export default function TransferEmployeeModal({
@@ -61,22 +60,24 @@ export default function TransferEmployeeModal({
 
   return (
     <Modal
+      icon={<Building2 size={24} />}
       isOpen={isOpen}
+      maxWidth="md"
       onClose={() => {
         onClose();
         setSelectedDeptId("");
       }}
-      title={t("employees.transfer.title")}
       subtitle={t("employees.transfer.subtitle")}
-      icon={<Building2 size={24} />}
-      maxWidth="md"
+      title={t("employees.transfer.title")}
     >
-      <form onSubmit={handleTransferSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
+      <form className="space-y-8 pt-4 animate-in fade-in duration-500" onSubmit={handleTransferSubmit}>
         <div className="space-y-3 px-1">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
             {t("employees.transfer.new_dept")}
           </label>
           <Combobox
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 h-14"
+            onChange={setSelectedDeptId}
             options={
               departments?.map((d) => ({
                 value: d.id,
@@ -84,36 +85,34 @@ export default function TransferEmployeeModal({
                 icon: <Building2 size={14} />,
               })) || []
             }
-            value={selectedDeptId}
-            onChange={setSelectedDeptId}
             placeholder={t("employees.transfer.select_dept")}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 h-14"
+            value={selectedDeptId}
           />
         </div>
         <FormField
+          defaultValue={format(new Date(), "yyyy-MM-dd")}
           label={t("employees.transfer.effective_date")}
           name="effective_date"
-          type="date"
           required
-          defaultValue={format(new Date(), "yyyy-MM-dd")}
+          type="date"
         />
         <FormField
           label={t("employees.transfer.notes")}
           name="notes"
-          type="textarea"
           placeholder={t("employees.transfer.notes_placeholder")}
           rows={4}
+          type="textarea"
         />
         <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-          <Button variant="outline" size="lg" onClick={onClose} type="button">
+          <Button onClick={onClose} size="lg" type="button" variant="outline">
             {t("common.cancel").toUpperCase()}
           </Button>
           <Button
-            variant="secondary"
-            size="lg"
-            type="submit"
             data-testid="submit-transfer-btn"
             loading={transferMutation.isPending}
+            size="lg"
+            type="submit"
+            variant="secondary"
           >
             {t("employees.transfer.submit").toUpperCase()}
           </Button>

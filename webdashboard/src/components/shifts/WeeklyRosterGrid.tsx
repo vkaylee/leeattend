@@ -1,7 +1,3 @@
-import React from "react";
-
-import { format } from "date-fns";
-import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 import {
   ChevronLeft,
   ChevronRight,
@@ -16,10 +12,13 @@ import {
   Building2,
   PartyPopper,
 } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { Combobox } from "@/components/ui/Combobox";
+import { format } from "date-fns";
+import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
 
+import { Combobox } from "@/components/ui/Combobox";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Employee, EmployeeSchedule } from "@/lib/api/types";
 
@@ -33,22 +32,22 @@ const dateLocales: Record<string, Locale> = {
 };
 
 interface WeeklyRosterGridProps {
-  selectedEmployee: Employee;
   currentDate: Date;
-  onNavigateWeek: (direction: "prev" | "next") => void;
-  weekDays: Date[];
-  selectedDays: string[];
-  onToggleDaySelection: (dateStr: string) => void;
-  onClearSelection: () => void;
- 
-  employeeSchedule?: EmployeeSchedule;
-  onCopyPreviousWeek: () => void;
-  onAssignAllWeek: () => void;
-  onClearWeek: () => void;
-  onOpenShiftPicker: (dates: string[]) => void;
-  onDeleteRoster: (date: string) => void;
- 
   currentLocale?: Locale;
+  employeeSchedule?: EmployeeSchedule;
+  onAssignAllWeek: () => void;
+  onClearSelection: () => void;
+  onClearWeek: () => void;
+  onCopyPreviousWeek: () => void;
+ 
+  onDeleteRoster: (date: string) => void;
+  onNavigateWeek: (direction: "prev" | "next") => void;
+  onOpenShiftPicker: (dates: string[]) => void;
+  onToggleDaySelection: (dateString: string) => void;
+  selectedDays: string[];
+  selectedEmployee: Employee;
+ 
+  weekDays: Date[];
 }
 
 export function WeeklyRosterGrid({
@@ -86,23 +85,23 @@ export function WeeklyRosterGrid({
         <div className="flex items-center gap-3">
           <div className="w-56">
             <Combobox
+              className="h-10 bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-700 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter"
+              onChange={(value) => {
+                if (value === "copy-prev") onCopyPreviousWeek();
+                else if (value === "clear-week") onClearWeek();
+                else if (value === "assign-all") onAssignAllWeek();
+              }}
               options={[
                 { value: "copy-prev", label: t("shifts.actions.copy_previous"), icon: <Copy className="w-4 h-4" /> },
                 { value: "assign-all", label: t("shifts.actions.assign_all_week"), icon: <CalendarIcon className="w-4 h-4" /> },
                 { value: "clear-week", label: t("shifts.actions.clear_week"), icon: <Trash className="w-4 h-4" /> },
               ]}
-              onChange={(val) => {
-                if (val === "copy-prev") onCopyPreviousWeek();
-                else if (val === "clear-week") onClearWeek();
-                else if (val === "assign-all") onAssignAllWeek();
-              }}
               placeholder={t("common.quick_actions")}
-              className="h-10 bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-700 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter"
             />
           </div>
           <button
-            onClick={() => onNavigateWeek("prev")}
             className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl transition-all"
+            onClick={() => { onNavigateWeek("prev"); }}
           >
             <ChevronLeft size={18} />
           </button>
@@ -110,8 +109,8 @@ export function WeeklyRosterGrid({
             {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
           </div>
           <button
-            onClick={() => onNavigateWeek("next")}
             className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl transition-all"
+            onClick={() => { onNavigateWeek("next"); }}
           >
             <ChevronRight size={18} />
           </button>
@@ -126,24 +125,24 @@ export function WeeklyRosterGrid({
             </span>
             <div className="h-4 w-px bg-white dark:bg-slate-900/20" />
             <button
-              onClick={() => onOpenShiftPicker(selectedDays)}
               className="bg-white dark:bg-slate-900/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-white dark:hover:bg-slate-900/20 transition-all flex items-center gap-2"
+              onClick={() => { onOpenShiftPicker(selectedDays); }}
             >
               <Plus size={14} /> {t("shifts.assign_selected_btn")}
             </button>
           </div>
-          <button onClick={onClearSelection} className="hover:bg-white dark:hover:bg-slate-900/10 p-2 rounded-xl transition-all">
+          <button className="hover:bg-white dark:hover:bg-slate-900/10 p-2 rounded-xl transition-all" onClick={onClearSelection}>
             <X size={18} />
           </button>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-        {weekDays.map((day, idx) => {
-          const dateStr = format(day, 'yyyy-MM-dd');
-          const isSelected = selectedDays.includes(dateStr);
+        {weekDays.map((day, index) => {
+          const dateString = format(day, 'yyyy-MM-dd');
+          const isSelected = selectedDays.includes(dateString);
  
-          const effectiveSchedule = employeeSchedule?.schedules.find((s) => s.date === dateStr);
+          const effectiveSchedule = employeeSchedule?.schedules.find((s) => s.date === dateString);
           const isToday = day.toDateString() === new Date().toDateString();
  
           const source = effectiveSchedule?.source;
@@ -154,11 +153,6 @@ export function WeeklyRosterGrid({
  
  
             <div
-              key={idx}
-              onClick={() => onToggleDaySelection(dateStr)}
-              onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleDaySelection(dateStr); } }}
-              role="button"
-              tabIndex={0}
               className={`bg-white dark:bg-slate-900 border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group cursor-pointer ${isSelected
                   ? 'border-primary-500 ring-4 ring-primary-50 shadow-md'
                   : isHoliday
@@ -167,9 +161,14 @@ export function WeeklyRosterGrid({
                       ? 'border-primary-300 ring-4 ring-primary-50 shadow-lg'
                       : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 shadow-sm'
                 }`}
+              key={index}
+              onClick={() => { onToggleDaySelection(dateString); }}
+              onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleDaySelection(dateString); } }}
+              role="button"
+              tabIndex={0}
             >
               <div className="text-center mb-5 pb-5 border-b border-slate-50 dark:border-slate-800 relative">
-                {isSelected && (
+                {!!isSelected && (
                   <div className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full p-1 shadow-sm">
                     <ShieldCheck size={12} />
                   </div>
@@ -180,7 +179,7 @@ export function WeeklyRosterGrid({
                 <div className={`text-2xl font-bold mt-1 ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200'}`}>
                   {day.getDate()}
                 </div>
-                {isHoliday && (
+                {!!isHoliday && (
                   <div className="mt-1.5 flex items-center justify-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 uppercase tracking-tighter">
                     <PartyPopper size={9} />
                     <span className="truncate max-w-[100px]">{holidayName}</span>
@@ -214,9 +213,7 @@ export function WeeklyRosterGrid({
                       <Building2 size={8} /> {t("common.department")}
                     </span>
                   )}
-                  {effectiveSchedule && (
-                    <ScheduleTracePopover traces={effectiveSchedule.traces || []} source={effectiveSchedule.source} />
-                  )}
+                  {!!effectiveSchedule && <ScheduleTracePopover source={effectiveSchedule.source} traces={effectiveSchedule.traces || []} />}
                 </div>
                 {effectiveSchedule?.shift_id ? (
                   <div
@@ -243,13 +240,13 @@ export function WeeklyRosterGrid({
                     )}
                     {source === 'roster' && (
                       <button
+                        className="absolute -top-2 -right-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-1.5 shadow-md opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-rose-50 dark:bg-rose-950 hover:border-rose-200 group/btn"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDeleteRoster(dateStr);
+                          onDeleteRoster(dateString);
                         }}
-                        className="absolute -top-2 -right-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full p-1.5 shadow-md opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-rose-50 dark:bg-rose-950 hover:border-rose-200 group/btn"
                       >
-                        <X size={12} className="text-slate-500 dark:text-slate-400 group-hover/btn:text-rose-500" />
+                        <X className="text-slate-500 dark:text-slate-400 group-hover/btn:text-rose-500" size={12} />
                       </button>
                     )}
                   </div>

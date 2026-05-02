@@ -1,6 +1,5 @@
-import React, { memo, forwardRef } from "react";
-
 import { Loader2 } from "lucide-react";
+import React, { memo, forwardRef } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -32,11 +31,11 @@ export type ButtonSize = keyof typeof SIZE_STYLES;
 
 export interface ButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
+  children: React.ReactNode;
   icon?: React.ReactNode;
   loading?: boolean;
-  children: React.ReactNode;
+  size?: ButtonSize;
+  variant?: ButtonVariant;
 }
 
  
@@ -58,18 +57,18 @@ const Button = memo(
   ) {
     return (
       <button
-        ref={ref}
-        type={type}
-        disabled={disabled || loading}
         className={cn(
           "inline-flex items-center justify-center font-bold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
           VARIANT_STYLES[variant],
           SIZE_STYLES[size],
           className,
         )}
+        disabled={disabled || loading}
+        ref={ref}
+        type={type}
         {...rest}
       >
-        {loading ? <Loader2 size={18} className="animate-spin" /> : icon}
+        {loading ? <Loader2 className="animate-spin" size={18} /> : icon}
         {children}
       </button>
     );

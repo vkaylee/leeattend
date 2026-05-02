@@ -1,7 +1,7 @@
-import { useState } from "react";
-
 import { Building2 } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import {
     BarChart,
     Bar,
@@ -56,24 +56,24 @@ export default function DepartmentAttendanceChart() {
 
                 <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
                     <button
-                        onClick={() => setRange("today")}
                         className={cn(
                             "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
                             range === "today"
                                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                         )}
+                        onClick={() => { setRange("today"); }}
                     >
                         {t("dashboard.hr.today")}
                     </button>
                     <button
-                        onClick={() => setRange("week")}
                         className={cn(
                             "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
                             range === "week"
                                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                         )}
+                        onClick={() => { setRange("week"); }}
                     >
                         {t("dashboard.hr.this_week")}
                     </button>
@@ -86,32 +86,32 @@ export default function DepartmentAttendanceChart() {
                 </div>
             ) : !hasData ? (
                 <div className="h-[320px] flex flex-col items-center justify-center">
-                    <Building2 size={48} className="text-slate-200 dark:text-slate-700 mb-4" />
+                    <Building2 className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
                     <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
                         {t("common.no_data")}
                     </p>
                 </div>
             ) : (
-                <ResponsiveContainer width="100%" height={320}>
+                <ResponsiveContainer height={320} width="100%">
                     <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                         <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="currentColor"
                             className="text-slate-100 dark:text-slate-800"
+                            stroke="currentColor"
+                            strokeDasharray="3 3"
                         />
                         <XAxis
+                            axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
                             dataKey="name"
                             tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
                             tickLine={false}
-                            axisLine={false}
                         />
                         <YAxis
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
-                            tickLine={false}
-                            axisLine={false}
                             allowDecimals={false}
+                            axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                            tickLine={false}
                         />
                         <Tooltip
                             contentStyle={{
@@ -132,26 +132,26 @@ export default function DepartmentAttendanceChart() {
                         />
                         <Bar
                             dataKey="on_time"
-                            name={t("dashboard.hr.on_time")}
                             fill={COLORS.on_time}
+                            name={t("dashboard.hr.on_time")}
                             radius={[4, 4, 0, 0]}
                         />
                         <Bar
                             dataKey="late"
-                            name={t("dashboard.hr.late_today")}
                             fill={COLORS.late}
+                            name={t("dashboard.hr.late_today")}
                             radius={[4, 4, 0, 0]}
                         />
                         <Bar
                             dataKey="absent"
-                            name={t("dashboard.hr.absent_today")}
                             fill={COLORS.absent}
+                            name={t("dashboard.hr.absent_today")}
                             radius={[4, 4, 0, 0]}
                         />
                         <Bar
                             dataKey="on_leave"
-                            name={t("dashboard.hr.on_leave_today")}
                             fill={COLORS.on_leave}
+                            name={t("dashboard.hr.on_leave_today")}
                             radius={[4, 4, 0, 0]}
                         />
                     </BarChart>

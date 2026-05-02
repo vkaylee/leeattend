@@ -24,13 +24,13 @@ export type WidgetId =
 export type DashboardView = "overview" | "attendance" | "trends" | "custom";
 
 export interface DashboardLayoutPreferences {
+    active_view: DashboardView;
+    collapsed_sections: Record<string, boolean>;
     id: string;
     user_id: string;
-    workspace_id: string;
-    active_view: DashboardView;
     visible_widgets: Record<WidgetId, boolean>;
     widget_order: WidgetId[];
-    collapsed_sections: Record<string, boolean>;
+    workspace_id: string;
 }
 
 // ── Preset view configurations ─────────────────────────────────────
@@ -190,15 +190,15 @@ export function useDashboardLayout() {
     })();
 
     const collapsedSections: Record<string, boolean> =
-        (preferences?.collapsed_sections as Record<string, boolean>) ?? {};
+        (preferences?.collapsed_sections!) ?? {};
 
     // ── Actions ──────────────────────────────────────────────────────
 
     const setActiveView = (view: DashboardView) => {
         mutation.mutate({
             active_view: view,
-            visible_widgets: view === "custom" ? preferences?.visible_widgets : PRESET_VIEWS[view as Exclude<DashboardView, "custom">]?.visible as Record<string, boolean>,
-            widget_order: view === "custom" ? preferences?.widget_order : PRESET_VIEWS[view as Exclude<DashboardView, "custom">]?.order,
+            visible_widgets: view === "custom" ? preferences?.visible_widgets : PRESET_VIEWS[view]?.visible as Record<string, boolean>,
+            widget_order: view === "custom" ? preferences?.widget_order : PRESET_VIEWS[view]?.order,
             collapsed_sections: preferences?.collapsed_sections,
         });
     };

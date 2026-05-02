@@ -4,23 +4,23 @@ import { apiFetch } from "./helpers";
 export type ShiftSwapStatus = "pending_target" | "pending_admin" | "approved" | "rejected" | "cancelled";
 
 export interface ShiftSwapRequest {
-    id: string;
-    workspace_id: string;
-    requester_id: string;
-    target_id: string;
-    swap_date: string;
-    requester_shift_id: string | null;
-    target_shift_id: string | null;
-    status: ShiftSwapStatus;
-    reason: string | null;
-    requested_by_user_id: string | null;
     approved_by_user_id: string | null;
     created_at: string;
-    updated_at: string;
+    id: string;
+    reason: string | null;
+    requested_by_user_id: string | null;
+    requester_id: string;
     requester_name?: string | null;
-    target_name?: string | null;
+    requester_shift_id: string | null;
     requester_shift_name?: string | null;
+    status: ShiftSwapStatus;
+    swap_date: string;
+    target_id: string;
+    target_name?: string | null;
+    target_shift_id: string | null;
     target_shift_name?: string | null;
+    updated_at: string;
+    workspace_id: string;
 }
 
 export async function fetchShiftSwaps(
@@ -31,7 +31,7 @@ export async function fetchShiftSwaps(
     if (status) url += `?status=${status}`;
     const response = await apiFetch(url);
     if (!response.ok) throw new Error("Failed to fetch shift swaps");
-    return response.json();
+    return response.json() as Promise<ShiftSwapRequest[]>;
 }
 
 export async function createShiftSwap(
@@ -51,7 +51,7 @@ export async function createShiftSwap(
         },
     );
     if (!response.ok) throw new Error("Failed to create shift swap");
-    return response.json();
+    return response.json() as Promise<ShiftSwapRequest>;
 }
 
 export async function approveShiftSwap(
@@ -70,12 +70,12 @@ export async function approveShiftSwap(
 }
 
 export interface SwapStats {
-    pending_target: number;
-    pending_admin: number;
     approved: number;
-    rejected: number;
-    cancelled: number;
     approved_this_month: number;
+    cancelled: number;
+    pending_admin: number;
+    pending_target: number;
+    rejected: number;
     rejected_this_month: number;
 }
 
@@ -86,5 +86,5 @@ export async function fetchShiftSwapStats(
         `${API_BASE_URL}/workspaces/${wsId}/shift-swaps/stats`,
     );
     if (!response.ok) throw new Error("Failed to fetch swap stats");
-    return response.json();
+    return response.json() as Promise<SwapStats>;
 }

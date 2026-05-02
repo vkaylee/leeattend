@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
+import type {
+  StreamMessage,
+  StreamStatus,
+  ChunkMessage,
+} from "@/types/report-stream";
+
 import { API_BASE_URL } from "@/lib/api/config";
 import {
   getAccessToken,
@@ -12,25 +18,19 @@ import {
 } from "@/lib/api/helpers";
 import { ROUTES } from "@/lib/routes";
 
-import type {
-  StreamMessage,
-  StreamStatus,
-  ChunkMessage,
-} from "@/types/report-stream";
-
 interface UseReportStreamOptions {
   jobId: string | null;
+  maxRetries?: number;
   onComplete?: (data: unknown[]) => void;
   onError?: (message: string) => void;
-  maxRetries?: number;
 }
 
 interface UseReportStreamResult {
-  status: StreamStatus;
-  progress: number; // 0-100
   chunks: unknown[];
   error: string | null;
+  progress: number; // 0-100
   reconnect: () => void;
+  status: StreamStatus;
 }
 
 /**
@@ -127,17 +127,17 @@ export function useReportStream({
 
       switch (message.type) {
         case "CHUNK": {
-          const chunkMsg = message as ChunkMessage;
+          const chunkMessage = message;
 
           // Update progress (data is no longer sent in CHUNK messages)
-          totalBatchesRef.current = chunkMsg.total_batches;
+          totalBatchesRef.current = chunkMessage.total_batches;
           const newProgress =
-            ((chunkMsg.batch_index + 1) / chunkMsg.total_batches) * 100;
+            ((chunkMessage.batch_index + 1) / chunkMessage.total_batches) * 100;
           setProgress(Math.min(newProgress, 100));
           setStatus("streaming");
 
           console.debug(
-            `[ReportStream] Received chunk ${chunkMsg.batch_index + 1}/${chunkMsg.total_batches}`
+            `[ReportStream] Received chunk ${chunkMessage.batch_index + 1}/${chunkMessage.total_batches}`
           );
           break;
         }
@@ -166,8 +166,8 @@ export function useReportStream({
           break;
         }
       }
-    } catch (err) {
-      console.error("[ReportStream] Failed to parse message:", err);
+    } catch (error_) {
+      console.error("[ReportStream] Failed to parse message:", error_);
     }
   }, []);
 
@@ -281,8 +281,8 @@ export function useReportStream({
           onErrorRef.current?.("Connection lost. Max retries exceeded.");
         }
       };
-    } catch (err) {
-      console.error("[ReportStream] Failed to create WebSocket:", err);
+    } catch (error_) {
+      console.error("[ReportStream] Failed to create WebSocket:", error_);
       setStatus("error");
       setError("Failed to establish connection");
     }
@@ -301,9 +301,9 @@ export function useReportStream({
     connect();
   }, [connect]);
 
-  const [prevJobId, setPrevJobId] = useState(jobId);
-  if (jobId !== prevJobId) {
-    setPrevJobId(jobId);
+  const [previousJobId, setPreviousJobId] = useState(jobId);
+  if (jobId !== previousJobId) {
+    setPreviousJobId(jobId);
     if (!jobId) {
       setStatus("idle");
       setProgress(0);

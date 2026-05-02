@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -63,7 +63,7 @@ describe("AttendanceAdjustmentsPage", () => {
       page: 1,
       limit: 50,
  
-    } as unknown as PaginatedResponse<Employee>);
+    });
     vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([
       { 
         id: "adj-1", 
@@ -96,12 +96,12 @@ describe("AttendanceAdjustmentsPage", () => {
   it("handles approve action", async () => {
  
     const user = userEvent.setup();
-    vi.mocked(api.approveAttendanceAdjustment).mockResolvedValue(undefined as unknown as void);
+    vi.mocked(api.approveAttendanceAdjustment).mockResolvedValue(undefined);
 
     renderWithProviders(<AttendanceAdjustmentsPage />);
     
-    const approveBtn = await screen.findByTitle(/common.approve/i);
-    await user.click(approveBtn);
+    const approveButton = await screen.findByTitle(/common.approve/i);
+    await user.click(approveButton);
 
     await waitFor(() => {
       expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith("test-ws-id", "adj-1", { status: "approved" });

@@ -1,4 +1,3 @@
-import { formatDistanceToNow } from "date-fns";
 import {
   Activity,
   Server,
@@ -17,10 +16,11 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { formatDistanceToNow } from "date-fns";
+
 import JobStatusDistributionChart from "@/components/features/monitor/JobStatusDistributionChart";
 import QueuePressureChart from "@/components/features/monitor/QueuePressureChart";
 import WorkerUtilizationGauge from "@/components/features/monitor/WorkerUtilizationGauge";
-
 import { useWorkerUtilization, useQueuePressure, useJobStatusDistribution } from "@/hooks/use-monitor-charts";
 import { useMonitorStream } from "@/hooks/use-monitor-stream";
 import { useWorkerMonitor, MONITOR_REFETCH_INTERVAL_S } from "@/hooks/use-worker-monitor";
@@ -93,7 +93,7 @@ export default function WorkerMonitorPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
         <div className="flex items-center gap-5">
           <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950 border border-primary-100 dark:border-primary-800 flex items-center justify-center">
-            <Activity size={28} className="text-primary-600 dark:text-primary-400" />
+            <Activity className="text-primary-600 dark:text-primary-400" size={28} />
           </div>
           <div>
             <h3 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">
@@ -106,29 +106,29 @@ export default function WorkerMonitorPage() {
         </div>
 
         <button
-          onClick={() => refetch()}
-          disabled={isFetching}
           className="flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-6 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-bold text-xs uppercase tracking-widest shadow-lg dark:shadow-black/20 active:scale-95 disabled:opacity-50"
+          disabled={isFetching}
+          onClick={() => refetch()}
         >
-          <RefreshCw size={16} className={cn(isFetching && "animate-spin")} />
+          <RefreshCw className={cn(isFetching && "animate-spin")} size={16} />
           {t("common.refresh")}
         </button>
       </div>
 
       {/* Error Banner */}
-      {error && (
+      {!!error && (
         <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm font-medium">
-          <AlertTriangle size={18} className="shrink-0" />
+          <AlertTriangle className="shrink-0" size={18} />
           {t("monitor.error_loading", { defaultValue: "Failed to load monitoring data. Retrying..." })}
         </div>
       )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6">
-        {statCards.map((stat, i) => (
+        {statCards.map((stat, index) => (
           <div
-            key={i}
             className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-black/10 hover:shadow-xl dark:hover:shadow-black/20 transition-all group relative overflow-hidden"
+            key={index}
           >
             <div
               className={cn(
@@ -170,9 +170,7 @@ export default function WorkerMonitorPage() {
         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
           {t("monitor.live_updates", { seconds: MONITOR_REFETCH_INTERVAL_S })}
         </span>
-        {isFetching && (
-          <Loader2 size={14} className="text-slate-400 dark:text-slate-500 animate-spin" />
-        )}
+        {!!isFetching && <Loader2 className="text-slate-400 dark:text-slate-500 animate-spin" size={14} />}
       </div>
 
       {/* Workers Table */}
@@ -188,7 +186,7 @@ export default function WorkerMonitorPage() {
 
         {workers.length === 0 ? (
           <div className="p-12 text-center">
-            <Server size={48} className="mx-auto text-slate-200 dark:text-slate-700 mb-4" />
+            <Server className="mx-auto text-slate-200 dark:text-slate-700 mb-4" size={48} />
             <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
               {t("monitor.no_workers")}
             </p>
@@ -218,20 +216,20 @@ export default function WorkerMonitorPage() {
               <tbody>
                 {workers.map((worker) => (
                   <tr
-                    key={worker.id}
                     className="border-t border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    key={worker.id}
                   >
                     <td className="px-6 py-4">
                       <code
-                        title={worker.id}
                         className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded cursor-help"
+                        title={worker.id}
                       >
                         {worker.id.slice(0, 8)}...
                       </code>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <Cpu size={14} className="text-slate-400 dark:text-slate-500" />
+                        <Cpu className="text-slate-400 dark:text-slate-500" size={14} />
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                           {worker.host}
                         </span>
@@ -291,7 +289,7 @@ export default function WorkerMonitorPage() {
 
         {recentJobs.length === 0 ? (
           <div className="p-12 text-center">
-            <Briefcase size={48} className="mx-auto text-slate-200 dark:text-slate-700 mb-4" />
+            <Briefcase className="mx-auto text-slate-200 dark:text-slate-700 mb-4" size={48} />
             <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
               {t("monitor.no_jobs", { defaultValue: "No recent jobs" })}
             </p>
@@ -324,13 +322,13 @@ export default function WorkerMonitorPage() {
               <tbody>
                 {recentJobs.map((job) => (
                   <tr
-                    key={job.job_id}
                     className="border-t border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    key={job.job_id}
                   >
                     <td className="px-6 py-4">
                       <code
-                        title={job.job_id}
                         className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded cursor-help"
+                        title={job.job_id}
                       >
                         {job.job_id.slice(0, 8)}...
                       </code>
@@ -353,7 +351,7 @@ export default function WorkerMonitorPage() {
                         ) : job.status === "failed" ? (
                           <XCircle size={12} />
                         ) : job.status === "processing" ? (
-                          <Loader2 size={12} className="animate-spin" />
+                          <Loader2 className="animate-spin" size={12} />
                         ) : (
                           <Clock size={12} />
                         )}
@@ -385,8 +383,8 @@ export default function WorkerMonitorPage() {
                     <td className="px-6 py-4 max-w-[200px]">
                       {job.error_message ? (
                         <span
-                          title={job.error_message}
                           className="text-xs text-rose-500 dark:text-rose-400 truncate block cursor-help"
+                          title={job.error_message}
                         >
                           {job.error_message}
                         </span>

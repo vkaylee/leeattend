@@ -1,12 +1,10 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Users, Trash2 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-
 import { fetchEmploymentPhases, createEmploymentPhase } from "@/lib/api/employees";
 import { EmploymentPhaseDefinition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -41,7 +39,7 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">Manage probation, intern and official phases</p>
           </div>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Plus size={18} /> {t("common.add").toUpperCase()}</button>
+        <button className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={() => { setIsModalOpen(true); }}><Plus size={18} /> {t("common.add").toUpperCase()}</button>
       </div>
 
       <div className="divide-y divide-slate-50 dark:divide-slate-800 px-2">
@@ -49,12 +47,12 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
           <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
         ) : phases?.length === 0 ? (
           <div className="p-32 text-center bg-slate-50 dark:bg-slate-800/30 m-8 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center">
-            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><Users size={32} className="text-slate-200 dark:text-slate-700" /></div>
+            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><Users className="text-slate-200 dark:text-slate-700" size={32} /></div>
             <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">No Employment Phases</p>
           </div>
         ) : (
           phases?.map((phase) => (
-            <div key={phase.id} className="p-8 px-10 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group relative rounded-3xl m-2">
+            <div className="p-8 px-10 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group relative rounded-3xl m-2" key={phase.id}>
               <div className="flex items-center gap-6">
                 <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-inner group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 group-hover:shadow-md transition-all uppercase">{phase.name.slice(0, 2)}</div>
                 <div>
@@ -77,17 +75,17 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Phase" subtitle="Create a new employment phase" icon={<Users size={24} />} maxWidth="lg">
-        <form onSubmit={handleSubmit} className="space-y-10 pt-4 animate-in fade-in duration-500">
+      <Modal icon={<Users size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle="Create a new employment phase" title="Add Phase">
+        <form className="space-y-10 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
-              <label htmlFor="phase-name" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.name")}</label>
-              <input id="phase-name" required type="text" placeholder="Probation" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="phase-name">{t("common.name")}</label>
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="phase-name" onChange={e => { setFormData({...formData, name: e.target.value}); }} placeholder="Probation" required type="text" value={formData.name} />
             </div>
             <div className="space-y-3 px-1">
-              <label htmlFor="phase-type" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Type</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="phase-type">Type</label>
               { }
-              <select id="phase-type" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" value={formData.phase_type} onChange={e => setFormData({...formData, phase_type: e.target.value as "probation" | "internship" | "official" | "contract"})}>
+              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="phase-type" onChange={e => { setFormData({...formData, phase_type: e.target.value as "probation" | "internship" | "official" | "contract"}); }} required value={formData.phase_type}>
                 <option value="probation">Probation</option>
                 <option value="internship">Internship</option>
                 <option value="official">Official</option>
@@ -98,18 +96,18 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
-              <label htmlFor="phase-duration" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Default Duration (Days)</label>
-              <input id="phase-duration" type="number" min="0" placeholder="60" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm" value={formData.default_duration_days || ""} onChange={e => setFormData({...formData, default_duration_days: parseInt(e.target.value) || 0})} />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="phase-duration">Default Duration (Days)</label>
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm" id="phase-duration" min="0" onChange={e => { setFormData({...formData, default_duration_days: parseInt(e.target.value) || 0}); }} placeholder="60" type="number" value={formData.default_duration_days || ""} />
             </div>
             <div className="space-y-3 px-1">
-              <label htmlFor="phase-order" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Display Order</label>
-              <input id="phase-order" type="number" min="1" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm" value={formData.display_order || 1} onChange={e => setFormData({...formData, display_order: parseInt(e.target.value) || 1})} />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="phase-order">Display Order</label>
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm" id="phase-order" min="1" onChange={e => { setFormData({...formData, display_order: parseInt(e.target.value) || 1}); }} type="number" value={formData.display_order || 1} />
             </div>
           </div>
 
           <div className="flex gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("common.cancel").toUpperCase()}</button>
-            <button type="submit" disabled={createMutation.isPending} className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
+            <button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={() => { setIsModalOpen(false); }} type="button">{t("common.cancel").toUpperCase()}</button>
+            <button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={createMutation.isPending} type="submit">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
           </div>
         </form>
       </Modal>

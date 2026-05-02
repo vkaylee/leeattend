@@ -1,19 +1,17 @@
-import React from "react";
-
 import { Clock, Info } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
-
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Shift } from "@/lib/api";
 
 interface ShiftPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  targetDates: string[];
-  shifts?: Shift[];
   onSelectShift: (shiftId: string | null) => void;
+  shifts?: Shift[];
+  targetDates: string[];
 }
 
 export function ShiftPickerModal({
@@ -35,16 +33,16 @@ export function ShiftPickerModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={t("shifts.modal.select_shift_title")}
       subtitle={t("shifts.modal.select_shift_subtitle", { count: targetDates.length })}
+      title={t("shifts.modal.select_shift_title")}
     >
       <div className="space-y-6 pt-4">
         <div className="grid grid-cols-1 gap-3">
           {shifts?.map(shift => (
             <button
-              key={shift.id}
-              onClick={() => handleSelect(shift.id)}
               className="p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group hover:border-primary-500 hover:bg-primary-50 dark:bg-primary-950/30 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30"
+              key={shift.id}
+              onClick={() => { handleSelect(shift.id); }}
             >
               <div className="font-bold text-sm uppercase tracking-tight text-slate-700 dark:text-slate-200">{shift.name}</div>
               <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
@@ -64,8 +62,8 @@ export function ShiftPickerModal({
           ))}
 
           <button
-            onClick={() => handleSelect(null)}
             className="p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 border-dashed"
+            onClick={() => { handleSelect(null); }}
           >
             <div className="font-bold text-sm uppercase tracking-tight text-slate-500 dark:text-slate-400">{t("shifts.off_day")}</div>
             <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1.5">
@@ -75,8 +73,8 @@ export function ShiftPickerModal({
         </div>
 
         <button
-          onClick={onClose}
           className="w-full px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+          onClick={onClose}
         >
           {t("common.cancel")}
         </button>

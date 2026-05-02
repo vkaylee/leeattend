@@ -30,7 +30,7 @@ export function useInfiniteScroll<T extends HTMLElement = HTMLElement>({
             { threshold }
         );
         observer.observe(sentinelRef.current);
-        return () => observer.disconnect();
+        return () => { observer.disconnect(); };
     }, [hasNextPage, isFetchingNextPage, fetchNextPage, threshold]);
 
     return sentinelRef;

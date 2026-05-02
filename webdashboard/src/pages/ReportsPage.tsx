@@ -1,18 +1,17 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
-
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { format, endOfMonth } from "date-fns";
 import { Download, CalendarCheck, FileBarChart, Clock, Users2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
+import { format, endOfMonth } from "date-fns";
+
+import type { NavigableListColumn } from "@/components/common/NavigableList";
 
 import NavigableList from "@/components/common/NavigableList";
-import type { NavigableListColumn } from "@/components/common/NavigableList";
 import EmployeeDailyDrawer from "@/components/features/reports/EmployeeDailyDrawer";
 import ReportExportDialog from "@/components/features/reports/ReportExportDialog";
 import ReportFilters from "@/components/features/reports/ReportFilters";
-
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 
@@ -34,7 +33,7 @@ export default function ReportsPage() {
   // URL search params — read once on mount for cross-page navigation
   const searchParams = new URLSearchParams(window.location.search);
  
-  const setSearchParams = (_params: Record<string, string>, _opts?: unknown) => {
+  const setSearchParams = (_params: Record<string, string>, _options?: unknown) => {
     // No-op: local state only
   };
 
@@ -50,7 +49,7 @@ export default function ReportsPage() {
 
   const workUnitMinutes = workspace?.work_unit_minutes || 60;
 
-  const getMonthRange = (offset: number = 0) => {
+  const getMonthRange = (offset = 0) => {
     const d = new Date(); d.setMonth(d.getMonth() + offset);
     const firstDay = format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd');
     const lastDay = format(new Date(d.getFullYear(), d.getMonth() + 1, 0), 'yyyy-MM-dd');
@@ -156,7 +155,7 @@ export default function ReportsPage() {
   } = useInfiniteQuery({
     queryKey: ["attendance-report", wsId, dateRange, "summary", PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId],
     queryFn: ({ pageParam }) =>
-      fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, "summary", pageParam as number, PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId),
+      fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, "summary", pageParam, PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId),
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
       const total = lastPage.total || 0;
@@ -185,12 +184,12 @@ export default function ReportsPage() {
     const allData = allStatsResponse?.data || [];
     const stdHours = formatUnitsToHours(
  
-      (allData as AttendanceSummary[]).reduce((acc: number, r: AttendanceSummary) => acc + (r.total_std_units || 0), 0),
+      (allData as AttendanceSummary[]).reduce((accumulator: number, r: AttendanceSummary) => accumulator + (r.total_std_units || 0), 0),
       workUnitMinutes
     );
     const otHours = formatUnitsToHours(
  
-      (allData as AttendanceSummary[]).reduce((acc: number, r: AttendanceSummary) => acc + (r.total_ot_units || 0), 0),
+      (allData as AttendanceSummary[]).reduce((accumulator: number, r: AttendanceSummary) => accumulator + (r.total_ot_units || 0), 0),
       workUnitMinutes
     );
  
@@ -204,9 +203,9 @@ export default function ReportsPage() {
 
   const getSortIcon = (field: SortField) => {
     const prefix = field;
-    if (sortBy === `${prefix}_asc`) return <ArrowUp size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
-    if (sortBy === `${prefix}_desc`) return <ArrowDown size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
-    return <ArrowUpDown size={12} className="ml-1 opacity-20 group-hover:opacity-100 transition-opacity" />;
+    if (sortBy === `${prefix}_asc`) return <ArrowUp className="ml-1 text-primary-600 dark:text-primary-400" size={12} />;
+    if (sortBy === `${prefix}_desc`) return <ArrowDown className="ml-1 text-primary-600 dark:text-primary-400" size={12} />;
+    return <ArrowUpDown className="ml-1 opacity-20 group-hover:opacity-100 transition-opacity" size={12} />;
   };
 
   const handleSort = (field: SortField) => {
@@ -225,7 +224,7 @@ export default function ReportsPage() {
     {
       key: "name",
       header: <div className="flex items-center">{t("common.employee")}{getSortIcon('name')}</div>,
-      onHeaderClick: () => handleSort('name'),
+      onHeaderClick: () => { handleSort('name'); },
       cell: (row) => (
         <div>
           <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{row.employee_name}</div>
@@ -238,7 +237,7 @@ export default function ReportsPage() {
     {
       key: "std_hours",
       header: <div className="flex items-center justify-end">{t("reports.table.std_hours")}{getSortIcon('work_hours')}</div>,
-      onHeaderClick: () => handleSort('work_hours'),
+      onHeaderClick: () => { handleSort('work_hours'); },
       cell: (row) => (
         <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter cursor-default" title={`${row.total_std_units} units`}>
           {formatUnitsToHours(row.total_std_units, workUnitMinutes)}h
@@ -250,7 +249,7 @@ export default function ReportsPage() {
     {
       key: "ot_hours",
       header: <div className="flex items-center justify-end">{t("reports.table.ot_hours")}{getSortIcon('ot_hours')}</div>,
-      onHeaderClick: () => handleSort('ot_hours'),
+      onHeaderClick: () => { handleSort('ot_hours'); },
       cell: (row) => row.total_ot_units > 0 ? (
         <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter cursor-default" title={`${row.total_ot_units} OT units`}>
           {formatUnitsToHours(row.total_ot_units, workUnitMinutes)}h
@@ -264,7 +263,7 @@ export default function ReportsPage() {
     {
       key: "total_hours",
       header: <div className="flex items-center justify-end">{t("reports.table.total_hours")}{getSortIcon('total_hours')}</div>,
-      onHeaderClick: () => handleSort('total_hours'),
+      onHeaderClick: () => { handleSort('total_hours'); },
       cell: (row) => (
         <div className="font-mono font-bold text-slate-700 dark:text-slate-200 text-base tracking-tighter cursor-default" title={`${row.total_std_units + row.total_ot_units} total units`}>
           {formatUnitsToHours(row.total_std_units + row.total_ot_units, workUnitMinutes)}h
@@ -276,7 +275,7 @@ export default function ReportsPage() {
     {
       key: "leave_days",
       header: <div className="flex items-center justify-end">{t("reports.table.leave_days")}{getSortIcon('leave_days')}</div>,
-      onHeaderClick: () => handleSort('leave_days'),
+      onHeaderClick: () => { handleSort('leave_days'); },
       cell: (row) => <span className="font-mono font-bold text-orange-600 dark:text-orange-300 text-base tracking-tighter">{row.total_leave_days} {t("common.days_short")}</span>,
       headerClassName: "px-10 text-right",
       cellClassName: "px-10 py-6 text-right",
@@ -302,7 +301,7 @@ export default function ReportsPage() {
   if (!wsId) return <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
   return (
-    <div data-testid="reports-page" className="space-y-10 pb-20 animate-in fade-in duration-700">
+    <div className="space-y-10 pb-20 animate-in fade-in duration-700" data-testid="reports-page">
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
         <div className="space-y-1">
@@ -312,17 +311,17 @@ export default function ReportsPage() {
 
         <div className="flex items-center gap-3">
           <Link
-            to="/attendance-logs"
+            className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-8 py-3 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
  
             search={{ from: dateRange.start, to: dateRange.end } as Record<string, string>}
-            className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-8 py-3 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
+            to="/attendance-logs"
           >
             <CalendarCheck size={18} /> {t("reports.view_raw_logs").toUpperCase()}
           </Link>
           <button
-            data-testid="export-report-btn"
-            onClick={() => setIsExportDialogOpen(true)}
             className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
+            data-testid="export-report-btn"
+            onClick={() => { setIsExportDialogOpen(true); }}
           >
             <Download size={18} /> {t("reports.export_excel").toUpperCase()}
           </button>
@@ -330,85 +329,85 @@ export default function ReportsPage() {
       </div>
 
       <NavigableList<AttendanceSummary>
-        columns={reportColumns}
-        items={filteredData as AttendanceSummary[]}
-        itemKey={(row) => row.employee_id}
-        onSelect={(row) => handleEmployeeClick(row.employee_id, row.employee_name)}
-        isLoading={isLoading}
-        emptyMessage={t("reports.messages.no_data")}
-        showChevron
-        rowIdPrefix="summary-row"
-        resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        fetchNextPage={fetchNextPage}
-        maxHeightClass=""
-        searchValue={searchQuery}
-        onSearchChange={handleSearchQueryChange}
-        searchPlaceholder={t("reports.search_placeholder")}
-        searchInputRef={searchInputRef}
-        searchTestId="report-search"
         className="animate-in slide-in-from-bottom-8 duration-700"
-        onKeyDownRef={keyDownRef}
+        columns={reportColumns}
+        emptyMessage={t("reports.messages.no_data")}
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
         headerSlot={
           <ReportFilters
-            filterMode={filterMode}
             dateRange={dateRange}
-            specificMonth={specificMonth}
-            searchQuery={searchQuery}
-            searchInputRef={searchInputRef}
-            t={t}
-            onFilterModeChange={handleFilterModeChange}
-            onDateRangeChange={handleDateRangeChange}
-            onSpecificMonthChange={handleSpecificMonthChange}
-            onSearchQueryChange={handleSearchQueryChange}
             departments={departments}
-            selectedDepartmentId={selectedDepartmentId}
+            filterMode={filterMode}
+            onDateRangeChange={handleDateRangeChange}
             onDepartmentChange={handleDepartmentChange}
+            onFilterModeChange={handleFilterModeChange}
             onSearchKeyDown={(e) => keyDownRef.current?.(e)}
+            onSearchQueryChange={handleSearchQueryChange}
+            onSpecificMonthChange={handleSpecificMonthChange}
+            searchInputRef={searchInputRef}
+            searchQuery={searchQuery}
+            selectedDepartmentId={selectedDepartmentId}
+            specificMonth={specificMonth}
             statsSlot={
               <>
                 <div className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 px-4 py-2.5 rounded-2xl border border-slate-800 dark:border-slate-700 shadow-lg">
-                  <FileBarChart size={14} className="text-primary-400" />
+                  <FileBarChart className="text-primary-400" size={14} />
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("reports.quick_stats.std_hours")}</span>
                   <span className="font-mono font-bold text-white text-sm tracking-tighter">{quickStats.stdHours}h</span>
                 </div>
                 <div className="flex items-center gap-2 bg-gradient-to-r from-orange-900 to-orange-950 px-4 py-2.5 rounded-2xl border border-orange-800 shadow-lg">
-                  <Clock size={14} className="text-orange-400" />
+                  <Clock className="text-orange-400" size={14} />
                   <span className="text-[10px] font-bold text-orange-400/70 uppercase tracking-widest">{t("reports.quick_stats.ot_hours")}</span>
                   <span className="font-mono font-bold text-orange-100 text-sm tracking-tighter">{quickStats.otHours}h</span>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
-                  <Users2 size={14} className="text-primary-600 dark:text-primary-400" />
+                  <Users2 className="text-primary-600 dark:text-primary-400" size={14} />
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("common.employees")}</span>
                   <span className="font-mono font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tighter">{quickStats.totalEmployees}</span>
                 </div>
               </>
             }
+            t={t}
           />
         }
+        isFetchingNextPage={isFetchingNextPage}
+        isLoading={isLoading}
+        itemKey={(row) => row.employee_id}
+        items={filteredData as AttendanceSummary[]}
+        maxHeightClass=""
+        onKeyDownRef={keyDownRef}
+        onSearchChange={handleSearchQueryChange}
+        onSelect={(row) => { handleEmployeeClick(row.employee_id, row.employee_name); }}
+        resetDeps={[searchQuery, filterMode, specificMonth, dateRange]}
+        rowIdPrefix="summary-row"
+        searchInputRef={searchInputRef}
+        searchPlaceholder={t("reports.search_placeholder")}
+        searchTestId="report-search"
+        searchValue={searchQuery}
+        showChevron
       />
 
       {/* Employee Daily Drill-down Drawer */}
       <EmployeeDailyDrawer
-        key={selectedEmployee?.id || "closed"}
-        isOpen={!!selectedEmployee}
-        onClose={handleDrawerClose}
-        workspaceId={wsId}
+        dateRange={dateRange}
         employeeId={selectedEmployee?.id || ""}
         employeeName={selectedEmployee?.name || ""}
-        dateRange={dateRange}
+        isOpen={!!selectedEmployee}
+        key={selectedEmployee?.id || "closed"}
+        onClose={handleDrawerClose}
+        workspaceId={wsId}
         workUnitMinutes={workUnitMinutes}
       />
 
       <ReportExportDialog
-        isOpen={isExportDialogOpen}
-        onClose={() => setIsExportDialogOpen(false)}
-        wsId={wsId || ""}
-        startDate={dateRange.start}
-        endDate={dateRange.end}
-        reportType="detail"
         employeeIds={employeeIdsFilter && employeeIdsFilter[0] !== "__none__" ? employeeIdsFilter : undefined}
+        endDate={dateRange.end}
+        isOpen={isExportDialogOpen}
+        onClose={() => { setIsExportDialogOpen(false); }}
+        reportType="detail"
+        startDate={dateRange.start}
+        wsId={wsId || ""}
       />
 
     </div>

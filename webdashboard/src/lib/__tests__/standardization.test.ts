@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-
 import { describe, it, expect } from "vitest";
 
 describe("API Standardization Enforcement", () => {
@@ -25,7 +24,7 @@ describe("API Standardization Enforcement", () => {
       
       // If the file makes API calls, it should import apiFetch
       if (content.includes("apiFetch(")) {
-        const importMatch = content.match(/import\s*{[^}]*apiFetch[^}]*}\s*from\s*"(\.\/helpers|..\/api\/helpers)"/);
+        const importMatch = /import\s*{[^}]*apiFetch[^}]*}\s*from\s*"(\.\/helpers|..\/api\/helpers)"/.exec(content);
         expect(importMatch, `File ${file} uses apiFetch but does not import it correctly from helpers.`).not.toBeNull();
       }
     }

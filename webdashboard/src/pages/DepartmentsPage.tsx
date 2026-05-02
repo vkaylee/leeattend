@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays, Calculator } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-
 
 import TemporalConfigTable from "@/components/common/TemporalConfigTable";
 import Button from "@/components/ui/Button";
@@ -13,9 +11,7 @@ import FormField, { LABEL_BASE } from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/Toast";
-
 import { useConfirm } from "@/hooks/use-confirm";
-
 
 import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig, Department } from "../lib/api";
 
@@ -83,39 +79,39 @@ export default function DepartmentsPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <PageHeader
-        title={t("departments.title")}
-        subtitle={t("departments.subtitle")}
-        icon={<Building2 size={24} />}
-        data-testid="departments-title"
         actions={
-          <Button data-testid="add-dept-btn" onClick={() => { setEditingDept(null); setIsModalOpen(true); }} icon={<Plus size={18} />}>{t("departments.add_btn").toUpperCase()}</Button>
+          <Button data-testid="add-dept-btn" icon={<Plus size={18} />} onClick={() => { setEditingDept(null); setIsModalOpen(true); }}>{t("departments.add_btn").toUpperCase()}</Button>
         }
+        data-testid="departments-title"
+        icon={<Building2 size={24} />}
+        subtitle={t("departments.subtitle")}
+        title={t("departments.title")}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm animate-pulse h-80" />
+          Array.from({ length: 3 }).map((_, index) => (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm animate-pulse h-80" key={index} />
           ))
         ) : departments.length === 0 ? (
           <EmptyState
+            description={t("departments.messages.empty_desc")}
             icon={<Building2 size={40} />}
             title={t("departments.messages.no_departments")}
-            description={t("departments.messages.empty_desc")}
           />
         ) : departments.map((dept) => (
-          <div key={dept.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-10 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col" key={dept.id}>
             <div className="absolute top-0 right-0 p-8 flex gap-3 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-              <button onClick={() => { setEditingDept(dept); setIsConfigModalOpen(true); }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:text-emerald-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("payroll.settings.title")}><Calculator size={18} /></button>
-              <button onClick={() => { setEditingDept(dept); setIsModalOpen(true); }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}><Pencil size={18} /></button>
-              <button onClick={async () => {
+              <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:text-emerald-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { setEditingDept(dept); setIsConfigModalOpen(true); }} title={t("payroll.settings.title")}><Calculator size={18} /></button>
+              <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { setEditingDept(dept); setIsModalOpen(true); }} title={t("common.edit")}><Pencil size={18} /></button>
+              <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={async () => {
                 const ok = await confirm({
                   title: t("common.warning", { defaultValue: "Warning" }),
                   message: t("departments.messages.confirm_delete"),
                   variant: "danger"
                 });
                 if(ok) deleteMutation.mutate(dept.id);
-              }} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
+              }} title={t("common.delete")}><Trash2 size={18} /></button>
             </div>
 
             <div className="bg-primary-50 dark:bg-primary-950 w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-primary-600 dark:text-primary-400 mb-8 shadow-inner border border-primary-100 dark:border-primary-800/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
@@ -154,24 +150,24 @@ export default function DepartmentsPage() {
         ))}
       </div>
 
-      <Modal isOpen={isConfigModalOpen && !!editingDept} onClose={() => setIsConfigModalOpen(false)} title={t("payroll.settings.dept_title")} subtitle={editingDept?.name?.toUpperCase()} icon={<Calculator size={24} />} maxWidth="3xl">
+      <Modal icon={<Calculator size={24} />} isOpen={!!isConfigModalOpen && !!editingDept} maxWidth="3xl" onClose={() => { setIsConfigModalOpen(false); }} subtitle={editingDept?.name?.toUpperCase()} title={t("payroll.settings.dept_title")}>
         <div className="space-y-10 pt-4 animate-in fade-in duration-500">
-          <TemporalConfigTable title={t("payroll.settings.std_days_history")} records={deptConfigs} isLoading={isConfigsLoading} onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }} />
-          <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button variant="secondary" size="lg" onClick={() => setIsConfigModalOpen(false)}>{t("common.close").toUpperCase()}</Button></div>
+          <TemporalConfigTable isLoading={isConfigsLoading} onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }} records={deptConfigs as any[]} title={t("payroll.settings.std_days_history")} />
+          <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button onClick={() => { setIsConfigModalOpen(false); }} size="lg" variant="secondary">{t("common.close").toUpperCase()}</Button></div>
         </div>
       </Modal>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")} subtitle={t("departments.modal.subtitle")} icon={<LayoutGrid size={24} />} maxWidth="lg">
-        <form onSubmit={handleSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
-          <FormField label={t("departments.form.name_label")} id="dept-name" name="name" required defaultValue={editingDept?.name} placeholder={t("departments.form.name_placeholder")} />
-          <FormField label={t("common.description")} id="dept-desc" name="description" type="textarea" defaultValue={editingDept?.description || undefined} placeholder={t("departments.form.desc_placeholder")} rows={4} />
+      <Modal icon={<LayoutGrid size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle={t("departments.modal.subtitle")} title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")}>
+        <form className="space-y-8 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
+          <FormField defaultValue={editingDept?.name} id="dept-name" label={t("departments.form.name_label")} name="name" placeholder={t("departments.form.name_placeholder")} required />
+          <FormField defaultValue={editingDept?.description || undefined} id="dept-desc" label={t("common.description")} name="description" placeholder={t("departments.form.desc_placeholder")} rows={4} type="textarea" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3 px-1"><label htmlFor="dept-manager" className={LABEL_BASE}>{t("departments.manager_label")}</label><Combobox id="dept-manager" options={users.map(u => ({ value: u.id, label: (u.full_name || u.email).toUpperCase(), icon: <UserCircle size={14} /> }))} value={selectedManagerId} onChange={setSelectedManagerId} placeholder={t("departments.form.manager_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" /></div>
-            <div className="space-y-3 px-1"><label htmlFor="dept-pattern" className={LABEL_BASE}>{t("departments.default_pattern_label")}</label><Combobox id="dept-pattern" data-testid="dept-pattern" options={patterns.map(p => ({ value: p.id, label: p.name.toUpperCase(), icon: <CalendarDays size={14} /> }))} value={selectedPatternId} onChange={setSelectedPatternId} placeholder={t("departments.form.pattern_placeholder")} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" /></div>
+            <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-manager">{t("departments.manager_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" id="dept-manager" onChange={setSelectedManagerId} options={users.map(u => ({ value: u.id, label: (u.full_name || u.email).toUpperCase(), icon: <UserCircle size={14} /> }))} placeholder={t("departments.form.manager_placeholder")} value={selectedManagerId} /></div>
+            <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-pattern">{t("departments.default_pattern_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" data-testid="dept-pattern" id="dept-pattern" onChange={setSelectedPatternId} options={patterns.map(p => ({ value: p.id, label: p.name.toUpperCase(), icon: <CalendarDays size={14} /> }))} placeholder={t("departments.form.pattern_placeholder")} value={selectedPatternId} /></div>
           </div>
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-            <Button variant="outline" size="lg" onClick={() => setIsModalOpen(false)}>{t("common.cancel").toUpperCase()}</Button>
-            <Button variant="secondary" size="lg" type="submit" data-testid="save-dept-btn">{editingDept ? t("common.update").toUpperCase() : t("departments.modal.submit_btn").toUpperCase()}</Button>
+            <Button onClick={() => { setIsModalOpen(false); }} size="lg" variant="outline">{t("common.cancel").toUpperCase()}</Button>
+            <Button data-testid="save-dept-btn" size="lg" type="submit" variant="secondary">{editingDept ? t("common.update").toUpperCase() : t("departments.modal.submit_btn").toUpperCase()}</Button>
           </div>
         </form>
       </Modal>

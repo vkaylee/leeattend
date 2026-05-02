@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 // Mock TanStack Router
@@ -77,14 +78,14 @@ describe("PayrollSummaryTable", () => {
     render(
         <PayrollSummaryTable
           employees={mockEmployees}
-          payslips={mockPayslips}
           isLoading={false}
-          selectedIds={new Set()}
+          onSearchChange={onSearchChange}
           onToggleSelect={onToggleSelect}
           onToggleSelectAll={onToggleSelectAll}
           onViewDetail={onViewDetail}
+          payslips={mockPayslips}
           searchTerm=""
-          onSearchChange={onSearchChange}
+          selectedIds={new Set()}
         />
     );
 
@@ -97,14 +98,14 @@ describe("PayrollSummaryTable", () => {
     render(
         <PayrollSummaryTable
           employees={mockEmployees}
-          payslips={mockPayslips}
           isLoading={false}
-          selectedIds={new Set()}
+          onSearchChange={onSearchChange}
           onToggleSelect={onToggleSelect}
           onToggleSelectAll={onToggleSelectAll}
           onViewDetail={onViewDetail}
+          payslips={mockPayslips}
           searchTerm="Jane"
-          onSearchChange={onSearchChange}
+          selectedIds={new Set()}
         />
     );
 
@@ -116,14 +117,14 @@ describe("PayrollSummaryTable", () => {
     render(
         <PayrollSummaryTable
           employees={mockEmployees}
-          payslips={mockPayslips}
           isLoading={false}
-          selectedIds={new Set()}
+          onSearchChange={onSearchChange}
           onToggleSelect={onToggleSelect}
           onToggleSelectAll={onToggleSelectAll}
           onViewDetail={onViewDetail}
+          payslips={mockPayslips}
           searchTerm=""
-          onSearchChange={onSearchChange}
+          selectedIds={new Set()}
         />
     );
 
@@ -136,14 +137,14 @@ describe("PayrollSummaryTable", () => {
     render(
         <PayrollSummaryTable
           employees={mockEmployees}
-          payslips={mockPayslips}
           isLoading={false}
-          selectedIds={new Set()}
+          onSearchChange={onSearchChange}
           onToggleSelect={onToggleSelect}
           onToggleSelectAll={onToggleSelectAll}
           onViewDetail={onViewDetail}
+          payslips={mockPayslips}
           searchTerm=""
-          onSearchChange={onSearchChange}
+          selectedIds={new Set()}
         />
     );
 
@@ -155,14 +156,14 @@ describe("PayrollSummaryTable", () => {
     const { rerender } = render(
         <PayrollSummaryTable
           employees={mockEmployees}
-          payslips={mockPayslips}
           isLoading={false}
-          selectedIds={new Set()}
+          onSearchChange={onSearchChange}
           onToggleSelect={onToggleSelect}
           onToggleSelectAll={onToggleSelectAll}
           onViewDetail={onViewDetail}
+          payslips={mockPayslips}
           searchTerm="test"
-          onSearchChange={onSearchChange}
+          selectedIds={new Set()}
         />
     );
 
@@ -175,14 +176,14 @@ describe("PayrollSummaryTable", () => {
     rerender(
         <PayrollSummaryTable
           employees={mockEmployees}
-          payslips={mockPayslips}
           isLoading={true}
-          selectedIds={new Set()}
+          onSearchChange={onSearchChange}
           onToggleSelect={onToggleSelect}
           onToggleSelectAll={onToggleSelectAll}
           onViewDetail={onViewDetail}
+          payslips={mockPayslips}
           searchTerm="test"
-          onSearchChange={onSearchChange}
+          selectedIds={new Set()}
         />
     );
 
@@ -198,14 +199,14 @@ describe("PayrollSummaryTable", () => {
     render(
         <PayrollSummaryTable
           employees={mockEmployees}
-          payslips={mockPayslips}
           isLoading={false}
-          selectedIds={new Set()}
+          onSearchChange={onSearchChange}
           onToggleSelect={onToggleSelect}
           onToggleSelectAll={onToggleSelectAll}
           onViewDetail={onViewDetail}
+          payslips={mockPayslips}
           searchTerm=""
-          onSearchChange={onSearchChange}
+          selectedIds={new Set()}
         />
     );
 

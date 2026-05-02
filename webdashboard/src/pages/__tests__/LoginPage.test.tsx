@@ -1,6 +1,6 @@
+import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
@@ -26,19 +26,19 @@ vi.mock("../../lib/api", () => ({
 }));
 
 describe("LoginPage", () => {
-  const originalDev = import.meta.env.DEV;
+  const originalDevelopment = import.meta.env.DEV;
 
   beforeEach(() => {
     vi.clearAllMocks();
     i18n.changeLanguage("en");
  
-    vi.mocked(api.getCurrentUserId).mockReturnValue(null as unknown as string);
+    vi.mocked(api.getCurrentUserId).mockReturnValue(null);
   });
 
   afterEach(() => {
     // Restore the original DEV value
 
-    import.meta.env.DEV = originalDev;
+    import.meta.env.DEV = originalDevelopment;
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -50,7 +50,7 @@ describe("LoginPage", () => {
 
     const emailInput = screen.getByTestId("login-email-input");
     const passwordInput = screen.getByTestId("login-password-input");
-    const submitBtn = screen.getByTestId("login-submit-btn");
+    const submitButton = screen.getByTestId("login-submit-btn");
 
     expect(emailInput).toBeDefined();
     expect(passwordInput).toBeDefined();
@@ -65,7 +65,7 @@ describe("LoginPage", () => {
 
     await user.type(emailInput, "admin@leeattend.com");
     await user.type(passwordInput, "admin123");
-    await user.click(submitBtn);
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(api.login).toHaveBeenCalledWith("admin@leeattend.com", "admin123");

@@ -3,7 +3,6 @@ import { ShieldAlert, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/Toast";
-
 import { updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
 
 import TemporalConfigTable from "../common/TemporalConfigTable";
@@ -47,7 +46,8 @@ export default function PayrollSettingsSection({ wsId }: Props) {
     <div className="space-y-6">
       <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
         <TemporalConfigTable
-          title={t("common.payroll.settings.title")}
+          isLoading={isHistoryLoading}
+          onSave={handleSavePolicy}
           records={history.map(h => ({
             std_working_days: Number(h.fixed_std_days),
             hours_per_day: Number(h.hours_per_day),
@@ -55,8 +55,7 @@ export default function PayrollSettingsSection({ wsId }: Props) {
             max_ot_hours_per_month: h.max_ot_hours_per_month != null ? Number(h.max_ot_hours_per_month) : null,
             effective_date: h.effective_date
           }))}
-          isLoading={isHistoryLoading}
-          onSave={handleSavePolicy}
+          title={t("common.payroll.settings.title")}
         />
 
         <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800 rounded-2xl flex gap-4">

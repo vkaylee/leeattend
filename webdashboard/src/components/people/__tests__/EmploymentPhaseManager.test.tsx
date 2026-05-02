@@ -1,11 +1,10 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api/employees";
 
 import EmploymentPhaseManager from "../EmploymentPhaseManager";
@@ -67,8 +66,8 @@ describe("EmploymentPhaseManager", () => {
     vi.mocked(api.createEmploymentPhase).mockResolvedValue({ id: "2" } as unknown as never);
     renderWithProviders(<EmploymentPhaseManager wsId={mockWsId} />);
 
-    const addBtn = screen.getByText(/common.add/i);
-    fireEvent.click(addBtn);
+    const addButton = screen.getByText(/common.add/i);
+    fireEvent.click(addButton);
 
     const nameInput = await screen.findByLabelText(/common.name/i);
     fireEvent.change(nameInput, { target: { value: "Internship" } });
@@ -76,8 +75,8 @@ describe("EmploymentPhaseManager", () => {
     const typeSelect = screen.getByLabelText(/Type/i);
     fireEvent.change(typeSelect, { target: { value: "internship" } });
 
-    const saveBtn = await screen.findByRole("button", { name: /common.save/i });
-    fireEvent.click(saveBtn);
+    const saveButton = await screen.findByRole("button", { name: /common.save/i });
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(api.createEmploymentPhase).toHaveBeenCalledWith(mockWsId, expect.objectContaining({

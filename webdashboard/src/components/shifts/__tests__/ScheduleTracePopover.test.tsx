@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 
@@ -30,7 +31,7 @@ describe("ScheduleTracePopover", () => {
   ];
 
   it("renders the trigger icon", () => {
-    render(<ScheduleTracePopover traces={mockTraces} source="roster" />);
+    render(<ScheduleTracePopover source="roster" traces={mockTraces} />);
     // The component renders an Info icon, we can look for it or the container
     // Since it's an SVG, we might look for a role or class if available, 
     // but the component wrapper has a specific class or we can just check if it renders without crashing.
@@ -41,7 +42,7 @@ describe("ScheduleTracePopover", () => {
 
   it("shows trace details when clicked (Manual Roster case)", async () => {
     const user = userEvent.setup();
-    render(<ScheduleTracePopover traces={mockTraces} source="roster" />);
+    render(<ScheduleTracePopover source="roster" traces={mockTraces} />);
 
     const trigger = screen.getByRole("button");
     await user.click(trigger);
@@ -72,7 +73,7 @@ describe("ScheduleTracePopover", () => {
     ];
 
     const user = userEvent.setup();
-    render(<ScheduleTracePopover traces={lowPriorityTraces} source="department_pattern" />);
+    render(<ScheduleTracePopover source="department_pattern" traces={lowPriorityTraces} />);
 
     const trigger = screen.getByRole("button");
     await user.click(trigger);

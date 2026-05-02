@@ -5,8 +5,8 @@ import type { WorkerMonitorStats, RecentJob } from "@/lib/api/types";
 export interface UtilizationData {
     active: number;
     idle: number;
-    total: number;
     percent: number;
+    total: number;
 }
 
 export type PressureLevel = "low" | "medium" | "high" | "critical";
@@ -14,15 +14,15 @@ export type PressureLevel = "low" | "medium" | "high" | "critical";
 export interface QueuePressureData {
     high: number;
     low: number;
-    total: number;
     pressureLevel: PressureLevel;
+    total: number;
 }
 
 export interface JobStatusCount {
-    status: string;
-    count: number;
     color: string;
+    count: number;
     percent: number;
+    status: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -50,7 +50,7 @@ function derivePressureLevel(total: number): PressureLevel {
 
 export const useQueuePressure = (stats: WorkerMonitorStats | undefined): QueuePressureData => {
     return useMemo(() => {
-        if (!stats) return { high: 0, low: 0, total: 0, pressureLevel: "low" as PressureLevel };
+        if (!stats) return { high: 0, low: 0, total: 0, pressureLevel: "low" };
         const total = stats.pending_high + stats.pending_low;
         return { high: stats.pending_high, low: stats.pending_low, total, pressureLevel: derivePressureLevel(total) };
     }, [stats]);

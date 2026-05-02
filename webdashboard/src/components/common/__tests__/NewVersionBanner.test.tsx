@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { NewVersionBanner } from "../NewVersionBanner";
@@ -14,7 +15,7 @@ describe("NewVersionBanner", () => {
   });
 
   it("renders Refresh and Dismiss buttons", () => {
-    render(<NewVersionBanner onRefresh={vi.fn()} onDismiss={vi.fn()} />);
+    render(<NewVersionBanner onDismiss={vi.fn()} onRefresh={vi.fn()} />);
 
     expect(screen.getByText("A new version is available")).toBeInTheDocument();
     expect(screen.getByText("Refresh")).toBeInTheDocument();
@@ -23,7 +24,7 @@ describe("NewVersionBanner", () => {
 
   it("calls onRefresh after animation when Refresh is clicked", () => {
     const onRefresh = vi.fn();
-    render(<NewVersionBanner onRefresh={onRefresh} onDismiss={vi.fn()} />);
+    render(<NewVersionBanner onDismiss={vi.fn()} onRefresh={onRefresh} />);
 
     fireEvent.click(screen.getByText("Refresh"));
 
@@ -34,7 +35,7 @@ describe("NewVersionBanner", () => {
 
   it("calls onDismiss after animation when Dismiss is clicked", () => {
     const onDismiss = vi.fn();
-    render(<NewVersionBanner onRefresh={vi.fn()} onDismiss={onDismiss} />);
+    render(<NewVersionBanner onDismiss={onDismiss} onRefresh={vi.fn()} />);
 
     fireEvent.click(screen.getByLabelText("Dismiss"));
 
@@ -44,14 +45,14 @@ describe("NewVersionBanner", () => {
   });
 
   it("has translate-y-0 class on mount", () => {
-    render(<NewVersionBanner onRefresh={vi.fn()} onDismiss={vi.fn()} />);
+    render(<NewVersionBanner onDismiss={vi.fn()} onRefresh={vi.fn()} />);
 
     const banner = screen.getByText("A new version is available").closest("[class*='fixed']");
     expect(banner?.className).toContain("translate-y-0");
   });
 
   it("applies slide-out animation on dismiss click", () => {
-    render(<NewVersionBanner onRefresh={vi.fn()} onDismiss={vi.fn()} />);
+    render(<NewVersionBanner onDismiss={vi.fn()} onRefresh={vi.fn()} />);
 
     fireEvent.click(screen.getByLabelText("Dismiss"));
 

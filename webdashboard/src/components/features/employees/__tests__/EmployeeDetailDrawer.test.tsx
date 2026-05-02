@@ -1,13 +1,13 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import EmployeeDetailDrawer from "../EmployeeDetailDrawer";
-
 import type { Employee } from "@/lib/api";
+
+import EmployeeDetailDrawer from "../EmployeeDetailDrawer";
 
 
 // Mock scroll methods not available in jsdom

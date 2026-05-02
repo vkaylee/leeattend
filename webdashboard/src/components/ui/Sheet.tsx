@@ -1,22 +1,21 @@
-import React, { useEffect, useState } from "react";
-
 import { X, Menu } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils";
 
 interface SheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title?: string;
-  subtitle?: string;
   children: React.ReactNode;
-  side?: "left" | "right";
   className?: string;
   contentClassName?: string;
   headerExtra?: React.ReactNode;
   /** If true, the built-in header (icon + title + X button) is hidden — use when providing a fully custom header in children */
   hideHeader?: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  side?: "left" | "right";
+  subtitle?: string;
+  title?: string;
 }
 
 export default function Sheet({
@@ -46,11 +45,11 @@ export default function Sheet({
       };
 
       window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
+      return () => { window.removeEventListener("keydown", handleKeyDown); };
     } else {
-      const timer = setTimeout(() => setIsVisible(false), 500); // Sync with duration-500
+      const timer = setTimeout(() => { setIsVisible(false); }, 500); // Sync with duration-500
       document.body.style.overflow = "unset";
-      return () => clearTimeout(timer);
+      return () => { clearTimeout(timer); };
     }
   }, [isOpen, onClose]);
 
@@ -77,7 +76,6 @@ export default function Sheet({
       )}>
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- Custom interactive element (click-away/backdrop/dropzone); keyboard interaction not applicable */}
         <div
-          data-testid="sheet-panel"
           className={cn(
             "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
             side === "right"
@@ -85,7 +83,8 @@ export default function Sheet({
               : (isOpen ? "translate-x-0 rounded-r-[3rem]" : "-translate-x-full rounded-r-[3rem]"),
             className
           )}
-          onClick={(e) => e.stopPropagation()}
+          data-testid="sheet-panel"
+          onClick={(e) => { e.stopPropagation(); }}
         >
           {/* Header */}
           {!hideHeader && (
@@ -95,26 +94,26 @@ export default function Sheet({
                   <Menu size={24} />
                 </div>
                 <div>
-                  {title && (
+                  {!!title && (
                     <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
                       {title}
                     </h2>
                   )}
-                  {subtitle && (
+                  {!!subtitle && (
                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
                       {subtitle}
                     </p>
                   )}
                 </div>
               </div>
-              {headerExtra && (
+              {!!headerExtra && (
                 <div className="flex items-center gap-2">
                   {headerExtra}
                 </div>
               )}
               <button
-                onClick={onClose}
                 className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90"
+                onClick={onClose}
               >
                 <X className="w-5 h-5" />
               </button>

@@ -1,20 +1,18 @@
-import React, { useState } from "react";
-
 import { AlertTriangle, RefreshCw, CalendarCheck } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
-
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { DailyAttendanceReport, Shift } from "@/lib/api";
 
 export interface ResolveUnscheduledModalProps {
     isOpen: boolean;
+    isPending: boolean;
     onClose: () => void;
+    onSubmit: (shiftId: string) => void;
     row: DailyAttendanceReport | null;
     shifts: Shift[] | undefined;
-    isPending: boolean;
-    onSubmit: (shiftId: string) => void;
 }
 
 export default function ResolveUnscheduledModal({
@@ -34,10 +32,10 @@ export default function ResolveUnscheduledModal({
 
     return (
         <Modal
+            icon={<AlertTriangle size={24} />}
             isOpen={isOpen}
             onClose={() => !isPending && onClose()}
             title={t("reports.unscheduled.resolve_title")}
-            icon={<AlertTriangle size={24} />}
         >
             <div className="space-y-6">
                 {/* Employee + Date info */}
@@ -56,7 +54,7 @@ export default function ResolveUnscheduledModal({
                 </div>
 
                 {/* Punch times display */}
-                {row.actual_punch_in && (
+                {!!row.actual_punch_in && (
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                             <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t("reports.confirm.punch_in")}</p>
@@ -67,7 +65,7 @@ export default function ResolveUnscheduledModal({
                             <p className="font-mono font-bold text-sm text-slate-700 dark:text-slate-200">{formatTime(row.actual_punch_out)}</p>
                         </div>
                     </div>
-                )}
+                  )}
 
                 {/* Shift selector */}
                 <div>
@@ -75,9 +73,9 @@ export default function ResolveUnscheduledModal({
                         {t("reports.unscheduled.select_shift")}
                     </label>
                     <select
-                        value={selectedShiftId}
-                        onChange={(e) => setSelectedShiftId(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        onChange={(e) => { setSelectedShiftId(e.target.value); }}
+                        value={selectedShiftId}
                     >
                         <option value="">-- {t("reports.unscheduled.select_shift")} --</option>
                         {(shifts || []).map((shift: Shift) => (
@@ -96,16 +94,16 @@ export default function ResolveUnscheduledModal({
                 {/* Buttons */}
                 <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                     <button
-                        onClick={onClose}
                         className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
                         disabled={isPending}
+                        onClick={onClose}
                     >
                         {t("common.cancel")}
                     </button>
                     <button
-                        onClick={() => onSubmit(selectedShiftId)}
-                        disabled={isPending || !selectedShiftId}
                         className="flex-[1.5] bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
+                        disabled={isPending || !selectedShiftId}
+                        onClick={() => { void onSubmit(selectedShiftId); }}
                     >
                         {isPending ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />

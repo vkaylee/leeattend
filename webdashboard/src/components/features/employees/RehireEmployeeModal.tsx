@@ -1,23 +1,22 @@
-import React from "react";
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { UserPlus } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
+
+import { format } from "date-fns";
 
 import Button from "@/components/ui/Button";
 import FormField from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-
 import { rehireEmployee, Employee } from "@/lib/api";
 
 interface RehireEmployeeModalProps {
+  employeeId: string | null;
   isOpen: boolean;
   onClose: () => void;
-  employeeId: string | null;
-  wsId: string;
   onSuccess?: (employee: Employee) => void;
+  wsId: string;
 }
 
 export default function RehireEmployeeModal({
@@ -53,12 +52,12 @@ export default function RehireEmployeeModal({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t("employees.rehire.title")}
-      subtitle={t("employees.rehire.subtitle")}
       icon={<UserPlus size={24} />}
+      isOpen={isOpen}
       maxWidth="md"
+      onClose={onClose}
+      subtitle={t("employees.rehire.subtitle")}
+      title={t("employees.rehire.title")}
     >
       <div className="space-y-10 pt-4 animate-in fade-in duration-500">
         <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner text-center italic">
@@ -66,23 +65,23 @@ export default function RehireEmployeeModal({
             "{t("employees.rehire.confirm_msg")}"
           </p>
         </div>
-        <form onSubmit={handleRehireSubmit} className="space-y-8">
+        <form className="space-y-8" onSubmit={handleRehireSubmit}>
           <FormField
+            defaultValue={format(new Date(), "yyyy-MM-dd")}
             label={t("employees.rehire.rehire_date")}
             name="hire_date"
-            type="date"
             required
-            defaultValue={format(new Date(), "yyyy-MM-dd")}
+            type="date"
           />
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-            <Button variant="outline" size="lg" onClick={onClose} type="button">
+            <Button onClick={onClose} size="lg" type="button" variant="outline">
               {t("common.cancel").toUpperCase()}
             </Button>
             <Button
-              size="lg"
-              type="submit"
               data-testid="confirm-rehire-btn"
               loading={rehireMutation.isPending}
+              size="lg"
+              type="submit"
             >
               {rehireMutation.isPending
                 ? t("employees.rehire.processing").toUpperCase()

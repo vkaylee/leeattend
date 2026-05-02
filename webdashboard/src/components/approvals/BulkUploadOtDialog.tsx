@@ -1,27 +1,26 @@
-import { useState } from "react";
-
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useBulkUploadPaperOt } from "@/hooks/use-attendance";
 import { useConfirm } from "@/hooks/use-confirm";
 
 interface Props {
-  open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  open: boolean;
 }
 
 interface UploadResult {
-  total_rows: number;
-  success_count: number;
-  failed_count: number;
-  errors: Array<{
+  errors: {
     line_number: number;
     employee_id: string;
     error_message: string;
-  }>;
+  }[];
+  failed_count: number;
+  success_count: number;
+  total_rows: number;
 }
 
 export function BulkUploadOtDialog({ open, onOpenChange, onSuccess }: Props) {
@@ -119,8 +118,8 @@ E002,2026-01-28,90,Urgent order completion`;
       }
  
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to upload file";
-      setError(msg);
+      const message = e instanceof Error ? e.message : "Failed to upload file";
+      setError(message);
     }
   };
 
@@ -138,7 +137,7 @@ E002,2026-01-28,90,Urgent order completion`;
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
+    <Dialog.Root onOpenChange={(o) => { if (!o) handleClose(); }} open={open}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl rounded-[2rem] max-h-[90vh] overflow-y-auto">
@@ -151,8 +150,8 @@ E002,2026-01-28,90,Urgent order completion`;
           </Dialog.Description>
 
           <button
-            onClick={handleClose}
             className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+            onClick={handleClose}
           >
             <X className="h-4 w-4" />
           </button>
@@ -161,8 +160,8 @@ E002,2026-01-28,90,Urgent order completion`;
             {/* Download Template Button */}
             <div className="flex justify-center">
               <button
-                onClick={downloadTemplate}
                 className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
+                onClick={downloadTemplate}
               >
                 <Download className="w-4 h-4" />
                 {t("approvals.bulk_upload.download_template") || "Download CSV Template"}
@@ -172,14 +171,14 @@ E002,2026-01-28,90,Urgent order completion`;
             {/* File Upload Zone */}
             {!uploadResult && (
               <div
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
                   isDragOver
                     ? "border-primary-500 bg-primary-50 dark:bg-primary-950"
                     : "border-slate-200 dark:border-slate-700 hover:border-primary-400"
                 }`}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
               >
                 {selectedFile ? (
                   <div className="space-y-3">
@@ -189,11 +188,11 @@ E002,2026-01-28,90,Urgent order completion`;
                       {(selectedFile.size / 1024).toFixed(2)} KB
                     </p>
                     <button
+                      className="text-xs text-rose-600 dark:text-rose-300 hover:underline"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedFile(null);
                       }}
-                      className="text-xs text-rose-600 dark:text-rose-300 hover:underline"
                     >
                       {t("common.remove") || "Remove"}
                     </button>
@@ -208,15 +207,15 @@ E002,2026-01-28,90,Urgent order completion`;
                       {t("approvals.bulk_upload.or_click") || "or click to browse"}
                     </p>
                     <input
-                      type="file"
                       accept=".csv"
-                      onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
                       className="hidden"
                       id="csv-upload"
+                      onChange={(e) => { handleFileChange(e.target.files?.[0] || null); }}
+                      type="file"
                     />
                     <label
-                      htmlFor="csv-upload"
                       className="inline-block px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-primary-700"
+                      htmlFor="csv-upload"
                     >
                       {t("approvals.bulk_upload.select_file") || "Select File"}
                     </label>
@@ -226,12 +225,12 @@ E002,2026-01-28,90,Urgent order completion`;
             )}
 
             {/* Upload Button */}
-            {selectedFile && !uploadResult && (
+            {!!selectedFile && !uploadResult && (
               <div className="flex justify-center">
                 <button
-                  onClick={handleUpload}
-                  disabled={isUploading}
                   className="px-8 py-3 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  disabled={isUploading}
+                  onClick={handleUpload}
                 >
                   {isUploading ? (
                     <>
@@ -249,7 +248,7 @@ E002,2026-01-28,90,Urgent order completion`;
             )}
 
             {/* Error Message */}
-            {error && (
+            {!!error && (
               <div className="flex items-center gap-3 bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4">
                 <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-300 flex-shrink-0" />
                 <p className="text-xs font-bold text-rose-600 dark:text-rose-300 uppercase tracking-wide">{error}</p>
@@ -257,7 +256,7 @@ E002,2026-01-28,90,Urgent order completion`;
             )}
 
             {/* Upload Result */}
-            {uploadResult && (
+            {!!uploadResult && (
               <div className="space-y-4">
                 {/* Summary */}
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-2">
@@ -296,8 +295,8 @@ E002,2026-01-28,90,Urgent order completion`;
                         {t("approvals.bulk_upload.error_details") || "Error Details"}
                       </h3>
                       <button
-                        onClick={downloadErrorReport}
                         className="px-4 py-2 rounded-xl bg-rose-100 dark:bg-rose-900 hover:bg-rose-200 text-rose-700 dark:text-rose-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
+                        onClick={downloadErrorReport}
                       >
                         <Download className="w-3 h-3" />
                         {t("approvals.bulk_upload.download_errors") || "Download Errors"}
@@ -320,16 +319,16 @@ E002,2026-01-28,90,Urgent order completion`;
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {uploadResult.errors.map((err, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800">
+                          {uploadResult.errors.map((error_, index) => (
+                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-800" key={index}>
                               <td className="px-4 py-2 text-xs font-mono text-slate-600 dark:text-slate-300">
-                                {err.line_number}
+                                {error_.line_number}
                               </td>
                               <td className="px-4 py-2 text-xs font-mono text-slate-600 dark:text-slate-300">
-                                {err.employee_id}
+                                {error_.employee_id}
                               </td>
                               <td className="px-4 py-2 text-xs text-rose-600 dark:text-rose-300">
-                                {err.error_message}
+                                {error_.error_message}
                               </td>
                             </tr>
                           ))}
@@ -356,18 +355,18 @@ E002,2026-01-28,90,Urgent order completion`;
             <div className="flex justify-end gap-3 pt-2">
               {uploadResult ? (
                 <button
+                  className="px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-primary-700"
                   onClick={() => {
                     resetForm();
                     onOpenChange(false);
                   }}
-                  className="px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-primary-700"
                 >
                   {t("common.close") || "Close"}
                 </button>
               ) : (
                 <button
-                  onClick={handleClose}
                   className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  onClick={handleClose}
                 >
                   {t("common.cancel") || "Cancel"}
                 </button>

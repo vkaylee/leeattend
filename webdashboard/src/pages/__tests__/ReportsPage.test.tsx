@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -20,9 +20,9 @@ vi.mock("@tanstack/react-router", () => ({
     let href = to;
     if (search && typeof search === 'object') {
       const params = new URLSearchParams();
-      Object.entries(search).forEach(([key, val]) => {
-        if (val !== undefined && val !== null) {
-          params.append(key, String(val));
+      Object.entries(search).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, String(value));
         }
       });
       const qs = params.toString();
@@ -99,17 +99,17 @@ describe("ReportsPage", () => {
       default_language: "en",
       created_at: "2025-01-01T00:00:00Z",
     });
-    vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<Employee>);
-    vi.mocked(api.searchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<Employee>);
-    vi.mocked(api.fetchDepartments).mockResolvedValue([] as unknown as Department[]);
+    vi.mocked(api.fetchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 });
+    vi.mocked(api.searchEmployees).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", workspace_id: "test-ws-id", employee_id_number: "E01", hire_date: "2025-01-01", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }], total: 1, page: 1, limit: 50 });
+    vi.mocked(api.fetchDepartments).mockResolvedValue([]);
     vi.mocked(api.fetchAttendanceReport).mockImplementation(() => Promise.resolve({
       data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
       total: 1,
       page: 1,
       limit: 50
     } as unknown as PaginatedResponse<AttendanceSummary>));
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([] as unknown as never[]);
-    vi.mocked(api.adminConfirmAttendance).mockResolvedValue(undefined as unknown as void);
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
+    vi.mocked(api.adminConfirmAttendance).mockResolvedValue(undefined);
   });
 
   const renderWithProviders = (ui: React.ReactElement, _initialEntries = ["/"]) => {
@@ -125,15 +125,15 @@ describe("ReportsPage", () => {
   it("renders report table and defaults to last month", async () => {
     renderWithProviders(<ReportsPage />);
     expect(await screen.findByText(/John Doe/i, {}, { timeout: 30000 })).toBeDefined();
-    const lastMonthBtn = await screen.findByText(/Last Month|Tháng trước/i, {}, { timeout: 30000 });
-    expect(lastMonthBtn).toBeDefined();
+    const lastMonthButton = await screen.findByText(/Last Month|Tháng trước/i, {}, { timeout: 30000 });
+    expect(lastMonthButton).toBeDefined();
   });
 
   it("changes date range when clicking 'Tháng trước'", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);
-    const lastMonthBtn = await screen.findByText(/Last Month|Tháng trước/i);
-    await user.click(lastMonthBtn);
+    const lastMonthButton = await screen.findByText(/Last Month|Tháng trước/i);
+    await user.click(lastMonthButton);
  
     expect(api.fetchAttendanceReport).toHaveBeenCalled();
   });
@@ -141,8 +141,8 @@ describe("ReportsPage", () => {
   it("shows custom date inputs when clicking 'Tùy chỉnh'", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);
-    const customBtn = await screen.findByText(/Custom|Tùy chỉnh/i);
-    await user.click(customBtn);
+    const customButton = await screen.findByText(/Custom|Tùy chỉnh/i);
+    await user.click(customButton);
  
     expect(await screen.findByText(/From Date|Từ ngày/i)).toBeDefined();
   });
@@ -329,15 +329,15 @@ describe("ReportsPage", () => {
     const employeeRow = await screen.findByText(/John Doe/i);
 
     // Type into search
-    const searchInput = screen.getByRole("textbox") as HTMLInputElement;
+    const searchInput = screen.getByRole("textbox");
     await user.type(searchInput, "Test");
 
     // Test auto-select on focus
     searchInput.blur();
-    expect(searchInput.selectionStart).toBe(searchInput.selectionEnd);
+    expect((searchInput as HTMLInputElement).selectionStart).toBe((searchInput as HTMLInputElement).selectionEnd);
     await user.click(searchInput);
-    expect(searchInput.selectionStart).toBe(0);
-    expect(searchInput.selectionEnd).toBe(4); // length of "Test"
+    expect((searchInput as HTMLInputElement).selectionStart).toBe(0);
+    expect((searchInput as HTMLInputElement).selectionEnd).toBe(4); // length of "Test"
 
     // Open drawer
     await user.click(employeeRow);
@@ -349,8 +349,8 @@ describe("ReportsPage", () => {
 
     // Close drawer
     const xIcon = sheetPanel.querySelector('svg.lucide-x');
-    const closeBtn = xIcon?.closest('button');
-    await user.click(closeBtn!);
+    const closeButton = xIcon?.closest('button');
+    await user.click(closeButton!);
 
     // wait for the 100ms timeout in focusSearch
     await new Promise(r => setTimeout(r, 150));
@@ -358,8 +358,8 @@ describe("ReportsPage", () => {
     // search should be focused again
     expect(searchInput).toHaveFocus();
     // and its text should be auto-selected because of the onFocus handler
-    expect(searchInput.selectionStart).toBe(0);
-    expect(searchInput.selectionEnd).toBe(4);
+    expect((searchInput as HTMLInputElement).selectionStart).toBe(0);
+    expect((searchInput as HTMLInputElement).selectionEnd).toBe(4);
   });
  
 
@@ -560,10 +560,10 @@ describe("ReportsPage", () => {
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
     const pad = (n: number) => String(n).padStart(2, '0');
-    const fromStr = `${lastMonth.getFullYear()}-${pad(lastMonth.getMonth() + 1)}-01`;
-    const toStr = `${lastMonthEnd.getFullYear()}-${pad(lastMonthEnd.getMonth() + 1)}-${pad(lastMonthEnd.getDate())}`;
+    const fromString = `${lastMonth.getFullYear()}-${pad(lastMonth.getMonth() + 1)}-01`;
+    const toString_ = `${lastMonthEnd.getFullYear()}-${pad(lastMonthEnd.getMonth() + 1)}-${pad(lastMonthEnd.getDate())}`;
 
-    expect(link.getAttribute("href")).toBe(`/attendance-logs?from=${fromStr}&to=${toStr}`);
+    expect(link.getAttribute("href")).toBe(`/attendance-logs?from=${fromString}&to=${toString_}`);
   });
   it("filters the report by selected department", async () => {
     const user = userEvent.setup();
@@ -571,7 +571,7 @@ describe("ReportsPage", () => {
     vi.mocked(api.fetchDepartments).mockResolvedValue([
       { id: "dept-1", name: "Engineering", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
       { id: "dept-2", name: "HR", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 }
-    ] as unknown as Department[]);
+    ]);
  
 
     renderWithProviders(<ReportsPage />);
@@ -687,7 +687,7 @@ describe("ReportsPage", () => {
       { id: "dept-1", name: "Engineering", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
       { id: "dept-2", name: "HR", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 },
       { id: "dept-3", name: "Design", workspace_id: "test-ws-id", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z", active_employee_count: 0 }
-    ] as unknown as Department[]);
+    ]);
 
     renderWithProviders(<ReportsPage />);
 

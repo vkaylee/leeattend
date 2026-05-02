@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as api from "@/lib/api";
@@ -55,7 +56,7 @@ describe("useAttendanceTrend hook", () => {
             wrapper: createWrapper(),
         });
 
-        await waitFor(() => expect(result.current.isLoading).toBe(false));
+        await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
         expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/attendance-trend");
         expect(result.current.data).toEqual(mockTrendData);
@@ -73,7 +74,7 @@ describe("useAttendanceTrend hook", () => {
             wrapper: createWrapper(),
         });
 
-        await waitFor(() => expect(result.current.data).toBeDefined());
+        await waitFor(() => { expect(result.current.data).toBeDefined(); });
 
         const firstPoint = result.current.data![0];
         expect(firstPoint).toHaveProperty("date");
@@ -94,7 +95,7 @@ describe("useAttendanceTrend hook", () => {
             wrapper: createWrapper(),
         });
 
-        await waitFor(() => expect(result.current.isError).toBe(true));
+        await waitFor(() => { expect(result.current.isError).toBe(true); });
         expect(result.current.error).toBeDefined();
     });
 
@@ -109,7 +110,7 @@ describe("useAttendanceTrend hook", () => {
             wrapper: createWrapper(),
         });
 
-        await waitFor(() => expect(result.current.isLoading).toBe(false));
+        await waitFor(() => { expect(result.current.isLoading).toBe(false); });
         expect(result.current.data).toEqual([]);
     });
 });

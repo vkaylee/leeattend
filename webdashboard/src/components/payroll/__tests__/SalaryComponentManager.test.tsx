@@ -1,11 +1,10 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api/payroll";
 
 import SalaryComponentManager from "../SalaryComponentManager";
@@ -66,8 +65,8 @@ describe("SalaryComponentManager", () => {
     vi.mocked(api.createSalaryComponent).mockResolvedValue({ id: "2" } as unknown as never);
     renderWithProviders(<SalaryComponentManager wsId={mockWsId} />);
 
-    const addBtn = screen.getByText(/common.add/i);
-    fireEvent.click(addBtn);
+    const addButton = screen.getByText(/common.add/i);
+    fireEvent.click(addButton);
 
     const nameInput = await screen.findByLabelText(/common.name/i);
     fireEvent.change(nameInput, { target: { value: "Gas" } });
@@ -75,8 +74,8 @@ describe("SalaryComponentManager", () => {
     const codeInput = screen.getByLabelText(/payroll.components.code_label/i);
     fireEvent.change(codeInput, { target: { value: "GAS" } });
 
-    const saveBtn = await screen.findByRole("button", { name: /common.save/i });
-    fireEvent.click(saveBtn);
+    const saveButton = await screen.findByRole("button", { name: /common.save/i });
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(api.createSalaryComponent).toHaveBeenCalledWith(mockWsId, expect.objectContaining({

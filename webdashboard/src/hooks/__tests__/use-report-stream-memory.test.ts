@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import { useReportStream } from "../use-report-stream";
@@ -12,11 +13,11 @@ describe("useReportStream Double-Buffering Fix", () => {
  
     let capturedSocket: {
         readyState: number;
-        onopen: ((ev: { type: string }) => void) | null;
-        onmessage: ((ev: { data: string }) => void) | null;
-        onerror: ((ev: { type: string }) => void) | null;
+        onopen: ((event_: { type: string }) => void) | null;
+        onmessage: ((event_: { data: string }) => void) | null;
+        onerror: ((event_: { type: string }) => void) | null;
  
-        onclose: ((ev: { code: number; reason: string }) => void) | null;
+        onclose: ((event_: { code: number; reason: string }) => void) | null;
  
         close: ReturnType<typeof vi.fn>;
  
@@ -26,10 +27,10 @@ describe("useReportStream Double-Buffering Fix", () => {
     function createMockWebSocket(_url: string) {
         const socket = {
             readyState: 0,
-            onopen: null as ((ev: { type: string }) => void) | null,
-            onmessage: null as ((ev: { data: string }) => void) | null,
-            onerror: null as ((ev: { type: string }) => void) | null,
-            onclose: null as ((ev: { code: number; reason: string }) => void) | null,
+            onopen: null as ((event_: { type: string }) => void) | null,
+            onmessage: null as ((event_: { data: string }) => void) | null,
+            onerror: null as ((event_: { type: string }) => void) | null,
+            onclose: null as ((event_: { code: number; reason: string }) => void) | null,
             close: vi.fn(),
         };
         capturedSocket = socket;

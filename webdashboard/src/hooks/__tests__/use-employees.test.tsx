@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { fetchEmployees } from "@/lib/api";
@@ -43,7 +43,7 @@ describe("useAllEmployees", () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
     expect(fetchEmployees).toHaveBeenCalledWith("ws-123", 1, MAX_EMPLOYEE_FETCH);
     expect(result.current.employees).toHaveLength(2);
@@ -81,7 +81,7 @@ describe("useAllEmployees", () => {
     // Enable (modal opens)
     rerender({ enabled: true });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
     expect(fetchEmployees).toHaveBeenCalledTimes(1);
     expect(result.current.employees).toHaveLength(2);
   });
@@ -93,7 +93,7 @@ describe("useAllEmployees", () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
     expect(result.current.employees).toEqual([]);
   });
 

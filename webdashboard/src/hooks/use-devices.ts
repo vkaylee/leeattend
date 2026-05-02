@@ -64,7 +64,7 @@ export function useDevices() {
   };
 }
 
-export function useDeviceInfo(id: string, enabled: boolean = true) {
+export function useDeviceInfo(id: string, enabled = true) {
   return useQuery({
     queryKey: devicesKeys.info(id),
     queryFn: () => fetchDeviceInfo(id),

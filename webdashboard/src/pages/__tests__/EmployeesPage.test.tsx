@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -99,15 +99,15 @@ describe("EmployeesPage", () => {
             total: 2,
             page: 1,
             limit: 20,
-        } as unknown as PaginatedResponse<Employee>);
+        });
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue([] as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue([]);
  
-        vi.mocked(api.fetchEmployeeDepartmentHistory).mockResolvedValue([] as unknown as EmployeeDepartmentHistory[]);
+        vi.mocked(api.fetchEmployeeDepartmentHistory).mockResolvedValue([]);
  
-        vi.mocked(api.fetchEmploymentHistory).mockResolvedValue([] as unknown as EmploymentPeriod[]);
+        vi.mocked(api.fetchEmploymentHistory).mockResolvedValue([]);
  
-        vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["employees:create", "employees:update", "employees:delete"], roles: ["admin"], managed_department_ids: [] } as unknown as Awaited<ReturnType<typeof api.fetchMyPermissions>>);
+        vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["employees:create", "employees:update", "employees:delete"], roles: ["admin"], managed_department_ids: [] });
     });
 
     const renderPage = (_initialEntries = ["/"]) =>
@@ -136,7 +136,7 @@ describe("EmployeesPage", () => {
             total: 0,
             page: 1,
             limit: 20,
-        } as unknown as PaginatedResponse<Employee>);
+        });
         renderPage();
         expect(await screen.findByText(/employees.table.no_data/i)).toBeDefined();
     });
@@ -158,7 +158,7 @@ describe("EmployeesPage", () => {
             total: 2,
             page: 1,
             limit: 20,
-        } as unknown as PaginatedResponse<Employee>);
+        });
         renderPage();
         expect(await screen.findByText("Engineering")).toBeDefined();
         expect(screen.getByText("Sales")).toBeDefined();
@@ -171,7 +171,7 @@ describe("EmployeesPage", () => {
             total: 1,
             page: 1,
             limit: 20,
-        } as unknown as PaginatedResponse<Employee>);
+        });
         renderPage();
         await screen.findByText("Alice Nguyen");
         expect(screen.getByText("—")).toBeDefined();
@@ -184,7 +184,7 @@ describe("EmployeesPage", () => {
             total: 2,
             page: 1,
             limit: 20,
-        } as unknown as PaginatedResponse<Employee>);
+        });
         renderPage();
         expect(await screen.findByText("HR")).toBeDefined();
         expect(screen.getByText("—")).toBeDefined();
@@ -223,7 +223,7 @@ describe("EmployeesPage", () => {
             total: 10,
             page: 1,
             limit: 20,
-        } as unknown as PaginatedResponse<Employee>);
+        });
 
         renderPage();
         await screen.findByText("Alice Nguyen");
@@ -283,8 +283,8 @@ describe("EmployeesPage", () => {
         renderPage();
         await screen.findByText("Alice Nguyen");
 
-        const addBtn = await screen.findByTestId("add-employee-btn");
-        await user.click(addBtn);
+        const addButton = await screen.findByTestId("add-employee-btn");
+        await user.click(addButton);
 
         // Form inputs should be visible
         expect(screen.getByTestId("employees-form-name-input")).toBeDefined();
@@ -300,12 +300,12 @@ describe("EmployeesPage", () => {
         await user.click(row);
 
         // find terminate button in drawer
-        const terminateBtn = await screen.findByTestId("employees-btn-terminate");
-        await user.click(terminateBtn);
+        const terminateButton = await screen.findByTestId("employees-btn-terminate");
+        await user.click(terminateButton);
 
         // confirm modal appears, we can use fireEvent to bypass pointer-events: none
-        const confirmModalBtn = await screen.findByRole("button", { name: "Confirm" });
-        fireEvent.click(confirmModalBtn);
+        const confirmModalButton = await screen.findByRole("button", { name: "Confirm" });
+        fireEvent.click(confirmModalButton);
 
         await waitFor(() => {
             expect(api.updateEmployee).toHaveBeenCalledWith(
@@ -429,23 +429,23 @@ describe("EmployeesPage", () => {
 
     it("renders department filter button in header", async () => {
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
-        const filterBtn = screen.getByTestId("dept-filter-btn");
-        expect(filterBtn).toBeDefined();
+        const filterButton = screen.getByTestId("dept-filter-btn");
+        expect(filterButton).toBeDefined();
     });
 
     it("opens filter popover and shows department checkboxes", async () => {
         const user = userEvent.setup();
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
-        const filterBtn = screen.getByTestId("dept-filter-btn");
-        await user.click(filterBtn);
+        const filterButton = screen.getByTestId("dept-filter-btn");
+        await user.click(filterButton);
 
         // All departments should be visible as options
         await waitFor(() => {
@@ -458,13 +458,13 @@ describe("EmployeesPage", () => {
     it("sends department_id filter when selecting a department", async () => {
         const user = userEvent.setup();
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
         // Open filter popover
-        const filterBtn = screen.getByTestId("dept-filter-btn");
-        await user.click(filterBtn);
+        const filterButton = screen.getByTestId("dept-filter-btn");
+        await user.click(filterButton);
 
         // Click "Engineering" checkbox
  
@@ -484,7 +484,7 @@ describe("EmployeesPage", () => {
     it("sends multiple department_ids when selecting multiple departments", async () => {
         const user = userEvent.setup();
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -511,7 +511,7 @@ describe("EmployeesPage", () => {
     it("clears filter when clicking the chip X button", async () => {
         const user = userEvent.setup();
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -546,7 +546,7 @@ describe("EmployeesPage", () => {
     it("shows filter chips with department names when filter is active", async () => {
         const user = userEvent.setup();
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -566,7 +566,7 @@ describe("EmployeesPage", () => {
 
     it("does not show filter chips when no filter is active", async () => {
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -576,7 +576,7 @@ describe("EmployeesPage", () => {
     it("shows badge count on filter icon matching selected count", async () => {
         const user = userEvent.setup();
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -587,8 +587,8 @@ describe("EmployeesPage", () => {
 
         // Badge should show "2"
         await waitFor(() => {
-            const filterBtn = screen.getByTestId("dept-filter-btn");
-            const badge = filterBtn.querySelector("span");
+            const filterButton = screen.getByTestId("dept-filter-btn");
+            const badge = filterButton.querySelector("span");
             expect(badge?.textContent).toBe("2");
         });
     });
@@ -596,7 +596,7 @@ describe("EmployeesPage", () => {
     it("clears all filters when clicking 'Xóa tất cả' in chips area", async () => {
         const user = userEvent.setup();
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -612,8 +612,8 @@ describe("EmployeesPage", () => {
         // Click "Xóa tất cả" button
  
         vi.mocked(api.searchEmployees).mockClear();
-        const clearAllBtn = screen.getByText("Xóa tất cả");
-        await user.click(clearAllBtn);
+        const clearAllButton = screen.getByText("Xóa tất cả");
+        await user.click(clearAllButton);
 
         // Filter should be cleared
         await waitFor(() => {
@@ -629,7 +629,7 @@ describe("EmployeesPage", () => {
     it("does not show 'Xóa bộ lọc' button in popover when no filter is active", async () => {
         const user = userEvent.setup();
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments);
         renderPage();
         await screen.findByText("Alice Nguyen");
 
@@ -645,7 +645,7 @@ describe("EmployeesPage", () => {
     it("shows empty state in popover when no departments exist", async () => {
         const user = userEvent.setup();
  
-        vi.mocked(api.fetchDepartments).mockResolvedValue([] as unknown as Department[]);
+        vi.mocked(api.fetchDepartments).mockResolvedValue([]);
         renderPage();
         await screen.findByText("Alice Nguyen");
 

@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
@@ -30,8 +30,8 @@ vi.mock("@/components/common/EmployeeSearch", () => ({
  
     <select aria-label="Employee Search"
       data-testid="employee-select"
+      onChange={(e) => { onChange(e.target.value); }}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
     >
       <option value="">Select...</option>
       <option value="emp-1">John Doe</option>
@@ -71,9 +71,9 @@ describe("Date Format Integration", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });
-    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: [] } as unknown as Awaited<ReturnType<typeof api.fetchMyPermissions>>);
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: [] });
  
-    vi.mocked(api.fetchDevices).mockResolvedValue([] as unknown as never[]);
+    vi.mocked(api.fetchDevices).mockResolvedValue([]);
  
   });
 
@@ -94,7 +94,7 @@ describe("Date Format Integration", () => {
       total: 1,
       page: 1,
       limit: 50,
-    } as unknown as never);
+    });
     vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" } as unknown as never);
  
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
@@ -117,7 +117,7 @@ describe("Date Format Integration", () => {
       total: 1,
       page: 1,
       limit: 50,
-    } as unknown as never);
+    });
     vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "YYYY-MM-DD", timezone: "UTC" } as unknown as never);
  
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
@@ -140,10 +140,10 @@ describe("Date Format Integration", () => {
       total: 1,
       page: 1,
       limit: 50,
-    } as unknown as never);
-    vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([] as unknown as never[]);
+    });
+    vi.mocked(api.fetchEmployeePayslips).mockResolvedValue([]);
  
-    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([] as unknown as never[]);
+    vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
  
     vi.mocked(api.fetchWorkspace).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" } as unknown as never);
  

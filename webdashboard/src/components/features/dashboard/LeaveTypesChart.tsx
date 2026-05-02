@@ -1,5 +1,6 @@
 import { PieChart as PieChartIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
 import {
     PieChart,
     Pie,
@@ -26,9 +27,9 @@ export default function LeaveTypesChart() {
     const { t } = useTranslation();
     const { data: leaveTypes, isLoading } = useLeaveTypesBreakdown();
 
-    const chartData = (leaveTypes ?? []).map((item, i) => ({
+    const chartData = (leaveTypes ?? []).map((item, index) => ({
         ...item,
-        color: LEAVE_COLORS[i % LEAVE_COLORS.length],
+        color: LEAVE_COLORS[index % LEAVE_COLORS.length],
     }));
 
     const hasData = chartData.length > 0 && chartData.some((d) => d.count > 0);
@@ -55,28 +56,28 @@ export default function LeaveTypesChart() {
                 </div>
             ) : !hasData ? (
                 <div className="h-[280px] flex flex-col items-center justify-center">
-                    <PieChartIcon size={48} className="text-slate-200 dark:text-slate-700 mb-4" />
+                    <PieChartIcon className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
                     <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
                         {t("common.no_data")}
                     </p>
                 </div>
             ) : (
                 <div className="flex flex-col items-center">
-                    <ResponsiveContainer width="100%" height={260}>
+                    <ResponsiveContainer height={260} width="100%">
                         <PieChart>
                             <Pie
-                                data={chartData}
                                 cx="50%"
                                 cy="50%"
+                                data={chartData}
+                                dataKey="count"
                                 innerRadius={65}
+                                nameKey="leave_type"
                                 outerRadius={105}
                                 paddingAngle={3}
-                                dataKey="count"
-                                nameKey="leave_type"
                                 stroke="none"
                             >
                                 {chartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                    <Cell fill={entry.color} key={`cell-${index}`} />
                                 ))}
                             </Pie>
                             <Tooltip
@@ -99,8 +100,8 @@ export default function LeaveTypesChart() {
                         </PieChart>
                     </ResponsiveContainer>
                     <div className="flex flex-wrap justify-center gap-4 mt-2">
-                        {chartData.map((entry, i) => (
-                            <div key={i} className="flex items-center gap-2">
+                        {chartData.map((entry, index) => (
+                            <div className="flex items-center gap-2" key={index}>
                                 <div
                                     className="w-3 h-3 rounded-full"
                                     style={{ backgroundColor: entry.color }}

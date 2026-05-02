@@ -1,6 +1,6 @@
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 import { useConfirm } from "../use-confirm";
@@ -10,7 +10,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
  
     t: (key: string, options?: { defaultValue?: string }) => {
-      if (options && options.defaultValue) {
+      if (options?.defaultValue) {
         return options.defaultValue;
       }
       return key;

@@ -1,5 +1,3 @@
-import React, { useState } from 'react';
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Calendar, 
@@ -9,23 +7,23 @@ import {
   Save,
   Clock
 } from 'lucide-react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EmployeeSearch } from '@/components/common/EmployeeSearch';
 import { Combobox } from '@/components/ui/Combobox';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-
 import { fetchDepartments } from '@/lib/api/departments';
 import { fetchOvertimePolicies, assignOvertimePolicy } from '@/lib/api/payroll';
 import { cn } from '@/lib/utils';
 
 interface AssignOvertimePolicyModalProps {
-  wsId: string;
+  initialId?: string;
+  initialType?: 'employee' | 'department' | 'workspace';
   isOpen: boolean;
   onClose: () => void;
-  initialType?: 'employee' | 'department' | 'workspace';
-  initialId?: string;
+  wsId: string;
 }
 
 export default function AssignOvertimePolicyModal({ 
@@ -91,7 +89,7 @@ export default function AssignOvertimePolicyModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('payroll.assign_overtime_policy')}>
-      <form onSubmit={handleSubmit} className='space-y-6'>
+      <form className='space-y-6' onSubmit={handleSubmit}>
         <div className='grid grid-cols-1 gap-6'>
           <div className='space-y-2'>
             <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('payroll.assignee_type')}</label>
@@ -102,18 +100,18 @@ export default function AssignOvertimePolicyModal({
                 { id: 'workspace', label: t('common.global'), icon: <ShieldCheck size={12}/> }
               ].map(opt => (
                 <button
-                  key={opt.id}
-                  type='button'
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all',
+                    selectedType === opt.id ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'
+                  )}
                   data-testid={`assignee-type-${opt.id}`}
+                  key={opt.id}
                   onClick={() => {
  
                     setSelectedType(opt.id as 'employee' | 'department' | 'workspace');
                     setTargetId('');
                   }}
-                  className={cn(
-                    'flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all',
-                    selectedType === opt.id ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'
-                  )}
+                  type='button'
                 >
                   {opt.icon} {opt.label}
                 </button>
@@ -125,12 +123,12 @@ export default function AssignOvertimePolicyModal({
             <div className='space-y-2'>
               <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('common.select_employee')}</label>
               <EmployeeSearch 
-                workspaceId={wsId}
-                value={targetId}
-                onChange={(val) => setTargetId(Array.isArray(val) ? val[0] : val)}
-                placeholder={t('common.select_employee')}
                 className='bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14'
                 data-testid='assign-employee-search'
+                onChange={(value) => { setTargetId(Array.isArray(value) ? value[0] : value); }}
+                placeholder={t('common.select_employee')}
+                value={targetId}
+                workspaceId={wsId}
               />
             </div>
           )}
@@ -139,17 +137,17 @@ export default function AssignOvertimePolicyModal({
             <div className='space-y-2'>
               <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('common.select_department')}</label>
               <Combobox 
-                id='dept-select'
+                className='bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14'
                 data-testid='assign-dept-select'
+                id='dept-select'
+                onChange={setTargetId}
                 options={departments.map(d => ({
                   value: d.id,
                   label: d.name,
-                  icon: <Building2 size={14} className='text-slate-500 dark:text-slate-400' />
+                  icon: <Building2 className='text-slate-500 dark:text-slate-400' size={14} />
                 }))}
-                value={targetId}
-                onChange={setTargetId}
                 placeholder={t('common.select_department')}
-                className='bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14'
+                value={targetId}
               />
             </div>
           )}
@@ -157,18 +155,18 @@ export default function AssignOvertimePolicyModal({
           <div className='space-y-2'>
             <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('payroll.select_policy')}</label>
             <Combobox 
-              id='policy-select'
+              className='bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14'
               data-testid='assign-policy-select'
  
+              id='policy-select'
+              onChange={setPolicyId}
               options={policies.map((p: { id: string; name: string }) => ({
                 value: p.id,
                 label: p.name,
-                icon: <Clock size={14} className='text-primary-500' />
+                icon: <Clock className='text-primary-500' size={14} />
               }))}
-              value={policyId}
-              onChange={setPolicyId}
               placeholder={t('payroll.select_policy_placeholder')}
-              className='bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14'
+              value={policyId}
             />
           </div>
 
@@ -177,24 +175,24 @@ export default function AssignOvertimePolicyModal({
             <div className='relative'>
               <Calendar className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400' size={16} />
               <input 
-                type='date'
-                data-testid='assign-effective-from'
-                value={effectiveFrom} 
-                onChange={e => setEffectiveFrom(e.target.value)}
                 className='w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-500 font-bold'
+                data-testid='assign-effective-from'
+                onChange={e => { setEffectiveFrom(e.target.value); }} 
                 required
+                type='date'
+                value={effectiveFrom}
               />
             </div>
           </div>
         </div>
 
         <div className='flex justify-end gap-3 pt-4'>
-          <button type='button' onClick={onClose} className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all uppercase tracking-widest'>{t('common.cancel')}</button>
+          <button className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all uppercase tracking-widest' onClick={onClose} type='button'>{t('common.cancel')}</button>
           <button
-            type='submit'
+            className='flex items-center gap-2 bg-primary-600 text-white px-8 py-2 rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 uppercase tracking-widest'
             data-testid='assign-policy-submit-btn'
             disabled={assignMutation.isPending}
-            className='flex items-center gap-2 bg-primary-600 text-white px-8 py-2 rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50 uppercase tracking-widest'
+            type='submit'
           >
             <Save size={16} />
             {t('payroll.assign_policy')}

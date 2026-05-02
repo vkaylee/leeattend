@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import { generateExcel, isSummaryRow, isDetailRow } from "../excel-builder";
-
 import type { SummaryRow, DetailRow, AttendanceRow } from "@/types/report-stream";
+
+import { generateExcel, isSummaryRow, isDetailRow } from "../excel-builder";
 
 // Mock ExcelJS
 const mockWriteBuffer = vi.fn(() => Promise.resolve(new ArrayBuffer(0)));
@@ -16,13 +16,13 @@ const mockGetCell = vi.fn((row: number, col?: number) => {
     alignment: {},
   };
 });
-const mockGetRow = vi.fn((rowNum: number) => ({
-  getCell: (col: number) => mockGetCell(rowNum, col),
+const mockGetRow = vi.fn((rowNumber: number) => ({
+  getCell: (col: number) => mockGetCell(rowNumber, col),
   commit: mockCommit,
 }));
 
 const mockWorksheet = {
-  columns: [] as Array<{ header: string; key: string; width?: number }>,
+  columns: [] as { header: string; key: string; width?: number }[],
   getCell: mockGetCell,
   getRow: mockGetRow,
   mergeCells: vi.fn(),
@@ -236,8 +236,8 @@ describe("excel-builder", () => {
 
     it("handles large datasets with chunked processing", async () => {
       // Create 2500 rows to test chunking (chunk size is 1000)
-      const largeDataset: SummaryRow[] = Array.from({ length: 2500 }, (_, i) => ({
-        employee_name: `Employee ${i + 1}`,
+      const largeDataset: SummaryRow[] = Array.from({ length: 2500 }, (_, index) => ({
+        employee_name: `Employee ${index + 1}`,
         total_std_units: 140,
         total_ot_units: 20,
         total_leave_days: 0,
@@ -277,7 +277,7 @@ describe("excel-builder", () => {
 
       // No data rows should be created (only header at row 4)
       const dataRowCalls = mockGetRow.mock.calls.filter(
-        (call) => (call[0] as number) >= 5
+        (call) => (call[0]) >= 5
       );
       expect(dataRowCalls).toHaveLength(0);
     });
@@ -340,8 +340,8 @@ describe("excel-builder", () => {
       expect(mockGetCell).toHaveBeenCalledWith("A1");
       // A2 should not be accessed for date range (call signature is getCell(row, col) where row is a number)
       const a2Calls = mockGetCell.mock.calls.filter((call) => {
-        const arg = call[0];
-        return typeof arg === 'string' && arg === "A2";
+        const argument = call[0];
+        return typeof argument === 'string' && argument === "A2";
       });
       expect(a2Calls).toHaveLength(0);
     });

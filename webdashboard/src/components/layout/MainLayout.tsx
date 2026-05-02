@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
-
 import { Outlet, useLocation } from "@tanstack/react-router";
 import { Building2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useI18nSync } from "@/hooks/use-i18n-sync";
@@ -12,7 +11,6 @@ import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 import Modal from "../ui/Modal";
-
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
@@ -55,19 +53,19 @@ export default function MainLayout() {
   const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
 
   const toggleSection = (section: string) => {
-    setOpenSections(prev => ({
+    setOpenSections(previous => ({
       org: false,
       time: false,
       payroll: false,
       system: false,
       ess: false,
-      [section]: !prev[section]
+      [section]: !previous[section]
     }));
   };
 
   const toggleCollapsed = () => {
-    setIsCollapsed(prev => {
-      const newValue = !prev;
+    setIsCollapsed(previous => {
+      const newValue = !previous;
       localStorage.setItem("sidebar-collapsed", String(newValue));
       return newValue;
     });
@@ -82,46 +80,44 @@ export default function MainLayout() {
     const isEss = path.startsWith("/ess/");
 
     const timer = setTimeout(() => {
-      setOpenSections(prev => {
-        const next = { ...prev };
+      setOpenSections(previous => {
+        const next = { ...previous };
         let changed = false;
-        if (isOrg && !prev.org) { next.org = true; changed = true; }
-        if (isTime && !prev.time) { next.time = true; changed = true; }
-        if (isPayroll && !prev.payroll) { next.payroll = true; changed = true; }
-        if (isSystem && !prev.system) { next.system = true; changed = true; }
-        if (isEss && !prev.ess) { next.ess = true; changed = true; }
-        return changed ? next : prev;
+        if (isOrg && !previous.org) { next.org = true; changed = true; }
+        if (isTime && !previous.time) { next.time = true; changed = true; }
+        if (isPayroll && !previous.payroll) { next.payroll = true; changed = true; }
+        if (isSystem && !previous.system) { next.system = true; changed = true; }
+        if (isEss && !previous.ess) { next.ess = true; changed = true; }
+        return changed ? next : previous;
       });
       setIsSidebarOpen(false);
     }, 0);
 
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); };
   }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden">
-      {isSidebarOpen && (
- 
- 
+      {!!isSidebarOpen && (
         <div
           className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
-          onClick={() => setIsSidebarOpen(false)}
-          role="presentation"
+          onClick={() => { setIsSidebarOpen(false); }}
           onKeyDown={(e) => {
             if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
               setIsSidebarOpen(false);
             }
           }}
+          role="presentation"
         />
       )}
 
       <Sidebar
+        isCollapsed={isCollapsed}
         isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        onClose={() => { setIsSidebarOpen(false); }}
+        onShowSwitcher={() => { setShowSwitcher(true); }}
         openSections={openSections}
         toggleSection={toggleSection}
-        onShowSwitcher={() => setShowSwitcher(true)}
-        isCollapsed={isCollapsed}
       />
 
       <div className={cn(
@@ -130,33 +126,33 @@ export default function MainLayout() {
       )}>
         <Navbar
           currentWorkspaceName={currentWorkspace?.name || "Workspace"}
-          onOpenSidebar={() => setIsSidebarOpen(true)}
           isCollapsed={isCollapsed}
+          onOpenSidebar={() => { setIsSidebarOpen(true); }}
           onToggleCollapsed={toggleCollapsed}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 relative scroll-smooth">
-          <div key={location.pathname} className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
+          <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" key={location.pathname}>
             <Outlet />
           </div>
         </main>
       </div>
 
       <Modal
-        isOpen={showSwitcher}
-        onClose={() => setShowSwitcher(false)}
-        title={t("common.switch_workspace")}
-        subtitle={t("common.office_branch")}
         icon={<Building2 className="w-6 h-6" />}
+        isOpen={showSwitcher}
         maxWidth="lg"
+        onClose={() => { setShowSwitcher(false); }}
+        subtitle={t("common.office_branch")}
+        title={t("common.switch_workspace")}
       >
         <div className="space-y-8">
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium px-1">{t("common.select_workspace_desc")}</p>
           <WorkspaceSwitcher />
           <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-end">
             <button
-              onClick={() => setShowSwitcher(false)}
               className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-foreground/70 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+              onClick={() => { setShowSwitcher(false); }}
             >
               {t("common.close")}
             </button>

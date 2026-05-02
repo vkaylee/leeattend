@@ -1,6 +1,6 @@
+import { render } from "@testing-library/react";
 import React from "react";
 
-import { render } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 
 import FloatingRecordBadge from "../FloatingRecordBadge";
@@ -14,7 +14,7 @@ describe("FloatingRecordBadge", () => {
 
     it("renders custom label", () => {
         const { container } = render(
-            <FloatingRecordBadge loaded={3} total={10} label="items" />
+            <FloatingRecordBadge label="items" loaded={3} total={10} />
         );
         expect(container.textContent).toContain("items");
     });

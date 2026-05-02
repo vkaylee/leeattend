@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+
 import {
     PieChart,
     Pie,
@@ -39,14 +40,14 @@ export default function RecruitmentSourceChart() {
 
     const chartData = (data ?? [])
         .filter((d) => d.count > 0)
-        .map((d, i) => ({
+        .map((d, index) => ({
             name: d.source_name,
             value: d.count,
             sourceType: d.source_type,
-            fill: getColor(d.source_type, i),
+            fill: getColor(d.source_type, index),
         }));
 
-    const totalHires = chartData.reduce((acc, d) => acc + d.value, 0);
+    const totalHires = chartData.reduce((accumulator, d) => accumulator + d.value, 0);
 
     if (chartData.length === 0) {
         return (
@@ -77,23 +78,23 @@ export default function RecruitmentSourceChart() {
 
             <div className="flex flex-col lg:flex-row items-center gap-4">
                 <div className="w-full lg:w-1/2" style={{ height: 260 }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer height="100%" width="100%">
                         <PieChart>
                             <Pie
-                                data={chartData}
                                 cx="50%"
                                 cy="50%"
+                                data={chartData}
+                                dataKey="value"
                                 innerRadius={60}
+                                nameKey="name"
                                 outerRadius={100}
                                 paddingAngle={3}
-                                dataKey="value"
-                                nameKey="name"
                                 stroke="none"
                             >
                                 {chartData.map((entry, index) => (
                                     <Cell
-                                        key={`cell-${index}`}
                                         fill={entry.fill}
+                                        key={`cell-${index}`}
                                     />
                                 ))}
                             </Pie>
@@ -109,9 +110,9 @@ export default function RecruitmentSourceChart() {
                                 ]}
                             />
                             <Legend
-                                verticalAlign="bottom"
-                                iconType="circle"
                                 iconSize={8}
+                                iconType="circle"
+                                verticalAlign="bottom"
                             />
                         </PieChart>
                     </ResponsiveContainer>
@@ -121,8 +122,8 @@ export default function RecruitmentSourceChart() {
                 <div className="w-full lg:w-1/2 space-y-2">
                     {chartData.map((entry, index) => (
                         <div
-                            key={index}
                             className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50"
+                            key={index}
                         >
                             <div className="flex items-center gap-2">
                                 <span

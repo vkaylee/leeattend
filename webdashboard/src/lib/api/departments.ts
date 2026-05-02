@@ -5,7 +5,7 @@ import { Department } from "./types";
 export async function fetchDepartments(wsId: string): Promise<Department[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments`);
   if (!response.ok) throw new Error("Failed to fetch departments");
-  return response.json();
+  return response.json() as Promise<Department[]>;
 }
 
 export async function createDepartment(wsId: string, data: Partial<Department>): Promise<Department> {
@@ -14,7 +14,7 @@ export async function createDepartment(wsId: string, data: Partial<Department>):
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create department");
-  return response.json();
+  return response.json() as Promise<Department>;
 }
 
 export async function updateDepartment(wsId: string, id: string, data: Partial<Department>): Promise<Department> {
@@ -23,7 +23,7 @@ export async function updateDepartment(wsId: string, id: string, data: Partial<D
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to update department");
-  return response.json();
+  return response.json() as Promise<Department>;
 }
 
 export async function deleteDepartment(wsId: string, id: string): Promise<void> {

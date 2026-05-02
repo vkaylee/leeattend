@@ -9,8 +9,8 @@ function PageSkeleton() {
       </div>
       <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded-xl" />
       <div className="space-y-3">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+        {[1, 2, 3, 4, 5].map((index) => (
+          <div className="h-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl" key={index} />
         ))}
       </div>
     </div>

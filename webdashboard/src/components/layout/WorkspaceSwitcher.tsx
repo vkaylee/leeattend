@@ -1,12 +1,9 @@
-import { useState, useEffect } from "react";
-
 import { Briefcase, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-
 
 import CreateWorkspaceDialog from "@/components/features/workspaces/CreateWorkspaceDialog";
 import { Combobox } from "@/components/ui/Combobox";
-
 import { useWorkspaces } from "@/hooks/use-workspace";
 import {
   Workspace,
@@ -66,17 +63,15 @@ export default function WorkspaceSwitcher() {
   return (
     <div className="relative animate-in fade-in duration-500">
       <Combobox
-        options={options}
-        value={activeWorkspace?.id}
+        className="h-14 bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:border-primary-200 dark:border-primary-800 transition-all rounded-[1.5rem] text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight shadow-inner"
         onChange={handleSwitch}
+        options={options}
         placeholder={t("common.select_workspace")}
         searchPlaceholder={t("common.search_placeholder")}
-        className="h-14 bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:border-primary-200 dark:border-primary-800 transition-all rounded-[1.5rem] text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight shadow-inner"
+        value={activeWorkspace?.id}
       />
-      <CreateWorkspaceDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
-      {transitioningWorkspace && (
-        <WorkspaceTransitionOverlay workspace={transitioningWorkspace} />
-      )}
+      <CreateWorkspaceDialog isOpen={isCreateOpen} onClose={() => { setIsCreateOpen(false); }} />
+      {!!transitioningWorkspace && <WorkspaceTransitionOverlay workspace={transitioningWorkspace} />}
     </div>
   );
 }

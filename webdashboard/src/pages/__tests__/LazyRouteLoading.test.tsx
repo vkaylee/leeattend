@@ -1,8 +1,8 @@
-import React, { Suspense, lazy } from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React, { Suspense, lazy } from "react";
 import { MemoryRouter } from "react-router-dom";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/Toast";
@@ -199,7 +199,7 @@ describe("Lazy Route Loading", () => {
         await waitFor(() => {
             const headings = screen.getAllByRole("heading");
             expect(headings.some(h =>
-                /Employees/i.test(h.textContent!) || /Nhân viên/i.test(h.textContent!)
+                /Employees/i.test(h.textContent) || /Nhân viên/i.test(h.textContent)
             )).toBe(true);
         }, { timeout: 5000 });
     });
@@ -226,7 +226,7 @@ describe("Lazy Route Loading", () => {
         expect(screen.getByTestId("suspense-fallback")).toBeInTheDocument();
 
         // Resolve the import with a simple component
-        (resolveImport as (value: unknown) => void)({ default: () => <div data-testid="loaded-component">Loaded</div> });
+        (resolveImport)({ default: () => <div data-testid="loaded-component">Loaded</div> });
 
         // After resolving, the component should render
         await waitFor(() => {

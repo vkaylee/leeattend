@@ -42,8 +42,8 @@ test.describe.skip("Change Password Flow", () => {
     await newPassInput.fill(nextPwd);
     await confirmPassInput.fill(nextPwd);
 
-    const updateBtn = page.getByTestId('update-password-btn');
-    await updateBtn.click();
+    const updateButton = page.getByTestId('update-password-btn');
+    await updateButton.click();
 
     // Wait for logout and redirect to login
     await expect(page).toHaveURL("/login", { timeout: 15000 });

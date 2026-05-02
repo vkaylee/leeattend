@@ -1,5 +1,3 @@
-import React, { useState } from "react";
-
 import * as Popover from '@radix-ui/react-popover';
 import { 
   ChevronDown, 
@@ -15,6 +13,7 @@ import {
   AlertTriangle,
   Sparkles, FileText 
 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -26,12 +25,12 @@ import { PayrollPriorityLegend } from "./PayrollPriorityLegend";
 import PayslipModal from "./PayslipModal";
 
 interface PayrollTableProps {
-  employee: Employee | null;
-  workspace: Workspace | null;
-  payslips: Payslip[];
-  isLoading: boolean;
   adjustments: AttendanceAdjustmentRequest[];
+  employee: Employee | null;
+  isLoading: boolean;
   onResolveAdjustments: () => void;
+  payslips: Payslip[];
+  workspace: Workspace | null;
 }
 
 export default function PayrollTable({
@@ -56,7 +55,7 @@ export default function PayrollTable({
     return (
       <div className="py-24 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 dark:bg-slate-800/30 flex flex-col items-center">
         <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm dark:shadow-black/10 mb-6 border border-slate-100 dark:border-slate-800">
-          <History size={32} className="text-slate-200 dark:text-slate-600" />
+          <History className="text-slate-200 dark:text-slate-600" size={32} />
         </div>
         <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("common.payroll.table.no_payslips")}</p>
       </div>
@@ -74,13 +73,13 @@ export default function PayrollTable({
         );
 
         return (
-          <div key={slip.id} data-testid={`payslip-card-${slip.id}`} className={cn("group bg-white dark:bg-slate-900 border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 dark:border-primary-800 rounded-[2.5rem] shadow-2xl shadow-primary-100/20 dark:shadow-black/20" : "border-slate-100 dark:border-slate-800 hover:border-primary-100 dark:border-primary-800 rounded-[2rem] shadow-sm dark:shadow-black/10 hover:shadow-lg hover:shadow-primary-100/10")}>
+          <div className={cn("group bg-white dark:bg-slate-900 border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 dark:border-primary-800 rounded-[2.5rem] shadow-2xl shadow-primary-100/20 dark:shadow-black/20" : "border-slate-100 dark:border-slate-800 hover:border-primary-100 dark:border-primary-800 rounded-[2rem] shadow-sm dark:shadow-black/10 hover:shadow-lg hover:shadow-primary-100/10")} data-testid={`payslip-card-${slip.id}`} key={slip.id}>
             <div 
-              data-testid={`toggle-card-${slip.id}`} 
- 
- 
               className={cn("p-8 flex items-center justify-between cursor-pointer transition-colors", isExpanded ? "bg-primary-50 dark:bg-primary-950/30 dark:bg-primary-950/30" : "hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50")} 
-              onClick={() => setExpandedId(isExpanded ? null : slip.id)}
+ 
+ 
+              data-testid={`toggle-card-${slip.id}`} 
+              onClick={() => { setExpandedId(isExpanded ? null : slip.id); }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(isExpanded ? null : slip.id); } }}
               role="button"
               tabIndex={0}
@@ -100,14 +99,14 @@ export default function PayrollTable({
               </div>
 
               <button 
+                className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 hover:shadow-md transition-all active:scale-95 group/btn" 
                 onClick={(e) => { 
                   e.stopPropagation(); 
                   setSelectedPayslip(slip); 
                   setIsModalOpen(true); 
-                }} 
-                className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 hover:shadow-md transition-all active:scale-95 group/btn"
+                }}
               >
-                <FileText size={14} className="text-slate-300 dark:text-slate-600 group-hover/btn:text-primary-500 transition-colors" />
+                <FileText className="text-slate-300 dark:text-slate-600 group-hover/btn:text-primary-500 transition-colors" size={14} />
                 <span className="text-[9px] font-bold uppercase tracking-widest">Official Payslip</span>
               </button>
               <div className="flex items-center gap-10 pr-2">
@@ -121,12 +120,12 @@ export default function PayrollTable({
               </div>
             </div>
 
-            {isExpanded && (
+            {!!isExpanded && (
               <div className="px-8 pb-10 animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="h-px bg-gradient-to-r from-transparent via-slate-100 to-transparent mb-10" />
                 
                 {slipAdjustments.length > 0 && (
-                  <div data-testid={`pending-adj-banner-${slip.id}`} className="px-10 py-6 bg-amber-50 dark:bg-amber-950 border-y border-amber-100 dark:border-amber-800/50 flex items-center justify-between animate-in slide-in-from-top-4 duration-500 mb-8 rounded-2xl">
+                  <div className="px-10 py-6 bg-amber-50 dark:bg-amber-950 border-y border-amber-100 dark:border-amber-800/50 flex items-center justify-between animate-in slide-in-from-top-4 duration-500 mb-8 rounded-2xl" data-testid={`pending-adj-banner-${slip.id}`}>
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-amber-500 shadow-sm border border-amber-100 dark:border-amber-800"><AlertTriangle size={24} /></div>
                       <div>
@@ -134,32 +133,32 @@ export default function PayrollTable({
                         <p className="text-[10px] text-amber-700 dark:text-amber-300 font-bold uppercase tracking-widest opacity-70 mt-0.5">{t("payroll.traceability.recalc_needed")}</p>
                       </div>
                     </div>
-                    <button onClick={onResolveAdjustments} className="px-6 py-2.5 bg-amber-50 dark:bg-amber-950 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 active:scale-95">{t("payroll.traceability.view_adjustments")}</button>
+                    <button className="px-6 py-2.5 bg-amber-50 dark:bg-amber-950 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 active:scale-95" onClick={onResolveAdjustments}>{t("payroll.traceability.view_adjustments")}</button>
                   </div>
                 )}
 
                 <div className="space-y-8 relative">
                   <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-slate-100 dark:bg-slate-700" />
-                  {slip.segments?.map((seg, idx) => (
+                  {slip.segments?.map((seg, index) => (
                     <SegmentCard 
-                      key={idx} 
-                      segment={seg} 
-                      index={idx} 
-                      isLast={idx === (slip.segments?.length || 0) - 1} 
-                      canReadSensitive={canReadSensitive}
+                      canReadSensitive={canReadSensitive} 
+                      index={index} 
+                      isLast={index === (slip.segments?.length || 0) - 1} 
+                      key={index} 
+                      segment={seg}
                     />
                   ))}
                 </div>
 
-                {slip.incentives && slip.incentives.length > 0 && (
+                {!!slip.incentives && slip.incentives.length > 0 && (
                   <div className="mt-12 space-y-6">
                     <div className="flex items-center gap-3 px-2">
                       <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-[0.25em]">{t("common.payroll.table.bonus")} Detail</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {slip.incentives.map((inc, i) => (
-                        <div key={i} className="flex items-center justify-between p-6 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800/50 rounded-2xl">
+                      {slip.incentives.map((inc, index) => (
+                        <div className="flex items-center justify-between p-6 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800/50 rounded-2xl" key={index}>
                           <div className="flex items-center gap-4">
                             <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-blue-600 dark:text-blue-300 shadow-sm border border-blue-100 dark:border-blue-800">
                               <Sparkles size={18} />
@@ -179,13 +178,13 @@ export default function PayrollTable({
                     { label: t("common.payroll.table.overtime"), value: slip.overtime_pay_amount, color: "text-emerald-600 dark:text-emerald-300", prefix: "+" },
                     { 
                       label: t("common.payroll.table.bonus"), 
-                      value: slip.incentives?.reduce((acc, i) => acc + parseFloat(i.amount), 0).toString() || "0", 
+                      value: slip.incentives?.reduce((accumulator, index) => accumulator + parseFloat(index.amount), 0).toString() || "0", 
                       color: "text-blue-600 dark:text-blue-300", 
                       prefix: "+" 
                     },
                     { label: "Deductions", value: slip.deductions_amount, color: "text-rose-600 dark:text-rose-300", prefix: "-" }
-                  ].map((stat, i) => (
-                    <div key={i} className="p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-inner flex flex-col gap-1">
+                  ].map((stat, index) => (
+                    <div className="p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-inner flex flex-col gap-1" key={index}>
                        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{stat.label}</p>
                        <p className={cn("text-xl font-bold font-mono tracking-tighter", stat.color)}>{!canReadSensitive ? "***" : `${stat.prefix || ''}${new Intl.NumberFormat('vi-VN').format(parseFloat(stat.value))}`}</p>
                     </div>
@@ -198,14 +197,14 @@ export default function PayrollTable({
       })}
 
       {/* Payslip Modal */}
-      {employee && selectedPayslip && (
+      {!!employee && !!selectedPayslip && (
         <PayslipModal
+          employee={employee}
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
             setSelectedPayslip(null);
           }}
-          employee={employee}
           payslip={selectedPayslip}
           workspace={workspace}
         />
@@ -238,36 +237,36 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-2 px-1 opacity-60"><Target size={14} className="text-slate-500 dark:text-slate-400" /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Configuration Applied</span></div>
+            <div className="flex items-center gap-3 mb-2 px-1 opacity-60"><Target className="text-slate-500 dark:text-slate-400" size={14} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Configuration Applied</span></div>
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
                 <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70">Base Salary</p>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold font-mono text-sm tracking-tighter">
-                  <Banknote size={14} className="text-primary-500 opacity-50" /> {!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(segment.applied_base_salary)}
+                  <Banknote className="text-primary-500 opacity-50" size={14} /> {!canReadSensitive ? "***" : new Intl.NumberFormat('vi-VN').format(segment.applied_base_salary)}
                 </div>
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
                 <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70">Std. Period</p>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">{segment.applied_std_days} Days</span>
-                  {segment.std_days_source && (
+                  {!!segment.std_days_source && (
                     <Popover.Root>
                       <Popover.Trigger asChild><button className="p-1.5 rounded-lg bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:text-primary-400 transition-all"><Info size={12} /></button></Popover.Trigger>
-                      <Popover.Portal><Popover.Content className="z-50 w-80 bg-transparent animate-in zoom-in-95 duration-300 origin-bottom" side="top" sideOffset={12} align="center"><PayrollPriorityLegend activeSource={segment.std_days_source} /></Popover.Content></Popover.Portal>
+                      <Popover.Portal><Popover.Content align="center" className="z-50 w-80 bg-transparent animate-in zoom-in-95 duration-300 origin-bottom" side="top" sideOffset={12}><PayrollPriorityLegend activeSource={segment.std_days_source} /></Popover.Content></Popover.Portal>
                     </Popover.Root>
                   )}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-4 px-2">
-              <div className="flex items-center gap-2"><Clock size={12} className="text-slate-300 dark:text-slate-600" /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{segment.applied_hours_per_day}h / day</span></div>
+              <div className="flex items-center gap-2"><Clock className="text-slate-300 dark:text-slate-600" size={12} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{segment.applied_hours_per_day}h / day</span></div>
               <div className="w-1 h-1 bg-slate-200 dark:bg-slate-600 rounded-full" />
-              <div className="flex items-center gap-2"><Briefcase size={12} className="text-slate-300 dark:text-slate-600" /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest italic opacity-60">Dept: Global</span></div>
+              <div className="flex items-center gap-2"><Briefcase className="text-slate-300 dark:text-slate-600" size={12} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest italic opacity-60">Dept: Global</span></div>
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-2 px-1 opacity-60"><Calculator size={14} className="text-slate-500 dark:text-slate-400" /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Calculation Outcome</span></div>
+            <div className="flex items-center gap-3 mb-2 px-1 opacity-60"><Calculator className="text-slate-500 dark:text-slate-400" size={14} /><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">Calculation Outcome</span></div>
             <div className="bg-primary-600 rounded-[1.5rem] p-6 text-white shadow-xl shadow-primary-100 dark:shadow-black/30 relative overflow-hidden group/out">
               <div className="flex items-center justify-between relative z-10">
                 <div>

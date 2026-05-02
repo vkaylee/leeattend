@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi } from "vitest";
 
 // Mock TanStack Router
@@ -13,7 +13,6 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 import { Payslip } from "@/lib/api/types";
- 
 
 import { ToastProvider } from "../../ui/Toast";
 import PayrollTable from "../PayrollTable";
@@ -74,11 +73,11 @@ describe("PayrollTable", () => {
 
   it("renders payslip summary rows", async () => {
     renderWithProviders(
-      <PayrollTable employee={null} workspace={null}
-        payslips={mockPayslips}
+      <PayrollTable adjustments={[]} employee={null}
         isLoading={false}
-        adjustments={[]}
         onResolveAdjustments={vi.fn()}
+        payslips={mockPayslips}
+        workspace={null}
       />
     );
 
@@ -89,17 +88,17 @@ describe("PayrollTable", () => {
 
   it("expands card to show segments when clicked", async () => {
     renderWithProviders(
-      <PayrollTable employee={null} workspace={null}
-        payslips={mockPayslips}
+      <PayrollTable adjustments={[]} employee={null}
         isLoading={false}
-        adjustments={[]}
         onResolveAdjustments={vi.fn()}
+        payslips={mockPayslips}
+        workspace={null}
       />
     );
 
     // Click toggle summary bar
-    const toggleBtn = screen.getByTestId("toggle-card-slip-1");
-    fireEvent.click(toggleBtn);
+    const toggleButton = screen.getByTestId("toggle-card-slip-1");
+    fireEvent.click(toggleButton);
 
     // Now segments should be visible
     expect(screen.getByText(/Dòng lương/i)).toBeDefined();
@@ -118,12 +117,12 @@ describe("PayrollTable", () => {
     ];
 
     renderWithProviders(
-      <PayrollTable employee={null} workspace={null}
-        payslips={mockPayslips}
+      <PayrollTable adjustments={mockAdjustments as unknown as never} employee={null}
         isLoading={false}
- 
-        adjustments={mockAdjustments as unknown as never}
         onResolveAdjustments={vi.fn()}
+ 
+        payslips={mockPayslips}
+        workspace={null}
       />
     );
 

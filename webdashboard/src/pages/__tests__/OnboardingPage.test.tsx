@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ROUTES } from "@/lib/routes";
@@ -38,7 +39,12 @@ describe("OnboardingPage", () => {
   });
 
   it("renders correctly", () => {
-    render(<OnboardingPage />);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <OnboardingPage />
+      </QueryClientProvider>
+    );
     expect(screen.getByText("onboarding.welcome_title")).toBeDefined();
   });
 
@@ -62,14 +68,19 @@ describe("OnboardingPage", () => {
     // Set dummy localStorage to verify it gets cleared
     localStorage.setItem("test_key", "test_value");
 
-    render(<OnboardingPage />);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <OnboardingPage />
+      </QueryClientProvider>
+    );
     
     // Find the logout button
-    const logoutBtn = screen.getByText("common.logout");
-    expect(logoutBtn).toBeDefined();
+    const logoutButton = screen.getByText("common.logout");
+    expect(logoutButton).toBeDefined();
 
     // Click logout
-    fireEvent.click(logoutBtn);
+    fireEvent.click(logoutButton);
  
 
     // Verify localStorage was cleared

@@ -24,7 +24,7 @@ describe("initSentry", () => {
 
   it("returns false when VITE_SENTRY_DSN is not set", async () => {
  
-    vi.stubEnv("VITE_SENTRY_DSN", undefined as unknown as string);
+    vi.stubEnv("VITE_SENTRY_DSN", undefined);
     const { initSentry } = await import("../sentry");
 
     const result = initSentry();

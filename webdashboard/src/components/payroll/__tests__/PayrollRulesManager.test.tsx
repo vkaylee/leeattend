@@ -1,12 +1,11 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api/payroll";
 
 import PayrollRulesManager from "../PayrollRulesManager";
@@ -98,8 +97,8 @@ describe("PayrollRulesManager", () => {
     vi.mocked(api.createPayrollRule).mockResolvedValue({ id: "rule-2" } as unknown as never);
     renderWithProviders(<PayrollRulesManager wsId={mockWsId} />);
 
-    const addBtn = await screen.findByText(/common.add/i);
-    await user.click(addBtn);
+    const addButton = await screen.findByText(/common.add/i);
+    await user.click(addButton);
 
     const nameInput = await screen.findByPlaceholderText(/Social Insurance/i);
     await user.type(nameInput, "Health Insurance");
@@ -113,15 +112,15 @@ describe("PayrollRulesManager", () => {
     await user.clear(rateInput);
     await user.type(rateInput, "1.5");
 
-    const saveBtn = screen.getByRole("button", { name: /common.save/i });
-    expect(saveBtn).not.toBeDisabled();
+    const saveButton = screen.getByRole("button", { name: /common.save/i });
+    expect(saveButton).not.toBeDisabled();
     
     // Sometimes clicking button doesn't trigger submit in tests depending on portal/event bubbling
     const form = screen.getByRole("dialog").querySelector("form");
     if (form) {
       fireEvent.submit(form);
     } else {
-      await user.click(saveBtn);
+      await user.click(saveButton);
     }
 
     await waitFor(() => {

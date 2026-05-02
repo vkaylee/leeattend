@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as api from "@/lib/api";
@@ -65,7 +66,7 @@ describe("use-dashboard hooks", () => {
                 wrapper: createWrapper(),
             });
 
-            await waitFor(() => expect(result.current.isLoading).toBe(false));
+            await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
             expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/workspace-stats");
             expect(result.current.data).toEqual(mockStats);
@@ -80,7 +81,7 @@ describe("use-dashboard hooks", () => {
                 wrapper: createWrapper(),
             });
 
-            await waitFor(() => expect(result.current.isError).toBe(true));
+            await waitFor(() => { expect(result.current.isError).toBe(true); });
             expect(result.current.error?.message).toBe("Failed to fetch dashboard stats");
         });
     });
@@ -98,7 +99,7 @@ describe("use-dashboard hooks", () => {
                 wrapper: createWrapper(),
             });
 
-            await waitFor(() => expect(result.current.isLoading).toBe(false));
+            await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
             expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/attendance-trend");
             expect(result.current.data).toEqual(mockData);
@@ -118,7 +119,7 @@ describe("use-dashboard hooks", () => {
                 wrapper: createWrapper(),
             });
 
-            await waitFor(() => expect(result.current.isLoading).toBe(false));
+            await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
             expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/department-attendance?range=week");
             expect(result.current.data).toEqual(mockData);
@@ -138,7 +139,7 @@ describe("use-dashboard hooks", () => {
                 wrapper: createWrapper(),
             });
 
-            await waitFor(() => expect(result.current.isLoading).toBe(false));
+            await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
             expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/unexcused-absences?start_date=2023-01-01&end_date=2023-01-31&group_by=employee");
             expect(result.current.data).toEqual(mockData);
@@ -154,7 +155,7 @@ describe("use-dashboard hooks", () => {
                 wrapper: createWrapper(),
             });
 
-            await waitFor(() => expect(result.current.isLoading).toBe(false));
+            await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
             expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/unexcused-absences");
         });
@@ -189,7 +190,7 @@ describe("use-dashboard hooks", () => {
                 wrapper: createWrapper(),
             });
 
-            await waitFor(() => expect(result.current.isLoading).toBe(false));
+            await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
             expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/turnover-analytics?start=2023-01-01&end=2023-01-31");
             expect(result.current.data).toEqual(mockData);

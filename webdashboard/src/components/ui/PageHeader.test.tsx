@@ -1,6 +1,6 @@
+import { render, screen } from "@testing-library/react";
 import React from "react";
 
-import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 
 import PageHeader from "./PageHeader";
@@ -15,7 +15,7 @@ describe("PageHeader Component", () => {
   });
 
   it("applies data-testid to the h1 element", () => {
-    render(<PageHeader title="Devices" data-testid="devices-title" />);
+    render(<PageHeader data-testid="devices-title" title="Devices" />);
     const heading = screen.getByTestId("devices-title");
     expect(heading.tagName).toBe("H1");
   });
@@ -24,7 +24,7 @@ describe("PageHeader Component", () => {
 
   it("renders subtitle when provided", () => {
     render(
-      <PageHeader title="Dashboard" subtitle="Overview of attendance data" />,
+      <PageHeader subtitle="Overview of attendance data" title="Dashboard" />,
     );
     expect(
       screen.getByText("Overview of attendance data"),
@@ -42,8 +42,8 @@ describe("PageHeader Component", () => {
   it("renders actions when provided", () => {
     render(
       <PageHeader
-        title="Members"
         actions={<button data-testid="add-btn">Add</button>}
+        title="Members"
       />,
     );
     expect(screen.getByTestId("add-btn")).toBeInTheDocument();
@@ -59,13 +59,13 @@ describe("PageHeader Component", () => {
   it("renders multiple action elements", () => {
     render(
       <PageHeader
-        title="Reports"
         actions={
           <>
             <button data-testid="export-btn">Export</button>
             <button data-testid="import-btn">Import</button>
           </>
         }
+        title="Reports"
       />,
     );
     expect(screen.getByTestId("export-btn")).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe("PageHeader Component", () => {
 
   it("merges custom className", () => {
     const { container } = render(
-      <PageHeader title="Styled" className="my-header" />,
+      <PageHeader className="my-header" title="Styled" />,
     );
     expect(container.firstElementChild!.className).toContain("my-header");
   });
@@ -86,10 +86,10 @@ describe("PageHeader Component", () => {
   it("renders title, subtitle, and actions together", () => {
     render(
       <PageHeader
-        title="Full Header"
-        subtitle="With everything"
-        data-testid="full-title"
         actions={<button>Action</button>}
+        data-testid="full-title"
+        subtitle="With everything"
+        title="Full Header"
       />,
     );
 

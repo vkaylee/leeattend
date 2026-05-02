@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 // Mock TanStack Router
@@ -51,14 +52,14 @@ describe("PayrollDetailDrawer", () => {
       <ToastProvider>
         <QueryClientProvider client={queryClient}>
             <PayrollDetailDrawer 
+              adjustments={[]}
+              employee={mockEmployee}
+              isLoadingPayslips={false}
               isOpen={true}
               onClose={onClose}
-              employee={mockEmployee}
-              workspaceId="ws-1"
-              payslips={[]}
-              isLoadingPayslips={false}
-              adjustments={[]}
               onResolveAdjustments={onResolveAdjustments}
+              payslips={[]}
+              workspaceId="ws-1"
             />
         </QueryClientProvider>
       </ToastProvider>
@@ -74,14 +75,14 @@ describe("PayrollDetailDrawer", () => {
       <ToastProvider>
         <QueryClientProvider client={queryClient}>
             <PayrollDetailDrawer 
+              adjustments={[]}
+              employee={mockEmployee}
+              isLoadingPayslips={false}
               isOpen={true}
               onClose={onClose}
-              employee={mockEmployee}
-              workspaceId="ws-1"
-              payslips={[]}
-              isLoadingPayslips={false}
-              adjustments={[]}
               onResolveAdjustments={onResolveAdjustments}
+              payslips={[]}
+              workspaceId="ws-1"
             />
         </QueryClientProvider>
       </ToastProvider>
@@ -99,22 +100,22 @@ describe("PayrollDetailDrawer", () => {
       <ToastProvider>
         <QueryClientProvider client={queryClient}>
             <PayrollDetailDrawer 
+              adjustments={[]}
+              employee={mockEmployee}
+              isLoadingPayslips={false}
               isOpen={true}
               onClose={onClose}
-              employee={mockEmployee}
-              workspaceId="ws-1"
-              payslips={[]}
-              isLoadingPayslips={false}
-              adjustments={[]}
               onResolveAdjustments={onResolveAdjustments}
+              payslips={[]}
+              workspaceId="ws-1"
             />
         </QueryClientProvider>
       </ToastProvider>
     );
 
     // Use a more specific selector for the close button (the one with the X icon)
-    const closeBtn = screen.getAllByRole("button").find(b => b.querySelector(".lucide-x"));
-    if (closeBtn) fireEvent.click(closeBtn);
+    const closeButton = screen.getAllByRole("button").find(b => b.querySelector(".lucide-x"));
+    if (closeButton) fireEvent.click(closeButton);
     expect(onClose).toHaveBeenCalled();
   });
 });

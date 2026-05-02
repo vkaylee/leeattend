@@ -1,21 +1,18 @@
-import React, { useRef, useCallback } from 'react';
-
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Printer } from 'lucide-react';
+import React, { useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useToast } from '@/components/ui/Toast';
-
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
 import { Employee, Payslip, Workspace } from '@/lib/api/types';
-
 
 import PayslipDocument from './PayslipDocument';
 
 interface PayslipModalProps {
+  employee: Employee;
   isOpen: boolean;
   onClose: () => void;
-  employee: Employee;
   payslip: Payslip;
   workspace: Workspace | null;
 }
@@ -245,10 +242,10 @@ export default function PayslipModal({
   }, [employee.full_name, toast]);
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose}>
+    <Dialog.Root onOpenChange={onClose} open={isOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className='fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] animate-in fade-in duration-300 print:hidden' />
-        <Dialog.Content data-testid="payslip-modal" className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[900px] max-h-[90vh] bg-slate-100 dark:bg-slate-700 rounded-[2rem] shadow-2xl z-[101] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 print:static print:translate-x-0 print:translate-y-0 print:max-h-none print:w-auto print:bg-white dark:bg-slate-900 print:shadow-none print:rounded-none'>
+        <Dialog.Content className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[900px] max-h-[90vh] bg-slate-100 dark:bg-slate-700 rounded-[2rem] shadow-2xl z-[101] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 print:static print:translate-x-0 print:translate-y-0 print:max-h-none print:w-auto print:bg-white dark:bg-slate-900 print:shadow-none print:rounded-none' data-testid="payslip-modal">
           
           <Dialog.Title className="sr-only">Official Payslip Preview</Dialog.Title>
           <Dialog.Description className="sr-only">
@@ -267,14 +264,14 @@ export default function PayslipModal({
             </div>
             <div className='flex items-center gap-3'>
               <button
-                onClick={handlePrint}
-                data-testid="payslip-print-btn"
                 className='flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95'
+                data-testid="payslip-print-btn"
+                onClick={handlePrint}
               >
                 <Printer size={14} /> Print Payslip
               </button>
               <Dialog.Close asChild>
-                <button data-testid="payslip-close-btn" className='w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 transition-all'>
+                <button className='w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 transition-all' data-testid="payslip-close-btn">
                   <X size={20} />
                 </button>
               </Dialog.Close>
@@ -283,7 +280,7 @@ export default function PayslipModal({
 
           {/* Scrollable Document Area */}
           <div className='flex-1 overflow-y-auto p-4 md:p-12 print:p-0 print:overflow-visible'>
-             <div ref={printRef} className='bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden print:shadow-none print:rounded-none'>
+             <div className='bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden print:shadow-none print:rounded-none' ref={printRef}>
                 <PayslipDocument
                   employee={employee}
                   payslip={payslip}

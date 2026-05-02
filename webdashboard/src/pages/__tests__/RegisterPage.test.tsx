@@ -1,6 +1,6 @@
+import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -55,7 +55,7 @@ vi.mock("../../lib/api", () => ({
 describe("RegisterPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(api.getCurrentUserId).mockReturnValue(null as unknown as string);
+    vi.mocked(api.getCurrentUserId).mockReturnValue(null);
     // Mock window.location.href
     Object.defineProperty(window, "location", {
       value: { href: "" },

@@ -10,9 +10,9 @@ test.describe("UI Build Smoke Test", () => {
     const errors: string[] = [];
 
     // Thu thập tất cả lỗi trình duyệt
-    page.on("pageerror", (err) => {
-      errors.push(err.message);
-      console.error(`[BROWSER_ERROR] ${err.message}`);
+    page.on("pageerror", (error) => {
+      errors.push(error.message);
+      console.error(`[BROWSER_ERROR] ${error.message}`);
     });
 
     // Đi tới trang chủ (hoặc login nếu chưa auth)
@@ -26,7 +26,7 @@ test.describe("UI Build Smoke Test", () => {
         !text.includes("Đang kiểm tra bảo mật") &&
         !text.includes("Loading workspace") &&
         !text.includes("Đang tải");
-    }, { timeout: 15000 }).catch(() => console.log("Timeout waiting for security screen to detach, continuing..."));
+    }, { timeout: 15000 }).catch(() => { console.log("Timeout waiting for security screen to detach, continuing..."); });
 
     // 1. Kiểm tra không có lỗi runtime nghiêm trọng làm chết app
     expect(errors).toHaveLength(0);

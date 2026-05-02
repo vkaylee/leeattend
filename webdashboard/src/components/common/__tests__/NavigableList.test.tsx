@@ -1,12 +1,12 @@
+import { render, screen } from "@testing-library/react";
 import React, { createRef } from "react";
 
-import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import NavigableList from "../NavigableList";
-
 import type { NavigableListColumn } from "../NavigableList";
+
+import NavigableList from "../NavigableList";
 
 // Mock IntersectionObserver for jsdom
 class MockIntersectionObserver {
@@ -20,7 +20,7 @@ window.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 // Mock scroll methods not available in jsdom
 Element.prototype.scrollIntoView = vi.fn();
  
-Element.prototype.scrollTo = vi.fn() as unknown as typeof Element.prototype.scrollTo;
+Element.prototype.scrollTo = vi.fn();
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
@@ -80,7 +80,7 @@ describe("NavigableList", () => {
     });
 
     it("renders empty state when no items", () => {
-        render(<NavigableList {...defaultProps} items={[]} emptyMessage="Nothing here" />);
+        render(<NavigableList {...defaultProps} emptyMessage="Nothing here" items={[]} />);
         expect(screen.getByText("Nothing here")).toBeDefined();
     });
 
@@ -107,9 +107,9 @@ describe("NavigableList", () => {
         render(
             <NavigableList
                 {...defaultProps}
-                searchValue=""
                 onSearchChange={vi.fn()}
                 searchTestId="test-search"
+                searchValue=""
             />
         );
         expect(screen.getByTestId("test-search")).toBeDefined();
@@ -154,9 +154,9 @@ describe("NavigableList", () => {
         const { container } = render(
             <NavigableList
                 {...defaultProps}
-                searchValue=""
                 onSearchChange={vi.fn()}
                 searchTestId="test-search"
+                searchValue=""
             />
         );
 
@@ -174,9 +174,9 @@ describe("NavigableList", () => {
         const { container } = render(
             <NavigableList
                 {...defaultProps}
-                searchValue=""
                 onSearchChange={vi.fn()}
                 searchTestId="test-search"
+                searchValue=""
             />
         );
 
@@ -195,10 +195,10 @@ describe("NavigableList", () => {
         render(
             <NavigableList
                 {...defaultProps}
-                onSelect={onSelect}
-                searchValue=""
                 onSearchChange={vi.fn()}
+                onSelect={onSelect}
                 searchTestId="test-search"
+                searchValue=""
             />
         );
 
@@ -214,16 +214,16 @@ describe("NavigableList", () => {
         const { container } = render(
             <NavigableList
                 {...defaultProps}
-                searchValue=""
                 onSearchChange={vi.fn()}
                 searchTestId="test-search"
+                searchValue=""
             />
         );
 
         const searchInput = screen.getByTestId("test-search");
         await user.click(searchInput);
         // Press ArrowDown 10 times (more than items.length)
-        for (let i = 0; i < 10; i++) {
+        for (let index = 0; index < 10; index++) {
             await user.keyboard("{ArrowDown}");
         }
 
@@ -237,9 +237,9 @@ describe("NavigableList", () => {
         const { container } = render(
             <NavigableList
                 {...defaultProps}
-                searchValue=""
                 onSearchChange={vi.fn()}
                 searchTestId="test-search"
+                searchValue=""
             />
         );
 

@@ -1,6 +1,6 @@
+import { render, screen } from "@testing-library/react";
 import React from "react";
 
-import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 
 import StatusBadge from "./StatusBadge";
@@ -15,17 +15,17 @@ describe("StatusBadge Component", () => {
 
   it("renders as a <span> element", () => {
     render(<StatusBadge>Test</StatusBadge>);
-    const el = screen.getByText("Test");
-    expect(el.tagName).toBe("SPAN");
+    const element = screen.getByText("Test");
+    expect(element.tagName).toBe("SPAN");
   });
 
   // ── Variants ────────────────────────────────────────────────────
 
   it("defaults to neutral variant", () => {
     render(<StatusBadge>Neutral</StatusBadge>);
-    const el = screen.getByText("Neutral");
-    expect(el.className).toContain("bg-slate-50");
-    expect(el.className).toContain("opacity-60");
+    const element = screen.getByText("Neutral");
+    expect(element.className).toContain("bg-slate-50");
+    expect(element.className).toContain("opacity-60");
   });
 
   it("applies success variant", () => {
@@ -110,10 +110,10 @@ describe("StatusBadge Component", () => {
 
   it("always has base badge styles", () => {
     render(<StatusBadge>Base</StatusBadge>);
-    const el = screen.getByText("Base");
-    expect(el.className).toContain("rounded-full");
-    expect(el.className).toContain("font-bold");
-    expect(el.className).toContain("uppercase");
-    expect(el.className).toContain("border");
+    const element = screen.getByText("Base");
+    expect(element.className).toContain("rounded-full");
+    expect(element.className).toContain("font-bold");
+    expect(element.className).toContain("uppercase");
+    expect(element.className).toContain("border");
   });
 });

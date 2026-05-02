@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
-
 import { Navigate, Outlet } from "@tanstack/react-router";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useWorkspaces } from "@/hooks/use-workspace";
@@ -56,8 +55,8 @@ export default function WorkspaceGuard() {
         <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 max-w-sm">
           <p className="text-red-500 font-bold mb-4">{t("common.system_connection_error")}</p>
           <button
-            onClick={() => window.location.reload()}
             className="px-6 py-2 bg-primary-600 text-white rounded-xl font-bold"
+            onClick={() => { window.location.reload(); }}
           >
             {t("common.retry")}
           </button>
@@ -67,7 +66,7 @@ export default function WorkspaceGuard() {
   }
 
   if (workspaces.length === 0) {
-    return <Navigate to={ROUTES.ONBOARDING} replace />;
+    return <Navigate replace to={ROUTES.ONBOARDING} />;
   }
 
   // Nếu chưa có activeWsId nhưng có workspaces, ta render Outlet kèm theo giá trị vừa set
@@ -76,7 +75,7 @@ export default function WorkspaceGuard() {
     activeWsId || (workspaces.length > 0 ? workspaces[0].id : null);
 
   if (!currentWsId) {
-    return <Navigate to={ROUTES.ONBOARDING} replace />;
+    return <Navigate replace to={ROUTES.ONBOARDING} />;
   }
 
   return <Outlet />;

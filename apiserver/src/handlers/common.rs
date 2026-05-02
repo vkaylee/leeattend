@@ -249,14 +249,13 @@ impl MemberContext {
 
         roles.push(primary_role);
 
-        // Compute effective permissions from all roles via DB
-        let db_perms = sqlx::query_scalar::<_, String>(
-            "SELECT permission_name FROM workspace_role_permissions WHERE role_id = ANY($1)",
-        )
-        .bind(&roles)
-        .fetch_all(app_state.infra.db.api())
-        .await
-        .map_err(|e| e.to_string())?;
+        // Compute effective permissions from all roles via repository
+        let db_perms = app_state
+            .core
+            .workspace_repo
+            .get_permissions_for_roles(&roles)
+            .await
+            .map_err(|e| e.to_string())?;
 
         let mut permissions = HashSet::new();
         for perm_str in db_perms {
@@ -284,13 +283,12 @@ impl MemberContext {
         // A role is "global" if scope_type = 'global', which applies to system roles
         // (owner, admin, hr_manager, shift_manager) AND any custom role a Workspace Admin
         // explicitly marks as global-scoped.
-        let is_global_manager = sqlx::query_scalar::<_, bool>(
-            "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = ANY($1) AND scope_type = 'global')"
-        )
-        .bind(&roles)
-        .fetch_one(app_state.infra.db.api())
-        .await
-        .unwrap_or(false);
+        let is_global_manager = app_state
+            .core
+            .workspace_repo
+            .is_any_role_global(&roles)
+            .await
+            .unwrap_or(false);
 
         let managed_department_ids = if is_global_manager {
             None

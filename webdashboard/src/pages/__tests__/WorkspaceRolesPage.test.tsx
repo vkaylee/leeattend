@@ -1,8 +1,8 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import React from "react";
 import { MemoryRouter } from "react-router-dom";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useMyPermissions } from "../../hooks/use-permissions";
@@ -28,7 +28,7 @@ vi.mock("../../hooks/use-permissions", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-    Link: ({ children, to, className }: { children: React.ReactNode; to: string; className?: string }) => <a href={to} className={className}>{children}</a>,
+    Link: ({ children, to, className }: { children: React.ReactNode; to: string; className?: string }) => <a className={className} href={to}>{children}</a>,
 }));
 
 vi.mock("@/components/features/settings/RoleFormModal", () => ({
@@ -57,12 +57,12 @@ describe("WorkspaceRolesPage", () => {
         vi.mocked(useWorkspaceRoles).mockReturnValue({
             roles: mockRoles as unknown as WorkspaceRole[],
             isLoading: false,
-            createRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+            createRole: vi.fn() as unknown as (_arguments: unknown) => Promise<unknown>,
  
             isCreating: false,
-            updateRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+            updateRole: vi.fn() as unknown as (_arguments: unknown) => Promise<unknown>,
             isUpdating: false,
-            deleteRole: vi.fn() as unknown as (_args: unknown) => Promise<unknown>,
+            deleteRole: vi.fn() as unknown as (_arguments: unknown) => Promise<unknown>,
             isDeleting: false,
         } as unknown as ReturnType<typeof useWorkspaceRoles>);
  
@@ -76,7 +76,7 @@ describe("WorkspaceRolesPage", () => {
             permissions: [],
             roles: [],
             managedDepartmentIds: null
-        } as unknown as ReturnType<typeof useMyPermissions>);
+        });
         
         window.confirm = vi.fn().mockReturnValue(true);
     });
@@ -110,7 +110,7 @@ describe("WorkspaceRolesPage", () => {
             roles: [],
             managedDepartmentIds: null
  
-        } as unknown as ReturnType<typeof useMyPermissions>);
+        });
 
         renderWithProviders(<WorkspaceRolesPage />);
         
@@ -128,7 +128,7 @@ describe("WorkspaceRolesPage", () => {
             permissions: [],
             roles: [],
             managedDepartmentIds: null
-        } as unknown as ReturnType<typeof useMyPermissions>);
+        });
 
         renderWithProviders(<WorkspaceRolesPage />);
         

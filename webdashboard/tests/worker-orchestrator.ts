@@ -12,15 +12,15 @@ import { Sidebar } from './pom/Sidebar';
 export { expect };
 
 // Test-scoped fixtures type definition
-type TestFixtures = {
-  loginPage: LoginPage;
-  sidebar: Sidebar;
-  employeesPage: EmployeesPage;
+interface TestFixtures {
+  authPage: LoginPage;
   connectivityPage: ConnectivityPage;
   devicesPage: DevicesPage;
-  authPage: LoginPage; 
+  employeesPage: EmployeesPage;
+  loginPage: LoginPage;
+  sidebar: Sidebar; 
   workerWebUrl: string; // Giữ lại property này để không gãy các test cũ đang import nó
-};
+}
 
 export const test = base.extend<TestFixtures>({
   // workerWebUrl giờ đơn giản lấy từ baseURL của config

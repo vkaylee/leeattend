@@ -13,7 +13,7 @@ import {
 export async function fetchWorkingPatterns(wsId: string): Promise<WorkingPattern[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns`);
   if (!response.ok) throw new Error("Failed to fetch working patterns");
-  return response.json();
+  return response.json() as Promise<WorkingPattern[]>;
 }
 
 export async function createWorkingPattern(wsId: string, data: CreateWorkingPatternRequest): Promise<WorkingPattern> {
@@ -22,13 +22,13 @@ export async function createWorkingPattern(wsId: string, data: CreateWorkingPatt
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create working pattern");
-  return response.json();
+  return response.json() as Promise<WorkingPattern>;
 }
 
 export async function fetchPatternDetails(wsId: string, patternId: string): Promise<WorkingPatternDetail[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns/${patternId}`);
   if (!response.ok) throw new Error("Failed to fetch pattern details");
-  return response.json();
+  return response.json() as Promise<WorkingPatternDetail[]>;
 }
 
 export async function assignPattern(
@@ -41,7 +41,7 @@ export async function assignPattern(
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to assign pattern");
-  return response.json();
+  return response.json() as Promise<EmployeeWorkingPattern>;
 }
 
 export async function bulkAssignPattern(
@@ -53,7 +53,7 @@ export async function bulkAssignPattern(
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to bulk assign pattern");
-  return response.json();
+  return response.json() as Promise<BulkAssignResponse>;
 }
 
 export async function fetchEmployeePatternHistory(
@@ -62,7 +62,7 @@ export async function fetchEmployeePatternHistory(
 ): Promise<EmployeeWorkingPattern[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/working-patterns`);
   if (!response.ok) throw new Error("Failed to fetch pattern history");
-  return response.json();
+  return response.json() as Promise<EmployeeWorkingPattern[]>;
 }
 
 export async function deleteWorkingPattern(wsId: string, patternId: string): Promise<void> {

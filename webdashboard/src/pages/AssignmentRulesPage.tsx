@@ -1,5 +1,3 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, 
@@ -11,6 +9,7 @@ import {
   Building2,
   Zap
 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
@@ -81,10 +80,10 @@ export default function AssignmentRulesPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
         <div className="space-y-1">
-          <h1 data-testid="assignment-rules-title" className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">{t("rules.title")}</h1>
+          <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none" data-testid="assignment-rules-title">{t("rules.title")}</h1>
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("rules.subtitle")}</p>
         </div>
-        <Button onClick={openCreateModal} icon={<Plus size={18} />}>{t("rules.create_btn").toUpperCase()}</Button>
+        <Button icon={<Plus size={18} />} onClick={openCreateModal}>{t("rules.create_btn").toUpperCase()}</Button>
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm dark:shadow-black/10 animate-in slide-in-from-bottom-8 duration-700">
@@ -100,7 +99,7 @@ export default function AssignmentRulesPage() {
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {rules?.map((rule) => (
-              <tr key={rule.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50 transition-all group">
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50 transition-all group" key={rule.id}>
                 <td className="px-10 py-6"><span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-xl text-[10px] font-bold tracking-tight border border-slate-200 dark:border-slate-700 shadow-inner font-mono uppercase">P{rule.priority}</span></td>
                 <td className="px-8 py-6">
                   <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{rule.name}</div>
@@ -109,10 +108,8 @@ export default function AssignmentRulesPage() {
                 <td className="px-8 py-6"><span className="bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-primary-100 dark:border-primary-800 shadow-sm dark:shadow-black/10">{patterns?.find(p => p.id === rule.pattern_id)?.name.toUpperCase() || "UNKNOWN"}</span></td>
                 <td className="px-8 py-6">
                   <div className="flex flex-wrap gap-2.5">
-                    {rule.conditions.department_id && (
-                      <span className="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800 flex items-center gap-2 shadow-sm dark:shadow-black/10"><Building2 size={12} className="opacity-50" /> {departments?.find(d => d.id === rule.conditions.department_id)?.name.toUpperCase()}</span>
-                    )}
-                    {rule.conditions.tags?.map(tag => (<span key={tag} className="bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-emerald-100 dark:border-emerald-800 shadow-sm dark:shadow-black/10">#{tag.toUpperCase()}</span>))}
+                    {!!rule.conditions.department_id && <span className="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800 flex items-center gap-2 shadow-sm dark:shadow-black/10"><Building2 className="opacity-50" size={12} /> {departments?.find(d => d.id === rule.conditions.department_id)?.name.toUpperCase()}</span>}
+                    {rule.conditions.tags?.map(tag => (<span className="bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-emerald-100 dark:border-emerald-800 shadow-sm dark:shadow-black/10" key={tag}>#{tag.toUpperCase()}</span>))}
                     {!rule.conditions.department_id && (!rule.conditions.tags || rule.conditions.tags.length === 0) && (
                       <span className="text-slate-300 dark:text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] italic opacity-60">{t("rules.match_all")}</span>
                     )}
@@ -120,14 +117,14 @@ export default function AssignmentRulesPage() {
                 </td>
                 <td className="px-10 py-6 text-right">
                   <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                    <button onClick={() => openEditModal(rule)} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.edit")}><Pencil size={18} /></button>
-                    <button onClick={async () => { const ok = await confirm({ title: t("common.confirm_delete"), message: "Are you sure you want to delete this rule?", variant: "danger" }); if(ok) deleteMutation.mutate(rule.id); }} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
+                    <button className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" onClick={() => { openEditModal(rule); }} title={t("common.edit")}><Pencil size={18} /></button>
+                    <button className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" onClick={async () => { const ok = await confirm({ title: t("common.confirm_delete"), message: "Are you sure you want to delete this rule?", variant: "danger" }); if(ok) deleteMutation.mutate(rule.id); }} title={t("common.delete")}><Trash2 size={18} /></button>
                   </div>
                 </td>
               </tr>
             ))}
             {(!rules || rules.length === 0) && !rulesLoading && (
-              <tr><td colSpan={5} className="px-10 py-32 text-center bg-slate-50 dark:bg-slate-800/30 dark:bg-slate-800/30 flex flex-col items-center"><Zap size={40} className="text-slate-200 dark:text-slate-700 mb-4" /><p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("rules.empty_list")}</p></td></tr>
+              <tr><td className="px-10 py-32 text-center bg-slate-50 dark:bg-slate-800/30 dark:bg-slate-800/30 flex flex-col items-center" colSpan={5}><Zap className="text-slate-200 dark:text-slate-700 mb-4" size={40} /><p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("rules.empty_list")}</p></td></tr>
             )}
           </tbody>
         </table>
@@ -144,31 +141,31 @@ export default function AssignmentRulesPage() {
       {/* Create/Edit Modal */}
       <Modal
         isOpen={isModalOpen}
-        onClose={closeModal}
-        title={editingRule ? t("rules.edit_title", "Edit Rule") : t("rules.create_title", "Create New Rule")}
-        subtitle={t("rules.form_subtitle", "Define when this pattern should be applied")}
         maxWidth="2xl"
+        onClose={closeModal}
+        subtitle={t("rules.form_subtitle", "Define when this pattern should be applied")}
+        title={editingRule ? t("rules.edit_title", "Edit Rule") : t("rules.create_title", "Create New Rule")}
       >
         <div className="space-y-6 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("rules.form.name", "Rule Name")}</label>
               <input
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
+                onChange={(e) => { setName(e.target.value); }}
+                placeholder={t("rules.form.name_placeholder")}
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t("rules.form.name_placeholder")}
-                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("rules.form.priority")}</label>
               <input
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
+                onChange={(e) => { setPriority(parseInt(e.target.value)); }}
                 type="number"
                 value={priority}
-                onChange={(e) => setPriority(parseInt(e.target.value))}
-                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
               />
             </div>
           </div>
@@ -176,12 +173,12 @@ export default function AssignmentRulesPage() {
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("rules.form.pattern")}</label>
             <Combobox
+              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-[5px] font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
               data-testid="pattern-combobox"
-              value={patternId}
               onChange={setPatternId}
               options={(patterns || []).map((p) => ({ value: p.id, label: p.name }))}
               placeholder={t("patterns.form.select_pattern_placeholder")}
-              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-[5px] font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
+              value={patternId}
             />
           </div>
 
@@ -194,25 +191,25 @@ export default function AssignmentRulesPage() {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("common.department")}</label>
                 <Combobox
-                  value={conditions.department_id || ""}
-                  onChange={(value) => setConditions({ ...conditions, department_id: value || undefined })}
+                  className="w-full bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200"
+                  onChange={(value) => { setConditions({ ...conditions, department_id: value || undefined }); }}
                   options={(departments || []).map((d) => ({ value: d.id, label: d.name }))}
                   placeholder={t("common.all_departments")}
-                  className="w-full bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200"
+                  value={conditions.department_id || ""}
                 />
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("common.tags")}</label>
                 <input
-                  type="text"
-                  value={conditions.tags?.join(", ") || ""}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-200"
                   onChange={(e) => {
                     const tags = e.target.value.split(",").map(t => t.trim()).filter(t => t !== "");
                     setConditions({ ...conditions, tags: tags.length > 0 ? tags : undefined });
                   }}
                   placeholder={t("rules.form.tags_placeholder")}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-200"
+                  type="text"
+                  value={conditions.tags?.join(", ") || ""}
                 />
               </div>
             </div>
@@ -223,10 +220,10 @@ export default function AssignmentRulesPage() {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button variant="ghost" size="lg" className="flex-1" onClick={closeModal}>
+            <Button className="flex-1" onClick={closeModal} size="lg" variant="ghost">
               {t("common.cancel")}
             </Button>
-            <Button className="flex-1" size="lg" onClick={handleSubmit} loading={createMutation.isPending || updateMutation.isPending} icon={<Save className="w-4 h-4" />}>
+            <Button className="flex-1" icon={<Save className="w-4 h-4" />} loading={createMutation.isPending || updateMutation.isPending} onClick={handleSubmit} size="lg">
               {editingRule ? t("common.save_changes") : t("common.create")}
             </Button>
           </div>

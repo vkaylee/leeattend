@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -227,8 +227,8 @@ describe("ShiftSwapsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const createBtn = await screen.findByText("Create Swap");
-    await user.click(createBtn);
+    const createButton = await screen.findByText("Create Swap");
+    await user.click(createButton);
 
     expect(screen.getAllByText("Requester").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Target").length).toBeGreaterThan(0);
@@ -239,8 +239,8 @@ describe("ShiftSwapsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const guideBtn = await screen.findByText("How it works");
-    await user.click(guideBtn);
+    const guideButton = await screen.findByText("How it works");
+    await user.click(guideButton);
 
     expect(screen.getByText("Step 1")).toBeInTheDocument();
     expect(screen.getByText("Step 2")).toBeInTheDocument();
@@ -251,8 +251,8 @@ describe("ShiftSwapsPage", () => {
     renderPage();
     // Action buttons exist in DOM (hidden via CSS opacity)
     await waitFor(() => {
-      const approveBtn = screen.getByTitle("Approve");
-      expect(approveBtn).toBeInTheDocument();
+      const approveButton = screen.getByTitle("Approve");
+      expect(approveButton).toBeInTheDocument();
     });
   });
 
@@ -260,8 +260,8 @@ describe("ShiftSwapsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const approveBtn = await screen.findByTitle("Approve");
-    await user.click(approveBtn);
+    const approveButton = await screen.findByTitle("Approve");
+    await user.click(approveButton);
 
     await waitFor(() => {
       expect(shiftSwapsApi.approveShiftSwap).toHaveBeenCalledWith(
@@ -276,8 +276,8 @@ describe("ShiftSwapsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const rejectBtn = await screen.findByTitle("Reject");
-    await user.click(rejectBtn);
+    const rejectButton = await screen.findByTitle("Reject");
+    await user.click(rejectButton);
 
     await waitFor(() => {
       expect(shiftSwapsApi.approveShiftSwap).toHaveBeenCalledWith(
@@ -291,7 +291,7 @@ describe("ShiftSwapsPage", () => {
   // ── Edge Cases ────────────────────────────────────────────
 
   it("shows workspace selection prompt when no workspace", async () => {
-    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(null as unknown as string);
+    vi.mocked(api.getCurrentWorkspaceId).mockReturnValue(null);
     renderPage();
     expect(await screen.findByText("Select workspace")).toBeInTheDocument();
   });
@@ -300,10 +300,10 @@ describe("ShiftSwapsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const createBtn = await screen.findByText("Create Swap");
-    await user.click(createBtn);
+    const createButton = await screen.findByText("Create Swap");
+    await user.click(createButton);
 
-    const submitBtn = screen.getByText("Save");
-    expect(submitBtn.closest("button")).toBeDisabled();
+    const submitButton = screen.getByText("Save");
+    expect(submitButton.closest("button")).toBeDisabled();
   });
 });

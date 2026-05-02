@@ -1,5 +1,3 @@
-import React, { useState } from "react";
-
 import { Link } from "@tanstack/react-router";
 import { 
   ShieldAlert, 
@@ -14,12 +12,12 @@ import {
   CheckCircle2,
   ChevronRight,
 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import PermissionGate from "@/components/common/PermissionGate";
 import RoleFormModal from "@/components/features/settings/RoleFormModal";
 import PageHeader from "@/components/ui/PageHeader";
-
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceRoles } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
@@ -81,11 +79,11 @@ export default function WorkspaceRolesPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader
-          title={t('rolesPage.title', { defaultValue: 'Role Management' })}
           subtitle={t('rolesPage.subtitle', { defaultValue: 'Define custom roles and manage access levels across the workspace' })}
+          title={t('rolesPage.title', { defaultValue: 'Role Management' })}
         />
         <PermissionGate permission="members:roles:manage">
-          <button onClick={handleCreate} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
+          <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0" onClick={handleCreate}>
             <Plus size={18} />
             {t('rolesPage.createRole', { defaultValue: 'Create Role' })}
           </button>
@@ -107,20 +105,20 @@ export default function WorkspaceRolesPage() {
           
           return (
             <div 
-              key={role.id}
               className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 group"
+              key={role.id}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-4">
                   <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border", bgColors)}>
-                    <Icon size={24} className={iconColors} />
+                    <Icon className={iconColors} size={24} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
                         {role.name}
                       </h3>
-                      {role.is_system && (
+                      {!!role.is_system && (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
                           {t('common.system', { defaultValue: 'System' })}
                         </span>
@@ -137,8 +135,8 @@ export default function WorkspaceRolesPage() {
                 <PermissionGate permission="members:roles:manage">
                   <div className="relative">
                     <button 
-                      onClick={() => setActiveMenu(activeMenu === role.id ? null : role.id)}
                       className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                      onClick={() => { setActiveMenu(activeMenu === role.id ? null : role.id); }}
                     >
                       <MoreVertical size={20} />
                     </button>
@@ -146,17 +144,17 @@ export default function WorkspaceRolesPage() {
                     {activeMenu === role.id && (
                       <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 border border-slate-100 dark:border-slate-800 py-2 z-10 animate-in fade-in zoom-in-95 duration-200">
                         {!role.is_system && (
-                          <button onClick={() => handleEdit(role)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" onClick={() => { handleEdit(role); }}>
                             <Edit2 size={16} /> {t('rolesPage.editRole', { defaultValue: 'Edit Role' })}
                           </button>
                         )}
-                        <Link to="/workspace/settings/permissions" className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <Link className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" to="/workspace/settings/permissions">
                           <CheckCircle2 size={16} /> {t('rolesPage.matrix', { defaultValue: 'Matrix' })}
                         </Link>
                         {!role.is_system && (
                           <>
                             <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
-                            <button onClick={() => handleDelete(role.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors">
+                            <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors" onClick={() => handleDelete(role.id)}>
                               <Trash2 size={16} /> {t('rolesPage.deleteRole', { defaultValue: 'Delete Role' })}
                             </button>
                           </>
@@ -179,7 +177,7 @@ export default function WorkspaceRolesPage() {
                     </div>
                   </div>
                   <PermissionGate permission="members:roles:manage">
-                    <Link to="/workspace/settings/permissions" className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <Link className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" to="/workspace/settings/permissions">
                       {t('rolesPage.manageAccess', { defaultValue: 'Manage Access' })} <ChevronRight size={14} />
                     </Link>
                   </PermissionGate>
@@ -192,9 +190,9 @@ export default function WorkspaceRolesPage() {
       )}
 
       <RoleFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
         editingRole={editingRole}
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); }}
       />
       <ConfirmationDialog />
     </div>

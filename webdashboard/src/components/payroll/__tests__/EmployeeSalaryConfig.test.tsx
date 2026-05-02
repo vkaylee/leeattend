@@ -1,11 +1,10 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api/payroll";
 
 import EmployeeSalaryConfig from "../EmployeeSalaryConfig";
@@ -64,7 +63,7 @@ describe("EmployeeSalaryConfig", () => {
   };
 
   it("renders employee salary components", async () => {
-    renderWithProviders(<EmployeeSalaryConfig wsId={mockWsId} employeeId={mockEmpId} />);
+    renderWithProviders(<EmployeeSalaryConfig employeeId={mockEmpId} wsId={mockWsId} />);
 
     expect(await screen.findByText(/Lương cơ bản/i)).toBeInTheDocument();
     expect(screen.getByText(/1[.,]000/)).toBeInTheDocument();
@@ -73,10 +72,10 @@ describe("EmployeeSalaryConfig", () => {
   it("allows adding a new salary component to employee", async () => {
  
     vi.mocked(api.assignEmployeeSalaryComponent).mockResolvedValue({} as unknown as never);
-    renderWithProviders(<EmployeeSalaryConfig wsId={mockWsId} employeeId={mockEmpId} />);
+    renderWithProviders(<EmployeeSalaryConfig employeeId={mockEmpId} wsId={mockWsId} />);
 
-    const addBtn = await screen.findByRole("button", { name: /payroll.employee_config.add_btn/i });
-    fireEvent.click(addBtn);
+    const addButton = await screen.findByRole("button", { name: /payroll.employee_config.add_btn/i });
+    fireEvent.click(addButton);
 
     // Select component type from Combobox
     const combobox = await screen.findByLabelText(/payroll.employee_config.item_type/i);
@@ -88,8 +87,8 @@ describe("EmployeeSalaryConfig", () => {
     const amountInput = screen.getByPlaceholderText(/1[.,]000/);
     fireEvent.change(amountInput, { target: { value: "5000" } });
 
-    const saveBtn = screen.getByRole("button", { name: /common.save/i });
-    fireEvent.click(saveBtn);
+    const saveButton = screen.getByRole("button", { name: /common.save/i });
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(api.assignEmployeeSalaryComponent).toHaveBeenCalled();

@@ -9,10 +9,10 @@ test.describe("Connectivity Buttons Visibility Tests", () => {
 
     test('should show global add device button and agent-specific add device button', async ({ page, connectivityPage }) => {
         // 1. Verify global "Add Device" button
-        const globalAddBtn = page.getByTestId('global-add-device-btn');
-        await expect(globalAddBtn).toBeVisible();
+        const globalAddButton = page.getByTestId('global-add-device-btn');
+        await expect(globalAddButton).toBeVisible();
         // Use regular expression to handle both languages
-        await expect(globalAddBtn).toHaveText(/add device|thêm thiết bị/i);
+        await expect(globalAddButton).toHaveText(/add device|thêm thiết bị/i);
 
         // 2. Check agent-specific button if agents exist
         const agentCards = page.locator('[data-testid^="agent-card-"]');
@@ -27,9 +27,9 @@ test.describe("Connectivity Buttons Visibility Tests", () => {
             await connectivityPage.expandAgent(agentId);
 
             // Verify button inside card
-            const agentAddBtn = page.getByTestId(`add-device-btn-${agentId}`);
-            await expect(agentAddBtn).toBeVisible();
-            await expect(agentAddBtn).toHaveText(/add device|thêm thiết bị/i);
+            const agentAddButton = page.getByTestId(`add-device-btn-${agentId}`);
+            await expect(agentAddButton).toBeVisible();
+            await expect(agentAddButton).toHaveText(/add device|thêm thiết bị/i);
         } else {
             console.log("No agents found, skipping agent-specific button check");
         }

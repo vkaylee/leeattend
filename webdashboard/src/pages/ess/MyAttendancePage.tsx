@@ -1,7 +1,4 @@
-import { useState } from "react";
-
 import * as Popover from "@radix-ui/react-popover";
-import { startOfMonth, endOfMonth, format, subMonths, addMonths } from "date-fns";
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,11 +6,13 @@ import {
   Calendar,
   Activity,
 } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { startOfMonth, endOfMonth, format, subMonths, addMonths } from "date-fns";
 
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import { ClaimOtDialog } from "@/components/ess/ClaimOtDialog";
-
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyAttendance, useMyAttendanceSummaries  } from "@/hooks/use-ess";
 import { AttendanceDailySummary } from "@/lib/api/types";
@@ -48,9 +47,9 @@ export default function MyAttendancePage() {
 
   const handleMonthYearChange = (month: number, year: number) => { setCurrentMonth(new Date(year, month - 1, 1)); };
 
-  const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+  const handlePreviousMonth = () => { setCurrentMonth(subMonths(currentMonth, 1)); };
 
-  const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+  const handleNextMonth = () => { setCurrentMonth(addMonths(currentMonth, 1)); };
 
 
 
@@ -74,7 +73,7 @@ export default function MyAttendancePage() {
 
           <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
 
-            <button onClick={handlePrevMonth} className="w-12 h-12 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-md rounded-xl transition-all active:scale-90"><ChevronLeft size={24} /></button>
+            <button className="w-12 h-12 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-md rounded-xl transition-all active:scale-90" onClick={handlePreviousMonth}><ChevronLeft size={24} /></button>
 
             
 
@@ -98,9 +97,9 @@ export default function MyAttendancePage() {
 
               <Popover.Portal>
 
-                <Popover.Content className="z-50 w-80 p-4 rounded-[2.5rem] shadow-premium-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 animate-in zoom-in-95 slide-in-from-top-4 origin-top" sideOffset={12} align="center">
+                <Popover.Content align="center" className="z-50 w-80 p-4 rounded-[2.5rem] shadow-premium-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 animate-in zoom-in-95 slide-in-from-top-4 origin-top" sideOffset={12}>
 
-                  <MonthYearPicker month={currentMonth.getMonth() + 1} year={currentMonth.getFullYear()} onChange={handleMonthYearChange} />
+                  <MonthYearPicker month={currentMonth.getMonth() + 1} onChange={handleMonthYearChange} year={currentMonth.getFullYear()} />
 
                 </Popover.Content>
 
@@ -110,7 +109,7 @@ export default function MyAttendancePage() {
 
 
 
-            <button onClick={handleNextMonth} className="w-12 h-12 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-md rounded-xl transition-all active:scale-90"><ChevronRight size={24} /></button>
+            <button className="w-12 h-12 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-md rounded-xl transition-all active:scale-90" onClick={handleNextMonth}><ChevronRight size={24} /></button>
 
           </div>
 
@@ -136,7 +135,7 @@ export default function MyAttendancePage() {
 
           <div className="py-40 text-center flex flex-col items-center border-4 border-dashed border-slate-50 dark:border-slate-800 m-8 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30">
 
-            <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-8"><Calendar size={40} className="text-slate-200 dark:text-slate-700" /></div>
+            <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-800 mb-8"><Calendar className="text-slate-200 dark:text-slate-700" size={40} /></div>
 
             <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{t("ess.attendance.no_data")}</h3>
 
@@ -171,11 +170,11 @@ export default function MyAttendancePage() {
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
 
                 {entries.map((entry) => {
-                  const dateStr = format(new Date(entry.punch_in_time), "yyyy-MM-dd");
-                  const summary = getSummary(dateStr);
+                  const dateString = format(new Date(entry.punch_in_time), "yyyy-MM-dd");
+                  const summary = getSummary(dateString);
                   
                   return (
-                  <tr key={entry.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group" key={entry.id}>
 
                     <td className="px-10 py-6">
 
@@ -240,8 +239,8 @@ export default function MyAttendancePage() {
                                 <span className="text-xs font-bold text-amber-600 dark:text-amber-300">{t("ess.attendance.system_ot_suffix", { minutes: summary.system_detected_ot_minutes })}</span>
                                 {summary.ot_status === "pending_employee" || (summary.ot_status === "none" && summary.system_detected_ot_minutes > 0) ? (
                                     <button 
-                                        onClick={() => { setSelectedSummary(summary); setClaimOpen(true); }}
                                         className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors"
+                                        onClick={() => { setSelectedSummary(summary); setClaimOpen(true); }}
                                     >
                                         {t("ess.attendance.claim_btn")}
                                     </button>
@@ -278,7 +277,7 @@ export default function MyAttendancePage() {
 
                             <Popover.Portal>
 
-                              <Popover.Content className="z-50 w-96 bg-slate-900 rounded-[2.5rem] shadow-premium-2xl border border-white/10 p-8 animate-in fade-in zoom-in-95 duration-500" side="left" align="center" sideOffset={16}>
+                              <Popover.Content align="center" className="z-50 w-96 bg-slate-900 rounded-[2.5rem] shadow-premium-2xl border border-white/10 p-8 animate-in fade-in zoom-in-95 duration-500" side="left" sideOffset={16}>
 
                                 <div className="space-y-6">
 
@@ -298,7 +297,7 @@ export default function MyAttendancePage() {
 
                                 </div>
 
-                                <Popover.Arrow className="fill-slate-900" width={20} height={10} />
+                                <Popover.Arrow className="fill-slate-900" height={10} width={20} />
 
                               </Popover.Content>
 
@@ -327,7 +326,7 @@ export default function MyAttendancePage() {
 
       </div>
       
-      <ClaimOtDialog open={claimOpen} onOpenChange={setClaimOpen} summary={selectedSummary} />
+      <ClaimOtDialog onOpenChange={setClaimOpen} open={claimOpen} summary={selectedSummary} />
     </div>
   );
 }

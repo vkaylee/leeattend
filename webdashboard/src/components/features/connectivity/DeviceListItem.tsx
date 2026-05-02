@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Cpu,
@@ -16,6 +14,7 @@ import {
   Activity,
   Clock
 } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -26,7 +25,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-
 import { useDeviceInfo, devicesKeys } from "@/hooks/use-devices";
 import { useTickingDeviceTime } from "@/hooks/useTickingDeviceTime";
 import { Device, DeviceInfo, DeviceStatus } from "@/lib/api";
@@ -37,13 +35,13 @@ import { cn } from "@/lib/utils";
 
 interface DeviceListItemProps {
   device: Device;
-  status?: DeviceStatus;
-  parentAgentActive?: boolean;
   isVisible?: boolean;
-  onUpdate: (id: string, data: Partial<Device>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onEdit?: (device: Device) => void;
   onRefresh?: (deviceId: string) => void;
+  onUpdate: (id: string, data: Partial<Device>) => Promise<void>;
+  parentAgentActive?: boolean;
+  status?: DeviceStatus;
 }
 
 function DeviceTimeTicker({ deviceTime, lastSync }: { deviceTime?: string; lastSync?: string }) {
@@ -95,7 +93,7 @@ export default function DeviceListItem({
         queryClient.invalidateQueries({ queryKey: devicesKeys.info(device.id) });
       }, 2000);
     } finally {
-      setTimeout(() => setIsRefreshing(false), 2000);
+      setTimeout(() => { setIsRefreshing(false); }, 2000);
     }
   }
 
@@ -127,13 +125,13 @@ export default function DeviceListItem({
 
   return (
     <div
-      data-testid={`device-item-${device.id}`}
       className={cn(
         "relative flex flex-col p-5 rounded-[1.5rem] transition-all group border-2",
         isDimmed
           ? "bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 opacity-60"
           : "bg-white dark:bg-slate-900 border-transparent hover:border-primary-100 dark:hover:border-primary-900 shadow-sm",
       )}
+      data-testid={`device-item-${device.id}`}
     >
       {/* 1. TOP BAR: Name, IP, Status & Menu */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-50 dark:border-slate-800/50">
@@ -144,7 +142,7 @@ export default function DeviceListItem({
               ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 border-emerald-100 dark:border-emerald-800"
               : "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700"
           )}>
-            <Cpu size={20} className={cn(status?.status === "online" && "animate-pulse")} />
+            <Cpu className={cn(status?.status === "online" && "animate-pulse")} size={20} />
           </div>
           <div className="min-w-0">
             <h3 className="font-black text-slate-700 dark:text-slate-200 text-sm uppercase tracking-tight truncate">
@@ -167,21 +165,21 @@ export default function DeviceListItem({
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button data-testid={`device-menu-${device.id}`} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+              <button className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" data-testid={`device-menu-${device.id}`}>
                 <MoreVertical size={16} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 p-2 rounded-xl shadow-2xl">
-              <DropdownMenuItem data-testid={`device-refresh-${device.id}`} className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" onSelect={handleRefresh} disabled={isRefreshing}>
-                <RefreshCw size={14} className={cn(isRefreshing && "animate-spin")} />
+              <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-refresh-${device.id}`} disabled={isRefreshing} onSelect={handleRefresh}>
+                <RefreshCw className={cn(isRefreshing && "animate-spin")} size={14} />
                 {isRefreshing ? t("common.loading") : t("common.refresh")}
               </DropdownMenuItem>
-              {onEdit && (
-                <DropdownMenuItem data-testid={`device-edit-${device.id}`} className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" onSelect={() => onEdit(device)}>
+              {!!onEdit && (
+                <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-edit-${device.id}`} onSelect={() => { onEdit(device); }}>
                   <Pencil size={14} /> {t("devices.table.edit")}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem data-testid={`device-delete-${device.id}`} className="gap-3 p-3 rounded-lg font-bold text-xs uppercase text-rose-600 focus:text-rose-600" onSelect={() => setShowDeleteModal(true)}>
+              <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase text-rose-600 focus:text-rose-600" data-testid={`device-delete-${device.id}`} onSelect={() => { setShowDeleteModal(true); }}>
                 <Trash2 size={14} /> {t("devices.table.delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -195,7 +193,7 @@ export default function DeviceListItem({
         <div className="flex flex-col gap-1 min-w-[80px]">
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.users_capacity")}</span>
           <div className="flex items-center gap-1.5">
-            <User size={12} className="text-slate-300" />
+            <User className="text-slate-300" size={12} />
             <span className="text-sm font-black text-slate-700 dark:text-slate-200">
               {displayInfo ? (
                 <>
@@ -213,7 +211,7 @@ export default function DeviceListItem({
         <div className="flex flex-col gap-1 min-w-[80px]">
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.logs_capacity")}</span>
           <div className="flex items-center gap-1.5">
-            <ClipboardList size={12} className="text-amber-400" />
+            <ClipboardList className="text-amber-400" size={12} />
             <span className="text-sm font-black text-amber-600">
               {displayInfo ? (
                 <>
@@ -234,7 +232,7 @@ export default function DeviceListItem({
         <div className="flex flex-col gap-1 min-w-[130px]">
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.serial")}</span>
           <div className="flex items-center gap-1.5">
-            <Terminal size={12} className="text-slate-300" />
+            <Terminal className="text-slate-300" size={12} />
             <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.serial || "N/A"}</span>
           </div>
         </div>
@@ -243,7 +241,7 @@ export default function DeviceListItem({
         <div className="flex flex-col gap-1 min-w-[130px]">
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.mac")}</span>
           <div className="flex items-center gap-1.5">
-            <Globe size={12} className="text-slate-300" />
+            <Globe className="text-slate-300" size={12} />
             <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.mac || "N/A"}</span>
           </div>
         </div>
@@ -270,36 +268,36 @@ export default function DeviceListItem({
           )}
         </div>
         <button
-          data-testid={`device-toggle-${device.id}`}
-          onClick={() => setShowToggleModal(true)}
-          disabled={isToggling}
           className={cn(
             "px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
             device.is_enabled
               ? "text-rose-500 border-rose-100 dark:border-rose-900/50 hover:bg-rose-500 hover:text-white"
               : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
           )}
+          data-testid={`device-toggle-${device.id}`}
+          disabled={isToggling}
+          onClick={() => { setShowToggleModal(true); }}
         >
           {device.is_enabled ? t("devices.info.disable_btn") : t("devices.info.enable_btn")}
         </button>
       </div>
 
       {/* Modals */}
-      <Modal isOpen={showToggleModal} onClose={() => setShowToggleModal(false)} title={t(device.is_enabled ? "devices.modal.disable_title" : "devices.modal.enable_title")} icon={<Power size={20} />} maxWidth="sm" testId={`toggle-modal-${device.id}`}>
+      <Modal icon={<Power size={20} />} isOpen={showToggleModal} maxWidth="sm" onClose={() => { setShowToggleModal(false); }} testId={`toggle-modal-${device.id}`} title={t(device.is_enabled ? "devices.modal.disable_title" : "devices.modal.enable_title")}>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">{t(device.is_enabled ? "devices.confirm_disable" : "devices.confirm_enable", { name: device.name })}</p>
         <div className="flex justify-end gap-3">
-          <button data-testid={`toggle-cancel-${device.id}`} onClick={() => setShowToggleModal(false)} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors">{t("common.cancel")}</button>
-          <button data-testid={`toggle-confirm-${device.id}`} onClick={handleToggleConfirm} className={cn("px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl transition-colors", device.is_enabled ? "bg-rose-600 text-white" : "bg-emerald-600 text-white")}>
+          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`toggle-cancel-${device.id}`} onClick={() => { setShowToggleModal(false); }}>{t("common.cancel")}</button>
+          <button className={cn("px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl transition-colors", device.is_enabled ? "bg-rose-600 text-white" : "bg-emerald-600 text-white")} data-testid={`toggle-confirm-${device.id}`} onClick={handleToggleConfirm}>
             {device.is_enabled ? t("common.disable") : t("common.enable")}
           </button>
         </div>
       </Modal>
 
-      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title={t("devices.modal.delete_title")} icon={<AlertTriangle size={20} />} maxWidth="sm" testId={`delete-modal-${device.id}`}>
+      <Modal icon={<AlertTriangle size={20} />} isOpen={showDeleteModal} maxWidth="sm" onClose={() => { setShowDeleteModal(false); }} testId={`delete-modal-${device.id}`} title={t("devices.modal.delete_title")}>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">{t("devices.toast.delete_confirm", { name: device.name })}</p>
         <div className="flex justify-end gap-3">
-          <button data-testid={`delete-cancel-${device.id}`} onClick={() => setShowDeleteModal(false)} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors">{t("common.cancel")}</button>
-          <button data-testid={`delete-confirm-${device.id}`} onClick={handleDeleteConfirm} className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-rose-600 text-white rounded-xl transition-colors">{t("devices.table.delete")}</button>
+          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`delete-cancel-${device.id}`} onClick={() => { setShowDeleteModal(false); }}>{t("common.cancel")}</button>
+          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-rose-600 text-white rounded-xl transition-colors" data-testid={`delete-confirm-${device.id}`} onClick={handleDeleteConfirm}>{t("devices.table.delete")}</button>
         </div>
       </Modal>
     </div>

@@ -1,12 +1,11 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api/payroll";
 
 import SalaryBaseGroupManager from "../SalaryBaseGroupManager";
@@ -117,9 +116,9 @@ describe("SalaryBaseGroupManager", () => {
     const siGroup = screen.getByRole("heading", { name: /Social Insurance/i }).closest('div.bg-white, div.dark\\:bg-slate-800\\/50');
     expect(siGroup).toBeInTheDocument();
     
-    const allowanceInSI = screen.getAllByTitle("Assign Component").find(btn => {
-      const container = btn.closest('div.flex.items-center.justify-between');
-      return siGroup?.contains(btn) && container?.textContent?.includes("Allowance");
+    const allowanceInSI = screen.getAllByTitle("Assign Component").find(button => {
+      const container = button.closest('div.flex.items-center.justify-between');
+      return siGroup?.contains(button) && container?.textContent?.includes("Allowance");
     });
     expect(allowanceInSI).toBeDefined();
     
@@ -147,9 +146,9 @@ describe("SalaryBaseGroupManager", () => {
     // In Social Insurance (base-2), Basic Salary (comp-1) IS assigned.
     const siGroup = screen.getByRole("heading", { name: /Social Insurance/i }).closest('div.bg-white, div.dark\\:bg-slate-800\\/50');
     
-    const basicInSI = screen.getAllByTitle("Unassign Component").find(btn => {
-      const container = btn.closest('div.flex.items-center.justify-between');
-      return siGroup?.contains(btn) && container?.textContent?.includes("Basic Salary");
+    const basicInSI = screen.getAllByTitle("Unassign Component").find(button => {
+      const container = button.closest('div.flex.items-center.justify-between');
+      return siGroup?.contains(button) && container?.textContent?.includes("Basic Salary");
     });
     expect(basicInSI).toBeDefined();
     

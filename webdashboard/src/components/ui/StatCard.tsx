@@ -1,27 +1,27 @@
+import type { LucideIcon } from "lucide-react";
+
 import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
 
-import type { LucideIcon } from "lucide-react";
-
 // ── Component ──────────────────────────────────────────────────────
 
 export interface StatCardProps {
-  /** i18n-translated label displayed above the value */
-  label: string;
-  /** Numeric or string value to display */
-  value: string | number;
-  /** Lucide icon component */
-  icon: LucideIcon;
+  className?: string;
   /** Tailwind color classes for the icon container (bg + text + border) */
   colorClasses: string;
-  /** Display value with monospace font */
-  mono?: boolean;
+  /** Lucide icon component */
+  icon: LucideIcon;
   /** Whether the card is in loading state */
   isLoading?: boolean;
+  /** i18n-translated label displayed above the value */
+  label: string;
+  /** Display value with monospace font */
+  mono?: boolean;
   /** Size variant — 'sm' for KPI grids (6-col), 'lg' for summary rows */
   size?: "sm" | "lg";
-  className?: string;
+  /** Numeric or string value to display */
+  value: string | number;
 }
 
 const StatCard = memo(function StatCard({

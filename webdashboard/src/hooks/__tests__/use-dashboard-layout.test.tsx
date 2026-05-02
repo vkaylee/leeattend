@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as api from "@/lib/api";
@@ -57,7 +58,7 @@ describe("useDashboardLayout hook", () => {
             wrapper: createWrapper(),
         });
 
-        await waitFor(() => expect(result.current.isLoading).toBe(false));
+        await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
         expect(api.apiFetch).toHaveBeenCalledWith("/dashboard/preferences");
         expect(result.current.activeView).toBe("attendance");
@@ -76,7 +77,7 @@ describe("useDashboardLayout hook", () => {
             wrapper: createWrapper(),
         });
 
-        await waitFor(() => expect(result.current.isLoading).toBe(false));
+        await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
         expect(result.current.activeView).toBe("overview");
         expect(result.current.visibleWidgets.kpi_cards).toBe(true);
@@ -95,18 +96,18 @@ describe("useDashboardLayout hook", () => {
             wrapper: createWrapper(),
         });
 
-        await waitFor(() => expect(result.current.isLoading).toBe(false));
+        await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
         result.current.setActiveView("trends");
 
-        await waitFor(() => expect(api.apiFetch).toHaveBeenCalledTimes(2));
+        await waitFor(() => { expect(api.apiFetch).toHaveBeenCalledTimes(2); });
 
  
-        const putCallArgs = vi.mocked(api.apiFetch).mock.calls[1];
-        expect(putCallArgs[0]).toBe("/dashboard/preferences");
-        expect(putCallArgs[1]!.method).toBe("PUT");
+        const putCallArguments = vi.mocked(api.apiFetch).mock.calls[1];
+        expect(putCallArguments[0]).toBe("/dashboard/preferences");
+        expect(putCallArguments[1]!.method).toBe("PUT");
 
-        const body = JSON.parse(putCallArgs[1]!.body as string);
+        const body = JSON.parse(putCallArguments[1]!.body as string);
         expect(body.active_view).toBe("trends");
         // Ensure trends preset config is passed
         expect(body.visible_widgets.overtime_trend).toBe(true);
@@ -124,18 +125,18 @@ describe("useDashboardLayout hook", () => {
             wrapper: createWrapper(),
         });
 
-        await waitFor(() => expect(result.current.isLoading).toBe(false));
+        await waitFor(() => { expect(result.current.isLoading).toBe(false); });
 
         // In mockPreferences, summary is true
         expect(result.current.collapsedSections.summary).toBe(true);
 
         result.current.toggleSection("summary");
 
-        await waitFor(() => expect(api.apiFetch).toHaveBeenCalledTimes(2));
+        await waitFor(() => { expect(api.apiFetch).toHaveBeenCalledTimes(2); });
 
  
-        const putCallArgs = vi.mocked(api.apiFetch).mock.calls[1];
-        const body = JSON.parse(putCallArgs[1]!.body as string);
+        const putCallArguments = vi.mocked(api.apiFetch).mock.calls[1];
+        const body = JSON.parse(putCallArguments[1]!.body as string);
         expect(body.collapsed_sections.summary).toBe(false);
     });
 });

@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -76,29 +76,29 @@ describe("WorkspaceDangerPage", () => {
 
   it("requires exact workspace name to clear data", async () => {
     const user = userEvent.setup();
-    vi.mocked(apiWorkspaces.clearWorkspaceData).mockResolvedValue(undefined as unknown as void);
+    vi.mocked(apiWorkspaces.clearWorkspaceData).mockResolvedValue(undefined);
 
     renderWithProviders(<WorkspaceDangerPage />);
 
-    const clearDataBtn = await screen.findByText("danger.clearAllData");
-    await user.click(clearDataBtn);
+    const clearDataButton = await screen.findByText("danger.clearAllData");
+    await user.click(clearDataButton);
 
     const modalTitles = await screen.findAllByText("danger.modalTitle");
     expect(modalTitles.length).toBeGreaterThan(0);
 
     // The confirm button inside the modal
-    const confirmBtn = screen.getByRole('button', { name: "danger.permanentlyDelete" });
-    expect(confirmBtn).toBeDisabled();
+    const confirmButton = screen.getByRole('button', { name: "danger.permanentlyDelete" });
+    expect(confirmButton).toBeDisabled();
 
     const input = screen.getByPlaceholderText("Test Workspace");
     await user.type(input, "Wrong Name");
-    expect(confirmBtn).toBeDisabled();
+    expect(confirmButton).toBeDisabled();
 
     await user.clear(input);
     await user.type(input, "Test Workspace");
-    expect(confirmBtn).not.toBeDisabled();
+    expect(confirmButton).not.toBeDisabled();
 
-    await user.click(confirmBtn);
+    await user.click(confirmButton);
 
     expect(apiWorkspaces.clearWorkspaceData).toHaveBeenCalledWith("test-ws-id", "all");
   });

@@ -1,7 +1,4 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { 
   Plus, 
   Wallet, 
@@ -12,12 +9,13 @@ import {
   History,
   ArrowUpRight
 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { format } from "date-fns";
 
 import { Combobox } from "@/components/ui/Combobox";
 import { useToast } from "@/components/ui/Toast";
-
-
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { 
   fetchSalaryComponents, 
@@ -32,8 +30,8 @@ import { cn } from "@/lib/utils";
 import TemporalConfigTable from "../common/TemporalConfigTable";
 
 interface Props {
-  wsId: string;
   employeeId: string;
+  wsId: string;
 }
 
 export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
@@ -52,14 +50,14 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
   const { data: employeeComps = [], isLoading } = useQuery({ queryKey: ["employee-salary-components", employeeId], queryFn: () => fetchEmployeeSalaryComponents(wsId, employeeId) });
   const { data: individualConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: ["employee-payroll-configs", employeeId], queryFn: () => fetchEmployeePayrollConfigs(wsId, employeeId) });
 
-  const groupedComps = employeeComps.reduce((acc, comp) => {
-    const key = comp.component_definition_id; if (!acc[key]) acc[key] = [];
-    acc[key].push(comp); return acc;
-  }, {} as Record<string, EmployeeSalaryComponent[]>);
+  const groupedComps = employeeComps.reduce<Record<string, EmployeeSalaryComponent[]>>((accumulator, comp) => {
+    const key = comp.component_definition_id; if (!accumulator[key]) accumulator[key] = [];
+    accumulator[key].push(comp); return accumulator;
+  }, {});
 
   Object.keys(groupedComps).forEach(key => { groupedComps[key].sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()); });
 
-  const toggleGroup = (id: string) => { setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] })); };
+  const toggleGroup = (id: string) => { setExpandedGroups(previous => ({ ...previous, [id]: !previous[id] })); };
 
   const saveIndividualConfigMutation = useMutation({
     mutationFn: (data: { std_working_days: number; hours_per_day: number; effective_date: string }) => setEmployeePayrollConfig(wsId, employeeId, data),
@@ -85,33 +83,33 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
           <div className="w-10 h-10 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Wallet size={20} /></div>
           <div><h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight">{t("payroll.employee_config.title")}</h3><p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">{t("payroll.employee_config.salary_items_subtitle")}</p></div>
         </div>
-        <button onClick={() => setIsAdding(!isAdding)} className={cn("flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", isAdding ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700' : 'bg-primary-600 text-white shadow-lg shadow-primary-100 active:scale-95')}>
+        <button className={cn("flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", isAdding ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700' : 'bg-primary-600 text-white shadow-lg shadow-primary-100 active:scale-95')} onClick={() => { setIsAdding(!isAdding); }}>
           {isAdding ? t("common.cancel") : <><Plus size={14} /> {t("payroll.employee_config.add_btn")}</>}
         </button>
       </div>
 
-      {isAdding && (
-        <form onSubmit={handleAssign} className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
+      {!!isAdding && (
+        <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500" onSubmit={handleAssign}>
           <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
             <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><ArrowUpRight size={16} /></div>
             <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">{t("payroll.employee_config.add_new_title")}</h4>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3">
-              <label htmlFor="salary-comp-select" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.employee_config.item_type")}</label>
-              <Combobox id="salary-comp-select" options={definitions.map(d => ({ value: d.id, label: d.name, description: d.code }))} value={selectedCompId} onChange={setSelectedCompId} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="salary-comp-select">{t("payroll.employee_config.item_type")}</label>
+              <Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" id="salary-comp-select" onChange={setSelectedCompId} options={definitions.map(d => ({ value: d.id, label: d.name, description: d.code }))} value={selectedCompId} />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.amount")} ({t("common.currency")})</label>
-              <input required type="number" placeholder="1,000" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" value={amount} onChange={e => setAmount(e.target.value)} />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" onChange={e => { setAmount(e.target.value); }} placeholder="1,000" required type="number" value={amount} />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.effective_date")}</label>
-              <input required type="date" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm" value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)} />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm" onChange={e => { setEffectiveDate(e.target.value); }} required type="date" value={effectiveDate} />
             </div>
           </div>
           <div className="mt-10 flex justify-end">
-            <button type="submit" disabled={assignMutation.isPending} className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50">{assignMutation.isPending ? t("common.saving").toUpperCase() : t("common.save")}</button>
+            <button className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={assignMutation.isPending} type="submit">{assignMutation.isPending ? t("common.saving").toUpperCase() : t("common.save")}</button>
           </div>
         </form>
       )}
@@ -129,9 +127,9 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {isLoading ? (
-              <tr><td colSpan={5} className="px-8 py-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.loading")}</td></tr>
+              <tr><td className="px-8 py-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={5}>{t("common.loading")}</td></tr>
             ) : Object.keys(groupedComps).length === 0 ? (
-              <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("payroll.employee_config.no_config")}</td></tr>
+              <tr><td className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={5}>{t("payroll.employee_config.no_config")}</td></tr>
             ) : (
               Object.entries(groupedComps).map(([defId, comps]) => {
                 const latest = comps[0]; const hasHistory = comps.length > 1; const isExpanded = expandedGroups[defId];
@@ -141,7 +139,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-4">
                           {hasHistory ? (
-                            <button onClick={() => toggleGroup(defId)} className={cn("p-1.5 rounded-lg transition-all border shadow-sm", isExpanded ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800 rotate-90" : "bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 hover:text-slate-500 dark:text-slate-400")}><ChevronRight size={14} /></button>
+                            <button className={cn("p-1.5 rounded-lg transition-all border shadow-sm", isExpanded ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800 rotate-90" : "bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800 hover:text-slate-500 dark:text-slate-400")} onClick={() => { toggleGroup(defId); }}><ChevronRight size={14} /></button>
                           ) : <div className="w-8" />}
                           <div>
                             <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{latest.name}</div>
@@ -165,8 +163,8 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
                         <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                       </td>
                     </tr>
-                    {isExpanded && comps.slice(1).map((comp) => (
-                      <tr key={comp.id} className="bg-slate-50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 animate-in slide-in-from-top-2 duration-300">
+                    {!!isExpanded && comps.slice(1).map((comp) => (
+                      <tr className="bg-slate-50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 animate-in slide-in-from-top-2 duration-300" key={comp.id}>
                         <td className="px-8 py-4 pl-20 relative">
                           <div className="absolute left-12 top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-600" />
                           <div className="flex items-center gap-3">
@@ -199,7 +197,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
       </div>
 
       <div className="pt-10 border-t border-slate-100 dark:border-slate-800">
-        <TemporalConfigTable title={t("payroll.settings.std_days_override")} records={individualConfigs} isLoading={isConfigsLoading} onSave={async (data) => { await saveIndividualConfigMutation.mutateAsync(data); }} />
+        <TemporalConfigTable isLoading={isConfigsLoading} onSave={async (data) => { await saveIndividualConfigMutation.mutateAsync(data); }} records={individualConfigs} title={t("payroll.settings.std_days_override")} />
       </div>
     </div>
   );

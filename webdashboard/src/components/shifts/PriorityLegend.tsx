@@ -1,6 +1,5 @@
-import React from 'react';
-
 import { Layers } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { HierarchyLegend } from '../common/HierarchyLegend';
@@ -19,10 +18,10 @@ export const PriorityLegend: React.FC = () => {
 
   return (
     <HierarchyLegend
+      explanation={t("shifts.traceability.hierarchy_explanation", "Rules are evaluated from top to bottom. Higher nodes override lower nodes.")}
+      icon={<Layers size={14} />}
       steps={priorities}
       title={t("shifts.traceability.priority_hierarchy")}
-      icon={<Layers size={14} />}
-      explanation={t("shifts.traceability.hierarchy_explanation", "Rules are evaluated from top to bottom. Higher nodes override lower nodes.")}
     />
   );
 };

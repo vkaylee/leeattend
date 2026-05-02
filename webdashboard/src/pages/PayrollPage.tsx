@@ -1,11 +1,10 @@
-import React, { useState, useMemo, useEffect } from "react";
-
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { 
   Calculator, 
   ArrowLeft, 
   ArrowRight
 } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
@@ -22,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import _Modal from "@/components/ui/Modal";
-
 import { cn } from "@/lib/utils";
 
 import { useToast } from "../components/ui/Toast";
@@ -55,7 +53,7 @@ export default function PayrollPage() {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); };
   }, [searchTerm]);
   
   const [calcYear, setCalcYear] = useState(() => {
@@ -94,10 +92,7 @@ export default function PayrollPage() {
     placeholderData: keepPreviousData,
   });
 
-  // Handle both paginated and direct array responses for backwards compatibility
-  const workspacePayslips = Array.isArray(workspacePayslipsData)
-    ? workspacePayslipsData
-    : workspacePayslipsData?.data ?? [];
+  const workspacePayslips = workspacePayslipsData;
  
 
   const { data: employeePayslips = [], isLoading: employeePayslipsLoading } = useQuery({
@@ -176,13 +171,13 @@ export default function PayrollPage() {
       {/* Header with Stats and Actions */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div>
-          <h1 data-testid="payroll-title" className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200">{t("payroll.title")}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200" data-testid="payroll-title">{t("payroll.title")}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("payroll.subtitle")}</p>
         </div>
 
         <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm">
            <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
-              <button onClick={() => changeMonth(-1)} className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all"><ArrowLeft size={18} /></button>
+              <button className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" onClick={() => { changeMonth(-1); }}><ArrowLeft size={18} /></button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -193,29 +188,29 @@ export default function PayrollPage() {
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-80 p-4 rounded-[2rem] shadow-2xl border-slate-100 dark:border-slate-800" align="center" sideOffset={8}>
+                <DropdownMenuContent align="center" className="w-80 p-4 rounded-[2rem] shadow-2xl border-slate-100 dark:border-slate-800" sideOffset={8}>
                     <DropdownMenuLabel className="text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">{t("common.select_month", { defaultValue: "SELECT PAY PERIOD" })}</DropdownMenuLabel>
-                    <MonthYearPicker month={calcMonth} year={calcYear} onChange={(m, y) => { setCalcMonth(m); setCalcYear(y); }} />
+                    <MonthYearPicker month={calcMonth} onChange={(m, y) => { setCalcMonth(m); setCalcYear(y); }} year={calcYear} />
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <button onClick={() => changeMonth(1)} className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all"><ArrowRight size={18} /></button>
+              <button className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-slate-900 hover:shadow-sm rounded-xl transition-all" onClick={() => { changeMonth(1); }}><ArrowRight size={18} /></button>
            </div>
 
            <div className="h-10 w-px bg-slate-100 dark:bg-slate-700" />
 
            <button 
-            data-testid="calculate-batch-btn"
-            onClick={() => {
-              setIsBatchCalcModalOpen(true);
-            }}
-            disabled={selectedIds.size === 0}
             className={cn(
               "flex items-center gap-3 px-8 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95",
               selectedIds.size > 0 
                 ? "bg-primary-600 text-white shadow-primary-100 hover:bg-primary-700" 
                 : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shadow-none cursor-not-allowed"
             )}
+            data-testid="calculate-batch-btn"
+            disabled={selectedIds.size === 0}
+            onClick={() => {
+              setIsBatchCalcModalOpen(true);
+            }}
            >
              <Calculator size={18} />
              {t("payroll.calculate_btn")} {selectedIds.size > 0 && <span className="ml-1 bg-white dark:bg-slate-900/20 px-2 py-0.5 rounded-lg text-white">{selectedIds.size}</span>}
@@ -227,47 +222,47 @@ export default function PayrollPage() {
       <div className="flex-1 min-h-0">
         <PayrollSummaryTable 
           employees={employees}
-          payslips={workspacePayslips}
           isLoading={empsLoading || workspacePayslipsLoading}
-          selectedIds={selectedIds}
+          onSearchChange={setSearchTerm}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAll}
           onViewDetail={handleViewDetail}
+          payslips={workspacePayslips}
           searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
+          selectedIds={selectedIds}
         />
       </div>
 
       {/* Detail Drawer */}
       <PayrollDetailDrawer 
-        isOpen={isDetailDrawerOpen}
-        onClose={() => setIsDetailDrawerOpen(false)}
-        employee={selectedEmployee}
-        workspaceId={wsId}
-        payslips={employeePayslips}
-        isLoadingPayslips={employeePayslipsLoading}
         adjustments={employeeAdjustments}
-        onResolveAdjustments={() => setIsAdjustmentDrawerOpen(true)}
+        employee={selectedEmployee}
+        isLoadingPayslips={employeePayslipsLoading}
+        isOpen={isDetailDrawerOpen}
+        onClose={() => { setIsDetailDrawerOpen(false); }}
+        onResolveAdjustments={() => { setIsAdjustmentDrawerOpen(true); }}
+        payslips={employeePayslips}
+        workspaceId={wsId}
       />
 
       {/* Adjustment Drawer */}
-      {selectedEmployee && (
+      {!!selectedEmployee && (
         <AdjustmentDrawer
-          isOpen={isAdjustmentDrawerOpen}
-          onClose={() => setIsAdjustmentDrawerOpen(false)}
           employeeId={selectedEmployee.id}
           employeeName={selectedEmployee.full_name}
+          isOpen={isAdjustmentDrawerOpen}
           onAdjustmentResolved={handleAdjustmentResolved}
+          onClose={() => { setIsAdjustmentDrawerOpen(false); }}
         />
       )}
 
       {/* Batch Calculate Modal */}
       <BatchCalculationModal
-        isOpen={isBatchCalcModalOpen}
-        onClose={() => setIsBatchCalcModalOpen(false)}
-        workspaceId={wsId}
         employeeIds={Array.from(selectedIds)}
         employeeNames={employeeNames}
+        isOpen={isBatchCalcModalOpen}
+        onClose={() => { setIsBatchCalcModalOpen(false); }}
+        workspaceId={wsId}
       />
     </div>
   );

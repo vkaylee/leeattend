@@ -1,4 +1,5 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { useVersionCheck } from "../use-version-check";
@@ -25,7 +26,7 @@ describe("useVersionCheck", () => {
 
     const { result } = renderHook(() => useVersionCheck());
 
-    await waitFor(() => expect(result.current.hasNewVersion).toBe(false));
+    await waitFor(() => { expect(result.current.hasNewVersion).toBe(false); });
   });
 
   it("sets hasNewVersion=true when build version differs", async () => {
@@ -39,7 +40,7 @@ describe("useVersionCheck", () => {
 
     const { result } = renderHook(() => useVersionCheck());
 
-    await waitFor(() => expect(result.current.hasNewVersion).toBe(true));
+    await waitFor(() => { expect(result.current.hasNewVersion).toBe(true); });
   });
 
   it("calls dismiss to reset hasNewVersion to false", async () => {
@@ -53,16 +54,16 @@ describe("useVersionCheck", () => {
 
     const { result } = renderHook(() => useVersionCheck());
 
-    await waitFor(() => expect(result.current.hasNewVersion).toBe(true));
+    await waitFor(() => { expect(result.current.hasNewVersion).toBe(true); });
 
-    act(() => result.current.dismiss());
+    act(() => { result.current.dismiss(); });
     expect(result.current.hasNewVersion).toBe(false);
   });
 
   it("fetches with cache-busting query param", async () => {
  
-    const fetchFn = vi.mocked(globalThis.fetch);
-    fetchFn.mockResolvedValue({
+    const fetchFunction = vi.mocked(globalThis.fetch);
+    fetchFunction.mockResolvedValue({
       text: () =>
         Promise.resolve(
           '<html><head><meta name="build-version" content="abc123" /></head></html>',
@@ -72,17 +73,17 @@ describe("useVersionCheck", () => {
     renderHook(() => useVersionCheck());
 
     await waitFor(() => {
-      expect(fetchFn.mock.calls.length).toBeGreaterThan(0);
+      expect(fetchFunction.mock.calls.length).toBeGreaterThan(0);
     });
 
-    const url = fetchFn.mock.calls[0][0];
+    const url = fetchFunction.mock.calls[0][0];
     expect(url).toMatch(/\/\?_v=\d+/);
   });
 
   it("sends no-cache header", async () => {
  
-    const fetchFn = vi.mocked(globalThis.fetch);
-    fetchFn.mockResolvedValue({
+    const fetchFunction = vi.mocked(globalThis.fetch);
+    fetchFunction.mockResolvedValue({
       text: () =>
         Promise.resolve(
           '<html><head><meta name="build-version" content="abc123" /></head></html>',
@@ -92,10 +93,10 @@ describe("useVersionCheck", () => {
     renderHook(() => useVersionCheck());
 
     await waitFor(() => {
-      expect(fetchFn.mock.calls.length).toBeGreaterThan(0);
+      expect(fetchFunction.mock.calls.length).toBeGreaterThan(0);
     });
 
-    const options = fetchFn.mock.calls[0][1] as RequestInit;
+    const options = fetchFunction.mock.calls[0][1]!;
     expect(options.headers).toMatchObject({ "Cache-Control": "no-cache" });
   });
 
@@ -105,6 +106,6 @@ describe("useVersionCheck", () => {
 
     const { result } = renderHook(() => useVersionCheck());
 
-    await waitFor(() => expect(result.current.hasNewVersion).toBe(false));
+    await waitFor(() => { expect(result.current.hasNewVersion).toBe(false); });
   });
 });

@@ -1,12 +1,10 @@
-import { useState } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { X, TrendingUp, Calendar, Award, ArrowUpRight, ArrowDownRight, History as HistoryIcon, Clock } from "lucide-react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
-
 import { WorkspaceLeaveBalance, fetchLeaveHistory, getCurrentWorkspaceId, LeaveHistoryItem } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +41,6 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
       <div 
         className="absolute inset-0 bg-slate-900/20 backdrop-blur-md"
         onClick={onClose}
-        role="presentation"
         onKeyDown={(e) => {
           if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
  
@@ -51,6 +48,7 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
             onClose();
           }
         }}
+        role="presentation"
       />
 
       {/* Modal Content */}
@@ -74,9 +72,9 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
               </div>
             </div>
             <button
-              onClick={onClose}
-              className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-90 flex-shrink-0 min-w-[44px] min-h-[44px]"
               aria-label={t("common.close")}
+              className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-90 flex-shrink-0 min-w-[44px] min-h-[44px]"
+              onClick={onClose}
             >
               <X size={24} />
             </button>
@@ -184,7 +182,7 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
               </h3>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs onValueChange={setActiveTab} value={activeTab}>
               <TabsList className="bg-slate-50 dark:bg-slate-800 p-1 rounded-xl">
                 <TabsTrigger value="all">{t("leave_balances.detail.tabs.all", "Tất cả")}</TabsTrigger>
                 <TabsTrigger value="accrual">{t("leave_balances.detail.tabs.accruals", "Tích lũy")}</TabsTrigger>
@@ -192,13 +190,13 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
               </TabsList>
 
               <TabsContent value="all">
-                <HistoryList items={history} isLoading={isLoading} />
+                <HistoryList isLoading={isLoading} items={history} />
               </TabsContent>
               <TabsContent value="accrual">
-                <HistoryList items={accruals} isLoading={isLoading} />
+                <HistoryList isLoading={isLoading} items={accruals} />
               </TabsContent>
               <TabsContent value="usage">
-                <HistoryList items={usage} isLoading={isLoading} />
+                <HistoryList isLoading={isLoading} items={usage} />
               </TabsContent>
             </Tabs>
           </div>
@@ -215,8 +213,8 @@ function HistoryList({ items, isLoading }: { items: LeaveHistoryItem[], isLoadin
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-20 bg-slate-50 dark:bg-slate-800 animate-pulse rounded-2xl" />
+        {[1, 2, 3].map(index => (
+          <div className="h-20 bg-slate-50 dark:bg-slate-800 animate-pulse rounded-2xl" key={index} />
         ))}
       </div>
     );
@@ -236,7 +234,7 @@ function HistoryList({ items, isLoading }: { items: LeaveHistoryItem[], isLoadin
   return (
     <div className="space-y-3">
       {items.map((item) => (
-        <HistoryItemRow key={item.id} item={item} />
+        <HistoryItemRow item={item} key={item.id} />
       ))}
     </div>
   );

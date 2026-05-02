@@ -1,12 +1,10 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Coins, ShieldCheck, Percent, Trash2 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-
 import { fetchSalaryComponents, createSalaryComponent } from "@/lib/api/payroll";
 import { SalaryComponentDefinition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -41,7 +39,7 @@ export default function SalaryComponentManager({ wsId }: Props) {
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("payroll.components.subtitle")}</p>
           </div>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Plus size={18} /> {t("common.add").toUpperCase()}</button>
+        <button className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={() => { setIsModalOpen(true); }}><Plus size={18} /> {t("common.add").toUpperCase()}</button>
       </div>
 
       <div className="divide-y divide-slate-50 dark:divide-slate-800 px-2">
@@ -49,12 +47,12 @@ export default function SalaryComponentManager({ wsId }: Props) {
           <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
         ) : components?.length === 0 ? (
           <div className="p-32 text-center bg-slate-50 dark:bg-slate-800/30 m-8 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center">
-            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><Coins size={32} className="text-slate-200 dark:text-slate-700" /></div>
+            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><Coins className="text-slate-200 dark:text-slate-700" size={32} /></div>
             <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("payroll.components.no_components")}</p>
           </div>
         ) : (
           components?.map((comp) => (
-            <div key={comp.id} className="p-8 px-10 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group relative rounded-3xl m-2">
+            <div className="p-8 px-10 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group relative rounded-3xl m-2" key={comp.id}>
               <div className="flex items-center gap-6">
                 <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-inner group-hover:bg-white dark:hover:bg-slate-900 group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 group-hover:shadow-md transition-all uppercase">{comp.code.slice(0, 2)}</div>
                 <div>
@@ -77,16 +75,16 @@ export default function SalaryComponentManager({ wsId }: Props) {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t("payroll.components.add_new")} subtitle={t("payroll.components.form_subtitle")} icon={<Coins size={24} />} maxWidth="lg">
-        <form onSubmit={handleSubmit} className="space-y-10 pt-4 animate-in fade-in duration-500">
+      <Modal icon={<Coins size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle={t("payroll.components.form_subtitle")} title={t("payroll.components.add_new")}>
+        <form className="space-y-10 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
-              <label htmlFor="comp-name" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.name")}</label>
-              <input id="comp-name" required type="text" placeholder={t("payroll.components.name_placeholder")} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="comp-name">{t("common.name")}</label>
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="comp-name" onChange={e => { setFormData({...formData, name: e.target.value}); }} placeholder={t("payroll.components.name_placeholder")} required type="text" value={formData.name} />
             </div>
             <div className="space-y-3 px-1">
-              <label htmlFor="comp-code" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.components.code_label")}</label>
-              <input id="comp-code" required type="text" placeholder="MEAL" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})} />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="comp-code">{t("payroll.components.code_label")}</label>
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="comp-code" onChange={e => { setFormData({...formData, code: e.target.value.toUpperCase()}); }} placeholder="MEAL" required type="text" value={formData.code} />
             </div>
           </div>
 
@@ -98,13 +96,13 @@ export default function SalaryComponentManager({ wsId }: Props) {
  
               <React.Fragment key={field.key}>
                 {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- Dynamic data shape from form state; strict typing would add boilerplate without safety gain */}
-                <label htmlFor={`comp-${field.key}`} className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
+                <label className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
  
                   (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
-                )}>
-                  <input id={`comp-${field.key}`} type="checkbox" className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" checked={!!(formData as Record<string, boolean>)[field.key]} onChange={e => setFormData({...formData, [field.key]: e.target.checked})} />
+                )} htmlFor={`comp-${field.key}`}>
+                  <input checked={!!(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`comp-${field.key}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
                   <div>
-                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon size={14} className="opacity-50" /> {t(`payroll.components.${field.label}`)}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon className="opacity-50" size={14} /> {t(`payroll.components.${field.label}`)}</p>
                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{t(`payroll.components.${field.desc}`)}</p>
                   </div>
                 </label>
@@ -113,8 +111,8 @@ export default function SalaryComponentManager({ wsId }: Props) {
           </div>
 
           <div className="flex gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("common.cancel").toUpperCase()}</button>
-            <button type="submit" disabled={createMutation.isPending} className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
+            <button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={() => { setIsModalOpen(false); }} type="button">{t("common.cancel").toUpperCase()}</button>
+            <button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={createMutation.isPending} type="submit">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
           </div>
         </form>
       </Modal>

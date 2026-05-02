@@ -1,5 +1,3 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Sparkles, 
@@ -12,10 +10,10 @@ import {
   Target,
   Clock
 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/Toast";
-
 import { fetchIncentivePolicies, createIncentivePolicy, deleteIncentivePolicy } from "@/lib/api/payroll";
 import { cn } from "@/lib/utils";
 
@@ -24,13 +22,13 @@ interface BonusPolicyManagerProps {
 }
 
 interface TierInput {
-  priority: number;
-  max_total_leave_days: string | number | null;
-  max_late_early_count: string | number | null;
-  max_unpaid_leave_days: string | number | null;
-  max_sick_leave_days: string | number | null;
-  payout_amount: string | number;
   [key: string]: string | number | null;
+  max_late_early_count: string | number | null;
+  max_sick_leave_days: string | number | null;
+  max_total_leave_days: string | number | null;
+  max_unpaid_leave_days: string | number | null;
+  payout_amount: string | number;
+  priority: number;
 }
 
 export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
@@ -86,18 +84,18 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
     }]);
   };
 
-  const handleRemoveTier = (idx: number) => {
-    setTiers(tiers.filter((_, i) => i !== idx));
+  const handleRemoveTier = (index: number) => {
+    setTiers(tiers.filter((_, index_) => index_ !== index));
   };
 
-  const updateTier = (idx: number, field: string, val: string | number | null) => {
+  const updateTier = (index: number, field: string, value: string | number | null) => {
     const next = [...tiers];
-    next[idx][field] = val === "" ? null : val;
+    next[index][field] = value === "" ? null : value;
     setTiers(next);
   };
 
   const handleSave = () => {
-    if (!name) return toast.error(t("payroll.incentives.name_required"));
+    if (!name) { toast.error(t("payroll.incentives.name_required")); return; }
     createMutation.mutate({
       name,
       base_amount: baseAmount,
@@ -124,36 +122,36 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 uppercase tracking-widest text-[10px] opacity-70">Manage Diligence, Performance and Safety bonuses</p>
         </div>
         <button 
-          onClick={() => setIsCreating(!isCreating)}
           className={cn(
             "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95",
             isCreating ? "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400" : "bg-primary-600 text-white hover:bg-primary-700"
           )}
+          onClick={() => { setIsCreating(!isCreating); }}
         >
           {isCreating ? t("common.cancel") : <><Plus size={16} /> {t("payroll.incentives.add_btn", { defaultValue: "NEW POLICY" })}</>}
         </button>
       </div>
 
-      {isCreating && (
+      {!!isCreating && (
         <div className="bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] p-10 border border-slate-200 dark:border-slate-700 shadow-inner animate-in slide-in-from-top-4 duration-500 space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.incentives.policy_name")}</label>
               <input 
-                type="text" 
-                value={name} 
-                onChange={e => setName(e.target.value)}
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm" 
+                onChange={e => { setName(e.target.value); }} 
                 placeholder="e.g. Diligence Bonus"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm"
+                type="text"
+                value={name}
               />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.incentives.base_amount")}</label>
               <input 
-                type="number" 
-                value={baseAmount} 
-                onChange={e => setBaseAmount(parseFloat(e.target.value))}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm font-mono"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm font-mono" 
+                onChange={e => { setBaseAmount(parseFloat(e.target.value)); }} 
+                type="number"
+                value={baseAmount}
               />
             </div>
           </div>
@@ -161,18 +159,18 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
           <div className="space-y-6">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("payroll.incentives.tiers_config", { defaultValue: "EVALUATION TIERS" })}</h3>
-              <button onClick={handleAddTier} className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 font-bold text-[10px] uppercase tracking-widest flex items-center gap-1.5"><Plus size={14} /> {t("common.add")}</button>
+              <button className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 font-bold text-[10px] uppercase tracking-widest flex items-center gap-1.5" onClick={handleAddTier}><Plus size={14} /> {t("common.add")}</button>
             </div>
 
             <div className="space-y-4">
-              {tiers.map((tier, idx) => (
-                <div key={idx} className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-stretch gap-8 group relative">
+              {tiers.map((tier, index) => (
+                <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-stretch gap-8 group relative" key={index}>
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-500 dark:text-slate-400 text-xs shadow-inner">#{idx + 1}</div>
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-500 dark:text-slate-400 text-xs shadow-inner">#{index + 1}</div>
                     <button 
  
-                      onClick={() => handleRemoveTier(idx)}
                       className="w-10 h-10 rounded-xl text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:bg-rose-950 transition-all flex items-center justify-center"
+                      onClick={() => { handleRemoveTier(index); }}
                     >
                       <Trash2 size={18} />
                     </button>
@@ -180,61 +178,61 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                     <div className="space-y-2">
-                      <label htmlFor={`late-${idx}`} className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Clock size={10} /> Max Late/Early</label>
+                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`late-${index}`}><Clock size={10} /> Max Late/Early</label>
                       { }
                       <input 
-                        id={`late-${idx}`}
-                        type="number" 
-                        value={tier.max_late_early_count || ""} 
-                        onChange={e => updateTier(idx, "max_late_early_count", e.target.value)}
-                        placeholder="Any"
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs"
+                        id={`late-${index}`} 
+                        onChange={e => { updateTier(index, "max_late_early_count", e.target.value); }} 
+                        placeholder="Any"
+                        type="number"
+                        value={tier.max_late_early_count || ""}
                       />
                     </div>
                     <div className="space-y-2">
                       { }
-                      <label htmlFor={`unpaid-${idx}`} className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><AlertCircle size={10} /> Max Unpaid</label>
+                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`unpaid-${index}`}><AlertCircle size={10} /> Max Unpaid</label>
                       <input 
-                        id={`unpaid-${idx}`}
-                        type="number" 
-                        value={tier.max_unpaid_leave_days || ""} 
-                        onChange={e => updateTier(idx, "max_unpaid_leave_days", e.target.value)}
-                        placeholder="Any"
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs"
+                        id={`unpaid-${index}`} 
+                        onChange={e => { updateTier(index, "max_unpaid_leave_days", e.target.value); }} 
+                        placeholder="Any"
+                        type="number"
+                        value={tier.max_unpaid_leave_days || ""}
                       />
                     </div>
                     { }
                     <div className="space-y-2">
-                      <label htmlFor={`sick-${idx}`} className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><AlertCircle size={10} /> Max Sick</label>
+                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`sick-${index}`}><AlertCircle size={10} /> Max Sick</label>
                       <input 
-                        id={`sick-${idx}`}
-                        type="number" 
-                        value={tier.max_sick_leave_days || ""} 
-                        onChange={e => updateTier(idx, "max_sick_leave_days", e.target.value)}
-                        placeholder="Any"
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs"
+                        id={`sick-${index}`} 
+                        onChange={e => { updateTier(index, "max_sick_leave_days", e.target.value); }} 
+                        placeholder="Any"
+                        type="number"
+                        value={tier.max_sick_leave_days || ""}
                       />
                       { }
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor={`total-${idx}`} className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><AlertCircle size={10} /> Max Total Days</label>
+                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`total-${index}`}><AlertCircle size={10} /> Max Total Days</label>
                       <input 
-                        id={`total-${idx}`}
-                        type="number" 
-                        value={tier.max_total_leave_days || ""} 
-                        onChange={e => updateTier(idx, "max_total_leave_days", e.target.value)}
-                        placeholder="Any"
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs"
+                        id={`total-${index}`} 
+                        onChange={e => { updateTier(index, "max_total_leave_days", e.target.value); }} 
+                        placeholder="Any"
+                        type="number"
+                        value={tier.max_total_leave_days || ""}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor={`payout-${idx}`} className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest flex items-center gap-1.5"><TrendingUp size={10} /> Payout</label>
+                      <label className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`payout-${index}`}><TrendingUp size={10} /> Payout</label>
                       <input 
-                        id={`payout-${idx}`}
-                        type="number" 
-                        value={tier.payout_amount} 
-                        onChange={e => updateTier(idx, "payout_amount", e.target.value)}
                         className="w-full bg-primary-50 dark:bg-primary-950/50 border border-primary-100 dark:border-primary-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs font-mono text-primary-700 dark:text-primary-300"
+                        id={`payout-${index}`} 
+                        onChange={e => { updateTier(index, "payout_amount", e.target.value); }} 
+                        type="number"
+                        value={tier.payout_amount}
                       />
                     </div>
                   </div>
@@ -245,9 +243,9 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
 
           <div className="flex justify-end pt-4">
             <button 
-              onClick={handleSave}
-              disabled={createMutation.isPending}
               className="bg-slate-900 hover:bg-primary-700 text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+              disabled={createMutation.isPending}
+              onClick={handleSave}
             >
               {createMutation.isPending ? <Plus className="animate-spin" size={18} /> : <Save size={18} />}
               {t("common.save_settings")}
@@ -258,7 +256,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
 
       <div className="grid grid-cols-1 gap-6">
         {policies.map(policy => (
-          <div key={policy.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm hover:shadow-md transition-all group relative overflow-hidden" key={policy.id}>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
               <div className="flex items-center gap-6">
                 <div className="w-16 h-16 rounded-[1.5rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100 dark:border-primary-800/50">
@@ -277,7 +275,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
 
               <div className="flex flex-wrap gap-3">
                 {policy.tiers?.sort((a, b) => a.priority - b.priority).map((tier, _tidx) => (
-                  <div key={tier.id} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 flex flex-col items-center min-w-[140px] shadow-inner">
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 flex flex-col items-center min-w-[140px] shadow-inner" key={tier.id}>
                     <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Tier {tier.priority}</span>
                     <span className="text-sm font-bold text-primary-600 dark:text-primary-400 font-mono tracking-tighter">
                       +{new Intl.NumberFormat('vi-VN').format(tier.payout_amount)}
@@ -296,8 +294,8 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
               </div>
 
               <button 
-                onClick={() => deleteMutation.mutate(policy.id)}
                 className="p-4 rounded-2xl text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:bg-rose-950 transition-all active:scale-90"
+                onClick={() => { deleteMutation.mutate(policy.id); }}
               >
                 <Trash2 size={20} />
               </button>
@@ -308,7 +306,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
 
         {!isLoading && policies.length === 0 && !isCreating && (
           <div className="py-24 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
-            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><Sparkles size={32} className="text-slate-200 dark:text-slate-700" /></div>
+            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><Sparkles className="text-slate-200 dark:text-slate-700" size={32} /></div>
             <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">{t("payroll.incentives.no_policies", { defaultValue: "NO INCENTIVE POLICIES" })}</h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 uppercase font-bold tracking-widest opacity-50">Configure your first bonus rule to reward diligent staff</p>
           </div>

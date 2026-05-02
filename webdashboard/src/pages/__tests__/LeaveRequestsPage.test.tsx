@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -43,11 +44,11 @@ vi.mock("../../lib/api", () => ({
 // Mock EmployeeSearch
  
 vi.mock("@/components/common/EmployeeSearch", () => ({
-  EmployeeSearch: ({ value, onChange }: { value: string; onChange: (val: string) => void }) => (
+  EmployeeSearch: ({ value, onChange }: { value: string; onChange: (value_: string) => void }) => (
     <select 
       aria-label="Nhân viên"
-      value={value} 
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => { onChange(e.target.value); }} 
+      value={value}
     >
       <option value="">Chọn...</option>
       <option value="emp-1">John Doe</option>
@@ -89,16 +90,16 @@ describe("LeaveRequestsPage", () => {
       page: 1,
       limit: 50,
  
-    } as unknown as PaginatedResponse<Employee>);
+    });
  
-    vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([] as unknown as LeaveRequest[]);
+    vi.mocked(api.fetchWorkspaceLeaveRequests).mockResolvedValue([]);
  
-    vi.mocked(api.fetchEmployeeLeaveBalances).mockResolvedValue([] as unknown as EmployeeLeaveBalance[]);
+    vi.mocked(api.fetchEmployeeLeaveBalances).mockResolvedValue([]);
  
-    vi.mocked(api.fetchLeavePolicies).mockResolvedValue([] as unknown as LeavePolicy[]);
+    vi.mocked(api.fetchLeavePolicies).mockResolvedValue([]);
     vi.mocked(api.fetchLeaveTypes).mockResolvedValue([
       { id: "lt-vacation", code: "lt-vacation", name: "Vacation", is_paid: true, workspace_id: "ws-1", policy_config: {}, created_at: "2025-01-01T00:00:00Z" }
-    ] as unknown as LeaveType[]);
+    ]);
   });
 
  
@@ -182,15 +183,15 @@ describe("LeaveRequestsPage", () => {
 
     renderPage(queryClient);
 
-    const approveBtn = await screen.findByTitle(/phê duyệt/i);
-    await user.click(approveBtn);
+    const approveButton = await screen.findByTitle(/phê duyệt/i);
+    await user.click(approveButton);
 
     await waitFor(() => {
       expect(api.approveLeaveRequest).toHaveBeenCalledWith("test-ws-id", "req-1", { status: "approved" });
     });
 
-    const rejectBtn = await screen.findByTitle(/từ chối/i);
-    await user.click(rejectBtn);
+    const rejectButton = await screen.findByTitle(/từ chối/i);
+    await user.click(rejectButton);
 
     await waitFor(() => {
       expect(api.approveLeaveRequest).toHaveBeenCalledWith("test-ws-id", "req-1", { status: "rejected" });
@@ -329,9 +330,9 @@ describe("LeaveRequestsPage", () => {
 
  
       // Verify no start_time/end_time sent for half-day
-      const callArgs = vi.mocked(api.submitLeaveRequest).mock.calls[0][1] as unknown as { start_time?: string; end_time?: string };
-      expect(callArgs.start_time).toBeUndefined();
-      expect(callArgs.end_time).toBeUndefined();
+      const callArguments = vi.mocked(api.submitLeaveRequest).mock.calls[0][1] as unknown as { start_time?: string; end_time?: string };
+      expect(callArguments.start_time).toBeUndefined();
+      expect(callArguments.end_time).toBeUndefined();
     }, 30000);
 
     it("submits with custom_hours and time values", async () => {

@@ -1,4 +1,7 @@
 
+import { GripVertical, X, RotateCcw, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import {
     DndContext,
     closestCenter,
@@ -16,25 +19,23 @@ import {
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, X, RotateCcw, Loader2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
-
-import { cn } from "@/lib/utils";
 
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
+
+import { cn } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────
 
 interface CustomizePanelProps {
-    isOpen: boolean;
-    onClose: () => void;
-    visibleWidgets: Record<WidgetId, boolean>;
-    widgetOrder: WidgetId[];
     allWidgets: { id: WidgetId; labelKey: string }[];
-    onToggleWidget: (id: WidgetId) => void;
+    isOpen: boolean;
+    isSaving?: boolean;
+    onClose: () => void;
     onReorder: (order: WidgetId[]) => void;
     onReset: () => void;
-    isSaving?: boolean;
+    onToggleWidget: (id: WidgetId) => void;
+    visibleWidgets: Record<WidgetId, boolean>;
+    widgetOrder: WidgetId[];
 }
 
 // ── Sortable Widget Row ────────────────────────────────────────────
@@ -66,21 +67,21 @@ function SortableWidgetRow({
 
     return (
         <div
-            ref={setNodeRef}
-            style={style}
             className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all",
                 isDragging
                     ? "bg-primary-50 dark:bg-primary-950 border-primary-200 dark:border-primary-800 shadow-xl"
                     : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600"
             )}
+            ref={setNodeRef}
+            style={style}
         >
             {/* Drag handle */}
             <button
                 {...attributes}
                 {...listeners}
-                className="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 touch-none"
                 aria-label="Drag to reorder"
+                className="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 touch-none"
             >
                 <GripVertical size={16} />
             </button>
@@ -92,8 +93,6 @@ function SortableWidgetRow({
 
             {/* Toggle */}
             <button
-                onClick={() => onToggle(widget.id)}
-                role="switch"
                 aria-checked={isVisible}
                 className={cn(
                     "relative w-10 h-6 rounded-full transition-colors shrink-0",
@@ -101,6 +100,8 @@ function SortableWidgetRow({
                         ? "bg-primary-600 dark:bg-primary-500"
                         : "bg-slate-200 dark:bg-slate-600"
                 )}
+                onClick={() => { onToggle(widget.id); }}
+                role="switch"
             >
                 <span
                     className={cn(
@@ -168,12 +169,12 @@ export default function CustomizePanel({
             <div
  
  
-                role="presentation"
                 className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm z-40 transition-opacity"
                 onClick={onClose}
                 onKeyDown={(e) => {
                     if (e.key === 'Escape') onClose();
                 }}
+                role="presentation"
             />
 
             {/* Panel */}
@@ -190,13 +191,13 @@ export default function CustomizePanel({
                         <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">
                             {t("dashboard.customize.title")}
                         </h2>
-                        {isSaving && <Loader2 size={16} className="animate-spin text-primary-500" />}
+                        {!!isSaving && <Loader2 className="animate-spin text-primary-500" size={16} />}
                     </div>
                     <button
-                        onClick={onClose}
                         className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        onClick={onClose}
                     >
-                        <X size={18} className="text-slate-500" />
+                        <X className="text-slate-500" size={18} />
                     </button>
                 </div>
 
@@ -207,9 +208,9 @@ export default function CustomizePanel({
                     </p>
 
                     <DndContext
-                        sensors={sensors}
                         collisionDetection={closestCenter}
                         onDragEnd={handleDragEnd}
+                        sensors={sensors}
                     >
                         <SortableContext
                             items={orderedWidgets.map((w) => w.id)}
@@ -217,10 +218,10 @@ export default function CustomizePanel({
                         >
                             {orderedWidgets.map((widget) => (
                                 <SortableWidgetRow
-                                    key={widget.id}
-                                    widget={widget}
                                     isVisible={visibleWidgets[widget.id] ?? false}
+                                    key={widget.id}
                                     onToggle={onToggleWidget}
+                                    widget={widget}
                                 />
                             ))}
                         </SortableContext>
@@ -230,8 +231,8 @@ export default function CustomizePanel({
                 {/* Footer */}
                 <div className="px-6 py-5 border-t border-slate-100 dark:border-slate-800 space-y-3">
                     <button
-                        onClick={onReset}
                         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                        onClick={onReset}
                     >
                         <RotateCcw size={14} />
                         {t("dashboard.customize.reset")}

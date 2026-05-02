@@ -1,21 +1,20 @@
-import React from 'react';
-
 import { AlertTriangle, Info, Trash2 } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Button from './Button';
 import Modal from './Modal';
 
 export interface ConfirmDialogProps {
+  cancelLabel?: string;
+  confirmLabel?: string;
+  isLoading?: boolean;
   isOpen: boolean;
+  message: string | React.ReactNode;
   onClose: () => void;
   onConfirm: () => void | Promise<void>;
   title: string;
-  message: string | React.ReactNode;
-  confirmLabel?: string;
-  cancelLabel?: string;
   variant?: 'danger' | 'warning' | 'info';
-  isLoading?: boolean;
 }
 
 export default function ConfirmDialog({
@@ -45,11 +44,11 @@ export default function ConfirmDialog({
 
   return (
     <Modal
+      icon={getIcon()}
       isOpen={isOpen}
+      maxWidth="sm"
       onClose={onClose}
       title={title}
-      icon={getIcon()}
-      maxWidth="sm"
     >
       <div className="space-y-6">
         <div className="text-slate-600 dark:text-slate-300 text-sm font-medium">
@@ -58,16 +57,16 @@ export default function ConfirmDialog({
         
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
           <Button
-            variant="outline"
-            onClick={onClose}
             disabled={isLoading}
+            onClick={onClose}
+            variant="outline"
           >
             {cancelLabel || t('common.cancel', { defaultValue: 'Cancel' })}
           </Button>
           <Button
-            variant={variant === 'danger' ? 'destructive' : 'primary'}
-            onClick={handleConfirm}
             loading={isLoading}
+            onClick={handleConfirm}
+            variant={variant === 'danger' ? 'destructive' : 'primary'}
           >
             {confirmLabel || t('common.confirm', { defaultValue: 'Confirm' })}
           </Button>

@@ -1,6 +1,5 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-
 import { describe, it, expect } from "vitest";
 
 import { ROUTES } from "../routes";
@@ -8,8 +7,8 @@ import { ROUTES } from "../routes";
 /* ------------------------------------------------------------------ */
 /*  Helper: flatten the nested ROUTES object into a flat path list    */
 /* ------------------------------------------------------------------ */
-function collectPaths(obj: Record<string, unknown>, result: string[] = []): string[] {
-  for (const value of Object.values(obj)) {
+function collectPaths(object: Record<string, unknown>, result: string[] = []): string[] {
+  for (const value of Object.values(object)) {
     if (typeof value === "string") {
       result.push(value);
     } else if (typeof value === "object" && value !== null) {
@@ -177,11 +176,11 @@ describe("Route compliance — no hardcoded paths in source", () => {
 
     for (const filePath of sourceFiles) {
       const lines = fs.readFileSync(filePath, "utf-8").split("\n");
-      for (let i = 0; i < lines.length; i++) {
+      for (let index = 0; index < lines.length; index++) {
         for (const pattern of VIOLATION_PATTERNS) {
-          if (pattern.test(lines[i])) {
+          if (pattern.test(lines[index])) {
             const rel = path.relative(srcDir, filePath);
-            violations.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
+            violations.push(`${rel}:${index + 1}: ${lines[index].trim()}`);
           }
         }
       }

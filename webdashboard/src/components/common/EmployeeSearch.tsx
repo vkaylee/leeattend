@@ -1,7 +1,6 @@
-import React, { useState, useMemo } from 'react';
-
 import { useQuery } from '@tanstack/react-query';
 import { User, X } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useDebounce } from '../../hooks/use-debounce';
@@ -10,19 +9,19 @@ import { Employee } from '../../lib/api/types';
 import { Combobox } from '../ui/Combobox';
 
 interface EmployeeSearchProps {
-  workspaceId: string;
-  value?: string | string[];
- 
-  onChange: (value: string | string[]) => void;
-  placeholder?: string;
   className?: string;
-  id?: string;
-  'data-testid'?: string;
-  multiple?: boolean;
-
-  keyboardShortcut?: string | string[];
   clearOnEscape?: boolean;
+ 
+  'data-testid'?: string;
+  id?: string;
+  keyboardShortcut?: string | string[];
+  multiple?: boolean;
+  onChange: (value: string | string[]) => void;
   onSelectEmployee?: (employee: Employee) => void;
+
+  placeholder?: string;
+  value?: string | string[];
+  workspaceId: string;
 }
 
 /**
@@ -73,7 +72,7 @@ export function EmployeeSearch({
     if (found.length > 0) {
       const missing = found.filter(f => !selectedMeta.find(m => m.id === f.id));
       if (missing.length > 0) {
-        setSelectedMeta(prev => [...prev, ...missing]);
+        setSelectedMeta(previous => [...previous, ...missing]);
       }
     }
   }
@@ -82,7 +81,7 @@ export function EmployeeSearch({
     const emp = employees.find(e => e.id === selectedId);
 
     if (emp && !selectedMeta.find(m => m.id === emp.id)) {
-      setSelectedMeta(prev => [...prev, emp]);
+      setSelectedMeta(previous => [...previous, emp]);
     }
 
     if (emp && onSelectEmployee) {
@@ -117,11 +116,11 @@ export function EmployeeSearch({
 
     return (
       <>
-        {parts.map((part, i) =>
+        {parts.map((part, index) =>
           regex.test(part) ? (
-            <span key={i} className="text-primary-600 dark:text-primary-400 font-black">{part}</span>
+            <span className="text-primary-600 dark:text-primary-400 font-black" key={index}>{part}</span>
           ) : (
-            <span key={i}>{part}</span>
+            <span key={index}>{part}</span>
           )
         )}
       </>
@@ -161,33 +160,33 @@ export function EmployeeSearch({
   return (
     <div className={'space-y-2 ' + (className || '')}>
       <Combobox
-        id={id}
-        data-testid={testId}
-        options={options}
-        value={multiple ? '' : (Array.isArray(value) ? '' : (value || ''))}
-        onChange={handleSelect}
-        placeholder={placeholder || t('common.search')}
-        onSearchChange={setSearchTerm}
-
-        keyboardShortcut={keyboardShortcut}
         clearOnEscape={clearOnEscape}
+        data-testid={testId}
+        id={id}
+        keyboardShortcut={keyboardShortcut}
+        onChange={handleSelect}
+        onSearchChange={setSearchTerm}
+        options={options}
+
+        placeholder={placeholder || t('common.search')}
+        value={multiple ? '' : (Array.isArray(value) ? '' : (value || ''))}
  
       />
 
-      {multiple && selectedIds.length > 0 && (
+      {!!multiple && selectedIds.length > 0 && (
         <div className='flex flex-wrap gap-2'>
           {selectedIds.map(id => {
             const meta = selectedMeta.find(m => m.id === id);
             return (
               <div
-                key={id}
                 className='flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700'
+                key={id}
               >
                 <span>{meta?.full_name || id}</span>
                 <button
-                  type='button'
-                  onClick={() => handleRemove(id)}
                   className='hover:text-rose-500 transition-colors'
+                  onClick={() => { handleRemove(id); }}
+                  type='button'
                 >
                   <X size={14} />
                 </button>

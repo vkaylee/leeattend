@@ -1,5 +1,6 @@
 import { BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
 import {
     BarChart,
     Bar,
@@ -52,46 +53,46 @@ export default function PeakTimesChart() {
                 </div>
             ) : !hasData ? (
                 <div className="h-[280px] flex flex-col items-center justify-center">
-                    <BarChart3 size={48} className="text-slate-200 dark:text-slate-700 mb-4" />
+                    <BarChart3 className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
                     <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
                         {t("common.no_data")}
                     </p>
                 </div>
             ) : (
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer height={280} width="100%">
                     <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                         <defs>
-                            <linearGradient id="gradCheckIn" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="gradCheckIn" x1="0" x2="0" y1="0" y2="1">
                                 <stop offset="5%" stopColor={COLORS.check_in} stopOpacity={0.8} />
                                 <stop offset="95%" stopColor={COLORS.check_in} stopOpacity={0.4} />
                             </linearGradient>
-                            <linearGradient id="gradCheckOut" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="gradCheckOut" x1="0" x2="0" y1="0" y2="1">
                                 <stop offset="5%" stopColor={COLORS.check_out} stopOpacity={0.8} />
                                 <stop offset="95%" stopColor={COLORS.check_out} stopOpacity={0.4} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="currentColor"
                             className="text-slate-100 dark:text-slate-800"
+                            stroke="currentColor"
+                            strokeDasharray="3 3"
                         />
                         <XAxis
-                            dataKey="time_slot"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
-                            tickLine={false}
-                            axisLine={false}
-                            interval={0}
                             angle={-35}
-                            textAnchor="end"
+                            axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
+                            dataKey="time_slot"
                             height={50}
+                            interval={0}
+                            textAnchor="end"
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                            tickLine={false}
                         />
                         <YAxis
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
-                            tickLine={false}
-                            axisLine={false}
                             allowDecimals={false}
+                            axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                            tickLine={false}
                         />
                         <Tooltip
                             contentStyle={{
@@ -116,14 +117,14 @@ export default function PeakTimesChart() {
                         />
                         <Bar
                             dataKey="check_in"
-                            name={t("dashboard.hr.check_in_label")}
                             fill="url(#gradCheckIn)"
+                            name={t("dashboard.hr.check_in_label")}
                             radius={[4, 4, 0, 0]}
                         />
                         <Bar
                             dataKey="check_out"
-                            name={t("dashboard.hr.check_out_label")}
                             fill="url(#gradCheckOut)"
+                            name={t("dashboard.hr.check_out_label")}
                             radius={[4, 4, 0, 0]}
                         />
                     </BarChart>

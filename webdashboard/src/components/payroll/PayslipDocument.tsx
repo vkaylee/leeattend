@@ -1,10 +1,9 @@
-import React from 'react';
-
 import { 
   Building2, 
   CalendarDays, 
   ShieldCheck
 } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useDateTimeFormatter } from '@/hooks/use-datetime';
@@ -25,15 +24,15 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
     minimumFractionDigits: 0,
   });
 
-  const formatAmount = (val: string | number) => {
-    return currencyFormatter.format(typeof val === 'string' ? parseFloat(val) : val);
+  const formatAmount = (value: string | number) => {
+    return currencyFormatter.format(typeof value === 'string' ? parseFloat(value) : value);
   };
 
-  const totalIncentives = payslip.incentives?.reduce((acc, i) => acc + parseFloat(i.amount), 0) || 0;
+  const totalIncentives = payslip.incentives?.reduce((accumulator, index) => accumulator + parseFloat(index.amount), 0) || 0;
   const grossPay = parseFloat(payslip.base_pay_amount) + parseFloat(payslip.overtime_pay_amount) + totalIncentives;
 
   return (
-    <div className='bg-white dark:bg-slate-900 p-8 md:p-16 max-w-[210mm] mx-auto shadow-sm print:shadow-none print:p-0 text-slate-700 dark:text-slate-200 font-sans' id='payslip-document' data-testid="payslip-document">
+    <div className='bg-white dark:bg-slate-900 p-8 md:p-16 max-w-[210mm] mx-auto shadow-sm print:shadow-none print:p-0 text-slate-700 dark:text-slate-200 font-sans' data-testid="payslip-document" id='payslip-document'>
       {/* Document Header */}
       <div className='flex justify-between items-start border-b-2 border-slate-900 pb-10 mb-10'>
         <div className='space-y-4'>
@@ -42,7 +41,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
               <Building2 size={24} />
             </div>
             <div>
-              <h1 data-testid="workspace-name" className='text-2xl font-bold uppercase tracking-tight'>{workspace?.name || 'LeeAttend'}</h1>
+              <h1 className='text-2xl font-bold uppercase tracking-tight' data-testid="workspace-name">{workspace?.name || 'LeeAttend'}</h1>
               <p className='text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]'>{t('payroll.document.system_subtitle')}</p>
             </div>
           </div>
@@ -53,14 +52,14 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
         </div>
 
         <div className='text-right'>
-          <h2 data-testid="payslip-title" className='text-4xl font-bold uppercase tracking-tighter text-slate-700 dark:text-slate-200 mb-1'>{t('payroll.document.title')}</h2>
+          <h2 className='text-4xl font-bold uppercase tracking-tighter text-slate-700 dark:text-slate-200 mb-1' data-testid="payslip-title">{t('payroll.document.title')}</h2>
           <div className='flex items-center justify-end gap-2 text-slate-500 dark:text-slate-400'>
             <CalendarDays size={14} />
-            <span data-testid="period-month" className='text-sm font-bold uppercase tracking-widest'>
+            <span className='text-sm font-bold uppercase tracking-widest' data-testid="period-month">
               {t('common.month')} {formatMonthYear(payslip.period_start)}
             </span>
           </div>
-          <p data-testid="period-range" className='text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-widest'>
+          <p className='text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-widest' data-testid="period-range">
             {t('payroll.document.period')}: {formatDate(payslip.period_start)} - {formatDate(payslip.period_end)}
           </p>
         </div>
@@ -72,20 +71,20 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
           <h3 className='text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2'>{t('payroll.document.employee_details')}</h3>
           <div className='grid grid-cols-[100px_1fr] gap-y-4 text-sm'>
             <span className='font-bold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-widest'>{t('payroll.document.name')}</span>
-            <span data-testid="employee-name" className='font-bold text-slate-700 dark:text-slate-200 uppercase'>{employee.full_name}</span>
+            <span className='font-bold text-slate-700 dark:text-slate-200 uppercase' data-testid="employee-name">{employee.full_name}</span>
 
             <span className='font-bold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-widest'>{t('payroll.document.employee_id')}</span>
-            <span data-testid="employee-id" className='font-bold text-slate-700 dark:text-slate-200'>{employee.employee_id_number}</span>
+            <span className='font-bold text-slate-700 dark:text-slate-200' data-testid="employee-id">{employee.employee_id_number}</span>
 
             <span className='font-bold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-widest'>{t('payroll.document.department')}</span>
-            <span data-testid="employee-department" className='font-bold text-slate-700 dark:text-slate-200'>{employee.department_name || 'N/A'}</span>
+            <span className='font-bold text-slate-700 dark:text-slate-200' data-testid="employee-department">{employee.department_name || 'N/A'}</span>
           </div>
         </div>
 
-        <div data-testid="net-payment-box" className='bg-slate-50 dark:bg-slate-800 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 print:bg-white dark:bg-slate-900 print:border-slate-200 dark:border-slate-700'>
+        <div className='bg-slate-50 dark:bg-slate-800 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 print:bg-white dark:bg-slate-900 print:border-slate-200 dark:border-slate-700' data-testid="net-payment-box">
           <h3 className='text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 mb-6 text-center'>{t('payroll.document.net_payment')}</h3>
           <div className='text-center space-y-1'>
-            <p data-testid="net-pay-amount" className='text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter leading-none'>
+            <p className='text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter leading-none' data-testid="net-pay-amount">
               {formatAmount(payslip.net_pay_amount)}
             </p>
             <p className='text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-[0.2em] pt-2'>Paid via Bank Transfer</p>
@@ -106,18 +105,18 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
             </thead>
             <tbody className='divide-y divide-slate-50 dark:divide-slate-800'>
               {/* Salary Components Breakdown */}
-              {payslip.salary_components?.map((sc, idx) => {
-                if (!sc || !sc.component || !sc.definition) return null;
+              {payslip.salary_components?.map((sc, index) => {
+                if (!sc?.component || !sc.definition) return null;
                 
-                const amountStr = sc.component.amount || "0";
-                const monthlyRate = parseFloat(amountStr);
+                const amountString = sc.component.amount || "0";
+                const monthlyRate = parseFloat(amountString);
                 const standardDays = parseFloat((payslip.segments?.[0]?.applied_std_days || 22).toString());
                 const totalPaidDays = payslip.segments?.reduce((sum, seg) => sum + parseFloat(seg.paid_work_days.toString()), 0) || 0;
                 const dailyRate = standardDays > 0 ? monthlyRate / standardDays : 0;
                 const proratedAmount = dailyRate * totalPaidDays;
 
                 return (
-                  <tr key={idx} className='group' data-testid={`salary-component-${idx}`}>
+                  <tr className='group' data-testid={`salary-component-${index}`} key={index}>
                     <td className='py-4'>
                       <div className='flex items-center gap-3'>
                         <div className='w-1.5 h-1.5 bg-blue-600 rounded-full' />
@@ -137,13 +136,13 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
               })}
 
               {/* Base Salary Segments (if no components available) */}
-              {(!payslip.salary_components || payslip.salary_components.length === 0) && payslip.segments?.map((seg, idx) => (
-                <tr key={idx} className='group' data-testid={`salary-segment-${idx}`}>
+              {(!payslip.salary_components || payslip.salary_components.length === 0) && payslip.segments?.map((seg, index) => (
+                <tr className='group' data-testid={`salary-segment-${index}`} key={index}>
                   <td className='py-4'>
                     <div className='flex items-center gap-3'>
                       <div className='w-1.5 h-1.5 bg-blue-600 rounded-full' />
                       <div>
-                        <p className='font-bold text-slate-700 dark:text-slate-200'>Base Salary {idx > 0 ? ` (Segment ${idx + 1})` : ''}</p>
+                        <p className='font-bold text-slate-700 dark:text-slate-200'>Base Salary {index > 0 ? ` (Segment ${index + 1})` : ''}</p>
                         <p className='text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase'>
                           {seg.start_date} - {seg.end_date} • {seg.paid_work_days.toFixed(1)} Days @ {formatAmount(seg.applied_base_salary)}
                         </p>
@@ -175,8 +174,8 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
               )}
 
               {/* Incentives */}
-              {payslip.incentives?.map((inc, i) => (
-                <tr key={i} data-testid={`incentive-${i}`}>
+              {payslip.incentives?.map((inc, index) => (
+                <tr data-testid={`incentive-${index}`} key={index}>
                   <td className='py-4'>
                     <div className='flex items-center gap-3'>
                       <div className='w-1.5 h-1.5 bg-amber-400 rounded-full' />
@@ -204,15 +203,15 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
             <div className='space-y-3'>
               <div className='flex justify-between text-sm'>
                 <span className='font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest'>Gross Pay</span>
-                <span data-testid="gross-pay" className='font-bold text-slate-700 dark:text-slate-200'>{formatAmount(grossPay)}</span>
+                <span className='font-bold text-slate-700 dark:text-slate-200' data-testid="gross-pay">{formatAmount(grossPay)}</span>
               </div>
               <div className='flex justify-between text-sm'>
                 <span className='font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest'>Deductions</span>
-                <span data-testid="deductions" className='font-bold text-rose-600 dark:text-rose-300'>-{formatAmount(payslip.deductions_amount)}</span>
+                <span className='font-bold text-rose-600 dark:text-rose-300' data-testid="deductions">-{formatAmount(payslip.deductions_amount)}</span>
               </div>
               <div className='flex justify-between pt-4 border-t border-slate-100 dark:border-slate-800'>
                 <span className='text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest'>Net Pay</span>
-                <span data-testid="net-pay-total" className='text-xl font-bold text-slate-700 dark:text-slate-200'>{formatAmount(payslip.net_pay_amount)}</span>
+                <span className='text-xl font-bold text-slate-700 dark:text-slate-200' data-testid="net-pay-total">{formatAmount(payslip.net_pay_amount)}</span>
               </div>
             </div>
           </div>
@@ -220,7 +219,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
       </div>
 
       {/* Footer */}
-      <footer data-testid="payslip-footer" className='mt-20 pt-10 border-t border-slate-50 dark:border-slate-800 text-center space-y-2 opacity-50 print:opacity-100'>
+      <footer className='mt-20 pt-10 border-t border-slate-50 dark:border-slate-800 text-center space-y-2 opacity-50 print:opacity-100' data-testid="payslip-footer">
         <p className='text-[9px] font-bold uppercase tracking-[0.5em] text-slate-500 dark:text-slate-400'>Generated by LeeAttend System</p>
         <p className='text-[8px] font-bold text-slate-300 dark:text-slate-600 tracking-widest'>{new Date().toISOString()}</p>
       </footer>

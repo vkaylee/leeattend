@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { useStickyHeader } from "../use-sticky-header";
@@ -14,7 +15,7 @@ class MockResizeObserver {
     disconnect() { }
 }
  
-window.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+window.ResizeObserver = MockResizeObserver;
 
 describe("useStickyHeader", () => {
     beforeEach(() => {

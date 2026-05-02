@@ -1,8 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-
 import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate, Link } from "@tanstack/react-router";
-import { format, endOfMonth } from "date-fns";
 import {
   Download,
   Calendar,
@@ -14,7 +11,10 @@ import {
   AlertTriangle,
   BarChart3 
 } from "lucide-react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+
+import { format, endOfMonth } from "date-fns";
 
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import FloatingRecordBadge from "@/components/common/FloatingRecordBadge";
@@ -26,7 +26,6 @@ import { StagingLogsTable } from "@/components/features/attendance/StagingLogsTa
 import Button from "@/components/ui/Button";
 import { LABEL_BASE } from "@/components/ui/FormField";
 import _StatusBadge from "@/components/ui/StatusBadge";
-
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
@@ -42,7 +41,7 @@ export default function AttendanceLogsPage() {
   const navigate = useNavigate();
   // URL search params — read once on mount for cross-page navigation
   const searchParams = new URLSearchParams(window.location.search);
-  const setSearchParams = (_params: Record<string, string>, _opts?: unknown) => {
+  const setSearchParams = (_params: Record<string, string>, _options?: unknown) => {
     // No-op: we use local state, not URL for this page
   };
   const wsId = getCurrentWorkspaceId();
@@ -59,7 +58,7 @@ export default function AttendanceLogsPage() {
   const PAGE_SIZE = 20;
   const [employeeId, setEmployeeId] = useState<string>(urlEmployee || "all");
 
-  const getMonthRange = (offset: number = 0) => {
+  const getMonthRange = (offset = 0) => {
     const d = new Date(); d.setMonth(d.getMonth() + offset);
     const firstDay = format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd');
     const lastDay = format(new Date(d.getFullYear(), d.getMonth() + 1, 0), 'yyyy-MM-dd');
@@ -118,7 +117,7 @@ export default function AttendanceLogsPage() {
     queryFn: ({ pageParam }) => {
       const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
       const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
-      return fetchRawAttendanceLogs({ employee_id: employeeId === "all" ? undefined : employeeId, from, to, page: pageParam as number, limit: PAGE_SIZE });
+      return fetchRawAttendanceLogs({ employee_id: employeeId === "all" ? undefined : employeeId, from, to, page: pageParam, limit: PAGE_SIZE });
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
@@ -144,7 +143,7 @@ export default function AttendanceLogsPage() {
     isFetchingNextPage: isFetchingNextStagingPage,
   } = useInfiniteQuery({
     queryKey: ["staging-logs", wsId],
-    queryFn: ({ pageParam }) => fetchStagingLogs(wsId!, pageParam as number, PAGE_SIZE),
+    queryFn: ({ pageParam }) => fetchStagingLogs(wsId!, pageParam, PAGE_SIZE),
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
       if (totalLoaded >= (lastPage.total || 0)) return undefined;
@@ -239,21 +238,21 @@ export default function AttendanceLogsPage() {
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div>
-          <h1 data-testid="attendance-logs-title" className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200">{t("attendance_logs.title")}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200" data-testid="attendance-logs-title">{t("attendance_logs.title")}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("attendance_logs.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
           <Link
-            to="/reports"
-            search={{ from: dateRange.start, to: dateRange.end } as Record<string, unknown>}
             className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-5 py-2.5 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"
+            search={{ from: dateRange.start, to: dateRange.end } as Record<string, unknown>}
+            to="/reports"
           >
             <BarChart3 size={14} /> {t("attendance_logs.view_reports")}
           </Link>
           { }
-          <Button variant="outline" size="sm" onClick={() => window.print()} icon={<Download size={14} />}>{t("attendance_logs.export_btn")}</Button>
+          <Button icon={<Download size={14} />} onClick={() => { window.print(); }} size="sm" variant="outline">{t("attendance_logs.export_btn")}</Button>
           <PermissionGate permission="attendance_staging:manage">
-            <Button size="sm" onClick={() => setIsImportDialogOpen(true)} icon={<Upload size={14} />}>{t("attendance_logs.import_btn")}</Button>
+            <Button icon={<Upload size={14} />} onClick={() => { setIsImportDialogOpen(true); }} size="sm">{t("attendance_logs.import_btn")}</Button>
           </PermissionGate>
         </div>
       </div>
@@ -261,25 +260,25 @@ export default function AttendanceLogsPage() {
       {/* Tabs */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-1 flex items-center gap-1 w-fit">
         <button
-          onClick={() => { setActiveTab("recorded"); }}
           className={cn(
             "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
             activeTab === "recorded"
               ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
           )}
+          onClick={() => { setActiveTab("recorded"); }}
         >
           <Clock size={14} />
           {t("attendance_logs.tabs.recorded")}
         </button>
         <button
-          onClick={() => { setActiveTab("unknown"); }}
           className={cn(
             "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
             activeTab === "unknown"
               ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 shadow-sm border border-amber-100 dark:border-amber-800"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
           )}
+          onClick={() => { setActiveTab("unknown"); }}
         >
           <AlertTriangle size={14} />
           {t("attendance_logs.tabs.unknown")}
@@ -296,7 +295,7 @@ export default function AttendanceLogsPage() {
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm p-2 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
               {["this_month", "last_month"].map(mode => (
-                <button key={mode} onClick={() => handleFilterModeChange(mode as "this_month" | "last_month" | "custom" | "specific_month")} className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>{t(`common.filters.${mode}`)}</button>
+                <button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} key={mode} onClick={() => { handleFilterModeChange(mode as "this_month" | "last_month" | "custom" | "specific_month"); }}>{t(`common.filters.${mode}`)}</button>
               ))}
               <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-1" />
               <div className="relative group">
@@ -304,14 +303,14 @@ export default function AttendanceLogsPage() {
                   { }
                   <CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month")}
                 </button>
-                <div className="absolute left-0 top-full mt-2 z-[100] hidden group-hover:block animate-in zoom-in-95 duration-200 origin-top-left"><MonthYearPicker month={specificMonth.month} year={specificMonth.year} onChange={handleSpecificMonthChange} /></div>
+                <div className="absolute left-0 top-full mt-2 z-[100] hidden group-hover:block animate-in zoom-in-95 duration-200 origin-top-left"><MonthYearPicker month={specificMonth.month} onChange={handleSpecificMonthChange} year={specificMonth.year} /></div>
               </div>
-              <button onClick={() => handleFilterModeChange("custom")} className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>{t("common.filters.custom")}</button>
+              <button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} onClick={() => { handleFilterModeChange("custom"); }}>{t("common.filters.custom")}</button>
             </div>
 
             <div className="flex-1 max-w-md flex items-center gap-3 px-2">
-              <div className="flex-1"><EmployeeSearch data-testid="employee-search" workspaceId={wsId!} value={employeeId === "all" ? "" : employeeId} onChange={(val) => { setEmployeeId((Array.isArray(val) ? val[0] : val) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} keyboardShortcut={["/", "Enter"]} clearOnEscape /></div>
-              {employeeId !== "all" && <button onClick={() => { setEmployeeId("all"); }} className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all"><Users size={18} /></button>}
+              <div className="flex-1"><EmployeeSearch clearOnEscape data-testid="employee-search" keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId} workspaceId={wsId!} /></div>
+              {employeeId !== "all" && <button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }}><Users size={18} /></button>}
             </div>
           </div>
 
@@ -319,54 +318,54 @@ export default function AttendanceLogsPage() {
             <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-2 duration-300 max-w-2xl">
               <div className="space-y-2">
                 <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.from_date")}</label>
-                <input type="date" value={dateRange.start} onChange={(e) => { setDateRange(prev => ({ ...prev, start: e.target.value })); }} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" />
+                <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" onChange={(e) => { setDateRange(previous => ({ ...previous, start: e.target.value })); }} type="date" value={dateRange.start} />
               </div>
               <div className="space-y-2">
                 <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.to_date")}</label>
-                <input type="date" value={dateRange.end} onChange={(e) => { setDateRange(prev => ({ ...prev, end: e.target.value })); }} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" />
+                <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" onChange={(e) => { setDateRange(previous => ({ ...previous, end: e.target.value })); }} type="date" value={dateRange.end} />
               </div>
             </div>
           )}
           
           <RecordedLogsTable
-            logs={allRecordedLogs}
-            isLoading={isLoading}
-            isFetchingNextPage={isFetchingNextPage}
-            loadMoreRef={loadMoreRef}
-            getEmployeeName={getEmployeeName}
-            getEmployeeID={getEmployeeID}
-            getDeviceName={getDeviceName}
             formatDate={formatDate}
             formatTime={formatTime}
+            getDeviceName={getDeviceName}
+            getEmployeeID={getEmployeeID}
+            getEmployeeName={getEmployeeName}
+            isFetchingNextPage={isFetchingNextPage}
+            isLoading={isLoading}
+            loadMoreRef={loadMoreRef}
+            logs={allRecordedLogs}
           />
         </>
       )}
 
       {activeTab === "unknown" && (
         <StagingLogsTable
-          logs={allStagingLogs}
-          isLoading={stagingLoading}
-          isFetchingNextPage={isFetchingNextStagingPage}
-          loadMoreRef={loadMoreStagingRef}
-          wsId={wsId!}
-          getDeviceName={getDeviceName}
           formatDate={formatDate}
           formatTime={formatTime}
-          onResolve={(logId, employeeId) => resolveMutation.mutate({ logId, employeeId })}
-          onDismiss={(logId) => dismissMutation.mutate(logId)}
+          getDeviceName={getDeviceName}
           isDismissing={dismissMutation.isPending}
+          isFetchingNextPage={isFetchingNextStagingPage}
+          isLoading={stagingLoading}
+          loadMoreRef={loadMoreStagingRef}
+          logs={allStagingLogs}
           onCreateEmployee={handleCreateEmployee}
+          onDismiss={(logId) => { dismissMutation.mutate(logId); }}
+          onResolve={(logId, employeeId) => { resolveMutation.mutate({ logId, employeeId }); }}
+          wsId={wsId!}
         />
       )}
 
       {/* Floating record count badge */}
       {activeTab === "recorded" ? (
-        <FloatingRecordBadge loaded={allRecordedLogs.length} total={recordedTotal} label={t("common.pagination.records")} />
+        <FloatingRecordBadge label={t("common.pagination.records")} loaded={allRecordedLogs.length} total={recordedTotal} />
       ) : (
-        <FloatingRecordBadge loaded={allStagingLogs.length} total={stagingTotal} label={t("common.pagination.records")} variant="amber" />
+        <FloatingRecordBadge label={t("common.pagination.records")} loaded={allStagingLogs.length} total={stagingTotal} variant="amber" />
       )}
 
-      <AttendanceImportDialog isOpen={isImportDialogOpen} onClose={() => setIsImportDialogOpen(false)} title={t("attendance_logs.modal.import_title")} endpoint="/attendance/logs/upload" targetType="log" />
+      <AttendanceImportDialog endpoint="/attendance/logs/upload" isOpen={isImportDialogOpen} onClose={() => { setIsImportDialogOpen(false); }} targetType="log" title={t("attendance_logs.modal.import_title")} />
     </div>
   );
 }

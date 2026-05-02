@@ -1,11 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
-
 import * as departmentsApi from "@/lib/api/departments";
 import * as payrollApi from "@/lib/api/payroll";
 
@@ -59,7 +58,7 @@ describe("RuleAssignmentManager", () => {
     return render(
       <ToastProvider>
         <QueryClientProvider client={queryClient}>
-          <RuleAssignmentManager wsId="ws-1" ruleId="rule-1" {...props} />
+          <RuleAssignmentManager ruleId="rule-1" wsId="ws-1" {...props} />
         </QueryClientProvider>
       </ToastProvider>
     );
@@ -139,8 +138,8 @@ describe("RuleAssignmentManager", () => {
     expect(effectiveFromInput).toHaveValue(new Date().toISOString().split("T")[0]);
 
     // Submit form
-    const submitBtn = screen.getByRole("button", { name: "Assign Rule" });
-    await user.click(submitBtn);
+    const submitButton = screen.getByRole("button", { name: "Assign Rule" });
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(payrollApi.createPayrollRuleAssignment).toHaveBeenCalledWith(
@@ -194,17 +193,17 @@ describe("RuleAssignmentManager", () => {
     const user = userEvent.setup();
     
     // Find the assignment item (it should render the trash button icon inside)
-    const deleteBtn = await screen.findByRole("button", { name: /Delete assignment/i });
+    const deleteButton = await screen.findByRole("button", { name: /Delete assignment/i });
     
     // Click delete -> goes into confirm mode
-    await user.click(deleteBtn);
+    await user.click(deleteButton);
     
     // Should see Confirm and Cancel buttons
-    const confirmBtn = await screen.findByRole("button", { name: /Confirm/i });
+    const confirmButton = await screen.findByRole("button", { name: /Confirm/i });
     expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
     
     // Click Confirm
-    await user.click(confirmBtn);
+    await user.click(confirmButton);
     
     await waitFor(() => {
       expect(payrollApi.deletePayrollRuleAssignment).toHaveBeenCalledWith("ws-1", "rule-1", "a-1");

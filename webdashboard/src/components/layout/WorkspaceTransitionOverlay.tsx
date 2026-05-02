@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
-
 import { Building2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
@@ -16,8 +15,8 @@ export default function WorkspaceTransitionOverlay({ workspace }: Props) {
 
   useEffect(() => {
     // Sequence the text changes to show progress
-    const t1 = setTimeout(() => setStep(1), 800);
-    const t2 = setTimeout(() => setStep(2), 1800);
+    const t1 = setTimeout(() => { setStep(1); }, 800);
+    const t2 = setTimeout(() => { setStep(2); }, 1800);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -46,7 +45,7 @@ export default function WorkspaceTransitionOverlay({ workspace }: Props) {
 
         {/* Brand Icon or Building Icon */}
         <div className="relative mb-8 bg-white/10 dark:bg-black/20 p-5 rounded-3xl border border-white/20 dark:border-white/10 shadow-inner">
-          <Building2 size={48} className="text-white animate-pulse duration-1000" strokeWidth={1.5} />
+          <Building2 className="text-white animate-pulse duration-1000" size={48} strokeWidth={1.5} />
         </div>
 
         {/* Text Details */}
@@ -56,8 +55,8 @@ export default function WorkspaceTransitionOverlay({ workspace }: Props) {
           </h2>
           <div className="h-6 flex items-center justify-center overflow-hidden">
              <p 
-               key={step} 
-               className="text-sm font-medium text-white/70 animate-in slide-in-from-bottom-4 fade-in duration-300"
+               className="text-sm font-medium text-white/70 animate-in slide-in-from-bottom-4 fade-in duration-300" 
+               key={step}
              >
                {getStepText()}
              </p>

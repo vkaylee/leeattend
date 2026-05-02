@@ -1,112 +1,112 @@
 export interface DeviceInfo {
-  mac?: string;
-  serial?: string;
-  firmware?: string;
-  platform?: string;
-  hw_name?: string;
-  users_count: number;
-  users_capacity?: number;
-  logs_count: number;
-  logs_capacity?: number;
   device_time: string;
+  firmware?: string;
+  hw_name?: string;
   last_info_update?: string;
   last_sync?: string;
+  logs_capacity?: number;
+  logs_count: number;
+  mac?: string;
+  platform?: string;
+  serial?: string;
+  users_capacity?: number;
+  users_count: number;
 }
 
 export interface DeviceStatus {
   device_id: string;
-  status: "online" | "offline";
-  last_sync?: string;
   error?: string;
   info?: DeviceInfo;
+  last_sync?: string;
+  status: "online" | "offline";
 }
 
 export interface AgentStatus {
   agent_id: string;
-  last_seen: string;
-  is_online: boolean;
   devices: DeviceStatus[];
+  is_online: boolean;
+  last_seen: string;
 }
 
 export interface Device {
-  id: string;
   agent_id: string;
-  name: string;
-  ip: string;
-  port: number;
-  is_enabled: boolean;
   brand: string;
-  password?: string;
-  timezone: string;
-  last_status: string;
   created_at: string;
+  id: string;
+  ip: string;
+  is_enabled: boolean;
+  last_status: string;
+  name: string;
+  password?: string;
+  port: number;
+  timezone: string;
   workspace_id: string;
 }
 
 export interface AuthorizedAgent {
+  created_at: string;
   id: string;
-  name: string;
-  token: string;
+  is_active: boolean;
   is_trusted: boolean;
   last_ip?: string;
   last_seen_at: string;
-  created_at: string;
-  is_active: boolean;
   max_concurrent_workers: number;
-  success_cooldown_secs: number;
+  name: string;
   retention_days: number;
+  success_cooldown_secs: number;
+  token: string;
   workspace_id: string;
 }
 
 export interface Workspace {
+  created_at: string;
+  date_format: string;
+  default_language: string;
   id: string;
   name: string;
-  work_unit_minutes: number;
   rounding_policy: string;
-  date_format: string;
+  theme_primary_color: string;
   time_format: string;
   timezone: string;
-  theme_primary_color: string;
-  default_language: string;
-  created_at: string;
+  work_unit_minutes: number;
 }
 
 export interface User {
-  id: string;
-  email: string;
-  full_name?: string;
   avatar_url?: string;
   bio?: string;
+  created_at?: string;
+  email: string;
+  full_name?: string;
+  id: string;
   preferred_language?: string;
   system_roles?: string[];
-  created_at?: string;
 }
 
 export interface UpdateUserRequest {
-  full_name?: string;
   avatar_url?: string;
   bio?: string;
+  full_name?: string;
 }
 
 export interface ChangePasswordRequest {
-  old_password: string;
   new_password: string;
+  old_password: string;
 }
 
 export interface RegisterRequest {
   email: string;
-  password: string;
   full_name: string;
+  password: string;
 }
 
 export interface WorkspaceMember {
-  workspace_id: string;
-  user_id: string;
-  role_id: string;
-  email: string;
-  full_name?: string;
   avatar_url?: string;
+  email: string;
   extra_role_ids: string[];
+  full_name?: string;
+  role_id: string;
+  user_id: string;
+  workspace_id: string;
 }
 
 export enum RoleScopeType {
@@ -115,15 +115,15 @@ export enum RoleScopeType {
 }
 
 export interface WorkspaceRole {
-  id: string;
-  workspace_id?: string;
-  name: string;
-  description?: string;
   color: string;
-  is_system: boolean;
-  scope_type: RoleScopeType;
   created_at: string;
+  description?: string;
+  id: string;
+  is_system: boolean;
+  name: string;
+  scope_type: RoleScopeType;
   updated_at: string;
+  workspace_id?: string;
 }
 
 export interface AuthResponse {
@@ -135,119 +135,119 @@ export interface AuthResponse {
 // --- Timekeeping Models ---
 
 export interface Employee {
-  id: string;
-  workspace_id: string;
-  user_id?: string;
-  full_name: string;
-  employee_id_number: string;
-  department_name?: string;
-  hire_date: string;
-  termination_date?: string;
-  is_active: boolean;
   created_at: string;
+  department_name?: string;
+  employee_id_number: string;
+  full_name: string;
+  hire_date: string;
+  id: string;
+  is_active: boolean;
+  termination_date?: string;
   updated_at: string;
+  user_id?: string;
+  workspace_id: string;
 }
 
 export interface TimeEntry {
-  id: string;
+  created_at: string;
+  duration_minutes?: number;
+  employee_full_name?: string;
   employee_id: string;
+  employee_id_number?: string;
+  entry_type: string;
+  generation_metadata?: unknown;
+  id: string;
+ 
+  is_break_overtime: boolean;
+  note?: string;
   punch_in_time: string;
   punch_out_time?: string;
-  duration_minutes?: number;
-  is_break_overtime: boolean;
-  entry_type: string;
-  note?: string;
- 
-  generation_metadata?: unknown;
-  created_at: string;
   updated_at: string;
-  employee_full_name?: string;
-  employee_id_number?: string;
 }
 
 export interface RawAttendanceLog {
-  id: string;
-  workspace_id: string;
-  employee_id: string;
-  punch_time: string;
-  source: string;
-  device_id?: string;
- 
-  raw_data?: unknown;
   created_at: string;
-  employee_full_name?: string;
-  employee_id_number?: string;
+  device_id?: string;
   device_name?: string;
+  employee_full_name?: string;
+  employee_id: string;
+  employee_id_number?: string;
+ 
+  id: string;
+  punch_time: string;
+  raw_data?: unknown;
+  source: string;
+  workspace_id: string;
 }
 
 export type LeaveDurationType = 'full_day' | 'first_half' | 'second_half' | 'custom_hours';
 
 export interface LeaveRequest {
-  id: string;
-  employee_id: string;
-  leave_type_id: string;
-  start_date: string;
-  end_date: string;
-  reason?: string;
-  status: string;
-  duration_type: LeaveDurationType;
-  start_time?: string | null;
-  end_time?: string | null;
-  requested_by_user_id?: string;
   approved_by_user_id?: string;
   created_at: string;
+  duration_type: LeaveDurationType;
+  employee_id: string;
+  end_date: string;
+  end_time?: string | null;
+  id: string;
+  leave_type_id: string;
+  reason?: string;
+  requested_by_user_id?: string;
+  start_date: string;
+  start_time?: string | null;
+  status: string;
   updated_at: string;
 }
 
 export interface EmployeeLeaveBalance {
-  leave_type_id: string;
-  leave_type_code: string;
-  leave_type_name: string;
-  is_paid: boolean;
-  entitlement: number;
   accrued_amount: number;
   carried_over: number;
-  used: number;
+  entitlement: number;
+  is_paid: boolean;
+  leave_type_code: string;
+  leave_type_id: string;
+  leave_type_name: string;
   remaining: number;
+  used: number;
 }
 
 export interface WorkspaceLeaveBalance {
+  accrued_amount: number;
+  assignment_type?: string;
+  carried_over: number;
   employee_id: string;
   employee_name: string;
-  leave_type_id: string;
-  leave_type_code: string;
-  leave_type_name: string;
-  is_paid: boolean;
   entitlement: number;
-  accrued_amount: number;
-  carried_over: number;
-  used: number;
-  remaining: number;
+  is_paid: boolean;
+  leave_type_code: string;
+  leave_type_id: string;
+  leave_type_name: string;
   policy_name?: string;
-  assignment_type?: string;
+  remaining: number;
+  used: number;
 }
 
 export interface AttendanceAdjustmentRequest {
-  id: string;
-  employee_id: string;
-  time_entry_id?: string;
-  requested_punch_in_time: string;
-  requested_punch_out_time?: string;
-  is_break_overtime: boolean;
-  reason?: string;
-  status: string;
-  requested_by_user_id?: string;
   approved_by_user_id?: string;
   created_at: string;
-  updated_at: string;
+  employee_id: string;
+  id: string;
+  is_break_overtime: boolean;
+  reason?: string;
+  requested_by_user_id?: string;
   requested_date: string;
+  requested_punch_in_time: string;
+  requested_punch_out_time?: string;
+  status: string;
+  time_entry_id?: string;
+  updated_at: string;
 }
 
 export interface PaginatedResponse<T> {
   data: T[];
-  total: number;
-  page: number;
   limit: number;
+  page: number;
+  total: number;
 }
 
 export type AttendanceReportSort =
@@ -264,145 +264,145 @@ export type AttendanceReportSort =
 
 export interface AttendanceSummary {
   employee_id: string;
-  employee_name: string;
   employee_id_number?: string;
-  total_std_units: number;
-  total_ot_units: number;
+  employee_name: string;
   total_leave_days: number;
+  total_ot_units: number;
+  total_std_units: number;
 }
 
 export interface AuditLog {
-  id: string;
-  workspace_id: string;
-  actor_id?: string;
-  target_user_id?: string;
-  target_resource_id?: string;
   action: string;
- 
-  details?: Record<string, unknown>;
-  ip_address?: string;
-  user_agent?: string;
+  actor_id?: string;
   created_at: string;
+  details?: Record<string, unknown>;
+  id: string;
+  ip_address?: string;
+ 
+  target_resource_id?: string;
+  target_user_id?: string;
+  user_agent?: string;
+  workspace_id: string;
 }
 
 export interface Holiday {
-  id: string;
-  workspace_id: string;
-  name: string;
+  created_at: string;
   date: string;
+  description?: string;
   holiday_type: string;
+  id: string;
+  is_credit_on_work: boolean;
   is_paid: boolean;
   leave_type_id?: string | null;
+  name: string;
   ot_multiplier?: number;
-  description?: string;
-  work_threshold_percent?: number | null;
-  is_credit_on_work: boolean;
-  created_at: string;
   updated_at: string;
+  work_threshold_percent?: number | null;
+  workspace_id: string;
 }
 
 export interface DailyAttendanceReport {
+  actual_punch_in: string | null;
+  actual_punch_out: string | null;
+  break_duration_minutes: number | null;
+  break_end: string | null;
+  break_start: string | null;
   date: string;
   employee_id: string;
   employee_name: string;
-  scheduled_start: string | null;
-  scheduled_end: string | null;
-  break_duration_minutes: number | null;
-  break_start: string | null;
-  break_end: string | null;
+  generation_metadata?: unknown;
+  holiday_name?: string | null;
   is_break_auto_deduct: boolean | null;
-  actual_punch_in: string | null;
-  actual_punch_out: string | null;
-  std_work_units: number;
-  ot_work_units: number;
-  ot_claim_status?: string | null;
-  status: string;
   is_holiday: boolean;
   is_unscheduled?: boolean;
-  holiday_name?: string | null;
+  ot_claim_status?: string | null;
+  ot_work_units: number;
+  scheduled_end: string | null;
+  scheduled_start: string | null;
+  status: string;
  
-  generation_metadata?: unknown;
+  std_work_units: number;
 }
 
 // --- Payroll and Shift Models ---
 
 export interface Shift {
-  id: string;
-  workspace_id: string;
-  name: string;
-  report_symbol?: string | null;
-  start_time: string;
-  end_time: string;
   break_duration_minutes: number;
-  break_start?: string | null;
   break_end?: string | null;
+  break_start?: string | null;
+  created_at: string;
+  early_punch_in_grace_period_minutes?: number;
+  effective_date?: string;
+  end_time: string;
+  id: string;
   is_break_auto_deduct?: boolean;
   is_break_overtime?: boolean;
   is_correction?: boolean;
-  effective_date?: string;
-  early_punch_in_grace_period_minutes?: number;
-  created_at: string;
+  name: string;
+  report_symbol?: string | null;
+  start_time: string;
   updated_at: string;
+  workspace_id: string;
 }
 
 export interface PayrollSettings {
-  workspace_id: string;
-  std_working_day_mode: "fixed" | "actual_month";
+  effective_date: string;
   fixed_std_days: number;
-  working_days_per_week: number;
   hours_per_day: number;
   max_ot_hours_per_day?: number | null;
   max_ot_hours_per_month?: number | null;
-  effective_date: string;
+  std_working_day_mode: "fixed" | "actual_month";
   updated_at: string;
+  working_days_per_week: number;
+  workspace_id: string;
 }
 
  
 export interface SalaryComponentDefinition {
-  id: string;
-  workspace_id: string;
-  name: string;
   code: string;
+  created_at: string;
+  id: string;
   is_base_for_ot: boolean;
   is_taxable: boolean;
-  created_at: string;
+  name: string;
   updated_at: string;
+  workspace_id: string;
  
 }
 
 export interface EmployeeSalaryComponent {
-  id: string;
-  employee_id: string;
-  component_definition_id: string;
   amount: string;
-  effective_date: string;
-  name?: string;
   code?: string;
+  component_definition_id: string;
+  created_at: string;
+  effective_date: string;
+  employee_id: string;
+  id: string;
   is_base_for_ot?: boolean;
   is_taxable?: boolean;
-  created_at: string;
+  name?: string;
   updated_at: string;
 }
 
 export interface PayrollSegment {
-  id: string;
-  start_date: string;
-  end_date: string;
-  department_id?: string;
-  applied_base_salary: number;
-  applied_std_days: number;
-  applied_hours_per_day: number;
   actual_work_days: number;
-  paid_work_days: number;
   amount: number;
+  applied_base_salary: number;
+  applied_hours_per_day: number;
+  applied_std_days: number;
+  department_id?: string;
+  end_date: string;
+  id: string;
+  paid_work_days: number;
   reason: string;
+  start_date: string;
   std_days_source?: "individual" | "department" | "workspace" | "system";
 }
 
 export interface IncentiveEvaluationResult {
-  policy_name: string;
- 
   amount: string;
+ 
+  policy_name: string;
   tier_id?: string;
 }
 
@@ -415,76 +415,76 @@ export interface SalaryComponentWithDefinition {
 
  
 export interface SalaryBaseGroup {
+  created_at: string;
+  description: string | null;
   id: string;
-  workspace_id: string;
+  is_system: boolean;
   name: string;
   slug: string;
-  description: string | null;
-  is_system: boolean;
-  created_at: string;
   updated_at: string;
+  workspace_id: string;
 }
 
 export interface SalaryBaseGroupMember {
-  component_definition_id: string;
   base_group_id: string;
+  component_definition_id: string;
   created_at: string;
 }
 
 export interface Payslip {
-  id: string;
-  employee_id: string;
-  period_start: string;
-  period_end: string;
   base_pay_amount: string;
-  overtime_pay_amount: string;
-  holiday_work_premium_amount: string;
-  deductions_amount: string;
-  net_pay_amount: string;
-  standard_units: number;
-  overtime_units: number;
-  status: "draft" | "published" | "paid";
-  segments?: PayrollSegment[];
-  incentives?: IncentiveEvaluationResult[];
-  salary_components?: SalaryComponentWithDefinition[];
   created_at: string;
+  deductions_amount: string;
+  employee_id: string;
+  holiday_work_premium_amount: string;
+  id: string;
+  incentives?: IncentiveEvaluationResult[];
+  net_pay_amount: string;
+  overtime_pay_amount: string;
+  overtime_units: number;
+  period_end: string;
+  period_start: string;
+  salary_components?: SalaryComponentWithDefinition[];
+  segments?: PayrollSegment[];
+  standard_units: number;
+  status: "draft" | "published" | "paid";
   updated_at: string;
 }
 
 export interface IncentiveTier {
   id: string;
-  policy_id: string;
-  priority: number;
   max_late_early_count?: number;
-  max_unpaid_leave_days?: number;
   max_sick_leave_days?: number;
   max_total_leave_days?: number;
+  max_unpaid_leave_days?: number;
   payout_amount: number;
+  policy_id: string;
+  priority: number;
 }
 
 export interface PayrollIncentivePolicy {
-  id: string;
-  workspace_id: string;
-  name: string;
   base_amount: number;
-  payout_type: "fixed" | "percentage";
+  created_at: string;
+  id: string;
   is_active: boolean;
   max_concurrent_workers: number;
+  name: string;
+  payout_type: "fixed" | "percentage";
   tiers?: IncentiveTier[];
-  created_at: string;
+  workspace_id: string;
 }
 
 export interface BatchCalculatePayrollRequest {
   employee_ids: string[];
-  year: number;
   month: number;
+  year: number;
 }
 
 export interface BatchCalculateResult {
   employee_id: string;
-  status: "success" | "error";
-  payslip?: Payslip;
   error_message?: string;
+  payslip?: Payslip;
+  status: "success" | "error";
 }
 
 export interface BatchCalculatePayrollResponse {
@@ -494,224 +494,224 @@ export interface BatchCalculatePayrollResponse {
 // --- Department Models ---
 
 export interface Department {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
-  manager_id?: string;
-  default_working_pattern_id?: string;
-  created_at: string;
-  updated_at: string;
   active_employee_count: number;
+  created_at: string;
+  default_working_pattern_id?: string;
+  description?: string;
+  id: string;
+  manager_id?: string;
+  name: string;
+  updated_at: string;
+  workspace_id: string;
 }
 
 export interface EmployeeDepartmentHistory {
-  id: string;
-  employee_id: string;
+  created_at: string;
   department_id: string;
   effective_date: string;
+  employee_id: string;
+  id: string;
   notes?: string;
-  created_at: string;
 }
 
 export interface ShiftRoster {
-  id: string;
-  employee_id: string;
-  shift_id: string | null;
-  date: string;
-  status: string;
-  notes: string | null;
   created_at: string;
+  date: string;
+  employee_id: string;
+  id: string;
+  notes: string | null;
+  shift_id: string | null;
+  status: string;
   updated_at: string;
 }
 
 export interface AttendanceImportJob {
+  created_at: string;
+  error_log?: string;
   id: string;
-  workspace_id: string;
-  user_id: string;
+  processed_rows: number;
   status: "processing" | "completed" | "failed" | "pending";
   total_rows: number;
-  processed_rows: number;
-  error_log?: string;
-  created_at: string;
   updated_at: string;
+  user_id: string;
+  workspace_id: string;
 }
 
 export interface ReportExportJobProgress {
-  total_batches: number;
   completed_batches: number;
   failed_batches: number;
   percentage: number;
+  total_batches: number;
 }
 
 export interface ReportExportJob {
+  completed_at?: string;
+  created_at: string;
+  error?: string;
   job_id: string;
-  status: "pending" | "processing" | "completed" | "failed";
   progress: ReportExportJobProgress;
   result_url?: string;
-  error?: string;
-  created_at: string;
-  completed_at?: string;
+  status: "pending" | "processing" | "completed" | "failed";
 }
 
 export interface CreateReportExportRequest {
-  start_date: string;
+  employee_ids?: string[];
   end_date: string;
   report_type: "summary" | "detail";
-  employee_ids?: string[];
+  start_date: string;
 }
 
 export interface CreateReportExportResponse {
+  estimated_seconds: number;
   job_id: string;
   status: string;
-  total_batches: number;
-  estimated_seconds: number;
   status_url: string;
+  total_batches: number;
 }
 
 export interface WorkerMonitorStats {
-  pending_tasks: number;
-  pending_high: number;
-  pending_low: number;
-  total_workers: number;
   active_workers: number;
-  idle_workers: number;
   completed_today: number;
   failed_today: number;
-  workers: WorkerHeartbeat[];
+  idle_workers: number;
+  pending_high: number;
+  pending_low: number;
+  pending_tasks: number;
   recent_jobs: RecentJob[];
+  total_workers: number;
+  workers: WorkerHeartbeat[];
 }
 
 export interface RecentJob {
+  completed_at: string | null;
+  completed_batches: number;
+  created_at: string;
+  error_message: string | null;
+  failed_batches: number;
   job_id: string;
+  report_type: string;
+  requester_id: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   total_batches: number;
-  completed_batches: number;
-  failed_batches: number;
   workspace_id: string;
-  requester_id: string;
-  report_type: string;
-  created_at: string;
-  completed_at: string | null;
-  error_message: string | null;
 }
 
 export interface WorkerHeartbeat {
-  id: string;
-  host: string;
-  status: "IDLE" | "PROCESSING";
   current_task_type: string | null;
+  host: string;
+  id: string;
   last_seen_at: string;
+  status: "IDLE" | "PROCESSING";
 }
 
 export interface MemberRolesResponse {
-  primary: string;
   extra: MemberExtraRole[];
+  primary: string;
 }
 
 export interface MemberExtraRole {
-  id: string;
-  workspace_id: string;
-  user_id: string;
-  role_id: string;
   assigned_at: string;
   expires_at: string;
+  id: string;
+  role_id: string;
+  user_id: string;
+  workspace_id: string;
 }
 
 export interface MemberExtraPermission {
-  id: string;
-  workspace_id: string;
-  user_id: string;
-  permission: string;
   assigned_at: string | null;
-  expires_at: string;
   assigned_by: string | null;
+  expires_at: string;
+  id: string;
+  permission: string;
+  user_id: string;
+  workspace_id: string;
 }
 
 export interface EmploymentPeriod {
-  id: string;
+  created_at: string;
   employee_id: string;
   hire_date: string;
-  termination_date?: string;
+  id: string;
   is_rehire: boolean;
-  created_at: string;
+  termination_date?: string;
   updated_at: string;
 }
 
 export interface LeaveTypeConfig {
-  requires_document?: boolean;
   allow_negative_balance?: boolean;
-  negative_balance_limit?: number;
   approval_required?: boolean;
+  negative_balance_limit?: number;
+  requires_document?: boolean;
 }
 
 export interface LeaveType {
-  id: string;
-  workspace_id: string;
   code: string;
-  name: string;
-  is_paid: boolean;
-  policy_config: LeaveTypeConfig;
   created_at: string;
+  id: string;
+  is_paid: boolean;
+  name: string;
+  policy_config: LeaveTypeConfig;
+  workspace_id: string;
  
 }
 
 export interface LeavePolicy {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
- 
-  leave_type_id: string;
-  rule_config: LeavePolicyConfig;
   created_at: string;
+  description?: string;
+  id: string;
+  leave_type_id: string;
+ 
+  name: string;
+  rule_config: LeavePolicyConfig;
   updated_at: string;
+  workspace_id: string;
 }
 
 export type AccrualFrequency = "monthly" | "quarterly" | "yearly";
 
 export interface SeniorityBonus {
-  min_years: number;
   extra_days: number;
+  min_years: number;
 }
 
 
 
 export interface LeavePolicyConfig {
-  frequency: AccrualFrequency;
   accrual_amount: number;
   accrual_timing: "start_of_period" | "end_of_period";
-  seniority_bonus: SeniorityBonus[];
-  max_balance?: number;
-  reset_month?: number;
-  min_work_days_threshold?: number;
   carry_over_limit?: number;
+  frequency: AccrualFrequency;
+  max_balance?: number;
+  min_work_days_threshold?: number;
+  reset_month?: number;
+  seniority_bonus: SeniorityBonus[];
 }
 
 export interface ScheduleTrace {
-  rule_id?: string;
- 
-  rule_name: string;
   priority: number;
-  status: "applied" | "overridden" | "conflict";
+ 
   reason?: string;
+  rule_id?: string;
+  rule_name: string;
+  status: "applied" | "overridden" | "conflict";
 }
 
 export interface EffectiveSchedule {
  
-  date: string;
-  shift_id: string | null;
-  source: "roster" | "pattern" | "assignment_rule" | "department_pattern" | "fixed" | "department_fixed" | "none";
-  shift_name: string | null;
-  start_time: string | null;
-  end_time: string | null;
   break_duration_minutes: number | null;
-  break_start: string | null;
   break_end: string | null;
-  is_break_auto_deduct: boolean | null;
-  traces: ScheduleTrace[];
-  is_holiday?: boolean;
+  break_start: string | null;
+  date: string;
+  end_time: string | null;
   holiday_name?: string | null;
+  is_break_auto_deduct: boolean | null;
+  is_holiday?: boolean;
+  shift_id: string | null;
+  shift_name: string | null;
+  source: "roster" | "pattern" | "assignment_rule" | "department_pattern" | "fixed" | "department_fixed" | "none";
+  start_time: string | null;
+  traces: ScheduleTrace[];
 }
 
 export interface EmployeeSchedule {
@@ -721,94 +721,94 @@ export interface EmployeeSchedule {
 }
 
 export interface AssignmentHistory {
-  id: string;
+  assignment_type: string;
+  created_at: string;
+  date_range: string;
   employee_id: string;
   employee_name: string;
-  assignment_type: string;
+  id: string;
   shift_name: string | null;
-  date_range: string;
-  created_at: string;
 }
 
 export interface LeaveHistoryItem {
-  id: string;
-  date: string;
-  transaction_type: "accrual" | "usage" | "adjustment" | "carry_over";
   amount: number;
+  created_at: string;
+  date: string;
+  id: string;
   reason?: string;
   reference_id?: string;
-  created_at: string;
+  transaction_type: "accrual" | "usage" | "adjustment" | "carry_over";
 }
 
 // --- Employee Self-Service (ESS) Types ---
 
 export interface EmployeeProfile {
-  id: string;
-  employee_id: string;
-  phone?: string;
   address?: string;
-  date_of_birth?: string;
-  gender?: string;
-  national_id?: string;
-  bank_name?: string;
   bank_account_number?: string;
   bank_branch?: string;
+  bank_name?: string;
   created_at: string;
+  date_of_birth?: string;
+  employee_id: string;
+  gender?: string;
+  id: string;
+  national_id?: string;
+  phone?: string;
   updated_at: string;
 }
 
 export interface EmployeeEmergencyContact {
-  id: string;
-  employee_id: string;
   contact_name: string;
-  relationship: string;
-  phone: string;
-  is_primary: boolean;
   created_at: string;
+  employee_id: string;
+  id: string;
+  is_primary: boolean;
+  phone: string;
+  relationship: string;
 }
 
 export interface EmployeeDocument {
-  id: string;
-  employee_id: string;
-  workspace_id: string;
+  created_at: string;
   document_type: string;
+  employee_id: string;
+  expires_at?: string;
   file_name: string;
   file_path: string;
   file_size: number;
-  mime_type: string;
-  expires_at?: string;
+  id: string;
   is_active: boolean;
   max_concurrent_workers: number;
+  mime_type: string;
   uploaded_by?: string;
-  created_at: string;
+  workspace_id: string;
 }
 
 export interface MyProfileResponse {
+  emergency_contacts: EmployeeEmergencyContact[];
   employee: Employee;
   profile?: EmployeeProfile;
-  emergency_contacts: EmployeeEmergencyContact[];
 }
 
 export interface UpdateProfileRequest {
-  phone?: string;
   address?: string;
+  bank_account_number?: string;
+  bank_branch?: string;
+  bank_name?: string;
   date_of_birth?: string;
   gender?: string;
   national_id?: string;
-  bank_name?: string;
-  bank_account_number?: string;
-  bank_branch?: string;
+  phone?: string;
 }
 
 export interface CreateEmergencyContactRequest {
 
   contact_name: string;
 
-  relationship: string;
+  is_primary?: boolean;
 
   phone: string;
 
-  is_primary?: boolean;
+  relationship: string;
 
 }
 
@@ -820,20 +820,20 @@ export interface CreateEmergencyContactRequest {
 
 export interface WorkingPattern {
 
-  id: string;
-
-  workspace_id: string;
-
-  name: string;
+  created_at: string;
 
   description?: string;
 
-  is_active: boolean;
-  max_concurrent_workers: number;
+  id: string;
 
-  created_at: string;
+  is_active: boolean;
+
+  max_concurrent_workers: number;
+  name: string;
 
   updated_at: string;
+
+  workspace_id: string;
 
 }
 
@@ -841,11 +841,11 @@ export interface WorkingPattern {
 
 export interface WorkingPatternDetail {
 
+  day_of_week: number; // 0=Sunday, 1=Monday...
+
   id: string;
 
   pattern_id: string;
-
-  day_of_week: number; // 0=Sunday, 1=Monday...
 
   shift_id: string | null;
 
@@ -855,21 +855,21 @@ export interface WorkingPatternDetail {
 
 export interface EmployeeWorkingPattern {
 
-  id: string;
-
-  workspace_id: string;
+  created_at: string;
 
   employee_id: string;
+
+  end_date: string | null;
+
+  id: string;
 
   pattern_id: string;
 
   start_date: string;
 
-  end_date: string | null;
-
-  created_at: string;
-
   updated_at: string;
+
+  workspace_id: string;
 
 }
 
@@ -887,42 +887,42 @@ export interface WorkingPatternDetailRequest {
 
 export interface CreateWorkingPatternRequest {
 
-  name: string;
-
   description?: string;
 
   details: WorkingPatternDetailRequest[];
+
+  name: string;
 
 }
 
 
 
 export interface AssignPatternRequest {
+  end_date?: string | null;
   pattern_id: string;
   start_date: string;
-  end_date?: string | null;
 }
 
 export interface BulkAssignResponse {
-  success_count: number;
   failed_employees: string[];
+  success_count: number;
 }
 
 export interface BulkAssignPatternRequest {
   employee_ids: string[];
+  end_date?: string | null;
   pattern_id: string;
   start_date: string;
-  end_date?: string | null;
 }
 
 export interface WorkingCondition {
-  id: string;
   employee_id: string;
-  type: string;
-  minute_allowance: number;
-  is_paid: boolean;
-  start_date: string;
   end_date?: string;
+  id: string;
+  is_paid: boolean;
+  minute_allowance: number;
+  start_date: string;
+  type: string;
 }
 
 
@@ -932,124 +932,124 @@ export interface WorkingCondition {
 // --- Payroll Models ---
 
 export interface OvertimePolicy {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
   created_at?: string;
+  description?: string;
+  id: string;
+  name: string;
   updated_at?: string;
+  workspace_id: string;
 }
 
 export interface OvertimeRule {
+  created_at?: string;
+  days_of_week: number;
   id: string;
+  is_holiday: boolean;
+  multiplier: number;
   policy_id: string;
   priority: number;
-  multiplier: number;
-  time_start?: string;
   time_end?: string;
-  days_of_week: number;
-  is_holiday: boolean;
-  created_at?: string;
+  time_start?: string;
   updated_at?: string;
 }
 
 export interface LeavePolicyAssignmentDetail {
-  id: string;
-  workspace_id: string;
-  assignee_type: string;
   assignee_id: string | null;
-  policy_id: string;
+  assignee_type: string;
+  created_at: string;
   effective_from: string;
   effective_to: string | null;
-  created_at: string;
-  policy_name: string;
+  id: string;
   leave_type_name: string;
+  policy_id: string;
+  policy_name: string;
+  workspace_id: string;
 }
 
 
 export type OtStatus = "none" | "pending_employee" | "pending_manager" | "approved" | "rejected";
 
 export interface AttendanceDailySummary {
-  id: string;
-  workspace_id: string;
-  employee_id: string;
-  date: string;
   actual_work_minutes: number;
-  system_detected_ot_minutes: number;
-  claimed_ot_minutes: number;
   approved_ot_minutes: number;
-  ot_status: OtStatus;
-  ot_reason?: string;
-  manager_note?: string;
-  claim_entered_by_user_id?: string;
   claim_entered_at?: string;
-  paper_form_photo_url?: string;
-  entered_via?: "self_service" | "paper_form";
+  claim_entered_by_user_id?: string;
+  claimed_ot_minutes: number;
   created_at: string;
+  date: string;
+  employee_id: string;
+  entered_via?: "self_service" | "paper_form";
+  id: string;
+  manager_note?: string;
+  ot_reason?: string;
+  ot_status: OtStatus;
+  paper_form_photo_url?: string;
+  system_detected_ot_minutes: number;
   updated_at: string;
+  workspace_id: string;
 }
 
 // --- Payroll Rules ---
 
 export interface PayrollRuleDefinition {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
-  code: string;
-  category: "statutory_deduction" | "allowance" | "bonus" | "deduction";
   applies_to: "all" | "department" | "employee";
   calculation_method: "percentage" | "fixed" | "tiered";
-  rule_config: Record<string, unknown>;
-  is_mandatory: boolean;
-  display_order: number;
+  category: "statutory_deduction" | "allowance" | "bonus" | "deduction";
+  code: string;
   created_at: string;
+  description?: string;
+  display_order: number;
+  id: string;
+  is_mandatory: boolean;
+  name: string;
+  rule_config: Record<string, unknown>;
+  workspace_id: string;
 }
 
 export interface PayrollRuleTier {
+  fixed_amount?: number;
   id: string;
+  max_amount?: number;
+  min_amount: number;
+  rate?: number;
   rule_definition_id: string;
   tier_order: number;
-  min_amount: number;
-  max_amount?: number;
-  rate?: number;
-  fixed_amount?: number;
 }
 
 export interface PayrollRuleAssignment {
-  id: string;
-  workspace_id: string;
-  rule_definition_id: string;
-  assignee_type: "workspace" | "department" | "employee";
   assignee_id: string | null;
+  assignee_type: "workspace" | "department" | "employee";
+  created_at: string;
   effective_from: string;
   effective_to?: string | null;
+  id: string;
   override_config?: Record<string, unknown> | null;
-  created_at: string;
+  rule_definition_id: string;
+  workspace_id: string;
 }
 
 // --- Employment Phases ---
 
  
 export interface EmploymentPhaseDefinition {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
-  phase_type: "probation" | "internship" | "official" | "contract";
-  default_duration_days?: number;
-  is_active: boolean;
-  display_order: number;
   created_at: string;
+  default_duration_days?: number;
+  description?: string;
+  display_order: number;
+  id: string;
+  is_active: boolean;
+  name: string;
+  phase_type: "probation" | "internship" | "official" | "contract";
+  workspace_id: string;
 }
 
 export interface EmploymentPhaseAssignment {
-  id: string;
   employee_id: string;
+  end_date?: string;
+  id: string;
+  notes?: string;
   phase_definition_id: string;
   start_date: string;
-  end_date?: string;
   status: "active" | "completed" | "terminated";
-  notes?: string;
 }
  

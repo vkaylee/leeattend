@@ -5,7 +5,7 @@ import { AgentStatus, Device, AuthorizedAgent, DeviceInfo } from "./types";
 export async function fetchAgents(): Promise<AgentStatus[]> {
   const response = await apiFetch(`${API_BASE_URL}/agents`);
   if (!response.ok) throw new Error("Failed to fetch agents");
-  return response.json();
+  return response.json() as Promise<AgentStatus[]>;
 }
 
  
@@ -15,13 +15,13 @@ export async function sendAgentCommand(agentId: string, command: unknown): Promi
     method: "POST",
     body: JSON.stringify(command),
   });
-  return response.json();
+  return response.json() as Promise<unknown>;
 }
 
 export async function fetchDevices(): Promise<Device[]> {
   const response = await apiFetch(`${API_BASE_URL}/devices`);
   if (!response.ok) throw new Error("Failed to fetch devices");
-  return response.json();
+  return response.json() as Promise<Device[]>;
 }
 
 export async function createDevice(
@@ -32,7 +32,7 @@ export async function createDevice(
     body: JSON.stringify(device),
   });
   if (!response.ok) throw new Error("Failed to create device");
-  return response.json();
+  return response.json() as Promise<{ id: string }>;
 }
 
 export async function updateDevice(
@@ -54,20 +54,20 @@ export async function deleteDevice(id: string): Promise<void> {
 }
 
 export async function fetchAuthorizedAgents(
-  includeInactive: boolean = false,
+  includeInactive = false,
 ): Promise<AuthorizedAgent[]> {
   const url = includeInactive
     ? `${API_BASE_URL}/authorized-agents?include_inactive=true`
     : `${API_BASE_URL}/authorized-agents`;
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch authorized agents");
-  return response.json();
+  return response.json() as Promise<AuthorizedAgent[]>;
 }
 
 export async function fetchAuthorizedAgentById(id: string): Promise<AuthorizedAgent> {
   const response = await apiFetch(`${API_BASE_URL}/authorized-agents/${id}`);
   if (!response.ok) throw new Error("Failed to fetch authorized agent");
-  return response.json();
+  return response.json() as Promise<AuthorizedAgent>;
 }
 
 export async function createAuthorizedAgent(
@@ -78,7 +78,7 @@ export async function createAuthorizedAgent(
     body: JSON.stringify(agent),
   });
   if (!response.ok) throw new Error("Failed to create authorized agent");
-  return response.json();
+  return response.json() as Promise<{ id: string }>;
 }
 
 export async function updateAgentTrust(
@@ -104,7 +104,7 @@ export async function updateAuthorizedAgent(
     body: JSON.stringify(agent),
   });
   if (!response.ok) throw new Error("Failed to update authorized agent");
-  return response.json();
+  return response.json() as Promise<AuthorizedAgent>;
 }
 
 export async function deleteAuthorizedAgent(id: string): Promise<void> {
@@ -117,5 +117,5 @@ export async function deleteAuthorizedAgent(id: string): Promise<void> {
 export async function fetchDeviceInfo(id: string): Promise<DeviceInfo> {
   const response = await apiFetch(`${API_BASE_URL}/devices/${id}/info`);
   if (!response.ok) throw new Error("Failed to fetch device info");
-  return response.json();
+  return response.json() as Promise<DeviceInfo>;
 }

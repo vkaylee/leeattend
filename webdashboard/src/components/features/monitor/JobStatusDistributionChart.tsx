@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
+
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 
-import { cn } from "@/lib/utils";
-
 import type { JobStatusCount } from "@/hooks/use-monitor-charts";
+
+import { cn } from "@/lib/utils";
 
 interface Props {
   data: JobStatusCount[];
@@ -38,21 +39,21 @@ export default function JobStatusDistributionChart({ data, isLoading }: Props) {
           </p>
         </div>
       ) : (
-        <PieChart width={160} height={160}>
+        <PieChart height={160} width={160}>
           <Pie
-            data={data}
-            dataKey="count"
-            nameKey="status"
+            cornerRadius={4}
             cx="50%"
             cy="50%"
+            data={data}
+            dataKey="count"
             innerRadius={45}
+            nameKey="status"
             outerRadius={70}
-            cornerRadius={4}
             paddingAngle={3}
             strokeWidth={0}
           >
-            {data.map((entry, i) => (
-              <Cell key={i} fill={entry.color} />
+            {data.map((entry, index) => (
+              <Cell fill={entry.color} key={index} />
             ))}
           </Pie>
           <Tooltip
@@ -72,13 +73,13 @@ export default function JobStatusDistributionChart({ data, isLoading }: Props) {
       <div className="flex flex-wrap items-center justify-center gap-2">
         {data.map((entry) => (
           <span
-            key={entry.status}
-            data-testid={`legend-${entry.status}`}
             className={cn(
               "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
               "bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-700/50",
               "hover:scale-105 transition-transform duration-200 cursor-default"
             )}
+            data-testid={`legend-${entry.status}`}
+            key={entry.status}
           >
             <span
               className="w-2 h-2 rounded-full flex-shrink-0"

@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
-import WidgetRenderer from "../WidgetRenderer";
-
 import type { WidgetId } from "@/hooks/use-dashboard-layout";
+
+import WidgetRenderer from "../WidgetRenderer";
 
 // Mock all lazy-loaded chart components
 vi.mock("@/components/features/dashboard/AttendanceTrendChart", () => ({

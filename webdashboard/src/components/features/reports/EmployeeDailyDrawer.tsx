@@ -1,10 +1,8 @@
-import React, { useRef, useEffect } from "react";
-
 import { CalendarCheck, FileBarChart, Clock } from "lucide-react";
+import React, { useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import Sheet from "@/components/ui/Sheet";
-
 import { useDebug } from "@/context/DebugContext";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
@@ -16,12 +14,12 @@ import ResolveUnscheduledModal from "./ResolveUnscheduledModal";
 import { useEmployeeDailyDrawer } from "./useEmployeeDailyDrawer";
 
 interface EmployeeDailyDrawerProps {
+    dateRange: { start: string; end: string };
+    employeeId: string;
+    employeeName: string;
     isOpen: boolean;
     onClose: () => void;
     workspaceId: string;
-    employeeId: string;
-    employeeName: string;
-    dateRange: { start: string; end: string };
     workUnitMinutes: number;
 }
 
@@ -91,36 +89,32 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
         };
 
         window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
+        return () => { window.removeEventListener("keydown", handleKeyDown); };
     }, [isOpen, viewMode, setViewMode]);
 
     return (
         <>
             <Sheet
-                isOpen={isOpen}
-                onClose={onClose}
-                title={employeeName}
-                subtitle={`${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}`}
                 className="w-[95vw] xl:w-[1200px] !max-w-[95vw]"
                 contentClassName="!overflow-hidden"
                 headerExtra={
                     <>
                         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
                             <button
-                                onClick={() => setViewMode("daily")}
                                 className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "daily"
                                     ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
                                     : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                                     }`}
+                                onClick={() => { setViewMode("daily"); }}
                             >
                                 {t("reports.tabs.daily")}
                             </button>
                             <button
-                                onClick={() => setViewMode("raw")}
                                 className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "raw"
                                     ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
                                     : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                                     }`}
+                                onClick={() => { setViewMode("raw"); }}
                             >
                                 <span className="flex items-center gap-1.5"><CalendarCheck size={12} /> {t("reports.view_raw_logs")}</span>
                             </button>
@@ -128,13 +122,13 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                         {viewMode === "daily" && !isLoading && reportData.length > 0 && (
                             <>
                                 <div className="flex items-center gap-1.5 bg-slate-900 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-800 dark:border-slate-700 shadow-sm">
-                                    <FileBarChart size={12} className="text-primary-400" />
+                                    <FileBarChart className="text-primary-400" size={12} />
                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t("reports.quick_stats.std_hours")}</span>
                                     <span className="font-mono font-bold text-white text-xs tracking-tighter">{totalStdHours}h</span>
                                 </div>
                                 {Number(totalOtHours) > 0 && (
                                     <div className="flex items-center gap-1.5 bg-gradient-to-r from-orange-900 to-orange-950 px-3 py-1.5 rounded-lg border border-orange-800 shadow-sm">
-                                        <Clock size={12} className="text-orange-400" />
+                                        <Clock className="text-orange-400" size={12} />
                                         <span className="text-[9px] font-bold text-orange-400/70 uppercase tracking-widest">{t("reports.quick_stats.ot_hours")}</span>
                                         <span className="font-mono font-bold text-orange-100 text-xs tracking-tighter">{totalOtHours}h</span>
                                     </div>
@@ -143,67 +137,71 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                         )}
                     </>
                 }
+                isOpen={isOpen}
+                onClose={onClose}
+                subtitle={`${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}`}
+                title={employeeName}
             >
-                <div ref={contentRef} className="-mx-10 -mt-4 -mb-10 h-[calc(100%+theme(spacing.14))] flex flex-col">
+                <div className="-mx-10 -mt-4 -mb-10 h-[calc(100%+theme(spacing.14))] flex flex-col" ref={contentRef}>
                     {viewMode === "raw" ? (
                         <RawLogsTable
-                            rawLogsData={rawLogsData}
-                            rawLogsLoading={rawLogsLoading}
+                            fetchNextPage={fetchNextPage}
                             hasNextPage={hasNextPage}
                             isFetchingNextPage={isFetchingNextPage}
-                            fetchNextPage={fetchNextPage}
+                            rawLogsData={rawLogsData}
+                            rawLogsLoading={rawLogsLoading}
                         />
                     ) : (
                         <DailyReportTable
-                            data={reportData}
-                            isLoading={isLoading}
-                            workUnitMinutes={workUnitMinutes}
-                            isDebugMode={isDebugMode}
-                            expandedDebugRows={expandedDebugRows}
-                            reprocessingRow={reprocessingRow}
-                            confirmingRow={confirmingRow}
                             adjustmentMap={adjustmentMap}
-                            t={t}
+                            confirmingRow={confirmingRow}
+                            data={reportData}
+                            expandedDebugRows={expandedDebugRows}
                             formatDate={formatDate}
                             formatTime={formatTime}
-                            onToggleExpandRow={toggleExpandRow}
-                            onReprocessClick={handleReprocessClick}
-                            onConfirmClick={handleConfirmClick}
-                            onApproveOt={handleApproveOt}
-                            onResolveUnscheduled={handleResolveUnscheduled}
                             hideEmployeeName
+                            isDebugMode={isDebugMode}
+                            isLoading={isLoading}
+                            onApproveOt={handleApproveOt}
+                            onConfirmClick={handleConfirmClick}
+                            onReprocessClick={handleReprocessClick}
+                            onResolveUnscheduled={handleResolveUnscheduled}
+                            onToggleExpandRow={toggleExpandRow}
+                            reprocessingRow={reprocessingRow}
+                            t={t}
+                            workUnitMinutes={workUnitMinutes}
                         />
                     )}
                 </div>
             </Sheet>
 
             <ConfirmReprocessModal
-                key={confirmDialog ? `reprocess-${confirmDialog.employeeId}-${confirmDialog.date}` : "reprocess-empty"}
-                isOpen={!!confirmDialog}
-                onClose={() => setConfirmDialog(null)}
                 dialogData={confirmDialog}
+                isOpen={!!confirmDialog}
                 isPending={reprocessMutationPending}
+                key={confirmDialog ? `reprocess-${confirmDialog.employeeId}-${confirmDialog.date}` : "reprocess-empty"}
+                onClose={() => { setConfirmDialog(null); }}
                 onConfirm={handleConfirmReprocess}
             />
 
             <ConfirmAttendanceModal
-                key={confirmModalData ? `confirm-${confirmModalData.row.date}` : "confirm-empty"}
-                isOpen={!!confirmModalData}
-                onClose={() => setConfirmModalData(null)}
-                row={confirmModalData?.row || null}
                 existingRequest={confirmModalData?.existingRequest}
+                isOpen={!!confirmModalData}
                 isPending={confirmMutationPending}
+                key={confirmModalData ? `confirm-${confirmModalData.row.date}` : "confirm-empty"}
+                onClose={() => { setConfirmModalData(null); }}
                 onSubmit={handleConfirmSubmit}
+                row={confirmModalData?.row || null}
             />
 
             <ResolveUnscheduledModal
-                key={resolveModalData ? `resolve-${resolveModalData.row.date}` : "resolve-empty"}
                 isOpen={!!resolveModalData}
-                onClose={() => setResolveModalData(null)}
+                isPending={resolveUnscheduledMutationPending}
+                key={resolveModalData ? `resolve-${resolveModalData.row.date}` : "resolve-empty"}
+                onClose={() => { setResolveModalData(null); }}
+                onSubmit={handleResolveSubmit}
                 row={resolveModalData?.row || null}
                 shifts={shifts}
-                isPending={resolveUnscheduledMutationPending}
-                onSubmit={handleResolveSubmit}
             />
         </>
     );

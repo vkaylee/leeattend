@@ -1,24 +1,22 @@
-import React from 'react';
-
 import { Clock, CalendarRange } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import InfiniteScrollSentinel from '@/components/common/InfiniteScrollSentinel';
 import { TableSkeleton } from '@/components/common/TableSkeleton';
 import StatusBadge from '@/components/ui/StatusBadge';
-
 import { RawAttendanceLog } from '@/lib/api/types';
 
 interface RecordedLogsTableProps {
-  logs: RawAttendanceLog[];
-  isLoading: boolean;
-  isFetchingNextPage: boolean;
-  loadMoreRef: React.RefObject<HTMLTableRowElement | null>;
-  getEmployeeName: (log: RawAttendanceLog) => string;
-  getEmployeeID: (log: RawAttendanceLog) => string;
-  getDeviceName: (deviceId?: string | null) => string;
   formatDate: (date: string | null | undefined) => string;
   formatTime: (date: string | null | undefined) => string;
+  getDeviceName: (deviceId?: string | null) => string;
+  getEmployeeID: (log: RawAttendanceLog) => string;
+  getEmployeeName: (log: RawAttendanceLog) => string;
+  isFetchingNextPage: boolean;
+  isLoading: boolean;
+  loadMoreRef: React.RefObject<HTMLTableRowElement | null>;
+  logs: RawAttendanceLog[];
 }
 
 export function RecordedLogsTable({
@@ -51,7 +49,7 @@ export function RecordedLogsTable({
               <TableSkeleton rows={5} variant="primary" />
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-8 py-24 text-center">
+                <td className="px-8 py-24 text-center" colSpan={4}>
                   <div className="flex flex-col items-center justify-center space-y-4">
                     <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600">
                       <CalendarRange size={32} />
@@ -66,7 +64,7 @@ export function RecordedLogsTable({
             ) : (
               <>
                 {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group" key={log.id}>
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100 dark:border-primary-800/50"><Clock size={18} /></div>
@@ -84,9 +82,7 @@ export function RecordedLogsTable({
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                           <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">{log.source}</span>
-                          {(log.device_name || (log.source === "Device" && getDeviceName(log.device_id))) && (
-                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase">{log.device_name || getDeviceName(log.device_id)}</span>
-                          )}
+                          {!!(log.device_name || (log.source === "Device" && getDeviceName(log.device_id))) && <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase">{log.device_name || getDeviceName(log.device_id)}</span>}
                         </div>
                       </div>
                     </td>
@@ -95,7 +91,7 @@ export function RecordedLogsTable({
                     </td>
                   </tr>
                 ))}
-                <InfiniteScrollSentinel sentinelRef={loadMoreRef} isFetchingNextPage={isFetchingNextPage} colSpan={4} />
+                <InfiniteScrollSentinel colSpan={4} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} />
               </>
             )}
           </tbody>

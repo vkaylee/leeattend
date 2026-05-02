@@ -1,7 +1,6 @@
-import { useState } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -11,7 +10,6 @@ import {
 import { PunchCard } from "@/components/time-tracking/PunchCard";
 import { TimeEntryRow } from "@/components/time-tracking/TimeEntryRow";
 import { useToast } from "@/components/ui/Toast";
-
 import { useMyProfile, useMyClock } from "@/hooks/use-ess";
 import { fetchWorkspace, getCurrentWorkspaceId, submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
@@ -124,11 +122,11 @@ export default function MyClockPage() {
           <PunchCard
             activeEntry={activeEntry}
             isOnBreak={isOnBreak}
-            userName={employee.full_name}
+            isPunching={isPunching}
             onPunchIn={handlePunchIn}
             onPunchOut={handlePunchOut}
-            onRequestAdjustment={() => setIsAdjustmentModalOpen(true)}
-            isPunching={isPunching}
+            onRequestAdjustment={() => { setIsAdjustmentModalOpen(true); }}
+            userName={employee.full_name}
           />
         </div>
 
@@ -161,8 +159,8 @@ export default function MyClockPage() {
                 {entries.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={3}
                       className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50"
+                      colSpan={3}
                     >
                       {t("ess.clock.no_entries")}
                     </td>
@@ -170,8 +168,8 @@ export default function MyClockPage() {
                 ) : (
                   entries.map((entry) => (
                     <TimeEntryRow
-                      key={entry.id}
                       entry={entry}
+                      key={entry.id}
                       showAdjustButton={false}
                     />
                   ))
@@ -185,7 +183,7 @@ export default function MyClockPage() {
       {/* Adjustment Request Modal */}
       <AdjustmentRequestModal
         isOpen={isAdjustmentModalOpen}
-        onClose={() => setIsAdjustmentModalOpen(false)}
+        onClose={() => { setIsAdjustmentModalOpen(false); }}
         onSubmit={handleAdjustmentSubmit}
         timezone={workspace?.timezone || "UTC"}
       />

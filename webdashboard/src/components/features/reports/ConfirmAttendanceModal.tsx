@@ -1,20 +1,18 @@
-import React, { useState } from "react";
-
 import { CheckCircle, RefreshCw } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
-
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 
 export interface ConfirmAttendanceModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    row: DailyAttendanceReport | null;
     existingRequest?: AttendanceAdjustmentRequest;
+    isOpen: boolean;
     isPending: boolean;
+    onClose: () => void;
     onSubmit: (data: { punchIn: string; punchOut: string; reason: string }) => void;
+    row: DailyAttendanceReport | null;
 }
 
 export default function ConfirmAttendanceModal({
@@ -55,12 +53,12 @@ export default function ConfirmAttendanceModal({
 
     return (
         <Modal
-            isOpen={isOpen}
-            onClose={() => !isPending && onClose()}
-            title={t("reports.confirm.modal_title")}
-            subtitle={t("reports.confirm.modal_subtitle")}
             icon={<CheckCircle size={24} />}
+            isOpen={isOpen}
             maxWidth="md"
+            onClose={() => !isPending && onClose()}
+            subtitle={t("reports.confirm.modal_subtitle")}
+            title={t("reports.confirm.modal_title")}
         >
             <div className="space-y-6 pt-2 animate-in fade-in duration-500">
                 {/* Employee & Date info */}
@@ -84,18 +82,18 @@ export default function ConfirmAttendanceModal({
                 </div>
 
                 {/* Existing request banner */}
-                {existingRequest && (
+                {!!existingRequest && (
                     <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-2xl border border-orange-200 dark:border-orange-800">
                         <p className="text-xs font-bold text-orange-600 dark:text-orange-300 uppercase tracking-wider">
                             {t("reports.confirm.existing_request")}
                         </p>
-                        {existingRequest.reason && (
+                        {!!existingRequest.reason && (
                             <p className="text-sm text-orange-700 dark:text-orange-200 mt-2 italic">
                                 &ldquo;{existingRequest.reason}&rdquo;
                             </p>
-                        )}
+                          )}
                     </div>
-                )}
+                  )}
 
                 {/* Punch In / Out */}
                 <div className="grid grid-cols-2 gap-4">
@@ -104,11 +102,11 @@ export default function ConfirmAttendanceModal({
                             {t("reports.confirm.punch_in")}
                         </label>
                         <input
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!!existingRequest}
+                            onChange={(e) => { setPunchIn(e.target.value); }}
                             type="time"
                             value={punchIn}
-                            onChange={(e) => setPunchIn(e.target.value)}
-                            disabled={!!existingRequest}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                     </div>
                     <div>
@@ -116,11 +114,11 @@ export default function ConfirmAttendanceModal({
                             {t("reports.confirm.punch_out")}
                         </label>
                         <input
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!!existingRequest}
+                            onChange={(e) => { setPunchOut(e.target.value); }}
                             type="time"
                             value={punchOut}
-                            onChange={(e) => setPunchOut(e.target.value)}
-                            disabled={!!existingRequest}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                     </div>
                 </div>
@@ -132,11 +130,11 @@ export default function ConfirmAttendanceModal({
                             {t("reports.confirm.reason")}
                         </label>
                         <input
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            onChange={(e) => { setReason(e.target.value); }}
+                            placeholder={t("reports.confirm.reason_placeholder")}
                             type="text"
                             value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            placeholder={t("reports.confirm.reason_placeholder")}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                     </div>
                 )}
@@ -144,16 +142,16 @@ export default function ConfirmAttendanceModal({
                 {/* Buttons */}
                 <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                     <button
-                        onClick={onClose}
                         className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
                         disabled={isPending}
+                        onClick={onClose}
                     >
                         {t("common.cancel")}
                     </button>
                     <button
-                        onClick={() => onSubmit({ punchIn, punchOut, reason })}
-                        disabled={isPending || (!existingRequest && !punchIn)}
                         className="flex-[1.5] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
+                        disabled={isPending || (!existingRequest && !punchIn)}
+                        onClick={() => { onSubmit({ punchIn, punchOut, reason }); }}
                     >
                         {isPending ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />

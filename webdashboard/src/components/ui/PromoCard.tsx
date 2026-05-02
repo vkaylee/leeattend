@@ -1,33 +1,32 @@
-import React, { memo } from "react";
+import type { LucideIcon } from "lucide-react";
 
 import { ArrowRight } from "lucide-react";
+import React, { memo } from "react";
 
 import { cn } from "@/lib/utils";
-
-import type { LucideIcon } from "lucide-react";
 
 // ── Component ──────────────────────────────────────────────────────
 
 export interface PromoCardProps {
-  /** Eyebrow label above the title */
-  eyebrow: string;
-  /** Main heading */
-  title: string;
-  /** Supporting description */
-  description: string;
   /** CTA button text */
   buttonText: string;
+  className?: string;
+  /** Supporting description */
+  description: string;
+  /** Eyebrow label above the title */
+  eyebrow: string;
   /** CTA link target (render as <a> or pass to Link) */
   href?: string;
-  /** onClick handler as alternative to href */
-  onClick?: () => void;
-  /** Lucide icon for the decorative background watermark */
-  watermarkIcon: LucideIcon;
-  /** Color variant — 'dark' for slate-900, 'primary' for primary-600 */
-  variant?: "dark" | "primary";
   /** Optional React node for the CTA link (overrides default button) */
   linkElement?: React.ReactNode;
-  className?: string;
+  /** onClick handler as alternative to href */
+  onClick?: () => void;
+  /** Main heading */
+  title: string;
+  /** Color variant — 'dark' for slate-900, 'primary' for primary-600 */
+  variant?: "dark" | "primary";
+  /** Lucide icon for the decorative background watermark */
+  watermarkIcon: LucideIcon;
 }
 
 const PromoCard = memo(function PromoCard({

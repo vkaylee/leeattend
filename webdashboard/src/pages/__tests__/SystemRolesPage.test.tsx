@@ -1,11 +1,10 @@
+import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import { useConfirm } from "@/hooks/use-confirm";
 import { useSystemRoles } from "@/hooks/use-system-roles";
 
@@ -70,8 +69,8 @@ describe("SystemRolesPage", () => {
     renderComponent();
 
     // Click assign button (title uses vi translation)
-    const assignBtn = screen.getByTitle("Gán cho người dùng");
-    await user.click(assignBtn);
+    const assignButton = screen.getByTitle("Gán cho người dùng");
+    await user.click(assignButton);
 
     // Modal should be open (with vi translation interpolated)
     expect(screen.getByText("Gán Vai trò platform_admin")).toBeInTheDocument();
@@ -81,8 +80,8 @@ describe("SystemRolesPage", () => {
     await user.type(input, "new-user-123");
 
     // Submit (vi translation)
-    const submitBtn = screen.getByText("Gán Vai trò");
-    await user.click(submitBtn);
+    const submitButton = screen.getByText("Gán Vai trò");
+    await user.click(submitButton);
 
     expect(mockAssignRole).toHaveBeenCalledWith({
       userId: "new-user-123",
@@ -96,8 +95,8 @@ describe("SystemRolesPage", () => {
 
     renderComponent();
 
-    const revokeBtn = screen.getByTitle("Thu hồi vai trò");
-    await user.click(revokeBtn);
+    const revokeButton = screen.getByTitle("Thu hồi vai trò");
+    await user.click(revokeButton);
 
     expect(mockConfirm).toHaveBeenCalled();
     await waitFor(() => {

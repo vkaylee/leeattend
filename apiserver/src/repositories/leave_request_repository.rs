@@ -40,6 +40,18 @@ pub trait LeaveRequestRepository: super::PoolBacked + Send + Sync {
         end_date: NaiveDate,
         workspace_id: Uuid,
     ) -> Result<LeaveBreakdown, sqlx::Error>;
+    /// Get the employee's current department for a given leave request.
+    /// Used for scoped permission checks in approval flows.
+    async fn get_employee_department_for_request(
+        &self,
+        request_id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Option<Uuid>, sqlx::Error>;
+    /// List all leave types (code, name) for a workspace.
+    async fn get_leave_types(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<(String, String)>, sqlx::Error>;
 }
 
 // ---------------------------------------------------------------------------
@@ -99,6 +111,39 @@ impl LeaveRequestRepository for SqlxLeaveRequestRepository {
     ) -> Result<LeaveBreakdown, sqlx::Error> {
         get_approved_leave_breakdown(&self.pool, employee_id, start_date, end_date, workspace_id)
             .await
+    }
+    async fn get_employee_department_for_request(
+        &self,
+        request_id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Option<Uuid>, sqlx::Error> {
+        sqlx::query_scalar(
+            r#"
+            SELECT edh.department_id
+            FROM leave_requests lr
+            JOIN employee_department_history edh ON lr.employee_id = edh.employee_id
+            JOIN employees e ON lr.employee_id = e.id
+            WHERE lr.id = $1 AND e.workspace_id = $2
+            ORDER BY edh.effective_date DESC
+            LIMIT 1
+            "#,
+        )
+        .bind(request_id)
+        .bind(workspace_id)
+        .fetch_optional(&self.pool)
+        .await
+    }
+    async fn get_leave_types(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<(String, String)>, sqlx::Error> {
+        let rows: Vec<(String, String)> = sqlx::query_as(
+            "SELECT code, name FROM leave_types WHERE workspace_id = $1 ORDER BY code",
+        )
+        .bind(workspace_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
     }
 }
 

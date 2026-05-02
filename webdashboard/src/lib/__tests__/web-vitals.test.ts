@@ -4,15 +4,15 @@ const mockCallbacks: string[] = [];
 
 vi.mock("web-vitals", () => ({
  
-  onCLS: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onCLS")),
+  onCLS: vi.fn((_callback: (metric: unknown) => void) => mockCallbacks.push("onCLS")),
  
-  onFCP: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onFCP")),
+  onFCP: vi.fn((_callback: (metric: unknown) => void) => mockCallbacks.push("onFCP")),
  
-  onINP: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onINP")),
+  onINP: vi.fn((_callback: (metric: unknown) => void) => mockCallbacks.push("onINP")),
  
-  onLCP: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onLCP")),
+  onLCP: vi.fn((_callback: (metric: unknown) => void) => mockCallbacks.push("onLCP")),
  
-  onTTFB: vi.fn((_cb: (metric: unknown) => void) => mockCallbacks.push("onTTFB")),
+  onTTFB: vi.fn((_callback: (metric: unknown) => void) => mockCallbacks.push("onTTFB")),
 }));
 
 describe("web-vitals", () => {
@@ -33,6 +33,6 @@ describe("web-vitals", () => {
 
   it("reports metrics in DEV mode without throwing", async () => {
     const { trackWebVitals } = await import("../web-vitals");
-    expect(() => trackWebVitals()).not.toThrow();
+    expect(() => { trackWebVitals(); }).not.toThrow();
   });
 });

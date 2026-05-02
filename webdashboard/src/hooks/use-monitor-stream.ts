@@ -1,10 +1,9 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, useCallback } from "react";
 
-import { useQueryClient } from "@tanstack/react-query";
+import type { WorkerMonitorStats } from "@/lib/api/types";
 
 import { monitorKeys } from "./use-worker-monitor";
-
-import type { WorkerMonitorStats } from "@/lib/api/types";
 
 /** SSE base URL – mirrors the REST API_BASE_URL logic. */
 const SSE_URL = (import.meta.env.DEV ? "/api" : (import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "/api")) + "/monitor/stream";

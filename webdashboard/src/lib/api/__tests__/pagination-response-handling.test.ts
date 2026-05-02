@@ -51,8 +51,8 @@ describe("Pagination Response Handling", () => {
 
     it("should enforce proper data type for paginated response", () => {
       interface Employee {
-        id: string;
         full_name: string;
+        id: string;
       }
 
       const response: PaginatedResponse<Employee> = {
@@ -152,7 +152,7 @@ describe("Pagination Response Handling", () => {
       expect(found?.value).toBe(20);
 
       // reduce
-      const sum = data.reduce((acc, item) => acc + item.value, 0);
+      const sum = data.reduce((accumulator, item) => accumulator + item.value, 0);
       expect(sum).toBe(60);
     });
   });
@@ -228,19 +228,19 @@ describe("Pagination Response Handling", () => {
       // Use pagination metadata for UI
       const totalPages = Math.ceil(response.total / response.limit);
       const canGoNext = response.page < totalPages;
-      const canGoPrev = response.page > 1;
+      const canGoPrevious = response.page > 1;
 
       expect(data).toHaveLength(2);
       expect(totalPages).toBe(2);
       expect(canGoNext).toBe(true);
-      expect(canGoPrev).toBe(false);
+      expect(canGoPrevious).toBe(false);
     });
   });
 
   describe("Edge Cases and Error Scenarios", () => {
     it("should handle large dataset pagination", () => {
-      const largeData = Array.from({ length: 1000 }, (_, i) => ({
-        id: `item-${i}`,
+      const largeData = Array.from({ length: 1000 }, (_, index) => ({
+        id: `item-${index}`,
       }));
 
       const response: PaginatedResponse<{ id: string }> = {
@@ -443,9 +443,9 @@ describe("Pagination Response Handling", () => {
 
     it("should allow optional fields in PaginatedResponse items", () => {
       interface EmployeeOptional {
-        id: string;
-        full_name: string;
         department?: string;
+        full_name: string;
+        id: string;
       }
 
       const response: PaginatedResponse<EmployeeOptional> = {

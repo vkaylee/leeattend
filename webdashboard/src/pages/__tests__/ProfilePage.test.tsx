@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -60,8 +60,8 @@ vi.mock("../../components/ui/Combobox", () => ({
   Combobox: ({ options, value, onChange, placeholder, "data-testid": testId }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; placeholder?: string; "data-testid"?: string }) => (
     <select
       data-testid={testId || "mock-combobox"}
+      onChange={(e) => { onChange(e.target.value); }}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
     >
       <option value="">{placeholder || "Select..."}</option>
       {options.map((opt: { value: string; label: string }) => (
@@ -106,7 +106,7 @@ describe("ProfilePage", () => {
     });
 
     vi.spyOn(useProfileHook, "useProfile").mockReturnValue({
-      user: mockUser as ReturnType<typeof useProfileHook.useProfile>["user"],
+      user: mockUser,
       isLoading: false,
       isError: false,
       error: null,

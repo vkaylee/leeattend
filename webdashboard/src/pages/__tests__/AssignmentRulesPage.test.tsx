@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -57,10 +57,10 @@ vi.mock("react-i18next", () => ({
         "common.inactive": "Inactive",
         "common.did_you_know": "Did you know?",
       };
-      const val = translations[key];
-      if (val) return val;
+      const value = translations[key];
+      if (value) return value;
       if (typeof fallback === "string") return fallback;
-      if (fallback && fallback.defaultValue) return fallback.defaultValue;
+      if (fallback?.defaultValue) return fallback.defaultValue;
       return key;
     },
     i18n: { language: "en" },
@@ -72,8 +72,8 @@ vi.mock("../../components/ui/Combobox", () => ({
   Combobox: ({ options, value, onChange, placeholder, "data-testid": testId }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; placeholder?: string; "data-testid"?: string }) => (
     <select
       data-testid={testId}
+      onChange={(e) => { onChange(e.target.value); }}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
     >
       <option value="">{placeholder}</option>
       {options.map((opt: { value: string; label: string }) => (
@@ -145,9 +145,9 @@ describe("AssignmentRulesPage", () => {
     vi.mocked(api.fetchAssignmentRules).mockResolvedValue(mockRules);
     vi.mocked(api.fetchWorkingPatterns).mockResolvedValue(mockPatterns as never);
     vi.mocked(api.fetchDepartments).mockResolvedValue(mockDepartments as never);
-    vi.mocked(api.createAssignmentRule).mockResolvedValue(mockRules[0] as never);
-    vi.mocked(api.updateAssignmentRule).mockResolvedValue(mockRules[0] as never);
-    vi.mocked(api.deleteAssignmentRule).mockResolvedValue(undefined as never);
+    vi.mocked(api.createAssignmentRule).mockResolvedValue(mockRules[0]);
+    vi.mocked(api.updateAssignmentRule).mockResolvedValue(mockRules[0]);
+    vi.mocked(api.deleteAssignmentRule).mockResolvedValue(undefined);
   });
 
   const renderPage = () =>
@@ -217,8 +217,8 @@ describe("AssignmentRulesPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const createBtn = await screen.findByText("CREATE RULE");
-    await user.click(createBtn);
+    const createButton = await screen.findByText("CREATE RULE");
+    await user.click(createButton);
 
     expect(screen.getByText("Create New Rule")).toBeInTheDocument();
     expect(screen.getByText("Rule Name")).toBeInTheDocument();
@@ -240,8 +240,8 @@ describe("AssignmentRulesPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const createBtn = await screen.findByText("CREATE RULE");
-    await user.click(createBtn);
+    const createButton = await screen.findByText("CREATE RULE");
+    await user.click(createButton);
 
     const nameInput = screen.getByPlaceholderText("e.g. Day shift for operations");
     await user.type(nameInput, "New Rule");
@@ -250,8 +250,8 @@ describe("AssignmentRulesPage", () => {
     const patternSelect = screen.getByTestId("pattern-combobox");
     await user.selectOptions(patternSelect, "pat-1");
 
-    const submitBtn = screen.getByText("Create");
-    await user.click(submitBtn);
+    const submitButton = screen.getByText("Create");
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(api.createAssignmentRule).toHaveBeenCalledWith(
@@ -269,12 +269,12 @@ describe("AssignmentRulesPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const createBtn = await screen.findByText("CREATE RULE");
-    await user.click(createBtn);
+    const createButton = await screen.findByText("CREATE RULE");
+    await user.click(createButton);
     expect(screen.getByText("Create New Rule")).toBeInTheDocument();
 
-    const cancelBtn = screen.getByText("Cancel");
-    await user.click(cancelBtn);
+    const cancelButton = screen.getByText("Cancel");
+    await user.click(cancelButton);
 
     await waitFor(() => {
       expect(screen.queryByText("Create New Rule")).not.toBeInTheDocument();
@@ -292,8 +292,8 @@ describe("AssignmentRulesPage", () => {
     const deleteBtns = screen.getAllByTitle("Delete");
     await user.click(deleteBtns[0]);
 
-    const confirmBtn = await screen.findByText("Confirm");
-    await user.click(confirmBtn);
+    const confirmButton = await screen.findByText("Confirm");
+    await user.click(confirmButton);
 
     await waitFor(() => {
       expect(api.deleteAssignmentRule).toHaveBeenCalledWith("ws-1", "rule-1");
@@ -309,8 +309,8 @@ describe("AssignmentRulesPage", () => {
     const deleteBtns = screen.getAllByTitle("Delete");
     await user.click(deleteBtns[0]);
 
-    const cancelBtn = await screen.findByText("Cancel");
-    await user.click(cancelBtn);
+    const cancelButton = await screen.findByText("Cancel");
+    await user.click(cancelButton);
 
     expect(api.deleteAssignmentRule).not.toHaveBeenCalled();
   });

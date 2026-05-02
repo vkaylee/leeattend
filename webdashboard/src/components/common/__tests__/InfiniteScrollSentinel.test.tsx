@@ -1,6 +1,6 @@
+import { render } from "@testing-library/react";
 import React, { createRef } from "react";
 
-import { render } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 import InfiniteScrollSentinel from "../InfiniteScrollSentinel";
@@ -18,7 +18,7 @@ describe("InfiniteScrollSentinel", () => {
         const ref = createRef<HTMLTableRowElement>();
         const { container } = render(
             <table><tbody>
-                <InfiniteScrollSentinel sentinelRef={ref} isFetchingNextPage={false} colSpan={4} />
+                <InfiniteScrollSentinel colSpan={4} isFetchingNextPage={false} sentinelRef={ref} />
             </tbody></table>
         );
         const row = container.querySelector("tr");
@@ -29,7 +29,7 @@ describe("InfiniteScrollSentinel", () => {
         const ref = createRef<HTMLTableRowElement>();
         const { container } = render(
             <table><tbody>
-                <InfiniteScrollSentinel sentinelRef={ref} isFetchingNextPage={true} colSpan={4} />
+                <InfiniteScrollSentinel colSpan={4} isFetchingNextPage={true} sentinelRef={ref} />
             </tbody></table>
         );
         // Loader2 renders as an SVG with animate-spin class
@@ -41,7 +41,7 @@ describe("InfiniteScrollSentinel", () => {
         const ref = createRef<HTMLTableRowElement>();
         const { container } = render(
             <table><tbody>
-                <InfiniteScrollSentinel sentinelRef={ref} isFetchingNextPage={false} colSpan={4} />
+                <InfiniteScrollSentinel colSpan={4} isFetchingNextPage={false} sentinelRef={ref} />
             </tbody></table>
         );
         const spinner = container.querySelector(".animate-spin");
@@ -52,7 +52,7 @@ describe("InfiniteScrollSentinel", () => {
         const ref = createRef<HTMLTableRowElement>();
         const { container } = render(
             <table><tbody>
-                <InfiniteScrollSentinel sentinelRef={ref} isFetchingNextPage={false} colSpan={7} />
+                <InfiniteScrollSentinel colSpan={7} isFetchingNextPage={false} sentinelRef={ref} />
             </tbody></table>
         );
         const td = container.querySelector("td");

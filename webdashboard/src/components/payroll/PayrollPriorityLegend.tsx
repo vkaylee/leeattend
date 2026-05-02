@@ -1,6 +1,5 @@
-import React from 'react';
-
 import { FileText } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { HierarchyLegend, HierarchyStep } from '../common/HierarchyLegend';
@@ -35,10 +34,10 @@ export const PayrollPriorityLegend: React.FC<PayrollPriorityLegendProps> = ({ ac
 
   return (
     <HierarchyLegend
+      explanation={t("payroll.traceability.hierarchy_explanation", "Payroll settings are resolved from Individual > Department > Workspace.")}
+      icon={<FileText size={14} />}
       steps={getSteps()}
       title={t("payroll.traceability.hierarchy_title", "Policy Hierarchy")}
-      icon={<FileText size={14} />}
-      explanation={t("payroll.traceability.hierarchy_explanation", "Payroll settings are resolved from Individual > Department > Workspace.")}
     />
   );
 };

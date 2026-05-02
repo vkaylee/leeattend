@@ -12,6 +12,20 @@ pub trait UserRepository: super::PoolBacked + Send + Sync {
     async fn create_user(&self, user: &User) -> Result<(), sqlx::Error>;
     async fn get_user_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error>;
     async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, sqlx::Error>;
+    async fn update_password_hash(
+        &self,
+        user_id: Uuid,
+        password_hash: &str,
+    ) -> Result<(), sqlx::Error>;
+    async fn get_system_roles_for_user(&self, user_id: Uuid) -> Result<Vec<String>, sqlx::Error>;
+    async fn update_user_profile(
+        &self,
+        user_id: Uuid,
+        full_name: Option<String>,
+        avatar_url: Option<String>,
+        bio: Option<String>,
+    ) -> Result<User, sqlx::Error>;
+    async fn get_workspace_users(&self, workspace_id: Uuid) -> Result<Vec<User>, sqlx::Error>;
 }
 
 // ---------------------------------------------------------------------------
@@ -37,6 +51,59 @@ impl UserRepository for SqlxUserRepository {
     }
     async fn get_user_by_id(&self, id: Uuid) -> Result<Option<User>, sqlx::Error> {
         get_user_by_id(&self.pool, id).await
+    }
+    async fn update_password_hash(
+        &self,
+        user_id: Uuid,
+        password_hash: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
+            .bind(password_hash)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+    async fn get_system_roles_for_user(&self, user_id: Uuid) -> Result<Vec<String>, sqlx::Error> {
+        let roles = sqlx::query_scalar::<_, String>(
+            "SELECT sr.name FROM user_system_roles usr \
+             JOIN system_roles sr ON sr.id = usr.role_id \
+             WHERE usr.user_id = $1",
+        )
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(roles)
+    }
+    async fn update_user_profile(
+        &self,
+        user_id: Uuid,
+        full_name: Option<String>,
+        avatar_url: Option<String>,
+        bio: Option<String>,
+    ) -> Result<User, sqlx::Error> {
+        let user = sqlx::query_as::<_, User>(
+            "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio) WHERE id = $4 RETURNING *",
+        )
+        .bind(full_name)
+        .bind(avatar_url)
+        .bind(bio)
+        .bind(user_id)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(user)
+    }
+    async fn get_workspace_users(&self, workspace_id: Uuid) -> Result<Vec<User>, sqlx::Error> {
+        let users = sqlx::query_as::<_, User>(
+            "SELECT u.* FROM users u \
+             JOIN workspace_members wm ON u.id = wm.user_id \
+             WHERE wm.workspace_id = $1 \
+             ORDER BY u.created_at DESC",
+        )
+        .bind(workspace_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(users)
     }
 }
 
@@ -95,6 +162,29 @@ pub async fn get_user_by_id(pool: &PgPool, id: Uuid) -> Result<Option<User>, sql
     )
     .fetch_optional(pool)
     .await
+}
+
+pub async fn user_count_tx<'e, E>(executor: E) -> Result<i64, sqlx::Error>
+where
+    E: Executor<'e, Database = Postgres>,
+{
+    sqlx::query_scalar("SELECT COUNT(*) FROM users")
+        .fetch_one(executor)
+        .await
+}
+
+pub async fn assign_platform_admin_tx<'e, E>(executor: E, user_id: Uuid) -> Result<(), sqlx::Error>
+where
+    E: Executor<'e, Database = Postgres>,
+{
+    sqlx::query(
+        "INSERT INTO user_system_roles (user_id, role_id) \
+         SELECT $1, id FROM system_roles WHERE name = 'platform_admin'",
+    )
+    .bind(user_id)
+    .execute(executor)
+    .await?;
+    Ok(())
 }
 
 impl super::PoolBacked for SqlxUserRepository {

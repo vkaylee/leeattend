@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-
 import { describe, it, expect } from "vitest";
 
 function walk(dir: string): string[] {
@@ -20,8 +19,8 @@ function walk(dir: string): string[] {
 
 describe("UI Standards: Inputs", () => {
   it("should not force uppercase on text inputs", () => {
-    const srcPath = path.resolve(__dirname, "..");
-    const files = walk(srcPath);
+    const sourcePath = path.resolve(__dirname, "..");
+    const files = walk(sourcePath);
     const violations: string[] = [];
 
     // Regex to find input or textarea with uppercase class
@@ -32,7 +31,7 @@ describe("UI Standards: Inputs", () => {
       let match;
       while ((match = inputRegex.exec(content)) !== null) {
         if (/\buppercase\b/.test(match[0])) {
-          violations.push(`File: ${file.replace(srcPath, "")}\nTag: ${match[0]}`);
+          violations.push(`File: ${file.replace(sourcePath, "")}\nTag: ${match[0]}`);
         }
       }
     });

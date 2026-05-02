@@ -1,6 +1,5 @@
-import React from "react";
-
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import React from "react";
 
 import { profileKeys } from "@/hooks/use-profile";
 import { fetchMe, clearAuthSession } from "@/lib/api";

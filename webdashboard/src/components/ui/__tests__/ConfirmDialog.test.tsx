@@ -1,6 +1,6 @@
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 import ConfirmDialog from "../ConfirmDialog";
@@ -10,7 +10,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
  
     t: (key: string, options?: { defaultValue?: string }) => {
-      if (options && options.defaultValue) {
+      if (options?.defaultValue) {
         return options.defaultValue;
       }
       return key;
@@ -22,13 +22,13 @@ describe("ConfirmDialog Component", () => {
   it("renders correctly with given props", () => {
     render(
       <ConfirmDialog
+        cancelLabel="No, Wait"
+        confirmLabel="Yes, Do It"
         isOpen={true}
+        message="Are you sure you want to proceed?"
         onClose={() => {}}
         onConfirm={() => {}}
         title="Test Confirm"
-        message="Are you sure you want to proceed?"
-        confirmLabel="Yes, Do It"
-        cancelLabel="No, Wait"
       />
     );
 
@@ -43,10 +43,10 @@ describe("ConfirmDialog Component", () => {
     render(
       <ConfirmDialog
         isOpen={true}
+        message="Are you sure?"
         onClose={onClose}
         onConfirm={() => {}}
         title="Test Confirm"
-        message="Are you sure?"
       />
     );
 
@@ -59,10 +59,10 @@ describe("ConfirmDialog Component", () => {
     render(
       <ConfirmDialog
         isOpen={true}
+        message="Are you sure?"
         onClose={() => {}}
         onConfirm={onConfirm}
         title="Test Confirm"
-        message="Are you sure?"
       />
     );
 
@@ -73,12 +73,12 @@ describe("ConfirmDialog Component", () => {
   it("disables buttons when isLoading is true", () => {
     render(
       <ConfirmDialog
+        isLoading={true}
         isOpen={true}
+        message="Are you sure?"
         onClose={() => {}}
         onConfirm={() => {}}
         title="Test Confirm"
-        message="Are you sure?"
-        isLoading={true}
       />
     );
 

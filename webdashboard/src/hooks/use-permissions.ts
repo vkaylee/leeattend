@@ -1,6 +1,5 @@
-import { useCallback } from "react";
-
 import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 
 import { fetchMyPermissions, getCurrentWorkspaceId } from "@/lib/api";
 

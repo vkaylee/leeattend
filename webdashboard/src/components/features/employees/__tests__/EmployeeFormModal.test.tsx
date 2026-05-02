@@ -1,17 +1,16 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { ToastProvider } from "@/components/ui/Toast";
+import type { Employee } from "@/lib/api";
 
+import { ToastProvider } from "@/components/ui/Toast";
 import * as api from "@/lib/api";
 
 import EmployeeFormModal from "../EmployeeFormModal";
-
-import type { Employee } from "@/lib/api";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
@@ -106,14 +105,14 @@ describe("EmployeeFormModal", () => {
         renderWithClient(
             <EmployeeFormModal {...defaultProps} editingEmployee={mockEmployee} />
         );
-        const nameInput = screen.getByTestId("employees-form-name-input") as HTMLInputElement;
-        expect(nameInput.value).toBe("Alice Nguyen");
+        const nameInput = screen.getByTestId("employees-form-name-input");
+        expect((nameInput as HTMLInputElement).value).toBe("Alice Nguyen");
 
-        const idInput = screen.getByTestId("employees-form-id-input") as HTMLInputElement;
-        expect(idInput.value).toBe("EMP-001");
+        const idInput = screen.getByTestId("employees-form-id-input");
+        expect((idInput as HTMLInputElement).value).toBe("EMP-001");
 
-        const hireInput = screen.getByTestId("employees-form-hire-date-input") as HTMLInputElement;
-        expect(hireInput.value).toBe("2024-06-15");
+        const hireInput = screen.getByTestId("employees-form-hire-date-input");
+        expect((hireInput as HTMLInputElement).value).toBe("2024-06-15");
     });
 
     it("shows user combobox with linked user in edit mode", async () => {
@@ -127,7 +126,7 @@ describe("EmployeeFormModal", () => {
 
     it("calls createEmployee on submit in add mode", async () => {
         const user = userEvent.setup();
-        vi.mocked(api.createEmployee).mockResolvedValue(mockEmployee as unknown as never);
+        vi.mocked(api.createEmployee).mockResolvedValue(mockEmployee);
         renderWithClient(<EmployeeFormModal {...defaultProps} />);
 
         await user.type(screen.getByTestId("employees-form-name-input"), "New Emp");
@@ -149,7 +148,7 @@ describe("EmployeeFormModal", () => {
 
     it("passes user_id to createEmployee when user is selected from combobox", async () => {
         const user = userEvent.setup();
-        vi.mocked(api.createEmployee).mockResolvedValue(mockEmployee as unknown as never);
+        vi.mocked(api.createEmployee).mockResolvedValue(mockEmployee);
         renderWithClient(<EmployeeFormModal {...defaultProps} />);
 
         await user.type(screen.getByTestId("employees-form-name-input"), "New Emp");
@@ -174,7 +173,7 @@ describe("EmployeeFormModal", () => {
 
     it("calls updateEmployee on submit in edit mode", async () => {
         const user = userEvent.setup();
-        vi.mocked(api.updateEmployee).mockResolvedValue(mockEmployee as unknown as never);
+        vi.mocked(api.updateEmployee).mockResolvedValue(mockEmployee);
         renderWithClient(
             <EmployeeFormModal {...defaultProps} editingEmployee={mockEmployee} />
         );
@@ -194,7 +193,7 @@ describe("EmployeeFormModal", () => {
 
     it("passes user_id to updateEmployee when editing and user is selected", async () => {
         const user = userEvent.setup();
-        vi.mocked(api.updateEmployee).mockResolvedValue(mockEmployee as unknown as never);
+        vi.mocked(api.updateEmployee).mockResolvedValue(mockEmployee);
         renderWithClient(
             <EmployeeFormModal {...defaultProps} editingEmployee={mockEmployee} />
         );
@@ -220,15 +219,15 @@ describe("EmployeeFormModal", () => {
             <EmployeeFormModal {...defaultProps} onClose={onClose} />
         );
 
-        const cancelBtn = screen.getByText(/employees.form.cancel/i);
-        await user.click(cancelBtn);
+        const cancelButton = screen.getByText(/employees.form.cancel/i);
+        await user.click(cancelButton);
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
     it("calls onSuccess after successful mutation", async () => {
         const user = userEvent.setup();
         const onSuccess = vi.fn();
-        vi.mocked(api.createEmployee).mockResolvedValue(mockEmployee as unknown as never);
+        vi.mocked(api.createEmployee).mockResolvedValue(mockEmployee);
         renderWithClient(
             <EmployeeFormModal {...defaultProps} onSuccess={onSuccess} />
         );
@@ -253,7 +252,7 @@ describe("EmployeeFormModal", () => {
         await user.type(screen.getByTestId("employees-form-hire-date-input"), "2025-01-01");
         await user.click(screen.getByTestId("save-employee-btn"));
 
-        const saveBtn = screen.getByTestId("save-employee-btn");
-        expect(saveBtn).toBeDisabled();
+        const saveButton = screen.getByTestId("save-employee-btn");
+        expect(saveButton).toBeDisabled();
     });
 });

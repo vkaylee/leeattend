@@ -1,19 +1,17 @@
-import React from "react";
-
 import { History as HistoryIcon, Calendar as CalendarIcon } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
-
 import { EmploymentPeriod } from "@/lib/api";
 
 interface EmploymentHistoryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
   employmentHistory: EmploymentPeriod[] | undefined;
   formatDate: (dateString: string) => string;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export default function EmploymentHistoryModal({
@@ -26,18 +24,18 @@ export default function EmploymentHistoryModal({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t("employees.history.title")}
-      subtitle={t("employees.history.subtitle")}
       icon={<HistoryIcon size={24} />}
+      isOpen={isOpen}
       maxWidth="lg"
+      onClose={onClose}
+      subtitle={t("employees.history.subtitle")}
+      title={t("employees.history.title")}
     >
       <div className="space-y-4 pt-4 animate-in fade-in duration-500">
         {employmentHistory?.map((period) => (
           <div
-            key={period.id}
             className="p-8 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-inner group hover:bg-white dark:hover:bg-slate-900 transition-all relative overflow-hidden"
+            key={period.id}
           >
             <div className="flex justify-between items-center relative z-10">
               <div>
@@ -52,7 +50,7 @@ export default function EmploymentHistoryModal({
                   )}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.25em] mt-3 flex items-center gap-3 opacity-70">
-                  <CalendarIcon size={14} className="text-primary-400" />{" "}
+                  <CalendarIcon className="text-primary-400" size={14} />{" "}
                   {t("employees.history.period_range", {
                     start: formatDate(period.hire_date),
                     end: period.termination_date
@@ -67,7 +65,7 @@ export default function EmploymentHistoryModal({
         ))}
       </div>
       <div className="mt-10 pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end">
-        <Button variant="secondary" size="lg" onClick={onClose} type="button">
+        <Button onClick={onClose} size="lg" type="button" variant="secondary">
           {t("common.close").toUpperCase()}
         </Button>
       </div>

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent } from '@testing-library/react';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock TanStack Router
@@ -9,11 +10,11 @@ vi.mock("@tanstack/react-router", () => ({
  
   Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => <a href={to} {...props}>{children}</a>,
 }));
+import type { ThemeMode } from '@/hooks/use-dark-mode';
+
 import { DarkModeContext } from '@/context/dark-mode-context-definition';
 
 import Navbar from '../Navbar';
-
-import type { ThemeMode } from '@/hooks/use-dark-mode';
 
 // Mock dependencies that Navbar's children need
 vi.mock('@/components/ui/LanguageSwitcher', () => ({
@@ -38,8 +39,8 @@ function renderWithContext(mode: ThemeMode = 'system') {
       <DarkModeContext.Provider value={contextValue}>
         <Navbar
           currentWorkspaceName="Test Workspace"
-          onOpenSidebar={vi.fn()}
           isCollapsed={false}
+          onOpenSidebar={vi.fn()}
           onToggleCollapsed={vi.fn()}
         />
       </DarkModeContext.Provider>
@@ -80,13 +81,13 @@ describe('ThemeToggle (in Navbar)', () => {
 
   it('active button has highlighted style', () => {
     renderWithContext('dark');
-    const darkBtn = screen.getByTestId('theme-toggle-dark');
-    expect(darkBtn.className).toContain('bg-white');
+    const darkButton = screen.getByTestId('theme-toggle-dark');
+    expect(darkButton.className).toContain('bg-white');
   });
 
   it('inactive buttons do not have highlighted style', () => {
     renderWithContext('dark');
-    const lightBtn = screen.getByTestId('theme-toggle-light');
-    expect(lightBtn.className).not.toContain('bg-white');
+    const lightButton = screen.getByTestId('theme-toggle-light');
+    expect(lightButton.className).not.toContain('bg-white');
   });
 });

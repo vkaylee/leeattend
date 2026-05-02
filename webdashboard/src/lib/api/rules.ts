@@ -8,35 +8,35 @@ export interface AssignmentRuleConditions {
 }
 
 export interface AssignmentRule {
-  id: string;
-  workspace_id: string;
-  pattern_id: string;
-  name: string;
-  priority: number;
   conditions: AssignmentRuleConditions;
-  is_active: boolean;
   created_at: string;
+  id: string;
+  is_active: boolean;
+  name: string;
+  pattern_id: string;
+  priority: number;
   updated_at: string;
+  workspace_id: string;
 }
 
 export interface CreateAssignmentRuleRequest {
-  pattern_id: string;
-  name: string;
-  priority: number;
   conditions: AssignmentRuleConditions;
+  name: string;
+  pattern_id: string;
+  priority: number;
 }
 
 export interface UpdateAssignmentRuleRequest {
-  pattern_id?: string;
-  name?: string;
-  priority?: number;
   conditions?: AssignmentRuleConditions;
   is_active?: boolean;
+  name?: string;
+  pattern_id?: string;
+  priority?: number;
 }
 
 export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules`);
-  return response.json();
+  return response.json() as Promise<AssignmentRule[]>;
 }
 
 export async function createAssignmentRule(wsId: string, data: CreateAssignmentRuleRequest): Promise<AssignmentRule> {
@@ -44,7 +44,7 @@ export async function createAssignmentRule(wsId: string, data: CreateAssignmentR
     method: "POST",
     body: JSON.stringify(data),
   });
-  return response.json();
+  return response.json() as Promise<AssignmentRule>;
 }
 
 export async function updateAssignmentRule(wsId: string, ruleId: string, data: UpdateAssignmentRuleRequest): Promise<AssignmentRule> {
@@ -52,7 +52,7 @@ export async function updateAssignmentRule(wsId: string, ruleId: string, data: U
     method: "PATCH",
     body: JSON.stringify(data),
   });
-  return response.json();
+  return response.json() as Promise<AssignmentRule>;
 }
 
 export async function deleteAssignmentRule(wsId: string, ruleId: string): Promise<void> {

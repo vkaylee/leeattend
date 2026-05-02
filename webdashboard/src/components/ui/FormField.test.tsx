@@ -1,6 +1,6 @@
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 import FormField, { LABEL_BASE, INPUT_BASE } from "./FormField";
@@ -22,7 +22,7 @@ describe("FormField Component", () => {
   });
 
   it("uses id prop over name for association", () => {
-    render(<FormField label="Field" name="field_name" id="custom-id" />);
+    render(<FormField id="custom-id" label="Field" name="field_name" />);
     const label = screen.getByText("Field");
     expect(label).toHaveAttribute("for", "custom-id");
   });
@@ -37,25 +37,25 @@ describe("FormField Component", () => {
   });
 
   it("renders date input", () => {
-    render(<FormField label="Birthday" type="date" name="dob" />);
+    render(<FormField label="Birthday" name="dob" type="date" />);
     const input = document.querySelector('input[type="date"]');
     expect(input).toBeInTheDocument();
   });
 
   it("renders email input", () => {
-    render(<FormField label="Email" type="email" name="email" />);
+    render(<FormField label="Email" name="email" type="email" />);
     const input = document.querySelector('input[type="email"]');
     expect(input).toBeInTheDocument();
   });
 
   it("renders tel input", () => {
-    render(<FormField label="Phone" type="tel" name="phone" />);
+    render(<FormField label="Phone" name="phone" type="tel" />);
     const input = document.querySelector('input[type="tel"]');
     expect(input).toBeInTheDocument();
   });
 
   it("renders number input", () => {
-    render(<FormField label="Age" type="number" name="age" />);
+    render(<FormField label="Age" name="age" type="number" />);
     const input = document.querySelector('input[type="number"]');
     expect(input).toBeInTheDocument();
   });
@@ -68,7 +68,7 @@ describe("FormField Component", () => {
   });
 
   it("renders textarea with custom rows", () => {
-    render(<FormField label="Description" type="textarea" rows={3} />);
+    render(<FormField label="Description" rows={3} type="textarea" />);
     const textarea = document.querySelector("textarea");
     expect(textarea).toHaveAttribute("rows", "3");
   });
@@ -78,7 +78,7 @@ describe("FormField Component", () => {
   it("supports controlled value and onChange", () => {
     const handler = vi.fn();
     render(
-      <FormField label="Test" value="hello" onChange={handler} />,
+      <FormField label="Test" onChange={handler} value="hello" />,
     );
     const input = screen.getByRole("textbox");
     expect(input).toHaveValue("hello");
@@ -102,7 +102,7 @@ describe("FormField Component", () => {
   // ── data-testid ─────────────────────────────────────────────────
 
   it("passes data-testid to input", () => {
-    render(<FormField label="Test" data-testid="my-field" />);
+    render(<FormField data-testid="my-field" label="Test" />);
     expect(screen.getByTestId("my-field")).toBeInTheDocument();
   });
 
@@ -110,13 +110,13 @@ describe("FormField Component", () => {
 
   it("merges wrapper className", () => {
     const { container } = render(
-      <FormField label="Wrapper" className="extra-wrapper" />,
+      <FormField className="extra-wrapper" label="Wrapper" />,
     );
     expect(container.firstElementChild!.className).toContain("extra-wrapper");
   });
 
   it("merges inputClassName on input", () => {
-    render(<FormField label="Font" inputClassName="font-mono" />);
+    render(<FormField inputClassName="font-mono" label="Font" />);
     expect(screen.getByRole("textbox").className).toContain("font-mono");
   });
 });

@@ -9,8 +9,8 @@ export function useConfirm() {
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const [resolver, setResolver] = useState<(value: boolean) => void>();
 
-  const confirm = useCallback((opts: ConfirmOptions): Promise<boolean> => {
-    setOptions(opts);
+  const confirm = useCallback((options_: ConfirmOptions): Promise<boolean> => {
+    setOptions(options_);
     setIsOpen(true);
     return new Promise((resolve) => {
       setResolver(() => resolve);

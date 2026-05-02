@@ -1,5 +1,6 @@
 import { Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
 import {
     AreaChart,
     Area,
@@ -58,42 +59,42 @@ export default function OvertimeTrendChart() {
                 </div>
             ) : !hasData ? (
                 <div className="h-[280px] flex flex-col items-center justify-center">
-                    <Clock size={48} className="text-slate-200 dark:text-slate-700 mb-4" />
+                    <Clock className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
                     <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
                         {t("common.no_data")}
                     </p>
                 </div>
             ) : (
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer height={280} width="100%">
                     <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                         <defs>
-                            <linearGradient id="gradSystemOt" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="gradSystemOt" x1="0" x2="0" y1="0" y2="1">
                                 <stop offset="5%" stopColor={COLORS.system} stopOpacity={0.3} />
                                 <stop offset="95%" stopColor={COLORS.system} stopOpacity={0} />
                             </linearGradient>
-                            <linearGradient id="gradApprovedOt" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="gradApprovedOt" x1="0" x2="0" y1="0" y2="1">
                                 <stop offset="5%" stopColor={COLORS.approved} stopOpacity={0.3} />
                                 <stop offset="95%" stopColor={COLORS.approved} stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="currentColor"
                             className="text-slate-100 dark:text-slate-800"
+                            stroke="currentColor"
+                            strokeDasharray="3 3"
                         />
                         <XAxis
-                            dataKey="label"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
-                            tickLine={false}
                             axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
+                            dataKey="label"
                             interval="preserveStartEnd"
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                            tickLine={false}
                         />
                         <YAxis
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
-                            tickLine={false}
                             axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                            tickLine={false}
                             unit="h"
                         />
                         <Tooltip
@@ -115,20 +116,20 @@ export default function OvertimeTrendChart() {
                             }}
                         />
                         <Area
-                            type="monotone"
                             dataKey="system_ot_hours"
+                            fill="url(#gradSystemOt)"
                             name={t("dashboard.hr.system_ot")}
                             stroke={COLORS.system}
                             strokeWidth={2}
-                            fill="url(#gradSystemOt)"
+                            type="monotone"
                         />
                         <Area
-                            type="monotone"
                             dataKey="approved_ot_hours"
+                            fill="url(#gradApprovedOt)"
                             name={t("dashboard.hr.approved_ot")}
                             stroke={COLORS.approved}
                             strokeWidth={2}
-                            fill="url(#gradApprovedOt)"
+                            type="monotone"
                         />
                     </AreaChart>
                 </ResponsiveContainer>

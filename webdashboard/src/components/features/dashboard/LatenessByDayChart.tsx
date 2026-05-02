@@ -1,5 +1,6 @@
 import { CalendarClock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
 import {
     Bar,
     XAxis,
@@ -51,48 +52,48 @@ export default function LatenessByDayChart() {
                 </div>
             ) : !hasData ? (
                 <div className="h-[280px] flex flex-col items-center justify-center">
-                    <CalendarClock size={48} className="text-slate-200 dark:text-slate-700 mb-4" />
+                    <CalendarClock className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
                     <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
                         {t("common.no_data")}
                     </p>
                 </div>
             ) : (
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer height={280} width="100%">
                     <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                         <defs>
-                            <linearGradient id="gradLateCount" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="gradLateCount" x1="0" x2="0" y1="0" y2="1">
                                 <stop offset="5%" stopColor={COLORS.late_count} stopOpacity={0.8} />
                                 <stop offset="95%" stopColor={COLORS.late_count} stopOpacity={0.4} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="currentColor"
                             className="text-slate-100 dark:text-slate-800"
+                            stroke="currentColor"
+                            strokeDasharray="3 3"
                         />
                         <XAxis
+                            axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
                             dataKey="day"
                             tick={{ fontSize: 10, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
                             tickLine={false}
-                            axisLine={false}
                         />
                         <YAxis
-                            yAxisId="left"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
-                            tickLine={false}
-                            axisLine={false}
                             allowDecimals={false}
+                            axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                            tickLine={false}
+                            yAxisId="left"
                         />
                         <YAxis
-                            yAxisId="right"
+                            axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
                             orientation="right"
                             tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
                             tickLine={false}
-                            axisLine={false}
                             unit="m"
+                            yAxisId="right"
                         />
                         <Tooltip
                             contentStyle={{
@@ -112,21 +113,21 @@ export default function LatenessByDayChart() {
                             }}
                         />
                         <Bar
-                            yAxisId="left"
                             dataKey="late_count"
-                            name={t("dashboard.hr.late_count")}
                             fill="url(#gradLateCount)"
+                            name={t("dashboard.hr.late_count")}
                             radius={[6, 6, 0, 0]}
+                            yAxisId="left"
                         />
                         <Line
-                            yAxisId="right"
-                            type="monotone"
+                            activeDot={{ r: 6 }}
                             dataKey="avg_late_minutes"
+                            dot={{ r: 4, fill: COLORS.avg_minutes }}
                             name={t("dashboard.hr.avg_late_minutes")}
                             stroke={COLORS.avg_minutes}
                             strokeWidth={2.5}
-                            dot={{ r: 4, fill: COLORS.avg_minutes }}
-                            activeDot={{ r: 6 }}
+                            type="monotone"
+                            yAxisId="right"
                         />
                     </ComposedChart>
                 </ResponsiveContainer>

@@ -3,12 +3,12 @@ import { expect } from '@playwright/test';
 import { test } from './worker-orchestrator';
 
 test.describe.skip('Login Success Flow', () => {
-  test('smoke: login with valid credentials', async ({ loginPage }) => {
+  test('smoke: login with valid credentials', async ({ loginPage, page }) => {
     await loginPage.goto();
     await loginPage.login('admin@leeattend.com', 'admin123');
 
     // Verify successful redirection to Home
-    await expect(loginPage['page']).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/$/);
     await loginPage.verifyTitle('dashboard-title');
   });
 

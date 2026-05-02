@@ -13,9 +13,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
     await page.goto("/login");
 
     // Use fast login if available
-    const fastLoginBtn = page.getByTestId("fast-login-btn");
-    if (await fastLoginBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await fastLoginBtn.click();
+    const fastLoginButton = page.getByTestId("fast-login-btn");
+    if (await fastLoginButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await fastLoginButton.click();
     } else {
       // Manual login as fallback
       await page.fill('[data-testid="login-email"]', "test@example.com");
@@ -35,9 +35,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
   test.skip("should open export dialog", async ({ page }) => {
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     } else {
       // Alternative: Use menu button
       await page.click('button:has-text("Export")');
@@ -54,9 +54,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
   test.skip("should show real-time progress via WebSocket", async ({ page }) => {
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     }
 
     // Wait for dialog
@@ -99,9 +99,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
   test.skip("should show progress bar updates", async ({ page }) => {
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     }
 
     // Wait for dialog
@@ -118,15 +118,15 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
     // Get initial progress
     const progressFill = page.getByTestId("report-export-progress-fill");
-    const initialWidth = await progressFill.evaluate((el) => {
-      const width = window.getComputedStyle(el).width;
+    const initialWidth = await progressFill.evaluate((element) => {
+      const width = window.getComputedStyle(element).width;
       return parseFloat(width);
     });
 
     // Wait a bit and check progress increased
     await page.waitForTimeout(2000);
-    const updatedWidth = await progressFill.evaluate((el) => {
-      const width = window.getComputedStyle(el).width;
+    const updatedWidth = await progressFill.evaluate((element) => {
+      const width = window.getComputedStyle(element).width;
       return parseFloat(width);
     });
 
@@ -136,9 +136,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
   test.skip("should update batch counter in real-time", async ({ page }) => {
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     }
 
     // Wait for dialog
@@ -173,9 +173,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
   test.skip("should handle cancellation during processing", async ({ page }) => {
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     }
 
     // Wait for dialog
@@ -202,9 +202,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
   test.skip("should download file on completion", async ({ page }) => {
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     }
 
     // Wait for dialog
@@ -241,9 +241,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
     // In real environment, we simulate error conditions
 
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     }
 
     // Wait for dialog
@@ -269,9 +269,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
     // In production, this would only trigger on actual WebSocket failures
 
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     }
 
     // Wait for dialog
@@ -303,9 +303,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
   test.skip("should handle retry after error", async ({ page }) => {
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     }
 
     // Wait for dialog
@@ -325,9 +325,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
       );
 
       // Click retry
-      const retryBtn = page.getByTestId("report-export-retry-button");
-      if (await retryBtn.isVisible()) {
-        await retryBtn.click();
+      const retryButton = page.getByTestId("report-export-retry-button");
+      if (await retryButton.isVisible()) {
+        await retryButton.click();
 
         // Should return to processing state
         await expect(page.getByTestId("report-export-status-text")).toContainText(
@@ -340,9 +340,9 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
   test.skip("should maintain UI state consistency", async ({ page }) => {
     // Click export button
-    const exportBtn = page.getByTestId("reports-export-button");
-    if (await exportBtn.isVisible().catch(() => false)) {
-      await exportBtn.click();
+    const exportButton = page.getByTestId("reports-export-button");
+    if (await exportButton.isVisible().catch(() => false)) {
+      await exportButton.click();
     }
 
     // Dialog should be visible
@@ -350,22 +350,22 @@ test.describe.skip("Report Export Real-Time Updates", () => {
     await expect(dialog).toBeVisible();
 
     // Initially should show start button
-    let startBtn = page.getByTestId("report-export-start-button");
-    await expect(startBtn).toBeVisible();
+    let startButton = page.getByTestId("report-export-start-button");
+    await expect(startButton).toBeVisible();
 
     // Start export
-    await startBtn.click();
+    await startButton.click();
 
     // Start button should be replaced by background button
-    startBtn = page.getByTestId("report-export-start-button");
-    const bgBtn = page.getByTestId("report-export-background-button");
+    startButton = page.getByTestId("report-export-start-button");
+    const bgButton = page.getByTestId("report-export-background-button");
 
     // Wait for transition
     await page.waitForTimeout(500);
 
     // One of them should be visible (depending on state)
-    const isStartVisible = await startBtn.isVisible({ timeout: 1000 }).catch(() => false);
-    const isBgVisible = await bgBtn.isVisible({ timeout: 1000 }).catch(() => false);
+    const isStartVisible = await startButton.isVisible({ timeout: 1000 }).catch(() => false);
+    const isBgVisible = await bgButton.isVisible({ timeout: 1000 }).catch(() => false);
 
     expect(isStartVisible || isBgVisible).toBe(true);
   });

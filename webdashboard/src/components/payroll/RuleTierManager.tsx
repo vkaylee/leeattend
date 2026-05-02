@@ -1,19 +1,17 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, LayoutList } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/Toast";
-
 import { fetchPayrollRuleTiers, createPayrollRuleTier } from "@/lib/api/payroll";
 import { PayrollRuleTier } from "@/lib/api/types";
 
 
 interface Props {
-  wsId: string;
-  ruleId: string;
   onClose?: () => void;
+  ruleId: string;
+  wsId: string;
 }
 
 export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Props) {
@@ -66,7 +64,7 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
         ) : (
           <div className="space-y-2">
             {tiers?.map((tier) => (
-              <div key={tier.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm" key={tier.id}>
                 <div className="flex items-center gap-4">
                   <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">{tier.tier_order}</span>
                   <div className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono">
@@ -82,24 +80,24 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
             ))}
 
             {/* Add new tier form */}
-            <form onSubmit={handleSubmit} className="mt-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner flex items-end gap-4">
+            <form className="mt-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner flex items-end gap-4" onSubmit={handleSubmit}>
               <div className="flex-1 space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.min_amount")}</label>
-                <input type="number" required className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={newTier.min_amount} onChange={e => setNewTier({...newTier, min_amount: parseFloat(e.target.value)})} />
+                <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" onChange={e => { setNewTier({...newTier, min_amount: parseFloat(e.target.value)}); }} required type="number" value={newTier.min_amount} />
               </div>
               <div className="flex-1 space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.max_amount")}</label>
-                <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={newTier.max_amount || ""} onChange={e => setNewTier({...newTier, max_amount: e.target.value ? parseFloat(e.target.value) : undefined})} />
+                <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" onChange={e => { setNewTier({...newTier, max_amount: e.target.value ? parseFloat(e.target.value) : undefined}); }} type="number" value={newTier.max_amount || ""} />
               </div>
               <div className="flex-1 space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.rate")}</label>
-                <input type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={newTier.rate || ""} onChange={e => setNewTier({...newTier, rate: e.target.value ? parseFloat(e.target.value) : 0})} />
+                <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" onChange={e => { setNewTier({...newTier, rate: e.target.value ? parseFloat(e.target.value) : 0}); }} step="0.01" type="number" value={newTier.rate || ""} />
               </div>
               <div className="flex-1 space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("payroll.rule_tiers.fields.fixed_deduction")}</label>
-                <input type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" value={newTier.fixed_amount || ""} onChange={e => setNewTier({...newTier, fixed_amount: e.target.value ? parseFloat(e.target.value) : 0})} />
+                <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" onChange={e => { setNewTier({...newTier, fixed_amount: e.target.value ? parseFloat(e.target.value) : 0}); }} type="number" value={newTier.fixed_amount || ""} />
               </div>
-              <button type="submit" disabled={createMutation.isPending} className="bg-primary-600 text-white p-2.5 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50">
+              <button className="bg-primary-600 text-white p-2.5 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50" disabled={createMutation.isPending} type="submit">
                 <Plus size={16} />
               </button>
             </form>

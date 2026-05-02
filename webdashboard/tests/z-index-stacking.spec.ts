@@ -4,9 +4,9 @@ test.describe.skip('UI Z-Index Stacking Verification', () => {
   test('Combobox dropdown should have higher z-index than Modal backdrop', async ({ page }) => {
     // 1. Setup: Use Debug Login
     await page.goto('/login');
-    const fastLoginBtn = page.getByTestId('fast-login-btn');
-    await expect(fastLoginBtn).toBeVisible({ timeout: 15000 });
-    await fastLoginBtn.click();
+    const fastLoginButton = page.getByTestId('fast-login-btn');
+    await expect(fastLoginButton).toBeVisible({ timeout: 15000 });
+    await fastLoginButton.click();
     await expect(page.locator('h1').filter({ hasText: /Dashboard/i })).toBeVisible({ timeout: 30000 });
 
     // 2. Navigate to Leave Settings
@@ -23,16 +23,16 @@ test.describe.skip('UI Z-Index Stacking Verification', () => {
 
     // Open Assignment Modal
     console.log('Opening Assignment Modal...');
-    const assignBtn = page.getByTestId('assign-policy-btn');
-    await expect(assignBtn).toBeVisible({ timeout: 15000 });
-    await assignBtn.click();
+    const assignButton = page.getByTestId('assign-policy-btn');
+    await expect(assignButton).toBeVisible({ timeout: 15000 });
+    await assignButton.click();
 
     // 3. Verify Modal Backdrop is present and get its z-index
     const backdrop = page.locator('.modal-backdrop');
     await expect(backdrop).toBeVisible();
     
-    const backdropZIndex = await backdrop.evaluate((el) => {
-      return window.getComputedStyle(el).zIndex;
+    const backdropZIndex = await backdrop.evaluate((element) => {
+      return window.getComputedStyle(element).zIndex;
     });
     console.log(`Modal Backdrop Z-Index: ${backdropZIndex}`);
 
@@ -45,8 +45,8 @@ test.describe.skip('UI Z-Index Stacking Verification', () => {
     const popoverContent = page.locator('[cmdk-root]').first();
     await expect(popoverContent).toBeVisible();
 
-    const popoverZIndex = await popoverContent.evaluate((el) => {
-      let current: HTMLElement | null = el as HTMLElement;
+    const popoverZIndex = await popoverContent.evaluate((element) => {
+      let current: HTMLElement | null = element as HTMLElement;
       while (current) {
         const z = window.getComputedStyle(current).zIndex;
         if (z !== 'auto') return z;

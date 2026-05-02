@@ -1,30 +1,29 @@
 import React from "react";
-
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
 export interface TabConfig {
+  colorScheme: "amber" | "emerald" | "rose" | "blue" | "slate";
+  icon?: React.ReactNode;
   id: string;
   label: string;
-  icon?: React.ReactNode;
-  colorScheme: "amber" | "emerald" | "rose" | "blue" | "slate";
 }
 
 interface ApprovalListLayoutProps {
-  title: string;
-  subtitle: string;
-  headerActions?: React.ReactNode;
-  banner?: React.ReactNode;
-  tabs: TabConfig[];
   activeTab: string;
-  onTabChange: (tabId: string) => void;
-  tableHeaders: React.ReactNode[];
-  isLoading?: boolean;
-  isEmpty?: boolean;
-  emptyMessage?: string;
+  banner?: React.ReactNode;
   children?: React.ReactNode;
+  emptyMessage?: string;
+  headerActions?: React.ReactNode;
+  isEmpty?: boolean;
+  isLoading?: boolean;
   modals?: React.ReactNode;
+  onTabChange: (tabId: string) => void;
+  subtitle: string;
+  tableHeaders: React.ReactNode[];
+  tabs: TabConfig[];
+  title: string;
 }
 
 export default function ApprovalListLayout({
@@ -90,12 +89,12 @@ export default function ApprovalListLayout({
 
           return (
             <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
               className={cn(
                 "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                 activeClasses
               )}
+              key={tab.id}
+              onClick={() => { onTabChange(tab.id); }}
             >
               {tab.icon} {tab.label}
             </button>
@@ -107,21 +106,21 @@ export default function ApprovalListLayout({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-primary-100 dark:border-primary-800/50">
-              {tableHeaders.map((header, i) => (
-                <React.Fragment key={i}>{header}</React.Fragment>
+              {tableHeaders.map((header, index) => (
+                <React.Fragment key={index}>{header}</React.Fragment>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {isLoading ? (
               <tr>
-                <td colSpan={tableHeaders.length} className="px-10 py-20 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">
+                <td className="px-10 py-20 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse" colSpan={tableHeaders.length}>
                   {t("common.loading")}
                 </td>
               </tr>
             ) : isEmpty ? (
               <tr>
-                <td colSpan={tableHeaders.length} className="px-10 py-32 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
+                <td className="px-10 py-32 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={tableHeaders.length}>
                   {emptyMessage || t("common.no_data")}
                 </td>
               </tr>

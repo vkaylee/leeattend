@@ -23,7 +23,7 @@ function formatTime(d: Date): string {
  */
 function subscribeToTicker(onStoreChange: () => void): () => void {
     const id = setInterval(onStoreChange, 1000);
-    return () => clearInterval(id);
+    return () => { clearInterval(id); };
 }
 
 function getTickerSnapshot(): number {

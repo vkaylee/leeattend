@@ -1,5 +1,3 @@
-import React, { useState, useEffect, useMemo } from "react";
-
 import { 
   CheckCircle2, 
   AlertCircle, 
@@ -9,10 +7,10 @@ import {
   Search,
   Info
 } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import PaginationControls from "@/components/common/PaginationControls";
-
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { Employee, Payslip } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -21,14 +19,14 @@ import { cn } from "@/lib/utils";
 
 interface PayrollSummaryTableProps {
   employees: Employee[];
-  payslips: Payslip[];
   isLoading: boolean;
-  selectedIds: Set<string>;
+  onSearchChange: (value: string) => void;
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: (ids?: string[]) => void;
   onViewDetail: (employee: Employee) => void;
+  payslips: Payslip[];
   searchTerm: string;
-  onSearchChange: (val: string) => void;
+  selectedIds: Set<string>;
 }
 
 export default function PayrollSummaryTable({
@@ -104,7 +102,7 @@ export default function PayrollSummaryTable({
         <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
           <div className="relative group flex-1 max-w-lg">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 w-4.5 h-4.5 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" />
-            <input type="text" aria-label={t("common.search")} placeholder={t("payroll.search_placeholder")} className="w-full pl-14 pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
+            <input aria-label={t("common.search")} className="w-full pl-14 pr-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm" onChange={(e) => { onSearchChange(e.target.value); }} placeholder={t("payroll.search_placeholder")} type="text" value={searchTerm} />
             { }
           </div>
           <div className="flex items-center gap-3"><span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">{filteredEmployees.length} {t("common.employees")}</span></div>
@@ -120,7 +118,7 @@ export default function PayrollSummaryTable({
       {selectedIds.size > 0 && (
         <div className="bg-primary-50 dark:bg-primary-950 px-8 py-3 border-b border-primary-100 dark:border-primary-800 flex items-center justify-between animate-in slide-in-from-top-2">
           <div className="flex items-center gap-3">
-             <Info size={16} className="text-primary-600 dark:text-primary-400" />
+             <Info className="text-primary-600 dark:text-primary-400" size={16} />
              <p className="text-xs font-bold text-primary-900">
                {selectedIds.size === filteredEmployees.length 
                  ? t("payroll.selection.all_filtered_selected", { count: selectedIds.size, defaultValue: `All ${selectedIds.size} employees in this list are selected.` })
@@ -130,8 +128,8 @@ export default function PayrollSummaryTable({
           </div>
           {!isAllFilteredSelected && filteredEmployees.length > pageSize && (
             <button 
-              onClick={selectAllFiltered}
               className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
+              onClick={selectAllFiltered}
             >
               {t("payroll.selection.select_all_filtered", { count: filteredEmployees.length, defaultValue: `Select all ${filteredEmployees.length} employees` })}
             </button>
@@ -144,8 +142,8 @@ export default function PayrollSummaryTable({
           <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0 backdrop-blur-md z-10 border-b border-slate-100 dark:border-slate-800">
             <tr>
               <th className="px-10 py-5 w-16">
-                <button onClick={handleSelectPage} className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isPageSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary-300")}>
-                  {isPageSelected && <Check size={14} strokeWidth={4} />}
+                <button className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isPageSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary-300")} onClick={handleSelectPage}>
+                  {!!isPageSelected && <Check size={14} strokeWidth={4} />}
                 </button>
               </th>
               <th className="px-4 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("employees.table.name")}</th>
@@ -162,14 +160,14 @@ export default function PayrollSummaryTable({
               const slip = payslipMap[emp.id];
               const isSelected = selectedIds.has(emp.id);
               return (
-                <tr key={emp.id} className={cn("group transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer", isSelected ? "bg-primary-50 dark:bg-primary-950/30" : "")} onClick={() => onViewDetail(emp)}>
-                  <td className="px-10 py-6" onClick={(e) => e.stopPropagation()}>
+                <tr className={cn("group transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer", isSelected ? "bg-primary-50 dark:bg-primary-950/30" : "")} key={emp.id} onClick={() => { onViewDetail(emp); }}>
+                  <td className="px-10 py-6" onClick={(e) => { e.stopPropagation(); }}>
                     <button 
-                      data-testid={`select-employee-${emp.id}`}
-                      onClick={() => onToggleSelect(emp.id)} 
                       className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 group-hover:border-primary-300")}
+                      data-testid={`select-employee-${emp.id}`} 
+                      onClick={() => { onToggleSelect(emp.id); }}
                     >
-                      {isSelected && <Check size={14} strokeWidth={4} />}
+                      {!!isSelected && <Check size={14} strokeWidth={4} />}
                     </button>
                   </td>
                   <td className="px-4 py-6">
@@ -188,8 +186,8 @@ export default function PayrollSummaryTable({
                     {!canReadSensitive ? "***" : (slip && parseFloat(slip.overtime_pay_amount) > 0 ? `+${new Intl.NumberFormat('vi-VN').format(parseFloat(slip.overtime_pay_amount))}` : "—")}
                   </td>
                   <td className="px-4 py-6 text-right font-mono text-sm text-blue-600 dark:text-blue-300 font-bold">
-                    {!canReadSensitive ? "***" : (slip && slip.incentives && slip.incentives.length > 0 
-                      ? `+${new Intl.NumberFormat('vi-VN').format(slip.incentives.reduce((acc, i) => acc + parseFloat(i.amount), 0))}` 
+                    {!canReadSensitive ? "***" : (slip?.incentives && slip.incentives.length > 0 
+                      ? `+${new Intl.NumberFormat('vi-VN').format(slip.incentives.reduce((accumulator, index) => accumulator + parseFloat(index.amount), 0))}` 
                       : "—")}
                   </td>
                   <td className="px-4 py-6 text-right">
@@ -207,7 +205,7 @@ export default function PayrollSummaryTable({
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full text-[9px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700 opacity-60"><Calculator size={12} /> {t("common.pending")}</span>
                     )}
                   </td>
-                  <td className="px-4 py-6 text-right pr-8"><ChevronRight size={18} className="ml-auto text-slate-200 dark:text-slate-700 transition-all group-hover:text-primary-500 dark:group-hover:text-primary-400 group-hover:translate-x-1" /></td>
+                  <td className="px-4 py-6 text-right pr-8"><ChevronRight className="ml-auto text-slate-200 dark:text-slate-700 transition-all group-hover:text-primary-500 dark:group-hover:text-primary-400 group-hover:translate-x-1" size={18} /></td>
                 </tr>
               );
             })}
@@ -215,7 +213,7 @@ export default function PayrollSummaryTable({
         </table>
         {filteredEmployees.length === 0 && (
           <div className="py-32 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 m-8 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
-            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><User size={32} className="text-slate-200 dark:text-slate-700" /></div>
+            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><User className="text-slate-200 dark:text-slate-700" size={32} /></div>
             <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">{t("employees.search.no_results")}</h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 uppercase font-bold tracking-widest opacity-50">{t("common.no_records_found")}</p>
           </div>
@@ -225,11 +223,11 @@ export default function PayrollSummaryTable({
       <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex justify-center">
         <PaginationControls 
           currentPage={currentPage}
-          totalPages={totalPages}
           onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
           pageSize={pageSize}
           totalItems={filteredEmployees.length}
-          onPageSizeChange={setPageSize}
+          totalPages={totalPages}
         />
       </div>
         </>
@@ -241,14 +239,14 @@ export default function PayrollSummaryTable({
 function Check({ size, strokeWidth }: { size: number, strokeWidth: number }) {
   return (
     <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
       fill="none" 
+      height={size} 
       stroke="currentColor" 
-      strokeWidth={strokeWidth} 
       strokeLinecap="round" 
-      strokeLinejoin="round"
+      strokeLinejoin="round" 
+      strokeWidth={strokeWidth} 
+      viewBox="0 0 24 24" 
+      width={size}
     >
       <polyline points="20 6 9 17 4 12" />
     </svg>

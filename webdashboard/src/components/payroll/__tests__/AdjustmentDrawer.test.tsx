@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as api from "@/lib/api";
@@ -59,10 +59,10 @@ describe("AdjustmentDrawer", () => {
 
     renderWithProviders(
       <AdjustmentDrawer 
-        isOpen={true} 
-        onClose={() => {}} 
         employeeId="emp-1" 
         employeeName="John Doe" 
+        isOpen={true} 
+        onClose={() => {}} 
       />
     );
 
@@ -86,15 +86,15 @@ describe("AdjustmentDrawer", () => {
 
     renderWithProviders(
       <AdjustmentDrawer 
-        isOpen={true} 
-        onClose={() => {}} 
         employeeId="emp-1" 
         employeeName="John Doe" 
+        isOpen={true} 
+        onClose={() => {}} 
       />
     );
 
-    const approveBtn = await screen.findByTestId("approve-adjustment-btn");
-    fireEvent.click(approveBtn);
+    const approveButton = await screen.findByTestId("approve-adjustment-btn");
+    fireEvent.click(approveButton);
 
     await waitFor(() => {
       expect(api.approveAttendanceAdjustment).toHaveBeenCalledWith("test-ws-id", "adj-1", { status: "approved" });

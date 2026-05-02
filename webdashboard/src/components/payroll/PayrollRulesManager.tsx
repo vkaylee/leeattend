@@ -1,12 +1,10 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, CheckCircle2, FileText, Trash2, Percent, Calculator } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-
 import { fetchPayrollRules, createPayrollRule, fetchSalaryBaseGroups } from "@/lib/api/payroll";
 import { PayrollRuleDefinition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -48,33 +46,33 @@ export default function PayrollRulesManager({ wsId }: Props) {
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">Manage dynamic statutory deductions and rules</p>
           </div>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Plus size={18} /> {t("common.add").toUpperCase()}</button>
+        <button className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={() => { setIsModalOpen(true); }}><Plus size={18} /> {t("common.add").toUpperCase()}</button>
       </div>
 
       <div className="divide-y divide-slate-50 dark:divide-slate-800 px-2">
         {isLoading ? (
-          <div data-testid="loader" className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
+          <div className="p-20 text-center" data-testid="loader"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
         ) : rules?.length === 0 ? (
           <div className="p-32 text-center bg-slate-50 dark:bg-slate-800/30 m-8 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center">
-            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><FileText size={32} className="text-slate-200 dark:text-slate-700" /></div>
+            <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100 dark:border-slate-800"><FileText className="text-slate-200 dark:text-slate-700" size={32} /></div>
             <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">No Statutory Rules Configured</p>
           </div>
         ) : (
           rules?.map((rule) => (
-            <div key={rule.id} className="border-b border-slate-50 dark:border-slate-800/50 last:border-0">
+            <div className="border-b border-slate-50 dark:border-slate-800/50 last:border-0" key={rule.id}>
               { }
               { }
               <div 
                 className={cn("p-8 px-10 flex items-center justify-between transition-all group relative m-2 rounded-3xl cursor-pointer", expandedRuleId === rule.id ? "bg-slate-50 dark:bg-slate-800/80 shadow-inner" : "hover:bg-slate-50 dark:hover:bg-slate-800/50")}
-                onClick={() => setExpandedRuleId(expandedRuleId === rule.id ? null : rule.id)}
-                role="button"
-                tabIndex={0}
+                onClick={() => { setExpandedRuleId(expandedRuleId === rule.id ? null : rule.id); }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     setExpandedRuleId(expandedRuleId === rule.id ? null : rule.id);
                   }
                 }}
+                role="button"
+                tabIndex={0}
               >
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-lg shadow-sm group-hover:text-primary-600 dark:group-hover:text-primary-400 group-hover:border-primary-100 dark:border-primary-800 transition-all uppercase">{rule.code.slice(0, 2)}</div>
@@ -95,7 +93,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
                     </span>
                     <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-50 italic">{rule.applies_to.toUpperCase()}</span>
                   </div>
-                  <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90" onClick={(e) => e.stopPropagation()}><Trash2 size={18} /></button>
+                  <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90" onClick={(e) => { e.stopPropagation(); }}><Trash2 size={18} /></button>
                 </div>
               </div>
 
@@ -103,9 +101,9 @@ export default function PayrollRulesManager({ wsId }: Props) {
               {expandedRuleId === rule.id && (
                 <div className="px-12 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300 space-y-6">
                   {rule.calculation_method === "tiered" && (
-                    <RuleTierManager wsId={wsId} ruleId={rule.id} />
+                    <RuleTierManager ruleId={rule.id} wsId={wsId} />
                   )}
-                  <RuleAssignmentManager wsId={wsId} ruleId={rule.id} calculationMethod={rule.calculation_method} />
+                  <RuleAssignmentManager calculationMethod={rule.calculation_method} ruleId={rule.id} wsId={wsId} />
                 </div>
               )}
             </div>
@@ -113,24 +111,24 @@ export default function PayrollRulesManager({ wsId }: Props) {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Rule" subtitle="Create a new payroll rule" icon={<FileText size={24} />} maxWidth="lg">
-        <form onSubmit={handleSubmit} className="space-y-10 pt-4 animate-in fade-in duration-500">
+      <Modal icon={<FileText size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle="Create a new payroll rule" title="Add Rule">
+        <form className="space-y-10 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
-              <label htmlFor="rule-name" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.name")}</label>
-              <input id="rule-name" required type="text" placeholder="Social Insurance" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-name">{t("common.name")}</label>
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-name" onChange={e => { setFormData({...formData, name: e.target.value}); }} placeholder="Social Insurance" required type="text" value={formData.name} />
             </div>
             <div className="space-y-3 px-1">
               { }
-              <label htmlFor="rule-code" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Code</label>
-              <input id="rule-code" required type="text" placeholder="BHXH" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})} />
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-code">Code</label>
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-code" onChange={e => { setFormData({...formData, code: e.target.value.toUpperCase()}); }} placeholder="BHXH" required type="text" value={formData.code} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
-              <label htmlFor="rule-category" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Category</label>
-              <select id="rule-category" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as "statutory_deduction" | "allowance" | "bonus" | "deduction"})}>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-category">Category</label>
+              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-category" onChange={e => { setFormData({...formData, category: e.target.value as "statutory_deduction" | "allowance" | "bonus" | "deduction"}); }} required value={formData.category}>
                 <option value="statutory_deduction">Statutory Deduction</option>
                 { }
                 <option value="allowance">Allowance</option>
@@ -139,15 +137,15 @@ export default function PayrollRulesManager({ wsId }: Props) {
               </select>
             </div>
             <div className="space-y-3 px-1">
-              <label htmlFor="rule-calc" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Calculation Method</label>
-              <select id="rule-calc" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" value={formData.calculation_method} onChange={e => {
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc">Calculation Method</label>
+              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-calc" onChange={e => {
                 const method = e.target.value as "percentage" | "fixed" | "tiered";
                 let newConfig = {};
                 if (method === "percentage") newConfig = { rate: 0, base: "gross" };
                 else if (method === "fixed") newConfig = { amount: 0, frequency: "monthly" };
                 else if (method === "tiered") newConfig = { base: "taxable_income" };
                 setFormData({...formData, calculation_method: method, rule_config: newConfig});
-              }}>
+              }} required value={formData.calculation_method}>
                 <option value="percentage">Percentage</option>
                 <option value="fixed">Fixed</option>
                 <option value="tiered">Tiered (e.g. Tax Brackets)</option>
@@ -157,7 +155,7 @@ export default function PayrollRulesManager({ wsId }: Props) {
 
           <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-6">
             <div className="flex items-center gap-3 mb-2">
-              <Calculator size={18} className="text-primary-600 dark:text-primary-400" />
+              <Calculator className="text-primary-600 dark:text-primary-400" size={18} />
               <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest">Logic Configuration</h3>
             </div>
             { }
@@ -165,12 +163,12 @@ export default function PayrollRulesManager({ wsId }: Props) {
             {formData.calculation_method === "percentage" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <label htmlFor="rule-rate" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1"><Percent size={12}/> Rate (%)</label>
-                  <input id="rule-rate" type="number" step="0.01" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={(formData.rule_config?.rate as number) || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}})} />
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> Rate (%)</label>
+                  <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={(formData.rule_config?.rate as number) || ""} />
                 </div>
                 <div className="space-y-3">
-                  <label htmlFor="rule-calc-base" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Calculation Base</label>
-                  <select id="rule-calc-base" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={(formData.rule_config?.base as string) || "gross"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">Calculation Base</label>
+                  <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "gross"}>
                     {bases?.map(b => (
                       <option key={b.slug} value={b.slug}>{b.name}</option>
                     ))}
@@ -188,8 +186,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
             {formData.calculation_method === "fixed" && (
               <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-3">
-                  <label htmlFor="rule-fixed" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Fixed Amount (₫)</label>
-                  <input id="rule-fixed" type="number" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" value={(formData.rule_config?.amount as number) || ""} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}})} />
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-fixed">Fixed Amount (₫)</label>
+                  <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-fixed" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}}); }} required type="number" value={(formData.rule_config?.amount as number) || ""} />
                 </div>
               </div>
             )}
@@ -197,8 +195,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
             {formData.calculation_method === "tiered" && (
               <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-3">
-                  <label htmlFor="rule-tier-base" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Tier Base Amount</label>
-                  <select id="rule-tier-base" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" value={(formData.rule_config?.base as string) || "taxable_income"} onChange={e => setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}})}>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-tier-base">Tier Base Amount</label>
+                  <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-tier-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "taxable_income"}>
                     {bases?.map(b => (
                       <option key={b.slug} value={b.slug}>{b.name}</option>
                     ))}
@@ -224,12 +222,12 @@ export default function PayrollRulesManager({ wsId }: Props) {
             ].map(field => (
               <React.Fragment key={field.key}>
             {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- Label associated via htmlFor; rule false-positive on dynamic IDs */}
-                <label htmlFor={`rule-${field.key}`} className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
+                <label className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
                   (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
-                )}>
-                  <input id={`rule-${field.key}`} type="checkbox" className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" checked={!!(formData as Record<string, boolean>)[field.key]} onChange={e => setFormData({...formData, [field.key]: e.target.checked})} />
+                )} htmlFor={`rule-${field.key}`}>
+                  <input checked={!!(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`rule-${field.key}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
                   <div>
-                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon size={14} className="opacity-50" /> {field.label}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon className="opacity-50" size={14} /> {field.label}</p>
                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{field.desc}</p>
                   </div>
                 </label>
@@ -238,8 +236,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
           </div>
 
           <div className="flex gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">{t("common.cancel").toUpperCase()}</button>
-            <button type="submit" disabled={createMutation.isPending} className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
+            <button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={() => { setIsModalOpen(false); }} type="button">{t("common.cancel").toUpperCase()}</button>
+            <button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={createMutation.isPending} type="submit">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
           </div>
         </form>
       </Modal>

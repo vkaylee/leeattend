@@ -1,12 +1,12 @@
+import react from "@vitejs/plugin-react";
+
+import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import { IncomingMessage, ServerResponse } from "node:http";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
-import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
-import react from "@vitejs/plugin-react";
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig, ConfigEnv, Plugin } from "vite";
 
@@ -44,16 +44,16 @@ function buildVersionPlugin(): Plugin {
 
 async function findAvailablePort(
   startPort: number,
-  maxAttempts: number = 100,
+  maxAttempts = 100,
 ): Promise<number> {
-  for (let i = 0; i < maxAttempts; i++) {
-    const port = startPort + i;
+  for (let index = 0; index < maxAttempts; index++) {
+    const port = startPort + index;
     const isAvailable = await new Promise<boolean>((resolve) => {
       const server = net.createServer();
       server.unref();
-      server.on("error", () => resolve(false));
+      server.on("error", () => { resolve(false); });
       server.listen(port, () => {
-        server.close(() => resolve(true));
+        server.close(() => { resolve(true); });
       });
     });
     if (isAvailable) return port;
@@ -166,11 +166,11 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
           changeOrigin: true,
           ws: true,
           configure: (proxy: net.Socket, _options: unknown) => {
-            proxy.on('error', (err: Error, _req: IncomingMessage, _res: ServerResponse) => {
-              console.log('📡 Vite: WebSocket proxy error', err);
+            proxy.on('error', (error: Error, _request: IncomingMessage, _res: ServerResponse) => {
+              console.log('📡 Vite: WebSocket proxy error', error);
             });
-            proxy.on('proxyReq', (_proxyReq: unknown, req: IncomingMessage, _res: ServerResponse) => {
-              console.log(`📡 Vite: Proxying WebSocket ${req.method} ${req.url} -> ${wsTarget}${req.url}`);
+            proxy.on('proxyReq', (_proxyRequest: unknown, request: IncomingMessage, _res: ServerResponse) => {
+              console.log(`📡 Vite: Proxying WebSocket ${request.method} ${request.url} -> ${wsTarget}${request.url}`);
             });
           },
         },
@@ -179,11 +179,11 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
           target: apiTarget,
           changeOrigin: true,
           configure: (proxy: net.Socket, _options: unknown) => {
-            proxy.on('error', (err: Error, _req: IncomingMessage, _res: ServerResponse) => {
-              console.log('📡 Vite: Proxy error', err);
+            proxy.on('error', (error: Error, _request: IncomingMessage, _res: ServerResponse) => {
+              console.log('📡 Vite: Proxy error', error);
             });
-            proxy.on('proxyReq', (_proxyReq: unknown, req: IncomingMessage, _res: ServerResponse) => {
-              console.log(`📡 Vite: Proxying request ${req.method} ${req.url} -> ${apiTarget}${req.url}`);
+            proxy.on('proxyReq', (_proxyRequest: unknown, request: IncomingMessage, _res: ServerResponse) => {
+              console.log(`📡 Vite: Proxying request ${request.method} ${request.url} -> ${apiTarget}${request.url}`);
             });
           },
         },

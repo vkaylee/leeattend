@@ -1,18 +1,17 @@
-import React from 'react';
-
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from "@/lib/utils";
 
 interface PaginationControlsProps {
   currentPage: number;
-  totalPages: number;
   onPageChange: (page: number) => void;
-  pageSize: number;
-  totalItems: number;
   onPageSizeChange?: (size: number) => void;
+  pageSize: number;
   pageSizeOptions?: number[];
+  totalItems: number;
+  totalPages: number;
 }
 
 const PaginationControls: React.FC<PaginationControlsProps> = ({
@@ -42,8 +41,8 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
       start = Math.max(1, end - maxVisible + 1);
     }
 
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
+    for (let index = start; index <= end; index++) {
+      pages.push(index);
     }
     return pages;
   };
@@ -62,16 +61,16 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
     <div className="flex items-center justify-between px-4 py-3 sm:px-6 w-full">
       <div className="flex justify-between flex-1 sm:hidden">
         <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
           className="relative inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm dark:shadow-black/10 active:scale-95"
+          disabled={currentPage === 1}
+          onClick={() => { onPageChange(currentPage - 1); }}
         >
           {t('common.pagination.prev')}
         </button>
         <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
           className="relative ml-3 inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+          disabled={currentPage === totalPages}
+          onClick={() => { onPageChange(currentPage + 1); }}
         >
           {t('common.pagination.next')}
         </button>
@@ -81,13 +80,13 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
             {t('common.pagination.showing')} <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{startItem}</span> - <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{endItem}</span> {t('common.pagination.out_of')} <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{totalItems}</span> {t('common.pagination.records')}
           </p>
-          {onPageSizeChange && (
+          {!!onPageSizeChange && (
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('common.pagination.rows_per_page', 'Rows per page')}:</span>
               <select
-                value={pageSize}
-                onChange={(e) => onPageSizeChange(Number(e.target.value))}
                 className="block py-1 pl-3 pr-8 text-[10px] font-bold uppercase tracking-widest border-slate-200 dark:border-slate-700 rounded-xl focus:ring-primary-500 focus:border-primary-500 cursor-pointer bg-white dark:bg-slate-900 shadow-sm"
+                onChange={(e) => { onPageSizeChange(Number(e.target.value)); }}
+                value={pageSize}
               >
                 {currentOptions.map((option) => (
                   <option key={option} value={option}>
@@ -99,19 +98,19 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
           )}
         </div>
         <div>
-          <nav className="relative z-0 inline-flex gap-1" aria-label={t("common.pagination.page")}>
+          <nav aria-label={t("common.pagination.page")} className="relative z-0 inline-flex gap-1">
             <button
-              onClick={() => onPageChange(1)}
-              disabled={currentPage === 1}
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+              disabled={currentPage === 1}
+              onClick={() => { onPageChange(1); }}
             >
               <span className="sr-only">{t("common.pagination.first")}</span>
               <ChevronsLeft className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+              disabled={currentPage === 1}
+              onClick={() => { onPageChange(currentPage - 1); }}
             >
               <span className="sr-only">{t("common.pagination.prev")}</span>
               <ChevronLeft className="w-4 h-4" />
@@ -120,14 +119,14 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
             <div className="flex items-center gap-1 mx-1">
               {getPageNumbers().map((page) => (
                 <button
-                  key={page}
-                  onClick={() => onPageChange(page)}
                   className={cn(
                     "relative inline-flex items-center w-9 h-9 justify-center text-[10px] font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer border",
                     currentPage === page
                       ? 'z-10 bg-primary-600 text-white border-primary-500 shadow-lg shadow-primary-100'
                       : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary-200 dark:border-primary-800 hover:text-primary-600 dark:text-primary-400'
                   )}
+                  key={page}
+                  onClick={() => { onPageChange(page); }}
                 >
                   {page}
                 </button>
@@ -135,17 +134,17 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
             </div>
 
             <button
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+              disabled={currentPage === totalPages}
+              onClick={() => { onPageChange(currentPage + 1); }}
             >
               <span className="sr-only">{t("common.pagination.next")}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onPageChange(totalPages)}
-              disabled={currentPage === totalPages}
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+              disabled={currentPage === totalPages}
+              onClick={() => { onPageChange(totalPages); }}
             >
               <span className="sr-only">{t("common.pagination.last")}</span>
               <ChevronsRight className="w-4 h-4" />

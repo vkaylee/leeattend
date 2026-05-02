@@ -1,12 +1,11 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api";
 
 import EmployeeDailyDrawer from "../EmployeeDailyDrawer";
@@ -256,8 +255,8 @@ describe("EmployeeDailyDrawer", () => {
         await screen.findByText(/08:00 — 17:00/i);
 
         // Find the OT approve button
-        const approveBtn = await screen.findByTitle("reports.ot_approve.approve");
-        await user.click(approveBtn);
+        const approveButton = await screen.findByTitle("reports.ot_approve.approve");
+        await user.click(approveButton);
 
         await waitFor(() => {
             expect(api.approveOt).toHaveBeenCalledWith(
@@ -272,8 +271,8 @@ describe("EmployeeDailyDrawer", () => {
         });
 
         // Also check reject
-        const rejectBtn = await screen.findByTitle("reports.ot_approve.reject");
-        await user.click(rejectBtn);
+        const rejectButton = await screen.findByTitle("reports.ot_approve.reject");
+        await user.click(rejectButton);
 
         await waitFor(() => {
             expect(api.approveOt).toHaveBeenCalledWith(
@@ -544,8 +543,8 @@ describe("EmployeeDailyDrawer", () => {
         await user.selectOptions(select, "shift-morning");
 
         // Click submit button
-        const submitBtn = screen.getByRole("button", { name: /reports.unscheduled.submit/i });
-        await user.click(submitBtn);
+        const submitButton = screen.getByRole("button", { name: /reports.unscheduled.submit/i });
+        await user.click(submitButton);
 
         // Verify upsertRoster was called first
         await waitFor(() => {

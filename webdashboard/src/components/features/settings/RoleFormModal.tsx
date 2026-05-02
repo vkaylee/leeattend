@@ -2,14 +2,13 @@ import React, { useState, useEffect } from "react";
 
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
-
 import { useWorkspaceRoles } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
 interface RoleFormModalProps {
+  editingRole?: { id: string; name: string; description: string; color: string } | null;
   isOpen: boolean;
   onClose: () => void;
-  editingRole?: { id: string; name: string; description: string; color: string } | null;
 }
 
 const AVAILABLE_COLORS = [
@@ -50,8 +49,8 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
         await createRole({ name, description, color });
       }
       onClose();
-    } catch (err) {
-      console.error("Failed to save role", err);
+    } catch (error) {
+      console.error("Failed to save role", error);
     }
   };
 
@@ -59,58 +58,58 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editingRole ? "Edit Custom Role" : "Create Custom Role"}>
-      <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+      <form className="space-y-6 pt-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <label htmlFor="role-name" className="text-sm font-bold text-slate-700 dark:text-slate-300">Role Name</label>
+          <label className="text-sm font-bold text-slate-700 dark:text-slate-300" htmlFor="role-name">Role Name</label>
           <input
-            id="role-name"
-            required
- 
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Finance Manager"
             className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+            id="role-name"
+ 
+            onChange={(e) => { setName(e.target.value); }}
+            placeholder="e.g. Finance Manager"
+            required
+            value={name}
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="role-desc" className="text-sm font-bold text-slate-700 dark:text-slate-300">Description</label>
+          <label className="text-sm font-bold text-slate-700 dark:text-slate-300" htmlFor="role-desc">Description</label>
           <textarea
-            id="role-desc"
+            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all resize-none"
  
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            id="role-desc"
+            onChange={(e) => { setDescription(e.target.value); }}
             placeholder="What can this role do?"
             rows={3}
-            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all resize-none"
+            value={description}
           />
         </div>
 
         <div className="space-y-3">
-          <div id="role-color-label" className="text-sm font-bold text-slate-700 dark:text-slate-300">Role Color</div>
-          <div role="radiogroup" aria-labelledby="role-color-label" className="flex flex-wrap gap-3">
+          <div className="text-sm font-bold text-slate-700 dark:text-slate-300" id="role-color-label">Role Color</div>
+          <div aria-labelledby="role-color-label" className="flex flex-wrap gap-3" role="radiogroup">
             { }
             {AVAILABLE_COLORS.map(c => (
               <button
-                key={c.id}
-                type="button"
-                onClick={() => setColor(c.id)}
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center transition-all",
                   c.class,
                   color === c.id ? "ring-4 ring-offset-2 ring-primary-500/30 dark:ring-offset-slate-900 scale-110" : "hover:scale-110"
                 )}
+                key={c.id}
+                onClick={() => { setColor(c.id); }}
                 title={c.label}
+                type="button"
               />
             ))}
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button onClick={onClose} type="button" variant="ghost">
             Cancel
           </Button>
-          <Button type="submit" loading={isSaving}>
+          <Button loading={isSaving} type="submit">
             {editingRole ? "Save Changes" : "Create Role"}
           </Button>
         </div>

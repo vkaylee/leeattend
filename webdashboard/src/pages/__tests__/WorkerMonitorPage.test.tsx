@@ -1,13 +1,13 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
  
-        t: (key: string, opts?: Record<string, unknown>) => (opts?.defaultValue as string) || key,
+        t: (key: string, options?: Record<string, unknown>) => (options?.defaultValue as string) || key,
     }),
 }));
 

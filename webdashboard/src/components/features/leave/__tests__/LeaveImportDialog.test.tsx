@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
@@ -37,8 +38,8 @@ describe("LeaveImportDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    onClose = vi.fn() as unknown as () => void;
-    onImportComplete = vi.fn() as unknown as () => void;
+    onClose = vi.fn();
+    onImportComplete = vi.fn();
  
     (api.getCurrentWorkspaceId as import("vitest").Mock).mockReturnValue("ws-test");
  
@@ -105,8 +106,8 @@ describe("LeaveImportDialog", () => {
 
     it("disables import button when no file selected", () => {
       renderDialog();
-      const importBtn = screen.getByText(/BẮT ĐẦU IMPORT/i).closest("button");
-      expect(importBtn).toBeDisabled();
+      const importButton = screen.getByText(/BẮT ĐẦU IMPORT/i).closest("button");
+      expect(importButton).toBeDisabled();
     });
   });
 
@@ -134,8 +135,8 @@ describe("LeaveImportDialog", () => {
       const file = createFile();
       fireEvent.change(fileInput, { target: { files: [file] } });
 
-      const importBtn = screen.getByText(/BẮT ĐẦU IMPORT/i).closest("button");
-      expect(importBtn).not.toBeDisabled();
+      const importButton = screen.getByText(/BẮT ĐẦU IMPORT/i).closest("button");
+      expect(importButton).not.toBeDisabled();
     });
 
     it("shows 'select another file' button and allows file removal", async () => {
@@ -144,10 +145,10 @@ describe("LeaveImportDialog", () => {
       const fileInput = document.getElementById("leave-import-file-input") as HTMLInputElement;
       fireEvent.change(fileInput, { target: { files: [createFile()] } });
 
-      const removeBtn = await screen.findByText(/Chọn file khác/i);
-      expect(removeBtn).toBeDefined();
+      const removeButton = await screen.findByText(/Chọn file khác/i);
+      expect(removeButton).toBeDefined();
 
-      await user.click(removeBtn);
+      await user.click(removeButton);
       // Drop zone prompt should reappear
       expect(screen.getByText(/Nhấn để chọn file Excel/i)).toBeDefined();
     });
@@ -164,8 +165,8 @@ describe("LeaveImportDialog", () => {
       (api.downloadLeaveImportTemplate as import("vitest").Mock).mockResolvedValue(undefined);
       renderDialog();
 
-      const downloadBtn = screen.getByText(/Tải file mẫu Excel/i).closest("button")!;
-      await user.click(downloadBtn);
+      const downloadButton = screen.getByText(/Tải file mẫu Excel/i).closest("button")!;
+      await user.click(downloadButton);
 
       await waitFor(() => {
         expect(api.downloadLeaveImportTemplate).toHaveBeenCalledWith("ws-test", "vi");
@@ -178,13 +179,13 @@ describe("LeaveImportDialog", () => {
       (api.downloadLeaveImportTemplate as import("vitest").Mock).mockRejectedValue(new Error("Network error"));
       renderDialog();
 
-      const downloadBtn = screen.getByText(/Tải file mẫu Excel/i).closest("button")!;
+      const downloadButton = screen.getByText(/Tải file mẫu Excel/i).closest("button")!;
       // Should not throw
-      await user.click(downloadBtn);
+      await user.click(downloadButton);
       
       // Button should still be clickable after error
       await waitFor(() => {
-        expect(downloadBtn).not.toBeDisabled();
+        expect(downloadButton).not.toBeDisabled();
       });
     });
   });
@@ -204,8 +205,8 @@ describe("LeaveImportDialog", () => {
       const file = createFile("data.xlsx");
       fireEvent.change(fileInput, { target: { files: [file] } });
 
-      const importBtn = screen.getByText(/BẮT ĐẦU IMPORT/i).closest("button")!;
-      await user.click(importBtn);
+      const importButton = screen.getByText(/BẮT ĐẦU IMPORT/i).closest("button")!;
+      await user.click(importButton);
 
       await waitFor(() => {
         expect(api.uploadLeaveExcel).toHaveBeenCalledWith("ws-test", file);
@@ -250,8 +251,8 @@ describe("LeaveImportDialog", () => {
 
     it("does not upload when no file is selected", async () => {
       renderDialog();
-      const importBtn = screen.getByText(/BẮT ĐẦU IMPORT/i).closest("button")!;
-      expect(importBtn).toBeDisabled();
+      const importButton = screen.getByText(/BẮT ĐẦU IMPORT/i).closest("button")!;
+      expect(importButton).toBeDisabled();
       expect(api.uploadLeaveExcel).not.toHaveBeenCalled();
     });
 
@@ -260,8 +261,8 @@ describe("LeaveImportDialog", () => {
       (api.getCurrentWorkspaceId as import("vitest").Mock).mockReturnValue(null);
       renderDialog();
       // Template download button should be disabled
-      const downloadBtn = screen.getByText(/Tải file mẫu Excel/i).closest("button");
-      expect(downloadBtn).toBeDisabled();
+      const downloadButton = screen.getByText(/Tải file mẫu Excel/i).closest("button");
+      expect(downloadButton).toBeDisabled();
     });
   });
 
@@ -361,8 +362,8 @@ describe("LeaveImportDialog", () => {
 
       renderDialog();
 
-      const errBtn = await screen.findByText(/Tải file lỗi/i);
-      await user.click(errBtn);
+      const errorButton = await screen.findByText(/Tải file lỗi/i);
+      await user.click(errorButton);
 
       expect(api.downloadLeaveImportErrors).toHaveBeenCalledWith("ws-test", "job-err");
     });
@@ -444,8 +445,8 @@ describe("LeaveImportDialog", () => {
 
       renderDialog();
 
-      const uploadAnotherBtn = await screen.findByText(/Upload file khác/i);
-      await user.click(uploadAnotherBtn);
+      const uploadAnotherButton = await screen.findByText(/Upload file khác/i);
+      await user.click(uploadAnotherButton);
 
       // Should show upload view again
       await waitFor(() => {
@@ -481,8 +482,8 @@ describe("LeaveImportDialog", () => {
       });
 
       renderDialog();
-      const closeBtn = await screen.findByText(/ĐÓNG/i);
-      await user.click(closeBtn);
+      const closeButton = await screen.findByText(/ĐÓNG/i);
+      await user.click(closeButton);
       expect(onClose).toHaveBeenCalled();
     });
   });

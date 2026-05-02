@@ -1,7 +1,6 @@
 import { Page, expect } from '@playwright/test';
 
 import { MOCK_USER, MOCK_WORKSPACE } from '../mocks/mock-data';
-
 import { BasePage } from './BasePage';
 
 export class LoginPage extends BasePage {

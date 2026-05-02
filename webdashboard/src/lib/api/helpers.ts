@@ -59,7 +59,7 @@ function getHeaders() {
   }
   const token = getAccessToken();
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   } else {
     // Fallback for dev mode
     const userId = getCurrentUserId();
@@ -120,7 +120,7 @@ export async function apiFetch(
   const controller = new AbortController();
   // Default timeout: 10 seconds for normal API calls
   const timeoutMs = options.timeout ?? TIMEOUT.DEFAULT;
-  const id = setTimeout(() => controller.abort(), timeoutMs);
+  const id = setTimeout(() => { controller.abort(); }, timeoutMs);
 
   const headers = { ...getHeaders(), ...options.headers };
 
@@ -161,7 +161,7 @@ export async function apiFetch(
           });
 
           if (refreshResponse.ok) {
-            const data = await refreshResponse.json();
+            const data = (await refreshResponse.json()) as { access_token: string; refresh_token: string };
             setAccessToken(data.access_token);
             setRefreshToken(data.refresh_token);
 
@@ -198,5 +198,5 @@ export async function apiFetch(
 
 export async function fetchHealth(): Promise<{ status: string }> {
   const response = await apiFetch(`${API_BASE_URL}/health`);
-  return response.json();
+  return response.json() as Promise<{ status: string }>;
 }

@@ -28,13 +28,13 @@ function NavGroup({ title, items, isActive }: { title: string, items: { path: st
       <div className="space-y-1">
         {items.map((item) => (
           <Link
-            key={item.path}
-            to={item.path}
             className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
               isActive(item.path)
                 ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 shadow-sm shadow-indigo-100/50 border border-indigo-100 dark:border-indigo-800/50"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent"
             }`}
+            key={item.path}
+            to={item.path}
           >
             <div
               className={`p-2 rounded-xl transition-colors ${
@@ -178,7 +178,7 @@ export default function SettingsLayout() {
 
 
 
-  type SettingItem = { path: string; label: string; icon: React.ReactNode; description: string; permissions?: string[] };
+  interface SettingItem { description: string; icon: React.ReactNode; label: string; path: string; permissions?: string[] }
   const filterItems = (items: SettingItem[]) => 
     items.filter(item => !item.permissions || item.permissions.length === 0 || hasAnyPermission(...item.permissions));
 
@@ -208,20 +208,20 @@ export default function SettingsLayout() {
           </div>
           
           <nav>
-            {filteredWorkspaceGroup.length > 0 && <NavGroup title={t("settings.layout.workspace")} items={filteredWorkspaceGroup} isActive={isActive} />}
-            {filteredAccessGroup.length > 0 && <NavGroup title={t("settings.layout.access")} items={filteredAccessGroup} isActive={isActive} />}
-            {filteredOperationsGroup.length > 0 && <NavGroup title={t("settings.layout.operations")} items={filteredOperationsGroup} isActive={isActive} />}
-            {filteredSystemGroup.length > 0 && <NavGroup title={t("settings.layout.security_system")} items={filteredSystemGroup} isActive={isActive} />}
+            {filteredWorkspaceGroup.length > 0 && <NavGroup isActive={isActive} items={filteredWorkspaceGroup} title={t("settings.layout.workspace")} />}
+            {filteredAccessGroup.length > 0 && <NavGroup isActive={isActive} items={filteredAccessGroup} title={t("settings.layout.access")} />}
+            {filteredOperationsGroup.length > 0 && <NavGroup isActive={isActive} items={filteredOperationsGroup} title={t("settings.layout.operations")} />}
+            {filteredSystemGroup.length > 0 && <NavGroup isActive={isActive} items={filteredSystemGroup} title={t("settings.layout.security_system")} />}
             
-            {showDangerItem && (
+            {!!showDangerItem && (
               <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
                 <Link
-                  to={dangerItem.path}
                   className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
                     isActive(dangerItem.path)
                       ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-100 dark:border-rose-900/50"
                       : "text-slate-500 dark:text-slate-400 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 hover:text-rose-600 dark:hover:text-rose-400 border border-transparent"
                   }`}
+                  to={dangerItem.path}
                 >
                   <div
                     className={`p-2 rounded-xl transition-colors ${

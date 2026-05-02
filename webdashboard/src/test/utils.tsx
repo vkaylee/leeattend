@@ -1,7 +1,6 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
+import React from "react";
 
 export const createTestQueryClient = () =>
   new QueryClient({
@@ -20,10 +19,10 @@ export function renderWithClient(ui: React.ReactElement) {
   return {
     ...result,
     rerender: (rerenderUi: React.ReactElement) =>
-      rerender(
+      { rerender(
         <QueryClientProvider client={testQueryClient}>
           {rerenderUi}
         </QueryClientProvider>,
-      ),
+      ); },
   };
 }

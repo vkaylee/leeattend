@@ -1,12 +1,10 @@
-import React, { useState } from "react";
-
 import { ShieldAlert, ShieldCheck, Shield, Users, Plus, Trash2, ShieldHalf } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/Toast";
-
 import { useConfirm } from "@/hooks/use-confirm";
 import { useSystemRoles } from "@/hooks/use-system-roles";
 const roleDescriptions: Record<string, string> = {
@@ -46,8 +44,8 @@ export default function SystemRolesPage() {
       setAssignError("");
       await assignRole({ userId: userIdInput.trim(), request: { role_name: selectedRole } });
       setIsModalOpen(false);
-    } catch (err: unknown) {
-      setAssignError(err instanceof Error ? err.message : t("system_roles.messages.assign_error"));
+    } catch (error: unknown) {
+      setAssignError(error instanceof Error ? error.message : t("system_roles.messages.assign_error"));
  
     }
   };
@@ -62,8 +60,8 @@ export default function SystemRolesPage() {
       try {
         await revokeRole({ userId, roleName });
         toast.success(t("system_roles.messages.revoke_success", { role: roleName }));
-      } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : t("system_roles.messages.revoke_error"));
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : t("system_roles.messages.revoke_error"));
  
       }
     }
@@ -73,8 +71,8 @@ export default function SystemRolesPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <PageHeader
-          title={t("system_roles.title")}
           subtitle={t("system_roles.subtitle")}
+          title={t("system_roles.title")}
         />
       </div>
 
@@ -89,8 +87,8 @@ export default function SystemRolesPage() {
             
             return (
               <div
-                key={role.id}
                 className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 group flex flex-col"
+                key={role.id}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-4">
@@ -114,8 +112,8 @@ export default function SystemRolesPage() {
                   </div>
                   
                   <button
-                    onClick={() => handleOpenAssign(role.name)}
                     className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 rounded-xl transition-colors"
+                    onClick={() => { handleOpenAssign(role.name); }}
                     title={t("system_roles.assign_to_user")}
                   >
                     <Plus size={20} />
@@ -133,7 +131,7 @@ export default function SystemRolesPage() {
                   ) : (
                     <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                       {role.assignees?.map((assignee) => (
-                        <div key={assignee.user_id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800" key={assignee.user_id}>
                           <div className="flex flex-col">
                             <span className="text-sm font-bold text-slate-700 dark:text-slate-300 font-mono">
                               {assignee.user_id}
@@ -143,9 +141,9 @@ export default function SystemRolesPage() {
                             </span>
                           </div>
                           <button
-                            onClick={() => handleRevoke(assignee.user_id, role.name)}
-                            disabled={isRevoking}
                             className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-50"
+                            disabled={isRevoking}
+                            onClick={() => handleRevoke(assignee.user_id, role.name)}
                             title={t("system_roles.revoke_role")}
                           >
                             <Trash2 size={16} />
@@ -163,41 +161,39 @@ export default function SystemRolesPage() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={t("system_roles.modal.assign_title", { role: selectedRole })}
-        subtitle={t("system_roles.grant_privileges")}
         maxWidth="md"
+        onClose={() => { setIsModalOpen(false); }}
+        subtitle={t("system_roles.grant_privileges")}
+        title={t("system_roles.modal.assign_title", { role: selectedRole })}
       >
-        <form onSubmit={handleAssignSubmit} className="space-y-6">
+        <form className="space-y-6" onSubmit={handleAssignSubmit}>
           <div className="space-y-2">
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
               {t("system_roles.user_id_label")}
             </label>
             <input
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-mono text-sm"
+              onChange={(e) => { setUserIdInput(e.target.value); }}
+              placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
+              required
               type="text"
               value={userIdInput}
-              onChange={(e) => setUserIdInput(e.target.value)}
-              placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-mono text-sm"
-              required
             />
-            {assignError && (
-              <p className="text-sm text-rose-500 font-medium mt-1">{assignError}</p>
-            )}
+            {!!assignError && <p className="text-sm text-rose-500 font-medium mt-1">{assignError}</p>}
           </div>
           
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
             <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
               className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              onClick={() => { setIsModalOpen(false); }}
+              type="button"
             >
               {t("common.cancel")}
             </button>
             <button
-              type="submit"
-              disabled={isAssigning || !userIdInput.trim()}
               className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all disabled:opacity-50 shadow-md shadow-indigo-200 dark:shadow-none"
+              disabled={isAssigning || !userIdInput.trim()}
+              type="submit"
             >
               {isAssigning ? t("system_roles.modal.assigning") : t("system_roles.modal.submit_btn")}
             </button>

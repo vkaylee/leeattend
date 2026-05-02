@@ -5,19 +5,19 @@ interface UseKeyboardListNavOptions<T> {
     items: T[];
     /** Callback when user presses Enter on a focused item */
     onSelect: (item: T) => void;
-    /** Prefix for row element IDs, e.g. "summary-row" → getElementById("summary-row-0") */
-    rowIdPrefix: string;
     /** Extra dependencies that should reset focusedIndex to 0 */
     resetDeps?: unknown[];
+    /** Prefix for row element IDs, e.g. "summary-row" → getElementById("summary-row-0") */
+    rowIdPrefix: string;
 }
 
 interface UseKeyboardListNavReturn {
     /** Currently focused row index */
     focusedIndex: number;
-    /** Set focused index manually */
-    setFocusedIndex: (index: number) => void;
     /** Keyboard event handler — attach to onKeyDown of search input */
     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    /** Set focused index manually */
+    setFocusedIndex: (index: number) => void;
 }
 
 /**
@@ -37,11 +37,11 @@ export function useKeyboardListNav<T>({
 
 
     // Reset focus when items or extra deps change (derived state)
-    const [prevDeps, setPrevDeps] = useState<unknown[]>([items, ...resetDeps]);
-    const depsChanged = prevDeps[0] !== items || resetDeps.some((dep, i) => dep !== prevDeps[i + 1]);
+    const [previousDeps, setPreviousDeps] = useState<unknown[]>([items, ...resetDeps]);
+    const depsChanged = previousDeps[0] !== items || resetDeps.some((dep, index) => dep !== previousDeps[index + 1]);
     const [hasNavigatedState, setHasNavigatedState] = useState(false);
     if (depsChanged) {
-        setPrevDeps([items, ...resetDeps]);
+        setPreviousDeps([items, ...resetDeps]);
         setFocusedIndex(0);
         setHasNavigatedState(false);
     }
@@ -73,11 +73,11 @@ export function useKeyboardListNav<T>({
             if (e.key === "ArrowDown") {
                 e.preventDefault();
                 setHasNavigatedState(true);
-                setFocusedIndex((prev) => Math.min(prev + 1, items.length - 1));
+                setFocusedIndex((previous) => Math.min(previous + 1, items.length - 1));
             } else if (e.key === "ArrowUp") {
                 e.preventDefault();
                 setHasNavigatedState(true);
-                setFocusedIndex((prev) => Math.max(prev - 1, 0));
+                setFocusedIndex((previous) => Math.max(previous - 1, 0));
             } else if (e.key === "Enter") {
                 e.preventDefault();
                 if (items.length > 0 && items[focusedIndex]) {

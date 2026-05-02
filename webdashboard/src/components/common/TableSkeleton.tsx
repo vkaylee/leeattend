@@ -12,8 +12,8 @@ export function TableSkeleton({ rows = 5, variant = "primary" }: TableSkeletonPr
   
   return (
     <>
-      {Array.from({ length: rows }).map((_, i) => (
-        <tr key={`skeleton-${i}`} className="animate-pulse border-b border-slate-50 dark:border-slate-800/50">
+      {Array.from({ length: rows }).map((_, index) => (
+        <tr className="animate-pulse border-b border-slate-50 dark:border-slate-800/50" key={`skeleton-${index}`}>
           <td className="px-8 py-5">
             <div className="flex items-center gap-4">
               <div className={cn("w-10 h-10 rounded-xl", isWarning ? "bg-amber-50 dark:bg-amber-950/50" : "bg-slate-200 dark:bg-slate-800")}></div>

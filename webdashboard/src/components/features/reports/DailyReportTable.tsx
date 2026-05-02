@@ -1,6 +1,5 @@
-import React from "react";
-
 import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown, AlertTriangle } from "lucide-react";
+import React from "react";
 
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -9,23 +8,23 @@ import { formatUnitsToHours } from "@/lib/utils/attendance";
 
 
 interface DailyReportTableProps {
-  data: DailyAttendanceReport[];
-  isLoading: boolean;
-  workUnitMinutes: number;
-  isDebugMode: boolean;
-  expandedDebugRows: Set<string>;
-  reprocessingRow: string | null;
-  confirmingRow: string | null;
   adjustmentMap: Record<string, AttendanceAdjustmentRequest>;
-  t: (key: string) => string;
+  confirmingRow: string | null;
+  data: DailyAttendanceReport[];
+  expandedDebugRows: Set<string>;
   formatDate: (date: string) => string;
   formatTime: (time: string | null) => string;
-  onToggleExpandRow: (rowKey: string) => void;
-  onReprocessClick: (row: DailyAttendanceReport) => void;
-  onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
-  onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
-  onResolveUnscheduled?: (row: DailyAttendanceReport) => void;
   hideEmployeeName?: boolean;
+  isDebugMode: boolean;
+  isLoading: boolean;
+  onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
+  onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
+  onReprocessClick: (row: DailyAttendanceReport) => void;
+  onResolveUnscheduled?: (row: DailyAttendanceReport) => void;
+  onToggleExpandRow: (rowKey: string) => void;
+  reprocessingRow: string | null;
+  t: (key: string) => string;
+  workUnitMinutes: number;
 }
 
 export default function DailyReportTable({
@@ -78,11 +77,11 @@ export default function DailyReportTable({
     if (status === "unscheduled") {
       return (
         <button
-          onClick={(e) => { e.stopPropagation(); onResolveUnscheduled?.(row); }}
           className={cn(
             "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900 hover:border-amber-300 dark:hover:border-amber-700 transition-colors active:scale-95",
             styles.unscheduled
           )}
+          onClick={(e) => { e.stopPropagation(); onResolveUnscheduled?.(row); }}
           title={t("reports.status.unscheduled_tooltip")}
         >
           <AlertTriangle size={10} /> {labels.unscheduled}
@@ -158,7 +157,7 @@ export default function DailyReportTable({
             <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">
               {t("common.status")}
             </th>
-            {isDebugMode && (
+            {!!isDebugMode && (
               <th className="px-4 py-2.5 text-[10px] font-bold text-amber-600 dark:text-amber-300 uppercase tracking-widest text-center">
                 DEBUG
               </th>
@@ -171,8 +170,8 @@ export default function DailyReportTable({
           {isLoading ? (
             <tr>
               <td
-                colSpan={isDebugMode ? (hideEmployeeName ? 9 : 10) : (hideEmployeeName ? 8 : 9)}
                 className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse"
+                colSpan={isDebugMode ? (hideEmployeeName ? 9 : 10) : (hideEmployeeName ? 8 : 9)}
               >
                 {t("common.loading")}
               </td>
@@ -180,14 +179,14 @@ export default function DailyReportTable({
           ) : data.length === 0 ? (
             <tr>
               <td
-                colSpan={isDebugMode ? (hideEmployeeName ? 9 : 10) : (hideEmployeeName ? 8 : 9)}
                 className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50"
+                colSpan={isDebugMode ? (hideEmployeeName ? 9 : 10) : (hideEmployeeName ? 8 : 9)}
               >
                 {t("reports.messages.no_data")}
               </td>
             </tr>
           ) : (
-            data.map((row: DailyAttendanceReport, idx: number) => {
+            data.map((row: DailyAttendanceReport, index: number) => {
               const rowKey = `${row.employee_id}-${row.date}`;
               const isReprocessing = reprocessingRow === rowKey;
               const isConfirming = confirmingRow === rowKey;
@@ -195,7 +194,7 @@ export default function DailyReportTable({
               const existingAdjustment = adjustmentMap[rowKey];
 
               return (
-                <React.Fragment key={`${rowKey}-${idx}`}>
+                <React.Fragment key={`${rowKey}-${index}`}>
                   <tr
                     className={cn(
                       "transition-all group",
@@ -260,19 +259,19 @@ export default function DailyReportTable({
                             </span>
                           </div>
                           {getOtStatusBadge(row.ot_claim_status)}
-                          {row.ot_claim_status === "pending_manager" && onApproveOt && (
+                          {row.ot_claim_status === "pending_manager" && !!onApproveOt && (
                             <div className="flex gap-1 mt-1">
                               <button
-                                onClick={(e) => { e.stopPropagation(); onApproveOt(row, "approved"); }}
                                 className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm active:scale-95"
+                                onClick={(e) => { e.stopPropagation(); onApproveOt(row, "approved"); }}
                                 title={t("reports.ot_approve.approve")}
                               >
                                 <ThumbsUp size={10} />
                                 {t("reports.ot_approve.approve")}
                               </button>
                               <button
-                                onClick={(e) => { e.stopPropagation(); onApproveOt(row, "rejected"); }}
                                 className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider bg-rose-500 text-white hover:bg-rose-600 transition-colors shadow-sm active:scale-95"
+                                onClick={(e) => { e.stopPropagation(); onApproveOt(row, "rejected"); }}
                                 title={t("reports.ot_approve.reject")}
                               >
                                 <ThumbsDown size={10} />
@@ -290,16 +289,16 @@ export default function DailyReportTable({
                       {getStatusBadge(row.status, row)}
                     </td>
 
-                    {isDebugMode && (
+                    {!!isDebugMode && (
                       <td className="px-4 py-2.5 text-center">
                         <button
-                          onClick={() => onToggleExpandRow(rowKey)}
                           className={cn(
                             "p-1.5 rounded-lg transition-all shadow-sm border active:scale-95",
                             isExpanded
                               ? "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-200"
                               : "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 border-slate-100 dark:border-slate-800 hover:bg-amber-50 dark:bg-amber-950"
                           )}
+                          onClick={() => { onToggleExpandRow(rowKey); }}
                         >
                           <Bug size={16} />
                         </button>
@@ -315,8 +314,6 @@ export default function DailyReportTable({
                           - Color changes based on whether there's a pending adjustment request
                         */}
                         <button
-                          onClick={() => onConfirmClick(row, existingAdjustment)}
-                          disabled={isConfirming}
                           className={cn(
                             "flex items-center justify-center p-1.5 rounded-lg transition-all shadow-sm border active:scale-95",
                             existingAdjustment
@@ -324,30 +321,32 @@ export default function DailyReportTable({
                               : "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900",
                             isConfirming && "opacity-70 cursor-wait"
                           )}
+                          disabled={isConfirming}
+                          onClick={() => { onConfirmClick(row, existingAdjustment); }}
                           title={existingAdjustment ? t("reports.confirm.pending_badge") : t("common.attendance_confirm")}
                         >
                           {isConfirming
-                            ? <RefreshCw size={14} className="animate-spin" />
+                            ? <RefreshCw className="animate-spin" size={14} />
                             : <CheckCircle size={14} />
                           }
                         </button>
 
                         {/* Reprocess button */}
                         <button
-                          onClick={() => onReprocessClick(row)}
-                          disabled={isReprocessing}
                           className="p-1.5 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 transition-all active:scale-95 disabled:opacity-50"
+                          disabled={isReprocessing}
+                          onClick={() => { onReprocessClick(row); }}
                           title={t("reports.reprocess.tooltip")}
                         >
-                          <RefreshCw size={18} className={cn(isReprocessing && "animate-spin")} />
+                          <RefreshCw className={cn(isReprocessing && "animate-spin")} size={18} />
                         </button>
                       </div>
                     </td>
                   </tr>
 
-                  {isDebugMode && isExpanded && (
+                  {!!isDebugMode && !!isExpanded && (
                     <tr className="bg-slate-900/5 animate-in slide-in-from-top-2 duration-500">
-                      <td colSpan={10} className="px-10 py-10">
+                      <td className="px-10 py-10" colSpan={10}>
                         <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border-2 border-amber-200/20 overflow-hidden relative">
                           <div className="flex items-center gap-4 mb-8 border-b border-white/10 pb-6 relative z-10">
                             <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/10 flex items-center justify-center text-amber-400 shadow-inner border border-amber-500/20">

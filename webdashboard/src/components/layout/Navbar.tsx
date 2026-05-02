@@ -1,22 +1,20 @@
-import React from "react";
-
 import { useLocation } from "@tanstack/react-router";
 import { Menu, ChevronRight as BreadcrumbSeparator, Bell, ChevronLeft, ChevronRight, Sun, Moon, Monitor } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import type { ThemeMode } from "@/hooks/use-dark-mode";
 
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useMyPermissions } from "@/hooks/use-permissions";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
-import type { ThemeMode } from "@/hooks/use-dark-mode";
-
 interface NavbarProps {
   currentWorkspaceName: string;
-  onOpenSidebar: () => void;
   isCollapsed: boolean;
+  onOpenSidebar: () => void;
   onToggleCollapsed: () => void;
 }
 
@@ -47,9 +45,9 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
 
         {/* Desktop Collapse Toggle */}
         <button
+          className="hidden lg:flex p-3 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-950 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl active:scale-90 transition-all border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-100 dark:hover:border-primary-800"
           onClick={onToggleCollapsed}
           title={isCollapsed ? t("common.expand_sidebar") : t("common.collapse_sidebar")}
-          className="hidden lg:flex p-3 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-950 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl active:scale-90 transition-all border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-100 dark:hover:border-primary-800"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
@@ -116,16 +114,16 @@ function ThemeToggle() {
     <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner" data-testid="theme-toggle">
       {options.map((opt) => (
         <button
-          key={opt.value}
-          onClick={() => setMode(opt.value)}
-          title={opt.label}
-          data-testid={`theme-toggle-${opt.value}`}
           className={cn(
             "p-2 rounded-lg transition-all flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px]",
             mode === opt.value
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-700"
               : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
           )}
+          data-testid={`theme-toggle-${opt.value}`}
+          key={opt.value}
+          onClick={() => { setMode(opt.value); }}
+          title={opt.label}
         >
           {opt.icon}
         </button>

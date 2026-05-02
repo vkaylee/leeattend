@@ -1,27 +1,26 @@
-import React, { useState } from "react";
-
 import { Plus, Calendar, History, Save, Calculator, AlertCircle, CheckCircle2 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { cn } from "@/lib/utils";
 
 interface ConfigRecord {
-  id?: string;
-  std_working_days: number;
+  created_at?: string;
+  effective_date: string;
   hours_per_day: number;
+  id?: string;
+  is_virtual?: boolean;
   max_ot_hours_per_day?: number | null;
   max_ot_hours_per_month?: number | null;
-  effective_date: string;
-  created_at?: string;
-  is_virtual?: boolean;
+  std_working_days: number;
 }
 
 interface Props {
-  title: string;
-  records: ConfigRecord[];
-  onSave: (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => Promise<void>;
   isLoading?: boolean;
+  onSave: (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => Promise<void>;
+  records: ConfigRecord[];
+  title: string;
 }
 
 export default function TemporalConfigTable({ title, records, onSave, isLoading }: Props) {
@@ -54,7 +53,7 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
 
   const sortedRecords = displayRecords.sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime());
   const now = new Date();
-  const activeIdx = sortedRecords.findIndex(r => new Date(r.effective_date) <= now);
+  const activeIndex = sortedRecords.findIndex(r => new Date(r.effective_date) <= now);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -67,11 +66,11 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
           </div>
         </div>
         {!isAdding && (
-          <button onClick={() => setIsAdding(true)} className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95"><Plus size={14} /> {t("common.add_new").toUpperCase()}</button>
+          <button className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95" onClick={() => { setIsAdding(true); }}><Plus size={14} /> {t("common.add_new").toUpperCase()}</button>
         )}
       </div>
 
-      {isAdding && (
+      {!!isAdding && (
         <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-[2.5rem] p-8 shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
             <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
@@ -81,26 +80,26 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.effective_date")}</label>
-              <input type="date" value={newEffectiveDate} onChange={e => setNewEffectiveDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all" />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all" onChange={e => { setNewEffectiveDate(e.target.value); }} type="date" value={newEffectiveDate} />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.std_days")}</label>
-              <input type="number" value={newDays} onChange={e => setNewDays(parseFloat(e.target.value))} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewDays(parseFloat(e.target.value)); }} type="number" value={newDays} />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.hours_per_day")}</label>
-              <input type="number" value={newHours} onChange={e => setNewHours(parseFloat(e.target.value))} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewHours(parseFloat(e.target.value)); }} type="number" value={newHours} />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_day")}</label>
-              <input type="number" step="0.5" value={newMaxOtDay} onChange={e => setNewMaxOtDay(e.target.value)} placeholder={t("payroll.settings.no_limit") || ""} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewMaxOtDay(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtDay} />
               <p className="text-[9px] text-slate-400 ml-1">{t("payroll.settings.ot_empty_hint")}</p>
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_month")}</label>
-              <input type="number" step="0.5" value={newMaxOtMonth} onChange={e => setNewMaxOtMonth(e.target.value)} placeholder={t("payroll.settings.no_limit") || ""} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" onChange={e => { setNewMaxOtMonth(e.target.value); }} placeholder={t("payroll.settings.no_limit") || ""} step="0.5" type="number" value={newMaxOtMonth} />
               <p className="text-[9px] text-slate-400 ml-1">{t("payroll.settings.ot_empty_hint")}</p>
             </div>
           </div>
@@ -111,8 +110,8 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
           </div>
 
           <div className="flex justify-end gap-4">
-            <button onClick={() => setIsAdding(false)} className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">{t("common.cancel")}</button>
-            <button onClick={handleSave} className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Save size={16} /> {t("common.save").toUpperCase()}</button>
+            <button className="px-8 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" onClick={() => { setIsAdding(false); }}>{t("common.cancel")}</button>
+            <button className="flex items-center gap-3 bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" onClick={handleSave}><Save size={16} /> {t("common.save").toUpperCase()}</button>
           </div>
         </div>
       )}
@@ -133,10 +132,10 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {sortedRecords.map((record, idx) => {
-                const isActive = idx === activeIdx; const isFuture = new Date(record.effective_date) > now;
+              {sortedRecords.map((record, index) => {
+                const isActive = index === activeIndex; const isFuture = new Date(record.effective_date) > now;
                 return (
-                  <tr key={idx} className={cn("group transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50", isActive && "bg-emerald-50 dark:bg-emerald-950/30")}>
+                  <tr className={cn("group transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50", isActive && "bg-emerald-50 dark:bg-emerald-950/30")} key={index}>
                     <td className="px-8 py-6">
                       {record.is_virtual ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800 shadow-sm"><AlertCircle size={12} /> {t("payroll.settings.virtual")}</span>

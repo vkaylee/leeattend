@@ -1,3 +1,5 @@
+import type { LucideIcon } from "lucide-react";
+
 import {
   Building2,
   Users,
@@ -15,18 +17,16 @@ import {
   Smartphone,
 } from "lucide-react";
 
-import type { LucideIcon } from "lucide-react";
-
 export interface PermissionDef {
+  desc: string;
   id: string;
   name: string;
-  desc: string;
 }
 
 export interface PermissionGroup {
+  icon: LucideIcon;
   id: string;
   name: string;
-  icon: LucideIcon;
   permissions: PermissionDef[];
 }
 

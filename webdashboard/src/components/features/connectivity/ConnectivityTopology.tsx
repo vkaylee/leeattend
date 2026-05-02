@@ -1,13 +1,11 @@
-import { useState, useMemo } from "react";
-
 import { Plus, Share2, Server, AlertCircle, Cpu, Lock, Save } from "lucide-react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import AgentEditModal from "@/components/features/agents/AgentEditModal";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-
 import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { AuthorizedAgent, Device, DeviceStatus } from "@/lib/api";
@@ -73,8 +71,8 @@ export default function ConnectivityTopology() {
     } catch (e: unknown) {
  
       console.error("Refresh failed:", e);
-      const msg = e instanceof Error ? e.message : "";
-      toast.error(`${t("devices.toast.refresh_error")} ${msg ? `(${msg})` : ""}`);
+      const message = e instanceof Error ? e.message : "";
+      toast.error(`${t("devices.toast.refresh_error")} ${message ? `(${message})` : ""}`);
     }
   }
 
@@ -113,16 +111,16 @@ export default function ConnectivityTopology() {
   }, [agents, devices]);
 
   const toggleExpanded = (agentId: string) => {
-    setExpandedAgents(prev => {
-      const next = new Set(prev);
+    setExpandedAgents(previous => {
+      const next = new Set(previous);
       if (next.has(agentId)) next.delete(agentId);
       else next.add(agentId);
       return next;
     });
   };
 
-  const expandAll = () => setExpandedAgents(new Set(agents.map(a => a.id)));
-  const collapseAll = () => setExpandedAgents(new Set());
+  const expandAll = () => { setExpandedAgents(new Set(agents.map(a => a.id))); };
+  const collapseAll = () => { setExpandedAgents(new Set()); };
 
   async function handleAddAgent(e: React.FormEvent) {
     e.preventDefault();
@@ -165,7 +163,7 @@ export default function ConnectivityTopology() {
     }
   }
 
-  const handleEditAgent = (agent: AuthorizedAgent) => setEditingAgent(agent);
+  const handleEditAgent = (agent: AuthorizedAgent) => { setEditingAgent(agent); };
   const handleSaveAgent = (updated: AuthorizedAgent) => {
     toast.success(t("agents.messages.update_success", { name: updated.name }));
     refetchAgents();
@@ -198,7 +196,7 @@ export default function ConnectivityTopology() {
   const isLoading = agentsLoading || devicesLoading;
 
   return (
-    <div data-testid="connectivity-topology" className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500" data-testid="connectivity-topology">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div className="flex items-center gap-4">
@@ -219,16 +217,16 @@ export default function ConnectivityTopology() {
           {agents.length > 0 && (
             <>
               <button
+                className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-colors"
                 data-testid="expand-all-btn"
                 onClick={expandAll}
-                className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-colors"
               >
                 {t("common.expand_all")}
               </button>
               <button
+                className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-colors"
                 data-testid="collapse-all-btn"
                 onClick={collapseAll}
-                className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-colors"
               >
                 {t("common.collapse_all")}
               </button>
@@ -236,25 +234,26 @@ export default function ConnectivityTopology() {
             </>
           )}
           <button
-            data-testid="toggle-inactive-btn"
-            onClick={() => setIncludeInactive(!includeInactive)}
             className={cn(
               "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all border shadow-sm active:scale-95",
               includeInactive
                 ? "bg-slate-900 text-white border-transparent"
                 : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
             )}
+            data-testid="toggle-inactive-btn"
+            onClick={() => { setIncludeInactive(!includeInactive); }}
           >
             {includeInactive ? t("common.status_inactive") : t("common.status_active")}
           </button>
           <button
-            data-testid="add-agent-btn"
-            onClick={() => setShowAddForm(true)}
             className="flex items-center gap-3 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:border-primary-200 dark:hover:border-primary-800 transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
+            data-testid="add-agent-btn"
+            onClick={() => { setShowAddForm(true); }}
           >
             <Plus size={18} /> {t("agents.add_btn")}
           </button>
           <button
+            className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"
             data-testid="global-add-device-btn"
             onClick={() => {
               if (agents.length > 0) {
@@ -264,7 +263,6 @@ export default function ConnectivityTopology() {
                 toast.error(t("agents.messages.no_agents"));
               }
             }}
-            className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"
           >
             <Plus size={18} /> {t("devices.add_btn")}
           </button>
@@ -272,8 +270,8 @@ export default function ConnectivityTopology() {
       </div>
 
       {/* Add Agent Form */}
-      {showAddForm && (
-        <form data-testid="add-agent-form" onSubmit={handleAddAgent} className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
+      {!!showAddForm && (
+        <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500" data-testid="add-agent-form" onSubmit={handleAddAgent}>
           <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
             <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
             <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">{t("agents.add_form_title")}</h4>
@@ -281,35 +279,35 @@ export default function ConnectivityTopology() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("agents.id_label")}</label>
-              <input data-testid="agent-id-input" required placeholder="agent-001" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-tight" value={newAgent.id} onChange={(e) => setNewAgent({ ...newAgent, id: e.target.value })} />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-tight" data-testid="agent-id-input" onChange={(e) => { setNewAgent({ ...newAgent, id: e.target.value }); }} placeholder="agent-001" required value={newAgent.id} />
             </div>
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("agents.name_label")}</label>
-              <input data-testid="agent-name-input" required placeholder="Office Main" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" value={newAgent.name} onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })} />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" data-testid="agent-name-input" onChange={(e) => { setNewAgent({ ...newAgent, name: e.target.value }); }} placeholder="Office Main" required value={newAgent.name} />
             </div>
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("agents.token_label")}</label>
-              <input data-testid="agent-token-input" required placeholder="Connection token" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm" value={newAgent.token} onChange={(e) => setNewAgent({ ...newAgent, token: e.target.value })} />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm" data-testid="agent-token-input" onChange={(e) => { setNewAgent({ ...newAgent, token: e.target.value }); }} placeholder="Connection token" required value={newAgent.token} />
             </div>
           </div>
           <div className="mt-10 flex justify-end gap-4">
-            <button data-testid="agent-form-cancel" type="button" onClick={() => setShowAddForm(false)} className="px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">{t("common.cancel")}</button>
-            <button data-testid="agent-form-submit" type="submit" className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95">{t("agents.save_btn")}</button>
+            <button className="px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" data-testid="agent-form-cancel" onClick={() => { setShowAddForm(false); }} type="button">{t("common.cancel")}</button>
+            <button className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" data-testid="agent-form-submit" type="submit">{t("agents.save_btn")}</button>
           </div>
         </form>
       )}
 
       {/* Agent Topology */}
       {isLoading ? (
-        <div data-testid="agents-loading" className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-sm animate-pulse h-28" />
+        <div className="space-y-4" data-testid="agents-loading">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-sm animate-pulse h-28" key={index} />
           ))}
         </div>
       ) : agents.length === 0 ? (
-        <div data-testid="empty-agents-state" className="py-32 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center animate-in zoom-in-95 duration-500">
+        <div className="py-32 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center animate-in zoom-in-95 duration-500" data-testid="empty-agents-state">
           <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-6 border border-slate-100 dark:border-slate-800">
-            <Server size={32} className="text-slate-200 dark:text-slate-700" />
+            <Server className="text-slate-200 dark:text-slate-700" size={32} />
           </div>
           <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px] opacity-60 mb-2">
             {t("agents.table.no_agents")}
@@ -318,35 +316,35 @@ export default function ConnectivityTopology() {
             {t("connectivity.empty_guide")}
           </p>
           <button
-            data-testid="empty-add-agent-btn"
-            onClick={() => setShowAddForm(true)}
             className="px-10 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:border-primary-200 dark:border-primary-800 hover:text-primary-600 dark:text-primary-400 transition-all shadow-sm active:scale-95"
+            data-testid="empty-add-agent-btn"
+            onClick={() => { setShowAddForm(true); }}
           >
             {t("agents.add_btn")}
           </button>
         </div>
       ) : (
-        <div data-testid="agents-list" className="space-y-4">
+        <div className="space-y-4" data-testid="agents-list">
           {agents.map(agent => (
             <AgentAccordionCard
-              key={agent.id}
               agent={agent}
               devices={groupedDevices[agent.id] || []}
               deviceStatuses={deviceStatuses}
-              isOnline={agentOnlineMap[agent.id] || false}
               isExpanded={expandedAgents.has(agent.id)}
-              onToggleExpand={() => toggleExpanded(agent.id)}
-              onEdit={handleEditAgent}
-              onToggleTrust={handleToggleTrust}
-              onDelete={handleDeleteAgent}
-              onUpdateDevice={handleUpdateDevice}
-              onDeleteDevice={handleDeleteDevice}
-              onEditDevice={setEditingDevice}
-              onRefreshDevice={(deviceId) => handleRefreshDevice(agent.id, deviceId)}
+              isOnline={agentOnlineMap[agent.id] || false}
+              key={agent.id}
               onAddDevice={(agentId) => {
                 setNewDevice({ ...newDevice, agent_id: agentId });
                 setShowAddDeviceForm(true);
               }}
+              onDelete={handleDeleteAgent}
+              onDeleteDevice={handleDeleteDevice}
+              onEdit={handleEditAgent}
+              onEditDevice={setEditingDevice}
+              onRefreshDevice={(deviceId) => handleRefreshDevice(agent.id, deviceId)}
+              onToggleExpand={() => { toggleExpanded(agent.id); }}
+              onToggleTrust={handleToggleTrust}
+              onUpdateDevice={handleUpdateDevice}
             />
           ))}
         </div>
@@ -354,22 +352,22 @@ export default function ConnectivityTopology() {
 
       {/* Unassigned Devices Section */}
       {unassignedDevices.length > 0 && (
-        <div data-testid="unassigned-devices-section" className="mt-8 animate-in fade-in duration-500">
+        <div className="mt-8 animate-in fade-in duration-500" data-testid="unassigned-devices-section">
           <div className="flex items-center gap-3 mb-4 px-2">
-            <AlertCircle size={16} className="text-amber-500" />
+            <AlertCircle className="text-amber-500" size={16} />
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               {t("devices.unassigned_title")} ({unassignedDevices.length})
             </h3>
           </div>
-          <div data-testid="unassigned-devices-list" className="bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800 rounded-[2.5rem] p-6 space-y-3">
+          <div className="bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800 rounded-[2.5rem] p-6 space-y-3" data-testid="unassigned-devices-list">
             {unassignedDevices.map(device => (
               <DeviceListItem
-                key={device.id}
                 device={device}
-                parentAgentActive={false}
-                onUpdate={handleUpdateDevice}
+                key={device.id}
                 onDelete={handleDeleteDevice}
                 onEdit={setEditingDevice}
+                onUpdate={handleUpdateDevice}
+                parentAgentActive={false}
               />
             ))}
           </div>
@@ -378,26 +376,26 @@ export default function ConnectivityTopology() {
 
       {/* Edit Agent Modal */}
       <AgentEditModal
-        key={editingAgent?.id}
         agent={editingAgent}
         isOpen={!!editingAgent}
-        onClose={() => setEditingAgent(null)}
+        key={editingAgent?.id}
+        onClose={() => { setEditingAgent(null); }}
         onSave={handleSaveAgent}
       />
 
       {/* Add/Edit Device Modal */}
       <Modal
-        isOpen={showAddDeviceForm || !!editingDevice}
-        onClose={() => { setShowAddDeviceForm(false); setEditingDevice(null); }}
-        title={editingDevice ? t("devices.form.edit_device") : t("devices.form.new_device")}
-        subtitle={t("devices.form.infrastructure")}
         icon={<Cpu size={24} />}
+        isOpen={showAddDeviceForm || !!editingDevice}
         maxWidth="lg"
+        onClose={() => { setShowAddDeviceForm(false); setEditingDevice(null); }}
+        subtitle={t("devices.form.infrastructure")}
+        title={editingDevice ? t("devices.form.edit_device") : t("devices.form.new_device")}
       >
-        <form data-testid={editingDevice ? "edit-device-form" : "add-device-form"} onSubmit={editingDevice ? handleSaveDevice : handleAddDevice} className="space-y-8 pt-4 animate-in fade-in duration-500">
+        <form className="space-y-8 pt-4 animate-in fade-in duration-500" data-testid={editingDevice ? "edit-device-form" : "add-device-form"} onSubmit={editingDevice ? handleSaveDevice : handleAddDevice}>
           <div className="space-y-3 px-1">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.clock_name")}</label>
-            <input data-testid="device-name-input" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" placeholder={t("devices.form.clock_name_placeholder")} value={editingDevice ? editingDevice.name : newDevice.name} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, name: e.target.value }) : setNewDevice({ ...newDevice, name: e.target.value })}
+            <input className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" data-testid="device-name-input" onChange={(e) => { editingDevice ? setEditingDevice({ ...editingDevice, name: e.target.value }) : setNewDevice({ ...newDevice, name: e.target.value }); }} placeholder={t("devices.form.clock_name_placeholder")} required value={editingDevice ? editingDevice.name : newDevice.name}
             />
           </div>
 
@@ -406,19 +404,19 @@ export default function ConnectivityTopology() {
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.managed_by")}</label>
               {/* Show agent name as read-only (device always belongs to an agent) */}
               <div className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm uppercase tracking-tight text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                <Server size={14} className="text-slate-400 dark:text-slate-500" />
+                <Server className="text-slate-400 dark:text-slate-500" size={14} />
                 {agents.find(a => a.id === (editingDevice ? editingDevice.agent_id : newDevice.agent_id))?.name || "—"}
               </div>
             </div>
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.brand")}</label>
               <Combobox
-                data-testid="device-brand-select"
-                options={brandOptions}
-                value={editingDevice ? editingDevice.brand : newDevice.brand}
-                onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, brand: val }) : setNewDevice({ ...newDevice, brand: val })}
-                placeholder={t("devices.form.brand_placeholder")}
                 className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
+                data-testid="device-brand-select"
+                onChange={(value) => { editingDevice ? setEditingDevice({ ...editingDevice, brand: value }) : setNewDevice({ ...newDevice, brand: value }); }}
+                options={brandOptions}
+                placeholder={t("devices.form.brand_placeholder")}
+                value={editingDevice ? editingDevice.brand : newDevice.brand}
               />
             </div>
           </div>
@@ -427,23 +425,23 @@ export default function ConnectivityTopology() {
             <div className="col-span-2 space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.ip_local")}</label>
               <input
-                data-testid="device-ip-input"
-                required
                 className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-tight"
+                data-testid="device-ip-input"
+                onChange={(e) => { editingDevice ? setEditingDevice({ ...editingDevice, ip: e.target.value }) : setNewDevice({ ...newDevice, ip: e.target.value }); }}
                 placeholder="192.168.1.100"
+                required
                 value={editingDevice ? editingDevice.ip : newDevice.ip}
-                onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, ip: e.target.value }) : setNewDevice({ ...newDevice, ip: e.target.value })}
               />
             </div>
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.port")}</label>
               <input
-                data-testid="device-port-input"
-                type="number"
-                required
                 className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm text-center tracking-tighter"
+                data-testid="device-port-input"
+                onChange={(e) => { editingDevice ? setEditingDevice({ ...editingDevice, port: parseInt(e.target.value) }) : setNewDevice({ ...newDevice, port: parseInt(e.target.value) }); }}
+                required
+                type="number"
                 value={editingDevice ? editingDevice.port : newDevice.port}
-                onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, port: parseInt(e.target.value) }) : setNewDevice({ ...newDevice, port: parseInt(e.target.value) })}
               />
             </div>
           </div>
@@ -452,14 +450,14 @@ export default function ConnectivityTopology() {
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.password")}</label>
               <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input
-                  data-testid="device-password-input"
-                  type="password"
                   className="w-full pl-11 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm tracking-tight"
+                  data-testid="device-password-input"
+                  onChange={(e) => { editingDevice ? setEditingDevice({ ...editingDevice, password: e.target.value }) : setNewDevice({ ...newDevice, password: e.target.value }); }}
                   placeholder={t("devices.form.password_placeholder")}
+                  type="password"
                   value={editingDevice ? (editingDevice.password || "") : newDevice.password}
-                  onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, password: e.target.value }) : setNewDevice({ ...newDevice, password: e.target.value })}
                 />
               </div>
             </div>
@@ -469,17 +467,17 @@ export default function ConnectivityTopology() {
 
           <div className="flex gap-4 pt-6">
             <button
-              data-testid="device-form-cancel"
-              type="button"
-              onClick={() => { setShowAddDeviceForm(false); setEditingDevice(null); }}
               className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+              data-testid="device-form-cancel"
+              onClick={() => { setShowAddDeviceForm(false); setEditingDevice(null); }}
+              type="button"
             >
               {t("devices.form.cancel")}
             </button>
             <button
+              className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 flex items-center justify-center gap-3"
               data-testid="device-form-submit"
               type="submit"
-              className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 flex items-center justify-center gap-3"
             >
               {editingDevice ? <Save size={18} /> : <Plus size={18} />}
               {editingDevice ? t("devices.form.update_device") : t("devices.form.save_device")}

@@ -21,14 +21,14 @@ export class DevicesPage extends BasePage {
     await expect(this.page.locator('[data-testid="agents-list"], [data-testid="empty-agents-state"]')).toBeVisible({ timeout: 20000 });
 
     // 3. Wait for the Global Add Device button
-    const globalAddBtn = this.page.getByTestId('global-add-device-btn');
-    await expect(globalAddBtn).toBeVisible({ timeout: 15000 });
+    const globalAddButton = this.page.getByTestId('global-add-device-btn');
+    await expect(globalAddButton).toBeVisible({ timeout: 15000 });
 
     // 4. Ensure accordions are expanded so devices are visible
     // We can rely on it being present if agents-list is present
-    const expandBtn = this.page.getByTestId('expand-all-btn');
+    const expandButton = this.page.getByTestId('expand-all-btn');
     if (await this.page.getByTestId('agents-list').isVisible()) {
-      await expandBtn.click();
+      await expandButton.click();
     }
   }
 

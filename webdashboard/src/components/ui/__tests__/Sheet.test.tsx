@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import Sheet from "../Sheet";
@@ -35,8 +36,8 @@ describe("Sheet", () => {
     it("calls onClose when close button is clicked", () => {
         const onClose = vi.fn();
         render(<Sheet {...defaultProps} onClose={onClose} />);
-        const closeBtn = screen.getByRole("button");
-        fireEvent.click(closeBtn);
+        const closeButton = screen.getByRole("button");
+        fireEvent.click(closeButton);
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 

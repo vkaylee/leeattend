@@ -25,12 +25,12 @@ export function useStickyHeader({
     // ── Measure header height with ResizeObserver ────────────────────────
     useEffect(() => {
         if (!enabled || !headerRef.current) return;
-        const el = headerRef.current;
-        const update = () => setHeaderHeight(el.offsetHeight);
+        const element = headerRef.current;
+        const update = () => { setHeaderHeight(element.offsetHeight); };
         update();
         const ro = new ResizeObserver(update);
-        ro.observe(el);
-        return () => ro.disconnect();
+        ro.observe(element);
+        return () => { ro.disconnect(); };
     }, [enabled]);
 
     // ── Scroll direction tracking ───────────────────────────────────────
@@ -77,7 +77,7 @@ export function useStickyHeader({
         };
 
         window.addEventListener("scroll", onScroll, { passive: true });
-        return () => window.removeEventListener("scroll", onScroll);
+        return () => { window.removeEventListener("scroll", onScroll); };
     }, [enabled, handleScroll]);
 
     return {

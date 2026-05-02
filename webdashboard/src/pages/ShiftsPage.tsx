@@ -1,8 +1,5 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { format, addDays } from "date-fns";
 import {
   CalendarRange,
   Plus,
@@ -11,11 +8,13 @@ import {
   List,
   Zap
 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { format, addDays } from "date-fns";
 
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { useToast } from "@/components/ui/Toast";
-
 import {
   fetchEmployees,
   fetchShifts,
@@ -115,9 +114,9 @@ export default function ShiftsPage() {
   // Weekly Dates Logic
   const startOfWeek = new Date(currentDate);
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Monday
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
     const d = new Date(startOfWeek);
-    d.setDate(startOfWeek.getDate() + i);
+    d.setDate(startOfWeek.getDate() + index);
     return d;
   });
 
@@ -152,7 +151,7 @@ export default function ShiftsPage() {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: Error) => toast.error(error.message, t("shifts.messages.assign_error"))
+    onError: (error: Error) => { toast.error(error.message, t("shifts.messages.assign_error")); }
   });
 
   const _rosterMutation = useMutation({
@@ -162,18 +161,18 @@ export default function ShiftsPage() {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: Error) => toast.error(error.message, t("shifts.messages.update_roster_error"))
+    onError: (error: Error) => { toast.error(error.message, t("shifts.messages.update_roster_error")); }
   });
 
   const bulkRosterMutation = useMutation({
-    mutationFn: (items: Array<{ date: string; shift_id: string | null }>) => bulkUpsertRoster(wsId, selectedEmployee!.id, items),
+    mutationFn: (items: { date: string; shift_id: string | null }[]) => bulkUpsertRoster(wsId, selectedEmployee!.id, items),
     onSuccess: () => {
       toast.success(t("shifts.messages.bulk_update_success"));
       setSelectedDays([]);
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: Error) => toast.error(error.message, t("shifts.messages.bulk_update_error"))
+    onError: (error: Error) => { toast.error(error.message, t("shifts.messages.bulk_update_error")); }
   });
 
   const deleteRosterMutation = useMutation({
@@ -183,7 +182,7 @@ export default function ShiftsPage() {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: Error) => toast.error(error.message, t("shifts.messages.remove_override_error"))
+    onError: (error: Error) => { toast.error(error.message, t("shifts.messages.remove_override_error")); }
   });
 
   const createShiftMutation = useMutation({
@@ -203,7 +202,7 @@ export default function ShiftsPage() {
       setActiveTab("directory");
       queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
     },
-    onError: (error: Error) => toast.error(error.message, t("shifts.messages.create_shift_error"))
+    onError: (error: Error) => { toast.error(error.message, t("shifts.messages.create_shift_error")); }
   });
 
   const updateShiftMutation = useMutation({
@@ -215,7 +214,7 @@ export default function ShiftsPage() {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: Error) => toast.error(error.message, t("shifts.messages.update_shift_error"))
+    onError: (error: Error) => { toast.error(error.message, t("shifts.messages.update_shift_error")); }
   });
 
   // Handlers
@@ -245,13 +244,13 @@ export default function ShiftsPage() {
 
   const handleCopyPreviousWeek = async () => {
     if (!selectedEmployee || !allSchedules) return;
-    const prevWeekStart = addDays(startOfWeek, -7);
-    const prevWeekEnd = addDays(startOfWeek, -1);
+    const previousWeekStart = addDays(startOfWeek, -7);
+    const previousWeekEnd = addDays(startOfWeek, -1);
     try {
-      const prevSchedules = await fetchWorkspaceSchedules(wsId, format(prevWeekStart, 'yyyy-MM-dd'), format(prevWeekEnd, 'yyyy-MM-dd'));
-      const empPrev = prevSchedules.find(s => s.employee_id === selectedEmployee.id);
-      if (!empPrev) { toast.warning(t("shifts.messages.no_previous_data")); return; }
-      const items = empPrev.schedules.map((s, idx) => ({ date: format(weekDays[idx], 'yyyy-MM-dd'), shift_id: s.shift_id }));
+      const previousSchedules = await fetchWorkspaceSchedules(wsId, format(previousWeekStart, 'yyyy-MM-dd'), format(previousWeekEnd, 'yyyy-MM-dd'));
+      const empPrevious = previousSchedules.find(s => s.employee_id === selectedEmployee.id);
+      if (!empPrevious) { toast.warning(t("shifts.messages.no_previous_data")); return; }
+      const items = empPrevious.schedules.map((s, index) => ({ date: format(weekDays[index], 'yyyy-MM-dd'), shift_id: s.shift_id }));
       bulkRosterMutation.mutate(items);
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
@@ -331,16 +330,16 @@ export default function ShiftsPage() {
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 data-testid="shifts-title" className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tight">{t("shifts.title")}</h1>
+          <h1 className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tight" data-testid="shifts-title">{t("shifts.title")}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">{t("shifts.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link to={ROUTES.SETTINGS.TIME as never} search={{ tab: "patterns" } as never} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
+          <Link className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all" search={{ tab: "patterns" } as never} to={ROUTES.SETTINGS.TIME}>
             <CalendarRange className="w-4 h-4" />
             <span className="text-xs uppercase tracking-widest">{t("patterns.manage_btn")}</span>
             { }
           </Link>
-          <button onClick={() => setIsCreateModalOpen(true)} className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all">
+          <button className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all" onClick={() => { setIsCreateModalOpen(true); }}>
             <Plus className="w-5 h-5" />
             <span className="text-xs uppercase tracking-widest">{t("shifts.create_btn")}</span>
           </button>
@@ -349,13 +348,13 @@ export default function ShiftsPage() {
 
       {/* Tabs Navigation */}
       <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50">
-        <button onClick={() => setActiveTab("weekly-roster")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'weekly-roster' ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700'}`}>
+        <button className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'weekly-roster' ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700'}`} onClick={() => { setActiveTab("weekly-roster"); }}>
           <LayoutGrid size={14} /> {t("shifts.tabs.weekly_roster")}
         </button>
-        <button onClick={() => setActiveTab("assignments")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'assignments' ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700'}`}>
+        <button className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'assignments' ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700'}`} onClick={() => { setActiveTab("assignments"); }}>
           <Zap size={14} /> {t("shifts.tabs.fixed_assignments", "Patterns & Rules")}
         </button>
-        <button onClick={() => setActiveTab("directory")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'directory' ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700'}`}>
+        <button className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'directory' ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700'}`} onClick={() => { setActiveTab("directory"); }}>
           <List size={14} /> {t("shifts.tabs.directory")}
         </button>
       </div>
@@ -365,14 +364,14 @@ export default function ShiftsPage() {
           <div className="max-w-md mb-8">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block ml-1">{t("common.employees")}</label>
             <EmployeeSearch
-              data-testid="employee-select"
-              workspaceId={wsId}
-              value={selectedEmployee?.id || ""}
-              onChange={(id) => { if (!id) setSelectedEmployee(null); }}
-              onSelectEmployee={(emp) => setSelectedEmployee(emp)}
-              placeholder={t("shifts.empty_state.title")}
-              keyboardShortcut={["/", "Enter"]}
               clearOnEscape
+              data-testid="employee-select"
+              keyboardShortcut={["/", "Enter"]}
+              onChange={(id) => { if (!id) setSelectedEmployee(null); }}
+              onSelectEmployee={(emp) => { setSelectedEmployee(emp); }}
+              placeholder={t("shifts.empty_state.title")}
+              value={selectedEmployee?.id || ""}
+              workspaceId={wsId}
             />
           </div>
         )}
@@ -387,31 +386,31 @@ export default function ShiftsPage() {
           /* TAB: WEEKLY ROSTER */
           <div className="space-y-6">
             <WeeklyRosterGrid
-              selectedEmployee={selectedEmployee!}
               currentDate={currentDate}
-              onNavigateWeek={handleNavigateWeek}
-              weekDays={weekDays}
-              selectedDays={selectedDays}
-              onToggleDaySelection={(dateStr) => {
-                if (selectedDays.includes(dateStr)) {
-                  setSelectedDays(selectedDays.filter(d => d !== dateStr));
-                } else {
-                  setSelectedDays([...selectedDays, dateStr]);
-                }
-              }}
-              onClearSelection={() => setSelectedDays([])}
               employeeSchedule={employeeSchedule}
-              onCopyPreviousWeek={handleCopyPreviousWeek}
               onAssignAllWeek={() => {
                 setTargetDates(weekDays.map(d => format(d, 'yyyy-MM-dd')));
                 setIsShiftPickerOpen(true);
               }}
-              onClearWeek={() => handleAssignAllWeek(null)}
+              onClearSelection={() => { setSelectedDays([]); }}
+              onClearWeek={() => { handleAssignAllWeek(null); }}
+              onCopyPreviousWeek={handleCopyPreviousWeek}
+              onDeleteRoster={(date) => { deleteRosterMutation.mutate(date); }}
+              onNavigateWeek={handleNavigateWeek}
               onOpenShiftPicker={(dates) => {
                 setTargetDates(dates);
                 setIsShiftPickerOpen(true);
               }}
-              onDeleteRoster={(date) => deleteRosterMutation.mutate(date)}
+              onToggleDaySelection={(dateString) => {
+                if (selectedDays.includes(dateString)) {
+                  setSelectedDays(selectedDays.filter(d => d !== dateString));
+                } else {
+                  setSelectedDays([...selectedDays, dateString]);
+                }
+              }}
+              selectedDays={selectedDays}
+              selectedEmployee={selectedEmployee!}
+              weekDays={weekDays}
             />
             <PriorityLegend />
             <AssignmentHistory history={history} selectedEmployee={selectedEmployee} />
@@ -419,49 +418,49 @@ export default function ShiftsPage() {
         ) : activeTab === "assignments" ? (
           /* TAB: ASSIGNMENTS (Patterns & Rules) */
           <PatternAssignmentForm
-            selectedEmployee={selectedEmployee!}
-            patterns={patterns}
-            selectedPatternId={selectedPatternId}
-            setSelectedPatternId={setSelectedPatternId}
-            startDate={startDate}
-            setStartDate={setStartDate}
             endDate={endDate}
-            setEndDate={setEndDate}
             isForever={isForever}
-            setIsForever={setIsForever}
-            onAssign={handleAssign}
             isLoading={assignPatternMutation.isPending}
+            onAssign={handleAssign}
+            patterns={patterns}
+            selectedEmployee={selectedEmployee!}
+            selectedPatternId={selectedPatternId}
+            setEndDate={setEndDate}
+            setIsForever={setIsForever}
+            setSelectedPatternId={setSelectedPatternId}
+            setStartDate={setStartDate}
+            startDate={startDate}
           />
         ) : (
           /* TAB: DIRECTORY */
-          <ShiftList shifts={shifts} onEdit={openEditModal} />
+          <ShiftList onEdit={openEditModal} shifts={shifts} />
         )}
       </div>
 
       {/* Modals */}
       <CreateShiftModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        newShiftName={newShiftName}
-        setNewShiftName={setNewShiftName}
-        newShiftSymbol={newShiftSymbol}
-        setNewShiftSymbol={setNewShiftSymbol}
-        newShiftStart={newShiftStart}
-        setNewShiftStart={setNewShiftStart}
-        newShiftEnd={newShiftEnd}
-        setNewShiftEnd={setNewShiftEnd}
-        newShiftBreak={newShiftBreak}
-        setNewShiftBreak={setNewShiftBreak}
-        newBreakStart={newBreakStart}
-        setNewBreakStart={setNewBreakStart}
-        newBreakEnd={newBreakEnd}
-        setNewBreakEnd={setNewBreakEnd}
-        isFixedBreak={isFixedBreak}
-        setIsFixedBreak={setIsFixedBreak}
         isAutoDeduct={isAutoDeduct}
-        setIsAutoDeduct={setIsAutoDeduct}
-        onCreateShift={handleCreateShift}
+        isFixedBreak={isFixedBreak}
         isLoading={createShiftMutation.isPending}
+        isOpen={isCreateModalOpen}
+        newBreakEnd={newBreakEnd}
+        newBreakStart={newBreakStart}
+        newShiftBreak={newShiftBreak}
+        newShiftEnd={newShiftEnd}
+        newShiftName={newShiftName}
+        newShiftStart={newShiftStart}
+        newShiftSymbol={newShiftSymbol}
+        onClose={() => { setIsCreateModalOpen(false); }}
+        onCreateShift={handleCreateShift}
+        setIsAutoDeduct={setIsAutoDeduct}
+        setIsFixedBreak={setIsFixedBreak}
+        setNewBreakEnd={setNewBreakEnd}
+        setNewBreakStart={setNewBreakStart}
+        setNewShiftBreak={setNewShiftBreak}
+        setNewShiftEnd={setNewShiftEnd}
+        setNewShiftName={setNewShiftName}
+        setNewShiftStart={setNewShiftStart}
+        setNewShiftSymbol={setNewShiftSymbol}
       />
 
       <ShiftPickerModal
@@ -470,40 +469,40 @@ export default function ShiftsPage() {
           setIsShiftPickerOpen(false);
           setTargetDates([]);
         }}
-        targetDates={targetDates}
-        shifts={shifts}
         onSelectShift={handleBulkAssign}
+        shifts={shifts}
+        targetDates={targetDates}
       />
 
       <EditShiftModal
-        editingShift={editingShift}
-        onClose={() => setEditingShift(null)}
-        newShiftName={newShiftName}
-        setNewShiftName={setNewShiftName}
-        newShiftSymbol={newShiftSymbol}
-        setNewShiftSymbol={setNewShiftSymbol}
-        newShiftStart={newShiftStart}
-        setNewShiftStart={setNewShiftStart}
-        newShiftEnd={newShiftEnd}
-        setNewShiftEnd={setNewShiftEnd}
-        newShiftBreak={newShiftBreak}
-        setNewShiftBreak={setNewShiftBreak}
-        newShiftGrace={newShiftGrace}
-        setNewShiftGrace={setNewShiftGrace}
-        newBreakStart={newBreakStart}
-        setNewBreakStart={setNewBreakStart}
-        newBreakEnd={newBreakEnd}
-        setNewBreakEnd={setNewBreakEnd}
-        isFixedBreak={isFixedBreak}
-        setIsFixedBreak={setIsFixedBreak}
-        isAutoDeduct={isAutoDeduct}
-        setIsAutoDeduct={setIsAutoDeduct}
-        isCorrection={isCorrection}
-        setIsCorrection={setIsCorrection}
         correctionEffectiveDate={correctionEffectiveDate}
-        setCorrectionEffectiveDate={setCorrectionEffectiveDate}
-        onUpdateShift={handleUpdateShift}
+        editingShift={editingShift}
+        isAutoDeduct={isAutoDeduct}
+        isCorrection={isCorrection}
+        isFixedBreak={isFixedBreak}
         isLoading={updateShiftMutation.isPending}
+        newBreakEnd={newBreakEnd}
+        newBreakStart={newBreakStart}
+        newShiftBreak={newShiftBreak}
+        newShiftEnd={newShiftEnd}
+        newShiftGrace={newShiftGrace}
+        newShiftName={newShiftName}
+        newShiftStart={newShiftStart}
+        newShiftSymbol={newShiftSymbol}
+        onClose={() => { setEditingShift(null); }}
+        onUpdateShift={handleUpdateShift}
+        setCorrectionEffectiveDate={setCorrectionEffectiveDate}
+        setIsAutoDeduct={setIsAutoDeduct}
+        setIsCorrection={setIsCorrection}
+        setIsFixedBreak={setIsFixedBreak}
+        setNewBreakEnd={setNewBreakEnd}
+        setNewBreakStart={setNewBreakStart}
+        setNewShiftBreak={setNewShiftBreak}
+        setNewShiftEnd={setNewShiftEnd}
+        setNewShiftGrace={setNewShiftGrace}
+        setNewShiftName={setNewShiftName}
+        setNewShiftStart={setNewShiftStart}
+        setNewShiftSymbol={setNewShiftSymbol}
       />
     </div>
   );

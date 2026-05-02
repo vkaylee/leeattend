@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import { MonthYearPicker } from "../MonthYearPicker";
@@ -20,17 +21,17 @@ describe("MonthYearPicker", () => {
   const onChange = vi.fn();
 
   it("renders correctly with provided month and year", () => {
-    render(<MonthYearPicker month={5} year={2026} onChange={onChange} />);
+    render(<MonthYearPicker month={5} onChange={onChange} year={2026} />);
 
     expect(screen.getByText("2026")).toBeDefined();
     // Check if 12 months are rendered as numbers
-    for (let i = 1; i <= 12; i++) {
-      expect(screen.getByText(i.toString())).toBeDefined();
+    for (let index = 1; index <= 12; index++) {
+      expect(screen.getByText(index.toString())).toBeDefined();
     }
   });
 
   it("calls onChange when a month is clicked", () => {
-    render(<MonthYearPicker month={5} year={2026} onChange={onChange} />);
+    render(<MonthYearPicker month={5} onChange={onChange} year={2026} />);
 
     // Select by aria-label since text is just "10"
     fireEvent.click(screen.getByLabelText("Tháng 10"));
@@ -38,21 +39,21 @@ describe("MonthYearPicker", () => {
   });
 
   it("calls onChange with updated year when arrows are clicked", () => {
-    render(<MonthYearPicker month={5} year={2026} onChange={onChange} />);
+    render(<MonthYearPicker month={5} onChange={onChange} year={2026} />);
 
     const buttons = screen.getAllByRole("button");
-    const prevYearBtn = buttons[0]; // First button is ChevronLeft for year
-    const nextYearBtn = buttons[1]; // Second button is ChevronRight for year
+    const previousYearButton = buttons[0]; // First button is ChevronLeft for year
+    const nextYearButton = buttons[1]; // Second button is ChevronRight for year
 
-    fireEvent.click(prevYearBtn);
+    fireEvent.click(previousYearButton);
     expect(onChange).toHaveBeenCalledWith(5, 2025);
 
-    fireEvent.click(nextYearBtn);
+    fireEvent.click(nextYearButton);
     expect(onChange).toHaveBeenCalledWith(5, 2027);
   });
 
   it("sets last month when shortcut is clicked", () => {
-    render(<MonthYearPicker month={5} year={2026} onChange={onChange} />);
+    render(<MonthYearPicker month={5} onChange={onChange} year={2026} />);
 
     fireEvent.click(screen.getByText("Tháng trước"));
     
@@ -62,7 +63,7 @@ describe("MonthYearPicker", () => {
   });
 
   it("sets current month when shortcut is clicked", () => {
-    render(<MonthYearPicker month={1} year={2020} onChange={onChange} />);
+    render(<MonthYearPicker month={1} onChange={onChange} year={2020} />);
 
     fireEvent.click(screen.getByText("Tháng này"));
     

@@ -1,13 +1,11 @@
-import { useState } from "react";
-
 import { AlertTriangle } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/Toast";
-
 import { useWorkspace } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId } from "@/lib/api";
 import { clearWorkspaceData } from "@/lib/api/workspaces";
@@ -21,8 +19,8 @@ export default function WorkspaceDangerPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
       <PageHeader
-        title={t('danger.title', { defaultValue: 'Danger Zone' })}
         subtitle={t('danger.subtitle', { defaultValue: 'Destructive operations for this workspace' })}
+        title={t('danger.title', { defaultValue: 'Danger Zone' })}
       />
       
       <div className="bg-rose-50 dark:bg-rose-950/20 p-8 rounded-[2.5rem] border border-rose-200 dark:border-rose-900/50 space-y-6">
@@ -40,8 +38,8 @@ export default function WorkspaceDangerPage() {
 
         <div className="flex justify-end">
           <Button 
-            variant="destructive" 
-            onClick={() => setIsClearDataOpen(true)}
+            onClick={() => { setIsClearDataOpen(true); }} 
+            variant="destructive"
           >
             {t('danger.clearAllData', { defaultValue: 'CLEAR ALL DATA' })}
           </Button>
@@ -50,7 +48,7 @@ export default function WorkspaceDangerPage() {
 
       <ClearDataModal 
         isOpen={isClearDataOpen} 
-        onClose={() => setIsClearDataOpen(false)} 
+        onClose={() => { setIsClearDataOpen(false); }} 
         workspaceName={workspace?.name || ""}
       />
     </div>
@@ -73,7 +71,7 @@ function ClearDataModal({ isOpen, onClose, workspaceName }: { isOpen: boolean, o
       toast.success(t('danger.successMessage', { defaultValue: 'Workspace data cleared successfully' }));
       onClose();
       // Reload to reset state
-      setTimeout(() => window.location.reload(), 1000);
+      setTimeout(() => { window.location.reload(); }, 1000);
  
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : t('danger.errorMessage', { defaultValue: 'Failed to clear data' }));
@@ -83,7 +81,7 @@ function ClearDataModal({ isOpen, onClose, workspaceName }: { isOpen: boolean, o
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('danger.modalTitle', { defaultValue: 'Clear Workspace Data' })} icon={<AlertTriangle size={24} />} maxWidth="md">
+    <Modal icon={<AlertTriangle size={24} />} isOpen={isOpen} maxWidth="md" onClose={onClose} title={t('danger.modalTitle', { defaultValue: 'Clear Workspace Data' })}>
       <div className="space-y-6 pt-4 animate-in fade-in">
         <div className="p-4 bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-900 rounded-2xl text-rose-700 dark:text-rose-300 text-sm font-medium">
           <strong>{t('common.warning', { defaultValue: 'Warning:' })}</strong> {t('danger.warningDesc1', { defaultValue: 'This will permanently delete all data in the workspace, including employees, shifts, time entries, and leaves.' })} 
@@ -95,20 +93,20 @@ function ClearDataModal({ isOpen, onClose, workspaceName }: { isOpen: boolean, o
             {t('danger.typeToConfirmPrefix', { defaultValue: 'Type' })} <strong>{workspaceName}</strong> {t('danger.typeToConfirmSuffix', { defaultValue: 'to confirm' })}
           </label>
           <input 
-            type="text" 
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-            className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all"
+            className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all" 
+            onChange={(e) => { setConfirmText(e.target.value); }}
             placeholder={workspaceName}
+            type="text"
+            value={confirmText}
           />
         </div>
 
         <Button 
-          variant="destructive" 
-          className="w-full"
+          className="w-full" 
           disabled={confirmText !== workspaceName || isLoading}
           loading={isLoading}
           onClick={handleClear}
+          variant="destructive"
         >
           {t('danger.permanentlyDelete', { defaultValue: 'PERMANENTLY DELETE DATA' })}
         </Button>

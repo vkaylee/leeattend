@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
-
 import { ShieldAlert, Building2, Users } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import {
     BarChart,
     Bar,
@@ -29,15 +29,15 @@ const COLORS = {
 
  
 interface ChartDataEntry {
-    unexcused_count?: number;
     consecutive_count?: number;
     total_absent_count?: number;
+    unexcused_count?: number;
 }
 
 interface CustomTooltipProps {
     active?: boolean;
-    payload?: Array<{ payload: ChartDataEntry | null }>;
     label?: string;
+    payload?: { payload: ChartDataEntry | null }[];
 }
 
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
@@ -141,14 +141,14 @@ export default function UnexcusedAbsencesChart() {
                             const Icon = g.icon;
                             return (
                                 <button
-                                    key={g.key}
-                                    onClick={() => setGroupBy(g.key)}
                                     className={cn(
                                         "px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5",
                                         groupBy === g.key
                                             ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                                             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                                     )}
+                                    key={g.key}
+                                    onClick={() => { setGroupBy(g.key); }}
                                 >
                                     <Icon size={12} />
                                     {g.label}
@@ -161,14 +161,14 @@ export default function UnexcusedAbsencesChart() {
                     <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
                         {presets.map((p) => (
                             <button
-                                key={p.key}
-                                onClick={() => setPreset(p.key)}
                                 className={cn(
                                     "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
                                     preset === p.key
                                         ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                                         : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                                 )}
+                                key={p.key}
+                                onClick={() => { setPreset(p.key); }}
                             >
                                 {p.label}
                             </button>
@@ -184,68 +184,68 @@ export default function UnexcusedAbsencesChart() {
                 </div>
             ) : !hasData ? (
                 <div className="h-[320px] flex flex-col items-center justify-center">
-                    <ShieldAlert size={48} className="text-slate-200 dark:text-slate-700 mb-4" />
+                    <ShieldAlert className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
                     <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
                         {t("common.no_data")}
                     </p>
                 </div>
             ) : (
-                <ResponsiveContainer width="100%" height={chartHeight}>
+                <ResponsiveContainer height={chartHeight} width="100%">
                     <BarChart
                         data={chartData}
                         layout="vertical"
                         margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
                     >
                         <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="currentColor"
                             className="text-slate-100 dark:text-slate-800"
                             horizontal={false}
+                            stroke="currentColor"
+                            strokeDasharray="3 3"
                         />
                         <XAxis
-                            type="number"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
-                            tickLine={false}
-                            axisLine={false}
                             allowDecimals={false}
+                            axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                            tickLine={false}
+                            type="number"
                         />
                         <YAxis
-                            type="category"
+                            axisLine={false}
+                            className="text-slate-400 dark:text-slate-500"
                             dataKey="name"
                             tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            className="text-slate-400 dark:text-slate-500"
                             tickLine={false}
-                            axisLine={false}
+                            type="category"
                             width={120}
                         />
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
                         <Bar
                             dataKey="consecutive_count"
  
-                            name={t("dashboard.hr.consecutive_days")}
                             fill={COLORS.consecutive}
-                            stackId="absences"
-                            radius={[0, 0, 0, 0]}
                             label={false}
+                            name={t("dashboard.hr.consecutive_days")}
+                            radius={[0, 0, 0, 0]}
+                            stackId="absences"
                         />
                         <Bar
                             dataKey="remaining_unexcused"
-                            name={t("dashboard.hr.unexcused")}
                             fill={COLORS.unexcused}
-                            stackId="absences"
-                            radius={[0, 4, 4, 0]}
                             label={(props: unknown) => {
                                 const { x, y, width, height, index } = props as { x: number; y: number; width: number; height: number; index: number };
                                 const row = chartData[index];
                                 const total = row?.unexcused_count ?? 0;
                                 if (!total || total === 0) return null;
                                 return (
-                                    <text x={x + width + 4} y={y + height / 2} fill="#64748b" fontSize={9} fontWeight={700} dominantBaseline="middle">
+                                    <text dominantBaseline="middle" fill="#64748b" fontSize={9} fontWeight={700} x={x + width + 4} y={y + height / 2}>
                                         {total}
                                     </text>
                                 );
                             }}
+                            name={t("dashboard.hr.unexcused")}
+                            radius={[0, 4, 4, 0]}
+                            stackId="absences"
                         />
                     </BarChart>
                 </ResponsiveContainer>

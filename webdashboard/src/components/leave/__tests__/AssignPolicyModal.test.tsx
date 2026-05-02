@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -46,7 +47,7 @@ describe("AssignPolicyModal", () => {
     ] as unknown as never);
   });
 
-  const renderModal = (isOpen: boolean = true, onClose = vi.fn()) => {
+  const renderModal = (isOpen = true, onClose = vi.fn()) => {
     return render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
@@ -93,8 +94,8 @@ describe("AssignPolicyModal", () => {
     await user.selectOptions(policySelect, "pol-1");
 
     // Submit
-    const submitBtn = screen.getByText(/Gán ngay|Assign Now/i);
-    await user.click(submitBtn);
+    const submitButton = screen.getByText(/Gán ngay|Assign Now/i);
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(api.assignLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({

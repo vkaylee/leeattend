@@ -1,5 +1,3 @@
-import React, { useState } from 'react';
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Calculator, 
@@ -8,10 +6,10 @@ import {
   Calendar,
   AlertCircle
 } from 'lucide-react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useToast } from '@/components/ui/Toast';
-
 import { fetchOvertimePolicies, createOvertimePolicy, fetchOvertimePolicy } from '@/lib/api/payroll';
 
 import AssignOvertimePolicyModal from './AssignOvertimePolicyModal';
@@ -22,7 +20,9 @@ interface OvertimePolicyManagerProps {
 }
 
  
-function OvertimePolicyCard({ policy, wsId }: { policy: { id: string; name: string; description: string | null }, wsId: string }) {
+import { OvertimePolicy } from '@/lib/api/types';
+
+function OvertimePolicyCard({ policy, wsId }: { policy: OvertimePolicy, wsId: string }) {
   const { data: detail, isLoading } = useQuery({
     queryKey: ['overtime-policy', policy.id],
     queryFn: () => fetchOvertimePolicy(wsId, policy.id),
@@ -45,7 +45,7 @@ function OvertimePolicyCard({ policy, wsId }: { policy: { id: string; name: stri
       {isLoading ? (
         <div className='h-20 animate-pulse bg-slate-50 dark:bg-slate-800 rounded-2xl'></div>
       ) : (
-        <OvertimeRuleEditor wsId={wsId} policyId={policy.id} rules={detail ? detail[1] : []} />
+        <OvertimeRuleEditor policyId={policy.id} rules={detail ? detail[1] : []} wsId={wsId} />
       )}
     </div>
   );
@@ -93,15 +93,15 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
         </div>
         <div className='flex items-center gap-3'>
           <button
-            onClick={() => setIsAssignModalOpen(true)}
             className='flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95'
+            onClick={() => { setIsAssignModalOpen(true); }}
           >
             <Calendar size={16} />
             {t('payroll.assign_policy')}
           </button>
           <button
-            onClick={() => setIsCreating(!isCreating)}
             className='flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95'
+            onClick={() => { setIsCreating(!isCreating); }}
           >
             <Plus size={16} />
             {t('common.create')}
@@ -109,36 +109,36 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
         </div>
       </div>
 
-      {isCreating && (
+      {!!isCreating && (
         <div className='bg-slate-50 dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-4 duration-300'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='space-y-2'>
               <label className='text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('common.name')}</label>
               <input
+                className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all'
+                onChange={(e) => { setName(e.target.value); }}
+                placeholder='e.g. Standard Overtime'
                 type='text'
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all'
-                placeholder='e.g. Standard Overtime'
               />
             </div>
             <div className='space-y-2'>
               <label className='text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1'>{t('common.description')}</label>
               <input
+                className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all'
+                onChange={(e) => { setDescription(e.target.value); }}
+                placeholder='e.g. Night and Weekend rates'
                 type='text'
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all'
-                placeholder='e.g. Night and Weekend rates'
               />
             </div>
           </div>
           <div className='flex justify-end gap-3 mt-6'>
-            <button onClick={() => setIsCreating(false)} className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all'>Cancel</button>
+            <button className='px-6 py-2 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all' onClick={() => { setIsCreating(false); }}>Cancel</button>
             <button
-              onClick={() => createMutation.mutate({ name, description })}
-              disabled={!name || createMutation.isPending}
               className='flex items-center gap-2 bg-primary-600 text-white px-8 py-2 rounded-xl text-sm font-bold hover:bg-primary-700 transition-all disabled:opacity-50'
+              disabled={!name || createMutation.isPending}
+              onClick={() => { createMutation.mutate({ name, description }); }}
             >
               {t('common.save')}
             </button>
@@ -148,23 +148,23 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
 
       <div className='grid grid-cols-1 gap-4'>
         { }
-        {policies.map((policy: { id: string; name: string; description: string | null }) => (
+        {policies.map((policy: OvertimePolicy) => (
           <OvertimePolicyCard key={policy.id} policy={policy} wsId={wsId} />
         ))}
 
         {policies.length === 0 && !isCreating && (
           <div className='flex flex-col items-center justify-center py-12 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700'>
-             <AlertCircle size={48} className='text-slate-300 dark:text-slate-600 mb-4' />
+             <AlertCircle className='text-slate-300 dark:text-slate-600 mb-4' size={48} />
              <p className='text-slate-500 dark:text-slate-400 font-medium'>{t('payroll.no_overtime_policies')}</p>
-             <button onClick={() => setIsCreating(true)} className='mt-4 text-primary-600 dark:text-primary-400 font-bold hover:underline'>{t('payroll.create_first_policy')}</button>
+             <button className='mt-4 text-primary-600 dark:text-primary-400 font-bold hover:underline' onClick={() => { setIsCreating(true); }}>{t('payroll.create_first_policy')}</button>
           </div>
         )}
       </div>
 
       <AssignOvertimePolicyModal 
-        wsId={wsId} 
         isOpen={isAssignModalOpen} 
-        onClose={() => setIsAssignModalOpen(false)} 
+        onClose={() => { setIsAssignModalOpen(false); }} 
+        wsId={wsId} 
       />
     </div>
   );

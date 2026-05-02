@@ -18,9 +18,7 @@ export function useVersionCheck() {
         headers: { "Cache-Control": "no-cache" },
       });
       const html = await res.text();
-      const match = html.match(
-        /<meta\s+name="build-version"\s+content="([^"]+)"/i,
-      );
+      const match = /<meta\s+name="build-version"\s+content="([^"]+)"/i.exec(html);
       if (match && match[1] !== current) {
         setHasNewVersion(true);
       }
@@ -55,10 +53,10 @@ export function useVersionCheck() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () =>
-      document.removeEventListener("visibilitychange", handleVisibility);
+      { document.removeEventListener("visibilitychange", handleVisibility); };
   }, [check]);
 
-  const dismiss = useCallback(() => setHasNewVersion(false), []);
+  const dismiss = useCallback(() => { setHasNewVersion(false); }, []);
 
   return { hasNewVersion, dismiss };
 }

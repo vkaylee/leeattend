@@ -64,22 +64,12 @@ pub async fn approve_leave_request(
     ctx: MemberContext,
     Json(req): Json<ApproveLeaveRequest>,
 ) -> AppResult<StatusCode> {
-    let target_dept_id: Option<Uuid> = sqlx::query_scalar(
-        r#"
-        SELECT edh.department_id 
-        FROM leave_requests lr
-        JOIN employee_department_history edh ON lr.employee_id = edh.employee_id
-        JOIN employees e ON lr.employee_id = e.id
-        WHERE lr.id = $1 AND e.workspace_id = $2
-        ORDER BY edh.effective_date DESC 
-        LIMIT 1
-        "#,
-    )
-    .bind(id)
-    .bind(ctx.workspace_id)
-    .fetch_optional(state.infra.db.api())
-    .await
-    .unwrap_or(None);
+    let target_dept_id = state
+        .leaves
+        .request_repo
+        .get_employee_department_for_request(id, ctx.workspace_id)
+        .await
+        .map_err(AppError::Sqlx)?;
 
     ctx.require_any_scoped_permission(
         &[
@@ -658,17 +648,12 @@ pub async fn download_leave_import_template(
 ) -> AppResult<axum::response::Response> {
     ctx.require_permission(Permission::LeaveRequestsSubmit)?;
 
-    // Query leave types for this workspace
-    let leave_types: Vec<(String, String)> = sqlx::query!(
-        "SELECT code, name FROM leave_types WHERE workspace_id = $1 ORDER BY code",
-        ctx.workspace_id
-    )
-    .fetch_all(state.infra.db.api())
-    .await
-    .map_err(|e| AppError::Internal(format!("Failed to load leave types: {e}")))?
-    .into_iter()
-    .map(|r| (r.code, r.name))
-    .collect();
+    let leave_types = state
+        .leaves
+        .request_repo
+        .get_leave_types(ctx.workspace_id)
+        .await
+        .map_err(AppError::Sqlx)?;
 
     let lang = query.lang.as_deref().unwrap_or("en");
     let bytes = crate::services::leave_import_service::LeaveImportService::generate_template(

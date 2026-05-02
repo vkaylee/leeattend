@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
+import React from "react";
+
 import { describe, it, expect, vi } from "vitest";
 
 import * as api from "@/lib/api";
@@ -65,13 +65,13 @@ describe("useWorkspaces", () => {
         },
       ];
  
-        vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces as unknown as never);
+        vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces);
 
     const { result } = renderHook(() => useWorkspaces(), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
     expect(result.current.workspaces).toEqual(mockWorkspaces);
   });
 
@@ -88,7 +88,7 @@ describe("useWorkspaces", () => {
           default_language: "en",
           created_at: new Date().toISOString() 
  
-        };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs as unknown as never);
+        };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs);
 
     const { result } = renderHook(() => useWorkspaces(), {
       wrapper: createWrapper(),
@@ -106,19 +106,19 @@ describe("useWorkspaceMembers", () => {
       { workspace_id: "ws-1", user_id: "u-1", email: "owner@test.com", role_id: "role-1", extra_role_ids: [] },
     ];
  
-    vi.mocked(api.fetchWorkspaceMembers).mockResolvedValue(mockMembers as unknown as never);
+    vi.mocked(api.fetchWorkspaceMembers).mockResolvedValue(mockMembers);
 
     const { result } = renderHook(() => useWorkspaceMembers("ws-1"), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
     expect(result.current.members).toEqual(mockMembers);
   });
 
   it("adds a member successfully", async () => {
  
-    vi.mocked(api.addWorkspaceMember).mockResolvedValue(undefined as unknown as never);
+    vi.mocked(api.addWorkspaceMember).mockResolvedValue(undefined);
 
     const { result } = renderHook(() => useWorkspaceMembers("ws-1"), {
       wrapper: createWrapper(),
@@ -150,7 +150,7 @@ describe("useWorkspaceRoles", () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
     expect(result.current.roles).toEqual(mockRoles);
   });
 
@@ -184,7 +184,7 @@ describe("useWorkspaceRoles", () => {
 
   it("deletes a role successfully", async () => {
  
-    vi.mocked(api.deleteWorkspaceRole).mockResolvedValue(undefined as unknown as never);
+    vi.mocked(api.deleteWorkspaceRole).mockResolvedValue(undefined);
     const { renderHook } = await import("@testing-library/react");
     const { useWorkspaceRoles } = await import("../use-workspace");
     
@@ -219,7 +219,7 @@ describe("useWorkspacePermissionsMatrix", () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(Object.keys(result.current.matrix).length).toBeGreaterThan(0));
+    await waitFor(() => { expect(Object.keys(result.current.matrix).length).toBeGreaterThan(0); });
     expect(result.current.matrix).toEqual({
       "role-1": ["p1", "p2"],
       "role-2": ["p2"],
@@ -244,7 +244,7 @@ describe("useWorkspacePermissionsMatrix", () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.matrix["role-new"]).toBeDefined());
+    await waitFor(() => { expect(result.current.matrix["role-new"]).toBeDefined(); });
     expect(result.current.matrix["role-new"]).toEqual([]);
   });
 });
@@ -253,13 +253,13 @@ describe("useMemberRoles", () => {
   it("fetches roles successfully", async () => {
     const mockRoles = { primary: "a0000000-0000-0000-0000-000000000002", extra: [] };
  
-    vi.mocked(api.fetchMemberRoles).mockResolvedValue(mockRoles as unknown as never);
+    vi.mocked(api.fetchMemberRoles).mockResolvedValue(mockRoles);
 
     const { result } = renderHook(() => useMemberRoles("u-1", "ws-1"), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => { expect(result.current.isLoading).toBe(false); });
     expect(result.current.roles).toEqual(mockRoles);
   });
 });

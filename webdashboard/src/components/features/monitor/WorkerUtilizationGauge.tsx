@@ -1,10 +1,11 @@
 import { Zap, Coffee } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
 import { RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
 
-import { cn } from "@/lib/utils";
-
 import type { UtilizationData } from "@/hooks/use-monitor-charts";
+
+import { cn } from "@/lib/utils";
 
 interface Props {
   data: UtilizationData;
@@ -40,31 +41,31 @@ export default function WorkerUtilizationGauge({ data, isLoading }: Props) {
       ) : (
         <div className="relative">
           <RadialBarChart
-            width={160}
+            barSize={12}
+            data={chartData}
+            endAngle={-270}
             height={160}
             innerRadius={60}
             outerRadius={75}
-            data={chartData}
             startAngle={90}
-            endAngle={-270}
-            barSize={12}
+            width={160}
           >
             <defs>
-              <linearGradient id="gaugeGradient" x1="0" y1="0" x2="1" y2="1">
+              <linearGradient id="gaugeGradient" x1="0" x2="1" y1="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" />
                 <stop offset="100%" stopColor="#14b8a6" />
               </linearGradient>
             </defs>
             <PolarAngleAxis
-              type="number"
-              domain={[0, 100]}
               angleAxisId={0}
+              domain={[0, 100]}
               tick={false}
+              type="number"
             />
             <RadialBar
-              dataKey="value"
-              cornerRadius={8}
               background={{ fill: "rgba(148,163,184,0.12)" }}
+              cornerRadius={8}
+              dataKey="value"
             />
           </RadialBarChart>
 

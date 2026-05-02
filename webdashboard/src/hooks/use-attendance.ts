@@ -10,9 +10,9 @@ import { getCurrentWorkspaceId } from "@/lib/api/helpers";
 import { AttendanceDailySummary } from "@/lib/api/types";
 
 interface SummaryParams {
-  start: string;
-  end: string;
   employeeId?: string;
+  end: string;
+  start: string;
 }
 
 export const attendanceKeys = {
@@ -35,7 +35,7 @@ export function useAttendanceSummaries(start: string, end: string, employeeId?: 
   });
 
   return {
-    summaries: (query.data || []) as AttendanceDailySummary[],
+    summaries: (query.data || []),
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,

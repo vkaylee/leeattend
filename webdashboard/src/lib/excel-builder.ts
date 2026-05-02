@@ -47,11 +47,11 @@ const DETAIL_COLUMNS: ExcelColumn[] = [
 export type ReportType = "summary" | "detail";
 
 export interface GenerateOptions {
-  reportType: ReportType;
-  workspaceName?: string;
   dateRange?: { start: string; end: string };
   filename?: string;
   onProgress?: (percent: number) => void;
+  reportType: ReportType;
+  workspaceName?: string;
 }
 
 /**
@@ -99,10 +99,10 @@ export async function generateExcel(
   onProgress?.(10);
 
   // Header row (row 4)
-  const headerRowNum = 4;
-  const headerRow = worksheet.getRow(headerRowNum);
-  columns.forEach((col, idx) => {
-    const cell = headerRow.getCell(idx + 1);
+  const headerRowNumber = 4;
+  const headerRow = worksheet.getRow(headerRowNumber);
+  columns.forEach((col, index) => {
+    const cell = headerRow.getCell(index + 1);
     cell.value = col.header;
     cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
     cell.fill = {
@@ -118,18 +118,18 @@ export async function generateExcel(
 
   // Data rows - process in chunks for progress and UI responsiveness
   const chunkSize = 1000;
-  const dataStartRow = headerRowNum + 1;
+  const dataStartRow = headerRowNumber + 1;
 
-  for (let i = 0; i < rows.length; i += chunkSize) {
-    const chunk = rows.slice(i, i + chunkSize);
+  for (let index = 0; index < rows.length; index += chunkSize) {
+    const chunk = rows.slice(index, index + chunkSize);
 
-    chunk.forEach((row, chunkIdx) => {
-      const rowNum = dataStartRow + i + chunkIdx;
-      const excelRow = worksheet.getRow(rowNum);
+    chunk.forEach((row, chunkIndex) => {
+      const rowNumber = dataStartRow + index + chunkIndex;
+      const excelRow = worksheet.getRow(rowNumber);
 
-      columns.forEach((col, colIdx) => {
+      columns.forEach((col, colIndex) => {
         const value = row[col.key as keyof AttendanceRow] ?? "";
-        const cell = excelRow.getCell(colIdx + 1);
+        const cell = excelRow.getCell(colIndex + 1);
         cell.value = value;
 
         // Status column styling (detail report)
@@ -152,7 +152,7 @@ export async function generateExcel(
     });
 
     // Update progress (20% to 80% for data rows)
-    const progress = 20 + Math.floor((Math.min(i + chunkSize, rows.length) / rows.length) * 60);
+    const progress = 20 + Math.floor((Math.min(index + chunkSize, rows.length) / rows.length) * 60);
     onProgress?.(progress);
 
     // Yield to UI thread
@@ -164,13 +164,13 @@ export async function generateExcel(
   // Auto-filter on data range
   if (rows.length > 0) {
     worksheet.autoFilter = {
-      from: { row: headerRowNum, column: 1 },
+      from: { row: headerRowNumber, column: 1 },
       to: { row: dataStartRow + rows.length - 1, column: columns.length },
     };
   }
 
   // Freeze header rows
-  worksheet.views = [{ state: "frozen", ySplit: headerRowNum }];
+  worksheet.views = [{ state: "frozen", ySplit: headerRowNumber }];
 
   onProgress?.(90);
 

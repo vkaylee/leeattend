@@ -1,6 +1,6 @@
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -65,8 +65,8 @@ describe("BulkUploadOtDialog", () => {
     const input = screen.getByLabelText(/Select File|approvals.bulk_upload.select_file/i);
     await user.upload(input, file);
 
-    const uploadBtn = screen.getByRole("button", { name: /Upload & Process|approvals.bulk_upload.upload/i });
-    await user.click(uploadBtn);
+    const uploadButton = screen.getByRole("button", { name: /Upload & Process|approvals.bulk_upload.upload/i });
+    await user.click(uploadButton);
 
     // Wait for result to appear
     expect(await screen.findByText("Error")).toBeDefined();
@@ -74,16 +74,16 @@ describe("BulkUploadOtDialog", () => {
     // Now click the dialog's top-right X button which calls handleClose
     // We can find it by getting the first button (it's the X button at the top)
     const buttons = screen.getAllByRole("button");
-    const xBtn = buttons[0]; 
-    await user.click(xBtn);
+    const xButton = buttons[0]; 
+    await user.click(xButton);
 
     // Confirm dialog should appear
     expect(await screen.findByText("Warning")).toBeDefined();
     expect(await screen.findByText("Close with errors?")).toBeDefined();
 
     // Click confirm
-    const confirmBtn = screen.getByRole("button", { name: "Confirm" });
-    fireEvent.click(confirmBtn);
+    const confirmButton = screen.getByRole("button", { name: "Confirm" });
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(onOpenChange).toHaveBeenCalledWith(false);

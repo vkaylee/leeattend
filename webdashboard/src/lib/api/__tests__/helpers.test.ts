@@ -87,7 +87,7 @@ describe('clearAuthSession', () => {
   });
 
   it('does not throw when localStorage is empty', () => {
-    expect(() => clearAuthSession()).not.toThrow();
+    expect(() => { clearAuthSession(); }).not.toThrow();
   });
 });
 

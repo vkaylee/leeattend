@@ -48,20 +48,20 @@ export function useDarkMode() {
       if (mode === 'system') applyTheme(getSystemPreference());
     };
     mq.addEventListener('change', handleChange);
-    return () => mq.removeEventListener('change', handleChange);
+    return () => { mq.removeEventListener('change', handleChange); };
   }, [mode, resolved]);
 
   // Cross-tab sync
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
-        const val = (e.newValue as ThemeMode) || 'system';
-        setModeState(val);
-        applyTheme(resolveTheme(val));
+        const value = (e.newValue as ThemeMode) || 'system';
+        setModeState(value);
+        applyTheme(resolveTheme(value));
       }
     };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    return () => { window.removeEventListener('storage', handleStorage); };
   }, []);
 
   return { mode, resolved, setMode, isDark: resolved === 'dark' };

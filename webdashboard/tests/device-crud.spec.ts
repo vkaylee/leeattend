@@ -8,8 +8,8 @@ test.setTimeout(120000);
 
 test.describe.skip("Device CRUD E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
-    page.on('console', msg => console.log(`[BROWSER] ${msg.type().toUpperCase()}: ${msg.text()}`));
-    page.on('pageerror', err => console.log(`[BROWSER ERROR] ${err.message}`));
+    page.on('console', message => { console.log(`[BROWSER] ${message.type().toUpperCase()}: ${message.text()}`); });
+    page.on('pageerror', error => { console.log(`[BROWSER ERROR] ${error.message}`); });
 
     // Login first
     await page.goto('/login');
@@ -78,8 +78,8 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     }
 
     // Expand all agents to see devices
-    const expandBtn = page.getByTestId('expand-all-btn');
-    if (await expandBtn.isVisible()) {
+    const expandButton = page.getByTestId('expand-all-btn');
+    if (await expandButton.isVisible()) {
       await connectivity.expandAll();
     }
     await page.waitForTimeout(1000);
@@ -93,7 +93,7 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     const deviceId = testId.replace('device-item-', '');
 
     // Get toggle button to check current state (button text indicates action, not state)
-    const toggleBtn = page.getByTestId(`device-toggle-${deviceId}`);
+    const toggleButton = page.getByTestId(`device-toggle-${deviceId}`);
     const statusBadge = page.getByTestId(`device-status-${deviceId}`);
 
     // Helper to check if status indicates enabled (supports EN and VI)
@@ -109,7 +109,7 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     console.log(`[TEST] Initial status: "${initialStatusText}", wasEnabled: ${wasEnabled}`);
 
     // Click toggle and wait for the network request to complete
-    await toggleBtn.click();
+    await toggleButton.click();
 
     // Wait for status to change (poll for change rather than fixed timeout)
     await expect(async () => {
@@ -120,7 +120,7 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     }).toPass({ timeout: 10000 });
 
     // Toggle back to original state
-    await toggleBtn.click();
+    await toggleButton.click();
 
     // Wait for status to revert
     await expect(async () => {
@@ -140,8 +140,8 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     await page.waitForTimeout(1000);
 
     // Expand all to see devices
-    const expandBtn = page.getByTestId('expand-all-btn');
-    if (await expandBtn.isVisible()) {
+    const expandButton = page.getByTestId('expand-all-btn');
+    if (await expandButton.isVisible()) {
       await connectivity.expandAll();
       await page.waitForTimeout(1000);
     }
@@ -188,8 +188,8 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     await page.waitForTimeout(1000);
 
     // Expand all
-    const expandBtn = page.getByTestId('expand-all-btn');
-    if (await expandBtn.isVisible()) {
+    const expandButton = page.getByTestId('expand-all-btn');
+    if (await expandButton.isVisible()) {
       await connectivity.expandAll();
       await page.waitForTimeout(1000);
     }
@@ -229,8 +229,8 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     await page.waitForTimeout(1000);
 
     // Expand all
-    const expandBtn = page.getByTestId('expand-all-btn');
-    if (await expandBtn.isVisible()) {
+    const expandButton = page.getByTestId('expand-all-btn');
+    if (await expandButton.isVisible()) {
       await connectivity.expandAll();
       await page.waitForTimeout(1000);
     }

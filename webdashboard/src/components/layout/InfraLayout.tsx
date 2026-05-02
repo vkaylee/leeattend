@@ -23,8 +23,8 @@ export default function InfraLayout() {
       <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
-            to={ROUTES.HOME}
             className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 transition-colors"
+            to={ROUTES.HOME}
           >
             <ArrowLeft size={18} />
             <span className="text-sm font-medium">{t("common.back_to_workspace")}</span>
@@ -41,8 +41,8 @@ export default function InfraLayout() {
         </div>
 
         <button
-          onClick={handleLogout}
           className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 transition-colors"
+          onClick={handleLogout}
         >
           <LogOut size={18} />
           <span className="text-sm font-medium">{t("auth.logout")}</span>

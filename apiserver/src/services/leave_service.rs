@@ -58,7 +58,7 @@ impl LeaveService {
             .get_workspace_balances(workspace_id, year, limit, offset, params.q)
             .await
             .map_err(|e| {
-                eprintln!("SQLx Error in get_workspace_balances: {e:?}");
+                tracing::error!(error = %e, "SQLx Error in get_workspace_balances");
                 AppError::Internal("Internal error".into())
             })?;
 
@@ -100,7 +100,7 @@ impl LeaveService {
         .fetch_all(pool)
         .await
         .map_err(|e| {
-            eprintln!("SQLx Error in get_employee_leave_history logs: {e:?}");
+            tracing::error!(error = %e, "SQLx Error in get_employee_leave_history logs");
             AppError::Internal("Internal error".into())
         })?;
 
@@ -126,7 +126,7 @@ impl LeaveService {
         .fetch_all(pool)
         .await
         .map_err(|e| {
-            eprintln!("SQLx Error in get_employee_leave_history requests: {e:?}");
+            tracing::error!(error = %e, "SQLx Error in get_employee_leave_history requests");
             AppError::Internal("Internal error".into())
         })?;
 
@@ -321,7 +321,7 @@ impl LeaveService {
             .create_leave_request(&request)
             .await
             .map_err(|e| {
-                eprintln!("SQLx Error in submit_leave_request: {e:?}");
+                tracing::error!(error = %e, "SQLx Error in submit_leave_request");
                 AppError::Internal("Internal error".into())
             })?;
 
@@ -381,7 +381,7 @@ impl LeaveService {
             };
 
             let _ = self.roster_repo.upsert_roster(&roster).await.map_err(|e| {
-                eprintln!("SQLx Error in apply_leave_to_roster: {e:?}");
+                tracing::error!(error = %e, "SQLx Error in apply_leave_to_roster");
                 AppError::Internal("Internal error".into())
             })?;
 
@@ -422,7 +422,7 @@ impl LeaveService {
             .update_leave_request_status(workspace_id, request_id, req.status, Some(user_id))
             .await
             .map_err(|e| {
-                eprintln!("SQLx Error in approve_leave_request: {e:?}");
+                tracing::error!(error = %e, "SQLx Error in approve_leave_request");
                 AppError::Internal("Internal error".into())
             })?;
 

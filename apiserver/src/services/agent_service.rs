@@ -145,6 +145,129 @@ mod tests {
         async fn find_devices_by_agent_id(&self, _agent_id: &str) -> Result<Vec<Device>, String> {
             Ok(vec![])
         }
+
+        async fn get_workspace_agents(
+            &self,
+            _workspace_id: Uuid,
+            _include_inactive: bool,
+        ) -> Result<Vec<AuthorizedAgent>, sqlx::Error> {
+            Ok(vec![])
+        }
+
+        async fn create_authorized_agent(
+            &self,
+            _id: &str,
+            _name: &str,
+            _token: &str,
+            _workspace_id: Uuid,
+            _max_concurrent_workers: i32,
+            _success_cooldown_secs: i32,
+            _retention_days: i32,
+        ) -> Result<(), sqlx::Error> {
+            Ok(())
+        }
+
+        async fn agent_exists_in_workspace(
+            &self,
+            _agent_id: &str,
+            _workspace_id: Uuid,
+        ) -> Result<bool, sqlx::Error> {
+            Ok(true)
+        }
+
+        async fn get_workspace_devices(
+            &self,
+            _workspace_id: Uuid,
+        ) -> Result<Vec<Device>, sqlx::Error> {
+            Ok(vec![])
+        }
+
+        async fn get_devices_by_agent_ids(
+            &self,
+            _agent_ids: &[String],
+            _workspace_id: Uuid,
+        ) -> Result<Vec<Device>, sqlx::Error> {
+            Ok(vec![])
+        }
+
+        async fn create_device(
+            &self,
+            _id: Uuid,
+            _agent_id: &str,
+            _name: &str,
+            _ip: &str,
+            _port: i32,
+            _workspace_id: Uuid,
+            _brand: &str,
+            _password: &str,
+            _timezone: &str,
+        ) -> Result<(), sqlx::Error> {
+            Ok(())
+        }
+
+        async fn get_device_by_id(
+            &self,
+            _id: Uuid,
+            _workspace_id: Uuid,
+        ) -> Result<Option<Device>, sqlx::Error> {
+            Ok(None)
+        }
+
+        async fn update_device(
+            &self,
+            _id: Uuid,
+            _workspace_id: Uuid,
+            _name: &str,
+            _ip: &str,
+            _port: i32,
+            _is_enabled: bool,
+            _brand: &str,
+            _password: Option<&str>,
+            _timezone: &str,
+        ) -> Result<(), sqlx::Error> {
+            Ok(())
+        }
+
+        async fn get_agent_id_for_device(
+            &self,
+            _device_id: Uuid,
+            _workspace_id: Uuid,
+        ) -> Result<Option<String>, sqlx::Error> {
+            Ok(None)
+        }
+
+        async fn delete_device(
+            &self,
+            _device_id: Uuid,
+            _workspace_id: Uuid,
+        ) -> Result<u64, sqlx::Error> {
+            Ok(1)
+        }
+
+        async fn update_agent_trust(
+            &self,
+            _agent_id: &str,
+            _workspace_id: Uuid,
+            _is_trusted: bool,
+        ) -> Result<u64, sqlx::Error> {
+            Ok(1)
+        }
+
+        async fn get_agent_by_id_in_workspace(
+            &self,
+            _agent_id: &str,
+            _workspace_id: Uuid,
+        ) -> Result<Option<AuthorizedAgent>, sqlx::Error> {
+            Ok(None)
+        }
+
+        async fn deactivate_agent(
+            &self,
+            _agent_id: &str,
+            _workspace_id: Uuid,
+        ) -> Result<u64, sqlx::Error> {
+            Ok(1)
+        }
     }
 
     #[tokio::test]

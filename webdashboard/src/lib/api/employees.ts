@@ -8,10 +8,10 @@ export async function fetchEmployees(
   limit = 50
 ): Promise<PaginatedResponse<Employee>> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/employees?page=${page}&limit=${limit}`
+    `${API_BASE_URL}/workspaces/${wsId}/employees?page=${page.toString()}&limit=${limit.toString()}`
   );
   if (!response.ok) throw new Error("Failed to fetch employees");
-  return response.json();
+  return response.json() as Promise<PaginatedResponse<Employee>>;
 }
 
 // --- Employment Phases API ---
@@ -20,7 +20,7 @@ export async function fetchEmployees(
 export async function fetchEmploymentPhases(wsId: string): Promise<EmploymentPhaseDefinition[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employment-phases`);
   if (!response.ok) throw new Error("Failed to fetch employment phases");
-  return response.json();
+  return response.json() as Promise<EmploymentPhaseDefinition[]>;
 }
 
  
@@ -31,13 +31,13 @@ export async function createEmploymentPhase(wsId: string, data: Partial<Employme
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create employment phase");
-  return response.json();
+  return response.json() as Promise<EmploymentPhaseDefinition>;
 }
 
 export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions`);
   if (!response.ok) throw new Error("Failed to fetch working conditions");
-  return response.json();
+  return response.json() as Promise<WorkingCondition[]>;
 }
 
 export async function createWorkingCondition(
@@ -50,7 +50,7 @@ export async function createWorkingCondition(
     body: JSON.stringify(condition),
   });
   if (!response.ok) throw new Error("Failed to create working condition");
-  return response.json();
+  return response.json() as Promise<WorkingCondition>;
 }
 
 export async function deleteWorkingCondition(wsId: string, employeeId: string, conditionId: string): Promise<void> {
@@ -86,13 +86,13 @@ export async function searchEmployees(
   }
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees?${queryParams.toString()}`);
   if (!response.ok) throw new Error("Failed to search employees");
-  return response.json();
+  return response.json() as Promise<PaginatedResponse<Employee>>;
 }
 
 export async function fetchEmployee(wsId: string, id: string): Promise<Employee> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`);
   if (!response.ok) throw new Error("Failed to fetch employee");
-  return response.json();
+  return response.json() as Promise<Employee>;
 }
 
 export async function fetchEmploymentHistory(
@@ -101,7 +101,7 @@ export async function fetchEmploymentHistory(
 ): Promise<EmploymentPeriod[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}/history`);
   if (!response.ok) throw new Error("Failed to fetch employment history");
-  return response.json();
+  return response.json() as Promise<EmploymentPeriod[]>;
 }
 
 export async function rehireEmployee(
@@ -117,7 +117,7 @@ export async function rehireEmployee(
     const error = await response.text();
     throw new Error(error || "Failed to re-hire employee");
   }
-  return response.json();
+  return response.json() as Promise<Employee>;
 }
 
 export async function createEmployee(
@@ -129,7 +129,7 @@ export async function createEmployee(
     body: JSON.stringify(employee),
   });
   if (!response.ok) throw new Error("Failed to create employee");
-  return response.json();
+  return response.json() as Promise<Employee>;
 }
 
 export async function updateEmployee(
@@ -142,7 +142,7 @@ export async function updateEmployee(
     body: JSON.stringify(employee),
   });
   if (!response.ok) throw new Error("Failed to update employee");
-  return response.json();
+  return response.json() as Promise<Employee>;
 }
 
 export async function deleteEmployee(wsId: string, id: string): Promise<void> {
@@ -162,11 +162,11 @@ export async function transferEmployee(
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to transfer employee");
-  return response.json();
+  return response.json() as Promise<EmployeeDepartmentHistory>;
 }
 
 export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/departments`);
   if (!response.ok) throw new Error("Failed to fetch dept history");
-  return response.json();
+  return response.json() as Promise<EmployeeDepartmentHistory[]>;
 }

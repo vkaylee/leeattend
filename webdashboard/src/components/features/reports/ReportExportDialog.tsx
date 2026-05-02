@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useReportStream } from "../../../hooks/use-report-stream";
@@ -14,13 +13,13 @@ import { cn } from "../../../lib/utils";
 import Modal from "../../ui/Modal";
 
 interface ReportExportDialogProps {
+  employeeIds?: string[];
+  endDate: string;
   isOpen: boolean;
   onClose: () => void;
-  wsId: string;
-  startDate: string;
-  endDate: string;
   reportType: "summary" | "detail";
-  employeeIds?: string[];
+  startDate: string;
+  wsId: string;
 }
 
 type ExportPhase = "idle" | "starting" | "polling" | "downloading" | "completed" | "failed";
@@ -137,9 +136,9 @@ export default function ReportExportDialog({
       setJobId(response.job_id);
       setTotalBatches(response.total_batches);
       // Phase will be set automatically by useEffect watching streamStatus
-    } catch (err) {
+    } catch (error_) {
       setPhase("failed");
-      setError(err instanceof Error ? err.message : t("report_export.status.failed"));
+      setError(error_ instanceof Error ? error_.message : t("report_export.status.failed"));
     }
   };
 
@@ -158,9 +157,9 @@ export default function ReportExportDialog({
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
       onClose();
-    } catch (err) {
+    } catch (error_) {
       setPhase("failed");
-      setError(err instanceof Error ? err.message : "Download failed");
+      setError(error_ instanceof Error ? error_.message : "Download failed");
     }
   };
 
@@ -181,13 +180,13 @@ export default function ReportExportDialog({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t("report_export.title")}
-      subtitle={t("report_export.subtitle")}
       icon={<FileSpreadsheet size={24} />}
+      isOpen={isOpen}
       maxWidth="md"
+      onClose={onClose}
+      subtitle={t("report_export.subtitle")}
       testId="report-export-dialog"
+      title={t("report_export.title")}
     >
       <div className="p-6 space-y-6">
         {/* Export Info */}
@@ -200,7 +199,7 @@ export default function ReportExportDialog({
             <span className="text-slate-500 dark:text-slate-400">{t("reports.report_type")}:</span>
             <span className="font-medium capitalize">{reportType}</span>
           </div>
-          {employeeIds && employeeIds.length > 0 && (
+          {!!employeeIds && employeeIds.length > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-slate-500 dark:text-slate-400">{t("reports.employees")}:</span>
               <span className="font-medium">{employeeIds.length} {t("common.selected")}</span>
@@ -220,8 +219,8 @@ export default function ReportExportDialog({
                     phase === "completed" ? "bg-emerald-50 dark:bg-emerald-950" :
                       "bg-primary-600 bg-gradient-to-r from-primary-500 to-primary-600"
                 )}
-                style={{ width: `${phase === "completed" ? 100 : percentage}%` }}
                 data-testid="report-export-progress-fill"
+                style={{ width: `${phase === "completed" ? 100 : percentage}%` }}
               />
             </div>
 
@@ -264,14 +263,14 @@ export default function ReportExportDialog({
             )}
 
             {/* Error Message */}
-            {error && (
+            {!!error && (
               <div className="bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4" data-testid="report-export-error">
                 <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p>
               </div>
             )}
 
             {/* Fallback Mode Notification */}
-            {useFallbackPolling && phase === "polling" && (
+            {!!useFallbackPolling && phase === "polling" && (
               <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 rounded-xl p-3" data-testid="report-export-fallback-notice">
                 <p className="text-xs text-amber-700 dark:text-amber-300">
                   {t("report_export.fallback_mode")}
@@ -286,16 +285,16 @@ export default function ReportExportDialog({
           {phase === "idle" && (
             <>
               <button
-                onClick={onClose}
                 className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
                 data-testid="report-export-cancel-button"
+                onClick={onClose}
               >
                 {t("common.cancel")}
               </button>
               <button
-                onClick={handleStartExport}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium"
                 data-testid="report-export-start-button"
+                onClick={handleStartExport}
               >
                 <Download size={18} />
                 {t("report_export.start_export")}
@@ -305,9 +304,9 @@ export default function ReportExportDialog({
 
           {(phase === "starting" || phase === "polling") && (
             <button
-              onClick={onClose}
               className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
               data-testid="report-export-background-button"
+              onClick={onClose}
             >
               {t("report_export.run_background")}
             </button>
@@ -316,16 +315,16 @@ export default function ReportExportDialog({
           {phase === "completed" && (
             <>
               <button
-                onClick={onClose}
                 className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
                 data-testid="report-export-close-button"
+                onClick={onClose}
               >
                 {t("common.close")}
               </button>
               <button
-                onClick={handleDownload}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium"
                 data-testid="report-export-download-button"
+                onClick={handleDownload}
               >
                 <Download size={18} />
                 {t("report_export.download_button")}
@@ -336,16 +335,16 @@ export default function ReportExportDialog({
           {phase === "failed" && (
             <>
               <button
-                onClick={onClose}
                 className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
                 data-testid="report-export-close-button"
+                onClick={onClose}
               >
                 {t("common.close")}
               </button>
               <button
-                onClick={handleStartExport}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium"
                 data-testid="report-export-retry-button"
+                onClick={handleStartExport}
               >
                 {t("common.retry")}
               </button>
@@ -354,11 +353,11 @@ export default function ReportExportDialog({
 
           {phase === "downloading" && (
             <button
-              disabled
               className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-slate-300 text-slate-500 dark:text-slate-400 rounded-xl cursor-not-allowed font-medium"
               data-testid="report-export-downloading-button"
+              disabled
             >
-              <Loader2 size={18} className="animate-spin" />
+              <Loader2 className="animate-spin" size={18} />
               {t("report_export.status.downloading")}
             </button>
           )}

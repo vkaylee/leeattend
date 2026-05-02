@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -40,8 +41,8 @@ vi.mock("date-fns", async () => {
   return {
  
     ...actual,
-    format: (date: Date, formatStr: string, _options?: Record<string, unknown>) => {
-      if (formatStr === "EEEE") {
+    format: (date: Date, formatString: string, _options?: Record<string, unknown>) => {
+      if (formatString === "EEEE") {
         const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         return days[date.getDay()];
       }
@@ -207,7 +208,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
  
     vi.mocked(api.getCurrentWorkspaceId).mockReturnValue("test-ws-id");
  
-    vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees as unknown as PaginatedResponse<Employee>);
+    vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
     vi.mocked(api.fetchShifts).mockResolvedValue(mockShifts as unknown as Shift[]);
  
@@ -215,12 +216,12 @@ describe("ShiftsPage - Shift Picker Modal", () => {
  
     vi.mocked(api.fetchWorkspaceSchedules).mockResolvedValue(mockSchedules as unknown as EmployeeSchedule[]);
  
-    vi.mocked(api.fetchAssignmentHistory).mockResolvedValue([] as unknown as never[]);
+    vi.mocked(api.fetchAssignmentHistory).mockResolvedValue([]);
  
-    vi.mocked(api.bulkUpsertRoster).mockResolvedValue(undefined as unknown as void);
+    vi.mocked(api.bulkUpsertRoster).mockResolvedValue(undefined);
  
-    vi.mocked(api.fetchWorkingPatterns).mockResolvedValue([] as unknown as never[]);
-    vi.mocked(api.searchEmployees).mockResolvedValue(mockEmployees as unknown as PaginatedResponse<Employee>);
+    vi.mocked(api.fetchWorkingPatterns).mockResolvedValue([]);
+    vi.mocked(api.searchEmployees).mockResolvedValue(mockEmployees);
   });
 
   const renderShiftsPage = () => {
@@ -235,8 +236,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
  
 
   const selectEmployee = async (_user: unknown, employeeId: string) => {
-    const select = screen.getByTestId("employee-select") as HTMLSelectElement;
-    await waitFor(() => expect(select.options.length).toBeGreaterThan(1));
+    const select = screen.getByTestId("employee-select");
+    await waitFor(() => { expect((select as HTMLSelectElement).options.length).toBeGreaterThan(1); });
     fireEvent.change(select, { target: { value: employeeId } });
   };
 
@@ -284,8 +285,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -306,8 +307,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -328,8 +329,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -352,8 +353,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -378,8 +379,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -403,8 +404,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -435,8 +436,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -472,8 +473,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -507,8 +508,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -545,8 +546,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -574,8 +575,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length >= 3) {
@@ -632,8 +633,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
@@ -671,8 +672,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      const dayCards = screen.getAllByRole("generic").filter(el =>
-        el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
+      const dayCards = screen.getAllByRole("generic").filter(element =>
+        element.className.includes("rounded-[32px]") && element.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {

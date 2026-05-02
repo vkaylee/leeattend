@@ -1,7 +1,7 @@
+import type { AuditLog, PaginatedResponse } from "./types";
+
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-
-import type { AuditLog, PaginatedResponse } from "./types";
 
 export const fetchAuditLogs = async (
     workspaceId: string,
@@ -20,5 +20,5 @@ export const fetchAuditLogs = async (
     if (!response.ok) {
         throw new Error("Failed to fetch audit logs");
     }
-    return response.json();
+    return response.json() as Promise<PaginatedResponse<AuditLog>>;
 };

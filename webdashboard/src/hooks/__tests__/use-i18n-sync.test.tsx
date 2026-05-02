@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { useI18nSync } from '../use-i18n-sync';
@@ -64,7 +65,7 @@ describe('useI18nSync', () => {
   it('respects localStorage language and does not override', () => {
     localStorageMock.getItem.mockReturnValue('zh');
 
-    renderHook(() => useI18nSync(), { wrapper: createWrapper() });
+    renderHook(() => { useI18nSync(); }, { wrapper: createWrapper() });
 
     // Should NOT call changeLanguage because localStorage has a value
     expect(mockChangeLanguage).not.toHaveBeenCalled();
@@ -73,7 +74,7 @@ describe('useI18nSync', () => {
   it('syncs to user preference when no localStorage value', () => {
     localStorageMock.getItem.mockReturnValue(null);
 
-    renderHook(() => useI18nSync(), { wrapper: createWrapper() });
+    renderHook(() => { useI18nSync(); }, { wrapper: createWrapper() });
 
     // Should sync to user's preferred_language (en)
     expect(mockChangeLanguage).toHaveBeenCalledWith('en');
@@ -83,7 +84,7 @@ describe('useI18nSync', () => {
   it('does not sync if localStorage has valid language', () => {
     localStorageMock.getItem.mockReturnValue('en');
 
-    renderHook(() => useI18nSync(), { wrapper: createWrapper() });
+    renderHook(() => { useI18nSync(); }, { wrapper: createWrapper() });
 
     // Should respect localStorage
     expect(mockChangeLanguage).not.toHaveBeenCalled();
@@ -92,7 +93,7 @@ describe('useI18nSync', () => {
   it('ignores invalid localStorage values', () => {
     localStorageMock.getItem.mockReturnValue('invalid-lang');
 
-    renderHook(() => useI18nSync(), { wrapper: createWrapper() });
+    renderHook(() => { useI18nSync(); }, { wrapper: createWrapper() });
 
     // Should sync because localStorage value is invalid
     expect(mockChangeLanguage).toHaveBeenCalledWith('en');

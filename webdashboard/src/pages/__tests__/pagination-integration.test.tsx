@@ -1,14 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import type { PaginatedResponse, Employee } from "../../lib/api/types";
 
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
 import AttendanceLogsPage from "../AttendanceLogsPage";
 import LeaveRequestsPage from "../LeaveRequestsPage";
 import PayrollPage from "../PayrollPage";
-
-import type { PaginatedResponse, Employee } from "../../lib/api/types";
 
 /**
  * Integration tests for components using paginated API responses.
@@ -110,9 +111,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
-        createPaginatedResponse([])
-      );
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
@@ -128,9 +127,7 @@ describe("Pagination Integration Tests", () => {
         createPaginatedResponse([], { total: 0 })
       );
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
-        createPaginatedResponse([])
-      );
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
@@ -146,7 +143,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(undefined as unknown as PaginatedResponse<Employee>);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(undefined as unknown as PaginatedResponse<api.Payslip>);
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
@@ -186,9 +183,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
-        createPaginatedResponse([])
-      );
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
@@ -204,10 +199,10 @@ describe("Pagination Integration Tests", () => {
 
     it("should handle paginated response with pagination metadata", async () => {
       const mockEmployees = createPaginatedResponse<Employee>(
-        Array.from({ length: 50 }, (_, i) => ({
-          id: `emp-${i}`,
-          full_name: `Employee ${i}`,
-          employee_id_number: `EMP${String(i).padStart(3, "0")}`,
+        Array.from({ length: 50 }, (_, index) => ({
+          id: `emp-${index}`,
+          full_name: `Employee ${index}`,
+          employee_id_number: `EMP${String(index).padStart(3, "0")}`,
           workspace_id: "ws-1",
           is_active: true,
           hire_date: "2025-01-01",
@@ -220,9 +215,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
-        createPaginatedResponse([])
-      );
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
@@ -352,9 +345,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(malformedResponse);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
-        createPaginatedResponse([])
-      );
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
@@ -376,9 +367,7 @@ describe("Pagination Integration Tests", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(malformedResponse);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
-        createPaginatedResponse([])
-      );
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
@@ -388,10 +377,10 @@ describe("Pagination Integration Tests", () => {
     });
 
     it("should handle very large paginated response", async () => {
-      const largeEmployeeList = Array.from({ length: 500 }, (_, i) => ({
-        id: `emp-${i}`,
-        full_name: `Employee ${i}`,
-        employee_id_number: `EMP${String(i).padStart(3, "0")}`,
+      const largeEmployeeList = Array.from({ length: 500 }, (_, index) => ({
+        id: `emp-${index}`,
+        full_name: `Employee ${index}`,
+        employee_id_number: `EMP${String(index).padStart(3, "0")}`,
         workspace_id: "ws-1",
         is_active: true,
         hire_date: "2025-01-01",
@@ -406,11 +395,9 @@ describe("Pagination Integration Tests", () => {
       });
 
  
-      vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees as unknown as PaginatedResponse<Employee>);
+      vi.mocked(api.fetchEmployees).mockResolvedValue(mockEmployees);
  
-      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue(
-        createPaginatedResponse([])
-      );
+      vi.mocked(api.fetchWorkspacePayslips).mockResolvedValue([]);
  
       vi.mocked(api.fetchWorkspaceAttendanceAdjustments).mockResolvedValue([]);
 
@@ -429,7 +416,7 @@ describe("Pagination Integration Tests", () => {
       // CORRECT PATTERN
       const correctData = paginatedResponse?.data ?? [];
       expect(Array.isArray(correctData)).toBe(true);
-      expect(() => correctData.forEach(() => { })).not.toThrow();
+      expect(() => { correctData.forEach(() => { }); }).not.toThrow();
 
       // This pattern ensures:
       // 1. Optional chaining prevents null reference errors
@@ -444,7 +431,7 @@ describe("Pagination Integration Tests", () => {
       // INCORRECT PATTERN (what was happening before)
       // Treating response object as array directly
  
-      const incorrectUsage = paginatedResponse as unknown as { forEach: (cb: unknown) => void };
+      const incorrectUsage = paginatedResponse as unknown as { forEach: (callback: unknown) => void };
 
       // This would throw: TypeError: incorrectUsage.forEach is not a function
       // because paginatedResponse is an object, not an array

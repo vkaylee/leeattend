@@ -1,8 +1,8 @@
 import { screen } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import { Device, DeviceStatus } from "@/lib/api";
 import { renderWithClient } from "@/test/utils";
 
@@ -19,7 +19,7 @@ vi.mock("react-i18next", () => ({
 // Mock useTickingDeviceTime — returns the deviceTime as-is for simplicity in tests
 const mockUseTickingDeviceTime = vi.fn();
 vi.mock("@/hooks/useTickingDeviceTime", () => ({
-  useTickingDeviceTime: (...args: unknown[]) => mockUseTickingDeviceTime(...args),
+  useTickingDeviceTime: (...arguments_: unknown[]) => mockUseTickingDeviceTime(...arguments_),
 }));
 
 const mockDevice: Device = {
@@ -62,8 +62,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
         />
       </ToastProvider>
     );
@@ -76,9 +76,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={mockStatus}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={mockStatus}
         />
       </ToastProvider>
     );
@@ -92,9 +92,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={undefined}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={undefined}
         />
       </ToastProvider>
     );
@@ -112,9 +112,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithNull}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithNull}
         />
       </ToastProvider>
     );
@@ -132,9 +132,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithZero}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithZero}
         />
       </ToastProvider>
     );
@@ -149,9 +149,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={mockStatus}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={mockStatus}
         />
       </ToastProvider>
     );
@@ -172,9 +172,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusNoCapacity}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusNoCapacity}
         />
       </ToastProvider>
     );
@@ -193,9 +193,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusZeroCapacity}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusZeroCapacity}
         />
       </ToastProvider>
     );
@@ -216,9 +216,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithSync}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithSync}
         />
       </ToastProvider>
     );
@@ -237,9 +237,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusNoSync}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusNoSync}
         />
       </ToastProvider>
     );
@@ -258,9 +258,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithZ}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithZ}
         />
       </ToastProvider>
     );
@@ -278,9 +278,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithOffset}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithOffset}
         />
       </ToastProvider>
     );
@@ -300,9 +300,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithSerial}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithSerial}
         />
       </ToastProvider>
     );
@@ -318,9 +318,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithMac}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithMac}
         />
       </ToastProvider>
     );
@@ -336,9 +336,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithHw}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithHw}
         />
       </ToastProvider>
     );
@@ -354,9 +354,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusNoSerial}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusNoSerial}
         />
       </ToastProvider>
     );
@@ -376,9 +376,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithCap}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithCap}
         />
       </ToastProvider>
     );
@@ -398,9 +398,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusNoCap}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusNoCap}
         />
       </ToastProvider>
     );
@@ -422,9 +422,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusWithTime}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusWithTime}
         />
       </ToastProvider>
     );
@@ -437,9 +437,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={undefined}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={undefined}
         />
       </ToastProvider>
     );
@@ -457,9 +457,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={statusNoFw}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={statusNoFw}
         />
       </ToastProvider>
     );
@@ -474,9 +474,9 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={disabledDevice}
-          status={mockStatus}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          status={mockStatus}
         />
       </ToastProvider>
     );
@@ -489,10 +489,10 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          status={mockStatus}
-          parentAgentActive={false}
-          onUpdate={async () => { }}
           onDelete={async () => { }}
+          onUpdate={async () => { }}
+          parentAgentActive={false}
+          status={mockStatus}
         />
       </ToastProvider>
     );

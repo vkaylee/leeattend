@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
-
 import * as Popover from '@radix-ui/react-popover';
 import { Info, CheckCircle2, AlertCircle, Shield, ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ScheduleTrace } from '../../lib/api/types';
 
 interface ScheduleTracePopoverProps {
-  traces: ScheduleTrace[];
   source: string;
+  traces: ScheduleTrace[];
 }
 
 export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ traces, source }) => {
@@ -24,8 +23,8 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
     <Popover.Root>
       <Popover.Trigger asChild>
         <button 
-          onClick={(e) => e.stopPropagation()}
           className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
+          onClick={(e) => { e.stopPropagation(); }}
         >
           <Info size={14} />
         </button>
@@ -33,8 +32,8 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
       <Popover.Portal>
         <Popover.Content 
           className="z-50 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 p-4 animate-in fade-in zoom-in-95 duration-200"
+          onClick={(e) => { e.stopPropagation(); }}
           sideOffset={5}
-          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2 border-b border-slate-50 dark:border-slate-800 pb-3">
@@ -52,7 +51,7 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
             </div>
 
             {/* Applied Rule */}
-            {appliedRule && (
+            {!!appliedRule && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
@@ -67,7 +66,7 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
                     <CheckCircle2 size={14} />
                     <span className="text-xs font-bold">{appliedRule.rule_name}</span>
                   </div>
-                  {appliedRule.reason && (
+                  {!!appliedRule.reason && (
                     <p className="text-[10px] text-emerald-600 dark:text-emerald-300/80 leading-relaxed pl-5">
                       {appliedRule.reason}
                     </p>
@@ -98,24 +97,24 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
             {overriddenRules.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-slate-50 dark:border-slate-800">
                 <button 
-                  onClick={() => setShowOverridden(!showOverridden)}
                   className="flex items-center justify-between w-full group"
+                  onClick={() => { setShowOverridden(!showOverridden); }}
                 >
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 transition-colors">
                     {t("shifts.traceability.show_overridden")} ({overriddenRules.length})
                   </span>
-                  {showOverridden ? <ChevronDown size={14} className="text-slate-500 dark:text-slate-400" /> : <ChevronRight size={14} className="text-slate-500 dark:text-slate-400" />}
+                  {showOverridden ? <ChevronDown className="text-slate-500 dark:text-slate-400" size={14} /> : <ChevronRight className="text-slate-500 dark:text-slate-400" size={14} />}
                 </button>
 
-                {showOverridden && (
+                {!!showOverridden && (
                   <div className="space-y-2 animate-in slide-in-from-top-1 duration-200">
-                    {overriddenRules.map((rule, idx) => (
-                      <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1 opacity-70">
+                    {overriddenRules.map((rule, index) => (
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1 opacity-70" key={index}>
                         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                           <AlertCircle size={14} />
                           <span className="text-xs font-bold">{rule.rule_name}</span>
                         </div>
-                        {rule.reason && (
+                        {!!rule.reason && (
                           <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5 italic">
                             {rule.reason}
                           </p>

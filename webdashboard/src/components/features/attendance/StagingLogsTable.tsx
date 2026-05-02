@@ -1,27 +1,25 @@
-import React, { useState } from 'react';
-
 import { AlertTriangle, Check, Link2, UserPlus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EmployeeSearch } from '@/components/common/EmployeeSearch';
 import InfiniteScrollSentinel from '@/components/common/InfiniteScrollSentinel';
 import { TableSkeleton } from '@/components/common/TableSkeleton';
-
 import { StagingLog } from '@/lib/api/attendance';
 
 interface StagingLogsTableProps {
-  logs: StagingLog[];
-  isLoading: boolean;
-  isFetchingNextPage: boolean;
-  loadMoreRef: React.RefObject<HTMLTableRowElement | null>;
-  wsId: string;
-  getDeviceName: (deviceId?: string | null) => string;
   formatDate: (date: string | null | undefined) => string;
   formatTime: (date: string | null | undefined) => string;
-  onResolve: (logId: string, employeeId: string) => void;
-  onDismiss: (logId: string) => void;
+  getDeviceName: (deviceId?: string | null) => string;
   isDismissing: boolean;
+  isFetchingNextPage: boolean;
+  isLoading: boolean;
+  loadMoreRef: React.RefObject<HTMLTableRowElement | null>;
+  logs: StagingLog[];
   onCreateEmployee: (rawUserId: string) => void;
+  onDismiss: (logId: string) => void;
+  onResolve: (logId: string, employeeId: string) => void;
+  wsId: string;
 }
 
 export function StagingLogsTable({
@@ -63,7 +61,7 @@ export function StagingLogsTable({
               <TableSkeleton rows={3} variant="warning" />
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-8 py-24 text-center">
+                <td className="px-8 py-24 text-center" colSpan={4}>
                   <div className="flex flex-col items-center justify-center space-y-4">
                     <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/30 rounded-full flex items-center justify-center text-emerald-500/50">
                       <Check className="h-8 w-8 text-emerald-400" />
@@ -78,7 +76,7 @@ export function StagingLogsTable({
             ) : (
               <>
                 {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-amber-50 dark:bg-amber-950/30 transition-colors group">
+                  <tr className="hover:bg-amber-50 dark:bg-amber-950/30 transition-colors group" key={log.id}>
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center text-amber-600 dark:text-amber-300 shadow-inner border border-amber-100 dark:border-amber-800/50"><AlertTriangle size={18} /></div>
@@ -108,19 +106,19 @@ export function StagingLogsTable({
                         {assigningLogId === log.id ? (
                           <div className="flex items-center gap-2 min-w-[200px]">
                             <EmployeeSearch
-                              workspaceId={wsId}
-                              value=""
-                              onChange={(val) => {
-                                const empId = Array.isArray(val) ? val[0] : val;
+                              onChange={(value) => {
+                                const empId = Array.isArray(value) ? value[0] : value;
                                 if (empId) {
                                   handleResolve(log.id, empId);
                                 }
                               }}
                               placeholder={t("attendance_logs.select_employee")}
+                              value=""
+                              workspaceId={wsId}
                             />
                             <button
-                              onClick={() => setAssigningLogId(null)}
                               className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 transition-colors"
+                              onClick={() => { setAssigningLogId(null); }}
                             >
                               ✕
                             </button>
@@ -128,21 +126,21 @@ export function StagingLogsTable({
                         ) : (
                           <>
                             <button
-                              onClick={() => setAssigningLogId(log.id)}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-primary-100 dark:bg-primary-900 transition-all"
+                              onClick={() => { setAssigningLogId(log.id); }}
                             >
                               <Link2 size={12} /> {t("attendance_logs.assign")}
                             </button>
                             <button
-                              onClick={() => onCreateEmployee(log.raw_user_id)}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-100 dark:bg-emerald-900 transition-all"
+                              onClick={() => { onCreateEmployee(log.raw_user_id); }}
                             >
                               <UserPlus size={12} /> {t("attendance_logs.create_employee")}
                             </button>
                             <button
-                              onClick={() => onDismiss(log.id)}
-                              disabled={isDismissing}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-rose-100 dark:bg-rose-900 transition-all disabled:opacity-50"
+                              disabled={isDismissing}
+                              onClick={() => { onDismiss(log.id); }}
                             >
                               <Trash2 size={12} /> {t("common.delete")}
                             </button>
@@ -152,7 +150,7 @@ export function StagingLogsTable({
                     </td>
                   </tr>
                 ))}
-                <InfiniteScrollSentinel sentinelRef={loadMoreRef} isFetchingNextPage={isFetchingNextPage} colSpan={4} />
+                <InfiniteScrollSentinel colSpan={4} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} />
               </>
             )}
           </tbody>

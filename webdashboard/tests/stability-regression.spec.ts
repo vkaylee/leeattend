@@ -50,7 +50,7 @@ test.skip("should load settings page without ReferenceErrors", async ({ page, ba
   
   // Check console for "ReferenceError"
   const logs: string[] = [];
-  page.on("console", msg => logs.push(msg.text()));
+  page.on("console", message => logs.push(message.text()));
   
   expect(logs.some(l => l.includes("ReferenceError"))).toBe(false);
 });

@@ -9,8 +9,8 @@ test.describe('Report Export Streaming E2E', () => {
 
   test.beforeEach(async ({ page }) => {
     // Enable browser console logging for debugging
-    page.on('console', msg => console.log(`[BROWSER] ${msg.type().toUpperCase()}: ${msg.text()}`));
-    page.on('pageerror', err => console.log(`[BROWSER ERROR] ${err.message}`));
+    page.on('console', message => { console.log(`[BROWSER] ${message.type().toUpperCase()}: ${message.text()}`); });
+    page.on('pageerror', error => { console.log(`[BROWSER ERROR] ${error.message}`); });
     
     page.on('response', async response => {
       if (response.url().includes('/reports/export')) {
@@ -27,7 +27,7 @@ test.describe('Report Export Streaming E2E', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 60000 });
 
     // Verify console capture is working
-    await page.evaluate(() => console.error("INJECTED_TEST_LOG_FOR_DEBUGGING"));
+    await page.evaluate(() => { console.error("INJECTED_TEST_LOG_FOR_DEBUGGING"); });
   });
 
   test('should export report with progress tracking', async ({ page }) => {
@@ -50,12 +50,12 @@ test.describe('Report Export Streaming E2E', () => {
     await expect(statusText).toContainText(/completed|success|Sẵn sàng/i, { timeout: 60000 });
 
     // Verify download button appears
-    const downloadBtn = page.getByTestId('report-export-download-button');
-    await expect(downloadBtn).toBeVisible({ timeout: 5000 });
+    const downloadButton = page.getByTestId('report-export-download-button');
+    await expect(downloadButton).toBeVisible({ timeout: 5000 });
 
     // Trigger download and verify
     const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
-    await downloadBtn.click();
+    await downloadButton.click();
     const download = await downloadPromise;
 
     // Verify download filename
@@ -76,9 +76,9 @@ test.describe('Report Export Streaming E2E', () => {
     await page.getByTestId('report-export-start-button').click();
 
     // Click "Run in Background" button
-    const backgroundBtn = page.getByTestId('report-export-background-button');
-    await expect(backgroundBtn).toBeVisible({ timeout: 10000 });
-    await backgroundBtn.click({ force: true });
+    const backgroundButton = page.getByTestId('report-export-background-button');
+    await expect(backgroundButton).toBeVisible({ timeout: 10000 });
+    await backgroundButton.click({ force: true });
 
     // Verify dialog closes
     await expect(page.getByTestId('report-export-dialog')).not.toBeVisible({ timeout: 5000 });

@@ -4,10 +4,10 @@ import { AttendanceSummary, DailyAttendanceReport } from "@/lib/api";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 
 interface ReportStatsProps {
-  reportType: "summary" | "daily";
   filteredData: AttendanceSummary[] | DailyAttendanceReport[];
-  workUnitMinutes: number;
+  reportType: "summary" | "daily";
   t: (key: string) => string;
+  workUnitMinutes: number;
 }
 
 export default function ReportStats({
@@ -19,18 +19,18 @@ export default function ReportStats({
   const stdHours = formatUnitsToHours(
     reportType === "summary"
  
-      ? (filteredData as AttendanceSummary[]).reduce((acc: number, r: AttendanceSummary) => acc + (r.total_std_units || 0), 0)
+      ? (filteredData as AttendanceSummary[]).reduce((accumulator: number, r: AttendanceSummary) => accumulator + (r.total_std_units || 0), 0)
  
-      : (filteredData as DailyAttendanceReport[]).reduce((acc: number, r: DailyAttendanceReport) => acc + r.std_work_units, 0),
+      : (filteredData as DailyAttendanceReport[]).reduce((accumulator: number, r: DailyAttendanceReport) => accumulator + r.std_work_units, 0),
     workUnitMinutes
   );
 
   const otHours = formatUnitsToHours(
     reportType === "summary"
  
-      ? (filteredData as AttendanceSummary[]).reduce((acc: number, r: AttendanceSummary) => acc + (r.total_ot_units || 0), 0)
+      ? (filteredData as AttendanceSummary[]).reduce((accumulator: number, r: AttendanceSummary) => accumulator + (r.total_ot_units || 0), 0)
  
-      : (filteredData as DailyAttendanceReport[]).reduce((acc: number, r: DailyAttendanceReport) => acc + (r.ot_work_units || 0), 0),
+      : (filteredData as DailyAttendanceReport[]).reduce((accumulator: number, r: DailyAttendanceReport) => accumulator + (r.ot_work_units || 0), 0),
     workUnitMinutes
   );
 

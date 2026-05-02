@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import * as api from "@/lib/api";
 
 import { PolicyAssignmentsSection } from "../PolicyAssignmentsSection";
@@ -95,8 +95,8 @@ describe("PolicyAssignmentsSection", () => {
     renderWithProviders(<PolicyAssignmentsSection wsId={mockWsId} />);
     
     // Click ADD OVERRIDE button
-    const addBtn = await screen.findByText(/attendance_policy_overrides.add_button/i);
-    fireEvent.click(addBtn);
+    const addButton = await screen.findByText(/attendance_policy_overrides.add_button/i);
+    fireEvent.click(addButton);
     
     // Wait for drawer to open
     await waitFor(() => {
@@ -104,12 +104,12 @@ describe("PolicyAssignmentsSection", () => {
     });
 
     // Select Department type
-    const deptBtn = screen.getByText(/Department/i, { selector: 'span' });
-    fireEvent.click(deptBtn);
+    const deptButton = screen.getByText(/Department/i, { selector: 'span' });
+    fireEvent.click(deptButton);
 
     // Save override
-    const saveBtn = screen.getByText(/attendance_policy_overrides.drawer.save_button/i);
-    fireEvent.click(saveBtn);
+    const saveButton = screen.getByText(/attendance_policy_overrides.drawer.save_button/i);
+    fireEvent.click(saveButton);
     
     // The validation should prevent save since no target is selected
     // Because combobox value is ""

@@ -1,11 +1,11 @@
 import React from "react";
-
 import ReactDOM from "react-dom/client";
 
 import App from "./App";
 import { ToastProvider } from "./components/ui/Toast";
 import "./index.css";
 import "@fontsource/inter";
+
 import "./i18n/config";
 import { initSentry } from "./lib/sentry";
 import { trackWebVitals } from "./lib/web-vitals";

@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -27,7 +27,7 @@ vi.mock("@/lib/api/leaves", () => ({
   createLeavePolicy: vi.fn(),
   updateLeavePolicy: vi.fn(),
  
-  deleteLeavePolicy: (...args: unknown[]) => mockDelete(...args)
+  deleteLeavePolicy: (...arguments_: unknown[]) => mockDelete(...arguments_)
 }));
 
 // Mock translation
@@ -69,16 +69,16 @@ describe("LeavePolicyManager", () => {
     expect(await screen.findByText("Annual Leave")).toBeDefined();
 
     // Click delete
-    const deleteBtn = screen.getByTestId("delete-policy-btn");
-    await user.click(deleteBtn);
+    const deleteButton = screen.getByTestId("delete-policy-btn");
+    await user.click(deleteButton);
 
     // Confirm dialog should appear
     expect(await screen.findByText("Warning")).toBeDefined();
     expect(await screen.findByText("Delete this policy?")).toBeDefined();
 
     // Click confirm
-    const confirmBtn = screen.getByRole("button", { name: "Confirm" });
-    await user.click(confirmBtn);
+    const confirmButton = screen.getByRole("button", { name: "Confirm" });
+    await user.click(confirmButton);
 
     await waitFor(() => {
       expect(mockDelete).toHaveBeenCalledWith("ws-1", "policy-1");

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as dashboardHooks from "@/hooks/use-dashboard";
@@ -22,7 +23,7 @@ vi.mock("react-i18next", () => ({
 vi.mock("recharts", () => ({
  
     BarChart: ({ children, ...props }: any) => (
-        <div data-testid="bar-chart" data-layout={props.layout} {...props}>{children as React.ReactNode}</div>
+        <div data-layout={props.layout} data-testid="bar-chart" {...props}>{children as React.ReactNode}</div>
     ),
  
     Bar: (props: any) => <div data-testid={`bar-${props.dataKey}`} />,

@@ -45,6 +45,13 @@ pub trait WorkspaceRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<String>, String>;
+    /// Get all permission names for a set of role IDs.
+    async fn get_permissions_for_roles(
+        &self,
+        role_ids: &[Uuid],
+    ) -> Result<Vec<String>, sqlx::Error>;
+    /// Check if any role in the set has global scope.
+    async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, sqlx::Error>;
 }
 
 pub struct SqlxWorkspaceRepository {
@@ -183,6 +190,27 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         .map_err(|e| e.to_string())?;
 
         Ok(permissions.into_iter().map(|(p,)| p).collect())
+    }
+
+    async fn get_permissions_for_roles(
+        &self,
+        role_ids: &[Uuid],
+    ) -> Result<Vec<String>, sqlx::Error> {
+        sqlx::query_scalar::<_, String>(
+            "SELECT permission_name FROM workspace_role_permissions WHERE role_id = ANY($1)",
+        )
+        .bind(role_ids)
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    async fn is_any_role_global(&self, role_ids: &[Uuid]) -> Result<bool, sqlx::Error> {
+        sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM workspace_roles WHERE id = ANY($1) AND scope_type = 'global')",
+        )
+        .bind(role_ids)
+        .fetch_one(&self.pool)
+        .await
     }
 }
 

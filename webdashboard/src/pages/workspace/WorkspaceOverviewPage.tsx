@@ -2,7 +2,6 @@ import { Building2, Users, CalendarDays, BarChart3, Clock, Loader2 } from "lucid
 import { useTranslation } from "react-i18next";
 
 import PageHeader from "@/components/ui/PageHeader";
-
 import { useDashboardStats } from "@/hooks/use-dashboard";
 import { useWorkspace, useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
 
@@ -29,8 +28,8 @@ export default function WorkspaceOverviewPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
       <PageHeader
-        title={t('overview.title', { defaultValue: 'Workspace Overview' })}
         subtitle={`ID: ${workspace.id.substring(0, 8).toUpperCase()}`}
+        title={t('overview.title', { defaultValue: 'Workspace Overview' })}
       />
 
       {/* Hero Card */}
@@ -46,11 +45,11 @@ export default function WorkspaceOverviewPage() {
           <h2 className="text-5xl font-black tracking-tight mb-2">{workspace.name}</h2>
           <div className="flex items-center gap-6 mt-8 text-indigo-100 font-medium">
             <div className="flex items-center gap-2">
-              <Clock size={16} className="opacity-70" />
+              <Clock className="opacity-70" size={16} />
               <span>{t('overview.timezone', { defaultValue: 'Timezone:' })} {workspace.timezone}</span>
             </div>
             <div className="flex items-center gap-2">
-              <CalendarDays size={16} className="opacity-70" />
+              <CalendarDays className="opacity-70" size={16} />
               <span>{t('overview.created', { defaultValue: 'Created:' })} {new Date(workspace.created_at).toLocaleDateString()}</span>
             </div>
           </div>
@@ -124,10 +123,10 @@ export default function WorkspaceOverviewPage() {
             const r = roles.find(role => role.id === m.role_id);
             return r && (r.name.toLowerCase() === 'owner' || r.name.toLowerCase() === 'admin');
           }).map(admin => (
-            <div key={admin.user_id} className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800" key={admin.user_id}>
               <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold">
                 {admin.avatar_url ? (
-                  <img src={admin.avatar_url} alt="Admin avatar" className="w-full h-full object-cover rounded-xl" />
+                  <img alt="Admin avatar" className="w-full h-full object-cover rounded-xl" src={admin.avatar_url} />
                 ) : (
                   (admin.full_name || admin.email).substring(0, 2).toUpperCase()
                 )}

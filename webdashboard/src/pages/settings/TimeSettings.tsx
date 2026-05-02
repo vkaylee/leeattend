@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Calculator, ShieldAlert, Settings2, LayoutGrid, Zap, RefreshCw, AlertTriangle, Plus, History, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { PolicyAssignmentsSection } from "@/components/features/attendance/PolicyAssignmentsSection";
@@ -10,7 +9,6 @@ import { Combobox } from "@/components/ui/Combobox";
 import { LABEL_BASE } from "@/components/ui/FormField";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace, reprocessAllAttendance, fetchGenericJobStatus, fetchDefaultAttendanceRules, updateDefaultAttendanceRules, fetchAttendancePolicyVersions, AttendanceRules, AttendancePolicyVersion, UpdateAttendanceRulesRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import AssignmentRulesPage from "@/pages/AssignmentRulesPage";
@@ -48,7 +46,7 @@ export default function TimeSettings() {
 
   if (!workspace || !rules) return null;
 
-  return <TimeSettingsContent key={`${workspace.id}-${versions.length}`} workspace={workspace} rules={rules} versions={versions} />;
+  return <TimeSettingsContent key={`${workspace.id}-${versions.length}`} rules={rules} versions={versions} workspace={workspace} />;
 }
 
 type TabType = "general" | "patterns" | "rules";
@@ -155,7 +153,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
     updateRulesMutation.mutate({
       work_unit_minutes: workUnit,
       rounding_policy: roundingPolicy,
-      early_arrival_strategy: earlyArrivalStrategy as "block" | "allow" | "clamp",
+      early_arrival_strategy: earlyArrivalStrategy,
       valid_from: newValidFrom,
     });
   }
@@ -206,7 +204,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
         </div>
 
         {activeTab === "general" && (
-          <Button onClick={() => { setShowCreateModal(true); setNewValidFrom(new Date().toISOString().split("T")[0]); }} icon={<Plus size={18} />}>{t("common.workspace_settings.new_version") || "NEW VERSION"}</Button>
+          <Button icon={<Plus size={18} />} onClick={() => { setShowCreateModal(true); setNewValidFrom(new Date().toISOString().split("T")[0]); }}>{t("common.workspace_settings.new_version") || "NEW VERSION"}</Button>
         )}
 
       </div>
@@ -215,11 +213,11 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
 
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
 
-        <button onClick={() => handleTabChange("general")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'general' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}><Settings2 size={14} /> {t("common.settings.tabs.general")}</button>
+        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'general' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} onClick={() => { handleTabChange("general"); }}><Settings2 size={14} /> {t("common.settings.tabs.general")}</button>
 
-        <button onClick={() => handleTabChange("patterns")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'patterns' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}><LayoutGrid size={14} /> {t("common.settings.tabs.patterns")}</button>
+        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'patterns' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} onClick={() => { handleTabChange("patterns"); }}><LayoutGrid size={14} /> {t("common.settings.tabs.patterns")}</button>
 
-        <button onClick={() => handleTabChange("rules")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'rules' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}><Zap size={14} /> {t("common.settings.tabs.rules")}</button>
+        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'rules' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} onClick={() => { handleTabChange("rules"); }}><Zap size={14} /> {t("common.settings.tabs.rules")}</button>
 
       </div>
 
@@ -239,21 +237,21 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
 
               {versions.length === 0 ? (
                 <div className="py-16 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center">
-                  <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-5 border border-slate-100 dark:border-slate-800"><Calculator size={36} className="text-slate-200 dark:text-slate-700" /></div>
+                  <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-5 border border-slate-100 dark:border-slate-800"><Calculator className="text-slate-200 dark:text-slate-700" size={36} /></div>
                   <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{t("common.workspace_settings.no_versions") || "No configuration yet"}</h3>
                   <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 opacity-50 italic">{t("common.workspace_settings.no_versions_desc") || "Create the first version to get started"}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {versions.map((v, idx) => {
-                    const isCurrent = idx === 0 && !v.valid_to;
+                  {versions.map((v, index) => {
+                    const isCurrent = index === 0 && !v.valid_to;
                     return (
-                      <div key={v.id} className={cn(
+                      <div className={cn(
                         "relative p-6 rounded-2xl border transition-all group",
                         isCurrent
                           ? "bg-primary-50/50 dark:bg-primary-950/30 border-primary-200 dark:border-primary-800 shadow-md"
                           : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 opacity-70"
-                      )}>
+                      )} key={v.id}>
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-center gap-4">
                             <div className={cn(
@@ -264,8 +262,8 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                             </div>
                             <div>
                               <div className="flex items-center gap-3 mb-1">
-                                {isCurrent && <span className="px-2.5 py-0.5 bg-primary-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm">{t("status_active_caps")}</span>}
-                                {v.valid_to && <span className="px-2.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase tracking-widest rounded-lg">{t("status_expired")}</span>}
+                                {!!isCurrent && <span className="px-2.5 py-0.5 bg-primary-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm">{t("status_active_caps")}</span>}
+                                {!!v.valid_to && <span className="px-2.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase tracking-widest rounded-lg">{t("status_expired")}</span>}
                               </div>
                               <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                 {formatDate(v.valid_from)}{v.valid_to ? ` → ${formatDate(v.valid_to)}` : " → Present"}
@@ -320,14 +318,14 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-3">
                   <label className={LABEL_BASE}>{t("common.startDate") || "Start Date"}</label>
-                  <input type="date" value={reprocessStart} onChange={(e) => setReprocessStart(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold h-14" />
+                  <input className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold h-14" onChange={(e) => { setReprocessStart(e.target.value); }} type="date" value={reprocessStart} />
                 </div>
                 <div className="space-y-3">
                   <label className={LABEL_BASE}>{t("common.endDate") || "End Date"}</label>
-                  <input type="date" value={reprocessEnd} onChange={(e) => setReprocessEnd(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold h-14" />
+                  <input className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold h-14" onChange={(e) => { setReprocessEnd(e.target.value); }} type="date" value={reprocessEnd} />
                 </div>
                 <div className="space-y-3 md:col-span-2 flex justify-end">
-                  <Button onClick={() => setShowReprocessConfirm(true)} variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50 dark:border-orange-900/50 dark:hover:bg-orange-900/20" icon={<RefreshCw size={18} />}>
+                  <Button className="text-orange-600 border-orange-200 hover:bg-orange-50 dark:border-orange-900/50 dark:hover:bg-orange-900/20" icon={<RefreshCw size={18} />} onClick={() => { setShowReprocessConfirm(true); }} variant="outline">
                     {t("reports.reprocess.bulk_tooltip")?.toUpperCase() || "REPROCESS DATA"}
                   </Button>
                 </div>
@@ -335,40 +333,40 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
             </div>
 
             {/* Create New Version Modal */}
-            <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title={t("common.workspace_settings.new_version") || "New Attendance Config"} subtitle={t("common.workspace_settings.new_version_desc") || "Create a new configuration version with an effective date"} icon={<Plus size={24} />} maxWidth="xl">
+            <Modal icon={<Plus size={24} />} isOpen={showCreateModal} maxWidth="xl" onClose={() => { setShowCreateModal(false); }} subtitle={t("common.workspace_settings.new_version_desc") || "Create a new configuration version with an effective date"} title={t("common.workspace_settings.new_version") || "New Attendance Config"}>
               <div className="space-y-8 pt-4 animate-in fade-in duration-500">
                 <div className="space-y-3 px-1">
                   <label className={LABEL_BASE}>{t("common.workspace_settings.valid_from") || "Effective From"}</label>
-                  <input type="date" value={newValidFrom} onChange={e => setNewValidFrom(e.target.value)} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" />
+                  <input className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" onChange={e => { setNewValidFrom(e.target.value); }} type="date" value={newValidFrom} />
                   <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase italic leading-relaxed px-1 opacity-60">{t("common.workspace_settings.valid_from_note") || "Payroll calculations will use this configuration from this date forward."}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3 px-1">
                     <label className={LABEL_BASE}>{t("common.workspace_settings.work_unit")}</label>
-                    <Combobox options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnit?.toString() || "15"} onChange={(v) => setWorkUnit(parseInt(v))} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
+                    <Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" onChange={(v) => { setWorkUnit(parseInt(v)); }} options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnit?.toString() || "15"} />
                   </div>
                   <div className="space-y-3 px-1">
                     <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
-                    <Combobox options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy || "none"} onChange={setRoundingPolicy} className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" />
+                    <Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" onChange={setRoundingPolicy} options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy || "none"} />
                   </div>
                 </div>
                 <div className="space-y-3 px-1">
                   <label className={LABEL_BASE}>{t("common.workspace_settings.early_arrival_strategy")}</label>
                   <Combobox
+                    className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
+                    onChange={(v) => { setEarlyArrivalStrategy(v as "block" | "allow" | "clamp"); }}
+ 
                     options={[
                       { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> },
                       { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> },
                       { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
                     ]}
                     value={earlyArrivalStrategy}
- 
-                    onChange={(v) => setEarlyArrivalStrategy(v as "block" | "allow" | "clamp")}
-                    className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14"
                   />
                 </div>
                 <div className="pt-8 border-t border-slate-50 dark:border-slate-800 grid grid-cols-2 gap-6">
-                  <Button variant="outline" size="lg" onClick={() => setShowCreateModal(false)}>{t("common.cancel").toUpperCase()}</Button>
-                  <Button variant="secondary" size="lg" loading={updateRulesMutation.isPending} onClick={handleSaveNewVersion}>{(t("common.workspace_settings.save_config") || "SAVE").toUpperCase()}</Button>
+                  <Button onClick={() => { setShowCreateModal(false); }} size="lg" variant="outline">{t("common.cancel").toUpperCase()}</Button>
+                  <Button loading={updateRulesMutation.isPending} onClick={handleSaveNewVersion} size="lg" variant="secondary">{(t("common.workspace_settings.save_config") || "SAVE").toUpperCase()}</Button>
                 </div>
               </div>
             </Modal>
@@ -395,11 +393,11 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
 
       {/* Reprocess Confirm Modal */}
       <Modal
+        icon={<AlertTriangle size={24} />}
         isOpen={showReprocessConfirm}
+        maxWidth="md"
         onClose={() => !reprocessMutation.isPending && !pollingJobId && setShowReprocessConfirm(false)}
         title={t("reports.reprocess.bulk_confirm_title") || "Confirm Reprocessing"}
-        icon={<AlertTriangle size={24} />}
-        maxWidth="md"
       >
         <div className="space-y-6 pt-2 animate-in fade-in duration-500">
           <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-2xl border border-orange-200 dark:border-orange-800">
@@ -430,16 +428,16 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
           ) : (
             <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
               <button
-                onClick={() => setShowReprocessConfirm(false)}
                 className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
                 disabled={reprocessMutation.isPending}
+                onClick={() => { setShowReprocessConfirm(false); }}
               >
                 {t("common.cancel")}
               </button>
               <button
-                onClick={handleReprocessSubmit}
-                disabled={reprocessMutation.isPending || !reprocessStart || !reprocessEnd}
                 className="flex-[1.5] bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
+                disabled={reprocessMutation.isPending || !reprocessStart || !reprocessEnd}
+                onClick={handleReprocessSubmit}
               >
                 {reprocessMutation.isPending ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />

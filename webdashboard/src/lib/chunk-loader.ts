@@ -10,7 +10,7 @@ export function retryImport<T>(
     if (retries <= 0) throw error;
     return new Promise<T>((resolve) =>
       setTimeout(
-        () => resolve(retryImport(importer, retries - 1, delay * 2)),
+        () => { resolve(retryImport(importer, retries - 1, delay * 2)); },
         delay,
       ),
     );

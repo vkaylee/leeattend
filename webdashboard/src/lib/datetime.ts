@@ -2,8 +2,8 @@
  * Converts a local date and time string to a UTC ISO string based on the provided timezone.
  * Uses Intl.DateTimeFormat for robust conversion without heavy libraries.
  */
-export function toUTCISO(dateStr: string, timeStr: string, timezone: string): string {
-  const localStr = `${dateStr}T${timeStr}:00`;
+export function toUTCISO(dateString: string, timeString: string, timezone: string): string {
+  const localString = `${dateString}T${timeString}:00`;
   
   try {
     const formatter = new Intl.DateTimeFormat('en-GB', {
@@ -18,7 +18,7 @@ export function toUTCISO(dateStr: string, timeStr: string, timezone: string): st
     });
     
     // First approximation: treat local as UTC
-    let utcDate = new Date(localStr + 'Z'); 
+    let utcDate = new Date(localString + 'Z'); 
     
     const getFormatted = (d: Date) => {
       const parts = formatter.formatToParts(d);
@@ -31,12 +31,12 @@ export function toUTCISO(dateStr: string, timeStr: string, timezone: string): st
 
     // Refine the UTC date by calculating the difference
     const formatted = getFormatted(utcDate);
-    const diff = new Date(localStr + 'Z').getTime() - new Date(formatted + 'Z').getTime();
+    const diff = new Date(localString + 'Z').getTime() - new Date(formatted + 'Z').getTime();
     utcDate = new Date(utcDate.getTime() + diff);
     
     return utcDate.toISOString();
-  } catch (err) {
-    console.error("Timezone conversion failed:", err);
-    return localStr + 'Z';
+  } catch (error) {
+    console.error("Timezone conversion failed:", error);
+    return localString + 'Z';
   }
 }

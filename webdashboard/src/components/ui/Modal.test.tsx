@@ -1,6 +1,6 @@
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 
-import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import Modal from "./Modal";
@@ -36,8 +36,8 @@ describe("Modal Component", () => {
       <Modal 
         isOpen={true} 
         onClose={() => {}} 
-        title="Test Title" 
-        subtitle="Test Subtitle"
+        subtitle="Test Subtitle" 
+        title="Test Title"
       >
         <div>Content</div>
       </Modal>
@@ -122,7 +122,7 @@ describe("Modal Component", () => {
 
   it("should apply correct max-width class", () => {
     render(
-      <Modal isOpen={true} onClose={() => {}} maxWidth="xl">
+      <Modal isOpen={true} maxWidth="xl" onClose={() => {}}>
         <div>Content</div>
       </Modal>
     );

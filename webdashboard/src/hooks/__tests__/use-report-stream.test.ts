@@ -1,4 +1,5 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
+
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import { useReportStream } from "../use-report-stream";
@@ -76,7 +77,7 @@ describe("useReportStream Hook", () => {
       // Manually set up the state transition without relying on actual WebSocket
       const { result, rerender } = renderHook(
         ({ jobId }: { jobId: string | null }) => useReportStream({ jobId }),
-        { initialProps: { jobId: "job-1" as string | null } }
+        { initialProps: { jobId: "job-1" } }
       );
 
       const initialStatus = result.current.status;
@@ -388,7 +389,7 @@ describe("useReportStream Hook", () => {
       const { result } = renderHook(
         ({ jobId }: { jobId: string | null }) =>
           useReportStream({ jobId, maxRetries: 3 }),
-        { initialProps: { jobId: "test-job" as string | null } }
+        { initialProps: { jobId: "test-job" } }
       );
 
       // After completion, reconnect should not change status back to connecting
@@ -435,7 +436,7 @@ describe("useReportStream Hook", () => {
       const { result, rerender } = renderHook(
         ({ jobId }: { jobId: string | null }) =>
           useReportStream({ jobId, maxRetries: 3 }),
-        { initialProps: { jobId: "job-1" as string | null } }
+        { initialProps: { jobId: "job-1" } }
       );
 
       // Rapid job change (simulates reconnect scenario)
@@ -465,10 +466,10 @@ describe("useReportStream Hook", () => {
 
   describe("WebSocket Auth Failure & Token Refresh", () => {
     let capturedUrl: string | undefined;
-    let mockOnOpen: ((ev?: Event) => void) | null;
-    let mockOnClose: ((ev: CloseEvent) => void) | null;
-    let _mockOnError: ((ev: Event) => void) | null;
-    let _mockOnMessage: ((ev: MessageEvent) => void) | null;
+    let mockOnOpen: ((event_?: Event) => void) | null;
+    let mockOnClose: ((event_: CloseEvent) => void) | null;
+    let _mockOnError: ((event_: Event) => void) | null;
+    let _mockOnMessage: ((event_: MessageEvent) => void) | null;
 
     class MockWebSocket {
       readyState = 0;
@@ -479,10 +480,10 @@ describe("useReportStream Hook", () => {
       close = vi.fn();
       addEventListener = vi.fn();
       removeEventListener = vi.fn();
-      set onopen(fn: ((ev?: Event) => void) | null) { mockOnOpen = fn; }
-      set onmessage(fn: ((ev: MessageEvent) => void) | null) { _mockOnMessage = fn; }
-      set onerror(fn: ((ev: Event) => void) | null) { _mockOnError = fn; }
-      set onclose(fn: ((ev: CloseEvent) => void) | null) { mockOnClose = fn; }
+      set onopen(function_: ((event_?: Event) => void) | null) { mockOnOpen = function_; }
+      set onmessage(function_: ((event_: MessageEvent) => void) | null) { _mockOnMessage = function_; }
+      set onerror(function_: ((event_: Event) => void) | null) { _mockOnError = function_; }
+      set onclose(function_: ((event_: CloseEvent) => void) | null) { mockOnClose = function_; }
     }
 
     beforeEach(() => {
@@ -674,7 +675,7 @@ describe("useReportStream Hook", () => {
   });
 
   describe("Heartbeat Ping", () => {
-    let mockOnOpen: ((ev?: Event) => void) | null;
+    let mockOnOpen: ((event_?: Event) => void) | null;
  
     let mockSend: ReturnType<typeof vi.fn>;
 
@@ -682,13 +683,13 @@ describe("useReportStream Hook", () => {
       static OPEN = 1;
       readyState = 1; // WebSocket.OPEN
       constructor() {}
-      send = vi.fn().mockImplementation((val: string) => {
-        if (mockSend) (mockSend as (v: string) => void)(val);
+      send = vi.fn().mockImplementation((value: string) => {
+        if (mockSend) (mockSend as (v: string) => void)(value);
       });
       close = vi.fn();
       addEventListener = vi.fn();
       removeEventListener = vi.fn();
-      set onopen(fn: ((ev?: Event) => void) | null) { mockOnOpen = fn; }
+      set onopen(function_: ((event_?: Event) => void) | null) { mockOnOpen = function_; }
       set onmessage(_: unknown) { }
       set onerror(_: unknown) { }
       set onclose(_: unknown) { }

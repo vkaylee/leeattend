@@ -1,9 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/Toast";
-
 import { AuthorizedAgent, Device } from "@/lib/api";
 
 import AgentAccordionCard from "../AgentAccordionCard";
@@ -76,16 +76,16 @@ describe("AgentAccordionCard", () => {
     });
 
     // Click delete button
-    const deleteBtn = screen.getByTestId(`agent-delete-${mockAgent.id}`);
-    await user.click(deleteBtn);
+    const deleteButton = screen.getByTestId(`agent-delete-${mockAgent.id}`);
+    await user.click(deleteButton);
 
     // Verify modal appears
     expect(await screen.findByText("Warning")).toBeDefined();
     expect(await screen.findByText("Delete Test Agent?")).toBeDefined();
 
     // Click confirm in the modal
-    const confirmBtn = screen.getByRole("button", { name: "Confirm" });
-    await user.click(confirmBtn);
+    const confirmButton = screen.getByRole("button", { name: "Confirm" });
+    await user.click(confirmButton);
 
     // Verify onDelete was called
     await waitFor(() => {
@@ -109,16 +109,16 @@ describe("AgentAccordionCard", () => {
     });
 
     // Click toggle trust button
-    const trustBtn = screen.getByTestId(`agent-trust-toggle-${mockAgent.id}`);
-    await user.click(trustBtn);
+    const trustButton = screen.getByTestId(`agent-trust-toggle-${mockAgent.id}`);
+    await user.click(trustButton);
 
     // Verify modal appears
     expect(await screen.findByText("Warning")).toBeDefined();
     expect(await screen.findByText("Revoke Test Agent?")).toBeDefined();
 
     // Click confirm in the modal
-    const confirmBtn = screen.getByRole("button", { name: "Confirm" });
-    await user.click(confirmBtn);
+    const confirmButton = screen.getByRole("button", { name: "Confirm" });
+    await user.click(confirmButton);
 
     // Verify onToggleTrust was called
     await waitFor(() => {

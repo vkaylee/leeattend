@@ -5,11 +5,11 @@ test.describe.skip('Debug Metadata Verification', () => {
     await page.goto('/login');
     
     // Find the Fast Login button which we decorated with debugProps
-    const fastLoginBtn = page.getByRole('button', { name: /Fast Login/i });
-    await expect(fastLoginBtn).toBeVisible();
+    const fastLoginButton = page.getByRole('button', { name: /Fast Login/i });
+    await expect(fastLoginButton).toBeVisible();
     
     // Extract the data-debug-context attribute
-    const debugContext = await fastLoginBtn.getAttribute('data-debug-context');
+    const debugContext = await fastLoginButton.getAttribute('data-debug-context');
     
     expect(debugContext).toBeDefined();
     expect(debugContext).not.toBeNull();

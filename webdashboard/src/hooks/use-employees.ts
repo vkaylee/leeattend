@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchEmployees } from "@/lib/api";
-
 import type { Employee } from "@/lib/api/types";
+
+import { fetchEmployees } from "@/lib/api";
 
 /**
  * Maximum number of employees fetched in a single "all employees" request.
@@ -38,7 +38,7 @@ export function useAllEmployees(
   });
 
   return {
-    employees: (query.data?.data ?? []) as Employee[],
+    employees: (query.data?.data ?? []),
     employeesData: query.data,
     isLoading: query.isLoading,
     isError: query.isError,

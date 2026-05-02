@@ -1,7 +1,4 @@
-import React, { useState } from "react";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { 
   Plus, 
   Trash2, 
@@ -12,10 +9,12 @@ import {
   Baby,
   ShieldAlert
 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useToast } from "@/components/ui/Toast";
+import { format } from "date-fns";
 
+import { useToast } from "@/components/ui/Toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { 
@@ -27,8 +26,8 @@ import { WorkingCondition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  wsId: string;
   employeeId: string;
+  wsId: string;
 }
 
 export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
@@ -106,17 +105,17 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
           <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center text-amber-600 dark:text-amber-300 shadow-sm border border-amber-100 dark:border-amber-800/50"><ShieldAlert size={20} /></div>
           <div><h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight">{t("employees.details.special_policies")}</h3><p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">{t("employees.policies.subtitle")}</p></div>
         </div>
-        <button onClick={() => setIsAdding(!isAdding)} className={cn("flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", isAdding ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700' : 'bg-primary-600 text-white shadow-lg shadow-primary-100 active:scale-95')}>
+        <button className={cn("flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", isAdding ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700' : 'bg-primary-600 text-white shadow-lg shadow-primary-100 active:scale-95')} onClick={() => { setIsAdding(!isAdding); }}>
           {isAdding ? t("common.cancel") : <><Plus size={14} /> {t("employees.policies.add_btn")}</>}
         </button>
       </div>
 
-      {isAdding && (
-        <form onSubmit={handleAdd} className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500 space-y-8">
+      {!!isAdding && (
+        <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500 space-y-8" onSubmit={handleAdd}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.policies.type")}</label>
-              <select value={type} onChange={(e) => setType(e.target.value)} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm uppercase tracking-tight focus:ring-4 focus:ring-primary-500/10 outline-none transition-all">
+              <select className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm uppercase tracking-tight focus:ring-4 focus:ring-primary-500/10 outline-none transition-all" onChange={(e) => { setType(e.target.value); }} value={type}>
                 <option value="EARLY_LEAVE">{t("employees.policies.types.early_leave")}</option>
                 <option value="BREASTFEEDING">{t("employees.policies.types.breastfeeding")}</option>
                 <option value="LATE_IN">{t("employees.policies.types.late_in")}</option>
@@ -124,26 +123,26 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.policies.allowance_mins")}</label>
-              <input type="number" value={minuteAllowance} onChange={(e) => setMinuteAllowance(parseInt(e.target.value))} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm tracking-widest focus:ring-4 focus:ring-primary-500/10 outline-none transition-all" />
+              <input className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm tracking-widest focus:ring-4 focus:ring-primary-500/10 outline-none transition-all" onChange={(e) => { setMinuteAllowance(parseInt(e.target.value)); }} type="number" value={minuteAllowance} />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.policies.start_date")}</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm focus:ring-4 focus:ring-primary-500/10 outline-none transition-all" />
+              <input className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm focus:ring-4 focus:ring-primary-500/10 outline-none transition-all" onChange={(e) => { setStartDate(e.target.value); }} type="date" value={startDate} />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("employees.policies.end_date")} ({t("common.optional")})</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm focus:ring-4 focus:ring-primary-500/10 outline-none transition-all" />
+              <input className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-sm focus:ring-4 focus:ring-primary-500/10 outline-none transition-all" onChange={(e) => { setEndDate(e.target.value); }} type="date" value={endDate} />
             </div>
           </div>
-          <button type="button" className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 group cursor-pointer text-left w-full" onClick={() => setIsPaid(!isPaid)}>
+          <button className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 group cursor-pointer text-left w-full" onClick={() => { setIsPaid(!isPaid); }} type="button">
             { }
             <div className={cn("w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all", isPaid ? "bg-primary-600 border-primary-600 text-white" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700")}>
-              {isPaid && <CheckCircle2 size={16} />}
+              {!!isPaid && <CheckCircle2 size={16} />}
             </div>
             <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest">{t("employees.policies.is_paid")}</span>
           </button>
           <div className="pt-4 flex justify-end gap-4">
-            <button type="submit" disabled={createMutation.isPending} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50">
+            <button className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={createMutation.isPending} type="submit">
               {createMutation.isPending ? t("common.saving") : t("common.save")}
             </button>
           </div>
@@ -157,7 +156,7 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
             <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("employees.policies.no_data")}</p>
           </div>
         ) : conditions.map((cond) => (
-          <div key={cond.id} className="group bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] hover:shadow-xl hover:shadow-primary-100/10 transition-all relative overflow-hidden">
+          <div className="group bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] hover:shadow-xl hover:shadow-primary-100/10 transition-all relative overflow-hidden" key={cond.id}>
             <div className="flex justify-between items-center relative z-10">
               <div className="flex items-center gap-6">
                 <div className="w-14 h-14 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-500 shadow-inner">
@@ -171,13 +170,13 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
                     </span>
                   </div>
                   <div className="flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70">
-                    <div className="flex items-center gap-1.5"><Clock size={12} className="text-primary-400" /> {cond.minute_allowance} {t("common.minutes")}</div>
+                    <div className="flex items-center gap-1.5"><Clock className="text-primary-400" size={12} /> {cond.minute_allowance} {t("common.minutes")}</div>
                     <div className="w-1 h-1 bg-slate-200 dark:bg-slate-600 rounded-full" />
-                    <div className="flex items-center gap-1.5"><Calendar size={12} className="text-primary-400" /> {formatDate(cond.start_date)} {cond.end_date ? `→ ${formatDate(cond.end_date)}` : `(${t("employees.history.present")})`}</div>
+                    <div className="flex items-center gap-1.5"><Calendar className="text-primary-400" size={12} /> {formatDate(cond.start_date)} {cond.end_date ? `→ ${formatDate(cond.end_date)}` : `(${t("employees.history.present")})`}</div>
                   </div>
                 </div>
               </div>
-              <button onClick={() => handleDelete(cond.id)} className="p-3 text-slate-200 dark:text-slate-700 hover:text-rose-500 hover:bg-rose-50 dark:bg-rose-950 rounded-xl transition-all active:scale-90 opacity-0 group-hover:opacity-100">
+              <button className="p-3 text-slate-200 dark:text-slate-700 hover:text-rose-500 hover:bg-rose-50 dark:bg-rose-950 rounded-xl transition-all active:scale-90 opacity-0 group-hover:opacity-100" onClick={() => handleDelete(cond.id)}>
                 <Trash2 size={20} />
               </button>
             </div>

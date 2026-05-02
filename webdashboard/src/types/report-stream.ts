@@ -4,21 +4,21 @@
  */
 
 export interface ChunkMessage {
-  type: "CHUNK";
   batch_index: number;
   total_batches: number;
+  type: "CHUNK";
 }
 
 export interface DoneMessage {
-  type: "DONE";
   total_batches: number;
   total_records: number;
+  type: "DONE";
 }
 
 export interface ErrorMessage {
-  type: "ERROR";
-  message: string;
   batch_index: number | null;
+  message: string;
+  type: "ERROR";
 }
 
 export type StreamMessage = ChunkMessage | DoneMessage | ErrorMessage;
@@ -36,22 +36,22 @@ export type StreamStatus =
 
 export interface SummaryRow {
   employee_name: string;
-  total_std_units: number;
-  total_ot_units: number;
   total_leave_days: number;
+  total_ot_units: number;
+  total_std_units: number;
 }
 
 export interface DetailRow {
-  date: string;
-  employee_name: string;
-  scheduled_start: string | null;
-  scheduled_end: string | null;
   actual_in: string | null;
   actual_out: string | null;
-  std_work_units: number;
-  ot_work_units: number;
+  date: string;
+  employee_name: string;
   ot_claim_status?: string | null;
+  ot_work_units: number;
+  scheduled_end: string | null;
+  scheduled_start: string | null;
   status: string;
+  std_work_units: number;
 }
 
 export type AttendanceRow = SummaryRow | DetailRow;

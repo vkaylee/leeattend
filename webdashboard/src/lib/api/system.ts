@@ -2,17 +2,17 @@ import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
 
 export interface SystemRoleAssignment {
-  user_id: string;
-  role_name: string;
-  assigned_by?: string;
   assigned_at: string;
+  assigned_by?: string;
+  role_name: string;
+  user_id: string;
 }
 
 export interface SystemRoleInfo {
+  assignees: SystemRoleAssignment[];
+  description: string;
   id: string;
   name: string;
-  description: string;
-  assignees: SystemRoleAssignment[];
 }
 
 export interface AssignSystemRoleRequest {
@@ -22,13 +22,13 @@ export interface AssignSystemRoleRequest {
 export async function fetchSystemRoles(): Promise<SystemRoleInfo[]> {
   const response = await apiFetch(`${API_BASE_URL}/system/roles`);
   if (!response.ok) throw new Error("Failed to fetch system roles");
-  return response.json();
+  return response.json() as Promise<SystemRoleInfo[]>;
 }
 
 export async function fetchUserSystemRoles(userId: string): Promise<SystemRoleAssignment[]> {
   const response = await apiFetch(`${API_BASE_URL}/system/users/${userId}/roles`);
   if (!response.ok) throw new Error("Failed to fetch user system roles");
-  return response.json();
+  return response.json() as Promise<SystemRoleAssignment[]>;
 }
 
 export async function assignSystemRole(userId: string, request: AssignSystemRoleRequest): Promise<void> {
@@ -50,5 +50,5 @@ export async function revokeSystemRole(userId: string, roleName: string): Promis
 export async function fetchSystemHealth(): Promise<Record<string, unknown>> {
   const response = await apiFetch(`${API_BASE_URL}/system/health`);
   if (!response.ok) throw new Error("Failed to fetch system health");
-  return response.json();
+  return response.json() as Promise<Record<string, unknown>>;
 }

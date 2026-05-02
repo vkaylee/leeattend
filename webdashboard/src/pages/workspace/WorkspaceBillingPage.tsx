@@ -8,8 +8,8 @@ export default function WorkspaceBillingPage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
       <PageHeader
-        title={t('billing.title', { defaultValue: 'Billing & Subscription' })}
         subtitle={t('billing.subtitle', { defaultValue: 'Manage your subscription plan and invoices' })}
+        title={t('billing.title', { defaultValue: 'Billing & Subscription' })}
       />
       
       <div className="bg-slate-50 dark:bg-slate-800/50 p-16 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">

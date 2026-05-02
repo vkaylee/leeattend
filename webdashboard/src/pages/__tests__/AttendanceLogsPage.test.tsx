@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -21,9 +21,9 @@ vi.mock("@tanstack/react-router", () => ({
     let href = to;
     if (search && typeof search === 'object') {
       const params = new URLSearchParams();
-      Object.entries(search).forEach(([key, val]) => {
-        if (val !== undefined && val !== null) {
-          params.append(key, String(val));
+      Object.entries(search).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, String(value));
         }
       });
       const qs = params.toString();
@@ -93,7 +93,7 @@ describe("AttendanceLogsPage", () => {
       page: 1,
  
       limit: 50,
-    } as unknown as PaginatedResponse<Employee>);
+    });
     vi.mocked(api.fetchRawAttendanceLogs).mockResolvedValue({
       data: [
         { id: "log-1", employee_id: "emp-1", employee_name: "John Doe", punch_time: new Date().toISOString(), source: "DEVICE", device_id: "dev-1" }
@@ -105,9 +105,9 @@ describe("AttendanceLogsPage", () => {
  
     } as unknown as PaginatedResponse<RawAttendanceLog>);
  
-    vi.mocked(api.fetchDevices).mockResolvedValue([] as unknown as Device[]);
-    vi.mocked(api.fetchStagingLogs).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 } as unknown as StagingLogsResponse);
-    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: null } as unknown as Awaited<ReturnType<typeof api.fetchMyPermissions>>);
+    vi.mocked(api.fetchDevices).mockResolvedValue([]);
+    vi.mocked(api.fetchStagingLogs).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
+    vi.mocked(api.fetchMyPermissions).mockResolvedValue({ permissions: ["attendance_staging:manage"], roles: ["admin"], managed_department_ids: null });
   });
 
   const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {

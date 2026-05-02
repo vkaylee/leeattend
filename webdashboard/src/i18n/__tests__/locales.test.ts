@@ -5,11 +5,11 @@ import vi from '../locales/vi.json';
 import zh from '../locales/zh.json';
 
  
-type JsonObject = { [key: string]: any };
+type JsonObject = Record<string, any>;
 
-function getAllKeys(obj: JsonObject, prefix = ''): string[] {
-  return Object.keys(obj).reduce((keys: string[], key: string) => {
-    const value = obj[key];
+function getAllKeys(object: JsonObject, prefix = ''): string[] {
+  return Object.keys(object).reduce((keys: string[], key: string) => {
+    const value = object[key];
     const newPrefix = prefix ? `${prefix}.${key}` : key;
 
     if (value && typeof value === 'object' && !Array.isArray(value)) {

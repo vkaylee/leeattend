@@ -1,7 +1,7 @@
-import React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React from "react";
+
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -42,7 +42,7 @@ describe("PermissionManagementModal", () => {
       "members:remove",
       "members:roles:manage",
       "settings:read",
-    ] as unknown as never);
+    ]);
  
     vi.mocked(api.fetchMemberPermissions).mockResolvedValue([
       { id: "perm-1", permission: "members:invite", expires_at: "2027-01-01T00:00:00Z", assigned_at: "2026-01-01T00:00:00Z" }
@@ -60,7 +60,7 @@ describe("PermissionManagementModal", () => {
   };
 
   it("renders correctly when open", async () => {
-    renderWithProviders(<PermissionManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
     
     // Check if title is present
     expect(await screen.findByText(/Manage Permissions|Quản lý quyền hạn/i)).toBeDefined();
@@ -74,7 +74,7 @@ describe("PermissionManagementModal", () => {
  
     vi.mocked(api.revokeExtraPermission).mockResolvedValue({} as never);
 
-    renderWithProviders(<PermissionManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
 
     // Wait for data to load
     await screen.findByText(/members:invite/i);
@@ -85,14 +85,14 @@ describe("PermissionManagementModal", () => {
     // Let's find it by clicking the one that is inside the same container as the permission text.
     const permText = await screen.findByText("members:invite");
     const container = permText.closest("div")?.parentElement;
-    const revokeBtn = container?.querySelector("button");
+    const revokeButton = container?.querySelector("button");
 
-    expect(revokeBtn).toBeDefined();
-    await user.click(revokeBtn!);
+    expect(revokeButton).toBeDefined();
+    await user.click(revokeButton!);
 
     // Confirm the modal
-    const confirmModalBtn = await screen.findByRole("button", { name: /Confirm|Xác nhận/i });
-    await user.click(confirmModalBtn);
+    const confirmModalButton = await screen.findByRole("button", { name: /Confirm|Xác nhận/i });
+    await user.click(confirmModalButton);
 
     await waitFor(() => {
       expect(api.revokeExtraPermission).toHaveBeenCalledWith("test-ws-id", "user-1", "perm-1");
@@ -100,7 +100,7 @@ describe("PermissionManagementModal", () => {
   });
 
   it("filters out existing permissions from search", async () => {
-    renderWithProviders(<PermissionManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
     
     await waitFor(() => {
       expect(api.fetchAvailablePermissions).toHaveBeenCalled();
@@ -122,7 +122,7 @@ describe("PermissionManagementModal", () => {
  
     vi.mocked(api.assignExtraPermission).mockResolvedValue({} as never);
 
-    renderWithProviders(<PermissionManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
+    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
 
     await waitFor(() => {
       expect(api.fetchAvailablePermissions).toHaveBeenCalled();
@@ -132,16 +132,16 @@ describe("PermissionManagementModal", () => {
     fireEvent.change(searchInput, { target: { value: "settings:read" } });
 
     // Wait for the option to appear and click it
-    const optionBtn = await screen.findByRole("button", { name: "settings:read" });
-    await user.click(optionBtn);
+    const optionButton = await screen.findByRole("button", { name: "settings:read" });
+    await user.click(optionButton);
 
     // Set expiration date
     const dateInput = screen.getByLabelText(/Expiration|Ngày hết hạn/i);
     fireEvent.change(dateInput, { target: { value: "2026-12-31T23:59" } });
 
     // Click assign button
-    const assignBtn = screen.getByRole("button", { name: /Grant Permission|CẤP QUYỀN/i });
-    await user.click(assignBtn);
+    const assignButton = screen.getByRole("button", { name: /Grant Permission|CẤP QUYỀN/i });
+    await user.click(assignButton);
 
     await waitFor(() => {
       expect(api.assignExtraPermission).toHaveBeenCalledWith(
@@ -154,7 +154,7 @@ describe("PermissionManagementModal", () => {
   });
 
   it("does not render when isOpen is false", () => {
-    renderWithProviders(<PermissionManagementModal userId="user-1" isOpen={false} onClose={() => {}} />);
+    renderWithProviders(<PermissionManagementModal isOpen={false} onClose={() => {}} userId="user-1" />);
     expect(screen.queryByText(/Manage Permissions|Quản lý quyền hạn/i)).toBeNull();
   });
 });

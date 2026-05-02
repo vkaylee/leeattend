@@ -1,5 +1,3 @@
-import React, { useState } from "react";
-
 import * as Dialog from "@radix-ui/react-dialog";
 import { 
   X, 
@@ -8,6 +6,7 @@ import {
   Banknote,
   CalendarDays
 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useMyPermissions } from "@/hooks/use-permissions";
@@ -19,14 +18,14 @@ import EmployeeSalaryConfig from "./EmployeeSalaryConfig";
 import PayrollTable from "./PayrollTable";
 
 interface PayrollDetailDrawerProps {
+  adjustments: AttendanceAdjustmentRequest[];
+  employee: Employee | null;
+  isLoadingPayslips: boolean;
   isOpen: boolean;
   onClose: () => void;
-  employee: Employee | null;
-  workspaceId: string;
-  payslips: Payslip[];
-  isLoadingPayslips: boolean;
-  adjustments: AttendanceAdjustmentRequest[];
   onResolveAdjustments: () => void;
+  payslips: Payslip[];
+  workspaceId: string;
 }
 
 export default function PayrollDetailDrawer({
@@ -48,7 +47,7 @@ export default function PayrollDetailDrawer({
   if (!employee) return null;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose}>
+    <Dialog.Root onOpenChange={onClose} open={isOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-slate-900/20 backdrop-blur-lg z-50 animate-in fade-in duration-500" />
         <Dialog.Content className="fixed top-0 right-0 h-full w-full max-w-3xl bg-white dark:bg-slate-900 shadow-premium-2xl z-50 animate-in slide-in-from-right duration-500 flex flex-col outline-none">
@@ -84,20 +83,20 @@ export default function PayrollDetailDrawer({
           <nav className="px-10 py-6 bg-white dark:bg-slate-900 border-b border-slate-50 dark:border-slate-800">
             <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
               <button
-                onClick={() => setActiveTab("history")}
                 className={cn(
                   "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                   activeTab === "history" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
                 )}
+                onClick={() => { setActiveTab("history"); }}
               >
                 <History size={14} /> {t("payroll.history_title")}
               </button>
               <button
-                onClick={() => setActiveTab("config")}
                 className={cn(
                   "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                   activeTab === "config" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
                 )}
+                onClick={() => { setActiveTab("config"); }}
               >
                 <Settings2 size={14} /> {t("common.payroll.employee_config.tab_title")}
               </button>
@@ -139,18 +138,18 @@ export default function PayrollDetailDrawer({
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-[0.25em]">{t("payroll.history_title")} Detail</span>
                   </div>
                   <PayrollTable 
-                    employee={employee} 
-                    workspace={workspace || null}
-                    payslips={payslips} 
+                    adjustments={adjustments} 
+                    employee={employee}
                     isLoading={isLoadingPayslips} 
-                    adjustments={adjustments}
-                    onResolveAdjustments={onResolveAdjustments}
+                    onResolveAdjustments={onResolveAdjustments} 
+                    payslips={payslips}
+                    workspace={workspace || null}
                   />
                 </div>
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <EmployeeSalaryConfig wsId={workspaceId} employeeId={employee.id} />
+                <EmployeeSalaryConfig employeeId={employee.id} wsId={workspaceId} />
               </div>
             )}
           </main>

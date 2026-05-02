@@ -1,28 +1,27 @@
-import { useState } from "react";
-
-import { format } from "date-fns";
 import { History } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import Modal from "@/components/ui/Modal";
+import { format } from "date-fns";
 
+import Modal from "@/components/ui/Modal";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { TimeEntry } from "@/lib/api";
 
 interface AdjustmentRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  timeEntry?: TimeEntry;
   onSubmit: (data: AdjustmentData) => Promise<void>;
+  timeEntry?: TimeEntry;
   timezone: string;
 }
 
 export interface AdjustmentData {
   date: string;
+  isBreakOvertime: boolean;
   punchIn: string;
   punchOut: string;
   reason: string;
-  isBreakOvertime: boolean;
   timeEntryId?: string;
 }
 
@@ -67,25 +66,25 @@ export function AdjustmentRequestModal({
 
   return (
     <Modal
+      icon={<History size={24} />}
       isOpen={isOpen}
+      maxWidth="md"
       onClose={onClose}
+      subtitle={t("time_tracking.modal.subtitle")}
       title={
         formData.timeEntryId
           ? t("time_tracking.modal.edit_title")
           : t("time_tracking.modal.new_title")
       }
-      subtitle={t("time_tracking.modal.subtitle")}
-      icon={<History size={24} />}
-      maxWidth="md"
     >
-      <form onSubmit={handleSubmit} className="space-y-8 pt-4">
+      <form className="space-y-8 pt-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
             {t("common.work_day")}
           </label>
-          <input type="date" required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" value={formData.date} onChange={(e) =>
-              setFormData({ ...formData, date: e.target.value })
-            }
+          <input className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight" onChange={(e) =>
+              { setFormData({ ...formData, date: e.target.value }); }
+            } required type="date" value={formData.date}
           />
         </div>
 
@@ -95,13 +94,13 @@ export function AdjustmentRequestModal({
               {t("common.punch_in")}
             </label>
             <input
-              type="time"
-              required
               className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm text-center"
-              value={formData.punchIn}
               onChange={(e) =>
-                setFormData({ ...formData, punchIn: e.target.value })
+                { setFormData({ ...formData, punchIn: e.target.value }); }
               }
+              required
+              type="time"
+              value={formData.punchIn}
             />
           </div>
           <div className="space-y-2">
@@ -109,30 +108,30 @@ export function AdjustmentRequestModal({
               {t("common.punch_out")}
             </label>
             <input
-              type="time"
-              required
               className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono font-bold text-sm text-center"
-              value={formData.punchOut}
               onChange={(e) =>
-                setFormData({ ...formData, punchOut: e.target.value })
+                { setFormData({ ...formData, punchOut: e.target.value }); }
               }
+              required
+              type="time"
+              value={formData.punchOut}
             />
           </div>
         </div>
 
         <div className="flex items-center gap-4 py-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
           <input
-            type="checkbox"
-            id="is_break_overtime"
-            className="w-6 h-6 text-primary-600 dark:text-primary-400 rounded-xl border-slate-200 dark:border-slate-700 focus:ring-primary-500 transition-all cursor-pointer"
             checked={formData.isBreakOvertime}
+            className="w-6 h-6 text-primary-600 dark:text-primary-400 rounded-xl border-slate-200 dark:border-slate-700 focus:ring-primary-500 transition-all cursor-pointer"
+            id="is_break_overtime"
             onChange={(e) =>
-              setFormData({ ...formData, isBreakOvertime: e.target.checked })
+              { setFormData({ ...formData, isBreakOvertime: e.target.checked }); }
             }
+            type="checkbox"
           />
           <label
-            htmlFor="is_break_overtime"
             className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest cursor-pointer leading-tight"
+            htmlFor="is_break_overtime"
           >
             {t("attendance_confirm.ot_label")}
           </label>
@@ -143,28 +142,28 @@ export function AdjustmentRequestModal({
             {t("time_tracking.modal.reason_label")}
           </label>
           <textarea
-            required
-            placeholder={t("time_tracking.modal.reason_placeholder")}
             className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium text-sm h-28 resize-none"
-            value={formData.reason}
             onChange={(e) =>
-              setFormData({ ...formData, reason: e.target.value })
+              { setFormData({ ...formData, reason: e.target.value }); }
             }
+            placeholder={t("time_tracking.modal.reason_placeholder")}
+            required
+            value={formData.reason}
           />
         </div>
 
         <div className="pt-6 grid grid-cols-2 gap-5">
           <button
-            type="button"
-            onClick={onClose}
             className="px-8 py-4 border border-slate-100 dark:border-slate-800 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+            onClick={onClose}
+            type="button"
           >
             {t("common.cancel")}
           </button>
           <button
-            type="submit"
-            disabled={isSubmitting}
             className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50"
+            disabled={isSubmitting}
+            type="submit"
           >
             {isSubmitting ? t("common.sending").toUpperCase() : t("common.submit_request")}
           </button>

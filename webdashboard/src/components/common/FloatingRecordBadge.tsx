@@ -3,9 +3,9 @@ import React, { memo } from "react";
 import { cn } from "@/lib/utils";
 
 interface FloatingRecordBadgeProps {
+    label?: string;
     loaded: number;
     total: number;
-    label?: string;
     /** Color variant: "default" (slate/primary) or "amber" */
     variant?: "default" | "amber";
 }
