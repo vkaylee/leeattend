@@ -77,7 +77,7 @@ describe("useReportStream Hook", () => {
       // Manually set up the state transition without relying on actual WebSocket
       const { result, rerender } = renderHook(
         ({ jobId }: { jobId: string | null }) => useReportStream({ jobId }),
-        { initialProps: { jobId: "job-1" } }
+        { initialProps: { jobId: "job-1" as string | null } }
       );
 
       const initialStatus = result.current.status;

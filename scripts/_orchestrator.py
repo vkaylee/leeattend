@@ -47,7 +47,13 @@ def log_error(msg: str, file: typing.TextIO = sys.stderr) -> None:
 
 class Orchestrator:
     def __init__(self) -> None:
+        prog_name = (
+            "manage.sh"
+            if "manage" in sys.argv
+            else ("test.sh" if "test" in sys.argv else "orchestrator")
+        )
         self.parser = argparse.ArgumentParser(
+            prog=prog_name,
             description="LeeAttend Enterprise Orchestrator",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="Examples:\n  ./test.sh --all\n  ./manage.sh up dev\n  ./manage.sh sync:api",
@@ -176,6 +182,11 @@ class Orchestrator:
         test_parser.add_argument("--coverage", action="store_true")
         test_parser.add_argument("--timeout", type=int, default=1800)
 
+        # Allow 'test lint:web' style commands
+        test_sub = test_parser.add_subparsers(dest="test_subcommand")
+        for cmd in ["lint:api", "lint:web", "lint:all", "lint:infra"]:
+            test_sub.add_parser(cmd, parents=[parent_parser])
+
     def _setup_manage_parser(
         self,
         subparsers: typing.Any,  # noqa: ANN401
@@ -195,10 +206,6 @@ class Orchestrator:
         manage_cmds = [
             "sync:api",
             "test:infra",
-            "lint:api",
-            "lint:web",
-            "lint:infra",
-            "lint:all",
             "migrate:run",
             "migrate:revert",
             "migrate:status",
@@ -243,6 +250,18 @@ class Orchestrator:
             self.handle_run(args)
 
     def handle_test(self, args: argparse.Namespace) -> None:
+        sub = getattr(args, "test_subcommand", None)
+        if sub:
+            if sub == "lint:api":
+                self.run_phase("Linting", "api", args)
+            elif sub == "lint:web":
+                self.run_phase("Linting", "web", args)
+            elif sub == "lint:infra":
+                self.handle_lint_infra()
+            elif sub == "lint:all":
+                self.run_phase("Linting", "all", args)
+            return
+
         if not any([args.all, args.api, args.web, args.integration]):
             self.parser.error("No test mode specified. Use --all, --api, --web, or --integration.")
 
@@ -293,17 +312,19 @@ class Orchestrator:
             "/bin/bash",
             "-c",
             f'source "{bootstrap}" && leeattend_bootstrap_env && '
-            f'{func_map[phase_name]} "{args.component or ""}"',
+            f'{func_map[phase_name]} "{getattr(args, "component", "")}"',
         ]
 
         env = os.environ.copy()
         env.update(self.env_vars)
         env["MODE"] = mode
         env["PHASE"] = phase_name
-        if args.pattern:
-            env["PATTERN"] = args.pattern
-        if args.component:
-            env["COMPONENT"] = args.component
+        pattern = getattr(args, "pattern", None)
+        if pattern:
+            env["PATTERN"] = pattern
+        component = getattr(args, "component", None)
+        if component:
+            env["COMPONENT"] = component
 
         timeout = getattr(args, "timeout", 1800)
         self.execute_safe(cmd, env=env, timeout=timeout)
@@ -317,10 +338,6 @@ class Orchestrator:
                 ["/bin/bash", "-c", f'source "{SCRIPTS_DIR}/_sync-api.sh"']
             ),
             "test:infra": self.handle_test_infra,
-            "lint:api": lambda: self.run_phase("Linting", "api", args),
-            "lint:web": lambda: self.run_phase("Linting", "web", args),
-            "lint:infra": self.handle_lint_infra,
-            "lint:all": lambda: self.run_phase("Linting", "all", args),
             "migrate:run": lambda: self.handle_sqlx(["migrate", "run"]),
             "migrate:revert": lambda: self.handle_sqlx(["migrate", "revert"]),
             "migrate:status": lambda: self.handle_sqlx(["migrate", "status"]),
@@ -426,7 +443,12 @@ class Orchestrator:
         if is_typecheck:
             tool_args[1] = "type-check"
 
-        npm_cmd = f"npm install -g bun && bun {' '.join(tool_args)}"
+        first_arg = tool_args[0] if tool_args else ""
+        if first_arg in ["bun", "npm", "bash", "sh"]:
+            npm_cmd = " ".join(tool_args)
+        else:
+            npm_cmd = f"bun {' '.join(tool_args)}"
+
         compose_cmd.extend(["--entrypoint", "bash", service, "-c", npm_cmd])
 
     def _handle_run_cargo(self, compose_cmd: list[str], tool_args: list[str]) -> None:

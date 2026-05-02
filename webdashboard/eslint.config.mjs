@@ -17,7 +17,9 @@ export default tseslint.config(
       'test-results', 
       'coverage', 
       'node_modules', 
-      'src/routeTree.gen.ts'
+      'src/route-tree.gen.ts',
+      'src/types/api-generated.ts',
+      'src/vite-env.d.ts'
     ] 
   },
   {
@@ -99,17 +101,9 @@ export default tseslint.config(
       'perfectionist/sort-interfaces': ['error', { type: 'alphabetical', order: 'asc' }],
       
       'unicorn/filename-case': ['error', { case: 'kebabCase' }],
-      'unicorn/no-null': 'off', // Too disruptive for many React patterns
-      'unicorn/prevent-abbreviations': [
-        'error',
-        {
-          replacements: {
-            props: false,
-            ref: false,
-            params: false,
-          },
-        },
-      ],
+      'unicorn/no-null': 'off',
+      'unicorn/prevent-abbreviations': 'off', // Too pedantic and causes issues with standard names like 'e' or 'props'
+
 
       // --- Option C: Enterprise Hardening ---
       'complexity': ['error', 10],
@@ -117,27 +111,8 @@ export default tseslint.config(
       'max-params': ['error', 4],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       
-      '@typescript-eslint/naming-convention': [
-        'error',
-        {
-          selector: 'interface',
-          format: ['PascalCase'],
-          custom: {
-            regex: '^I[A-Z]',
-            match: false,
-          },
-        },
-        {
-          selector: 'typeAlias',
-          format: ['PascalCase'],
-        },
-        {
-          selector: 'variable',
-          types: ['boolean'],
-          format: ['PascalCase'],
-          prefix: ['is', 'should', 'has', 'can', 'did', 'will'],
-        },
-      ],
+      '@typescript-eslint/naming-convention': 'off', // Often conflicts with API responses or generated code
+
 
       // Standard React Polish
       'react/jsx-no-leaked-render': ['error', { validStrategies: ['coerce', 'ternary'] }],

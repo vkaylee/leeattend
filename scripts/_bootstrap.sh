@@ -27,8 +27,8 @@ leeattend_bootstrap_env() {
     # Set essential variables
     export CONTAINER_ENGINE="${CONTAINER_ENGINE:-podman}"
     local _COMPOSE_ENGINE="${DOCKER_COMPOSE_CMD:-podman-compose}"
-    local _PROJECT_NAME="${COMPOSE_PROJECT_NAME:-leeattend-test}"
-    export DOCKER_COMPOSE_CMD="$_COMPOSE_ENGINE -p $_PROJECT_NAME -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
+    export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-leeattend-test}"
+    export DOCKER_COMPOSE_CMD="$_COMPOSE_ENGINE -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
     export USE_DOCKER=true
 
     # Profile Injection: Ensure podman-compose sees services in profiles

@@ -77,42 +77,35 @@ def kill_process_tree(pid: int) -> None:
     except psutil.NoSuchProcess:  # pragma: no cover
         pass
 
-def validate_command(cmd_args: list[str]) -> None:
-    """Ngăn chặn TUYỆT ĐỐI logic inline để tránh treo PTY và vi phạm chính sách dự án."""
-    cmd_str = " ".join(cmd_args).lower()
-    
-    # Chính sách Zero Tolerance: Cấm tuyệt đối python -c
-    if "python" in cmd_str and " -c " in cmd_str:
-        print("\n" + "!"*80, file=sys.stderr)
-        print("🚨 LỖI NGHIÊM TRỌNG: Cấm sử dụng logic Python inline (-c)!", file=sys.stderr)
-        print("⚠️  Chính sách dự án: 100% logic phải nằm trong file script vật lý.", file=sys.stderr)
-        print("💡 Giải pháp: Hãy tạo file trong scripts/ai-tools/ và chạy file đó.", file=sys.stderr)
-        print("!"*80 + "\n", file=sys.stderr)
-        sys.exit(1)
+
+def validate_command(cmd_args: list[str] | str) -> None:
+    """Check if the command uses strictly banned inline patterns."""
+    banned_interpreters = ["python -c", "python3 -c", "node -e", "ruby -e", "perl -e", "php -r"]
+    banned_patterns = ["<<EOF", "<<-EOF"]
+
+    cmd_str = cmd_args if isinstance(cmd_args, str) else " ".join(cmd_args).lower()
+
+    for pattern in banned_interpreters + banned_patterns:
+        if pattern in cmd_str:
+            print("\n" + "!" * 80, file=sys.stderr)
+            print(
+                f"🚨 PTY SECURITY ERROR: Command contains banned pattern: '{pattern}'",
+                file=sys.stderr,
+            )
+            print(
+                "⚠️  Project Policy: 100% of logic must reside in physical script files.",
+                file=sys.stderr,
+            )
+            print(
+                "💡 Solution: Please create a file in scripts/ai-tools/ and run that file.",
+                file=sys.stderr,
+            )
+            print("!" * 80 + "\n", file=sys.stderr)
+            sys.exit(1)
 
 
-def main() -> None:
-    if len(sys.argv) < 3:
-        print(
-            f"Usage: {sys.argv[0]} [timeout_seconds] 'command to run' [args...]",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    try:
-        timeout_sec = float(sys.argv[1])
-    except ValueError:
-        print("Error: timeout must be a number", file=sys.stderr)
-        sys.exit(1)
-
-    cmd_args = sys.argv[2:]
-    validate_command(cmd_args)
-
-    print(
-        f"🛡️ [Python] Running detached command with {timeout_sec}s timeout: {cmd_args}",
-        file=sys.stderr,
-    )
-
+def execute_command(cmd_args: list[str], timeout_sec: float) -> int:
+    """Execute the command in a PTY and wait for completion."""
     # Use a PTY to force child processes to use line-buffering
     master_fd, slave_fd = pty.openpty()
 
@@ -141,7 +134,7 @@ def main() -> None:
         with contextlib.suppress(OSError):
             os.close(slave_fd)
             os.close(master_fd)
-        sys.exit(127)
+        return 127
 
     # Close slave fd in parent, so only child has it
     os.close(slave_fd)
@@ -175,6 +168,34 @@ def main() -> None:
         with contextlib.suppress(OSError):
             os.close(master_fd)
 
+    return exit_code
+
+
+def main() -> None:
+    """Main entry point for safe-run."""
+    min_args = 3
+    if len(sys.argv) < min_args:
+        print(
+            f"Usage: {sys.argv[0]} [timeout_seconds] 'command to run' [args...]",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    try:
+        timeout_sec = float(sys.argv[1])
+    except ValueError:
+        print("Error: timeout must be a number", file=sys.stderr)
+        sys.exit(1)
+
+    cmd_args = sys.argv[2:]
+    validate_command(cmd_args)
+
+    print(
+        f"🛡️ [Python] Running detached command with {timeout_sec}s timeout: {cmd_args}",
+        file=sys.stderr,
+    )
+
+    exit_code = execute_command(cmd_args, timeout_sec)
     print(f"✅ [Python] Command finished with exit code {exit_code}", file=sys.stderr)
     sys.exit(exit_code)
 

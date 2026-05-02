@@ -12,6 +12,96 @@ interface ClaimOtDialogProps {
   summary: AttendanceDailySummary | null;
 }
 
+interface OtClaimFormProps {
+  error: string | null;
+  handleSubmit: (event: React.SyntheticEvent<HTMLFormElement>) => void;
+  isSubmitting: boolean;
+  minutes: number;
+  onClose: () => void;
+  reason: string;
+  setMinutes: (minutes: number) => void;
+  setReason: (reason: string) => void;
+  systemOt: number;
+  t: (key: string) => string;
+}
+
+function OtClaimForm({ 
+  handleSubmit, 
+  minutes, 
+  setMinutes, 
+  reason, 
+  setReason, 
+  error, 
+  isSubmitting, 
+  systemOt,
+  onClose,
+  t 
+}: OtClaimFormProps) {
+  return (
+    <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+      <div className="bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-300 mt-0.5" />
+        <div>
+          <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">{t("ess.ot.system_detected")}</p>
+          <p className="text-lg font-bold text-amber-900">{systemOt} min</p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+          {t("ess.ot.claimed_minutes") || "Minutes to Claim"}
+        </label>
+        <div className="relative">
+          <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
+          <input
+            className="w-full pl-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-500 dark:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+            max={systemOt}
+            onChange={(e) => { setMinutes(parseInt(e.target.value) || 0); }}
+            type="number"
+            value={minutes}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+          {t("common.reason")}
+        </label>
+        <textarea
+          className="w-full min-h-[80px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-500 dark:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+          onChange={(e) => { setReason(e.target.value); }}
+          placeholder={t("ess.ot.reason_placeholder") || "Why did you work overtime?"}
+          required
+          value={reason}
+        />
+      </div>
+
+      {!!error && (
+        <div className="text-xs font-bold text-rose-500 uppercase tracking-wide bg-rose-50 dark:bg-rose-950 p-2 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      <div className="flex justify-end gap-3 pt-2">
+        <button
+          className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          onClick={onClose}
+          type="button"
+        >
+          {t("common.cancel")}
+        </button>
+        <button
+          className="px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-600/30 hover:bg-primary-700 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:pointer-events-none"
+          disabled={isSubmitting}
+          type="submit"
+        >
+          {isSubmitting ? t("common.saving") : t("common.submit")}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProps) {
   const { t } = useTranslation();
   const { submitClaim, isSubmitting } = useSubmitOtClaim();
@@ -25,25 +115,28 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
   if (open !== previousOpen) {
     setPreviousOpen(open);
     if (open && summary) {
-      setMinutes(summary.system_detected_ot_minutes || 0);
+      setMinutes(summary.system_detected_ot_minutes);
       setReason("");
       setError(null);
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!summary) return;
-    
+  const validate = () => {
+    if (!summary) return false;
     if (minutes <= 0) {
-        setError(t("ess.ot.error_zero_minutes") || "Minutes must be greater than 0");
-        return;
+      setError(t("ess.ot.error_zero_minutes") || "Minutes must be greater than 0");
+      return false;
     }
-    
     if (minutes > summary.system_detected_ot_minutes) {
-        setError(t("ess.ot.error_exceeds_system") || "Cannot claim more than system detected OT");
-        return;
+      setError(t("ess.ot.error_exceeds_system") || "Cannot claim more than system detected OT");
+      return false;
     }
+    return true;
+  };
+
+  const handleSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!validate() || !summary) return;
 
     try {
       await submitClaim({
@@ -52,8 +145,8 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
         reason,
       });
       onOpenChange(false);
-    } catch (e) {
-      console.error(e);
+    } catch (error_) {
+      console.error(error_);
       setError(t("common.error_occurred") || "An error occurred");
     }
   };
@@ -70,7 +163,7 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
               {t("ess.ot.claim_title") || "Claim Overtime"}
             </Dialog.Title>
             <Dialog.Description className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              {t("ess.ot.claim_desc") || `For date: ${summary.date ?? ""}`}
+              {t("ess.ot.claim_desc") || `For date: ${summary.date}`}
             </Dialog.Description>
           </div>
           
@@ -82,67 +175,18 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
             <span className="sr-only">{t("ess.ot.close")}</span>
           </button>
 
-          <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
-            <div className="bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-300 mt-0.5" />
-                <div>
-                    <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">{t("ess.ot.system_detected")}</p>
-                    <p className="text-lg font-bold text-amber-900">{summary.system_detected_ot_minutes} min</p>
-                </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
-                {t("ess.ot.claimed_minutes") || "Minutes to Claim"}
-              </label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
-                <input
-                  className="w-full pl-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 dark:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
-                  max={summary.system_detected_ot_minutes}
-                  onChange={(e) => { setMinutes(parseInt(e.target.value) || 0); }}
-                  type="number"
-                  value={minutes}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
-                {t("common.reason")}
-              </label>
-              <textarea
-                className="w-full min-h-[80px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 dark:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-                onChange={(e) => { setReason(e.target.value); }}
-                placeholder={t("ess.ot.reason_placeholder") || "Why did you work overtime?"}
-                required
-                value={reason}
-              />
-            </div>
-
-            {!!error && (
-                <div className="text-xs font-bold text-rose-500 uppercase tracking-wide bg-rose-50 dark:bg-rose-950 p-2 rounded-lg">
-                    {error}
-                </div>
-              )}
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                onClick={() => { onOpenChange(false); }}
-                type="button"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                className="px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-600/30 hover:bg-primary-700 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:pointer-events-none"
-                disabled={isSubmitting}
-                type="submit"
-              >
-                {isSubmitting ? t("common.saving") : t("common.submit")}
-              </button>
-            </div>
-          </form>
+          <OtClaimForm
+            error={error}
+            handleSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+            minutes={minutes}
+            onClose={() => { onOpenChange(false); }}
+            reason={reason}
+            setMinutes={setMinutes}
+            setReason={setReason}
+            systemOt={summary.system_detected_ot_minutes}
+            t={t}
+          />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

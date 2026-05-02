@@ -97,11 +97,15 @@ lifecycle_down() {
         # Stop containers with short timeout, then KILL
         dc "${profiles[@]}" down --remove-orphans --timeout 5 >/dev/null 2>&1 || true
         
-        # Force kill any remaining containers for this project to be absolutely sure
-        "$CONTAINER_ENGINE" ps -q --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" | xargs -r "$CONTAINER_ENGINE" kill >/dev/null 2>&1 || true
+        # Force kill AND remove any remaining containers for this project
+        local _ids
+        _ids=$("$CONTAINER_ENGINE" ps -aq --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")
+        if [[ -n "$_ids" ]]; then
+            echo "$_ids" | xargs -r "$CONTAINER_ENGINE" rm -f >/dev/null 2>&1 || true
+        fi
         
         # Remove ephemeral volumes
-        "$CONTAINER_ENGINE" volume rm "leeattend-test_shared-data" \
+        "$CONTAINER_ENGINE" volume rm "${COMPOSE_PROJECT_NAME}_shared-data" \
             </dev/null >/dev/null 2>&1 || true
         echo -e "${GREEN}✅ Infrastructure cleaned up.${NC}"
     fi

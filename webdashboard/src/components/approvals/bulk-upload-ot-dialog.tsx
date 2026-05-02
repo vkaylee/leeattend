@@ -23,10 +23,238 @@ interface UploadResult {
   total_rows: number;
 }
 
-export function BulkUploadOtDialog({ open, onOpenChange, onSuccess }: Props) {
+interface FileUploadZoneProps {
+  isDragOver: boolean;
+  onDragLeave: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onFileChange: (file: File | null) => void;
+  selectedFile: File | null;
+  setSelectedFile: (file: File | null) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}
+
+function FileUploadZone({
+  isDragOver,
+  onDragLeave,
+  onDragOver,
+  onDrop,
+  onFileChange,
+  selectedFile,
+  setSelectedFile,
+  t
+}: FileUploadZoneProps) {
+  if (selectedFile) {
+    return (
+      <div className="border-2 border-dashed rounded-xl p-8 text-center border-slate-200 dark:border-slate-700">
+        <div className="space-y-3">
+          <FileText className="w-12 h-12 text-primary-600 dark:text-primary-400 mx-auto" />
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{selectedFile.name}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {(selectedFile.size / 1024).toFixed(2)} KB
+          </p>
+          <button
+            className="text-xs text-rose-600 dark:text-rose-300 hover:underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedFile(null);
+            }}
+          >
+            {t("common.remove")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
+        isDragOver
+          ? "border-primary-500 bg-primary-50 dark:bg-primary-950"
+          : "border-slate-200 dark:border-slate-700 hover:border-primary-400"
+      }`}
+      onDragLeave={onDragLeave}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
+      <Upload className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-3" />
+      <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
+        {t("approvals.bulk_upload.drag_drop")}
+      </p>
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        {t("approvals.bulk_upload.or_click")}
+      </p>
+      <input
+        accept=".csv"
+        className="hidden"
+        id="csv-upload"
+        onChange={(e) => { onFileChange(e.target.files?.[0] ?? null); }}
+        type="file"
+      />
+      <label
+        className="inline-block px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-primary-700"
+        htmlFor="csv-upload"
+      >
+        {t("approvals.bulk_upload.select_file")}
+      </label>
+    </div>
+  );
+}
+
+interface UploadSummaryProps {
+  t: (key: string, options?: Record<string, unknown>) => string;
+  uploadResult: UploadResult;
+}
+
+function UploadSummary({ t, uploadResult }: UploadSummaryProps) {
+  return (
+    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-2">
+      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+        {t("approvals.bulk_upload.result_summary")}
+      </h3>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-800">
+          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+            {t("approvals.bulk_upload.total")}
+          </p>
+          <p className="text-2xl font-bold text-slate-700 dark:text-slate-200">{uploadResult.total_rows}</p>
+        </div>
+        <div className="bg-emerald-50 dark:bg-emerald-950 rounded-lg p-3 border border-emerald-200 dark:border-emerald-800">
+          <p className="text-xs text-emerald-600 dark:text-emerald-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+            <CheckCircle2 className="w-3 h-3" />
+            {t("approvals.bulk_upload.success")}
+          </p>
+          <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{uploadResult.success_count}</p>
+        </div>
+        <div className="bg-rose-50 dark:bg-rose-950 rounded-lg p-3 border border-rose-200">
+          <p className="text-xs text-rose-600 dark:text-rose-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+            <XCircle className="w-3 h-3" />
+            {t("approvals.bulk_upload.failed")}
+          </p>
+          <p className="text-2xl font-bold text-rose-700 dark:text-rose-300">{uploadResult.failed_count}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ErrorDetailsTableProps {
+  onDownloadErrorReport: () => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  uploadResult: UploadResult;
+}
+
+function ErrorDetailsTable({ onDownloadErrorReport, t, uploadResult }: ErrorDetailsTableProps) {
+  if (uploadResult.errors.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+          {t("approvals.bulk_upload.error_details")}
+        </h3>
+        <button
+          className="px-4 py-2 rounded-xl bg-rose-100 dark:bg-rose-900 hover:bg-rose-200 text-rose-700 dark:text-rose-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
+          onClick={onDownloadErrorReport}
+        >
+          <Download className="w-3 h-3" />
+          {t("approvals.bulk_upload.download_errors")}
+        </button>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0">
+            <tr>
+              <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {t("approvals.bulk_upload.line")}
+              </th>
+              <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {t("common.employee")}
+              </th>
+              <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {t("common.error")}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {uploadResult.errors.map((error_, index) => (
+              <tr className="hover:bg-slate-50 dark:hover:bg-slate-800" key={index}>
+                <td className="px-4 py-2 text-xs font-mono text-slate-600 dark:text-slate-300">
+                  {error_.line_number}
+                </td>
+                <td className="px-4 py-2 text-xs font-mono text-slate-600 dark:text-slate-300">
+                  {error_.employee_id}
+                </td>
+                <td className="px-4 py-2 text-xs text-rose-600 dark:text-rose-300">
+                  {error_.error_message}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function downloadTemplate() {
+  const csvContent = `employee_id,date,minutes,reason
+E001,2026-01-28,120,Production line overtime - paper form #123
+E002,2026-01-28,90,Urgent order completion`;
+
+  const blob = new Blob([csvContent], { type: "text/csv" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ot_upload_template.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+function downloadErrorReport(uploadResult: UploadResult) {
+  if (uploadResult.errors.length === 0) return;
+
+  const headers = "line_number,employee_id,error_message";
+  const rows = uploadResult.errors
+    .map(e => `${e.line_number.toString()},${e.employee_id},"${e.error_message}"`)
+    .join("\n");
+
+  const csvContent = `${headers}\n${rows}`;
+  const blob = new Blob([csvContent], { type: "text/csv" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ot_upload_errors_${new Date().getTime().toString()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+interface SuccessMessageProps {
+  count: number;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}
+
+function SuccessMessage({ count, t }: SuccessMessageProps) {
+  return (
+    <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
+      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-300 flex-shrink-0" />
+      <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
+        {t("approvals.bulk_upload.success_message", { count }) ||
+          `${count.toString()} OT claims entered successfully`}
+      </p>
+    </div>
+  );
+}
+
+function useBulkUploadForm(onSuccess?: () => void) {
   const { t } = useTranslation();
   const { bulkUploadPaperOt, isUploading } = useBulkUploadPaperOt();
-  const { confirm, ConfirmationDialog } = useConfirm();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
@@ -42,86 +270,138 @@ export function BulkUploadOtDialog({ open, onOpenChange, onSuccess }: Props) {
 
   const handleFileChange = (file: File | null) => {
     if (!file) return;
-
     if (!file.name.endsWith(".csv")) {
-      setError(t("approvals.bulk_upload.error_csv_only") || "Only CSV files are allowed");
+      setError(t("approvals.bulk_upload.error_csv_only"));
       return;
     }
-
     setSelectedFile(file);
     setError(null);
     setUploadResult(null);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const file = e.dataTransfer.files[0];
-    handleFileChange(file);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
-  const downloadTemplate = () => {
-    const csvContent = `employee_id,date,minutes,reason
-E001,2026-01-28,120,Production line overtime - paper form #123
-E002,2026-01-28,90,Urgent order completion`;
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "ot_upload_template.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
-
-  const downloadErrorReport = () => {
-    if (!uploadResult || uploadResult.errors.length === 0) return;
-
-    const headers = "line_number,employee_id,error_message";
-    const rows = uploadResult.errors
-      .map(e => `${e.line_number ?? ""},${e.employee_id ?? ""},"${e.error_message ?? ""}"`)
-      .join("\n");
-
-    const csvContent = `${headers ?? ""}\n${rows ?? ""}`;
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ot_upload_errors_${new Date().getTime()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
-
   const handleUpload = async () => {
     if (!selectedFile) return;
-
     setError(null);
     try {
       const result = await bulkUploadPaperOt(selectedFile);
       setUploadResult(result);
-
-      if (result.success_count > 0) {
-        onSuccess?.();
-      }
- 
+      if (result.success_count > 0) onSuccess?.();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Failed to upload file";
-      setError(message);
+      setError(e instanceof Error ? e.message : "Failed to upload file");
     }
   };
+
+  return {
+    error,
+    handleFileChange,
+    handleUpload,
+    isDragOver,
+    isUploading,
+    resetForm,
+    selectedFile,
+    setError,
+    setIsDragOver,
+    setSelectedFile,
+    setUploadResult,
+    t,
+    uploadResult
+  };
+}
+
+interface BulkUploadDialogContentProps {
+  error: string | null;
+  handleClose: () => void;
+  handleFileChange: (file: File | null) => void;
+  handleUpload: () => void;
+  isDragOver: boolean;
+  isUploading: boolean;
+  onDownloadErrorReport: () => void;
+  selectedFile: File | null;
+  setIsDragOver: (over: boolean) => void;
+  setSelectedFile: (file: File | null) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  uploadResult: UploadResult | null;
+}
+
+function BulkUploadDialogContent({
+  error,
+  handleClose,
+  handleFileChange,
+  handleUpload,
+  isDragOver,
+  isUploading,
+  onDownloadErrorReport,
+  selectedFile,
+  setIsDragOver,
+  setSelectedFile,
+  t,
+  uploadResult,
+}: BulkUploadDialogContentProps) {
+  return (
+    <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl rounded-[2rem] max-h-[90vh] overflow-y-auto">
+      <Dialog.Title className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2">
+        <Upload className="w-5 h-5" />
+        {t("approvals.bulk_upload.title")}
+      </Dialog.Title>
+      <Dialog.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        {t("approvals.bulk_upload.description")}
+      </Dialog.Description>
+      <button className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" onClick={handleClose}>
+        <X className="h-4 w-4" />
+      </button>
+      <div className="mt-6 space-y-5">
+        <div className="flex justify-center">
+          <button className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" onClick={downloadTemplate}>
+            <Download className="w-4 h-4" />
+            {t("approvals.bulk_upload.download_template")}
+          </button>
+        </div>
+        {!uploadResult && (
+          <FileUploadZone
+            isDragOver={isDragOver}
+            onDragLeave={() => { setIsDragOver(false); }}
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDrop={(e) => { e.preventDefault(); setIsDragOver(false); handleFileChange(e.dataTransfer.files.item(0)); }}
+            onFileChange={handleFileChange}
+            selectedFile={selectedFile}
+            setSelectedFile={setSelectedFile}
+            t={t}
+          />
+        )}
+        {!!selectedFile && !uploadResult && (
+          <div className="flex justify-center">
+            <button className="px-8 py-3 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" disabled={isUploading} onClick={handleUpload}>
+              {isUploading ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t("common.uploading")}</>) : (<><Upload className="w-4 h-4" />{t("approvals.bulk_upload.upload")}</>)}
+            </button>
+          </div>
+        )}
+        {!!error && (
+          <div className="flex items-center gap-3 bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4">
+            <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-300 flex-shrink-0" />
+            <p className="text-xs font-bold text-rose-600 dark:text-rose-300 uppercase tracking-wide">{error}</p>
+          </div>
+        )}
+        {!!uploadResult && (
+          <div className="space-y-4">
+            <UploadSummary t={t} uploadResult={uploadResult} />
+            <ErrorDetailsTable onDownloadErrorReport={onDownloadErrorReport} t={t} uploadResult={uploadResult} />
+            {uploadResult.success_count > 0 && <SuccessMessage count={uploadResult.success_count} t={t} />}
+          </div>
+        )}
+        <div className="flex justify-end gap-3 pt-2">
+          <button className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${uploadResult ? "bg-primary-600 text-white shadow-lg hover:bg-primary-700" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"}`} onClick={handleClose}>
+            {uploadResult ? t("common.close") : t("common.cancel")}
+          </button>
+        </div>
+      </div>
+    </Dialog.Content>
+  );
+}
+
+export function BulkUploadOtDialog({ open, onOpenChange, onSuccess }: Props) {
+  const { confirm, ConfirmationDialog } = useConfirm();
+  const form = useBulkUploadForm(onSuccess);
+  const { t, uploadResult, resetForm, isDragOver, setIsDragOver, handleFileChange, selectedFile, setSelectedFile, isUploading, handleUpload, error } = form;
 
   const handleClose = async () => {
     if (uploadResult && uploadResult.failed_count > 0) {
@@ -137,243 +417,23 @@ E002,2026-01-28,90,Urgent order completion`;
   };
 
   return (
-    <Dialog.Root onOpenChange={(o) => { if (!o) handleClose(); }} open={open}>
+    <Dialog.Root onOpenChange={(o) => { if (!o) { void handleClose(); } }} open={open}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl rounded-[2rem] max-h-[90vh] overflow-y-auto">
-          <Dialog.Title className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2">
-            <Upload className="w-5 h-5" />
-            {t("approvals.bulk_upload.title") || "Bulk Upload OT"}
-          </Dialog.Title>
-          <Dialog.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {t("approvals.bulk_upload.description") || "Upload CSV file to enter multiple OT claims at once"}
-          </Dialog.Description>
-
-          <button
-            className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
-            onClick={handleClose}
-          >
-            <X className="h-4 w-4" />
-          </button>
-
-          <div className="mt-6 space-y-5">
-            {/* Download Template Button */}
-            <div className="flex justify-center">
-              <button
-                className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
-                onClick={downloadTemplate}
-              >
-                <Download className="w-4 h-4" />
-                {t("approvals.bulk_upload.download_template") || "Download CSV Template"}
-              </button>
-            </div>
-
-            {/* File Upload Zone */}
-            {!uploadResult && (
-              <div
-                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
-                  isDragOver
-                    ? "border-primary-500 bg-primary-50 dark:bg-primary-950"
-                    : "border-slate-200 dark:border-slate-700 hover:border-primary-400"
-                }`}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-              >
-                {selectedFile ? (
-                  <div className="space-y-3">
-                    <FileText className="w-12 h-12 text-primary-600 dark:text-primary-400 mx-auto" />
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{selectedFile.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {(selectedFile.size / 1024).toFixed(2)} KB
-                    </p>
-                    <button
-                      className="text-xs text-rose-600 dark:text-rose-300 hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedFile(null);
-                      }}
-                    >
-                      {t("common.remove") || "Remove"}
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-3" />
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
-                      {t("approvals.bulk_upload.drag_drop") || "Drag and drop CSV file here"}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                      {t("approvals.bulk_upload.or_click") || "or click to browse"}
-                    </p>
-                    <input
-                      accept=".csv"
-                      className="hidden"
-                      id="csv-upload"
-                      onChange={(e) => { handleFileChange(e.target.files?.[0] || null); }}
-                      type="file"
-                    />
-                    <label
-                      className="inline-block px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-primary-700"
-                      htmlFor="csv-upload"
-                    >
-                      {t("approvals.bulk_upload.select_file") || "Select File"}
-                    </label>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Upload Button */}
-            {!!selectedFile && !uploadResult && (
-              <div className="flex justify-center">
-                <button
-                  className="px-8 py-3 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  disabled={isUploading}
-                  onClick={handleUpload}
-                >
-                  {isUploading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      {t("common.uploading") || "Uploading..."}
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4" />
-                      {t("approvals.bulk_upload.upload") || "Upload & Process"}
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {/* Error Message */}
-            {!!error && (
-              <div className="flex items-center gap-3 bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4">
-                <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-300 flex-shrink-0" />
-                <p className="text-xs font-bold text-rose-600 dark:text-rose-300 uppercase tracking-wide">{error}</p>
-              </div>
-            )}
-
-            {/* Upload Result */}
-            {!!uploadResult && (
-              <div className="space-y-4">
-                {/* Summary */}
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-2">
-                  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                    {t("approvals.bulk_upload.result_summary") || "Upload Summary"}
-                  </h3>
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-800">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                        {t("approvals.bulk_upload.total") || "Total"}
-                      </p>
-                      <p className="text-2xl font-bold text-slate-700 dark:text-slate-200">{uploadResult.total_rows}</p>
-                    </div>
-                    <div className="bg-emerald-50 dark:bg-emerald-950 rounded-lg p-3 border border-emerald-200 dark:border-emerald-800">
-                      <p className="text-xs text-emerald-600 dark:text-emerald-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        {t("approvals.bulk_upload.success") || "Success"}
-                      </p>
-                      <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{uploadResult.success_count}</p>
-                    </div>
-                    <div className="bg-rose-50 dark:bg-rose-950 rounded-lg p-3 border border-rose-200">
-                      <p className="text-xs text-rose-600 dark:text-rose-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
-                        <XCircle className="w-3 h-3" />
-                        {t("approvals.bulk_upload.failed") || "Failed"}
-                      </p>
-                      <p className="text-2xl font-bold text-rose-700 dark:text-rose-300">{uploadResult.failed_count}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Error Details */}
-                {uploadResult.errors.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                        {t("approvals.bulk_upload.error_details") || "Error Details"}
-                      </h3>
-                      <button
-                        className="px-4 py-2 rounded-xl bg-rose-100 dark:bg-rose-900 hover:bg-rose-200 text-rose-700 dark:text-rose-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
-                        onClick={downloadErrorReport}
-                      >
-                        <Download className="w-3 h-3" />
-                        {t("approvals.bulk_upload.download_errors") || "Download Errors"}
-                      </button>
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
-                      <table className="w-full text-left">
-                        <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0">
-                          <tr>
-                            <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                              {t("approvals.bulk_upload.line") || "Line"}
-                            </th>
-                            <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                              {t("common.employee") || "Employee ID"}
-                            </th>
-                            <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                              {t("common.error") || "Error"}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {uploadResult.errors.map((error_, index) => (
-                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-800" key={index}>
-                              <td className="px-4 py-2 text-xs font-mono text-slate-600 dark:text-slate-300">
-                                {error_.line_number}
-                              </td>
-                              <td className="px-4 py-2 text-xs font-mono text-slate-600 dark:text-slate-300">
-                                {error_.employee_id}
-                              </td>
-                              <td className="px-4 py-2 text-xs text-rose-600 dark:text-rose-300">
-                                {error_.error_message}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Success Message */}
-                {uploadResult.success_count > 0 && (
-                  <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-300 flex-shrink-0" />
-                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
-                      {t("approvals.bulk_upload.success_message", { count: uploadResult.success_count }) ||
-                        `${uploadResult.success_count ?? ""} OT claims entered successfully`}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-2">
-              {uploadResult ? (
-                <button
-                  className="px-6 py-2 rounded-xl bg-primary-600 text-white text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-primary-700"
-                  onClick={() => {
-                    resetForm();
-                    onOpenChange(false);
-                  }}
-                >
-                  {t("common.close") || "Close"}
-                </button>
-              ) : (
-                <button
-                  className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-                  onClick={handleClose}
-                >
-                  {t("common.cancel") || "Cancel"}
-                </button>
-              )}
-            </div>
-          </div>
-        </Dialog.Content>
+        <BulkUploadDialogContent
+          error={error}
+          handleClose={() => { void handleClose(); }}
+          handleFileChange={handleFileChange}
+          handleUpload={() => { void handleUpload(); }}
+          isDragOver={isDragOver}
+          isUploading={isUploading}
+          onDownloadErrorReport={() => { if (uploadResult) downloadErrorReport(uploadResult); }}
+          selectedFile={selectedFile}
+          setIsDragOver={setIsDragOver}
+          setSelectedFile={setSelectedFile}
+          t={t}
+          uploadResult={uploadResult}
+        />
       </Dialog.Portal>
       <ConfirmationDialog />
     </Dialog.Root>

@@ -298,14 +298,14 @@ run_parallel_ordered() {
                 # SERIAL EXECUTION — Stream live output safely
                 > "$log_file" # truncate
                 
-                # Chạy test trong background nhưng lấy PID ngay lập tức
+                # Run test in background but get PID immediately
                 set +e
                 (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd" </dev/null > "$log_file" 2>&1) &
                 local test_pid=$!
                 
-                # tail -f sẽ tự động thoát khi test_pid kết thúc (PTY-safe).
-                # Timeout bảo vệ: nếu log file bị giữ open bởi process khác,
-                # tail vẫn thoát sau task_timeout + 30s.
+                # tail -f will exit automatically when test_pid ends (PTY-safe).
+                # Timeout protection: if log file is held open by another process,
+                # tail still exits after task_timeout + 30s.
                 tail -f "$log_file" --pid=$test_pid 2>/dev/null &
                 local _tail_pid=$!
                 # Wait for test (not tail — tail exits automatically via --pid)

@@ -186,7 +186,7 @@ def test_full_run_test_infra(mock_run, orchestrator) -> None:
     assert "pytest" in str(mock_run.call_args_list)
 
 
-@patch("sys.argv", ["_orchestrator.py", "manage", "lint:infra"])
+@patch("sys.argv", ["_orchestrator.py", "test", "lint:infra"])
 @patch("subprocess.run")
 def test_full_run_lint_infra(mock_run, orchestrator) -> None:
     """Test full run loop for lint:infra command."""
@@ -368,7 +368,17 @@ def test_handle_run_npm_no_args(mock_which, mock_run, orchestrator) -> None:
     mock_run.return_value.returncode = 0
     args = orchestrator.parser.parse_args(["run", "npm"])
     orchestrator.handle_run(args)
-    assert "npm install -g bun" in str(mock_run.call_args_list)
+    assert "bun " in str(mock_run.call_args_list)
+
+
+@patch("subprocess.run")
+def test_handle_test_lint_subcommands(mock_run, orchestrator) -> None:
+    """Test test lint subcommands."""
+    mock_run.return_value.returncode = 0
+    for cmd in ["lint:api", "lint:web", "lint:infra", "lint:all"]:
+        args = orchestrator.parser.parse_args(["test", cmd])
+        orchestrator.handle_test(args)
+    assert mock_run.call_count >= 4
 
 
 @patch("subprocess.run")
@@ -447,7 +457,7 @@ def test_handle_run_remainder_args(mock_run, orchestrator) -> None:
     args = orchestrator.parser.parse_args(["run", "npm", "--", "run", "dev"])
     orchestrator.handle_run(args)
     called_args = mock_run.call_args[0][0]
-    assert "npm install -g bun && bun run dev" in str(called_args)
+    assert "bun run dev" in str(called_args)
 
 
 @patch("socket.socket")
@@ -535,7 +545,7 @@ def test_handle_run_remainder_explicit(mock_run, orchestrator) -> None:
     orchestrator.handle_run(args)
     # This MUST hit line 245
     called_args = str(mock_run.call_args[0][0])
-    assert "npm install -g bun && bun test" in called_args
+    assert "bun test" in called_args
 
 
 @patch("subprocess.run")
@@ -662,3 +672,13 @@ def test_main_entry_point() -> None:
         # without side effects, but we can call it if we import it correctly
         # or just rely on the fact that we've tested Orchestrator.run()
         pass
+
+
+@patch("subprocess.run")
+def test_handle_run_npm_first_arg_npm(mock_run, orchestrator) -> None:
+    """Test handle_run when the first argument is npm (to cover line 448)."""
+    mock_run.return_value.returncode = 0
+    args = orchestrator.parser.parse_args(["run", "npm", "--", "npm", "install"])
+    orchestrator.handle_run(args)
+    called_args = str(mock_run.call_args[0][0])
+    assert "npm install" in called_args

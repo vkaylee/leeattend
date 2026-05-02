@@ -1,4 +1,4 @@
-/* eslint-disable no-console, unicorn/prevent-abbreviations */
+/* eslint-disable no-console */
 import { expect } from "@playwright/test";
 
 import { test } from "./worker-orchestrator";

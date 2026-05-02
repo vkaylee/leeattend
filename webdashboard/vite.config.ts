@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-deprecated, @typescript-eslint/no-unused-vars, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/restrict-template-expressions, complexity, max-lines-per-function, no-console, unicorn/prevent-abbreviations */
+/* eslint-disable @typescript-eslint/no-deprecated, @typescript-eslint/no-unused-vars, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/restrict-template-expressions, complexity, max-lines-per-function, no-console */
 import react from "@vitejs/plugin-react";
 
 import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
@@ -113,7 +113,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       buildVersionPlugin(),
       TanStackRouterVite({
         routesDirectory: './src/routes',
-        generatedRouteTree: './src/routeTree.gen.ts',
+        generatedRouteTree: './src/route-tree.gen.ts',
         quoteStyle: 'double',
       }),
       react({

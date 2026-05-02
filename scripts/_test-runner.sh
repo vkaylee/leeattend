@@ -119,11 +119,11 @@ run_integration() {
         local need_web=false
         
         if [[ "$filter" == *"web"* ]]; then
-            # Web E2E dùng Mock API, KHÔNG cần DB và Backend thật
+            # Web E2E uses Mock API, does NOT need real DB and Backend
             services="webdashboard bun_init"
             need_web=true
         else
-            # Integration tests cho API bắt buộc cần DB thật
+            # Integration tests for API require real DB
             services="db redis apiserver agent-main db_init"
             if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then 
                 services="$services webdashboard bun_init"
@@ -138,10 +138,10 @@ run_integration() {
     fi
 
     if [[ "$filter" == *"web"* ]]; then
-        # Chạy thẳng E2E không cần setup-test-env (vì không cần DB isolated cho từng worker)
+        # Run E2E directly without setup-test-env (as we don't need isolated DBs for each worker)
         leeattend_run_integration "$filter"
     else
-        # Integration tests cho API vẫn cần môi trường thực
+        # Integration tests for API still need real environment
         ./setup-test-env.sh leeattend_run_integration "$filter"
     fi
 }

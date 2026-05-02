@@ -18,7 +18,7 @@ def orchestrator() -> _orchestrator.Orchestrator:
 def test_test_no_mode_shows_help(
     orchestrator: _orchestrator.Orchestrator, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Kiểm tra lệnh test không có mode hiển thị help."""
+    """Test that test command without mode displays help."""
     args = orchestrator.parser.parse_args(["test"])
     with pytest.raises(SystemExit) as e:
         orchestrator.handle_test(args)
@@ -29,7 +29,7 @@ def test_test_no_mode_shows_help(
 
 
 def test_manage_no_subcommand_raises_error(orchestrator: _orchestrator.Orchestrator) -> None:
-    """Kiểm tra lệnh manage không có subcommand báo lỗi argparse."""
+    """Test that manage command without subcommand raises argparse error."""
     with pytest.raises(SystemExit) as e:
         orchestrator.parser.parse_args(["manage"])
     assert e.value.code != 0

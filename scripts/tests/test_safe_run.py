@@ -15,7 +15,7 @@ import _safe_run
 
 
 def test_kill_process_tree() -> None:
-    """Kiểm tra việc giết cây tiến trình."""
+    """Test killing a process tree."""
     # Start a dummy process that stays alive
     proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(10)"])
     pid = proc.pid
@@ -29,7 +29,7 @@ def test_kill_process_tree() -> None:
 
 
 def test_read_from_pty_eof() -> None:
-    """Kiểm tra đọc từ PTY khi gặp EOF."""
+    """Test reading from PTY on EOF."""
     master, slave = os.openpty()
     stop_event = threading.Event()
 
@@ -43,7 +43,7 @@ def test_read_from_pty_eof() -> None:
 
 
 def test_read_from_pty_stop_event() -> None:
-    """Kiểm tra đọc từ PTY khi stop_event được set."""
+    """Test reading from PTY when stop_event is set."""
     master, slave = os.openpty()
     stop_event = threading.Event()
     stop_event.set()
@@ -56,14 +56,14 @@ def test_read_from_pty_stop_event() -> None:
 
 
 def test_main_not_enough_args() -> None:
-    """Kiểm tra main khi thiếu đối số."""
+    """Test main with insufficient arguments."""
     with patch.object(sys, "argv", ["safe-run.py"]), pytest.raises(SystemExit) as exc:
         _safe_run.main()
     assert exc.value.code == 1
 
 
 def test_main_invalid_timeout() -> None:
-    """Kiểm tra main khi timeout không hợp lệ."""
+    """Test main with invalid timeout value."""
     with patch.object(sys, "argv", ["safe-run.py", "abc", "ls"]), pytest.raises(SystemExit) as exc:
         _safe_run.main()
     assert exc.value.code == 1
@@ -71,7 +71,7 @@ def test_main_invalid_timeout() -> None:
 
 @patch("subprocess.Popen")
 def test_main_command_not_found(mock_popen: MagicMock) -> None:
-    """Kiểm tra main khi lệnh không tồn tại."""
+    """Test main when command is not found."""
     mock_popen.side_effect = FileNotFoundError()
     with (
         patch.object(sys, "argv", ["safe-run.py", "5", "nonexistent-cmd"]),
@@ -82,7 +82,7 @@ def test_main_command_not_found(mock_popen: MagicMock) -> None:
 
 
 def test_main_success() -> None:
-    """Kiểm tra main chạy lệnh thành công."""
+    """Test main executing command successfully."""
     with (
         patch.object(sys, "argv", ["safe-run.py", "2", "echo", "hello"]),
         patch("sys.stdout.buffer.write"),  # Avoid printing to real stdout
@@ -93,7 +93,7 @@ def test_main_success() -> None:
 
 
 def test_main_timeout() -> None:
-    """Kiểm tra main khi lệnh bị timeout."""
+    """Test main when command times out."""
     with (
         patch.object(sys, "argv", ["safe-run.py", "0.1", "sleep", "1"]),
         pytest.raises(SystemExit) as exc,
@@ -103,14 +103,14 @@ def test_main_timeout() -> None:
 
 
 def test_validate_command_python_c(capsys: pytest.CaptureFixture[str]) -> None:
-    """Kiểm tra validate_command chặn python -c."""
+    """Test validate_command blocks python -c."""
     with pytest.raises(SystemExit) as exc:
         _safe_run.validate_command(["python3", "-c", "print(1)"])
     assert exc.value.code == 1
     captured = capsys.readouterr()
-    assert "Cấm sử dụng logic Python inline (-c)" in captured.err
+    assert "PTY SECURITY ERROR" in captured.err
 
 
 def test_validate_command_valid() -> None:
-    """Kiểm tra validate_command cho phép lệnh hợp lệ."""
+    """Test validate_command allows valid commands."""
     _safe_run.validate_command(["echo", "hello"])  # Should not raise

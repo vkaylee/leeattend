@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars, max-lines-per-function */
+/* eslint-disable @typescript-eslint/no-unused-vars, max-lines-per-function */
 import { test, expect } from "@playwright/test";
 
 /**

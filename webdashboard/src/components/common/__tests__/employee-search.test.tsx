@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery  } from "@tanstack/react-query";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -49,8 +49,7 @@ describe("EmployeeSearch Component", () => {
     expect(screen.getByRole("combobox")).toBeDefined();
   });
 
-  it("renders chips in multiple mode", () => {
- 
+  it("renders chips in multiple mode", async () => {
     vi.mocked(useQuery).mockReturnValue({
       data: { data: mockEmployees },
       isLoading: false,
@@ -58,14 +57,12 @@ describe("EmployeeSearch Component", () => {
 
     const onChange = vi.fn();
     const value = ["1"];
-    // In multi-mode, EmployeeSearch manages 'selectedMeta' internally when handleSelect is called.
-    // To test initial chips, we'd need to mock the internal state or pass it as prop.
-    // For now, we verify it renders without crashing.
     render(<EmployeeSearch multiple onChange={onChange} value={value} workspaceId="ws-1" />, { wrapper });
 
     // With the new useEffect, it should find '1' in mockEmployees and show 'John Doe'
-    // It appears in both the chip and the hidden select option
-    expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
+    await waitFor(() => {
+      expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
+    });
   });
 
   it("preserves server-side relevance order (exact match > prefix > contains)", () => {
