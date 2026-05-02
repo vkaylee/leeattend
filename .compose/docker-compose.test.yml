@@ -1,9 +1,10 @@
 # ==============================================================================
-# Podman Compose — Test Override
+# Podman Compose — Test Environment (Self-Contained)
 # ==============================================================================
-# This file extends docker-compose.yml to provide the test environment.
-# Services inherit from the base file but override images, networks, and volumes
-# to isolate test data.
+# This file is fully standalone — it does NOT merge with docker-compose.yml.
+# Profiles isolate backend (db, redis, apiserver, agent) from frontend
+# (webdashboard, bun_init) so phases that only need one side don't
+# launch the other.
 
 networks:
   test_net:
@@ -31,6 +32,9 @@ x-rust-test-base: &rust-test-base
 
 services:
   db:
+    image: public.ecr.aws/docker/library/postgres:16-alpine
+    profiles:
+      - backend
     networks:
       - test_net
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
@@ -48,15 +52,20 @@ services:
       - /var/lib/postgresql/data:size=3072M
 
   redis:
+    image: public.ecr.aws/docker/library/redis:7-alpine
+    profiles:
+      - backend
     networks:
       - test_net
-    command: [] # Override base redis-server auth command for tests if needed, but test environment uses no password
+    command: []
 
   db_init:
+    profiles:
+      - backend
     <<: *rust-test-base
     image: localhost/leeattend-test_apiserver
     build:
-      context: ./apiserver
+      context: ../apiserver
       target: test
     depends_on:
       db:
@@ -72,10 +81,12 @@ services:
       retries: 30
 
   apiserver:
+    profiles:
+      - backend
     <<: *rust-test-base
     image: localhost/leeattend-test_apiserver
     build:
-      context: ./apiserver
+      context: ../apiserver
       target: test
     depends_on:
       db:
@@ -95,10 +106,12 @@ services:
       retries: 5
 
   agent-main:
+    profiles:
+      - backend
     <<: *rust-test-base
     image: localhost/leeattend-test_agent-main
     build:
-      context: ./agent-main
+      context: ../agent-main
       target: test
     depends_on:
       apiserver:
@@ -109,9 +122,11 @@ services:
       - CENTRAL_SERVER_URL=ws://apiserver:3001/api/ws
 
   bun_init:
+    profiles:
+      - frontend
     image: localhost/leeattend-test_webdashboard
     build:
-      context: ./webdashboard
+      context: ../webdashboard
       target: test
     networks:
       - test_net
@@ -125,9 +140,11 @@ services:
       - bun-cache:/workspace/.bun-cache
 
   webdashboard:
+    profiles:
+      - frontend
     image: localhost/leeattend-test_webdashboard
     build:
-      context: ./webdashboard
+      context: ../webdashboard
       target: test
     tty: true
     networks:

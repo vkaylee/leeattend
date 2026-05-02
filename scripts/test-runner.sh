@@ -1,5 +1,36 @@
 #!/bin/bash
 
+# ── Profile helpers ─────────────────────────────────────────────────
+# Map services → docker-compose profiles, so `dc up` only starts what
+# the current phase actually needs instead of launching the full stack.
+#
+# Service ➜ profile
+#   db, redis, db_init, apiserver, agent-main  →  backend
+#   bun_init, webdashboard                      →  frontend
+
+_service_to_profile() {
+    case "$1" in
+        db|redis|db_init|apiserver|agent-main) echo "backend" ;;
+        bun_init|webdashboard)                 echo "frontend" ;;
+    esac
+}
+
+# services_to_profile_flags "webdashboard bun_init"
+#   → "--profile frontend"
+services_to_profile_flags() {
+    local flags=""
+    local have_backend=false have_frontend=false
+    for svc in $1; do
+        case "$(_service_to_profile "$svc")" in
+            backend)  have_backend=true  ;;
+            frontend) have_frontend=true ;;
+        esac
+    done
+    $have_backend  && flags="$flags --profile backend"
+    $have_frontend && flags="$flags --profile frontend"
+    echo "$flags"
+}
+
 run_lint() {
     local filter=$1
     echo -e "\n${BLUE}🔹 Running Linting [$filter]...${NC}"
@@ -20,8 +51,9 @@ run_lint() {
             need_web=true
         fi
         
-        dc build $services
-        dc up -d
+        local profile_flags=$(services_to_profile_flags "$services")
+        dc $profile_flags build $services
+        dc $profile_flags up -d
         # Migrations must run before any Rust compilation (sqlx verifies queries at compile time).
         # Even --web mode needs this because api-sync runs `cargo run -- gen-openapi`.
         # Compose handles this automatically via the db_init and bun_init services.
@@ -43,16 +75,15 @@ run_unit() {
             services="webdashboard bun_init db redis"
             need_web=true
         elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
-            # Unit tests cho API/Agent thường không cần DB thật (dùng memory), 
-            # nhưng ta bật apiserver/agent-main container để chạy code trong đó
             services="apiserver agent-main db_init db redis"
         else
             services="apiserver agent-main webdashboard db_init bun_init db redis"
             need_web=true
         fi
         
-        dc build $services
-        dc up -d
+        local profile_flags=$(services_to_profile_flags "$services")
+        dc $profile_flags build $services
+        dc $profile_flags up -d
         # Migrations must run before cargo compile (sqlx verifies queries at compile time)
         # Compose handles this automatically.
     fi
@@ -84,8 +115,9 @@ run_integration() {
             fi
         fi
 
-        dc build $services
-        dc up -d
+        local profile_flags=$(services_to_profile_flags "$services")
+        dc $profile_flags build $services
+        dc $profile_flags up -d
         # Compose will automatically wait for bun_init
     fi
 

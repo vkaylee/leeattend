@@ -34,7 +34,7 @@ fi
 export USE_DOCKER=true
 export COMPOSE_PROJECT_NAME="leeattend-test"
 export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
+export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
 
 # Cargo cache settings
 export CARGO_TARGET_DIR="$PROJECT_ROOT/target"
