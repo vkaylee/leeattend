@@ -37,7 +37,7 @@ export default function WorkspacePermissionsPage() {
   const { hasPermission } = useMyPermissions();
   const hasManagePermission = hasPermission("members:roles:manage");
 
-  const [permissions, setPermissions] = useState<Record<string, string[]>>({});
+  const [permissions, setPermissions] = useState<Record<string, string[]>>(matrix || {});
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hiddenRoleIds, setHiddenRoleIds] = useState<string[]>([]);
@@ -68,11 +68,11 @@ export default function WorkspacePermissionsPage() {
     }
   };
 
-  useEffect(() => {
-    if (matrix) {
-      setPermissions(matrix);
-    }
-  }, [matrix]);
+  const [prevMatrix, setPrevMatrix] = useState(matrix);
+  if (matrix !== prevMatrix) {
+    setPrevMatrix(matrix);
+    if (matrix) setPermissions(matrix);
+  }
 
  
   const togglePermission = (role: { id: string; is_system: boolean }, permId: string) => {

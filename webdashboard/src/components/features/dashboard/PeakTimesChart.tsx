@@ -101,8 +101,8 @@ export default function PeakTimesChart() {
                                 fontSize: "11px",
                                 fontWeight: 600,
                             }}
-                            formatter={(value: number | undefined) => [
-                                `${value ?? 0} ${t("dashboard.hr.people")}`,
+                            formatter={(value: unknown) => [
+                                `${Number(value ?? 0)} ${t("dashboard.hr.people")}`,
                                 undefined,
                             ]}
                         />

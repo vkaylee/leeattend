@@ -11,10 +11,11 @@ ARG VITE_API_URL=http://127.0.0.1:3000/api
 ENV VITE_API_URL=${VITE_API_URL}
 
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install -g bun
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN bun run build
 # Output: /app/dist/
 
 # ─── Stage 2: Cross-compile Rust for Windows ───────────────────────────

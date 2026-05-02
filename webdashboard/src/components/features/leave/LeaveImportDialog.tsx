@@ -79,11 +79,11 @@ export default function LeaveImportDialog({
   }, [importJob?.status, wsId, startPolling]);
 
   // Reset state when dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      setFile(null);
-    }
-  }, [isOpen]);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (!isOpen) setFile(null);
+  }
 
   const handleUpload = async () => {
     if (!file || !wsId) return;

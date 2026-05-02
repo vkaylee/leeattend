@@ -12,7 +12,8 @@ services:
       - redis_dev_data:/data
 
   redisinsight:
-    image: docker.io/redis/redisinsight:latest
+    image: ghcr.io/redis-developer/redisinsight:latest
+    pull_policy: missing
     profiles: ["manual"]
     ports:
       - "5540:5540"
@@ -72,7 +73,7 @@ services:
       target: dev
     command: >-
       sh -c 'mkdir -p /var/log/app &&
-      npm run dev -- --host 0.0.0.0 2>&1 | tee -a /var/log/app/webdashboard.log'
+      bun run dev --host 0.0.0.0 2>&1 | tee -a /var/log/app/webdashboard.log'
     environment:
       - VITE_API_URL=http://apiserver:3000/api
     ports:
@@ -84,7 +85,8 @@ services:
       - ./logs:/var/log/app
 
   caddy:
-    image: docker.io/library/caddy:alpine
+    image: public.ecr.aws/docker/library/caddy:alpine
+    pull_policy: missing
     restart: unless-stopped
     networks:
       - frontend_net

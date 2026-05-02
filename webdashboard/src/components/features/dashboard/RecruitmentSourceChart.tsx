@@ -103,8 +103,8 @@ export default function RecruitmentSourceChart() {
                                     border: "none",
                                     boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
                                 }}
-                                formatter={(value: number | undefined) => [
-                                    `${value ?? 0} (${(((value ?? 0) / totalHires) * 100).toFixed(1)}%)`,
+                                formatter={(value: unknown) => [
+                                    `${Number(value ?? 0)} (${((Number(value ?? 0) / totalHires) * 100).toFixed(1)}%)`,
                                     t("dashboard.hr.people"),
                                 ]}
                             />

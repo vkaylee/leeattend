@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface UseKeyboardListNavOptions<T> {
     /** The list of items to navigate */
@@ -34,18 +34,21 @@ export function useKeyboardListNav<T>({
     resetDeps = [],
 }: UseKeyboardListNavOptions<T>): UseKeyboardListNavReturn {
     const [focusedIndex, setFocusedIndex] = useState(0);
-    const hasNavigated = useRef(false);
 
-    // Reset focus when items or extra deps change
-    useEffect(() => {
+
+    // Reset focus when items or extra deps change (derived state)
+    const [prevDeps, setPrevDeps] = useState<unknown[]>([items, ...resetDeps]);
+    const depsChanged = prevDeps[0] !== items || resetDeps.some((dep, i) => dep !== prevDeps[i + 1]);
+    const [hasNavigatedState, setHasNavigatedState] = useState(false);
+    if (depsChanged) {
+        setPrevDeps([items, ...resetDeps]);
         setFocusedIndex(0);
-        hasNavigated.current = false;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [items, ...resetDeps]);
+        setHasNavigatedState(false);
+    }
 
     // Scroll the focused row into view (only after user navigates)
     useEffect(() => {
-        if (!hasNavigated.current) return;
+        if (!hasNavigatedState) return;
 
         if (focusedIndex === 0) {
             // Special case: scroll container to top to avoid sticky header overlap
@@ -63,17 +66,17 @@ export function useKeyboardListNav<T>({
                 row.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }
         }
-    }, [focusedIndex, rowIdPrefix]);
+    }, [focusedIndex, rowIdPrefix, hasNavigatedState]);
 
     const onKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLInputElement>) => {
             if (e.key === "ArrowDown") {
                 e.preventDefault();
-                hasNavigated.current = true;
+                setHasNavigatedState(true);
                 setFocusedIndex((prev) => Math.min(prev + 1, items.length - 1));
             } else if (e.key === "ArrowUp") {
                 e.preventDefault();
-                hasNavigated.current = true;
+                setHasNavigatedState(true);
                 setFocusedIndex((prev) => Math.max(prev - 1, 0));
             } else if (e.key === "Enter") {
                 e.preventDefault();

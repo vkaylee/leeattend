@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Clock, AlertCircle } from "lucide-react";
@@ -21,17 +21,16 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Reset form when dialog opens
-  useEffect(() => {
-    if (!open) return; // Only run when opening
-
-    if (summary) {
+  // Reset form when dialog opens (derived state pattern)
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open && summary) {
       setMinutes(summary.system_detected_ot_minutes || 0);
       setReason("");
       setError(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional: effect should only fire when listed deps change
-  }, [open]); // Intentionally only depend on open, not summary
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

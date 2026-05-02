@@ -240,7 +240,8 @@ function SourceChart({
                                 border: "none",
                                 boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
                             }}
-                            formatter={(value: number | undefined) => [
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            formatter={(value: any) => [
                                 `${value ?? 0} (${(((value ?? 0) / total) * 100).toFixed(1)}%)`,
                                 t("dashboard.hr.people"),
                             ]}

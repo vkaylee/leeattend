@@ -15,7 +15,7 @@ fi
 # ==============================================================================
 # Uses:
 #   Rust  → cargo llvm-cov nextest  (requires llvm-tools-preview + cargo-llvm-cov)
-#   Web   → npm run test:coverage   (vitest --coverage, already wired in package.json)
+#   Web   → bun run test:coverage   (vitest --coverage, already wired in package.json)
 #
 # Outputs (inside container, bind-mounted to host via .:/workspace):
 #   .test_logs/coverage-apiserver.lcov
@@ -71,7 +71,7 @@ $COVERAGE_ENV cargo llvm-cov report \
   --summary-only 2>&1\""
 
         # web — vitest coverage (outputs to webdashboard/coverage/)
-        WEB_COV_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard npm run test:coverage"
+        WEB_COV_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard bun run test:coverage"
     else
         # Local (non-Docker) fallback
         APISERVER_COV_CMD="cd apiserver && $COVERAGE_ENV cargo llvm-cov nextest --lib --test integration \
@@ -87,7 +87,7 @@ $COVERAGE_ENV cargo llvm-cov report --html \
   --output-dir ../.test_logs/coverage-agent-html && \
 $COVERAGE_ENV cargo llvm-cov report --summary-only"
 
-        WEB_COV_CMD="cd webdashboard && npm run test:coverage"
+        WEB_COV_CMD="cd webdashboard && bun run test:coverage"
     fi
 
     run_parallel_ordered "Coverage" "$COMPONENT_FILTER" \

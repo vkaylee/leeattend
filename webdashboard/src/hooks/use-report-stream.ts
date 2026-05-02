@@ -111,10 +111,12 @@ export function useReportStream({
   // Store callbacks in refs to avoid dependency issues
   const onCompleteRef = useRef(onComplete);
   const onErrorRef = useRef(onError);
-  onCompleteRef.current = onComplete;
-  onErrorRef.current = onError;
-  // Keep statusRef in sync so onclose handler reads latest value
-  statusRef.current = status;
+  
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+    onErrorRef.current = onError;
+    statusRef.current = status;
+  });
 
   /**
    * Handle incoming WebSocket message
@@ -299,25 +301,27 @@ export function useReportStream({
     connect();
   }, [connect]);
 
-  // Connect when jobId changes
-  useEffect(() => {
+  const [prevJobId, setPrevJobId] = useState(jobId);
+  if (jobId !== prevJobId) {
+    setPrevJobId(jobId);
     if (!jobId) {
-      // Reset state when jobId is cleared
       setStatus("idle");
       setProgress(0);
       setError(null);
       setChunks([]);
-      chunksRef.current = [];
-      retryCountRef.current = 0;
-      return;
+    } else {
+      setChunks([]);
     }
+  }
 
-    // Reset for new job
+  // Connect when jobId changes
+  useEffect(() => {
     chunksRef.current = [];
-    setChunks([]);
     retryCountRef.current = 0;
     shouldReconnectRef.current = true;
     totalBatchesRef.current = 0;
+
+    if (!jobId) return;
 
     connect();
 

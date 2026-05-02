@@ -69,19 +69,26 @@ export default function EmployeesPage() {
   const { confirm, ConfirmationDialog } = useConfirm();
 
   // Handle enrollment_id query param from staging logs (read once on mount)
-  useEffect(() => {
+  const [isUrlProcessed, setIsUrlProcessed] = useState(false);
+  if (!isUrlProcessed) {
+    setIsUrlProcessed(true);
     const enrollmentId = searchParams.get("enrollment_id");
     if (enrollmentId) {
       setPrefillEnrollmentId(enrollmentId);
       setIsModalOpen(true);
       setEditingEmployee(null);
+    }
+  }
+
+  useEffect(() => {
+    const enrollmentId = searchParams.get("enrollment_id");
+    if (enrollmentId) {
       // Clear from URL without triggering re-render
       const url = new URL(window.location.href);
       url.searchParams.delete("enrollment_id");
       window.history.replaceState({}, "", url.toString());
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional: effect should only fire when listed deps change
-  }, []);
+  }, [searchParams]);
 
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);

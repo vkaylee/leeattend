@@ -1,39 +1,43 @@
 # Multi-stage build for React Frontend supporting Dev, Test, and Prod
 
-# Stage 1: Base (OS deps + npm install)
-FROM node:20-slim AS base
+# Stage 1: Base (OS deps + bun install)
+FROM public.ecr.aws/docker/library/node:20-slim AS base
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install -g bun
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 # Stage 2: Dev
-FROM node:20-slim AS dev
+FROM public.ecr.aws/docker/library/node:20-slim AS dev
 WORKDIR /app
+RUN npm install -g bun
 COPY --from=base /app/node_modules ./node_modules
 COPY . .
 EXPOSE 5173
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
 
 # Stage 3: Test (Playwright)
-FROM node:20-slim AS test
+FROM public.ecr.aws/docker/library/node:20-slim AS test
 WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libnss3 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 \
     libxdamage1 libxrandr2 libgbm1 libasound2 curl && rm -rf /var/lib/apt/lists/*
+RUN npm install -g bun
 COPY --from=base /app/node_modules ./node_modules
 RUN npx playwright install --with-deps chromium
 COPY . .
-CMD ["npm", "test"]
+CMD ["bun", "run", "test"]
 
 # Stage 4: Builder
-FROM node:20-slim AS builder
+FROM public.ecr.aws/docker/library/node:20-slim AS builder
 WORKDIR /app
+RUN npm install -g bun
 COPY --from=base /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN bun run build
 
 # Stage 5: Runtime (Caddy)
-FROM caddy:alpine AS runtime
+FROM public.ecr.aws/docker/library/caddy:alpine AS runtime
 COPY --from=builder /app/dist /srv
 COPY Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80

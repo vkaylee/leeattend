@@ -35,11 +35,11 @@ leeattend_run_unit() {
     fi
 
     local BACKEND_CMD="cargo nextest run --workspace --lib $TEST_PATTERN --no-tests=pass"
-    local WEB_CMD="npm run test -- $TEST_PATTERN --passWithNoTests"
+    local WEB_CMD="bun run test -- $TEST_PATTERN --passWithNoTests"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         BACKEND_CMD="$DOCKER_COMPOSE_CMD exec -T -w /workspace apiserver bash -c \"cargo nextest run --workspace --lib $TEST_PATTERN $shard_flag --no-tests=pass || [ \\$? -eq 4 ]\" </dev/null"
-        WEB_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard npm run test -- $TEST_PATTERN $shard_flag --passWithNoTests </dev/null"
+        WEB_CMD="$DOCKER_COMPOSE_CMD exec -T webdashboard bun run test -- $TEST_PATTERN $shard_flag --passWithNoTests </dev/null"
     fi
 
     run_parallel_ordered "Phase 1 (Unit Tests)" "$COMPONENT_FILTER" \

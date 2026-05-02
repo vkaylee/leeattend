@@ -1,7 +1,7 @@
 # Multi-stage build for Rust API Server supporting Dev, Test, and Prod
 
 # Stage 1: Cargo Chef base
-FROM rust:1.91-slim-bookworm AS chef
+FROM public.ecr.aws/docker/library/rust:1.91-slim-bookworm AS chef
 RUN rustup component add clippy rustfmt
 RUN cargo install cargo-chef --version ^0.1.77 --locked
 RUN apt-get update && apt-get install -y wget && \
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo chef cook --release --recipe-path recipe.json
 
 # Stage 4: Dev
-FROM rust:1.91-bookworm AS dev
+FROM public.ecr.aws/docker/library/rust:1.91-bookworm AS dev
 RUN apt-get update && apt-get install -y clang mold git redis-tools postgresql-client sqlite3 netcat-traditional curl dnsutils iputils-ping iproute2 nmap jq htop bash && \
     rm -rf /var/lib/apt/lists/* && \
     rustup component add clippy && \
@@ -67,7 +67,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cp target/release/apiserver /usr/local/bin/apiserver
 
 # Stage 7: Runtime
-FROM debian:bookworm-slim AS runtime
+FROM public.ecr.aws/docker/library/debian:bookworm-slim AS runtime
 WORKDIR /app
 RUN apt-get update && apt-get install -y ca-certificates libssl3 postgresql-client && rm -rf /var/lib/apt/lists/*
 RUN useradd -r -u 1001 -s /usr/sbin/nologin appuser

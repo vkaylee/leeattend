@@ -14,7 +14,7 @@ x-healthcheck-base: &healthcheck-base
 
 services:
   db:
-    image: docker.io/library/postgres:16-alpine
+    image: public.ecr.aws/docker/library/postgres:16-alpine
     restart: always
     networks:
       - backend_net
@@ -29,7 +29,7 @@ services:
       test: "pg_isready -U ${DB_USER} -d ${DB_NAME}"
 
   redis:
-    image: docker.io/library/redis:7-alpine
+    image: public.ecr.aws/docker/library/redis:7-alpine
     restart: always
     networks:
       - backend_net

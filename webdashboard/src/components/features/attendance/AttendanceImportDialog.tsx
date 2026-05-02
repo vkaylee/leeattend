@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -49,7 +49,11 @@ export default function AttendanceImportDialog({
     enabled: isOpen && !!wsId,
   });
 
-  useEffect(() => { if (latestJob) setActiveJobId(latestJob.id); }, [latestJob]);
+  const [prevLatestJob, setPrevLatestJob] = useState(latestJob);
+  if (latestJob !== prevLatestJob) {
+    setPrevLatestJob(latestJob);
+    if (latestJob) setActiveJobId(latestJob.id);
+  }
 
   const handleUpload = async () => {
     if (!file || !wsId) return;

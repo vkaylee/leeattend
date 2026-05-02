@@ -108,7 +108,7 @@ services:
       - "DATABASE_URL=:memory:"
       - CENTRAL_SERVER_URL=ws://apiserver:3001/api/ws
 
-  npm_init:
+  bun_init:
     image: localhost/leeattend-test_webdashboard
     build:
       context: ./webdashboard
@@ -116,13 +116,13 @@ services:
     networks:
       - test_net
     working_dir: /workspace/webdashboard
-    command: npm install --no-audit --no-fund
+    command: sh -c "npm install -g bun && bun install"
     environment:
-      - npm_config_cache=/workspace/.npm-cache
+      - BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
     volumes:
       - ${PROJECT_ROOT}:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
-      - npm-cache:/workspace/.npm-cache
+      - bun-cache:/workspace/.bun-cache
 
   webdashboard:
     image: localhost/leeattend-test_webdashboard
@@ -136,7 +136,7 @@ services:
     working_dir: /workspace/webdashboard
     environment:
       - CI=true
-      - npm_config_cache=/workspace/.npm-cache
+      - BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
     tmpfs:
       - /workspace/webdashboard/test-results:size=128M
       - /workspace/webdashboard/playwright-report:size=64M
@@ -144,14 +144,14 @@ services:
       - ${PROJECT_ROOT}:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
       - shared-data:/workspace/shared
-      - npm-cache:/workspace/.npm-cache
+      - bun-cache:/workspace/.bun-cache
 
 volumes:
   target-cache:
     driver: local
   sccache-cache:
     driver: local
-  npm-cache:
+  bun-cache:
     driver: local
   web-node-modules:
     driver: local

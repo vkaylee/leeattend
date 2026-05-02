@@ -11,12 +11,12 @@ run_lint() {
         
         if [[ "$filter" == *"web"* ]]; then
             # We need apiserver for api-sync even if testing web
-            services="webdashboard apiserver npm_init db_init db redis"
+            services="webdashboard apiserver bun_init db_init db redis"
             need_web=true
         elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
             services="apiserver agent-main db_init db redis"
         else
-            services="apiserver agent-main webdashboard db_init npm_init db redis"
+            services="apiserver agent-main webdashboard db_init bun_init db redis"
             need_web=true
         fi
         
@@ -24,7 +24,7 @@ run_lint() {
         dc up -d
         # Migrations must run before any Rust compilation (sqlx verifies queries at compile time).
         # Even --web mode needs this because api-sync runs `cargo run -- gen-openapi`.
-        # Compose handles this automatically via the db_init and npm_init services.
+        # Compose handles this automatically via the db_init and bun_init services.
     fi
 
     leeattend_run_lint "$filter"
@@ -40,14 +40,14 @@ run_unit() {
         local need_web=false
         
         if [[ "$filter" == *"web"* ]]; then
-            services="webdashboard npm_init db redis"
+            services="webdashboard bun_init db redis"
             need_web=true
         elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
             # Unit tests cho API/Agent thường không cần DB thật (dùng memory), 
             # nhưng ta bật apiserver/agent-main container để chạy code trong đó
             services="apiserver agent-main db_init db redis"
         else
-            services="apiserver agent-main webdashboard db_init npm_init db redis"
+            services="apiserver agent-main webdashboard db_init bun_init db redis"
             need_web=true
         fi
         
@@ -73,20 +73,20 @@ run_integration() {
         
         if [[ "$filter" == *"web"* ]]; then
             # Web E2E dùng Mock API, KHÔNG cần DB và Backend thật
-            services="webdashboard npm_init"
+            services="webdashboard bun_init"
             need_web=true
         else
             # Integration tests cho API bắt buộc cần DB thật
             services="db redis apiserver agent-main db_init"
             if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then 
-                services="$services webdashboard npm_init"
+                services="$services webdashboard bun_init"
                 need_web=true
             fi
         fi
 
         dc build $services
         dc up -d
-        # Compose will automatically wait for npm_init
+        # Compose will automatically wait for bun_init
     fi
 
     if [[ "$filter" == *"web"* ]]; then

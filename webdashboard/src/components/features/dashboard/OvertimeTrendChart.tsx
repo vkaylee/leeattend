@@ -104,7 +104,7 @@ export default function OvertimeTrendChart() {
                                 fontSize: "11px",
                                 fontWeight: 600,
                             }}
-                            formatter={(value: number | undefined) => [`${(value ?? 0).toFixed(1)}h`, undefined]}
+                            formatter={(value: unknown) => [`${Number(value ?? 0).toFixed(1)}h`, undefined]}
                         />
                         <Legend
                             wrapperStyle={{

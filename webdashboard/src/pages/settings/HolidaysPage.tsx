@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 
+import { useQuery } from "@tanstack/react-query";
 import { Plus, Trash2, Pencil, CalendarDays, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -10,13 +11,10 @@ import { getCurrentWorkspaceId } from "@/lib/api";
 import { fetchHolidays, createHoliday, updateHoliday, deleteHoliday } from "@/lib/api/holidays";
 import { fetchLeaveTypes } from "@/lib/api/leaves";
 
-import type { Holiday, LeaveType } from "@/lib/api/types";
+import type { Holiday } from "@/lib/api/types";
 
 export default function HolidaysPage() {
     const { t } = useTranslation();
-    const [holidays, setHolidays] = useState<Holiday[]>([]);
-    const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [year, setYear] = useState(new Date().getFullYear());
     const [showForm, setShowForm] = useState(false);
     const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
@@ -36,27 +34,17 @@ export default function HolidaysPage() {
 
     const wsId = getCurrentWorkspaceId();
 
-    const loadHolidays = useCallback(async () => {
-        if (!wsId) return;
-        setIsLoading(true);
-        try {
-            const data = await fetchHolidays(wsId, year);
-            setHolidays(data);
-        } catch {
-            setError(t('holidays.messages.load_error'));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [wsId, year, t]);
+    const { data: holidays = [], isLoading, refetch: loadHolidays } = useQuery({
+        queryKey: ["holidays", wsId, year],
+        queryFn: () => fetchHolidays(wsId!, year),
+        enabled: !!wsId
+    });
 
-    useEffect(() => {
-        loadHolidays();
-    }, [loadHolidays]);
-
-    useEffect(() => {
-        if (!wsId) return;
-        fetchLeaveTypes(wsId).then(setLeaveTypes).catch(() => { });
-    }, [wsId]);
+    const { data: leaveTypes = [] } = useQuery({
+        queryKey: ["leaveTypes", wsId],
+        queryFn: () => fetchLeaveTypes(wsId!),
+        enabled: !!wsId
+    });
 
     const resetForm = () => {
         setFormName("");

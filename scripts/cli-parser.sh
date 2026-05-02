@@ -41,7 +41,7 @@ show_help() {
     echo ""
     echo -e "${BOLD}🔧 CACHE MANAGEMENT:${NC}"
     echo -e "    ${GREEN}--warm-cache${NC}       Pre-compile all dependencies (run once on fresh machine / CI)"
-    echo -e "    ${GREEN}--cache-stats${NC}      Show size and status of Cargo/NPM caches"
+    echo -e "    ${GREEN}--cache-stats${NC}      Show size and status of Cargo/bun caches"
     echo -e "    ${GREEN}--no-cache${NC}         Force fresh build, ignoring all caches"
     echo -e "    ${GREEN}--clean-cache${NC}      Delete cache only (keep containers + volumes running)"
     echo -e "    ${GREEN}--clean${NC}            Full reset: stop containers, delete volumes + cache"
@@ -279,7 +279,7 @@ parse_cli_args() {
                     if [[ "${USE_DOCKER:-}" == "true" ]]; then
                         dc exec -T apiserver bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
                         dc exec -T agent-main bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
-                        dc exec -T webdashboard bash -c "rm -rf /workspace/.npm-cache /workspace/webdashboard/node_modules 2>/dev/null || true"
+                        dc exec -T webdashboard bash -c "rm -rf /workspace/.bun-cache /workspace/webdashboard/node_modules 2>/dev/null || true"
                     fi
                     echo -e "${GREEN}✅ Cache cleaned!${NC}"
                     exit 0
@@ -380,16 +380,16 @@ parse_cli_args() {
             dc exec -T agent-main bash -c "sccache --show-stats 2>/dev/null | head -n 10 || echo 'sccache not available'" </dev/null || true
             
             echo ""
-            echo -e "${YELLOW}=== NPM ===${NC}"
-            dc exec -T webdashboard bash -c "du -sh /workspace/.npm-cache 2>/dev/null || echo 'No cache'" || true
+            echo -e "${YELLOW}=== bun ===${NC}"
+            dc exec -T webdashboard bash -c "du -sh /workspace/.bun-cache 2>/dev/null || echo 'No cache'" || true
             dc exec -T webdashboard bash -c "du -sh /workspace/webdashboard/node_modules 2>/dev/null || echo 'No node_modules'" || true
         else
             echo -e "${YELLOW}=== Local Cargo ===${NC}"
             du -sh "$PROJECT_ROOT/target" 2>/dev/null || echo "No cache"
             
             echo ""
-            echo -e "${YELLOW}=== Local NPM ===${NC}"
-            du -sh "$HOME/.npm" 2>/dev/null || echo "No npm cache"
+            echo -e "${YELLOW}=== Local bun ===${NC}"
+            du -sh "$HOME/.bun/install/cache" 2>/dev/null || echo "No bun cache"
         fi
         
         exit 0
@@ -437,7 +437,7 @@ parse_cli_args() {
         fi
         if [[ "$MODE" == "web" || "$MODE" == "all" ]]; then
             echo -e "\n${YELLOW}=== Web Tests (webdashboard) ===${NC}"
-            echo "  npm test -- --list 2>/dev/null || echo 'Run in container for full list'"
+            echo "  bun test -- --list 2>/dev/null || echo 'Run in container for full list'"
         fi
         echo -e "${GREEN}💡 Tip: Run with USE_DOCKER=true to get actual list${NC}"
         exit 0
@@ -466,7 +466,7 @@ parse_cli_args() {
         echo -e "${YELLOW}⚠️ Cache disabled - forcing fresh build${NC}"
         unset RUSTC_WRAPPER
         export CARGO_NET_OFFLINE=true
-        export NPM_CONFIG_CACHE=/dev/null
+        export BUN_INSTALL_CACHE_DIR=/dev/null
     fi
     
     # Handle --warm-cache (pre-compile dependencies)
@@ -487,7 +487,7 @@ parse_cli_args() {
             pid_agent=$!
             
             echo -e "${BLUE}📦 Installing web dependencies...${NC}"
-            dc exec -T webdashboard npm install --no-audit --no-fund </dev/null &
+            dc exec -T webdashboard bash -c "npm install -g bun && bun install --frozen-lockfile" </dev/null &
             pid_web=$!
             
             # Wait for explicit PIDs to complete
