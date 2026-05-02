@@ -39,6 +39,8 @@ def main():
                 if i + 1 < len(args):
                     messages.append(args[i+1])
                     skip_next = True
+                else:
+                    processed_args.append(arg)
             elif arg.startswith('-m') and len(arg) > 2:
                 messages.append(arg[2:])
             elif arg.startswith('--message='):

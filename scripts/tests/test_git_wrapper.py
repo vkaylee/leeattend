@@ -145,6 +145,93 @@ def test_commit_with_multiline_string(monkeypatch):
         assert f.read() == "Line 1\nLine 2\n\nLine 4\n"
     os.remove(temp_file)
 
+def test_commit_with_empty_message(monkeypatch):
+    """Test git commit with an empty string message."""
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '-m', ''])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    temp_file = called_cmd[called_cmd.index('-F') + 1]
+    
+    with open(temp_file, 'r', encoding='utf-8') as f:
+        assert f.read() == "\n"
+    os.remove(temp_file)
+
+def test_commit_with_missing_message_value(monkeypatch):
+    """Test git commit with -m as the very last argument (missing value).
+    The wrapper shouldn't crash, it should just ignore it or pass it along,
+    but since it checks i+1 < len, it shouldn't IndexError."""
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '-m'])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    # In this case, messages array is empty because we guarded against IndexError.
+    # So -F should not be present!
+    assert '-F' not in called_cmd
+    # Instead, -m gets passed down and git will handle the error.
+    assert '-m' in called_cmd
+
+def test_commit_with_mixed_message_flags(monkeypatch):
+    """Test mixing all possible ways to provide a message."""
+    monkeypatch.setattr(sys, 'argv', [
+        '_git_wrapper.py', 'commit', 
+        '-m', 'Msg1', 
+        '--message=Msg2', 
+        '--message', 'Msg3', 
+        '-mMsg4'
+    ])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    temp_file = called_cmd[called_cmd.index('-F') + 1]
+    
+    with open(temp_file, 'r', encoding='utf-8') as f:
+        assert f.read() == "Msg1\n\nMsg2\n\nMsg3\n\nMsg4\n"
+    os.remove(temp_file)
+
+def test_commit_with_complex_unicode(monkeypatch):
+    """Test git commit with complex non-ascii unicode."""
+    unicode_msg = "Thử nghiệm unicode 測試 🚀 (CJK, Viet, Emoji, RTL ‮test‬)"
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '-m', unicode_msg])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    temp_file = called_cmd[called_cmd.index('-F') + 1]
+    
+    with open(temp_file, 'r', encoding='utf-8') as f:
+        assert f.read() == unicode_msg + "\n"
+    os.remove(temp_file)
+
+def test_commit_with_interleaved_flags(monkeypatch):
+    """Test that unrelated flags before and after -m are preserved."""
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '--amend', '--quiet', '-m', 'Msg', '--author=Test'])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    assert '--amend' in called_cmd
+    assert '--quiet' in called_cmd
+    assert '--author=Test' in called_cmd
+    
+    temp_file = called_cmd[called_cmd.index('-F') + 1]
+    with open(temp_file, 'r', encoding='utf-8') as f:
+        assert f.read() == "Msg\n"
+    os.remove(temp_file)
+
 def test_atexit_cleanup(monkeypatch):
     """Test that the cleanup function correctly deletes files, and ignores OSErrors."""
     monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '-m', 'Msg'])
