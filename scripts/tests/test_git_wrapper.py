@@ -113,6 +113,38 @@ def test_commit_with_multiple_messages(monkeypatch):
         assert f.read() == "Title\n\nBody\n"
     os.remove(temp_file)
 
+def test_commit_with_special_characters(monkeypatch):
+    """Test git commit with emojis, quotes, and symbols."""
+    special_msg = "Fix bug 🐛\nAdded 'quotes' and \"double quotes\"!\n$VAR and `backticks`"
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '-m', special_msg])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    temp_file = called_cmd[called_cmd.index('-F') + 1]
+    
+    with open(temp_file, 'r', encoding='utf-8') as f:
+        assert f.read() == special_msg + "\n"
+    os.remove(temp_file)
+
+def test_commit_with_multiline_string(monkeypatch):
+    """Test git commit with actual newlines in a single -m."""
+    multiline_msg = "Line 1\nLine 2\n\nLine 4"
+    monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '--message', multiline_msg])
+    
+    with mock.patch('subprocess.call', return_value=0) as mock_call, \
+         mock.patch('sys.exit'):
+        _git_wrapper.main()
+        
+    called_cmd = mock_call.call_args[0][0]
+    temp_file = called_cmd[called_cmd.index('-F') + 1]
+    
+    with open(temp_file, 'r', encoding='utf-8') as f:
+        assert f.read() == "Line 1\nLine 2\n\nLine 4\n"
+    os.remove(temp_file)
+
 def test_atexit_cleanup(monkeypatch):
     """Test that the cleanup function correctly deletes files, and ignores OSErrors."""
     monkeypatch.setattr(sys, 'argv', ['_git_wrapper.py', 'commit', '-m', 'Msg'])
