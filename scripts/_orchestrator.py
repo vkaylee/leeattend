@@ -300,6 +300,7 @@ class Orchestrator:
                 str(SCRIPTS_DIR / "tests" / "test_orchestrator.py"),
                 str(SCRIPTS_DIR / "tests" / "test_safe_run.py"),
                 str(SCRIPTS_DIR / "tests" / "test_usage.py"),
+                str(SCRIPTS_DIR / "tests" / "test_git_wrapper.py"),
             ]
             venv_pytest = PROJECT_ROOT / ".venv" / "bin" / "pytest"
             cmd = [

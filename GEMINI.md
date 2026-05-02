@@ -108,6 +108,7 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 > 🔴 **MANDATORY SUPREME RULE (ANTI-LAZINESS):** You are STRICTLY FORBIDDEN from using inline code execution flags (`python -c`, `node -e`, etc.) or multiline string commands (Heredocs).
 > - **CONSEQUENCE**: Using these causes infinite PTY Deadlocks.
 > - **Protocol:** You MUST read `AGENTS.md` for the full list of banned commands. Always create physical script files in `scripts/ai-tools/` and execute them via `./scripts/_safe_run.py`.
+> - **Git Protocol:** NEVER run `git` directly (especially `git commit`). ALWAYS use the `./git.sh` wrapper (e.g., `./git.sh commit -m "message"`) to prevent PTY hangs caused by multi-line AI commits.
 
 ### 4.9 The Universal Command Rule: "Logic belongs to Files" (CRITICAL)
 > 🔴 **MANDATORY:** Any command (Bash, Python, Node, etc.) that contains **Logic** (loops, conditionals, multi-line blocks, or complex piping) MUST be placed in a physical script file.
@@ -207,6 +208,7 @@ All commands run **inside Podman containers**, never on the host. Internal utili
 | `./scripts/_cargo.sh <cmd>` | `cargo` | `apiserver_test` | Rust compilation, checks, clippy |
 | `./scripts/_npm.sh <cmd>` | `npm` | `web_test` | Node.js installs, builds, type checks |
 | `./scripts/_sqlx.sh <cmd>` | `sqlx` | `apiserver_test` | DB migrations, schema validation |
+| `./git.sh <cmd>` | `git` | Host | Safe Git operations (prevents PTY hangs) |
 | `./scripts/_sync-api.sh` | (manual) | Multiple | Generate TS types from OpenAPI |
 | `./test.sh --all` | (orchestrator) | Multiple | Full test suite |
 

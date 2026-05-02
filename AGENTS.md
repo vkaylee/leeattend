@@ -30,7 +30,7 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 
 | Command | Why |
 |---------|-----|
-| `git commit`, `git push`, `git pull` | GPG agent holds PTY |
+| `./git.sh commit`, `./git.sh push` | Replaces `git` directly. GPG agent and multi-line strings hold PTY |
 | `podman-compose up/down/exec/build` | Podman CLI spawns children |
 | Any script with `&` (background jobs) | Background process inherits PTY |
 | Any `tail -f` in background | Pipe buffer + `grep` keeps PTY fd open |
@@ -44,14 +44,14 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 - **Solution**: Always write logic to a physical script file in `scripts/ai-tools/` and run it via `./scripts/_safe_run.py`.
 
 ```bash
-# ✅ Correct — AGENT_MODE skips Podman tests in pre-commit hook
-AGENT_MODE=1 git commit --no-gpg-sign -m "message" </dev/null
+# ✅ Correct — Use the git wrapper to avoid PTY hangs with multi-line messages
+AGENT_MODE=1 ./git.sh commit -m "message"
 podman-compose down </dev/null
 ./test.sh --api </dev/null
 git --no-pager log -n 5
 
 # ✅ Correct & Bulletproof — Use safe-run.py wrapper (New Standard)
-./scripts/safe-run.py 60 "AGENT_MODE=1 git commit --no-gpg-sign -m 'message'"
+./scripts/_safe_run.py 60 "podman-compose logs"
 
 # ❌ Wrong — will hang
 git commit -m "message"
