@@ -284,6 +284,41 @@ describe("WorkspacePermissionsPage", () => {
             // System: 5 checked + Custom: 2 checked = 7
             expect(checkedCount).toBe(7);
         });
+
+        it("updates checkboxes when matrix data changes after initial render", async () => {
+            const { rerender } = renderPage();
+            
+            // First check initial state (7 checked)
+            let checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+            expect(checkboxes.filter(cb => cb.checked).length).toBe(7);
+
+            // Change mock return value to a different matrix (e.g., only 1 permission)
+            vi.mocked(useWorkspacePermissionsMatrix).mockReturnValue({
+                matrix: buildMatrix(
+                    ["workspace:update"],
+                    [],
+                ),
+                isLoading: false,
+                refetch: vi.fn(),
+            });
+
+
+            // Trigger rerender of the same component
+            rerender(
+                <QueryClientProvider client={queryClient}>
+                    <WorkspacePermissionsPage />
+                </QueryClientProvider>
+            );
+
+            // Now check if UI updated to only 1 checked checkbox (wait for async update)
+            await waitFor(() => {
+                const checkedCheckboxes = (screen.getAllByRole("checkbox") as HTMLInputElement[])
+                    .filter(cb => cb.checked);
+                expect(checkedCheckboxes.length).toBe(1);
+            });
+        });
+
+
     });
 
     // ─── Toggle & Save ─────────────────────────────────────────

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, Plus, LogOut } from "lucide-react";
@@ -7,7 +8,8 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/Button";
 import { LABEL_BASE } from "@/components/ui/FormField";
 
-import { useWorkspaces } from "@/hooks/use-workspace";
+import { useWorkspaces, workspaceKeys } from "@/hooks/use-workspace";
+
 import { setCurrentWorkspaceId } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 
@@ -18,6 +20,7 @@ export default function OnboardingPage() {
   const { createWorkspace } = useWorkspaces();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +28,17 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     try {
       const ws = await createWorkspace({ name });
-      setCurrentWorkspaceId(ws.id); navigate({ to: ROUTES.HOME, replace: true });
-    } catch (error) { console.error(error); } finally { setIsSubmitting(false); }
+      setCurrentWorkspaceId(ws.id);
+      
+      // Update cache immediately to prevent race condition redirect back to onboarding
+      queryClient.setQueryData(workspaceKeys.all, [ws]);
+      
+      await navigate({ to: ROUTES.HOME, replace: true });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLogout = () => {
