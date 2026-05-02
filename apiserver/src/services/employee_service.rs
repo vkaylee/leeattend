@@ -536,6 +536,8 @@ mod tests {
         recruitment_sources: Mutex<Vec<RecruitmentSource>>,
         delete_rs_rows: Mutex<u64>,
         turnover: Mutex<Option<TurnoverAnalytics>>,
+        updated_recruitment_source: Mutex<Option<RecruitmentSource>>,
+        recruitment_source_breakdown: Mutex<Vec<RecruitmentSourceBreakdown>>,
     }
 
     impl MockEmployeeRepo {
@@ -552,6 +554,8 @@ mod tests {
                 recruitment_sources: Mutex::new(vec![]),
                 delete_rs_rows: Mutex::new(0),
                 turnover: Mutex::new(None),
+                updated_recruitment_source: Mutex::new(None),
+                recruitment_source_breakdown: Mutex::new(vec![]),
             }
         }
 
@@ -750,7 +754,11 @@ mod tests {
             _ws: Uuid,
             _req: &crate::models::UpdateRecruitmentSourceRequest,
         ) -> Result<Option<RecruitmentSource>, sqlx::Error> {
-            Ok(None)
+            Ok(self
+                .updated_recruitment_source
+                .lock()
+                .expect("lock")
+                .clone())
         }
 
         async fn delete_recruitment_source(
@@ -765,7 +773,11 @@ mod tests {
             &self,
             _ws: Uuid,
         ) -> Result<Vec<RecruitmentSourceBreakdown>, sqlx::Error> {
-            Ok(vec![])
+            Ok(self
+                .recruitment_source_breakdown
+                .lock()
+                .expect("lock")
+                .clone())
         }
 
         async fn get_turnover_analytics(
@@ -1130,5 +1142,208 @@ mod tests {
         assert_eq!(result.tenure_distribution.len(), 1);
         assert_eq!(result.by_source.len(), 1);
         assert_eq!(result.by_department[0].department_name, "Engineering");
+    }
+    // ── Additional Tests for Coverage ──────────────────────────────
+
+    #[tokio::test]
+    async fn create_working_condition_employee_not_found() {
+        let svc = make_service(MockEmployeeRepo::empty());
+        let req = CreateWorkingConditionRequest {
+            type_: "early_leave".into(),
+            minute_allowance: 30,
+            is_paid: false,
+            start_date: NaiveDate::from_ymd_opt(2026, 6, 1).expect("valid date"),
+            end_date: None,
+        };
+        let result = svc
+            .create_working_condition(Uuid::new_v4(), Uuid::new_v4(), req)
+            .await;
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn create_recruitment_source_success() {
+        let ws = Uuid::new_v4();
+        let svc = make_service(MockEmployeeRepo::empty());
+        let req = crate::models::CreateRecruitmentSourceRequest {
+            source_type: crate::models::enums::RecruitmentSourceType::Direct,
+            name: "Indeed".into(),
+            referrer_employee_id: None,
+            referral_bonus_amount: None,
+            agency_contact_name: None,
+            agency_contact_email: None,
+            agency_fee_amount: None,
+            notes: None,
+        };
+        let result = svc.create_recruitment_source(ws, req).await;
+        assert!(result.is_ok());
+        let src = result.unwrap();
+        assert_eq!(src.name, "Indeed");
+        assert_eq!(src.workspace_id, ws);
+    }
+
+    #[tokio::test]
+    async fn update_recruitment_source_success() {
+        let ws = Uuid::new_v4();
+        let id = Uuid::new_v4();
+        let mock = MockEmployeeRepo::empty();
+        let updated = RecruitmentSource {
+            id,
+            workspace_id: ws,
+            source_type: crate::models::enums::RecruitmentSourceType::Direct,
+            name: "Updated Name".into(),
+            referrer_employee_id: None,
+            referral_bonus_amount: None,
+            referral_bonus_paid: false,
+            agency_contact_name: None,
+            agency_contact_email: None,
+            agency_fee_amount: None,
+            agency_fee_paid: false,
+            notes: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        *mock.updated_recruitment_source.lock().expect("lock") = Some(updated.clone());
+        let svc = make_service(mock);
+        let req = crate::models::UpdateRecruitmentSourceRequest {
+            name: Some("Updated Name".into()),
+            referrer_employee_id: None,
+            referral_bonus_amount: None,
+            referral_bonus_paid: None,
+            agency_contact_name: None,
+            agency_contact_email: None,
+            agency_fee_amount: None,
+            agency_fee_paid: None,
+            notes: None,
+        };
+        let result = svc.update_recruitment_source(id, ws, req).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().name, "Updated Name");
+    }
+
+    #[tokio::test]
+    async fn get_recruitment_source_breakdown_returns_data() {
+        let ws = Uuid::new_v4();
+        let mock = MockEmployeeRepo::empty();
+        let breakdown = RecruitmentSourceBreakdown {
+            source_type: "direct".into(),
+            source_name: "Indeed".into(),
+            count: 5,
+        };
+        *mock.recruitment_source_breakdown.lock().expect("lock") = vec![breakdown];
+        let svc = make_service(mock);
+        let result = svc.get_recruitment_source_breakdown(ws).await;
+        assert!(result.is_ok());
+        let list = result.unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].source_name, "Indeed");
+    }
+
+    #[tokio::test]
+    async fn rehire_employee_not_found() {
+        let svc = make_service(MockEmployeeRepo::empty());
+        let req = crate::models::RehireEmployeeRequest {
+            hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+        };
+        let result = svc
+            .rehire_employee(Uuid::new_v4(), Uuid::new_v4(), req)
+            .await;
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn rehire_employee_already_active() {
+        let ws = Uuid::new_v4();
+        let emp = make_employee(ws); // active by default
+        let svc = make_service(MockEmployeeRepo::with_employee(emp.clone()));
+        let req = crate::models::RehireEmployeeRequest {
+            hire_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+        };
+        let result = svc.rehire_employee(emp.id, ws, req).await;
+        assert!(
+            matches!(result.unwrap_err(), AppError::Validation(e) if e == "Employee is already active")
+        );
+    }
+
+    #[tokio::test]
+    async fn rehire_employee_invalid_date() {
+        let ws = Uuid::new_v4();
+        let mut emp = make_employee(ws);
+        emp.is_active = false;
+        emp.termination_date = Some(NaiveDate::from_ymd_opt(2026, 5, 1).unwrap());
+        let svc = make_service(MockEmployeeRepo::with_employee(emp.clone()));
+        let req = crate::models::RehireEmployeeRequest {
+            hire_date: NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(), // Before termination
+        };
+        let result = svc.rehire_employee(emp.id, ws, req).await;
+        assert!(
+            matches!(result.unwrap_err(), AppError::Validation(e) if e == "Rehire date must be after termination date")
+        );
+    }
+
+    #[tokio::test]
+    async fn update_employee_not_found() {
+        let svc = make_service(MockEmployeeRepo::empty());
+        let req = crate::models::UpdateEmployeeRequest {
+            user_id: None,
+            full_name: None,
+            employee_id_number: None,
+            hire_date: None,
+            termination_date: None,
+            tags: None,
+            is_active: None,
+            max_concurrent_workers: None,
+            recruitment_source_id: None,
+        };
+        let result = svc
+            .update_employee(Uuid::new_v4(), Uuid::new_v4(), req)
+            .await;
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn update_employee_success() {
+        let ws = Uuid::new_v4();
+        let mock = MockEmployeeRepo::empty();
+        let updated = make_employee(ws);
+        let updated_id = updated.id;
+        *mock.updated_employee.lock().unwrap() = Some(updated.clone());
+        let svc = make_service(mock);
+        let req = crate::models::UpdateEmployeeRequest {
+            user_id: None,
+            full_name: Some("Updated Name".into()),
+            employee_id_number: None,
+            hire_date: None,
+            termination_date: None,
+            tags: None,
+            is_active: None,
+            max_concurrent_workers: None,
+            recruitment_source_id: None, // No source ID, no id_number update
+        };
+        let result = svc.update_employee(updated_id, ws, req).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn get_department_history_employee_not_found() {
+        let svc = make_service(MockEmployeeRepo::empty());
+        let result = svc
+            .get_department_history(Uuid::new_v4(), Uuid::new_v4())
+            .await;
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn transfer_employee_not_found() {
+        let svc = make_service(MockEmployeeRepo::empty());
+        let req = crate::models::TransferEmployeeRequest {
+            department_id: Uuid::new_v4(),
+            effective_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            notes: None,
+        };
+        let result = svc
+            .transfer_employee(Uuid::new_v4(), Uuid::new_v4(), req)
+            .await;
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
     }
 }

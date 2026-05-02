@@ -6,3 +6,4 @@ pub mod me_system_roles;
 pub mod password;
 pub mod rbac;
 pub mod session;
+pub mod system_admin;

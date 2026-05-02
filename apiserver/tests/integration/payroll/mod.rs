@@ -11,6 +11,7 @@ mod incentive_policies;
 mod overnight_ot;
 mod overtime_policy;
 mod rules;
+mod salary_bases;
 mod salary_components;
 mod settings;
 mod traceability;

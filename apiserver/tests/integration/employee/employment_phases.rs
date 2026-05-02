@@ -102,10 +102,28 @@ async fn test_employment_phases_crud_api() {
     let _assignment_id = created_assignment["id"].as_str().unwrap().to_string();
     assert_eq!(created_assignment["status"], "active");
 
-    // NOTE: Step 4 (update phase status) is skipped because the handler
-    // passes `ctx.user_id` as `evaluated_by` which causes an FK constraint violation
-    // when the test user isn't in the employees table. This requires a test user
-    // linked to an employee record to fully test, which is out of scope for now.
+    // 4. Update phase status
+    let status_payload = json!({
+        "status": "completed",
+        "evaluation_notes": "Passed probation"
+    });
+
+    let req = axum::http::Request::builder()
+        .method("PUT")
+        .uri(format!(
+            "/api/workspaces/{ws_id}/employees/{employee_id}/phases/{assignment_id}/status",
+            assignment_id = _assignment_id
+        ))
+        .header("X-Workspace-Id", ws_id.to_string())
+        .header("X-User-Id", user_id.to_string())
+        .header("Content-Type", "application/json")
+        .body(axum::body::Body::from(
+            serde_json::to_string(&status_payload).unwrap(),
+        ))
+        .unwrap();
+
+    let response = app.clone().oneshot(req).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 #[tokio::test]
@@ -151,17 +169,17 @@ async fn test_employment_phases_permission_enforcement() {
         .await;
 
     let unauthorized_auth = |uri: String, method: &str, body: Option<axum::body::Body>| {
-        let mut builder = axum::http::Request::builder()
+        let builder = axum::http::Request::builder()
             .method(axum::http::Method::from_bytes(method.as_bytes()).unwrap())
             .uri(uri)
             .header("X-Workspace-Id", ws_id.to_string())
             .header("X-User-Id", member_id.to_string());
-        if let Some(b) = body {
-            builder = builder.header("Content-Type", "application/json").body(b);
+        let req = if let Some(b) = body {
+            builder.header("Content-Type", "application/json").body(b)
         } else {
-            builder = builder.body(axum::body::Body::empty());
-        }
-        builder.unwrap()
+            builder.body(axum::body::Body::empty())
+        };
+        req.unwrap()
     };
 
     // ── A: Employee-role user cannot create definition ──
@@ -248,17 +266,17 @@ async fn test_employment_phases_permission_enforcement() {
         .await;
 
     let hr_auth = |uri: String, method: &str, body: Option<axum::body::Body>| {
-        let mut builder = axum::http::Request::builder()
+        let builder = axum::http::Request::builder()
             .method(axum::http::Method::from_bytes(method.as_bytes()).unwrap())
             .uri(uri)
             .header("X-Workspace-Id", ws_id.to_string())
             .header("X-User-Id", hr_user_id.to_string());
-        if let Some(b) = body {
-            builder = builder.header("Content-Type", "application/json").body(b);
+        let req = if let Some(b) = body {
+            builder.header("Content-Type", "application/json").body(b)
         } else {
-            builder = builder.body(axum::body::Body::empty());
-        }
-        builder.unwrap()
+            builder.body(axum::body::Body::empty())
+        };
+        req.unwrap()
     };
 
     // ── E: HR Manager can create definition ──

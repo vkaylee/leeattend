@@ -8,3 +8,5 @@ mod management;
 mod pagination;
 mod recruitment_sources;
 mod repository_direct;
+mod transfer_and_history;
+mod working_conditions;

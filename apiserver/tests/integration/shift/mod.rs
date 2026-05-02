@@ -7,3 +7,4 @@ mod overnight;
 mod shifts_extended;
 mod versioning;
 mod working_pattern;
+mod working_patterns_extended;
