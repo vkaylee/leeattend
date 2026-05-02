@@ -68,11 +68,12 @@ export default function WorkspacePermissionsPage() {
     }
   };
 
-  const [prevMatrix, setPrevMatrix] = useState(matrix);
-  if (matrix !== prevMatrix) {
-    setPrevMatrix(matrix);
-    if (matrix) setPermissions(matrix);
-  }
+  useEffect(() => {
+    if (matrix && Object.keys(matrix).length > 0) {
+      setPermissions(matrix);
+    }
+  }, [matrix]);
+
 
  
   const togglePermission = (role: { id: string; is_system: boolean }, permId: string) => {

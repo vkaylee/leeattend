@@ -76,9 +76,9 @@ services:
       bun run dev --host 0.0.0.0 2>&1 | tee -a /var/log/app/webdashboard.log'
     environment:
       - VITE_API_URL=http://apiserver:3000/api
-    ports:
-      - "18080:80"     # Override base mapping to avoid clashing with Caddy on 8080
-      - "5173:5173"    # Expose Vite dev server for direct HMR
+# Ports are handled by Caddy proxy on port 8080
+    # No direct exposure needed for dev server or HMR
+
     volumes:
       - ./webdashboard:/app
       - webdashboard-node-modules:/app/node_modules

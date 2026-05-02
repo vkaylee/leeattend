@@ -286,6 +286,8 @@ export function useRolePermissions(roleId: string, wsId?: string) {
   };
 }
 
+const EMPTY_MATRIX: Record<string, string[]> = {};
+
 export function useWorkspacePermissionsMatrix(wsId?: string) {
   const activeWsId = wsId || getCurrentWorkspaceId();
   const { roles } = useWorkspaceRoles(activeWsId ?? undefined);
@@ -310,7 +312,7 @@ export function useWorkspacePermissionsMatrix(wsId?: string) {
   });
 
   return {
-    matrix: matrixQuery.data ?? {},
+    matrix: matrixQuery.data ?? EMPTY_MATRIX,
     isLoading: matrixQuery.isLoading,
     refetch: matrixQuery.refetch,
   };
