@@ -25,6 +25,49 @@ interface PatternAssignmentFormProps {
   startDate: string;
 }
 
+function PatternSelector({
+  patterns,
+  selectedPatternId,
+  setSelectedPatternId,
+  t
+}: {
+  patterns?: WorkingPattern[];
+  selectedPatternId: string;
+  setSelectedPatternId: (id: string) => void;
+  t: (k: string) => string;
+}) {
+  return (
+    <div className="space-y-4">
+      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
+        <CalendarRange size={12} /> {t("patterns.select_pattern")}
+      </label>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {patterns?.map(pattern => (
+          <button
+            className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${
+              selectedPatternId === pattern.id
+                ? 'border-primary-600 bg-primary-50 dark:bg-primary-950/50'
+                : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-800/30'
+            }`}
+            key={pattern.id}
+            onClick={() => { setSelectedPatternId(pattern.id); }}
+          >
+            <div className={`font-bold text-sm uppercase tracking-tight ${selectedPatternId === pattern.id ? 'text-primary-700 dark:text-primary-300' : 'text-slate-700 dark:text-slate-200'}`}>
+              {pattern.name}
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1 line-clamp-1">
+              {pattern.description ?? t("common.no_description")}
+            </p>
+            {selectedPatternId === pattern.id && (
+              <div className="absolute top-4 right-4 w-3 h-3 bg-primary-600 rounded-full animate-pulse" />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function PatternAssignmentForm({
   selectedEmployee,
   patterns,
@@ -55,34 +98,12 @@ export function PatternAssignmentForm({
         </div>
       </div>
       <div className="space-y-10">
-        <div className="space-y-4">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-            <CalendarRange size={12} /> {t("patterns.select_pattern")}
-          </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {patterns?.map(pattern => (
-              <button
-                className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${
-                  selectedPatternId === pattern.id
-                    ? 'border-primary-600 bg-primary-50 dark:bg-primary-950/50'
-                    : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-800/30'
-                }`}
-                key={pattern.id}
-                onClick={() => { setSelectedPatternId(pattern.id); }}
-              >
-                <div className={`font-bold text-sm uppercase tracking-tight ${selectedPatternId === pattern.id ? 'text-primary-700 dark:text-primary-300' : 'text-slate-700 dark:text-slate-200'}`}>
-                  {pattern.name}
-                </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1 line-clamp-1">
-                  {pattern.description ?? t("common.no_description")}
-                </p>
-                {selectedPatternId === pattern.id && (
-                  <div className="absolute top-4 right-4 w-3 h-3 bg-primary-600 rounded-full animate-pulse" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
+        <PatternSelector
+          patterns={patterns}
+          selectedPatternId={selectedPatternId}
+          setSelectedPatternId={setSelectedPatternId}
+          t={t as any}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-3">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">

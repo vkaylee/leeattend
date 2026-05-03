@@ -37,11 +37,15 @@ const EmptyState = memo(function EmptyState({
         {title}
       </h3>
       {!!description && (
-        <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mt-1 opacity-50 italic">
+        <p className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-widest leading-relaxed max-w-sm mx-auto">
           {description}
         </p>
       )}
-      {!!action && <div className="mt-6">{action}</div>}
+      {!!action && (
+        <div className="pt-4 scale-110">
+          {action}
+        </div>
+      )}
     </div>
   );
 });

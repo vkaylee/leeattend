@@ -106,7 +106,7 @@ export default function RawLogsTable({
                             </tr>
                         ))
                     )}
-                    {!!hasNextPage && <InfiniteScrollSentinel colSpan={3} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} />}
+                    {hasNextPage && <InfiniteScrollSentinel colSpan={3} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} />}
                 </tbody>
             </table>
         </div>

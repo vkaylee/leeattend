@@ -136,7 +136,7 @@ function SidebarSection({
           {openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         </button>
       )}
-      {!!(openSections[item.section] ?? isCollapsed) && (
+      {(openSections[item.section] ?? isCollapsed) && (
         <div className="space-y-1">
           {item.items.map((subItem) => (
             <SidebarLink

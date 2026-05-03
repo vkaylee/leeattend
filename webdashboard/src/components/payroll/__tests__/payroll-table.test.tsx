@@ -71,7 +71,7 @@ describe("PayrollTable", () => {
     );
   };
 
-  it("renders payslip summary rows", async () => {
+  it("renders payslip summary rows", () => {
     renderWithProviders(
       <PayrollTable adjustments={[]} employee={null}
         isLoading={false}
@@ -86,7 +86,7 @@ describe("PayrollTable", () => {
     expect(screen.getByText(/ĐÃ CHỐT/i)).toBeDefined();
   });
 
-  it("expands card to show segments when clicked", async () => {
+  it("expands card to show segments when clicked", () => {
     renderWithProviders(
       <PayrollTable adjustments={[]} employee={null}
         isLoading={false}
@@ -106,7 +106,7 @@ describe("PayrollTable", () => {
     expect(screen.getAllByText(/12[.,]000[.,]000/)[0]).toBeDefined();
   });
 
-  it("shows pending adjustments indicator when adjustments are present", async () => {
+  it("shows pending adjustments indicator when adjustments are present", () => {
     const mockAdjustments = [
       {
         id: "adj-1",

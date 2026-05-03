@@ -132,7 +132,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
         </button>
       </div>
 
-      {!!isCreating && (
+      {isCreating && (
         <div className="bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] p-10 border border-slate-200 dark:border-slate-700 shadow-inner animate-in slide-in-from-top-4 duration-500 space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">

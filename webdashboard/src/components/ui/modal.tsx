@@ -67,21 +67,21 @@ export default function Modal({
       >
         {/* Header — fixed at top, never shrinks */}
         {!!(title ?? icon) && (
-          <div className="flex items-center justify-between p-8 border-b border-slate-50 dark:border-slate-800" style={{ flexShrink: 0 }}>
-            <div className="flex items-center gap-4">
+          <div className="px-8 pt-8 pb-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-t-[2rem]">
+            <div className="flex items-center gap-4 min-w-0">
               {!!icon && (
-                <div className="bg-primary-50 dark:bg-primary-900/30 p-3 rounded-2xl text-primary-600 dark:text-primary-400">
+                <div className="h-10 w-10 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0 border border-primary-100 dark:border-primary-800 shadow-sm">
                   {icon}
                 </div>
               )}
-              <div>
-                {!!title && (
-                  <h2 className="text-xl font-bold text-primary-600 tracking-tight">
+              <div className="min-w-0">
+                {title && (
+                  <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight truncate leading-none mb-1.5 uppercase">
                     {title}
                   </h2>
                 )}
                 {!!subtitle && (
-                  <p className="text-[10px] text-primary-400 font-bold uppercase tracking-widest mt-0.5">
+                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70 truncate">
                     {subtitle}
                   </p>
                 )}

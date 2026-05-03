@@ -121,14 +121,14 @@ function ExportProgressPanel({ phase, percentage, totalBatches, completedBatches
       )}
 
       {/* Error Message */}
-      {!!error && (
+      {error && (
         <div className="bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4" data-testid="report-export-error">
           <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p>
         </div>
       )}
 
       {/* Fallback Mode Notification */}
-      {!!useFallbackPolling && phase === "polling" && (
+      {useFallbackPolling && phase === "polling" && (
         <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 rounded-xl p-3" data-testid="report-export-fallback-notice">
           <p className="text-xs text-amber-700 dark:text-amber-300">
             {t("report_export.fallback_mode")}

@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Upload, FileText, Calendar } from "lucide-react";
+import { X, Upload, FileText, Calendar, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -124,8 +124,9 @@ function EnterPaperOtForm({
 
       {/* Error Message */}
       {!!error && (
-        <div className="text-xs font-bold text-rose-500 uppercase tracking-wide bg-rose-50 dark:bg-rose-950 p-3 rounded-lg">
-          {error}
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <AlertCircle className="text-rose-600 dark:text-rose-300" size={18} />
+          <p className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest">{error}</p>
         </div>
       )}
 

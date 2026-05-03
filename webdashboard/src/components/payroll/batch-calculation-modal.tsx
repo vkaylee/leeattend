@@ -107,7 +107,7 @@ export default function BatchCalculationModal({
           </div>
         )}
 
-        {!!batchMutation.isPending && (
+        {batchMutation.isPending && (
           <div className="py-20 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-500">
             <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-8 relative shadow-inner">
               <Loader2 className="w-12 h-12 text-primary-600 dark:text-primary-400 animate-spin" />
@@ -120,7 +120,7 @@ export default function BatchCalculationModal({
           </div>
         )}
 
-        {!!results && (
+        {results && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-emerald-50 dark:bg-emerald-950/50 p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-800 shadow-inner">
@@ -142,10 +142,10 @@ export default function BatchCalculationModal({
                     </div>
                     <div>
                       <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">{employeeNames[res.employee_id] || "—"}</p>
-                      {!!res.error_message && <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mt-0.5 opacity-80">{res.error_message}</p>}
+                      {res.error_message && <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mt-0.5 opacity-80">{res.error_message}</p>}
                     </div>
                   </div>
-                  {res.status === 'success' && !!res.payslip && (
+                  {res.status === 'success' && res.payslip && (
                     <span className="text-sm font-bold text-primary-600 dark:text-primary-400 font-mono tracking-tighter">
                       {new Intl.NumberFormat('vi-VN').format(parseFloat(res.payslip.net_pay_amount))}
                     </span>

@@ -191,7 +191,7 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
         )}
       </div>
 
-      {!!isAdding && (
+      {isAdding && (
         <TemporalConfigAddForm
           handleSave={handleSave}
           newDays={newDays}

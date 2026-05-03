@@ -15,6 +15,51 @@ export interface ConfirmAttendanceModalProps {
     row: DailyAttendanceReport | null;
 }
 
+function PunchInputs({
+    punchIn,
+    setPunchIn,
+    punchOut,
+    setPunchOut,
+    existingRequest,
+    t,
+}: {
+    existingRequest?: AttendanceAdjustmentRequest;
+    punchIn: string;
+    punchOut: string;
+    setPunchIn: (val: string) => void;
+    setPunchOut: (val: string) => void;
+    t: (k: string) => string;
+}) {
+    return (
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
+                    {t("reports.confirm.punch_in")}
+                </label>
+                <input
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!!existingRequest}
+                    onChange={(e) => { setPunchIn(e.target.value); }}
+                    type="time"
+                    value={punchIn}
+                />
+            </div>
+            <div>
+                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
+                    {t("reports.confirm.punch_out")}
+                </label>
+                <input
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!!existingRequest}
+                    onChange={(e) => { setPunchOut(e.target.value); }}
+                    type="time"
+                    value={punchOut}
+                />
+            </div>
+        </div>
+    );
+}
+
 export default function ConfirmAttendanceModal({
     isOpen,
     onClose,
@@ -96,32 +141,14 @@ export default function ConfirmAttendanceModal({
                   )}
 
                 {/* Punch In / Out */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-                            {t("reports.confirm.punch_in")}
-                        </label>
-                        <input
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={!!existingRequest}
-                            onChange={(e) => { setPunchIn(e.target.value); }}
-                            type="time"
-                            value={punchIn}
-                        />
-                    </div>
-                    <div>
-                        <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-                            {t("reports.confirm.punch_out")}
-                        </label>
-                        <input
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={!!existingRequest}
-                            onChange={(e) => { setPunchOut(e.target.value); }}
-                            type="time"
-                            value={punchOut}
-                        />
-                    </div>
-                </div>
+                <PunchInputs
+                    existingRequest={existingRequest}
+                    punchIn={punchIn}
+                    punchOut={punchOut}
+                    setPunchIn={setPunchIn}
+                    setPunchOut={setPunchOut}
+                    t={t as any}
+                />
 
                 {/* Reason */}
                 {!existingRequest && (

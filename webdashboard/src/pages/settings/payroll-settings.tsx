@@ -13,10 +13,57 @@ import { cn } from "@/lib/utils";
 
 type TabType = "policy" | "components" | "bases" | "incentives" | "overtime" | "statutory_rules";
 
+function PayrollTabContent({ activeTab, wsId }: { activeTab: TabType; wsId: string }) {
+  switch (activeTab) {
+    case "policy":
+      return (
+        <div className="grid grid-cols-1 gap-8">
+          <PayrollSettingsSection wsId={wsId} />
+        </div>
+      );
+    case "components":
+      return (
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
+          <SalaryComponentManager wsId={wsId} />
+        </div>
+      );
+    case "bases":
+      return (
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
+          <SalaryBaseGroupManager wsId={wsId} />
+        </div>
+      );
+    case "overtime":
+      return (
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
+          <OvertimePolicyManager wsId={wsId} />
+        </div>
+      );
+    case "incentives":
+      return (
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
+          <BonusPolicyManager wsId={wsId} />
+        </div>
+      );
+    case "statutory_rules":
+      return (
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
+          <PayrollRulesManager wsId={wsId} />
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
 export default function PayrollSettings() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const [activeTab, setActiveTab] = useState<TabType>("policy");
+
+  if (!wsId) {
+    return <div className="p-12 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -40,41 +87,7 @@ export default function PayrollSettings() {
       </div>
 
       <div className="animate-in slide-in-from-bottom-4 duration-500">
-        {activeTab === "policy" ? (
-          <div className="grid grid-cols-1 gap-8">
-            <PayrollSettingsSection wsId={wsId!} />
-          </div>
-        ) : null}
-
-        {activeTab === "components" ? (
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
-            <SalaryComponentManager wsId={wsId!} />
-          </div>
-        ) : null}
-
-        {activeTab === "bases" ? (
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
-            <SalaryBaseGroupManager wsId={wsId!} />
-          </div>
-        ) : null}
-
-        {activeTab === "overtime" ? (
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
-            <OvertimePolicyManager wsId={wsId!} />
-          </div>
-        ) : null}
-
-        {activeTab === "incentives" ? (
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
-            <BonusPolicyManager wsId={wsId!} />
-          </div>
-        ) : null}
-
-        {activeTab === "statutory_rules" ? (
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
-            <PayrollRulesManager wsId={wsId!} />
-          </div>
-        ) : null}
+        <PayrollTabContent activeTab={activeTab} wsId={wsId} />
       </div>
     </div>
   );

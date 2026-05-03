@@ -20,7 +20,7 @@ const FormRow = ({ label, children, info }: { label: string; children: React.Rea
       <div className="w-full max-w-md">
         {children}
       </div>
-      {!!info && <p className="text-[9px] text-slate-400 dark:text-slate-500 italic font-medium ml-1 mt-1">{info}</p>}
+      {info && <p className="text-[9px] text-slate-400 dark:text-slate-500 italic font-medium ml-1 mt-1">{info}</p>}
     </div>
   </div>
 );

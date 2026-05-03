@@ -29,7 +29,7 @@ interface EmployeeDailyDrawerProps {
 
 interface EmployeeDailyDrawerHeaderProps {
     isLoading: boolean;
-    reportData: any[];
+    reportData: DailyAttendanceReport[];
     setViewMode: (mode: "daily" | "raw") => void;
     t: TFunction;
     totalOtHours: string | number;
@@ -60,22 +60,22 @@ function EmployeeDailyDrawerHeader({ viewMode, setViewMode, isLoading, reportDat
                     <span className="flex items-center gap-1.5"><CalendarCheck size={12} /> {t("reports.view_raw_logs")}</span>
                 </button>
             </div>
-            {viewMode === "daily" && !isLoading && reportData.length > 0 && (
+            {viewMode === "daily" && !isLoading && reportData.length > 0 ? (
                 <>
                     <div className="flex items-center gap-1.5 bg-slate-900 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-800 dark:border-slate-700 shadow-sm">
                         <FileBarChart className="text-primary-400" size={12} />
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t("reports.quick_stats.std_hours")}</span>
                         <span className="font-mono font-bold text-white text-xs tracking-tighter">{totalStdHours}h</span>
                     </div>
-                    {Number(totalOtHours) > 0 && (
+                    {Number(totalOtHours) > 0 ? (
                         <div className="flex items-center gap-1.5 bg-gradient-to-r from-orange-900 to-orange-950 px-3 py-1.5 rounded-lg border border-orange-800 shadow-sm">
                             <Clock className="text-orange-400" size={12} />
                             <span className="text-[9px] font-bold text-orange-400/70 uppercase tracking-widest">{t("reports.quick_stats.ot_hours")}</span>
                             <span className="font-mono font-bold text-orange-100 text-xs tracking-tighter">{totalOtHours}h</span>
                         </div>
-                    )}
+                    ) : null}
                 </>
-            )}
+            ) : null}
         </>
     );
 }
@@ -85,7 +85,7 @@ interface EmployeeDailyDrawerModalsProps {
     confirmModalData: { row: DailyAttendanceReport; existingRequest?: AttendanceAdjustmentRequest } | null;
     confirmMutationPending: boolean;
     handleConfirmReprocess: () => void;
-    handleConfirmSubmit: (data: any) => void;
+    handleConfirmSubmit: (data: { punchIn: string; punchOut: string; reason: string }) => void;
     handleResolveSubmit: (shiftId: string) => void;
     reprocessMutationPending: boolean;
     resolveModalData: { row: DailyAttendanceReport } | null;
@@ -145,50 +145,7 @@ function EmployeeDailyDrawerModals({
     );
 }
 
-export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
-    const { isOpen, onClose, employeeName, dateRange, workUnitMinutes } = props;
-    const { t } = useTranslation();
-    const { formatDate, formatTime } = useDateTimeFormatter();
-    const { isEnabled: isDebugMode } = useDebug();
-    const contentRef = useRef<HTMLDivElement>(null);
-
-    const {
-        viewMode,
-        setViewMode,
-        expandedDebugRows,
-        toggleExpandRow,
-        reprocessingRow,
-        confirmingRow,
-        confirmDialog,
-        setConfirmDialog,
-        confirmModalData,
-        setConfirmModalData,
-        resolveModalData,
-        setResolveModalData,
-        reportData,
-        isLoading,
-        rawLogsData,
-        rawLogsLoading,
-        hasNextPage,
-        isFetchingNextPage,
-        fetchNextPage,
-        adjustmentMap,
-        shifts,
-        totalStdHours,
-        totalOtHours,
-        handleReprocessClick,
-        handleConfirmReprocess,
-        handleConfirmClick,
-        handleConfirmSubmit,
-        handleApproveOt,
-        handleResolveUnscheduled,
-        handleResolveSubmit,
-        reprocessMutationPending,
-        confirmMutationPending,
-        resolveUnscheduledMutationPending,
-    } = useEmployeeDailyDrawer(props);
-
-    // Keyboard navigation for tabs + scroll
+function useDrawerKeyboardNavigation(isOpen: boolean, viewMode: "daily" | "raw", setViewMode: (mode: "daily" | "raw") => void, contentRef: React.RefObject<HTMLDivElement | null>) {
     useEffect(() => {
         if (!isOpen) return;
 
@@ -212,7 +169,20 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => { window.removeEventListener("keydown", handleKeyDown); };
-    }, [isOpen, viewMode, setViewMode]);
+    }, [isOpen, viewMode, setViewMode, contentRef]);
+}
+
+export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
+    const { isOpen, onClose, employeeName, dateRange, workUnitMinutes } = props;
+    const { t } = useTranslation();
+    const { formatDate, formatTime } = useDateTimeFormatter();
+    const { isEnabled: isDebugMode } = useDebug();
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    const data = useEmployeeDailyDrawer(props);
+
+    // Keyboard navigation for tabs + scroll
+    useDrawerKeyboardNavigation(isOpen, data.viewMode, data.setViewMode, contentRef);
 
     return (
         <>
@@ -221,13 +191,13 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 contentClassName="!overflow-hidden"
                 headerExtra={
                     <EmployeeDailyDrawerHeader
-                        isLoading={isLoading}
-                        reportData={reportData}
-                        setViewMode={setViewMode}
+                        isLoading={data.isLoading}
+                        reportData={data.reportData}
+                        setViewMode={data.setViewMode}
                         t={t}
-                        totalOtHours={totalOtHours}
-                        totalStdHours={totalStdHours}
-                        viewMode={viewMode}
+                        totalOtHours={data.totalOtHours}
+                        totalStdHours={data.totalStdHours}
+                        viewMode={data.viewMode}
                     />
                 }
                 isOpen={isOpen}
@@ -236,31 +206,31 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 title={employeeName}
             >
                 <div className="-mx-10 -mt-4 -mb-10 h-[calc(100%+theme(spacing.14))] flex flex-col" ref={contentRef}>
-                    {viewMode === "raw" ? (
+                    {data.viewMode === "raw" ? (
                         <RawLogsTable
-                            fetchNextPage={fetchNextPage}
-                            hasNextPage={hasNextPage}
-                            isFetchingNextPage={isFetchingNextPage}
-                            rawLogsData={rawLogsData}
-                            rawLogsLoading={rawLogsLoading}
+                            fetchNextPage={data.fetchNextPage}
+                            hasNextPage={data.hasNextPage}
+                            isFetchingNextPage={data.isFetchingNextPage}
+                            rawLogsData={data.rawLogsData}
+                            rawLogsLoading={data.rawLogsLoading}
                         />
                     ) : (
                         <DailyReportTable
-                            adjustmentMap={adjustmentMap}
-                            confirmingRow={confirmingRow}
-                            data={reportData}
-                            expandedDebugRows={expandedDebugRows}
+                            adjustmentMap={data.adjustmentMap}
+                            confirmingRow={data.confirmingRow}
+                            data={data.reportData}
+                            expandedDebugRows={data.expandedDebugRows}
                             formatDate={formatDate}
                             formatTime={formatTime}
                             hideEmployeeName
                             isDebugMode={isDebugMode}
-                            isLoading={isLoading}
-                            onApproveOt={handleApproveOt}
-                            onConfirmClick={handleConfirmClick}
-                            onReprocessClick={handleReprocessClick}
-                            onResolveUnscheduled={handleResolveUnscheduled}
-                            onToggleExpandRow={toggleExpandRow}
-                            reprocessingRow={reprocessingRow}
+                            isLoading={data.isLoading}
+                            onApproveOt={data.handleApproveOt}
+                            onConfirmClick={data.handleConfirmClick}
+                            onReprocessClick={data.handleReprocessClick}
+                            onResolveUnscheduled={data.handleResolveUnscheduled}
+                            onToggleExpandRow={data.toggleExpandRow}
+                            reprocessingRow={data.reprocessingRow}
                             t={t}
                             workUnitMinutes={workUnitMinutes}
                         />
@@ -269,19 +239,19 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
             </Sheet>
 
             <EmployeeDailyDrawerModals
-                confirmDialog={confirmDialog}
-                confirmModalData={confirmModalData}
-                confirmMutationPending={confirmMutationPending}
-                handleConfirmReprocess={handleConfirmReprocess}
-                handleConfirmSubmit={handleConfirmSubmit}
-                handleResolveSubmit={handleResolveSubmit}
-                reprocessMutationPending={reprocessMutationPending}
-                resolveModalData={resolveModalData}
-                resolveUnscheduledMutationPending={resolveUnscheduledMutationPending}
-                setConfirmDialog={setConfirmDialog}
-                setConfirmModalData={setConfirmModalData}
-                setResolveModalData={setResolveModalData}
-                shifts={shifts}
+                confirmDialog={data.confirmDialog}
+                confirmModalData={data.confirmModalData}
+                confirmMutationPending={data.confirmMutationPending}
+                handleConfirmReprocess={data.handleConfirmReprocess}
+                handleConfirmSubmit={data.handleConfirmSubmit}
+                handleResolveSubmit={data.handleResolveSubmit}
+                reprocessMutationPending={data.reprocessMutationPending}
+                resolveModalData={data.resolveModalData}
+                resolveUnscheduledMutationPending={data.resolveUnscheduledMutationPending}
+                setConfirmDialog={data.setConfirmDialog}
+                setConfirmModalData={data.setConfirmModalData}
+                setResolveModalData={data.setResolveModalData}
+                shifts={data.shifts}
             />
         </>
     );

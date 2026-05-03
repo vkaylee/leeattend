@@ -31,7 +31,10 @@ export function useAllEmployees(
 
   const query = useQuery({
     queryKey: employeeKeys.list(wsId),
-    queryFn: () => fetchEmployees(wsId!, 1, MAX_EMPLOYEE_FETCH),
+    queryFn: () => {
+      if (!wsId) throw new Error("Workspace ID is required");
+      return fetchEmployees(wsId, 1, MAX_EMPLOYEE_FETCH);
+    },
     enabled: !!wsId && enabledOverride,
   });
 

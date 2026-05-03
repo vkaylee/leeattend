@@ -389,7 +389,7 @@ function NavigableListTable<T>({
                   {col.header}
                 </th>
               ))}
-              {!!showChevron && <th className="px-4 py-5 w-10" />}
+              {showChevron && <th className="px-4 py-5 w-10" />}
             </tr>
           </thead>
 

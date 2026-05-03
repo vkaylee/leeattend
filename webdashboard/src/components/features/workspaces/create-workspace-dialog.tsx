@@ -1,4 +1,4 @@
-import { Plus, LayoutDashboard, Loader2 } from "lucide-react";
+import { Plus, LayoutDashboard, Loader2, AlertCircle } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -44,8 +44,9 @@ export default function CreateWorkspaceDialog({
     >
       <form className="space-y-8 pt-4" onSubmit={handleSubmit}>
         {!!error && (
-          <div className="p-4 text-[11px] font-bold uppercase tracking-widest text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950 border border-rose-100 dark:border-rose-800 rounded-2xl animate-in slide-in-from-top-2">
-            {error}
+          <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <AlertCircle className="text-rose-600 dark:text-rose-300" size={18} />
+            <p className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-widest">{error}</p>
           </div>
         )}
 

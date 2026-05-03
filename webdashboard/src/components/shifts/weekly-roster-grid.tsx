@@ -63,7 +63,7 @@ interface DayCardHeaderProps {
 function DayCardHeader({ day, currentLocale, isToday, isSelected, isHoliday, holidayName }: DayCardHeaderProps) {
   return (
     <div className="text-center mb-5 pb-5 border-b border-slate-50 dark:border-slate-800 relative">
-      {!!isSelected && (
+      {isSelected && (
         <div className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full p-1 shadow-sm">
           <ShieldCheck size={12} />
         </div>
@@ -74,7 +74,7 @@ function DayCardHeader({ day, currentLocale, isToday, isSelected, isHoliday, hol
       <div className={`text-2xl font-bold mt-1 ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200'}`}>
         {day.getDate()}
       </div>
-      {!!isHoliday && (
+      {isHoliday && (
         <div className="mt-1.5 flex items-center justify-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 uppercase tracking-tighter">
           <PartyPopper size={9} />
           <span className="truncate max-w-[100px]">{holidayName}</span>
@@ -232,6 +232,74 @@ function WeeklyRosterDayCard({
   );
 }
 
+export function WeeklyRosterGridHeader({
+  selectedEmployee,
+  t,
+  onCopyPreviousWeek,
+  onClearWeek,
+  onAssignAllWeek,
+  onNavigateWeek,
+  formatDate,
+  weekDays
+}: {
+  formatDate: (date: string | Date | undefined) => string;
+  onAssignAllWeek: () => void;
+  onClearWeek: () => void;
+  onCopyPreviousWeek: () => void;
+  onNavigateWeek: (direction: "prev" | "next") => void;
+  selectedEmployee: Employee;
+  t: TFunction;
+  weekDays: Date[];
+}) {
+  return (
+    <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-[32px] border border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-primary-100">
+          {selectedEmployee.full_name[0]}
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200 leading-tight">{selectedEmployee.full_name}</h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t("shifts.current_week_roster")}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="w-56">
+          <Combobox
+            className="h-10 bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-700 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter"
+            onChange={(value) => {
+              if (value === "copy-prev") onCopyPreviousWeek();
+              else if (value === "clear-week") onClearWeek();
+              else if (value === "assign-all") onAssignAllWeek();
+            }}
+            options={[
+              { value: "copy-prev", label: t("shifts.actions.copy_previous"), icon: <Copy className="w-4 h-4" /> },
+              { value: "assign-all", label: t("shifts.actions.assign_all_week"), icon: <CalendarIcon className="w-4 h-4" /> },
+              { value: "clear-week", label: t("shifts.actions.clear_week"), icon: <Trash className="w-4 h-4" /> },
+            ]}
+            placeholder={t("common.quick_actions")}
+          />
+        </div>
+        <button
+          className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl transition-all"
+          onClick={() => { onNavigateWeek("prev"); }}
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tighter">
+          {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
+        </div>
+        <button
+          className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl transition-all"
+          onClick={() => { onNavigateWeek("next"); }}
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function WeeklyRosterGrid({
   selectedEmployee,
 
@@ -248,56 +316,21 @@ export function WeeklyRosterGrid({
   onDeleteRoster,
 }: WeeklyRosterGridProps) {
   const { t, i18n } = useTranslation();
-  const currentLocale = dateLocales[i18n.language.substring(0, 2)] || enUS;
+  const currentLocale = dateLocales[i18n.language.substring(0, 2)] ?? enUS;
   const { formatDate, formatTime } = useDateTimeFormatter();
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-[32px] border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-primary-100">
-            {selectedEmployee.full_name[0]}
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200 leading-tight">{selectedEmployee.full_name}</h2>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t("shifts.current_week_roster")}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="w-56">
-            <Combobox
-              className="h-10 bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-700 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter"
-              onChange={(value) => {
-                if (value === "copy-prev") onCopyPreviousWeek();
-                else if (value === "clear-week") onClearWeek();
-                else if (value === "assign-all") onAssignAllWeek();
-              }}
-              options={[
-                { value: "copy-prev", label: t("shifts.actions.copy_previous"), icon: <Copy className="w-4 h-4" /> },
-                { value: "assign-all", label: t("shifts.actions.assign_all_week"), icon: <CalendarIcon className="w-4 h-4" /> },
-                { value: "clear-week", label: t("shifts.actions.clear_week"), icon: <Trash className="w-4 h-4" /> },
-              ]}
-              placeholder={t("common.quick_actions")}
-            />
-          </div>
-          <button
-            className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl transition-all"
-            onClick={() => { onNavigateWeek("prev"); }}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tighter">
-            {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
-          </div>
-          <button
-            className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl transition-all"
-            onClick={() => { onNavigateWeek("next"); }}
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
+      <WeeklyRosterGridHeader
+        formatDate={formatDate}
+        onAssignAllWeek={onAssignAllWeek}
+        onClearWeek={onClearWeek}
+        onCopyPreviousWeek={onCopyPreviousWeek}
+        onNavigateWeek={onNavigateWeek}
+        selectedEmployee={selectedEmployee}
+        t={t}
+        weekDays={weekDays}
+      />
 
       {selectedDays.length > 0 && (
         <div className="bg-primary-600 text-white p-4 rounded-[24px] flex items-center justify-between shadow-xl shadow-primary-100 dark:shadow-black/30 animate-in slide-in-from-top-4 duration-300">

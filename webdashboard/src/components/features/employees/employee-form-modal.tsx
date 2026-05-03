@@ -21,31 +21,10 @@ interface EmployeeFormModalProps {
   wsId: string;
 }
 
-export default function EmployeeFormModal({
-  isOpen,
-  onClose,
-  editingEmployee,
-  wsId,
-  prefillEnrollmentId = "",
-  onSuccess,
-}: EmployeeFormModalProps) {
+function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () => void) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
-
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState(editingEmployee?.user_id ?? "");
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-    setSelectedUserId(editingEmployee?.user_id ?? "");
-  }, [editingEmployee]);
-
-  useEffect(() => {
-    if (isOpen && wsId) {
-      void fetchWorkspaceMembers(wsId).then(setMembers).catch(() => { /* empty */ });
-    }
-  }, [isOpen, wsId]);
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<Employee>) => createEmployee(wsId, data),
@@ -67,6 +46,35 @@ export default function EmployeeFormModal({
       onSuccess?.();
     },
   });
+
+  return { createMutation, updateMutation };
+}
+
+
+export default function EmployeeFormModal({
+  isOpen,
+  onClose,
+  editingEmployee,
+  wsId,
+  prefillEnrollmentId = "",
+  onSuccess,
+}: EmployeeFormModalProps) {
+  const { t } = useTranslation();
+  const { createMutation, updateMutation } = useEmployeeMutations(wsId, onClose, onSuccess);
+
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState(editingEmployee?.user_id ?? "");
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
+    setSelectedUserId(editingEmployee?.user_id ?? "");
+  }, [editingEmployee]);
+
+  useEffect(() => {
+    if (isOpen && wsId) {
+      void fetchWorkspaceMembers(wsId).then(setMembers).catch(() => { /* empty */ });
+    }
+  }, [isOpen, wsId]);
 
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -20,7 +20,7 @@ describe("fetchAttendanceReport", () => {
  
         vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
-            json: async () => ({ data: [], total: 0 }),
+            json: () => Promise.resolve({ data: [], total: 0 }),
         } as Response);
 
         await fetchAttendanceReport("test-ws-id", "2026-03-01", "2026-03-31", "summary");
@@ -40,7 +40,7 @@ describe("fetchAttendanceReport", () => {
  
         vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
-            json: async () => ({ data: [], total: 0 }),
+            json: () => Promise.resolve({ data: [], total: 0 }),
         } as Response);
 
         const departmentId = "dept-uuid-123";
@@ -74,7 +74,7 @@ describe("fetchAttendanceReport", () => {
  
         vi.mocked(apiFetch).mockResolvedValueOnce({
             ok: true,
-            json: async () => ({ data: [], total: 0 }),
+            json: () => Promise.resolve({ data: [], total: 0 }),
         } as Response);
 
         const employeeIds = ["emp-1", "emp-2"];

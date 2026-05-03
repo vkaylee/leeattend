@@ -16,7 +16,7 @@ describe("apiFetch utility", () => {
 
   it("should setup a timeout via AbortController", async () => {
  
-    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve({}) } as unknown as Response);
 
     await apiFetch("/test");
 
@@ -30,7 +30,7 @@ describe("apiFetch utility", () => {
 
   it("should set Content-Type to application/json by default", async () => {
  
-    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve({}) } as unknown as Response);
 
     await apiFetch("/test", { method: "POST", body: JSON.stringify({ data: 1 }) });
 
@@ -46,7 +46,7 @@ describe("apiFetch utility", () => {
 
   it("should not set Content-Type if body is FormData", async () => {
  
-    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve({}) } as unknown as Response);
 
     await apiFetch("/test", { method: "POST", body: new FormData() });
 
@@ -57,7 +57,7 @@ describe("apiFetch utility", () => {
   it("should include X-Workspace-Id if available in localStorage", async () => {
  
     localStorage.setItem("active_workspace_id", "ws-123");
-    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve({}) } as unknown as Response);
 
     await apiFetch("/test");
 
@@ -74,7 +74,7 @@ describe("apiFetch utility", () => {
 
   it("should include Authorization header if token is available", async () => {
     localStorage.setItem("access_token", "token-abc");
-    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as unknown as Response);
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve({}) } as unknown as Response);
 
     await apiFetch("/test");
 

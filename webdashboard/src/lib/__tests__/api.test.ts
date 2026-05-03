@@ -187,7 +187,7 @@ describe("api.ts comprehensive tests", () => {
 
     it("fetchLatestImportJob", async () => {
  
-      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ id: "job-1" }) } as unknown as Response);
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: "job-1" }) } as unknown as Response);
       await api.fetchLatestImportJob("ws-1", "adjustment");
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/import-jobs/latest?target_type=adjustment"), expect.anything());
     });

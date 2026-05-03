@@ -10,6 +10,91 @@ interface ScheduleTracePopoverProps {
   traces: ScheduleTrace[];
 }
 
+function AppliedRuleSection({ appliedRule, t }: { appliedRule: ScheduleTrace; t: any }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+          {t("shifts.traceability.winner")}
+        </span>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800 uppercase">
+          {t("shifts.traceability.applied")}
+        </span>
+      </div>
+      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800 rounded-xl space-y-1">
+        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+          <CheckCircle2 size={14} />
+          <span className="text-xs font-bold">{appliedRule.rule_name}</span>
+        </div>
+        {!!appliedRule.reason && (
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-300/80 leading-relaxed pl-5">
+            {appliedRule.reason}
+          </p>
+        )}
+        <div className="pt-1 flex items-center gap-3 pl-5">
+          <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+            {t("shifts.traceability.priority")}: {appliedRule.priority}
+          </span>
+        </div>
+        
+        {/* Smart Hint */}
+        <div className="mt-3 pt-3 border-t border-emerald-100 dark:border-emerald-800/50">
+          <p className="text-[9px] text-emerald-700 dark:text-emerald-300 font-medium leading-relaxed flex gap-2">
+            <span className="shrink-0 text-emerald-500">💡</span>
+            <span>
+              {appliedRule.priority < 100 ? 
+                t("shifts.traceability.override_hint") :
+                t("shifts.traceability.highest_priority_hint")
+              }
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverridden, t }: { overriddenRules: ScheduleTrace[]; setShowOverridden: (v: boolean) => void; showOverridden: boolean; t: any }) {
+  if (overriddenRules.length === 0) return null;
+
+  return (
+    <div className="space-y-2 pt-2 border-t border-slate-50 dark:border-slate-800">
+      <button 
+        className="flex items-center justify-between w-full group"
+        onClick={() => { setShowOverridden(!showOverridden); }}
+      >
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 transition-colors">
+          {t("shifts.traceability.show_overridden")} ({overriddenRules.length})
+        </span>
+        {showOverridden ? <ChevronDown className="text-slate-500 dark:text-slate-400" size={14} /> : <ChevronRight className="text-slate-500 dark:text-slate-400" size={14} />}
+      </button>
+
+      {showOverridden && (
+        <div className="space-y-2 animate-in slide-in-from-top-1 duration-200">
+          {overriddenRules.map((rule, index) => (
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1 opacity-70" key={index}>
+              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                <AlertCircle size={14} />
+                <span className="text-xs font-bold">{rule.rule_name}</span>
+              </div>
+              {!!rule.reason && (
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5 italic">
+                  {rule.reason}
+                </p>
+              )}
+              <div className="pt-1 flex items-center gap-3 pl-5">
+                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                  {t("shifts.traceability.priority")}: {rule.priority}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ traces, source }) => {
   const { t } = useTranslation();
   const [showOverridden, setShowOverridden] = useState(false);
@@ -50,86 +135,8 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
               </div>
             </div>
 
-            {/* Applied Rule */}
-            {!!appliedRule && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                    {t("shifts.traceability.winner")}
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800 uppercase">
-                    {t("shifts.traceability.applied")}
-                  </span>
-                </div>
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800 rounded-xl space-y-1">
-                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-                    <CheckCircle2 size={14} />
-                    <span className="text-xs font-bold">{appliedRule.rule_name}</span>
-                  </div>
-                  {!!appliedRule.reason && (
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-300/80 leading-relaxed pl-5">
-                      {appliedRule.reason}
-                    </p>
-                  )}
-                  <div className="pt-1 flex items-center gap-3 pl-5">
-                    <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                      {t("shifts.traceability.priority")}: {appliedRule.priority}
-                    </span>
-                  </div>
-                  
-                  {/* Smart Hint */}
-                  <div className="mt-3 pt-3 border-t border-emerald-100 dark:border-emerald-800/50">
-                    <p className="text-[9px] text-emerald-700 dark:text-emerald-300 font-medium leading-relaxed flex gap-2">
-                      <span className="shrink-0 text-emerald-500">💡</span>
-                      <span>
-                        {appliedRule.priority < 100 ? 
-                          t("shifts.traceability.override_hint") :
-                          t("shifts.traceability.highest_priority_hint")
-                        }
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Overridden Rules Toggle */}
-            {overriddenRules.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-slate-50 dark:border-slate-800">
-                <button 
-                  className="flex items-center justify-between w-full group"
-                  onClick={() => { setShowOverridden(!showOverridden); }}
-                >
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 transition-colors">
-                    {t("shifts.traceability.show_overridden")} ({overriddenRules.length})
-                  </span>
-                  {showOverridden ? <ChevronDown className="text-slate-500 dark:text-slate-400" size={14} /> : <ChevronRight className="text-slate-500 dark:text-slate-400" size={14} />}
-                </button>
-
-                {!!showOverridden && (
-                  <div className="space-y-2 animate-in slide-in-from-top-1 duration-200">
-                    {overriddenRules.map((rule, index) => (
-                      <div className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1 opacity-70" key={index}>
-                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                          <AlertCircle size={14} />
-                          <span className="text-xs font-bold">{rule.rule_name}</span>
-                        </div>
-                        {!!rule.reason && (
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5 italic">
-                            {rule.reason}
-                          </p>
-                        )}
-                        <div className="pt-1 flex items-center gap-3 pl-5">
-                          <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                            {t("shifts.traceability.priority")}: {rule.priority}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {!!appliedRule && <AppliedRuleSection appliedRule={appliedRule} t={t} />}
+            <OverriddenRulesSection overriddenRules={overriddenRules} setShowOverridden={setShowOverridden} showOverridden={showOverridden} t={t} />
           </div>
           <Popover.Arrow className="fill-white" />
         </Popover.Content>

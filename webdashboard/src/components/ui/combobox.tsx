@@ -54,27 +54,37 @@ function useComboboxKeyboardShortcut({
   setOpen
 }: KeyboardShortcutOptions) {
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (clearOnEscape && e.key === 'Escape' && !open && value !== "") {
-        e.preventDefault();
-        onChange("");
-        if (onSearchChange) onSearchChange("");
-        return;
-      }
+    const handleEscape = (e: KeyboardEvent) => {
+      if (!clearOnEscape || e.key !== 'Escape' || open || value === "") return false;
+      e.preventDefault();
+      onChange("");
+      if (onSearchChange) onSearchChange("");
+      return true;
+    };
 
-      if (!keyboardShortcut || open) return;
-      
-      const target = e.target as HTMLElement;
-      const isInput = ['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable;
-      if (isInput) return;
+    const isInputTarget = (target: HTMLElement) => {
+      return ['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable;
+    };
+
+    const handleShortcut = (e: KeyboardEvent) => {
+      if (!keyboardShortcut || open) return false;
+      if (isInputTarget(e.target as HTMLElement)) return false;
 
       const shortcuts = Array.isArray(keyboardShortcut) ? keyboardShortcut : [keyboardShortcut];
       if (shortcuts.includes(e.key)) {
         e.preventDefault();
         setOpen(true);
         if (onSearchChange) onSearchChange('');
+        return true;
       }
+      return false;
     };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (handleEscape(e)) return;
+      handleShortcut(e);
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => { window.removeEventListener('keydown', handleKeyDown); };
   }, [keyboardShortcut, onSearchChange, open, clearOnEscape, value, onChange, setOpen]);
@@ -111,7 +121,7 @@ function ComboboxOptionItem({
           {Boolean(option.description) && <div className="mt-1 opacity-60">{option.displayDescription ?? option.description}</div>}
         </div>
       </div>
-      {!!isSelected && <Check className="ml-auto h-4 w-4 text-primary-600 dark:text-primary-300" />}
+      {isSelected && <Check className="ml-auto h-4 w-4 text-primary-600 dark:text-primary-300" />}
     </Command.Item>
   );
 }
@@ -191,16 +201,14 @@ export function Combobox({
 
   useComboboxKeyboardShortcut({ clearOnEscape, keyboardShortcut, open, value, onChange, onSearchChange, setOpen });
 
-  const finalPlaceholder = placeholder ?? t("common.combobox.placeholder");
-  const finalSearchPlaceholder = searchPlaceholder ?? t("common.combobox.search");
-  const finalEmptyText = emptyText ?? t("common.combobox.no_results");
+  const getFirstItemValue = () => {
+    if (options.length === 0) return "";
+    const first = options[0];
+    const desc = typeof first.description === 'string' ? first.description : "";
+    return `${first.label} ${desc} ${first.value}`;
+  };
 
-  const selectedOption = options.find((opt) => opt.value === value);
-
-  const firstItemValue = options.length > 0
-    ? `${options[0].label} ${typeof options[0].description === 'string' ? options[0].description : ""} ${options[0].value}`
-    : "";
-    
+  const firstItemValue = getFirstItemValue();
   const [highlightedValue, setHighlightedValue] = useState(firstItemValue);
   const [prevFirst, setPrevFirst] = useState(firstItemValue);
 
@@ -212,19 +220,20 @@ export function Combobox({
   return (
     <Popover.Root onOpenChange={setOpen} open={open}>
       <select aria-hidden="true" className="sr-only" data-testid={testId ? `${testId}-select` : undefined} id={id ? `${id}-select` : undefined} onChange={(e) => { onChange(e.target.value); }} tabIndex={-1} value={value}>
-        <option value="">{finalPlaceholder}</option>
+        <option value="">{placeholder ?? t("common.combobox.placeholder")}</option>
         {options.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
       </select>
 
       <ComboboxTrigger
+        // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus={autoFocus}
         className={className}
         disabled={disabled}
         id={id}
         keyboardShortcut={keyboardShortcut}
         open={open}
-        placeholder={finalPlaceholder}
-        selectedOption={selectedOption}
+        placeholder={placeholder ?? t("common.combobox.placeholder")}
+        selectedOption={options.find((opt) => opt.value === value)}
         testId={testId}
       />
 
@@ -234,11 +243,11 @@ export function Combobox({
             <div className="flex items-center border-b border-slate-50 dark:border-slate-800 px-4 pb-3 pt-1">
               <Search className="mr-3 h-4 w-4 shrink-0 text-slate-300 dark:text-slate-500" />
               {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
-              <Command.Input autoFocus className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 dark:text-primary-300 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50 font-bold" onValueChange={onSearchChange} placeholder={finalSearchPlaceholder} />
+              <Command.Input autoFocus className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 dark:text-primary-300 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50 font-bold" onValueChange={onSearchChange} placeholder={searchPlaceholder ?? t("common.combobox.search")} />
             </div>
 
             <Command.List className="max-h-[320px] overflow-y-auto overflow-x-hidden p-1 custom-scrollbar">
-              <Command.Empty className="py-10 text-center text-[10px] text-primary-400 font-bold uppercase tracking-widest opacity-50">{finalEmptyText}</Command.Empty>
+              <Command.Empty className="py-10 text-center text-[10px] text-primary-400 font-bold uppercase tracking-widest opacity-50">{emptyText ?? t("common.combobox.no_results")}</Command.Empty>
               <Command.Group>
                 {options.map((option) => (
                   <ComboboxOptionItem

@@ -358,7 +358,7 @@ describe("Pagination Response Handling", () => {
       const createMockResponse = (data: PaginatedResponse<{ id: string; full_name: string }>) => ({
         ok: true,
  
-        json: async () => data,
+        json: () => Promise.resolve(data),
       });
 
       const paginatedEmployees: PaginatedResponse<{
@@ -393,7 +393,7 @@ describe("Pagination Response Handling", () => {
       const createMockResponse = (data: PaginatedResponse<{ id: string; full_name: string }>) => ({
         ok: true,
  
-        json: async () => data,
+        json: () => Promise.resolve(data),
       });
 
       const searchResults: PaginatedResponse<{

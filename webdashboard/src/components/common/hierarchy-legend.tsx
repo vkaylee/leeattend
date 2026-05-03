@@ -44,7 +44,7 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
         </div>
       </button>
 
-      {!!isOpen && (
+      {isOpen && (
         <div className="px-8 pb-10 pt-6 animate-in slide-in-from-top-4 duration-500">
           <div className="relative flex flex-col gap-0 pl-3">
             {/* Vertical Line */}

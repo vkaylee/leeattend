@@ -54,7 +54,7 @@ describe("ConfirmDialog Component", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("calls onConfirm when confirm button is clicked", async () => {
+  it("calls onConfirm when confirm button is clicked", () => {
     const onConfirm = vi.fn();
     render(
       <ConfirmDialog

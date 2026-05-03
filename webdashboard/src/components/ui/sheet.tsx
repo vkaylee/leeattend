@@ -18,6 +18,76 @@ interface SheetProps {
   title?: string;
 }
 
+function useSheetState(isOpen: boolean, onClose: () => void) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
+      setIsVisible(true);
+      document.body.style.overflow = "hidden";
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose();
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => { window.removeEventListener("keydown", handleKeyDown); };
+    } 
+
+    const timer = setTimeout(() => { setIsVisible(false); }, 500); // Sync with duration-500
+    document.body.style.overflow = "unset";
+    return () => { clearTimeout(timer); };
+  }, [isOpen, onClose]);
+
+  return isVisible;
+}
+
+function SheetHeader({
+  title,
+  subtitle,
+  headerExtra,
+  onClose
+}: {
+  headerExtra?: React.ReactNode;
+  onClose: () => void;
+  subtitle?: string;
+  title?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100/50 dark:border-primary-800/50">
+          <Menu size={24} />
+        </div>
+        <div>
+          {!!title && (
+            <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
+              {title}
+            </h2>
+          )}
+          {!!subtitle && (
+            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
+              {subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+      {!!headerExtra && (
+        <div className="flex items-center gap-2">
+          {headerExtra}
+        </div>
+      )}
+      <button
+        className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90"
+        onClick={onClose}
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
 export default function Sheet({
   isOpen,
   onClose,
@@ -30,28 +100,7 @@ export default function Sheet({
   headerExtra,
   hideHeader = false,
 }: SheetProps) {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-      setIsVisible(true);
-      document.body.style.overflow = "hidden";
-
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-          onClose();
-        }
-      };
-
-      window.addEventListener("keydown", handleKeyDown);
-      return () => { window.removeEventListener("keydown", handleKeyDown); };
-    } else {
-      const timer = setTimeout(() => { setIsVisible(false); }, 500); // Sync with duration-500
-      document.body.style.overflow = "unset";
-      return () => { clearTimeout(timer); };
-    }
-  }, [isOpen, onClose]);
+  const isVisible = useSheetState(isOpen, onClose);
 
   if (!isVisible && !isOpen) return null;
 
@@ -87,38 +136,7 @@ export default function Sheet({
           onClick={(e) => { e.stopPropagation(); }}
         >
           {/* Header */}
-          {!hideHeader && (
-            <div className="flex items-center justify-between p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100/50 dark:border-primary-800/50">
-                  <Menu size={24} />
-                </div>
-                <div>
-                  {!!title && (
-                    <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
-                      {title}
-                    </h2>
-                  )}
-                  {!!subtitle && (
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
-                      {subtitle}
-                    </p>
-                  )}
-                </div>
-              </div>
-              {!!headerExtra && (
-                <div className="flex items-center gap-2">
-                  {headerExtra}
-                </div>
-              )}
-              <button
-                className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90"
-                onClick={onClose}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          )}
+          {!hideHeader && <SheetHeader headerExtra={headerExtra} onClose={onClose} subtitle={subtitle} title={title} />}
 
           {/* Content */}
           <div className={cn("flex-1 overflow-y-auto p-10 relative scroll-smooth", contentClassName)}>

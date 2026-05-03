@@ -137,27 +137,23 @@ export const ALL_WIDGETS: { id: WidgetId; labelKey: string }[] = [
 
 // ── Hook: useDashboardLayout ───────────────────────────────────────
 
-export function useDashboardLayout() {
-    const { workspace } = useWorkspace();
-    const queryClient = useQueryClient();
-
-    const queryKey = ["dashboard-preferences", workspace?.id];
-
-    const {
-        data: preferences,
-        isLoading,
-        error,
-    } = useQuery<DashboardLayoutPreferences>({
-        queryKey,
+function useDashboardPreferences(workspaceId: string | undefined) {
+    return useQuery<DashboardLayoutPreferences>({
+        queryKey: ["dashboard-preferences", workspaceId],
         queryFn: async () => {
             const response = await apiFetch("/dashboard/preferences");
             if (!response.ok) throw new Error("Failed to fetch dashboard preferences");
             return (await response.json()) as DashboardLayoutPreferences;
         },
-        enabled: !!workspace,
+        enabled: !!workspaceId,
     });
+}
 
-    const mutation = useMutation({
+function useDashboardMutation(workspaceId: string | undefined) {
+    const queryClient = useQueryClient();
+    const queryKey = ["dashboard-preferences", workspaceId];
+
+    return useMutation({
         mutationFn: async (update: Partial<Omit<DashboardLayoutPreferences, "id" | "user_id" | "workspace_id">>) => {
             const response = await apiFetch("/dashboard/preferences", {
                 method: "PUT",
@@ -170,6 +166,18 @@ export function useDashboardLayout() {
             queryClient.setQueryData(queryKey, data);
         },
     });
+}
+
+export function useDashboardLayout() {
+    const { workspace } = useWorkspace();
+    
+    const {
+        data: preferences,
+        isLoading,
+        error,
+    } = useDashboardPreferences(workspace?.id);
+
+    const mutation = useDashboardMutation(workspace?.id);
 
     // ── Computed values ──────────────────────────────────────────────
 
