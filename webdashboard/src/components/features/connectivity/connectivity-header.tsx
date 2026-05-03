@@ -1,4 +1,4 @@
-import { Plus, Share2, Server, AlertCircle, Cpu, Lock, Save } from "lucide-react";
+import { Plus, Share2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 

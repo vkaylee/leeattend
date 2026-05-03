@@ -70,3 +70,85 @@ export function useConnectivityMaps(agents: AuthorizedAgent[], agentsStatus: Age
 
   return { agentOnlineMap, deviceStatuses, groupedDevices, unassignedDevices };
 }
+
+interface ConnectivityActionsProps {
+  createAgent: (agent: { id: string; name: string; token: string }) => Promise<unknown>;
+  createDevice: (device: Partial<Device>) => Promise<unknown>;
+  editingDevice: Device | null;
+  newAgent: { id: string; name: string; token: string };
+  newDevice: Partial<Device>;
+  refetchAgents: () => Promise<unknown>;
+  refetchStatus: () => Promise<unknown>;
+  sendCommand: (args: { id: string; command: unknown }) => Promise<unknown>;
+  setEditingDevice: (device: Device | null) => void;
+  setNewAgent: (agent: { id: string; name: string; token: string }) => void;
+  setShowAddDeviceForm: (show: boolean) => void;
+  setShowAddForm: (show: boolean) => void;
+  t: (key: string) => string;
+  toast: { success: (msg: string) => void; error: (msg: string) => void };
+  updateDevice: (id: string, device: Partial<Device>) => Promise<unknown>;
+}
+
+export function useConnectivityActions({
+  createAgent,
+  createDevice,
+  editingDevice,
+  newAgent,
+  newDevice,
+  refetchAgents,
+  refetchStatus,
+  sendCommand,
+  setEditingDevice,
+  setNewAgent,
+  setShowAddDeviceForm,
+  setShowAddForm,
+  t,
+  toast,
+  updateDevice
+}: ConnectivityActionsProps) {
+  const handleAddAgent = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    try {
+      await createAgent({ id: newAgent.id, name: newAgent.name, token: newAgent.token });
+      toast.success(t("agents.messages.add_success"));
+      setShowAddForm(false);
+      setNewAgent({ id: "", name: "", token: "" });
+      void refetchAgents();
+    } catch (err: unknown) {
+      console.error(err);
+      toast.error(t("agents.messages.add_error"));
+    }
+  };
+
+  const handleSaveDevice = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    try {
+      if (editingDevice) {
+        await updateDevice(editingDevice.id, editingDevice);
+        toast.success(t("devices.toast.update_success"));
+        setEditingDevice(null);
+      } else {
+        await createDevice(newDevice);
+        toast.success(t("devices.toast.add_success"));
+      }
+      setShowAddDeviceForm(false);
+      void refetchStatus();
+    } catch (err: unknown) {
+      console.error(err);
+      toast.error(editingDevice ? t("devices.toast.update_error") : t("devices.toast.add_error"));
+    }
+  };
+
+  const handleRefreshDevice = async (agentId: string, deviceId: string) => {
+    try {
+      await sendCommand({ id: agentId, command: { method: "get_device_info", device_id: deviceId, data: {} } });
+      toast.success(t("devices.toast.refresh_sent"));
+      setTimeout(() => { void refetchStatus(); }, 2000);
+    } catch (err: unknown) {
+      console.error("Refresh failed:", err);
+      toast.error(t("devices.toast.refresh_error"));
+    }
+  };
+
+  return { handleAddAgent, handleSaveDevice, handleRefreshDevice };
+}

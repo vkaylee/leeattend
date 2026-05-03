@@ -1,12 +1,11 @@
 import {
   ChevronDown,
   ChevronRight,
-  Server,
-  Pencil,
-  Trash2,
-  RefreshCw,
   HardDrive,
-  Plus
+  Pencil,
+  RefreshCw,
+  Server,
+  Trash2
 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +15,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { AuthorizedAgent, Device, DeviceStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-import DeviceListItem from "./device-list-item";
+import { AgentDeviceList } from "./agent-device-list";
 
 interface AgentAccordionCardProps {
   agent: AuthorizedAgent;
@@ -37,22 +36,22 @@ interface AgentAccordionCardProps {
 
 interface AgentHeaderProps {
   agent: AuthorizedAgent;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onEdit: (agent: AuthorizedAgent) => void;
-  onToggleTrust: () => void;
-  onDelete: () => void;
   deviceCount: number;
+  isExpanded: boolean;
+  onDelete: () => void;
+  onEdit: (agent: AuthorizedAgent) => void;
+  onToggleExpand: () => void;
+  onToggleTrust: () => void;
 }
 
 function AgentHeader({
   agent,
-  isExpanded,
-  onToggleExpand,
-  onEdit,
-  onToggleTrust,
-  onDelete,
   deviceCount,
+  isExpanded,
+  onDelete,
+  onEdit,
+  onToggleExpand,
+  onToggleTrust,
 }: AgentHeaderProps) {
   const { t } = useTranslation();
 
@@ -118,8 +117,13 @@ function AgentHeader({
         {agent.last_seen_at ? new Date(agent.last_seen_at).toLocaleString() : t("common.never")}
       </div>
 
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0" onClick={e => e.stopPropagation()}>
-        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => onEdit(agent)}>
+      <div
+        className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+        onClick={e => { e.stopPropagation(); }}
+        onKeyDown={e => { e.stopPropagation(); }}
+        role="none"
+      >
+        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onEdit(agent); }}>
           <Pencil size={18} />
         </button>
         <button
@@ -143,19 +147,19 @@ function AgentHeader({
 
 export default function AgentAccordionCard({
   agent,
-  devices,
   deviceStatuses = {},
+  devices,
   isExpanded,
-  onToggleExpand,
-  onEdit,
-  onToggleTrust,
+  isOnline,
+  onAddDevice,
   onDelete,
-  onUpdateDevice,
   onDeleteDevice,
+  onEdit,
   onEditDevice,
   onRefreshDevice,
-  onAddDevice,
-  isOnline
+  onToggleExpand,
+  onToggleTrust,
+  onUpdateDevice
 }: AgentAccordionCardProps) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -217,40 +221,18 @@ export default function AgentAccordionCard({
       )}>
         <div className="border-t border-slate-100 dark:border-slate-800 mx-8" />
         <div className="p-8 pt-6">
-          <div className="flex flex-col gap-4">
-            {devices.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest">
-                {t("devices.no_devices_for_agent")}
-              </div>
-            ) : (
-              devices.map(device => (
-                <DeviceListItem
-                  device={device}
-                  isVisible={isExpanded}
-                  key={device.id}
-                  onDelete={onDeleteDevice}
-                  onEdit={onEditDevice}
-                  onRefresh={onRefreshDevice}
-                  onUpdate={onUpdateDevice}
-                  parentAgentActive={isOnline}
-                  status={deviceStatuses[device.id.toLowerCase()]}
-                />
-              ))
-            )}
-
-            {!!onAddDevice && (
-              <button
-                className="group relative flex items-center justify-center p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[1.5rem] text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 hover:bg-primary-50 dark:bg-primary-950/30 transition-all gap-4"
-                data-testid={`add-device-btn-${agent.id}`}
-                onClick={() => { onAddDevice(agent.id); }}
-              >
-                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                  <Plus size={20} />
-                </div>
-                <span className="text-xs font-black uppercase tracking-widest">{t("devices.add_btn")}</span>
-              </button>
-            )}
-          </div>
+          <AgentDeviceList
+            agentId={agent.id}
+            devices={devices}
+            deviceStatuses={deviceStatuses}
+            isExpanded={isExpanded}
+            isOnline={isOnline}
+            onAddDevice={onAddDevice}
+            onDeleteDevice={onDeleteDevice}
+            onEditDevice={onEditDevice}
+            onRefreshDevice={onRefreshDevice}
+            onUpdateDevice={onUpdateDevice}
+          />
         </div>
       </div>
       <ConfirmationDialog />

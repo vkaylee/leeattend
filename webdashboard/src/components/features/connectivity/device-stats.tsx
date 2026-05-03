@@ -30,12 +30,12 @@ interface DeviceStatsProps {
 }
 
 interface StatBlockProps {
-  label: string;
   icon: React.ReactNode;
+  label: string;
   value: React.ReactNode;
 }
 
-function StatBlock({ label, icon, value }: StatBlockProps) {
+function StatBlock({ icon, label, value }: StatBlockProps) {
   return (
     <div className="flex flex-col gap-1 min-w-[80px]">
       <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
@@ -49,7 +49,7 @@ function StatBlock({ label, icon, value }: StatBlockProps) {
   );
 }
 
-function CapacityBlock({ count, capacity, label, icon, valueColorClass }: { count?: number; capacity?: number; label: string; icon: React.ReactNode; valueColorClass?: string }) {
+function CapacityBlock({ capacity, count, icon, label, valueColorClass }: { capacity?: number; count?: number; icon: React.ReactNode; label: string; valueColorClass?: string }) {
   const value = count !== undefined ? (
     <>
       <span className={valueColorClass}>{count.toLocaleString()}</span>

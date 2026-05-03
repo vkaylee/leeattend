@@ -23,6 +23,44 @@ interface DeviceListItemProps {
   status?: DeviceStatus;
 }
 
+interface DeviceBottomBarProps {
+  device: Device;
+  displayInfo: DeviceInfo | null;
+  isToggling: boolean;
+  onToggle: () => void;
+}
+
+function DeviceBottomBar({ device, displayInfo, isToggling, onToggle }: DeviceBottomBarProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
+      <div className="text-[10px] font-bold text-slate-400">
+        {displayInfo ? (
+          <span className="text-emerald-500 flex items-center gap-1.5">
+            <Activity size={10} /> {t("devices.info.last_synced", { time: displayInfo.last_sync ? new Date(displayInfo.last_sync).toLocaleString() : "—" })}
+          </span>
+        ) : (
+          <span className="italic">{t("devices.info.loading")}</span>
+        )}
+      </div>
+      <button
+        className={cn(
+          "px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
+          device.is_enabled
+            ? "text-rose-500 border-rose-100 dark:border-rose-900/50 hover:bg-rose-500 hover:text-white"
+            : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
+        )}
+        data-testid={`device-toggle-${device.id}`}
+        disabled={isToggling}
+        onClick={onToggle}
+      >
+        {device.is_enabled ? t("devices.info.disable_btn") : t("devices.info.enable_btn")}
+      </button>
+    </div>
+  );
+}
+
 export default function DeviceListItem({
   device,
   status,
@@ -41,18 +79,15 @@ export default function DeviceListItem({
   const [showToggleModal, setShowToggleModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Fetch detailed info automatically on mount (if agent is active)
   const { data: deviceInfo } = useDeviceInfo(device.id, parentAgentActive && isVisible);
-
-  // Merge status.info (heartbeat data) with deviceInfo (on-demand data)
   const displayInfo: DeviceInfo | null = deviceInfo ?? status?.info ?? null;
 
   async function handleRefresh() {
     if (!onRefresh) return;
     setIsRefreshing(true);
     try {
-      await Promise.resolve(onRefresh(device.id));
-      // Invalidate the query to trigger a refetch after the agent has time to respond
+      onRefresh(device.id);
+      await Promise.resolve();
       setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: devicesKeys.info(device.id) });
       }, 2000);
@@ -108,30 +143,12 @@ export default function DeviceListItem({
 
       <DeviceStats displayInfo={displayInfo} />
 
-      <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
-        <div className="text-[10px] font-bold text-slate-400">
-          {displayInfo ? (
-            <span className="text-emerald-500 flex items-center gap-1.5">
-              <Activity size={10} /> {t("devices.info.last_synced", { time: displayInfo.last_sync ? new Date(displayInfo.last_sync).toLocaleString() : "—" })}
-            </span>
-          ) : (
-            <span className="italic">{t("devices.info.loading")}</span>
-          )}
-        </div>
-        <button
-          className={cn(
-            "px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
-            device.is_enabled
-              ? "text-rose-500 border-rose-100 dark:border-rose-900/50 hover:bg-rose-500 hover:text-white"
-              : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
-          )}
-          data-testid={`device-toggle-${device.id}`}
-          disabled={isToggling}
-          onClick={() => { setShowToggleModal(true); }}
-        >
-          {device.is_enabled ? t("devices.info.disable_btn") : t("devices.info.enable_btn")}
-        </button>
-      </div>
+      <DeviceBottomBar
+        device={device}
+        displayInfo={displayInfo}
+        isToggling={isToggling}
+        onToggle={() => { setShowToggleModal(true); }}
+      />
 
       <DeviceModals
         device={device}
@@ -145,4 +162,3 @@ export default function DeviceListItem({
     </div>
   );
 }
-
