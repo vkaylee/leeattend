@@ -20,117 +20,40 @@ export function useEmployeesPage() {
   const { formatDate } = useDateTimeFormatter();
   const { confirm, ConfirmationDialog } = useConfirm();
 
-  const {
-    debouncedSearch,
-    filterDeptIds,
-    searchTerm,
-    setFilterDeptIds,
-    setSearchTerm,
-    sortDir,
-    sortKey,
-    toggleDeptFilter,
-    toggleSort,
-  } = useEmployeesState();
+  const state = useEmployeesState();
+  const modals = useEmployeesModals();
 
-  const {
-    editingEmployee,
-    isHistoryModalOpen,
-    isImportDialogOpen,
-    isModalOpen,
-    isRehireModalOpen,
-    isTransferModalOpen,
-    prefillEnrollmentId,
-    selectedDeptId,
-    selectedEmployee,
-    setEditingEmployee,
-    setIsHistoryModalOpen,
-    setIsImportDialogOpen,
-    setIsModalOpen,
-    setIsRehireModalOpen,
-    setIsTransferModalOpen,
-    setPrefillEnrollmentId,
-    setSelectedDeptId,
-    setSelectedEmployee,
-  } = useEmployeesModals();
-
-  const {
-    departments,
-    deptHistory,
-    employees,
-    employmentHistory,
-    fetchNextPage,
-    hasNextPage,
-    isFetching,
-    isFetchingNextPage,
-    isLoading,
-    isPlaceholderData,
-    totalItems,
-    updateMutation,
-  } = useEmployeesData({
-    debouncedSearch,
-    filterDeptIds,
-    selectedEmployee,
-    setEditingEmployee,
-    setIsModalOpen,
-    sortDir,
-    sortKey,
+  const data = useEmployeesData({
+    debouncedSearch: state.debouncedSearch,
+    filterDeptIds: state.filterDeptIds,
+    selectedEmployee: modals.selectedEmployee,
+    setEditingEmployee: modals.setEditingEmployee,
+    setIsModalOpen: modals.setIsModalOpen,
+    sortDir: state.sortDir,
+    sortKey: state.sortKey,
     wsId,
   });
 
-  const { handleTerminate } = useEmployeeActions({ confirm, updateMutation });
+  const { handleTerminate } = useEmployeeActions({ confirm, updateMutation: data.updateMutation });
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const focusSearch = () => { setTimeout(() => { searchInputRef.current?.focus(); }, 100); };
 
   const handleDrawerClose = () => {
-    setSelectedEmployee(null);
+    modals.setSelectedEmployee(null);
     focusSearch();
   };
 
   return {
     ConfirmationDialog,
-    departments,
-    deptHistory,
-    editingEmployee,
-    employees,
-    employmentHistory,
-    fetchNextPage,
-    filterDeptIds,
     formatDate,
     handleDrawerClose,
     handleTerminate,
-    hasNextPage,
-    isFetching,
-    isFetchingNextPage,
-    isHistoryModalOpen,
-    isImportDialogOpen,
-    isLoading,
-    isModalOpen,
-    isPlaceholderData,
-    isRehireModalOpen,
-    isTransferModalOpen,
-    prefillEnrollmentId,
     searchInputRef,
-    searchTerm,
-    selectedDeptId,
-    selectedEmployee,
-    setEditingEmployee,
-    setFilterDeptIds,
-    setIsHistoryModalOpen,
-    setIsImportDialogOpen,
-    setIsModalOpen,
-    setIsRehireModalOpen,
-    setIsTransferModalOpen,
-    setPrefillEnrollmentId,
-    setSearchTerm,
-    setSelectedDeptId,
-    setSelectedEmployee,
-    sortDir,
-    sortKey,
     t,
-    toggleDeptFilter,
-    toggleSort,
-    totalItems,
     wsId,
+    ...state,
+    ...modals,
+    ...data,
   };
 }
