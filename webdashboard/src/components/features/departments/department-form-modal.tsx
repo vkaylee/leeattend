@@ -1,8 +1,9 @@
 import type { TFunction } from "i18next";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LayoutGrid, UserCircle, CalendarDays } from "lucide-react";
-import React, { useState } from "react";
+import React from "react";
+
+import { useDepartmentForm } from "./hooks/use-department-form";
 
 import type { Department, User, WorkingPattern } from "@/lib/api";
 
@@ -10,8 +11,6 @@ import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import FormField, { LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
-import { useToast } from "@/components/ui/toast";
-import { createDepartment, updateDepartment } from "@/lib/api";
 
 export interface DepartmentFormModalProps {
   editingDept: Department | null;
@@ -24,55 +23,14 @@ export interface DepartmentFormModalProps {
 }
 
 export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, users, patterns, t }: DepartmentFormModalProps) {
-  const queryClient = useQueryClient();
-  const toast = useToast();
-
-  const [selectedManagerId, setSelectedManagerId] = useState<string>("");
-  const [selectedPatternId, setSelectedPatternId] = useState<string>("");
-
-  const [prevDeptId, setPrevDeptId] = useState<string | null>(editingDept?.id ?? null);
-  if (editingDept?.id !== prevDeptId) {
-    setSelectedManagerId(editingDept?.manager_id ?? "");
-    setSelectedPatternId(editingDept?.default_working_pattern_id ?? "");
-    setPrevDeptId(editingDept?.id ?? null);
-  }
-
-  const createMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => createDepartment(wsId, data),
-    onSuccess: () => { 
-      void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); 
-      onClose(); 
-      toast.success(t("common.success")); 
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => {
-      if (!editingDept) throw new Error("Editing department is required for update");
-      return updateDepartment(wsId, editingDept.id, data);
-    },
-    onSuccess: () => { 
-      void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); 
-      onClose(); 
-      toast.success(t("common.success")); 
-    },
-  });
-
-  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault(); 
-    const formData = new FormData(e.currentTarget);
-    const data = { 
-      name: formData.get("name") as string, 
-      description: formData.get("description") as string, 
-      manager_id: selectedManagerId || null, 
-      default_working_pattern_id: selectedPatternId || null 
-    };
-    if (editingDept) { 
-      updateMutation.mutate(data); 
-    } else { 
-      createMutation.mutate(data); 
-    }
-  };
+  const { 
+    selectedManagerId, 
+    setSelectedManagerId, 
+    selectedPatternId, 
+    setSelectedPatternId, 
+    handleSubmit,
+    isLoading 
+  } = useDepartmentForm(wsId, editingDept, onClose, t);
 
   return (
     <Modal icon={<LayoutGrid size={24} />} isOpen={isOpen} maxWidth="lg" onClose={onClose} subtitle={t("departments.modal.subtitle")} title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")}>
@@ -85,7 +43,7 @@ export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, users,
         </div>
         <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
           <Button onClick={onClose} size="lg" variant="outline">{t("common.cancel").toUpperCase()}</Button>
-          <Button data-testid="save-dept-btn" size="lg" type="submit" variant="secondary">{editingDept ? t("common.update").toUpperCase() : t("departments.modal.submit_btn").toUpperCase()}</Button>
+          <Button data-testid="save-dept-btn" loading={isLoading} size="lg" type="submit" variant="secondary">{editingDept ? t("common.update").toUpperCase() : t("departments.modal.submit_btn").toUpperCase()}</Button>
         </div>
       </form>
     </Modal>

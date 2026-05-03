@@ -268,7 +268,7 @@ function DebugToolbarFooter({ isEnabled, reset, setTemporaryId, setTemporaryDate
       >
         <RefreshCcw size={12} /> Clear Settings
       </button>
-      {!!isEnabled && (
+      {isEnabled && (
         <button
           className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 py-2 rounded text-[10px] font-bold"
           onClick={() => { window.location.reload(); }}

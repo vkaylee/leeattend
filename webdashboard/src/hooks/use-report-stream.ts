@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type {
-  StreamMessage,
   StreamStatus,
 } from "@/types/report-stream";
 
-import { clearAuthSession } from "@/lib/api/helpers";
-import { ROUTES } from "@/lib/routes";
-
-import { useReportStreamSocket } from "./use-report-stream-socket";
+import { useReportStreamHandlers } from "./use-report-stream-handlers";
+import { useReportStreamConnection } from "./use-report-stream-connection";
 
 export interface UseReportStreamOptions {
   jobId: string | null;
@@ -26,6 +23,8 @@ export interface UseReportStreamResult {
   reconnect: () => void;
   status: StreamStatus;
 }
+
+
 
 /**
  * Hook for WebSocket-based report streaming
@@ -83,61 +82,33 @@ export function useReportStream({
     statusRef.current = status;
   });
 
-  const handleMessage = useCallback((event: MessageEvent) => {
-    try {
-      const message = JSON.parse(event.data as string) as StreamMessage;
-      switch (message.type) {
-        case "CHUNK": {
-          totalBatchesRef.current = message.total_batches;
-          const newProgress = ((message.batch_index + 1) / message.total_batches) * 100;
-          setProgress(Math.min(newProgress, 100));
-          setStatus("streaming");
-          break;
-        }
-        case "DONE": {
-          setStatus("completed");
-          setProgress(100);
-          shouldReconnectRef.current = false;
-          const finalChunks = [...chunksRef.current];
-          chunksRef.current = [];
-          setChunks(finalChunks);
-          onCompleteRef.current?.(finalChunks);
-          break;
-        }
-        case "ERROR": {
-          setStatus("error");
-          setError(message.message);
-          shouldReconnectRef.current = false;
-          onErrorRef.current?.(message.message);
-          break;
-        }
-      }
-    } catch (error_) {
-      console.error("[ReportStream] Failed to parse message:", error_);
-    }
-  }, [setChunks, setError, setProgress, setStatus, chunksRef, onErrorRef, onCompleteRef, shouldReconnectRef, totalBatchesRef]);
+  const { handleMessage } = useReportStreamHandlers({
+    setStatus,
+    setProgress,
+    setError,
+    setChunks,
+    chunksRef,
+    onCompleteRef,
+    onErrorRef,
+    shouldReconnectRef,
+    totalBatchesRef,
+  });
 
-  const { connect, disconnect } = useReportStreamSocket({
+  const { reconnect } = useReportStreamConnection({
     jobId,
     maxRetries,
     setStatus,
     setError,
+    setChunks,
+    setProgress,
     handleMessage,
     onErrorRef,
     shouldReconnectRef,
     statusRef,
     retryCountRef,
+    chunksRef,
+    totalBatchesRef,
   });
-
-  const reconnect = useCallback(() => {
-    retryCountRef.current = 0;
-    shouldReconnectRef.current = true;
-    chunksRef.current = [];
-    setChunks([]);
-    setProgress(0);
-    setError(null);
-    connect();
-  }, [connect, chunksRef, setChunks, setError, setProgress, retryCountRef, shouldReconnectRef]);
 
   const [previousJobId, setPreviousJobId] = useState(jobId);
   if (jobId !== previousJobId) {
@@ -151,25 +122,6 @@ export function useReportStream({
       setChunks([]);
     }
   }
-
-  useEffect(() => {
-    chunksRef.current = [];
-    retryCountRef.current = 0;
-    shouldReconnectRef.current = true;
-    totalBatchesRef.current = 0;
-
-    if (!jobId) return;
-
-    void Promise.resolve().then(() => {
-      if (shouldReconnectRef.current) {
-        connect();
-      }
-    });
-
-    return () => {
-      disconnect();
-    };
-  }, [jobId, connect, disconnect, chunksRef, retryCountRef, shouldReconnectRef, totalBatchesRef]);
 
   return {
     status,

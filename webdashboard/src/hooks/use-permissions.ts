@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 import { fetchMyPermissions, getCurrentWorkspaceId } from "@/lib/api";
 
@@ -28,7 +28,7 @@ function checkScopedPermission(permissionSet: Set<string>, allowedDepts: string[
 export function useMyPermissions() {
     const wsId = getCurrentWorkspaceId() ?? "";
 
-    const query = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: myPermissionsKey(wsId),
         queryFn: fetchMyPermissions,
         enabled: !!wsId,
@@ -36,40 +36,38 @@ export function useMyPermissions() {
         gcTime: 10 * 60 * 1000,
     });
 
-    const permissionSet = new Set(query.data?.permissions ?? []);
-    const roles = query.data?.roles ?? [];
+    const permissions = data?.permissions ?? [];
+    const roles = data?.roles ?? [];
+    const managedDeptIds = data?.managed_department_ids ?? null;
+
+    const permissionSet = useMemo(() => new Set(permissions), [permissions]);
 
     const hasPermission = useCallback(
         (permission: string): boolean => permissionSet.has(permission),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [query.data?.permissions],
+        [permissionSet],
     );
 
     const hasAnyPermission = useCallback(
-        (...permissions: string[]): boolean =>
-            permissions.some((p) => permissionSet.has(p)),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [query.data?.permissions],
+        (...perms: string[]): boolean => perms.some((p) => permissionSet.has(p)),
+        [permissionSet],
     );
 
     const hasRole = useCallback(
         (role: string): boolean => checkHasRole(roles, role),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [query.data?.roles],
+        [roles],
     );
 
     const hasScopedPermission = useCallback(
-        (permission: string, targetDepartmentId?: string): boolean =>
-            checkScopedPermission(permissionSet, query.data?.managed_department_ids, permission, targetDepartmentId),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [query.data?.permissions, query.data?.managed_department_ids],
+        (permission: string, targetDeptId?: string): boolean =>
+            checkScopedPermission(permissionSet, managedDeptIds, permission, targetDeptId),
+        [permissionSet, managedDeptIds],
     );
 
     return {
-        permissions: query.data?.permissions ?? [],
+        permissions,
         roles,
-        managedDepartmentIds: query.data?.managed_department_ids ?? null,
-        isLoading: query.isLoading,
+        managedDepartmentIds: managedDeptIds,
+        isLoading,
         hasPermission,
         hasAnyPermission,
         hasRole,

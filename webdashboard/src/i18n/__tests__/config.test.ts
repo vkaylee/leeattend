@@ -7,7 +7,7 @@ describe('i18n config lazyLoadBackend', () => {
     // Wrap the callback to convert to promise
     const result = await new Promise((resolve, reject) => {
       lazyLoadBackend.read('vi', 'translation', (error, data) => {
-        if (error) reject(error instanceof Error ? error : new Error(error));
+        if (error) reject(error instanceof Error ? error : new Error(error as string));
         else resolve(data);
       });
     });
@@ -21,7 +21,7 @@ describe('i18n config lazyLoadBackend', () => {
   it('should handle languages with regional subtags (en-US -> en)', async () => {
     const result = await new Promise((resolve, reject) => {
       lazyLoadBackend.read('en-US', 'translation', (error, data) => {
-        if (error) reject(error instanceof Error ? error : new Error(error));
+        if (error) reject(error instanceof Error ? error : new Error(error as string));
         else resolve(data);
       });
     });

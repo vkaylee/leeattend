@@ -32,18 +32,18 @@ export default function ConfirmReprocessModal({
             icon={<RefreshCw size={24} />}
             isOpen={isOpen}
             maxWidth="md"
-            onClose={() => !isPending && onClose()}
+            onClose={() => { if (!isPending) onClose(); }}
             title={t("reports.reprocess.confirm_title")}
         >
             <div className="space-y-10 pt-4 animate-in fade-in duration-500">
                 <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
                     <p className="text-base font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight leading-relaxed text-center italic opacity-80">
-                        "
-                        {!!dialogData && t("reports.reprocess.confirm_message", {
+                        &quot;
+                        {dialogData && t("reports.reprocess.confirm_message", {
                                 employee: dialogData.employeeName,
                                 date: formatDate(dialogData.date),
                             })}
-                        "
+                        &quot;
                     </p>
                 </div>
                 <div className="flex gap-6 border-t border-slate-50 dark:border-slate-800 pt-2">

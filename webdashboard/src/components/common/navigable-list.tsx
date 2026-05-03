@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 export interface NavigableListColumn<T> {
   header: React.ReactNode;
   headerClassName?: string;
+  cellClassName?: string;
+  hidden?: boolean;
   key: string;
   onHeaderClick?: () => void;
   render: (item: T) => React.ReactNode;
@@ -34,7 +36,7 @@ interface NavigableListProps<T> {
   onSelect: (item: T) => void;
   resetDeps?: unknown[];
   rowIdPrefix?: string;
-  searchInputRef?: React.RefObject<HTMLInputElement>;
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
   searchPlaceholder?: string;
   searchTestId?: string;
   searchValue?: string;
@@ -399,7 +401,7 @@ function useNavigableListCalculations<T>({
   showChevron: boolean;
   smartHeader: boolean;
 }) {
-  const visibleColumns = useMemo(() => columns.filter(Boolean), [columns]);
+  const visibleColumns = useMemo(() => columns.filter((col) => !col.hidden), [columns]);
   const isFullPage = maxHeightClass === "full";
   const smartHeaderEnabled = smartHeader && isFullPage;
 
@@ -434,7 +436,7 @@ function NavigableListSearchContent({
 }: {
   listNav: { onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void };
   onSearchChange?: (val: string) => void;
-  searchInputRef?: React.RefObject<HTMLInputElement>;
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
   searchPlaceholder?: string;
   searchTestId?: string;
   searchValue?: string;
@@ -472,7 +474,7 @@ function NavigableListHeaderWrapper({
   searchProps: {
     listNav: { onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void };
     onSearchChange?: (val: string) => void;
-    searchInputRef?: React.RefObject<HTMLInputElement>;
+    searchInputRef?: React.RefObject<HTMLInputElement | null>;
     searchPlaceholder?: string;
     searchTestId?: string;
     searchValue?: string;

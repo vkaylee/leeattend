@@ -33,22 +33,28 @@ export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }:
 
   const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({ 
     queryKey: ["dept-payroll-configs", editingDept?.id], 
-    queryFn: () => fetchDepartmentPayrollConfigs(wsId, editingDept!.id), 
+    queryFn: () => {
+      if (!editingDept?.id) return Promise.reject(new Error("No department ID"));
+      return fetchDepartmentPayrollConfigs(wsId, editingDept.id);
+    }, 
     enabled: isOpen && !!editingDept?.id 
   });
 
   const saveConfigMutation = useMutation({
-    mutationFn: (data: { std_working_days: number; hours_per_day: number; effective_date: string }) => setDepartmentPayrollConfig(wsId, editingDept!.id, data),
+    mutationFn: (data: { effective_date: string; hours_per_day: number; std_working_days: number }) => {
+      if (!editingDept?.id) return Promise.reject(new Error("No department ID"));
+      return setDepartmentPayrollConfig(wsId, editingDept.id, data);
+    },
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["dept-payroll-configs", editingDept?.id] }); },
   });
 
   return (
-    <Modal icon={<Calculator size={24} />} isOpen={!!isOpen && Boolean(editingDept)} maxWidth="3xl" onClose={onClose} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
+    <Modal icon={<Calculator size={24} />} isOpen={isOpen && Boolean(editingDept)} maxWidth="3xl" onClose={onClose} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
       <div className="space-y-10 pt-4 animate-in fade-in duration-500">
         <TemporalConfigTable 
           isLoading={isConfigsLoading} 
           onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }} 
-          records={deptConfigs as TemporalConfigRecord[]} 
+          records={deptConfigs as any} 
           title={t("payroll.settings.std_days_history")} 
         />
         <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button onClick={onClose} size="lg" variant="secondary">{t("common.close").toUpperCase()}</Button></div>

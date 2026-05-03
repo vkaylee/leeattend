@@ -46,8 +46,8 @@ const items: TestItem[] = [
 ];
 
 const columns: NavigableListColumn<TestItem>[] = [
-    { key: "name", header: "Name", cell: (item) => item.name },
-    { key: "value", header: "Value", cell: (item) => `${item.value}`, cellClassName: "text-right" },
+    { header: "Name", key: "name", render: (item: TestItem) => item.name },
+    { header: "Value", key: "value", render: (item: TestItem) => `${item.value}` },
 ];
 
 const defaultProps = {
@@ -94,7 +94,7 @@ describe("NavigableList", () => {
     it("hides columns with hidden=true", () => {
         const cols: NavigableListColumn<TestItem>[] = [
             ...columns,
-            { key: "secret", header: "Secret", cell: () => "hidden", hidden: true },
+            { header: "Secret", key: "secret", render: () => "hidden", hidden: true },
         ];
         render(<NavigableList {...defaultProps} columns={cols} />);
         expect(screen.queryByText("Secret")).toBeNull();
@@ -262,8 +262,8 @@ describe("NavigableList", () => {
         const onSort = vi.fn();
         const user = userEvent.setup();
         const sortableCols: NavigableListColumn<TestItem>[] = [
-            { key: "name", header: "Name", cell: (item) => item.name, onHeaderClick: onSort },
-            { key: "value", header: "Value", cell: (item) => `${item.value}` },
+            { header: "Name", key: "name", onHeaderClick: onSort, render: (item: TestItem) => item.name },
+            { header: "Value", key: "value", render: (item: TestItem) => `${item.value}` },
         ];
 
         render(<NavigableList {...defaultProps} columns={sortableCols} />);
@@ -273,8 +273,8 @@ describe("NavigableList", () => {
 
     it("makes sortable headers have cursor-pointer class", () => {
         const sortableCols: NavigableListColumn<TestItem>[] = [
-            { key: "name", header: "Name", cell: (item) => item.name, onHeaderClick: vi.fn() },
-            { key: "value", header: "Value", cell: (item) => `${item.value}` },
+            { header: "Name", key: "name", onHeaderClick: vi.fn(), render: (item: TestItem) => item.name },
+            { header: "Value", key: "value", render: (item: TestItem) => `${item.value}` },
         ];
         const { container } = render(<NavigableList {...defaultProps} columns={sortableCols} />);
         const headers = container.querySelectorAll("th");

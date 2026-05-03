@@ -8,15 +8,14 @@ import {
     approveOt,
     upsertRoster,
     DailyAttendanceReport,
-    AttendanceAdjustmentRequest,
 } from "@/lib/api";
 
 interface UseDailyDrawerMutationsProps {
+    onConfirmSuccess: () => void;
+    onReprocessSuccess: () => void;
+    onResolveSuccess: () => void;
     workspaceId: string;
     workUnitMinutes: number;
-    onReprocessSuccess: () => void;
-    onConfirmSuccess: () => void;
-    onResolveSuccess: () => void;
 }
 
 export function useDailyDrawerMutations({

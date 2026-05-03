@@ -7,6 +7,7 @@ import {
 
 import { useDailyDrawerMutations } from "./use-daily-drawer-mutations";
 import { useDailyDrawerQueries } from "./use-daily-drawer-queries";
+import { useDailyDrawerModalState, createIsoFromLocal } from "./use-daily-drawer-utils";
 
 interface UseEmployeeDailyDrawerProps {
     dateRange: { start: string; end: string };
@@ -32,39 +33,18 @@ export function useEmployeeDailyDrawer({
     const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
     const [reprocessingRow, setReprocessingRow] = useState<string | null>(null);
     const [confirmingRow, setConfirmingRow] = useState<string | null>(null);
-    const [confirmDialog, setConfirmDialog] = useState<{
-        show: boolean;
-        employeeId: string;
-        employeeName: string;
-        date: string;
-    } | null>(null);
-    const [confirmModalData, setConfirmModalData] = useState<{
-        row: DailyAttendanceReport;
-        existingRequest?: AttendanceAdjustmentRequest;
-    } | null>(null);
-    const [resolveModalData, setResolveModalData] = useState<{
-        row: DailyAttendanceReport;
-    } | null>(null);
+    
+    const {
+        confirmDialog, setConfirmDialog,
+        confirmModalData, setConfirmModalData,
+        resolveModalData, setResolveModalData
+    } = useDailyDrawerModalState();
 
     const {
-        isLoading,
-        reportData,
-        adjustmentMap,
-        shifts,
-        rawLogsData,
-        rawLogsLoading,
-        hasNextPage,
-        isFetchingNextPage,
-        fetchNextPage,
-        totalStdHours,
-        totalOtHours,
+        isLoading, reportData, adjustmentMap, shifts, rawLogsData, rawLogsLoading,
+        hasNextPage, isFetchingNextPage, fetchNextPage, totalStdHours, totalOtHours,
     } = useDailyDrawerQueries({
-        workspaceId,
-        employeeId,
-        dateRange,
-        isOpen,
-        viewMode,
-        workUnitMinutes,
+        workspaceId, employeeId, dateRange, isOpen, viewMode, workUnitMinutes,
     });
 
     const toggleExpandRow = (rowKey: string) => {
@@ -76,24 +56,13 @@ export function useEmployeeDailyDrawer({
 
     // Mutations using the extracted hook
     const {
-        reprocessMutation,
-        confirmMutation,
-        approveOtMutation,
-        resolveUnscheduledMutation,
+        reprocessMutation, confirmMutation, approveOtMutation, resolveUnscheduledMutation,
     } = useDailyDrawerMutations({
         workspaceId,
         workUnitMinutes,
-        onReprocessSuccess: () => {
-            setReprocessingRow(null);
-            setConfirmDialog(null);
-        },
-        onConfirmSuccess: () => {
-            setConfirmingRow(null);
-            setConfirmModalData(null);
-        },
-        onResolveSuccess: () => {
-            setResolveModalData(null);
-        },
+        onReprocessSuccess: () => { setReprocessingRow(null); setConfirmDialog(null); },
+        onConfirmSuccess: () => { setConfirmingRow(null); setConfirmModalData(null); },
+        onResolveSuccess: () => { setResolveModalData(null); },
     });
 
     const handleApproveOt = (row: DailyAttendanceReport, action: "approved" | "rejected") => {
@@ -106,18 +75,12 @@ export function useEmployeeDailyDrawer({
 
     const handleResolveSubmit = (shiftId: string) => {
         if (!resolveModalData) return;
-        resolveUnscheduledMutation.mutate({
-            row: resolveModalData.row,
-            shiftId,
-        });
+        resolveUnscheduledMutation.mutate({ row: resolveModalData.row, shiftId });
     };
 
     const handleReprocessClick = (row: DailyAttendanceReport) => {
         setConfirmDialog({
-            show: true,
-            employeeId: row.employee_id,
-            employeeName: row.employee_name,
-            date: row.date,
+            show: true, employeeId: row.employee_id, employeeName: row.employee_name, date: row.date,
         });
     };
 
@@ -134,19 +97,11 @@ export function useEmployeeDailyDrawer({
     const handleConfirmSubmit = ({ punchIn, punchOut, reason }: { punchIn: string; punchOut: string; reason: string }) => {
         if (!confirmModalData) return;
         const { row, existingRequest } = confirmModalData;
-        const rowKey = `${row.employee_id}-${row.date}`;
-        setConfirmingRow(rowKey);
+        setConfirmingRow(`${row.employee_id}-${row.date}`);
 
         if (existingRequest) {
             confirmMutation.mutate({ row, existingRequestId: existingRequest.id });
         } else {
-            const createIsoFromLocal = (dateString: string, hhmm: string): string | null => {
-                if (!hhmm) return null;
-                const [y, m, d] = dateString.split("-").map(Number);
-                const [hours, mins] = hhmm.split(":").map(Number);
-                return new Date(y, m - 1, d, hours, mins, 0).toISOString();
-            };
-
             const modifiedRow = {
                 ...row,
                 actual_punch_in: createIsoFromLocal(row.date, punchIn),
@@ -157,36 +112,11 @@ export function useEmployeeDailyDrawer({
     };
 
     return {
-        viewMode,
-        setViewMode,
-        expandedDebugRows,
-        toggleExpandRow,
-        reprocessingRow,
-        confirmingRow,
-        confirmDialog,
-        setConfirmDialog,
-        confirmModalData,
-        setConfirmModalData,
-        resolveModalData,
-        setResolveModalData,
-        reportData,
-        isLoading,
-        rawLogsData,
-        rawLogsLoading,
-        hasNextPage,
-        isFetchingNextPage,
-        fetchNextPage,
-        adjustmentMap,
-        shifts,
-        totalStdHours,
-        totalOtHours,
-        handleReprocessClick,
-        handleConfirmReprocess,
-        handleConfirmClick,
-        handleConfirmSubmit,
-        handleApproveOt,
-        handleResolveUnscheduled,
-        handleResolveSubmit,
+        viewMode, setViewMode, expandedDebugRows, toggleExpandRow, reprocessingRow, confirmingRow,
+        confirmDialog, setConfirmDialog, confirmModalData, setConfirmModalData, resolveModalData, setResolveModalData,
+        reportData, isLoading, rawLogsData, rawLogsLoading, hasNextPage, isFetchingNextPage, fetchNextPage,
+        adjustmentMap, shifts, totalStdHours, totalOtHours, handleReprocessClick, handleConfirmReprocess,
+        handleConfirmClick, handleConfirmSubmit, handleApproveOt, handleResolveUnscheduled, handleResolveSubmit,
         reprocessMutationPending: reprocessMutation.isPending,
         confirmMutationPending: confirmMutation.isPending,
         resolveUnscheduledMutationPending: resolveUnscheduledMutation.isPending,

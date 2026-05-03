@@ -98,7 +98,7 @@ describe("ReportExportDialog - Integration Tests", () => {
   });
 
   describe("Initialization & UI Rendering", () => {
-    it("should render export dialog with proper structure", () => {
+    it("should render export dialog with proper structure", async () => {
       renderWithQueryClient(
         <ReportExportDialog {...defaultProps} />
       );
@@ -108,7 +108,7 @@ describe("ReportExportDialog - Integration Tests", () => {
       expect(screen.getByTestId("report-export-start-button")).toBeInTheDocument();
     });
 
-    it("should display correct date range and report type", () => {
+    it("should display correct date range and report type", async () => {
       renderWithQueryClient(
         <ReportExportDialog {...defaultProps} />
       );
@@ -119,7 +119,7 @@ describe("ReportExportDialog - Integration Tests", () => {
       expect(infoSection.textContent).toContain("summary");
     });
 
-    it("should show employee count when employeeIds provided", () => {
+    it("should show employee count when employeeIds provided", async () => {
       const props = {
         ...defaultProps,
         employeeIds: ["emp-1", "emp-2", "emp-3"],
@@ -133,7 +133,7 @@ describe("ReportExportDialog - Integration Tests", () => {
       expect(infoSection.textContent).toContain("3");
     });
 
-    it("should have data-testid on all interactive elements", () => {
+    it("should have data-testid on all interactive elements", async () => {
       renderWithQueryClient(
         <ReportExportDialog {...defaultProps} />
       );
@@ -247,7 +247,7 @@ describe("ReportExportDialog - Integration Tests", () => {
       });
     });
 
-    it("should handle completed state from WebSocket", () => {
+    it("should handle completed state from WebSocket", async () => {
       renderWithQueryClient(
         <ReportExportDialog {...defaultProps} />
       );
@@ -260,7 +260,7 @@ describe("ReportExportDialog - Integration Tests", () => {
       expect(screen.getByTestId("report-export-dialog")).toBeInTheDocument();
     });
 
-    it("should handle error state from WebSocket", () => {
+    it("should handle error state from WebSocket", async () => {
       renderWithQueryClient(
         <ReportExportDialog {...defaultProps} />
       );
@@ -322,7 +322,7 @@ describe("ReportExportDialog - Integration Tests", () => {
       });
     });
 
-    it("should display batch counter during polling phase", () => {
+    it("should display batch counter during polling phase", async () => {
       renderWithQueryClient(
         <ReportExportDialog {...defaultProps} />
       );
@@ -334,7 +334,7 @@ describe("ReportExportDialog - Integration Tests", () => {
   });
 
   describe("Fallback Mechanism", () => {
-    it("should use HTTP polling when WebSocket fails", () => {
+    it("should use HTTP polling when WebSocket fails", async () => {
       renderWithQueryClient(
         <ReportExportDialog {...defaultProps} />
       );
@@ -440,7 +440,7 @@ describe("ReportExportDialog - Integration Tests", () => {
   });
 
   describe("Dialog State Management", () => {
-    it("should reset state when dialog closes and reopens", () => {
+    it("should reset state when dialog closes and reopens", async () => {
       renderWithQueryClient(
         <ReportExportDialog {...defaultProps} />
       );
@@ -517,7 +517,7 @@ describe("ReportExportDialog - Integration Tests", () => {
   });
 
   describe("Accessibility", () => {
-    it("should have proper data-testid attributes on all interactive elements", () => {
+    it("should have proper data-testid attributes on all interactive elements", async () => {
       renderWithQueryClient(
         <ReportExportDialog {...defaultProps} />
       );

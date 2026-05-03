@@ -12,11 +12,11 @@ import {
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 
 interface UseDailyDrawerQueriesProps {
-    workspaceId: string;
-    employeeId: string;
     dateRange: { start: string; end: string };
+    employeeId: string;
     isOpen: boolean;
     viewMode: "daily" | "raw";
+    workspaceId: string;
     workUnitMinutes: number;
 }
 

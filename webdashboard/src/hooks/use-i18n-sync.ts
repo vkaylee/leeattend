@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { getCurrentWorkspaceId } from '@/lib/api';
@@ -8,7 +8,7 @@ import { useWorkspaces } from './use-workspace';
 
 interface SyncLangOptions {
   currentWorkspaceDefaultLang?: string;
-  hasInitialized: MutableRefObject<boolean>;
+  hasInitialized: RefObject<boolean>;
   i18n: { changeLanguage: (lang: string) => Promise<unknown>; language: string };
   userPreferredLang?: string;
 }

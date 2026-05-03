@@ -121,7 +121,7 @@ function ComboboxOptionItem({
           {Boolean(option.description) && <div className="mt-1 opacity-60">{option.displayDescription ?? option.description}</div>}
         </div>
       </div>
-      {isSelected && <Check className="ml-auto h-4 w-4 text-primary-600 dark:text-primary-300" />}
+      {!!isSelected && <Check className="ml-auto h-4 w-4 text-primary-600 dark:text-primary-300" />}
     </Command.Item>
   );
 }

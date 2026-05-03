@@ -34,7 +34,7 @@ export default function ResolveUnscheduledModal({
         <Modal
             icon={<AlertTriangle size={24} />}
             isOpen={isOpen}
-            onClose={() => { if (!isPending) onClose(); }}
+            onClose={() => !isPending && onClose()}
             title={t("reports.unscheduled.resolve_title")}
         >
             <div className="space-y-6">

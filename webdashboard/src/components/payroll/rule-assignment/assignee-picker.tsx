@@ -2,8 +2,10 @@ import { Globe } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { EmployeeSearch } from "@/components/common/employee-search";
 import type { Department } from "@/lib/api/types";
+
+import { EmployeeSearch } from "@/components/common/employee-search";
+
 import type { ScopeType } from "./scope-selector";
 
 interface AssigneePickerProps {
