@@ -3,27 +3,39 @@
  * Provides data fetching and mutations for ESS features
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import {
-  fetchMyProfile,
-  updateMyProfile,
-  fetchMyEmergencyContacts,
+  AttendanceEntry,
+  AttendanceDailySummary,
+  AttendanceParams,
+  CreateEmergencyContactRequest,
+  EmployeeEmergencyContact,
+  Employee,
+  EmployeeLeaveBalance,
+  LeaveRequest,
+  EmployeeDocument,
+  MyProfileResponse,
+  EmployeeProfile,
+  Payslip,
+  TimeEntry,
+  UpdateProfileRequest,
   addEmergencyContact,
   deleteEmergencyContact,
-  fetchMyDocuments,
-  fetchMyPayslips,
-  fetchMyAttendance,
   fetchEssLeaveBalances,
   fetchEssLeaveRequests,
+  fetchMyAttendance,
+  fetchMyAttendanceSummaries,
+  fetchMyDocuments,
+  fetchMyEmergencyContacts,
+  fetchMyPayslips,
+  fetchMyProfile,
   fetchMyTimeEntries,
   punchInMySelf,
   punchOutMySelf,
-  getCurrentWorkspaceId,
-  UpdateProfileRequest,
-  CreateEmergencyContactRequest,
-  AttendanceParams, fetchMyAttendanceSummaries, submitMyOtClaim 
+  submitMyOtClaim,
+  updateMyProfile,
 } from "@/lib/api";
 
 // Query Keys
@@ -42,15 +54,28 @@ export const essKeys = {
 
 // --- Profile Hook ---
 
-export function useMyProfile() {
+export interface UseMyProfileReturn {
+  data: MyProfileResponse | undefined;
+  emergencyContacts: EmployeeEmergencyContact[];
+  employee: Employee | undefined;
+  error: Error | null;
+  isError: boolean;
+  isLoading: boolean;
+  isUpdating: boolean;
+  profile: EmployeeProfile | undefined;
+  refetch: () => Promise<unknown>;
+  updateProfile: (data: UpdateProfileRequest) => Promise<EmployeeProfile>;
+}
+
+export function useMyProfile(): UseMyProfileReturn {
   const queryClient = useQueryClient();
 
-  const profileQuery = useQuery({
+  const profileQuery = useQuery<MyProfileResponse>({
     queryKey: essKeys.profile(),
     queryFn: fetchMyProfile,
   });
 
-  const updateMutation = useMutation({
+  const updateMutation = useMutation<EmployeeProfile, Error, UpdateProfileRequest>({
     mutationFn: (data: UpdateProfileRequest) => updateMyProfile(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: essKeys.profile() });
@@ -65,7 +90,7 @@ export function useMyProfile() {
     isLoading: profileQuery.isLoading,
     isError: profileQuery.isError,
     error: profileQuery.error,
-    refetch: profileQuery.refetch,
+    refetch: profileQuery.refetch, // Cast for simplicity in this specific shared hook
 
     updateProfile: updateMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
@@ -74,15 +99,27 @@ export function useMyProfile() {
 
 // --- Emergency Contacts Hook ---
 
-export function useEmergencyContacts() {
+export interface UseEmergencyContactsReturn {
+  addContact: (data: CreateEmergencyContactRequest) => Promise<EmployeeEmergencyContact>;
+  contacts: EmployeeEmergencyContact[];
+  deleteContact: (contactId: string) => Promise<unknown>;
+  error: Error | null;
+  isAdding: boolean;
+  isDeleting: boolean;
+  isError: boolean;
+  isLoading: boolean;
+  refetch: () => Promise<unknown>;
+}
+
+export function useEmergencyContacts(): UseEmergencyContactsReturn {
   const queryClient = useQueryClient();
 
-  const contactsQuery = useQuery({
+  const contactsQuery = useQuery<EmployeeEmergencyContact[]>({
     queryKey: essKeys.emergencyContacts(),
     queryFn: fetchMyEmergencyContacts,
   });
 
-  const addMutation = useMutation({
+  const addMutation = useMutation<EmployeeEmergencyContact, Error, CreateEmergencyContactRequest>({
     mutationFn: (data: CreateEmergencyContactRequest) =>
       addEmergencyContact(data),
     onSuccess: () => {
@@ -91,7 +128,7 @@ export function useEmergencyContacts() {
     },
   });
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useMutation<unknown, Error, string>({
     mutationFn: (contactId: string) => deleteEmergencyContact(contactId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: essKeys.emergencyContacts() });
@@ -116,8 +153,16 @@ export function useEmergencyContacts() {
 
 // --- Documents Hook ---
 
-export function useMyDocuments() {
-  const documentsQuery = useQuery({
+export interface UseMyDocumentsReturn {
+  documents: EmployeeDocument[];
+  error: Error | null;
+  isError: boolean;
+  isLoading: boolean;
+  refetch: () => Promise<unknown>;
+}
+
+export function useMyDocuments(): UseMyDocumentsReturn {
+  const documentsQuery = useQuery<EmployeeDocument[]>({
     queryKey: essKeys.documents(),
     queryFn: fetchMyDocuments,
   });
@@ -133,8 +178,16 @@ export function useMyDocuments() {
 
 // --- Payslips Hook ---
 
-export function useMyPayslips() {
-  const payslipsQuery = useQuery({
+export interface UseMyPayslipsReturn {
+  error: Error | null;
+  isError: boolean;
+  isLoading: boolean;
+  payslips: Payslip[];
+  refetch: () => Promise<unknown>;
+}
+
+export function useMyPayslips(): UseMyPayslipsReturn {
+  const payslipsQuery = useQuery<Payslip[]>({
     queryKey: essKeys.payslips(),
     queryFn: fetchMyPayslips,
   });
@@ -150,8 +203,16 @@ export function useMyPayslips() {
 
 // --- Attendance Hook ---
 
-export function useMyAttendance(params?: AttendanceParams) {
-  const attendanceQuery = useQuery({
+export interface UseMyAttendanceReturn {
+  entries: AttendanceEntry[];
+  error: Error | null;
+  isError: boolean;
+  isLoading: boolean;
+  refetch: () => Promise<unknown>;
+}
+
+export function useMyAttendance(params?: AttendanceParams): UseMyAttendanceReturn {
+  const attendanceQuery = useQuery<AttendanceEntry[]>({
     queryKey: essKeys.attendance(params),
     queryFn: () => fetchMyAttendance(params),
   });
@@ -167,13 +228,23 @@ export function useMyAttendance(params?: AttendanceParams) {
 
 // --- Leave Hook ---
 
-export function useMyLeave() {
-  const balancesQuery = useQuery({
+export interface UseMyLeaveReturn {
+  balances: EmployeeLeaveBalance[];
+  error: Error | null;
+  isError: boolean;
+  isLoading: boolean;
+  refetchBalances: () => Promise<unknown>;
+  refetchRequests: () => Promise<unknown>;
+  requests: LeaveRequest[];
+}
+
+export function useMyLeave(): UseMyLeaveReturn {
+  const balancesQuery = useQuery<EmployeeLeaveBalance[]>({
     queryKey: essKeys.leaveBalances(),
     queryFn: fetchEssLeaveBalances,
   });
 
-  const requestsQuery = useQuery({
+  const requestsQuery = useQuery<LeaveRequest[]>({
     queryKey: essKeys.leaveRequests(),
     queryFn: fetchEssLeaveRequests,
   });
@@ -191,9 +262,21 @@ export function useMyLeave() {
 
 // --- Clock Hook ---
 
-export function useMyClock() {
+export interface UseMyClockReturn {
+  activeEntry: TimeEntry | undefined;
+  entries: TimeEntry[];
+  error: Error | null;
+  isError: boolean;
+  isLoading: boolean;
+  isOnBreak: boolean;
+  isPunching: boolean;
+  punchIn: (data: { entry_type: "work" | "break"; note?: string }) => Promise<TimeEntry>;
+  punchOut: (data?: { note?: string }) => Promise<TimeEntry>;
+  refetch: () => Promise<unknown>;
+}
+
+export function useMyClock(): UseMyClockReturn {
   const queryClient = useQueryClient();
-  const _wsId = getCurrentWorkspaceId();
 
   // Fetch current user's time entries (today + 7 days)
   const { startDate, endDate } = useMemo(() => {
@@ -203,7 +286,7 @@ export function useMyClock() {
     return { startDate, endDate };
   }, []);
 
-  const entriesQuery = useQuery({
+  const entriesQuery = useQuery<TimeEntry[]>({
     queryKey: essKeys.clockEntries(),
     queryFn: () => fetchMyTimeEntries({ start_date: startDate, end_date: endDate }),
     refetchInterval: 30000, // Refresh every 30s for real-time status
@@ -212,7 +295,7 @@ export function useMyClock() {
   const activeEntry = entriesQuery.data?.find((e) => !e.punch_out_time);
   const isOnBreak = activeEntry?.entry_type === "break";
 
-  const punchInMutation = useMutation({
+  const punchInMutation = useMutation<TimeEntry, Error, { entry_type: "work" | "break"; note?: string }>({
     mutationFn: (data: { entry_type: "work" | "break"; note?: string }) =>
       punchInMySelf(data),
     onSuccess: () => {
@@ -221,7 +304,7 @@ export function useMyClock() {
     },
   });
 
-  const punchOutMutation = useMutation({
+  const punchOutMutation = useMutation<TimeEntry, Error, { note?: string } | undefined>({
     mutationFn: (data?: { note?: string }) => punchOutMySelf(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
@@ -246,9 +329,16 @@ export function useMyClock() {
 
 // --- OT Hooks ---
 
+export interface UseMyAttendanceSummariesReturn {
+  error: Error | null;
+  isError: boolean;
+  isLoading: boolean;
+  refetch: () => Promise<unknown>;
+  summaries: AttendanceDailySummary[];
+}
 
-export function useMyAttendanceSummaries(start: string, end: string) {
-  const query = useQuery({
+export function useMyAttendanceSummaries(start: string, end: string): UseMyAttendanceSummariesReturn {
+  const query = useQuery<AttendanceDailySummary[]>({
     queryKey: [...essKeys.all, "summaries", start, end],
     queryFn: () => fetchMyAttendanceSummaries(start, end),
   });
@@ -262,10 +352,15 @@ export function useMyAttendanceSummaries(start: string, end: string) {
   };
 }
 
-export function useSubmitOtClaim() {
+export interface UseSubmitOtClaimReturn {
+  isSubmitting: boolean;
+  submitClaim: (data: { date: string; minutes: number; reason: string }) => Promise<unknown>;
+}
+
+export function useSubmitOtClaim(): UseSubmitOtClaimReturn {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
+  const mutation = useMutation<unknown, Error, { date: string; minutes: number; reason: string }>({
     mutationFn: (data: { date: string; minutes: number; reason: string }) =>
       submitMyOtClaim(data.date, data.minutes, data.reason),
     onSuccess: () => {

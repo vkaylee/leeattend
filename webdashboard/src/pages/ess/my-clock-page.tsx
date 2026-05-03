@@ -1,19 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { History } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  AdjustmentRequestModal,
   AdjustmentData,
+  AdjustmentRequestModal,
 } from "@/components/time-tracking/adjustment-request-modal";
 import { PunchCard } from "@/components/time-tracking/punch-card";
-import { TimeEntryRow } from "@/components/time-tracking/time-entry-row";
 import { useToast } from "@/components/ui/toast";
-import { useMyProfile, useMyClock } from "@/hooks/use-ess";
+import { useMyClock, useMyProfile } from "@/hooks/use-ess";
 import { fetchWorkspace, getCurrentWorkspaceId, submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
 
+import { HistoryTable } from "./components/history-table";
 
 export default function MyClockPage() {
   const { t } = useTranslation();
@@ -22,19 +21,22 @@ export default function MyClockPage() {
 
   const { employee, isLoading: isLoadingProfile } = useMyProfile();
   const {
-    entries,
     activeEntry,
-    isOnBreak,
+    entries,
     isLoading: isLoadingClock,
+    isOnBreak,
+    isPunching,
     punchIn,
     punchOut,
-    isPunching,
   } = useMyClock();
 
   const { data: workspace } = useQuery({
-    queryKey: ["workspace", wsId],
-    queryFn: () => fetchWorkspace(wsId!),
     enabled: !!wsId,
+    queryFn: () => {
+      if (!wsId) throw new Error("Workspace ID is required");
+      return fetchWorkspace(wsId);
+    },
+    queryKey: ["workspace", wsId],
   });
 
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
@@ -43,9 +45,7 @@ export default function MyClockPage() {
     try {
       await punchIn({ entry_type: type });
       toast.success(
-        type === "work"
-          ? t("ess.clock.punch_in_success")
-          : t("ess.clock.break_start_success")
+        type === "work" ? t("ess.clock.punch_in_success") : t("ess.clock.break_start_success")
       );
     } catch {
       toast.error(t("common.error"));
@@ -74,10 +74,10 @@ export default function MyClockPage() {
 
       await submitAttendanceAdjustment(wsId, {
         employee_id: employee.id,
-        time_entry_id: data.timeEntryId,
+        reason: data.reason,
         requested_punch_in_time: punchInTime,
         requested_punch_out_time: punchOutTime,
-        reason: data.reason,
+        time_entry_id: data.timeEntryId,
       });
       toast.success(t("ess.clock.adjustment_requested"));
     } catch {
@@ -85,39 +85,15 @@ export default function MyClockPage() {
     }
   };
 
-  if (isLoadingProfile || isLoadingClock) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
+  if (isLoadingProfile || isLoadingClock) return <LoadingState />;
 
-  if (!employee) {
-    return (
-      <div className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold italic">
-        {t("common.no_profile")}
-      </div>
-    );
-  }
+  if (!employee) return <EmptyState t={t} />;
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">
-            {t("ess.clock.title")}
-          </h1>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60 mt-1.5">
-            {t("ess.clock.subtitle")}
-          </p>
-        </div>
-      </div>
+      <Header t={t} />
 
-      {/* Main Content: 2 Columns on Desktop, Stack on Mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left: Punch Card */}
         <div className="lg:col-span-5">
           <PunchCard
             activeEntry={activeEntry}
@@ -125,68 +101,55 @@ export default function MyClockPage() {
             isPunching={isPunching}
             onPunchIn={handlePunchIn}
             onPunchOut={handlePunchOut}
-            onRequestAdjustment={() => { setIsAdjustmentModalOpen(true); }}
+            onRequestAdjustment={() => {
+              setIsAdjustmentModalOpen(true);
+            }}
             userName={employee.full_name}
           />
         </div>
 
-        {/* Right: Quick History */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[40px] overflow-hidden shadow-sm flex flex-col">
-          <div className="px-8 py-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <History className="w-5 h-5 text-primary-500" />
-              <h3 className="font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest text-xs">
-                {t("ess.clock.recent_history")}
-              </h3>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto max-h-[600px]">
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-white dark:bg-slate-900/80 backdrop-blur-md z-10 border-b border-slate-100 dark:border-slate-800">
-                <tr>
-                  <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                    {t("common.date")}
-                  </th>
-                  <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                    {t("common.in")}
-                  </th>
-                  <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                    {t("common.out")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                {entries.length === 0 ? (
-                  <tr>
-                    <td
-                      className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50"
-                      colSpan={3}
-                    >
-                      {t("ess.clock.no_entries")}
-                    </td>
-                  </tr>
-                ) : (
-                  entries.map((entry) => (
-                    <TimeEntryRow
-                      entry={entry}
-                      key={entry.id}
-                      showAdjustButton={false}
-                    />
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <HistoryTable entries={entries} />
       </div>
 
-      {/* Adjustment Request Modal */}
       <AdjustmentRequestModal
         isOpen={isAdjustmentModalOpen}
-        onClose={() => { setIsAdjustmentModalOpen(false); }}
+        onClose={() => {
+          setIsAdjustmentModalOpen(false);
+        }}
         onSubmit={handleAdjustmentSubmit}
         timezone={workspace?.timezone ?? "UTC"}
       />
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+    </div>
+  );
+}
+
+function EmptyState({ t }: { t: any }) {
+  return (
+    <div className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold italic">
+      {t("common.no_profile")}
+    </div>
+  );
+}
+
+function Header({ t }: { t: any }) {
+  return (
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
+      <div>
+        <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">
+          {t("ess.clock.title")}
+        </h1>
+        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60 mt-1.5">
+          {t("ess.clock.subtitle")}
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,44 @@
+import { Link } from "@tanstack/react-router";
+import { CalendarCheck, Download } from "lucide-react";
+import React from "react";
+import { useTranslation } from "react-i18next";
+
+interface ReportsHeaderProps {
+  dateRange: { start: string; end: string };
+  onExportClick: () => void;
+}
+
+export function ReportsHeader({ dateRange, onExportClick }: ReportsHeaderProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
+      <div className="space-y-1">
+        <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">
+          {t("reports.title")}
+        </h1>
+        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">
+          {t("reports.subtitle")}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Link
+          className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-8 py-3 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
+          search={{ from: dateRange.start, to: dateRange.end } as Record<string, string>}
+          to="/attendance-logs"
+        >
+          <CalendarCheck size={18} /> {t("reports.view_raw_logs").toUpperCase()}
+        </Link>
+        <button
+          className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
+          data-testid="export-report-btn"
+          onClick={onExportClick}
+          type="button"
+        >
+          <Download size={18} /> {t("reports.export_excel").toUpperCase()}
+        </button>
+      </div>
+    </div>
+  );
+}
