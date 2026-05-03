@@ -1,11 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, 
   Trash2, 
   CheckCircle2, 
-  AlertCircle, 
   ArrowRight, 
   Clock, 
   FileSpreadsheet, 
@@ -17,11 +16,11 @@ import {
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { WorkingCondition } from "@/lib/api/types";
+
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingConditions } from "@/hooks/use-employees";
 import { cn } from "@/lib/utils";
-
-import type { WorkingCondition } from "@/lib/api/types";
 
 export enum EmployeeWorkingConditionType {
   Regular = "REGULAR",
@@ -240,7 +239,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
                     </div>
                     <div className="flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70">
                       <div className="flex items-center gap-1.5"><Calendar size={12} /> {cond.start_date}</div>
-                      <ArrowRight size={10} className="text-slate-300" />
+                      <ArrowRight className="text-slate-300" size={10} />
                       <div className="flex items-center gap-1.5">{cond.end_date ? <><Calendar size={12} /> {cond.end_date}</> : t("common.present")}</div>
                     </div>
                   </div>

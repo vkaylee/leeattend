@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next";
+
 import { ChevronRight, Search, Loader2 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -165,7 +166,7 @@ function NavigableListTableContent<T>({
               listNav.setFocusedIndex(index);
               onSelect(item);
             }}
-            onMouseEnter={() => listNav.setFocusedIndex(index)}
+            onMouseEnter={() => { listNav.setFocusedIndex(index); }}
             tabIndex={-1}
           >
             {visibleColumns.map((col) => (

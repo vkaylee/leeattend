@@ -46,7 +46,7 @@ export const useEmployeeColumns = ({
 
   const columns: NavigableListColumn<Employee>[] = useMemo(() => [
     {
-      cell: (emp) => (
+      render: (emp) => (
         <EmployeeNameCell employee={emp} isSelected={selectedEmployee?.id === emp.id} />
       ),
       cellClassName: "py-6",
@@ -55,7 +55,7 @@ export const useEmployeeColumns = ({
       onHeaderClick: () => { toggleSort("name"); },
     },
     {
-      cell: (emp) => emp.department_name ? (
+      render: (emp) => emp.department_name ? (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800">
           <Building2 className="opacity-60" size={12} />{emp.department_name}
         </span>
@@ -78,7 +78,7 @@ export const useEmployeeColumns = ({
       onHeaderClick: () => { toggleSort("department"); },
     },
     {
-      cell: (emp) => (
+      render: (emp) => (
         <StatusBadge variant={emp.is_active ? "success" : "neutral"}>
           {emp.is_active ? t("employees.table.active").toUpperCase() : t("employees.table.terminated").toUpperCase()}
         </StatusBadge>
@@ -92,8 +92,6 @@ export const useEmployeeColumns = ({
   ], [
     renderSortIcon,
     t,
-    sortKey, 
-    sortDir, 
     filterDeptIds, 
     departments, 
     selectedEmployee, 

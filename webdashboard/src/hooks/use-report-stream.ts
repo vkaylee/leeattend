@@ -238,7 +238,11 @@ export function useReportStream({
 
     if (!jobId) return;
 
-    connect();
+    void Promise.resolve().then(() => {
+      if (shouldReconnectRef.current) {
+        connect();
+      }
+    });
 
     // Cleanup on unmount or jobId change
     return () => {

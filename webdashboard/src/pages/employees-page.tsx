@@ -1,59 +1,20 @@
 import FloatingRecordBadge from "@/components/common/floating-record-badge";
-import EmployeeDetailDrawer from "@/components/features/employees/employee-detail-drawer";
 
 import { EmployeeFilterChips } from "./employees/components/employee-filter-chips";
-import { EmployeeModals } from "./employees/components/employee-modals";
+import { EmployeeOverlays } from "./employees/components/employee-overlays";
 import { EmployeeTable } from "./employees/components/employee-table";
 import { EmployeesPageHeader } from "./employees/components/employees-page-header";
 import { useEmployeesPage } from "./employees/hooks/use-employees-page";
 
 export default function EmployeesPage() {
+  const page = useEmployeesPage();
   const {
-    wsId,
-    formatDate,
-    isModalOpen,
-    setIsModalOpen,
-    isImportDialogOpen,
-    setIsImportDialogOpen,
-    editingEmployee,
-    setEditingEmployee,
-    selectedEmployee,
-    setSelectedEmployee,
-    searchTerm,
-    setSearchTerm,
-    filterDeptIds,
-    setFilterDeptIds,
-    prefillEnrollmentId,
-    setPrefillEnrollmentId,
-    ConfirmationDialog,
-    isTransferModalOpen,
-    setIsTransferModalOpen,
-    isHistoryModalOpen,
-    setIsHistoryModalOpen,
-    isRehireModalOpen,
-    setIsRehireModalOpen,
-    selectedDeptId,
-    setSelectedDeptId,
-    sortKey,
-    sortDir,
-    toggleSort,
+    isLoading,
     employees,
     totalItems,
-    departments,
-    toggleDeptFilter,
-    deptHistory,
-    employmentHistory,
-    isLoading,
-    isFetching,
-    isPlaceholderData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    searchInputRef,
-    handleDrawerClose,
-    handleTerminate,
     t,
-  } = useEmployeesPage();
+    ConfirmationDialog,
+  } = page;
 
   if (isLoading) {
     return (
@@ -66,86 +27,42 @@ export default function EmployeesPage() {
   return (
     <div className="space-y-10 pb-20 animate-in fade-in duration-700">
       <EmployeesPageHeader
-        setEditingEmployee={setEditingEmployee}
-        setIsImportDialogOpen={setIsImportDialogOpen}
-        setIsModalOpen={setIsModalOpen}
+        setEditingEmployee={page.setEditingEmployee}
+        setIsImportDialogOpen={page.setIsImportDialogOpen}
+        setIsModalOpen={page.setIsModalOpen}
       />
 
       <EmployeeFilterChips
-        departments={departments}
-        filterDeptIds={filterDeptIds}
-        setFilterDeptIds={setFilterDeptIds}
-        toggleDeptFilter={toggleDeptFilter}
+        departments={page.departments}
+        filterDeptIds={page.filterDeptIds}
+        setFilterDeptIds={page.setFilterDeptIds}
+        toggleDeptFilter={page.toggleDeptFilter}
       />
 
       <EmployeeTable
-        departments={departments}
-        employees={employees}
-        fetchNextPage={fetchNextPage}
-        filterDeptIds={filterDeptIds}
-        hasNextPage={hasNextPage}
-        isFetching={isFetching}
-        isFetchingNextPage={isFetchingNextPage}
+        departments={page.departments}
+        employees={page.employees}
+        fetchNextPage={page.fetchNextPage}
+        filterDeptIds={page.filterDeptIds}
+        hasNextPage={page.hasNextPage}
+        isFetching={page.isFetching}
+        isFetchingNextPage={page.isFetchingNextPage}
         isLoading={false}
-        isPlaceholderData={isPlaceholderData}
-        searchInputRef={searchInputRef}
-        searchTerm={searchTerm}
-        selectedEmployee={selectedEmployee}
-        setFilterDeptIds={setFilterDeptIds}
-        setSearchTerm={setSearchTerm}
-        setSelectedEmployee={setSelectedEmployee}
-        sortDir={sortDir}
-        sortKey={sortKey}
-        toggleDeptFilter={toggleDeptFilter}
-        toggleSort={toggleSort}
-        totalItems={totalItems}
+        isPlaceholderData={page.isPlaceholderData}
+        searchInputRef={page.searchInputRef}
+        searchTerm={page.searchTerm}
+        selectedEmployee={page.selectedEmployee}
+        setFilterDeptIds={page.setFilterDeptIds}
+        setSearchTerm={page.setSearchTerm}
+        setSelectedEmployee={page.setSelectedEmployee}
+        sortDir={page.sortDir}
+        sortKey={page.sortKey}
+        toggleDeptFilter={page.toggleDeptFilter}
+        toggleSort={page.toggleSort}
+        totalItems={page.totalItems}
       />
 
-      <EmployeeDetailDrawer
-        departments={departments}
-        deptHistory={deptHistory}
-        employee={selectedEmployee}
-        employmentHistory={employmentHistory}
-        formatDate={formatDate}
-        isOpen={!!selectedEmployee}
-        key={selectedEmployee?.id ?? "closed"}
-        onClose={handleDrawerClose}
-        onEdit={(emp) => {
-          setEditingEmployee(emp);
-          setIsModalOpen(true);
-        }}
-        onRehire={() => { setIsRehireModalOpen(true); }}
-        onTerminate={handleTerminate}
-        onTransfer={(deptId) => {
-          setSelectedDeptId(deptId);
-          setIsTransferModalOpen(true);
-        }}
-        wsId={wsId}
-      />
-
-      <EmployeeModals
-        departments={departments}
-        editingEmployee={editingEmployee}
-        employmentHistory={employmentHistory}
-        formatDate={formatDate}
-        isHistoryModalOpen={isHistoryModalOpen}
-        isImportDialogOpen={isImportDialogOpen}
-        isModalOpen={isModalOpen}
-        isRehireModalOpen={isRehireModalOpen}
-        isTransferModalOpen={isTransferModalOpen}
-        prefillEnrollmentId={prefillEnrollmentId}
-        selectedDeptId={selectedDeptId}
-        selectedEmployee={selectedEmployee}
-        setIsHistoryModalOpen={setIsHistoryModalOpen}
-        setIsImportDialogOpen={setIsImportDialogOpen}
-        setIsModalOpen={setIsModalOpen}
-        setIsRehireModalOpen={setIsRehireModalOpen}
-        setIsTransferModalOpen={setIsTransferModalOpen}
-        setPrefillEnrollmentId={setPrefillEnrollmentId}
-        setSelectedDeptId={setSelectedDeptId}
-        setSelectedEmployee={setSelectedEmployee}
-        wsId={wsId}
-      />
+      <EmployeeOverlays {...page} />
 
       <FloatingRecordBadge label={t("common.pagination.records")} loaded={employees.length} total={totalItems} />
       
