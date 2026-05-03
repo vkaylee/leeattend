@@ -152,6 +152,159 @@ function NavigableListRow<T>({
 // Component
 // ---------------------------------------------------------------------------
 
+function NavigableListSearchContent({
+    onSearchChange,
+    searchTestId,
+    searchInputRef,
+    listNav,
+    searchPlaceholder,
+    searchValue,
+}: {
+    listNav: any;
+    onSearchChange?: (value: string) => void;
+    searchInputRef?: React.RefObject<HTMLInputElement | null>;
+    searchPlaceholder?: string;
+    searchTestId?: string;
+    searchValue?: string;
+}) {
+    if (!onSearchChange) return null;
+    return (
+        <SearchBox
+            data-testid={searchTestId ?? "navigable-list-search"}
+            inputRef={searchInputRef}
+            onChange={onSearchChange}
+            onKeyDown={listNav.onKeyDown}
+            placeholder={searchPlaceholder}
+            value={searchValue ?? ""}
+        />
+    );
+}
+
+function NavigableListHeaderWrapper({
+    smartHeaderEnabled,
+    smartHeaderVisible,
+    smartHeaderRef,
+    headerSlot,
+    isFullPage,
+    stickySearchRef,
+    searchProps,
+}: {
+    headerSlot?: React.ReactNode;
+    isFullPage: boolean;
+    searchProps: any;
+    smartHeaderEnabled: boolean;
+    smartHeaderRef: any;
+    smartHeaderVisible: boolean;
+    stickySearchRef: any;
+}) {
+    if (smartHeaderEnabled) {
+        return (
+            <div
+                className={cn(
+                    "sticky top-0 z-20 backdrop-blur-md transition-transform duration-300 ease-out",
+                    smartHeaderVisible ? "translate-y-0" : "-translate-y-full"
+                )}
+                ref={smartHeaderRef}
+            >
+                <div className="flex flex-col gap-6 pb-2">
+                    {headerSlot}
+                    <NavigableListSearchContent {...searchProps} />
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            {headerSlot}
+            {!!isFullPage && !!searchProps.onSearchChange && (
+                <div className="sticky top-0 z-20 backdrop-blur-md pt-1 pb-2 -mt-1" ref={stickySearchRef}>
+                    <NavigableListSearchContent {...searchProps} />
+                </div>
+            )}
+        </>
+    );
+}
+
+function NavigableListTableContent<T>({
+    isLoading,
+    items,
+    itemKey,
+    selectedKey,
+    listNav,
+    onSelect,
+    rowIdPrefix,
+    showActiveBar,
+    showChevron,
+    testIdPrefix,
+    visibleColumns,
+    skeletonRows,
+    colSpan,
+    emptyMessage,
+    t,
+    fetchNextPage,
+    isFetchingNextPage,
+    loadMoreRef
+}: {
+    colSpan: number;
+    emptyMessage?: string;
+    fetchNextPage?: () => void;
+    isFetchingNextPage?: boolean;
+    isLoading: boolean;
+    itemKey: (item: T) => string;
+    items: T[];
+    listNav: any;
+    loadMoreRef: any;
+    onSelect: (item: T) => void;
+    rowIdPrefix?: string;
+    selectedKey?: string | null;
+    showActiveBar?: boolean;
+    showChevron?: boolean;
+    skeletonRows: number;
+    t: any;
+    testIdPrefix?: string;
+    visibleColumns: NavigableListColumn<T>[];
+}) {
+    return (
+        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+            {isLoading ? (
+                <NavigableListSkeleton showChevron={!!showChevron} skeletonRows={skeletonRows} visibleColumns={visibleColumns} />
+            ) : items.length === 0 ? (
+                <NavigableListEmptyState colSpan={colSpan} emptyMessage={emptyMessage} t={t} />
+            ) : (
+                items.map((item, index) => {
+                    const key = itemKey(item);
+                    const isSelected = selectedKey != null && key === selectedKey;
+                    return (
+                        <NavigableListRow
+                            index={index}
+                            isSelected={isSelected}
+                            item={item}
+                            itemKey={itemKey}
+                            key={key}
+                            listNav={listNav}
+                            onSelect={onSelect}
+                            rowIdPrefix={rowIdPrefix}
+                            showActiveBar={showActiveBar}
+                            showChevron={showChevron}
+                            testIdPrefix={testIdPrefix}
+                            visibleColumns={visibleColumns}
+                        />
+                    );
+                })
+            )}
+
+            {!!fetchNextPage && (
+                <InfiniteScrollSentinel
+                    colSpan={colSpan}
+                    isFetchingNextPage={isFetchingNextPage ?? false}
+                    sentinelRef={loadMoreRef}
+                />
+            )}
+        </tbody>
+    );
+}
+
 export default function NavigableList<T>({
     columns,
     items,
@@ -222,58 +375,21 @@ export default function NavigableList<T>({
         ? (smartHeaderVisible ? smartHeaderHeight : 0)
         : (isFullPage ? measuredSearchHeight : 0);
 
+    const searchProps = { onSearchChange, searchTestId, searchInputRef, listNav, searchPlaceholder, searchValue };
+
     return (
         <div className={cn("flex flex-col gap-6", className)}>
-            {smartHeaderEnabled ? (
-                <div
-                    className={cn(
-                        "sticky top-0 z-20 backdrop-blur-md transition-transform duration-300 ease-out",
-                        smartHeaderVisible ? "translate-y-0" : "-translate-y-full"
-                    )}
-                    ref={smartHeaderRef}
-                >
-                    <div className="flex flex-col gap-6 pb-2">
-                        {headerSlot}
-                        {!!onSearchChange && (
-                            <SearchBox
-                                data-testid={searchTestId ?? "navigable-list-search"}
-                                inputRef={searchInputRef}
-                                onChange={onSearchChange}
-                                onKeyDown={listNav.onKeyDown}
-                                placeholder={searchPlaceholder}
-                                value={searchValue ?? ""}
-                            />
-                        )}
-                    </div>
-                </div>
-            ) : (
-                <>
-                    {headerSlot}
-                    {!!isFullPage && !!onSearchChange && (
-                        <div className="sticky top-0 z-20 backdrop-blur-md pt-1 pb-2 -mt-1" ref={stickySearchRef}>
-                            <SearchBox
-                                data-testid={searchTestId ?? "navigable-list-search"}
-                                inputRef={searchInputRef}
-                                onChange={onSearchChange}
-                                onKeyDown={listNav.onKeyDown}
-                                placeholder={searchPlaceholder}
-                                value={searchValue ?? ""}
-                            />
-                        </div>
-                    )}
-                </>
-            )}
+            <NavigableListHeaderWrapper
+                headerSlot={headerSlot}
+                isFullPage={isFullPage}
+                searchProps={searchProps}
+                smartHeaderEnabled={smartHeaderEnabled}
+                smartHeaderRef={smartHeaderRef}
+                smartHeaderVisible={smartHeaderVisible}
+                stickySearchRef={stickySearchRef}
+            />
 
-            {!isFullPage && !!onSearchChange && (
-                <SearchBox
-                    data-testid={searchTestId ?? "navigable-list-search"}
-                    inputRef={searchInputRef}
-                    onChange={onSearchChange}
-                    onKeyDown={listNav.onKeyDown}
-                    placeholder={searchPlaceholder}
-                    value={searchValue ?? ""}
-                />
-            )}
+            {!isFullPage && <NavigableListSearchContent {...searchProps} />}
 
             <div className={cn("bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm", isFullPage ? "overflow-x-clip" : "overflow-hidden")}>
                 <div className={cn(isFullPage ? "" : "overflow-auto", maxHeightClass)}>
@@ -300,42 +416,26 @@ export default function NavigableList<T>({
                             </tr>
                         </thead>
 
-                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                            {isLoading ? (
-                                <NavigableListSkeleton showChevron={showChevron} skeletonRows={skeletonRows} visibleColumns={visibleColumns} />
-                            ) : items.length === 0 ? (
-                                <NavigableListEmptyState colSpan={colSpan} emptyMessage={emptyMessage} t={t} />
-                            ) : (
-                                items.map((item, index) => {
-                                    const key = itemKey(item);
-                                    const isSelected = selectedKey != null && key === selectedKey;
-                                    return (
-                                        <NavigableListRow
-                                            index={index}
-                                            isSelected={isSelected}
-                                            item={item}
-                                            itemKey={itemKey}
-                                            key={key}
-                                            listNav={listNav}
-                                            onSelect={onSelect}
-                                            rowIdPrefix={rowIdPrefix}
-                                            showActiveBar={showActiveBar}
-                                            showChevron={showChevron}
-                                            testIdPrefix={testIdPrefix}
-                                            visibleColumns={visibleColumns}
-                                        />
-                                    );
-                                })
-                            )}
-
-                            {!!fetchNextPage && (
-                                <InfiniteScrollSentinel
-                                    colSpan={colSpan}
-                                    isFetchingNextPage={isFetchingNextPage ?? false}
-                                    sentinelRef={loadMoreRef}
-                                />
-                            )}
-                        </tbody>
+                        <NavigableListTableContent
+                            colSpan={colSpan}
+                            emptyMessage={emptyMessage}
+                            fetchNextPage={fetchNextPage}
+                            isFetchingNextPage={isFetchingNextPage}
+                            isLoading={isLoading}
+                            itemKey={itemKey}
+                            items={items}
+                            listNav={listNav}
+                            loadMoreRef={loadMoreRef}
+                            onSelect={onSelect}
+                            rowIdPrefix={rowIdPrefix}
+                            selectedKey={selectedKey}
+                            showActiveBar={showActiveBar}
+                            showChevron={showChevron}
+                            skeletonRows={skeletonRows}
+                            t={t}
+                            testIdPrefix={testIdPrefix}
+                            visibleColumns={visibleColumns}
+                        />
                     </table>
                 </div>
             </div>

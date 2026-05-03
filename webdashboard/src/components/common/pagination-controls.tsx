@@ -14,6 +14,121 @@ interface PaginationControlsProps {
   totalPages: number;
 }
 
+function MobilePagination({ currentPage, totalPages, onPageChange, t }: any) {
+  return (
+      <div className="flex justify-between flex-1 sm:hidden">
+        <button
+          className="relative inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm dark:shadow-black/10 active:scale-95"
+          disabled={currentPage === 1}
+          onClick={() => { onPageChange(currentPage - 1); }}
+        >
+          {t('common.pagination.prev')}
+        </button>
+        <button
+          className="relative ml-3 inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+          disabled={currentPage === totalPages}
+          onClick={() => { onPageChange(currentPage + 1); }}
+        >
+          {t('common.pagination.next')}
+        </button>
+      </div>
+  );
+}
+
+function DesktopPagination({
+    currentPage,
+    totalPages,
+    onPageChange,
+    onPageSizeChange,
+    pageSize,
+    totalItems,
+    startItem,
+    endItem,
+    currentOptions,
+    getPageNumbers,
+    t
+}: any) {
+  return (
+      <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between gap-8">
+        <div className="flex items-center gap-6">
+          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+            {t('common.pagination.showing')} <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{startItem}</span> - <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{endItem}</span> {t('common.pagination.out_of')} <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{totalItems}</span> {t('common.pagination.records')}
+          </p>
+          {!!onPageSizeChange && (
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('common.pagination.rows_per_page', 'Rows per page')}:</span>
+              <select
+                className="block py-1 pl-3 pr-8 text-[10px] font-bold uppercase tracking-widest border-slate-200 dark:border-slate-700 rounded-xl focus:ring-primary-500 focus:border-primary-500 cursor-pointer bg-white dark:bg-slate-900 shadow-sm"
+                onChange={(e) => { onPageSizeChange(Number(e.target.value)); }}
+                value={pageSize}
+              >
+                {currentOptions.map((option: number) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+        <div>
+          <nav aria-label={t("common.pagination.page")} className="relative z-0 inline-flex gap-1">
+            <button
+              className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+              disabled={currentPage === 1}
+              onClick={() => { onPageChange(1); }}
+            >
+              <span className="sr-only">{t("common.pagination.first")}</span>
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
+            <button
+              className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+              disabled={currentPage === 1}
+              onClick={() => { onPageChange(currentPage - 1); }}
+            >
+              <span className="sr-only">{t("common.pagination.prev")}</span>
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            
+            <div className="flex items-center gap-1 mx-1">
+              {getPageNumbers().map((page: number) => (
+                <button
+                  className={cn(
+                    "relative inline-flex items-center w-9 h-9 justify-center text-[10px] font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer border",
+                    currentPage === page
+                      ? 'z-10 bg-primary-600 text-white border-primary-500 shadow-lg shadow-primary-100'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary-200 dark:border-primary-800 hover:text-primary-600 dark:text-primary-400'
+                  )}
+                  key={page}
+                  onClick={() => { onPageChange(page); }}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+              disabled={currentPage === totalPages}
+              onClick={() => { onPageChange(currentPage + 1); }}
+            >
+              <span className="sr-only">{t("common.pagination.next")}</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
+              disabled={currentPage === totalPages}
+              onClick={() => { onPageChange(totalPages); }}
+            >
+              <span className="sr-only">{t("common.pagination.last")}</span>
+              <ChevronsRight className="w-4 h-4" />
+            </button>
+          </nav>
+        </div>
+      </div>
+  );
+}
+
 const PaginationControls: React.FC<PaginationControlsProps> = ({
   currentPage,
   totalPages,
@@ -59,99 +174,25 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
 
   return (
     <div className="flex items-center justify-between px-4 py-3 sm:px-6 w-full">
-      <div className="flex justify-between flex-1 sm:hidden">
-        <button
-          className="relative inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm dark:shadow-black/10 active:scale-95"
-          disabled={currentPage === 1}
-          onClick={() => { onPageChange(currentPage - 1); }}
-        >
-          {t('common.pagination.prev')}
-        </button>
-        <button
-          className="relative ml-3 inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
-          disabled={currentPage === totalPages}
-          onClick={() => { onPageChange(currentPage + 1); }}
-        >
-          {t('common.pagination.next')}
-        </button>
-      </div>
-      <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between gap-8">
-        <div className="flex items-center gap-6">
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-            {t('common.pagination.showing')} <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{startItem}</span> - <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{endItem}</span> {t('common.pagination.out_of')} <span className="text-slate-700 dark:text-slate-200 mx-1 font-mono">{totalItems}</span> {t('common.pagination.records')}
-          </p>
-          {!!onPageSizeChange && (
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('common.pagination.rows_per_page', 'Rows per page')}:</span>
-              <select
-                className="block py-1 pl-3 pr-8 text-[10px] font-bold uppercase tracking-widest border-slate-200 dark:border-slate-700 rounded-xl focus:ring-primary-500 focus:border-primary-500 cursor-pointer bg-white dark:bg-slate-900 shadow-sm"
-                onChange={(e) => { onPageSizeChange(Number(e.target.value)); }}
-                value={pageSize}
-              >
-                {currentOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-        <div>
-          <nav aria-label={t("common.pagination.page")} className="relative z-0 inline-flex gap-1">
-            <button
-              className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
-              disabled={currentPage === 1}
-              onClick={() => { onPageChange(1); }}
-            >
-              <span className="sr-only">{t("common.pagination.first")}</span>
-              <ChevronsLeft className="w-4 h-4" />
-            </button>
-            <button
-              className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
-              disabled={currentPage === 1}
-              onClick={() => { onPageChange(currentPage - 1); }}
-            >
-              <span className="sr-only">{t("common.pagination.prev")}</span>
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            
-            <div className="flex items-center gap-1 mx-1">
-              {getPageNumbers().map((page) => (
-                <button
-                  className={cn(
-                    "relative inline-flex items-center w-9 h-9 justify-center text-[10px] font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer border",
-                    currentPage === page
-                      ? 'z-10 bg-primary-600 text-white border-primary-500 shadow-lg shadow-primary-100'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary-200 dark:border-primary-800 hover:text-primary-600 dark:text-primary-400'
-                  )}
-                  key={page}
-                  onClick={() => { onPageChange(page); }}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-
-            <button
-              className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
-              disabled={currentPage === totalPages}
-              onClick={() => { onPageChange(currentPage + 1); }}
-            >
-              <span className="sr-only">{t("common.pagination.next")}</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <button
-              className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:text-primary-600 dark:text-primary-400 hover:border-primary-200 dark:border-primary-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
-              disabled={currentPage === totalPages}
-              onClick={() => { onPageChange(totalPages); }}
-            >
-              <span className="sr-only">{t("common.pagination.last")}</span>
-              <ChevronsRight className="w-4 h-4" />
-            </button>
-          </nav>
-        </div>
-      </div>
+      <MobilePagination
+        currentPage={currentPage}
+        onPageChange={onPageChange}
+        t={t}
+        totalPages={totalPages}
+      />
+      <DesktopPagination
+        currentOptions={currentOptions}
+        currentPage={currentPage}
+        endItem={endItem}
+        getPageNumbers={getPageNumbers}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+        pageSize={pageSize}
+        startItem={startItem}
+        t={t}
+        totalItems={totalItems}
+        totalPages={totalPages}
+      />
     </div>
   );
 };
