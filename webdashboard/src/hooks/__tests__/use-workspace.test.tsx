@@ -43,9 +43,11 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
 };
 
 describe("useWorkspaces", () => {
@@ -207,10 +209,10 @@ describe("useWorkspacePermissionsMatrix", () => {
     vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as unknown as never);
     
     // role-1 has perms: p1, p2. role-2 has: p2.
-    vi.mocked(api.fetchRolePermissions).mockImplementation(async (wsId, roleId) => {
-      if (roleId === "role-1") return ["p1", "p2"];
-      if (roleId === "role-2") return ["p2"];
-      return [];
+    vi.mocked(api.fetchRolePermissions).mockImplementation((_wsId, roleId) => {
+      if (roleId === "role-1") return Promise.resolve(["p1", "p2"]);
+      if (roleId === "role-2") return Promise.resolve(["p2"]);
+      return Promise.resolve([]);
     });
 
     const { renderHook, waitFor } = await import("@testing-library/react");

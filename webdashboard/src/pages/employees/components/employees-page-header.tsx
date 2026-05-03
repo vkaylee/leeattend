@@ -9,8 +9,8 @@ import PageHeader from "@/components/ui/page-header";
 import type { Employee } from "../../../lib/api/types";
 
 interface EmployeesPageHeaderProps {
-  setIsImportDialogOpen: (open: boolean) => void;
   setEditingEmployee: (emp: Employee | null) => void;
+  setIsImportDialogOpen: (open: boolean) => void;
   setIsModalOpen: (open: boolean) => void;
 }
 

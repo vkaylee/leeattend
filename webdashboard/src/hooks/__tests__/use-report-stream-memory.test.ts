@@ -70,7 +70,7 @@ describe("useReportStream Double-Buffering Fix", () => {
         });
 
         // Simulate receiving DONE message
-        await act(async () => {
+        act(() => {
             capturedSocket?.onmessage?.({
                 data: JSON.stringify({
                     type: "DONE",
@@ -108,7 +108,7 @@ describe("useReportStream Double-Buffering Fix", () => {
         });
 
         // Simulate DONE
-        await act(async () => {
+        act(() => {
             capturedSocket?.onmessage?.({
                 data: JSON.stringify({
                     type: "DONE",
@@ -132,7 +132,7 @@ describe("useReportStream Double-Buffering Fix", () => {
             await new Promise((r) => setTimeout(r, 10));
         });
 
-        await act(async () => {
+        act(() => {
             capturedSocket?.onmessage?.({
                 data: JSON.stringify({
                     type: "DONE",
@@ -156,7 +156,7 @@ describe("useReportStream Double-Buffering Fix", () => {
         });
 
         // Send DONE
-        await act(async () => {
+        act(() => {
             capturedSocket?.onmessage?.({
                 data: JSON.stringify({
                     type: "DONE",
@@ -170,7 +170,7 @@ describe("useReportStream Double-Buffering Fix", () => {
 
         // Simulate connection close after DONE
 
-        await act(async () => {
+        act(() => {
             capturedSocket?.onclose?.({ code: 1000, reason: "Normal" });
         });
 
@@ -194,7 +194,7 @@ describe("useReportStream Double-Buffering Fix", () => {
         });
 
         // Send ERROR
-        await act(async () => {
+        act(() => {
             capturedSocket?.onmessage?.({
                 data: JSON.stringify({
                     type: "ERROR",

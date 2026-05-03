@@ -2,7 +2,11 @@ import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from "@tansta
 import { useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+
 import { format, endOfMonth } from "date-fns";
+
+import type { RawAttendanceLog, Employee } from "@/lib/api/types";
+
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
@@ -14,7 +18,6 @@ import {
   resolveStagingLog, 
   dismissStagingLog 
 } from "@/lib/api";
-import type { RawAttendanceLog, Employee } from "@/lib/api/types";
 
 const PAGE_SIZE = 20;
 
@@ -103,7 +106,7 @@ export function useAttendanceLogsPage() {
         employee_id: employeeId === "all" ? undefined : employeeId, 
         from, 
         to, 
-        page: pageParam as number, 
+        page: pageParam, 
         limit: PAGE_SIZE 
       });
     },
@@ -133,7 +136,7 @@ export function useAttendanceLogsPage() {
     queryKey: ["staging-logs", wsId],
     queryFn: ({ pageParam }) => {
       if (!wsId) return Promise.reject(new Error("No workspace ID"));
-      return fetchStagingLogs(wsId, pageParam as number, PAGE_SIZE);
+      return fetchStagingLogs(wsId, pageParam, PAGE_SIZE);
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
@@ -207,7 +210,7 @@ export function useAttendanceLogsPage() {
     if (devicesData) {
       devicesData.forEach((d) => {
         if (d && typeof d === 'object' && 'id' in d && 'name' in d) {
-          map.set(d.id as string, d.name as string);
+          map.set(d.id, d.name);
         }
       });
     }

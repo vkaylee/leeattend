@@ -22,13 +22,13 @@ function createWrapper() {
             queries: { retry: false, gcTime: 0, staleTime: 0 },
         },
     });
-    return function Wrapper({ children }: { children: React.ReactNode }) {
-        return (
-            <QueryClientProvider client={queryClient}>
-                {children}
-            </QueryClientProvider>
-        );
-    };
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>
+            {children}
+        </QueryClientProvider>
+    );
+    Wrapper.displayName = "QueryClientWrapper";
+    return Wrapper;
 }
 
 describe("useDeviceInfo", () => {
@@ -58,7 +58,7 @@ describe("useDeviceInfo", () => {
         expect(result.current.data).toEqual(mockInfo);
     });
 
-    it("does not fetch when enabled=false", async () => {
+    it("does not fetch when enabled=false", () => {
         const { result } = renderHook(
             () => useDeviceInfo("dev-1", false),
             { wrapper: createWrapper() }
@@ -69,7 +69,7 @@ describe("useDeviceInfo", () => {
         expect(result.current.data).toBeUndefined();
     });
 
-    it("does not fetch when id is empty string", async () => {
+    it("does not fetch when id is empty string", () => {
         const { result } = renderHook(
             () => useDeviceInfo("", true),
             { wrapper: createWrapper() }

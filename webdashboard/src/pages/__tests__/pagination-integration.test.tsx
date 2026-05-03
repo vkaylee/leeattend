@@ -121,7 +121,7 @@ describe("Pagination Integration Tests", () => {
       expect(await screen.findByText("John Doe")).toBeInTheDocument();
     });
 
-    it("should handle empty paginated response in PayrollPage", async () => {
+    it("should handle empty paginated response in PayrollPage", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(
         createPaginatedResponse([], { total: 0 })
@@ -139,7 +139,7 @@ describe("Pagination Integration Tests", () => {
       }).not.toThrow();
     });
 
-    it("should handle undefined paginated response in PayrollPage", async () => {
+    it("should handle undefined paginated response in PayrollPage", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(undefined as unknown as PaginatedResponse<Employee>);
  
@@ -229,7 +229,7 @@ describe("Pagination Integration Tests", () => {
   });
 
   describe("AttendanceLogsPage Pagination", () => {
-    it("should handle paginated employees response in AttendanceLogsPage", async () => {
+    it("should handle paginated employees response in AttendanceLogsPage", () => {
       const mockEmployees = createPaginatedResponse<Employee>(
         [
           {
@@ -263,7 +263,7 @@ describe("Pagination Integration Tests", () => {
       }).not.toThrow();
     });
 
-    it("should handle empty paginated response in AttendanceLogsPage", async () => {
+    it("should handle empty paginated response in AttendanceLogsPage", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(
         createPaginatedResponse([], { total: 0 })
@@ -286,7 +286,7 @@ describe("Pagination Integration Tests", () => {
   });
 
   describe("LeaveRequestsPage Pagination", () => {
-    it("should handle paginated employees response in LeaveRequestsPage", async () => {
+    it("should handle paginated employees response in LeaveRequestsPage", () => {
       const mockEmployees = createPaginatedResponse<Employee>(
         [
           {
@@ -315,7 +315,7 @@ describe("Pagination Integration Tests", () => {
       }).not.toThrow();
     });
 
-    it("should handle empty paginated response in LeaveRequestsPage", async () => {
+    it("should handle empty paginated response in LeaveRequestsPage", () => {
  
       vi.mocked(api.fetchEmployees).mockResolvedValue(
         createPaginatedResponse([], { total: 0 })
@@ -333,7 +333,7 @@ describe("Pagination Integration Tests", () => {
   });
 
   describe("PaginatedResponse Edge Cases", () => {
-    it("should handle response with null data array", async () => {
+    it("should handle response with null data array", () => {
       const malformedResponse = {
         data: null,
         total: 0,
@@ -355,7 +355,7 @@ describe("Pagination Integration Tests", () => {
       }).not.toThrow();
     });
 
-    it("should handle response missing data property", async () => {
+    it("should handle response missing data property", () => {
       const malformedResponse = {
         total: 0,
         page: 1,
@@ -376,7 +376,7 @@ describe("Pagination Integration Tests", () => {
       }).not.toThrow();
     });
 
-    it("should handle very large paginated response", async () => {
+    it("should handle very large paginated response", () => {
       const largeEmployeeList = Array.from({ length: 500 }, (_, index) => ({
         id: `emp-${index}`,
         full_name: `Employee ${index}`,

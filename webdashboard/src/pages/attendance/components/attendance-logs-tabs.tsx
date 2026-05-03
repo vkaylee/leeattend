@@ -1,7 +1,9 @@
 import { AlertTriangle, Clock } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import { cn } from "@/lib/utils";
+
 import type { TabType } from "../hooks/use-attendance-logs-page";
 
 interface AttendanceLogsTabsProps {

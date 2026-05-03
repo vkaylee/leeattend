@@ -1,20 +1,22 @@
 import { Calendar, CalendarRange, Users } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import { EmployeeSearch } from "@/components/common/employee-search";
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import { cn } from "@/lib/utils";
+
 import type { FilterMode } from "../hooks/use-attendance-logs-page";
 
 interface AttendanceLogsFiltersProps {
   dateRange: { start: string; end: string };
-  setDateRange: React.Dispatch<React.SetStateAction<{ start: string; end: string }>>;
   employeeId: string;
-  setEmployeeId: (id: string) => void;
   filterMode: FilterMode;
   handleFilterModeChange: (mode: FilterMode) => void;
   handleSpecificMonthChange: (m: number, y: number) => void;
+  setDateRange: React.Dispatch<React.SetStateAction<{ start: string; end: string }>>;
+  setEmployeeId: (id: string) => void;
   specificMonth: { month: number; year: number };
   wsId: string | null;
 }
@@ -46,7 +48,7 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               )}
               key={mode}
-              onClick={() => handleFilterModeChange(mode)}
+              onClick={() => { handleFilterModeChange(mode); }}
               type="button"
             >
               {t(`common.filters.${mode}`)}
@@ -79,7 +81,7 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             )}
-            onClick={() => handleFilterModeChange("custom")}
+            onClick={() => { handleFilterModeChange("custom"); }}
             type="button"
           >
             {t("common.filters.custom")}
@@ -92,7 +94,7 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
               clearOnEscape
               data-testid="employee-search"
               keyboardShortcut={["/", "Enter"]}
-              onChange={(value) => setEmployeeId((Array.isArray(value) ? value[0] : value) || "all")}
+              onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }}
               placeholder={employeeId === "all" ? t("common.all_employees") : undefined}
               value={employeeId === "all" ? "" : employeeId}
               workspaceId={wsId ?? ""}
@@ -101,7 +103,7 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
           {employeeId !== "all" && (
             <button
               className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all"
-              onClick={() => setEmployeeId("all")}
+              onClick={() => { setEmployeeId("all"); }}
               type="button"
             >
               <Users size={18} />
@@ -118,7 +120,7 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
             </label>
             <input
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm"
-              onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value }))}
+              onChange={(e) => { setDateRange((prev) => ({ ...prev, start: e.target.value })); }}
               type="date"
               value={dateRange.start}
             />
@@ -129,7 +131,7 @@ export function AttendanceLogsFilters(props: AttendanceLogsFiltersProps) {
             </label>
             <input
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm"
-              onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value }))}
+              onChange={(e) => { setDateRange((prev) => ({ ...prev, end: e.target.value })); }}
               type="date"
               value={dateRange.end}
             />

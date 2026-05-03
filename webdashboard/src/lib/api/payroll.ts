@@ -13,7 +13,8 @@ import {
   OvertimeRule,
   PayrollRuleDefinition,
   PayrollRuleTier,
-  BatchCalculateResult
+  BatchCalculateResult,
+  ConfigRecord
 } from "./types";
 
 export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncentivePolicy[]> {
@@ -144,10 +145,10 @@ export async function fetchEmployeePayslips(
   return response.json() as Promise<Payslip[]>;
 }
 
-export async function fetchEmployeePayrollConfigs(wsId: string, employeeId: string) {
+export async function fetchEmployeePayrollConfigs(wsId: string, employeeId: string): Promise<ConfigRecord[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payroll-config`);
   if (!response.ok) throw new Error("Failed to fetch employee payroll configs");
-  return response.json() as Promise<Record<string, unknown>[]>;
+  return response.json() as Promise<ConfigRecord[]>;
 }
 
 // Overtime Policies

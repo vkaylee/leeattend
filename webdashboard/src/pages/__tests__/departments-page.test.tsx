@@ -160,7 +160,7 @@ describe("DepartmentsPage", () => {
   it("handles deleting a department", async () => {
     const user = userEvent.setup();
  
-    vi.mocked(api.deleteDepartment).mockResolvedValue({} as unknown as void);
+    vi.mocked(api.deleteDepartment).mockResolvedValue(undefined);
 
     renderWithProviders(<DepartmentsPage />);
 

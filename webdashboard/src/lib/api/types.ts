@@ -165,6 +165,8 @@ export interface TimeEntry {
   updated_at: string;
 }
 
+export type AttendanceEntry = TimeEntry;
+
 export interface RawAttendanceLog {
   created_at: string;
   device_id?: string;
@@ -355,6 +357,17 @@ export interface PayrollSettings {
   updated_at: string;
   working_days_per_week: number;
   workspace_id: string;
+}
+
+export interface ConfigRecord {
+  created_at?: string;
+  effective_date: string;
+  hours_per_day: number;
+  id?: string;
+  is_virtual?: boolean;
+  max_ot_hours_per_day?: number | null;
+  max_ot_hours_per_month?: number | null;
+  std_working_days: number;
 }
 
  

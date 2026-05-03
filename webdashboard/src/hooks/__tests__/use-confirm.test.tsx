@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import React from "react";
 
@@ -17,6 +18,17 @@ vi.mock("react-i18next", () => ({
     },
   }),
 }));
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
+};
 
 const TestComponent = ({ onResult }: { onResult: (res: boolean) => void }) => {
   const { confirm, ConfirmationDialog } = useConfirm();
@@ -40,39 +52,39 @@ const TestComponent = ({ onResult }: { onResult: (res: boolean) => void }) => {
 };
 
 describe("useConfirm Hook", () => {
-  it("resolves to true when confirm is clicked", async () => {
+  it("resolves to true when confirm is clicked", () => {
     const onResult = vi.fn();
-    render(<TestComponent onResult={onResult} />);
+    render(<TestComponent onResult={onResult} />, { wrapper: createWrapper() });
 
     // Initially dialog should not be in document
     expect(screen.queryByText("Test Hook")).not.toBeInTheDocument();
 
     // Trigger the confirm dialog
-    await act(async () => {
+    act(() => {
       fireEvent.click(screen.getByText("Trigger Confirm"));
     });
 
     expect(screen.getByText("Test Hook")).toBeInTheDocument();
 
     // Click Yes
-    await act(async () => {
+    act(() => {
       fireEvent.click(screen.getByText("Yes"));
     });
 
     expect(onResult).toHaveBeenCalledWith(true);
   });
 
-  it("resolves to false when cancel is clicked", async () => {
+  it("resolves to false when cancel is clicked", () => {
     const onResult = vi.fn();
-    render(<TestComponent onResult={onResult} />);
+    render(<TestComponent onResult={onResult} />, { wrapper: createWrapper() });
 
     // Trigger the confirm dialog
-    await act(async () => {
+    act(() => {
       fireEvent.click(screen.getByText("Trigger Confirm"));
     });
 
     // Click No
-    await act(async () => {
+    act(() => {
       fireEvent.click(screen.getByText("No"));
     });
 

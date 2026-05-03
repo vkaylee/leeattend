@@ -179,7 +179,7 @@ describe("LeaveRequestsPage", () => {
       { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", duration_type: "full_day" }
  
     ] as unknown as LeaveRequest[]);
-    vi.mocked(api.approveLeaveRequest).mockResolvedValue({} as unknown as void);
+    vi.mocked(api.approveLeaveRequest).mockResolvedValue(undefined);
 
     renderPage(queryClient);
 

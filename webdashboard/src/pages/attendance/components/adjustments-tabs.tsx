@@ -1,7 +1,9 @@
 import { CheckCircle, Clock, XCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import { cn } from "@/lib/utils";
+
 import type { TabType } from "../hooks/use-attendance-adjustments-page";
 
 interface AdjustmentsTabsProps {
@@ -21,7 +23,7 @@ export function AdjustmentsTabs({ activeTab, setActiveTab }: AdjustmentsTabsProp
             ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 shadow-sm border border-slate-100 dark:border-slate-800"
             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
         )}
-        onClick={() => setActiveTab("pending")}
+        onClick={() => { setActiveTab("pending"); }}
         type="button"
       >
         <Clock size={14} /> {t("common.status_pending")}
@@ -33,7 +35,7 @@ export function AdjustmentsTabs({ activeTab, setActiveTab }: AdjustmentsTabsProp
             ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-300 shadow-sm border border-slate-100 dark:border-slate-800"
             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
         )}
-        onClick={() => setActiveTab("approved")}
+        onClick={() => { setActiveTab("approved"); }}
         type="button"
       >
         <CheckCircle size={14} /> {t("common.status_approved")}
@@ -45,7 +47,7 @@ export function AdjustmentsTabs({ activeTab, setActiveTab }: AdjustmentsTabsProp
             ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 shadow-sm border border-slate-100 dark:border-slate-800"
             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
         )}
-        onClick={() => setActiveTab("rejected")}
+        onClick={() => { setActiveTab("rejected"); }}
         type="button"
       >
         <XCircle size={14} /> {t("common.status_rejected")}

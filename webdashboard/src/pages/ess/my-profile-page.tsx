@@ -1,7 +1,8 @@
-import { TFunction } from "i18next";
 import { AlertCircle, CreditCard, User as UserIcon, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { TFunction } from "i18next";
 
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/hooks/use-confirm";

@@ -33,9 +33,11 @@ const createWrapper = () => {
             queries: { retry: false },
         },
     });
-    return ({ children }: { children: React.ReactNode }) => (
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
+    Wrapper.displayName = "QueryClientWrapper";
+    return Wrapper;
 };
 
 describe("use-dashboard hooks", () => {
@@ -162,7 +164,7 @@ describe("use-dashboard hooks", () => {
     });
 
     describe("useTurnoverAnalytics", () => {
-        it("does not fetch if startDate or endDate is missing", async () => {
+        it("does not fetch if startDate or endDate is missing", () => {
             const { result } = renderHook(() => useTurnoverAnalytics("", "2023-01-31"), {
                 wrapper: createWrapper(),
             });

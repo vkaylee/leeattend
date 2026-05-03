@@ -3,18 +3,9 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { ConfigRecord } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-interface ConfigRecord {
-  created_at?: string;
-  effective_date: string;
-  hours_per_day: number;
-  id?: string;
-  is_virtual?: boolean;
-  max_ot_hours_per_day?: number | null;
-  max_ot_hours_per_month?: number | null;
-  std_working_days: number;
-}
 
 interface Props {
   isLoading?: boolean;

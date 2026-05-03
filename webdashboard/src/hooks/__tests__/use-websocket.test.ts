@@ -14,7 +14,6 @@ describe("useWebSocket Hook", () => {
   class MockWebSocket {
     static OPEN = 1;
     readyState = 1; // WebSocket.OPEN
-    constructor() { /* empty */ }
     send = vi.fn().mockImplementation((value: string) => {
       if (mockSend) (mockSend as (v: string) => void)(value);
     });

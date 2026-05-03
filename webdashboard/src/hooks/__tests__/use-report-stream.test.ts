@@ -56,7 +56,7 @@ describe("useReportStream Hook", () => {
   });
 
   describe("State Transitions with jobId Changes", () => {
-    it("should reset state when jobId becomes null", async () => {
+    it("should reset state when jobId becomes null", () => {
       const { result, rerender } = renderHook<UseReportStreamResult, { jobId: string | null }>(
         ({ jobId }) => useReportStream({ jobId }),
         { initialProps: { jobId: "test-job" } }
@@ -75,7 +75,7 @@ describe("useReportStream Hook", () => {
       expect(result.current.error).toBeNull();
     });
 
-    it("should reset chunks and progress on new jobId", async () => {
+    it("should reset chunks and progress on new jobId", () => {
       // Manually set up the state transition without relying on actual WebSocket
       const { result, rerender } = renderHook<UseReportStreamResult, { jobId: string | null }>(
         ({ jobId }) => useReportStream({ jobId }),
@@ -600,7 +600,7 @@ describe("useReportStream Hook", () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it("should NOT attempt refresh on 1006 if already past connecting state", async () => {
+    it("should NOT attempt refresh on 1006 if already past connecting state", () => {
       localStorage.setItem("access_token", "valid-jwt");
       localStorage.setItem("refresh_token", "valid-refresh-token");
 
@@ -684,7 +684,6 @@ describe("useReportStream Hook", () => {
     class MockWebSocket {
       static OPEN = 1;
       readyState = 1; // WebSocket.OPEN
-      constructor() { /* empty */ }
       send = vi.fn().mockImplementation((value: string) => {
         if (mockSend) (mockSend as (v: string) => void)(value);
       });

@@ -3,8 +3,8 @@ import EmployeeDetailDrawer from "@/components/features/employees/employee-detai
 
 import { EmployeeFilterChips } from "./employees/components/employee-filter-chips";
 import { EmployeeModals } from "./employees/components/employee-modals";
-import { EmployeesPageHeader } from "./employees/components/employees-page-header";
 import { EmployeeTable } from "./employees/components/employee-table";
+import { EmployeesPageHeader } from "./employees/components/employees-page-header";
 import { useEmployeesPage } from "./employees/hooks/use-employees-page";
 
 export default function EmployeesPage() {

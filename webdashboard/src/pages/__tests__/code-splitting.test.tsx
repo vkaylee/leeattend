@@ -115,9 +115,9 @@ vi.mock("@/components/debug/debug-toolbar", () => ({
 }));
 
 class MockIntersectionObserver {
-    observe() { /* empty */ }
-    unobserve() { /* empty */ }
-    disconnect() { /* empty */ }
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
 }
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
@@ -221,7 +221,6 @@ describe("Page-level code splitting", () => {
                     <Suspense fallback={<div data-testid="fallback">Loading...</div>}>
                         {createElement(component)}
                     </Suspense>
-// eslint-disable-next-line import-x/no-named-as-default-member
                 </ToastProvider>
             </QueryClientProvider>
         );

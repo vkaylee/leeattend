@@ -111,7 +111,7 @@ describe("LeaveBalancesPage", () => {
         );
     }
 
-    it("renders page title", async () => {
+    it("renders page title", () => {
         renderPage();
         expect(screen.getByText("leave_balances.title")).toBeDefined();
     });
@@ -359,13 +359,13 @@ describe("LeaveBalancesPage", () => {
         });
 
         // Advance past first poll interval (2s)
-        await act(async () => { vi.advanceTimersByTime(2500); });
+        act(() => { vi.advanceTimersByTime(2500); });
         await waitFor(() => {
             expect(api.fetchJobStatus).toHaveBeenCalledWith("test-ws-id", "job-poll-1");
         });
 
         // Advance past second poll interval
-        await act(async () => { vi.advanceTimersByTime(2500); });
+        act(() => { vi.advanceTimersByTime(2500); });
         await waitFor(() => {
  
             expect(vi.mocked(api.fetchJobStatus).mock.calls.length).toBeGreaterThanOrEqual(2);
@@ -403,7 +403,7 @@ describe("LeaveBalancesPage", () => {
         });
 
         // Advance past first poll interval
-        await act(async () => { vi.advanceTimersByTime(2500); });
+        act(() => { vi.advanceTimersByTime(2500); });
         await waitFor(() => {
             expect(api.fetchJobStatus).toHaveBeenCalledWith("test-ws-id", "job-fail-1");
         });
@@ -411,7 +411,7 @@ describe("LeaveBalancesPage", () => {
         // Should NOT poll again after failure
  
         const callCount = vi.mocked(api.fetchJobStatus).mock.calls.length;
-        await act(async () => { vi.advanceTimersByTime(5000); });
+        act(() => { vi.advanceTimersByTime(5000); });
  
         expect(vi.mocked(api.fetchJobStatus).mock.calls.length).toBe(callCount);
 

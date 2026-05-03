@@ -22,7 +22,7 @@ vi.mock("@tanstack/react-router", () => ({
       const params = new URLSearchParams();
       Object.entries(search).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          params.append(key, String(value));
+          params.append(key, typeof value === "string" ? value : String(value));
         }
       });
       const qs = params.toString();
@@ -40,8 +40,6 @@ class MockIntersectionObserver {
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
-  constructor() { /* empty */ }
- 
 }
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
@@ -158,7 +156,8 @@ describe("ReportsPage", () => {
   });
 
   it("fetches full dataset with limit=99999 for stats and renders inline stats badges", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, _type, page, limit) => {
+    vi.mocked(api.fetchAttendanceReport).mockImplementation((...args) => {
+      const limit = args[5];
       if (limit === 99999) {
         // Full stats query — return all employees
         return Promise.resolve({
@@ -506,7 +505,8 @@ describe("ReportsPage", () => {
     const searchInput = screen.getByRole("textbox");
 
     // Clear mocks
-    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    const scrollSpy = vi.spyOn(window.HTMLElement.prototype, "scrollIntoView");
+    scrollSpy.mockClear();
     window.HTMLElement.prototype.scrollTo = vi.fn();
 
     // Press ArrowDown to select the second row
@@ -514,14 +514,14 @@ describe("ReportsPage", () => {
 
     // Verify scrollIntoView was called smooth/nearest for index 1
  
-    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "nearest" });
+    expect(scrollSpy).toHaveBeenCalledWith({ behavior: "smooth", block: "nearest" });
 
     // Press ArrowUp to go back to the first row (index 0)
-    vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear();
+    scrollSpy.mockClear();
     await user.type(searchInput, "{ArrowUp}");
 
     // In full-page mode, scrollIntoView is used (no .overflow-auto container)
-    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(scrollSpy).toHaveBeenCalled();
 
     // Put it back to index 1 and press Enter
     await user.type(searchInput, "{ArrowDown}{Enter}");

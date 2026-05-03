@@ -83,7 +83,7 @@ describe("WorkspaceOverviewPage", () => {
     
     vi.mocked(api.apiFetch).mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => Promise.resolve({
         total_employees: 42,
         present_today: 40,
         late_today: 2,

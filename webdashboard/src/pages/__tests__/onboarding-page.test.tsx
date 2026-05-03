@@ -48,20 +48,21 @@ describe("OnboardingPage", () => {
     expect(screen.getByText("onboarding.welcome_title")).toBeDefined();
   });
 
-  it("handles logout to prevent regression", async () => {
+  it("handles logout to prevent regression", () => {
     const locationMock = new URL("http://localhost/");
     const originalLocation = window.location;
- 
-    
- 
+
     Object.defineProperty(window, "location", {
       configurable: true,
       value: {
-        ...originalLocation,
         href: locationMock.href,
         assign: vi.fn(),
         replace: vi.fn(),
         reload: vi.fn(),
+        pathname: locationMock.pathname,
+        search: locationMock.search,
+        hash: locationMock.hash,
+        origin: locationMock.origin,
       },
     });
     

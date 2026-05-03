@@ -1,192 +1,32 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import {
-  Building2,
-  ShieldAlert,
-  KeyRound,
-  CreditCard,
-  AlertTriangle,
   ChevronRight,
   ShieldCheck,
-  Settings2,
-  Clock,
-  Banknote,
-  CalendarDays,
-  Palmtree,
-  Cpu,
   Settings
 } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { useMyPermissions } from "@/hooks/use-permissions";
 import { ROUTES } from "@/lib/routes";
 
-
-function NavGroup({ title, items, isActive }: { title: string, items: { path: string, label: string, icon: React.ReactNode, description: string }[], isActive: (path: string) => boolean }) {
-  return (
-    <div className="mb-6">
-      <h3 className="px-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2">{title}</h3>
-      <div className="space-y-1">
-        {items.map((item) => (
-          <Link
-            className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
-              isActive(item.path)
-                ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm shadow-primary-100/50 border border-primary-100 dark:border-primary-800/50"
-                : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent"
-            }`}
-            key={item.path}
-            to={item.path}
-          >
-            <div
-              className={`p-2 rounded-xl transition-colors ${
-                isActive(item.path)
-                  ? "bg-white dark:bg-slate-900 shadow-sm"
-                  : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:hover:bg-slate-900"
-              }`}
-            >
-              {item.icon}
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-bold text-sm leading-tight">{item.label}</span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight hidden xl:block mt-0.5">
-                {item.description}
-              </span>
-            </div>
-            {isActive(item.path) ? (
-              <ChevronRight className="w-4 h-4 ml-auto text-primary-400" />
-            ) : null}
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
+import { NavGroup } from "./components/nav-group";
+import { useSettingsNav } from "./hooks/use-settings-nav";
 
 export default function SettingsLayout() {
   const { t } = useTranslation();
   const location = useLocation();
-  const { hasAnyPermission } = useMyPermissions();
-
-  const workspaceGroup = [
-    {
-      path: ROUTES.SETTINGS.OVERVIEW,
-      label: t("common.overview"),
-      icon: <Building2 className="w-4 h-4" />,
-      description: t("settings.categories.general_desc"),
-      permissions: ["workspace:settings:read"],
-    },
-    {
-      path: ROUTES.SETTINGS.GENERAL,
-      label: t("settings.categories.general"),
-      icon: <Settings2 className="w-4 h-4" />,
-      description: t("settings.categories.general_desc"),
-      permissions: ["workspace:settings:read"],
-    },
-    {
-      path: ROUTES.SETTINGS.BILLING,
-      label: t("common.billing"),
-      icon: <CreditCard className="w-4 h-4" />,
-      description: t("settings.categories.billing_desc"),
-      permissions: ["workspace:settings:read"],
-    },
-  ];
-
-  const accessGroup = [
-
-    {
-      path: ROUTES.SETTINGS.ROLES,
-      label: t("rolesPage.title", { defaultValue: "Roles" }),
-      icon: <ShieldAlert className="w-4 h-4" />,
-      description: t("common.members.roles.subtitle"),
-      permissions: ["members:roles:manage"],
-    },
-    {
-      path: ROUTES.SETTINGS.PERMISSIONS,
-      label: t("common.permissions"),
-      icon: <KeyRound className="w-4 h-4" />,
-      description: t("common.members.permissions.modal_subtitle"),
-      permissions: ["members:roles:manage"],
-    },
-  ];
-
-  const operationsGroup = [
-    {
-      path: ROUTES.SETTINGS.ORGANIZATION,
-      label: t("settings.categories.organization", { defaultValue: "Organization" }),
-      icon: <Building2 className="w-4 h-4" />,
-      description: t("settings.categories.organization_desc", { defaultValue: "Manage departments and employment phases" }),
-      permissions: ["employees:read", "departments:read"],
-    },
-    {
-      path: ROUTES.SETTINGS.TIME,
-      label: t("settings.categories.time"),
-      icon: <Clock className="w-4 h-4" />,
-      description: t("settings.categories.time_desc"),
-      permissions: ["attendance:logs:read"],
-    },
-    {
-      path: ROUTES.SETTINGS.PAYROLL,
-      label: t("settings.categories.payroll"),
-      icon: <Banknote className="w-4 h-4" />,
-      description: t("settings.categories.payroll_desc"),
-      permissions: ["payroll:read", "payroll:settings:manage"],
-    },
-    {
-      path: ROUTES.SETTINGS.LEAVE,
-      label: t("settings.categories.leave"),
-      icon: <CalendarDays className="w-4 h-4" />,
-      description: t("settings.leave.desc"),
-      permissions: ["leave:policies:manage"],
-    },
-    {
-      path: ROUTES.SETTINGS.HOLIDAYS,
-      label: t("common.holidays"),
-      icon: <Palmtree className="w-4 h-4" />,
-      description: t("common.public_holidays"),
-      permissions: ["holidays:manage"],
-    },
-  ];
-
-  const systemGroup = [
-    {
-      path: ROUTES.SETTINGS.CONNECTIVITY,
-      label: t("settings.categories.connectivity"),
-      icon: <Cpu className="w-4 h-4" />,
-      description: t("settings.categories.connectivity_desc"),
-      permissions: ["infra:monitor"],
-    },
-    {
-      path: ROUTES.SETTINGS.AUDIT_LOGS,
-      label: t("common.logs"),
-      icon: <ShieldCheck className="w-4 h-4" />,
-      description: t("common.security_events"),
-      permissions: ["workspace:settings:read", "infra:monitor"],
-    },
-  ];
-
-  const dangerItem = {
-    path: ROUTES.SETTINGS.DANGER,
-    label: t("common.danger_zone"),
-    icon: <AlertTriangle className="w-4 h-4" />,
-    description: t("common.destructive_operations"),
-    permissions: ["workspace:delete"],
-  };
+  const {
+    accessGroup,
+    dangerItem,
+    operationsGroup,
+    systemGroup,
+    workspaceGroup,
+  } = useSettingsNav();
 
   const isActive = (path: string) => {
     if (path === ROUTES.SETTINGS.OVERVIEW && location.pathname === ROUTES.SETTINGS.ROOT) return true;
     return location.pathname.startsWith(path);
   };
-
-
-
-  interface SettingItem { description: string; icon: React.ReactNode; label: string; path: string; permissions?: string[] }
-  const filterItems = (items: SettingItem[]) => 
-    items.filter(item => !item.permissions || item.permissions.length === 0 || hasAnyPermission(...item.permissions));
-
-  const filteredWorkspaceGroup = filterItems(workspaceGroup);
-  const filteredAccessGroup = filterItems(accessGroup);
-  const filteredOperationsGroup = filterItems(operationsGroup);
-  const filteredSystemGroup = filterItems(systemGroup);
-  const showDangerItem = !dangerItem.permissions || dangerItem.permissions.length === 0 || hasAnyPermission(...dangerItem.permissions);
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-10rem)]">
@@ -208,12 +48,20 @@ export default function SettingsLayout() {
           </div>
           
           <nav>
-            {filteredWorkspaceGroup.length > 0 ? <NavGroup isActive={isActive} items={filteredWorkspaceGroup} title={t("settings.layout.workspace")} /> : null}
-            {filteredAccessGroup.length > 0 ? <NavGroup isActive={isActive} items={filteredAccessGroup} title={t("settings.layout.access")} /> : null}
-            {filteredOperationsGroup.length > 0 ? <NavGroup isActive={isActive} items={filteredOperationsGroup} title={t("settings.layout.operations")} /> : null}
-            {filteredSystemGroup.length > 0 ? <NavGroup isActive={isActive} items={filteredSystemGroup} title={t("settings.layout.security_system")} /> : null}
+            {workspaceGroup.length > 0 ? (
+              <NavGroup isActive={isActive} items={workspaceGroup} title={t("settings.layout.workspace")} />
+            ) : null}
+            {accessGroup.length > 0 ? (
+              <NavGroup isActive={isActive} items={accessGroup} title={t("settings.layout.access")} />
+            ) : null}
+            {operationsGroup.length > 0 ? (
+              <NavGroup isActive={isActive} items={operationsGroup} title={t("settings.layout.operations")} />
+            ) : null}
+            {systemGroup.length > 0 ? (
+              <NavGroup isActive={isActive} items={systemGroup} title={t("settings.layout.security_system")} />
+            ) : null}
             
-            {showDangerItem ? (
+            {dangerItem ? (
               <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
                 <Link
                   className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
