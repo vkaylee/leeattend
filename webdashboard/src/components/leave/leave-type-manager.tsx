@@ -90,7 +90,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         ))}
       </div>
 
-      {isAddingType && <AddLeaveTypeModal isSaving={createTypeMutation.isPending} onClose={() => { setIsAddingType(false); }} onSave={(data) => { createTypeMutation.mutate(data); }} />}
+      {!!isAddingType && <AddLeaveTypeModal isSaving={createTypeMutation.isPending} onClose={() => { setIsAddingType(false); }} onSave={(data) => { createTypeMutation.mutate(data); }} />}
       {!!editingType && <EditLeaveTypeModal isSaving={updateTypeMutation.isPending} leaveType={editingType} onClose={() => { setEditingType(null); }} onSave={(config: LeaveTypeConfig) => { updateTypeMutation.mutate({ typeId: editingType.id, config }); }} />}
       { }
       {!!deletingType && (

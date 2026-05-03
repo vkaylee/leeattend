@@ -68,7 +68,7 @@ function NavigableListSkeleton<T>({ skeletonRows, visibleColumns, showChevron }:
                             <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                         </td>
                     ))}
-                    {showChevron && <td className="px-4 py-5" />}
+                    {!!showChevron && <td className="px-4 py-5" />}
                 </tr>
             ))}
         </>
@@ -148,7 +148,7 @@ function NavigableListRow<T>({
                     />
                 </td>
             )}
-            {showActiveBar && isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-600 rounded-r-full shadow-lg shadow-primary-500/50" />}
+            {!!showActiveBar && !!isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-600 rounded-r-full shadow-lg shadow-primary-500/50" />}
         </tr>
     );
 }
@@ -226,11 +226,11 @@ function NavigableListHeaderWrapper({
     return (
         <>
             {headerSlot}
-            {isFullPage && !!searchProps.onSearchChange && (
+            {!!isFullPage && !!searchProps.onSearchChange && (
                 <div className="sticky top-0 z-20 backdrop-blur-md pt-1 pb-2 -mt-1" ref={stickySearchRef}>
                     <NavigableListSearchContent {...searchProps} />
                 </div>
-            )}
+              )}
         </>
     );
 }
@@ -425,7 +425,7 @@ export default function NavigableList<T>({
                                         {col.header}
                                     </th>
                                 ))}
-                                {showChevron && <th className="px-4 py-5 w-10" />}
+                                {!!showChevron && <th className="px-4 py-5 w-10" />}
                             </tr>
                         </thead>
 

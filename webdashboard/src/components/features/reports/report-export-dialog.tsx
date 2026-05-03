@@ -128,7 +128,7 @@ function ExportProgressPanel({ phase, percentage, totalBatches, completedBatches
       )}
 
       {/* Fallback Mode Notification */}
-      {useFallbackPolling && phase === "polling" && (
+      {!!useFallbackPolling && phase === "polling" && (
         <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 rounded-xl p-3" data-testid="report-export-fallback-notice">
           <p className="text-xs text-amber-700 dark:text-amber-300">
             {t("report_export.fallback_mode")}

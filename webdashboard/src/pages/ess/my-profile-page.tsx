@@ -220,7 +220,7 @@ export default function MyProfilePage() {
                       <div>
                         <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight flex items-center gap-3 uppercase leading-none mb-2">
                           {contact.contact_name}
-                          {contact.is_primary && <StatusBadge variant="primary">{t("ess.primary")}</StatusBadge>}
+                          {!!contact.is_primary && <StatusBadge variant="primary">{t("ess.primary")}</StatusBadge>}
                         </div>
                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] opacity-70">{contact.relationship} • <span className="font-mono text-slate-500 dark:text-slate-400 font-bold">{contact.phone}</span></div>
                       </div>

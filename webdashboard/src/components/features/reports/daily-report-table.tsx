@@ -235,7 +235,7 @@ function DailyReportTableRow({
           <ReportStatusBadge onResolveUnscheduled={onResolveUnscheduled} row={row} status={row.status} t={t} />
         </td>
 
-        {isDebugMode && (
+        {!!isDebugMode && (
           <td className="px-4 py-2.5 text-center">
             <button
               className={cn(
@@ -283,7 +283,7 @@ function DailyReportTableRow({
         </td>
       </tr>
 
-      {isDebugMode && isExpanded && (
+      {!!isDebugMode && !!isExpanded && (
         <tr className="bg-slate-900/5 animate-in slide-in-from-top-2 duration-500">
           <td className="px-10 py-10" colSpan={10}>
             <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border-2 border-amber-200/20 overflow-hidden relative">
@@ -386,7 +386,7 @@ export default function DailyReportTable({
             <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">
               {t("common.status")}
             </th>
-            {isDebugMode && (
+            {!!isDebugMode && (
               <th className="px-4 py-2.5 text-[10px] font-bold text-amber-600 dark:text-amber-300 uppercase tracking-widest text-center">
                 DEBUG
               </th>

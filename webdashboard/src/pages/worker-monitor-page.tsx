@@ -170,7 +170,7 @@ export default function WorkerMonitorPage() {
         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
           {t("monitor.live_updates", { seconds: MONITOR_REFETCH_INTERVAL_S })}
         </span>
-        {isFetching && <Loader2 className="text-slate-400 dark:text-slate-500 animate-spin" size={14} />}
+        {!!isFetching && <Loader2 className="text-slate-400 dark:text-slate-500 animate-spin" size={14} />}
       </div>
 
       {/* Workers Table */}

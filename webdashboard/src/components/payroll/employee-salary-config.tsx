@@ -55,7 +55,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
     accumulator[key].push(comp); return accumulator;
   }, {});
 
-  Object.keys(groupedComps).forEach(key => { (groupedComps[key] as EmployeeSalaryComponent[]).sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()); });
+  Object.keys(groupedComps).forEach(key => { (groupedComps[key]!).sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()); });
 
   const toggleGroup = (id: string) => { setExpandedGroups(previous => ({ ...previous, [id]: !previous[id] })); };
 

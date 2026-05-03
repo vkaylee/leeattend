@@ -101,7 +101,7 @@ export default function ConnectivityTopology() {
       const agentExists = agents.some(a => a.id === device.agent_id);
       if (agentExists) {
         if (grouped[device.agent_id] === undefined) grouped[device.agent_id] = [];
-        (grouped[device.agent_id] as Device[]).push(device);
+        (grouped[device.agent_id]!).push(device);
       } else {
         unassigned.push(device);
       }

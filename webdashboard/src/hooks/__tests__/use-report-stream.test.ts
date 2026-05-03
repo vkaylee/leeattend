@@ -3,6 +3,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import type { UseReportStreamResult } from "../use-report-stream";
+
 import { useReportStream } from "../use-report-stream";
 
 /**

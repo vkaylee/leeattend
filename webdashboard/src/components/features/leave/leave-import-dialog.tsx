@@ -84,7 +84,7 @@ function LeaveImportProgressView({ importJob, isProcessing, isFinished, wsId, ge
           )}
           style={{ width: `${importJob.total_rows ? (importJob.processed_rows / importJob.total_rows) * 100 : (isProcessing ? 15 : 0)}%` }}
         >
-          {isProcessing && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />}
+          {!!isProcessing && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />}
         </div>
       </div>
 
@@ -121,7 +121,7 @@ function LeaveImportProgressView({ importJob, isProcessing, isFinished, wsId, ge
 
       {/* Footer buttons */}
       <div className="pt-3 flex gap-4 border-t border-slate-200 dark:border-slate-800">
-        {isFinished && <>
+        {!!isFinished && <>
           <button
             className="flex-1 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
             onClick={() => { setImportJob(null); }}

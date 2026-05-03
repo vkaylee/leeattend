@@ -107,7 +107,7 @@ export default function BatchCalculationModal({
           </div>
         )}
 
-        {batchMutation.isPending && (
+        {!!batchMutation.isPending && (
           <div className="py-20 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-500">
             <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-8 relative shadow-inner">
               <Loader2 className="w-12 h-12 text-primary-600 dark:text-primary-400 animate-spin" />
