@@ -1,27 +1,28 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import Modal from "@/components/ui/modal";
 
 interface AssignRoleModalProps {
+  assignError: string;
+  isAssigning: boolean;
   isOpen: boolean;
   onClose: () => void;
+  onSubmit: (e: React.SyntheticEvent) => void;
+  onUserIdChange: (value: string) => void;
   selectedRole: string | null;
   userIdInput: string;
-  onUserIdChange: (value: string) => void;
-  onSubmit: (e: React.SyntheticEvent) => void;
-  isAssigning: boolean;
-  assignError: string;
 }
 
 export function AssignRoleModal({
+  assignError,
+  isAssigning,
   isOpen,
   onClose,
+  onSubmit,
+  onUserIdChange,
   selectedRole,
   userIdInput,
-  onUserIdChange,
-  onSubmit,
-  isAssigning,
-  assignError,
 }: AssignRoleModalProps) {
   const { t } = useTranslation();
 
@@ -40,7 +41,7 @@ export function AssignRoleModal({
           </label>
           <input
             className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-mono text-sm"
-            onChange={(e) => onUserIdChange(e.target.value)}
+            onChange={(e) => { onUserIdChange(e.target.value); }}
             placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
             required
             type="text"

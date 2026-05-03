@@ -15,12 +15,21 @@ export interface ConfirmAttendanceModalProps {
     row: DailyAttendanceReport | null;
 }
 
+const utcToLocalHHmm = (iso: string | null | undefined): string => {
+    if (!iso) { return ""; }
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) {
+        return iso.substring(0, 5);
+    }
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
 function PunchInputs({
-    punchIn,
-    setPunchIn,
-    punchOut,
-    setPunchOut,
     existingRequest,
+    punchIn,
+    punchOut,
+    setPunchIn,
+    setPunchOut,
     t,
 }: {
     existingRequest?: AttendanceAdjustmentRequest;
@@ -60,87 +69,79 @@ function PunchInputs({
     );
 }
 
+function EmployeeInfo({ row, t, formatDate }: { row: DailyAttendanceReport; t: (k: string) => string; formatDate: (d: string) => string }) {
+    return (
+        <div className="grid grid-cols-2 gap-4 p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div>
+                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                    {t("reports.confirm.employee")}
+                </label>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">
+                    {row.employee_name}
+                </p>
+            </div>
+            <div>
+                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                    {t("reports.confirm.date")}
+                </label>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">
+                    {formatDate(row.date)}
+                </p>
+            </div>
+        </div>
+    );
+}
+
 export default function ConfirmAttendanceModal({
-    isOpen,
-    onClose,
-    row,
     existingRequest,
+    isOpen,
     isPending,
+    onClose,
     onSubmit,
+    row,
 }: ConfirmAttendanceModalProps) {
     const { t } = useTranslation();
     const { formatDate } = useDateTimeFormatter();
 
-    const utcToLocalHHmm = (iso: string | null | undefined): string => {
-        if (!iso) return "";
-        const d = new Date(iso);
-        if (isNaN(d.getTime())) {
-            return iso.substring(0, 5);
-        }
-        return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    };
-
     const [punchIn, setPunchIn] = useState(
         utcToLocalHHmm(existingRequest?.requested_punch_in_time) ||
         utcToLocalHHmm(row?.actual_punch_in) ||
-        row?.scheduled_start?.substring(0, 5) ||
-        ""
+        (row?.scheduled_start ?? "").substring(0, 5)
     );
     const [punchOut, setPunchOut] = useState(
         utcToLocalHHmm(existingRequest?.requested_punch_out_time) ||
         utcToLocalHHmm(row?.actual_punch_out) ||
-        row?.scheduled_end?.substring(0, 5) ||
-        ""
+        (row?.scheduled_end ?? "").substring(0, 5)
     );
     const [reason, setReason] = useState(existingRequest?.reason ?? "");
 
-    if (!row) return null;
+    if (!row) { return null; }
 
     return (
         <Modal
             icon={<CheckCircle size={24} />}
             isOpen={isOpen}
             maxWidth="md"
-            onClose={() => !isPending && onClose()}
+            onClose={() => { if (!isPending) { onClose(); } }}
             subtitle={t("reports.confirm.modal_subtitle")}
             title={t("reports.confirm.modal_title")}
         >
             <div className="space-y-6 pt-2 animate-in fade-in duration-500">
-                {/* Employee & Date info */}
-                <div className="grid grid-cols-2 gap-4 p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    <div>
-                        <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                            {t("reports.confirm.employee")}
-                        </label>
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">
-                            {row.employee_name}
-                        </p>
-                    </div>
-                    <div>
-                        <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                            {t("reports.confirm.date")}
-                        </label>
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">
-                            {formatDate(row.date)}
-                        </p>
-                    </div>
-                </div>
+                <EmployeeInfo formatDate={formatDate} row={row} t={t} />
 
-                {/* Existing request banner */}
-                {!!existingRequest && (
+                {existingRequest ? (
                     <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-2xl border border-orange-200 dark:border-orange-800">
                         <p className="text-xs font-bold text-orange-600 dark:text-orange-300 uppercase tracking-wider">
                             {t("reports.confirm.existing_request")}
                         </p>
-                        {!!existingRequest.reason && (
+                        {existingRequest.reason ? (
                             <p className="text-sm text-orange-700 dark:text-orange-200 mt-2 italic">
                                 &ldquo;{existingRequest.reason}&rdquo;
                             </p>
-                          )}
+                        ) : null}
                     </div>
-                  )}
+                ) : null}
 
-                {/* Punch In / Out */}
                 <PunchInputs
                     existingRequest={existingRequest}
                     punchIn={punchIn}
@@ -150,8 +151,7 @@ export default function ConfirmAttendanceModal({
                     t={t}
                 />
 
-                {/* Reason */}
-                {!existingRequest && (
+                {!existingRequest ? (
                     <div>
                         <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
                             {t("reports.confirm.reason")}
@@ -164,9 +164,8 @@ export default function ConfirmAttendanceModal({
                             value={reason}
                         />
                     </div>
-                )}
+                ) : null}
 
-                {/* Buttons */}
                 <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                     <button
                         className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"

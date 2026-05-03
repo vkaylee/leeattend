@@ -1,6 +1,6 @@
+import { CalendarDays } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { CalendarDays } from "lucide-react";
 
 export function LeaveSettingsHeader() {
   const { t } = useTranslation();

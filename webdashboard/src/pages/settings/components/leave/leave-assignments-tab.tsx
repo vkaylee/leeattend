@@ -1,8 +1,10 @@
+import { Info, UserPlus } from "lucide-react";
+import { format } from "date-fns";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { UserPlus, Info } from "lucide-react";
-import { format } from "date-fns";
+
 import { cn } from "@/lib/utils";
+
 import type { LeaveAssignment } from "../../hooks/use-leave-settings";
 
 interface LeaveAssignmentsTabProps {
@@ -32,7 +34,7 @@ export function LeaveAssignmentsTab({
         <button
           className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 shadow-lg shadow-primary-100"
           data-testid="assign-policy-btn"
-          onClick={onAssignClick}
+          onClick={() => { onAssignClick(); }}
         >
           <UserPlus className="w-4 h-4" />
           {t("settings.leave.actions.assign")}

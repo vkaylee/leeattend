@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 
 import PageHeader from "@/components/ui/page-header";
 
-import { AssignRoleModal } from "./system-roles/components/AssignRoleModal";
-import { SystemRoleCard } from "./system-roles/components/SystemRoleCard";
+import { AssignRoleModal } from "./system-roles/components/assign-role-modal";
+import { SystemRoleCard } from "./system-roles/components/system-role-card";
 import { useSystemRolesUI } from "./system-roles/hooks/use-system-roles-ui";
 
 export default function SystemRolesPage() {

@@ -43,6 +43,8 @@ function TabContent({ state }: { state: AttendanceLogsState }) {
     resolveMutation
   } = state;
 
+  if (!wsId) return null;
+
   if (activeTab === "recorded") {
     return (
       <>

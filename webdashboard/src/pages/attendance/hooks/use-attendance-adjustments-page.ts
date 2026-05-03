@@ -24,7 +24,7 @@ export function useAttendanceAdjustmentsPage() {
 
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ["attendance-adjustments", wsId, activeTab],
-    queryFn: () => wsId ? fetchWorkspaceAttendanceAdjustments(wsId, activeTab) : Promise.reject("No workspace ID"),
+    queryFn: () => wsId ? fetchWorkspaceAttendanceAdjustments(wsId, activeTab) : Promise.reject(new Error("No workspace ID")),
     enabled: !!wsId,
   });
 
@@ -32,7 +32,7 @@ export function useAttendanceAdjustmentsPage() {
 
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: string }) =>
-      wsId ? approveAttendanceAdjustment(wsId, data.id, { status: data.status }) : Promise.reject("No workspace ID"),
+      wsId ? approveAttendanceAdjustment(wsId, data.id, { status: data.status }) : Promise.reject(new Error("No workspace ID")),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
       void queryClient.invalidateQueries({ queryKey: ["time-history"] });

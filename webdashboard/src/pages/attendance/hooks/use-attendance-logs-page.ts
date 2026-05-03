@@ -26,21 +26,7 @@ const PAGE_SIZE = 20;
 export type TabType = "recorded" | "unknown";
 export type FilterMode = "this_month" | "last_month" | "custom" | "specific_month";
 
-export function useAttendanceLogsPage() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const wsId = getCurrentWorkspaceId();
-  const { formatDate, formatTime } = useDateTimeFormatter();
-  const queryClient = useQueryClient();
-
-  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-  const urlFrom = searchParams.get("from");
-  const urlTo = searchParams.get("to");
-  const urlEmployee = searchParams.get("employee");
-
-  const [activeTab, setActiveTab] = useState<TabType>("recorded");
-  const [employeeId, setEmployeeId] = useState<string>(urlEmployee ?? "all");
-
+function useAttendanceDateRange(urlFrom: string | null, urlTo: string | null) {
   const getMonthRange = (offset = 0) => {
     const d = new Date();
     d.setMonth(d.getMonth() + offset);
@@ -49,27 +35,9 @@ export function useAttendanceLogsPage() {
     return { start: firstDay, end: lastDay };
   };
 
-  const [filterMode, setFilterMode] = useState<FilterMode>(
-    urlFrom && urlTo ? "custom" : "this_month"
-  );
-  const [dateRange, setDateRange] = useState(
-    urlFrom && urlTo ? { start: urlFrom, end: urlTo } : getMonthRange(0)
-  );
-  const [specificMonth, setSpecificMonth] = useState({ 
-    month: new Date().getMonth() + 1, 
-    year: new Date().getFullYear() 
-  });
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (urlFrom || urlTo || urlEmployee) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("from");
-      url.searchParams.delete("to");
-      url.searchParams.delete("employee");
-      window.history.replaceState({}, "", url.toString());
-    }
-  }, [urlFrom, urlTo, urlEmployee]);
+  const [filterMode, setFilterMode] = useState<FilterMode>(urlFrom && urlTo ? "custom" : "this_month");
+  const [dateRange, setDateRange] = useState(urlFrom && urlTo ? { start: urlFrom, end: urlTo } : getMonthRange(0));
+  const [specificMonth, setSpecificMonth] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
 
   const handleFilterModeChange = useCallback((mode: FilterMode) => {
     setFilterMode(mode);
@@ -85,98 +53,14 @@ export function useAttendanceLogsPage() {
     setDateRange({ start, end });
   }, []);
 
-  const { employees: _employees } = useAllEmployees(wsId);
+  return { dateRange, filterMode, handleFilterModeChange, handleSpecificMonthChange, setDateRange, specificMonth };
+}
 
-  const employeeMap = useMemo(() => {
-    const map = new Map<string, Employee>();
-    _employees.forEach((emp) => map.set(emp.id, emp));
-    return map;
-  }, [_employees]);
-
-  const {
-    data: recordedPages,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>({
-    queryKey: ["attendance-raw-logs", wsId, employeeId, dateRange],
-    queryFn: ({ pageParam }) => {
-      const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
-      const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
-      return fetchRawAttendanceLogs({ 
-        employee_id: employeeId === "all" ? undefined : employeeId, 
-        from, 
-        to, 
-        page: pageParam as number, 
-        limit: PAGE_SIZE 
-      });
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
-      if (totalLoaded >= (lastPage.total || 0)) return undefined;
-      return allPages.length + 1;
-    },
-    initialPageParam: 1,
-    enabled: !!wsId && activeTab === "recorded",
-  });
-
-  const allRecordedLogs = useMemo(() => {
-    if (!recordedPages) return [] as RawAttendanceLog[];
-    return recordedPages.pages.flatMap((p) => p.data);
-  }, [recordedPages]);
-
-  const recordedTotal = recordedPages?.pages[0]?.total ?? 0;
-
-  const {
-    data: stagingPages,
-    isLoading: stagingLoading,
-    fetchNextPage: fetchNextStagingPage,
-    hasNextPage: hasNextStagingPage,
-    isFetchingNextPage: isFetchingNextStagingPage,
-  } = useInfiniteQuery<StagingLogsResponse>({
-    queryKey: ["staging-logs", wsId],
-    queryFn: ({ pageParam }) => {
-      if (!wsId) return Promise.reject(new Error("No workspace ID"));
-      return fetchStagingLogs(wsId, pageParam as number, PAGE_SIZE);
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
-      if (totalLoaded >= (lastPage.total || 0)) return undefined;
-      return allPages.length + 1;
-    },
-    initialPageParam: 1,
-    enabled: !!wsId && activeTab === "unknown",
-  });
-
-  const allStagingLogs = useMemo(() => {
-    if (!stagingPages) return [] as StagingLog[];
-    return stagingPages.pages.flatMap((p) => p.data);
-  }, [stagingPages]);
-
-  const stagingTotal = stagingPages?.pages[0]?.total ?? 0;
-
-  const { data: stagingCount } = useQuery({
-    queryKey: ["staging-logs-count", wsId],
-    queryFn: async () => {
-      if (!wsId) return 0;
-      const result = await fetchStagingLogs(wsId, 1, 1);
-      return result.total;
-    },
-    enabled: !!wsId,
-  });
-
-  const { data: devicesData } = useQuery({
-    queryKey: ["devices", wsId],
-    queryFn: () => fetchDevices(),
-    enabled: !!wsId,
-  });
+function useAttendanceMutations(wsId: string | null) {
+  const queryClient = useQueryClient();
 
   const dismissMutation = useMutation({
-    mutationFn: (logId: string) => {
-      if (!wsId) return Promise.reject(new Error("No workspace ID"));
-      return dismissStagingLog(wsId, logId);
-    },
+    mutationFn: (logId: string) => wsId ? dismissStagingLog(wsId, logId) : Promise.reject(new Error("No workspace ID")),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
       void queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
@@ -184,10 +68,7 @@ export function useAttendanceLogsPage() {
   });
 
   const resolveMutation = useMutation({
-    mutationFn: ({ logId, employeeId }: { logId: string; employeeId: string }) => {
-      if (!wsId) return Promise.reject(new Error("No workspace ID"));
-      return resolveStagingLog(wsId, logId, employeeId);
-    },
+    mutationFn: ({ logId, employeeId }: { logId: string; employeeId: string }) => wsId ? resolveStagingLog(wsId, logId, employeeId) : Promise.reject(new Error("No workspace ID")),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
       void queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
@@ -195,88 +76,105 @@ export function useAttendanceLogsPage() {
     },
   });
 
-  const getEmployeeName = useCallback((log: RawAttendanceLog) => {
-    if (log.employee_full_name) return log.employee_full_name;
-    const emp = employeeMap.get(log.employee_id);
-    return emp ? emp.full_name : t("common.system");
-  }, [employeeMap, t]);
+  return { dismissMutation, resolveMutation };
+}
 
-  const getEmployeeID = useCallback((log: RawAttendanceLog) => {
-    if (log.employee_id_number) return log.employee_id_number;
-    const emp = employeeMap.get(log.employee_id);
-    return emp ? emp.employee_id_number : "";
-  }, [employeeMap]);
-
+function useAttendanceDevices(wsId: string | null) {
+  const { data: devicesData } = useQuery({ queryKey: ["devices", wsId], queryFn: () => fetchDevices(), enabled: !!wsId });
   const deviceMap = useMemo(() => {
     const map = new Map<string, string>();
-    if (devicesData) {
-      devicesData.forEach((d) => {
-        if (d && typeof d === 'object' && 'id' in d && 'name' in d) {
-          map.set(d.id, d.name);
-        }
-      });
-    }
+    devicesData?.forEach((d) => { if ('id' in d && 'name' in d) map.set(d.id, d.name); });
     return map;
   }, [devicesData]);
 
-  const getDeviceName = useCallback((deviceId?: string | null): string => {
-    if (!deviceId) return "";
-    return deviceMap.get(deviceId) ?? "";
-  }, [deviceMap]);
+  const getDeviceName = useCallback((deviceId?: string | null): string => deviceId ? deviceMap.get(deviceId) ?? "" : "", [deviceMap]);
+  return { getDeviceName };
+}
 
-  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
+function useAttendanceData(wsId: string | null, employeeId: string, dateRange: { start: string; end: string }, activeTab: TabType) {
+  const { data: recordedPages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>({
+    queryKey: ["attendance-raw-logs", wsId, employeeId, dateRange],
+    queryFn: ({ pageParam }) => {
+      const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
+      const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
+      return fetchRawAttendanceLogs({ employee_id: employeeId === "all" ? undefined : employeeId, from, to, page: pageParam as number, limit: PAGE_SIZE });
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
+      return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
+    },
+    initialPageParam: 1,
+    enabled: !!wsId && activeTab === "recorded",
   });
 
-  const loadMoreStagingRef = useInfiniteScroll<HTMLTableRowElement>({
-    hasNextPage: hasNextStagingPage,
-    isFetchingNextPage: isFetchingNextStagingPage,
-    fetchNextPage: fetchNextStagingPage,
+  const allRecordedLogs = useMemo(() => recordedPages?.pages.flatMap((p) => p.data) ?? [] as RawAttendanceLog[], [recordedPages]);
+  const recordedTotal = recordedPages?.pages[0]?.total ?? 0;
+
+  const { data: stagingPages, isLoading: stagingLoading, fetchNextPage: fetchNextStagingPage, hasNextPage: hasNextStagingPage, isFetchingNextPage: isFetchingNextStagingPage } = useInfiniteQuery<StagingLogsResponse>({
+    queryKey: ["staging-logs", wsId],
+    queryFn: ({ pageParam }) => wsId ? fetchStagingLogs(wsId, pageParam as number, PAGE_SIZE) : Promise.reject(new Error("No workspace ID")),
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
+      return totalLoaded >= (lastPage.total || 0) ? undefined : allPages.length + 1;
+    },
+    initialPageParam: 1,
+    enabled: !!wsId && activeTab === "unknown",
   });
 
-  const handleCreateEmployee = (enrollmentId: string) => {
-    void navigate({ to: "/employees", search: { enrollment_id: enrollmentId } });
-  };
+  const allStagingLogs = useMemo(() => stagingPages?.pages.flatMap((p) => p.data) ?? [] as StagingLog[], [stagingPages]);
+  const stagingTotal = stagingPages?.pages[0]?.total ?? 0;
+
+  const { data: stagingCount } = useQuery({
+    queryKey: ["staging-logs-count", wsId],
+    queryFn: async () => wsId ? (await fetchStagingLogs(wsId, 1, 1)).total : 0,
+    enabled: !!wsId,
+  });
+
+  return { allRecordedLogs, recordedTotal, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, allStagingLogs, stagingTotal, stagingLoading, stagingCount, isFetchingNextStagingPage, hasNextStagingPage, fetchNextStagingPage };
+}
+
+export function useAttendanceLogsPage() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const wsId = getCurrentWorkspaceId();
+  const { formatDate, formatTime } = useDateTimeFormatter();
+
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const urlFrom = searchParams.get("from");
+  const urlTo = searchParams.get("to");
+  const urlEmployee = searchParams.get("employee");
+
+  const [activeTab, setActiveTab] = useState<TabType>("recorded");
+  const [employeeId, setEmployeeId] = useState<string>(urlEmployee ?? "all");
+  const { dateRange, filterMode, handleFilterModeChange, handleSpecificMonthChange, setDateRange, specificMonth } = useAttendanceDateRange(urlFrom, urlTo);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (urlFrom || urlTo || urlEmployee) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("from"); url.searchParams.delete("to"); url.searchParams.delete("employee");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [urlFrom, urlTo, urlEmployee]);
+
+  const { employees: _employees } = useAllEmployees(wsId);
+  const employeeMap = useMemo(() => {
+    const map = new Map<string, Employee>();
+    _employees.forEach((emp) => map.set(emp.id, emp));
+    return map;
+  }, [_employees]);
+
+  const { allRecordedLogs, recordedTotal, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, allStagingLogs, stagingTotal, stagingLoading, stagingCount, isFetchingNextStagingPage, hasNextStagingPage, fetchNextStagingPage } = useAttendanceData(wsId, employeeId, dateRange, activeTab);
+  const { dismissMutation, resolveMutation } = useAttendanceMutations(wsId);
+  const { getDeviceName } = useAttendanceDevices(wsId);
+
+  const getEmployeeName = useCallback((log: RawAttendanceLog) => log.employee_full_name ?? employeeMap.get(log.employee_id)?.full_name ?? t("common.system"), [employeeMap, t]);
+  const getEmployeeID = useCallback((log: RawAttendanceLog) => log.employee_id_number ?? employeeMap.get(log.employee_id)?.employee_id_number ?? "", [employeeMap]);
+
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({ hasNextPage, isFetchingNextPage, fetchNextPage: () => { void fetchNextPage(); } });
+  const loadMoreStagingRef = useInfiniteScroll<HTMLTableRowElement>({ hasNextPage: hasNextStagingPage, isFetchingNextPage: isFetchingNextStagingPage, fetchNextPage: () => { void fetchNextStagingPage(); } });
 
   return {
-    wsId,
-    t,
-    formatDate,
-    formatTime,
-    activeTab,
-    setActiveTab,
-    employeeId,
-    setEmployeeId,
-    filterMode,
-    dateRange,
-    setDateRange,
-    specificMonth,
-    isImportDialogOpen,
-    setIsImportDialogOpen,
-    handleFilterModeChange,
-    handleSpecificMonthChange,
-    allRecordedLogs,
-    recordedTotal,
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    allStagingLogs,
-    stagingTotal,
-    stagingLoading,
-    stagingCount,
-    isFetchingNextStagingPage,
-    hasNextStagingPage,
-    fetchNextStagingPage,
-    getEmployeeName,
-    getEmployeeID,
-    getDeviceName,
-    loadMoreRef,
-    loadMoreStagingRef,
-    handleCreateEmployee,
-    dismissMutation,
-    resolveMutation,
+    wsId, t, formatDate, formatTime, activeTab, setActiveTab, employeeId, setEmployeeId, filterMode, dateRange, setDateRange, specificMonth, isImportDialogOpen, setIsImportDialogOpen, handleFilterModeChange, handleSpecificMonthChange, allRecordedLogs, recordedTotal, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, allStagingLogs, stagingTotal, stagingLoading, stagingCount, isFetchingNextStagingPage, hasNextStagingPage, fetchNextStagingPage, getEmployeeName, getEmployeeID, getDeviceName, loadMoreRef, loadMoreStagingRef, handleCreateEmployee: (enrollmentId: string) => { void navigate({ to: "/employees", search: { enrollment_id: enrollmentId } }); }, dismissMutation, resolveMutation,
   };
 }

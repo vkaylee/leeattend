@@ -33,7 +33,7 @@ describe("EmployeeSearch Component", () => {
     { id: "2", full_name: "Jane Smith", employee_id_number: "E002" },
   ];
 
-  it("calls onChange when an employee is selected", async () => {
+  it("calls onChange when an employee is selected", () => {
  
     vi.mocked(useQuery).mockReturnValue({
       data: { data: mockEmployees },

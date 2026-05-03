@@ -1,7 +1,9 @@
+import { CalendarDays, ShieldCheck, UserPlus } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { CalendarDays, ShieldCheck, UserPlus } from "lucide-react";
+
 import { cn } from "@/lib/utils";
+
 import type { TabType } from "../../hooks/use-leave-settings";
 
 interface LeaveSettingsTabsProps {
@@ -13,9 +15,9 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
   const { t } = useTranslation();
 
   const tabs = [
-    { id: "types", label: t("settings.leave.tabs.types"), icon: CalendarDays },
-    { id: "policies", label: t("settings.leave.tabs.policies"), icon: ShieldCheck },
-    { id: "assignments", label: t("settings.leave.tabs.assignments"), icon: UserPlus },
+    { icon: CalendarDays, id: "types", label: t("settings.leave.tabs.types") },
+    { icon: ShieldCheck, id: "policies", label: t("settings.leave.tabs.policies") },
+    { icon: UserPlus, id: "assignments", label: t("settings.leave.tabs.assignments") },
   ] as const;
 
   return (
@@ -32,7 +34,7 @@ export function LeaveSettingsTabs({ activeTab, onTabChange }: LeaveSettingsTabsP
             )}
             data-testid={`leave-tab-${tab.id}`}
             key={tab.id}
-            onClick={() => onTabChange(tab.id)}
+            onClick={() => { onTabChange(tab.id); }}
           >
             <Icon className="w-4 h-4" />
             {tab.label}

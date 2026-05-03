@@ -330,7 +330,7 @@ describe("NavigableList", () => {
 
     it("exposes keyboard handler via onKeyDownRef", () => {
  
-        const ref = createRef<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>() as React.MutableRefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
+        const ref = createRef<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>() as React.RefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
         ref.current = null;
 
         render(<NavigableList {...defaultProps} onKeyDownRef={ref} />);

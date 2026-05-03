@@ -62,7 +62,7 @@ export function MonthYearPicker({
       </div>
 
       {/* Shortcuts */}
-      {!!showShortcuts && (
+      {showShortcuts && (
         <div className="flex gap-3 pt-2 border-t border-slate-50 dark:border-slate-800">
           <button className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95" onClick={setLastMonth} type="button">{t("common.filters.last_month")}</button>
           <button className="flex-1 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:bg-primary-950 hover:border-primary-100 dark:border-primary-800 transition-all active:scale-95" onClick={setCurrentMonth} type="button">{t("common.filters.this_month")}</button>

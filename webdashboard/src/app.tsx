@@ -29,7 +29,7 @@ function AppContent() {
 
   return (
     <>
-      {!!hasNewVersion && (
+      {hasNewVersion && (
         <NewVersionBanner
           onDismiss={dismiss}
           onRefresh={() => { window.location.reload(); }}
@@ -45,7 +45,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <DebugProvider>
         <DarkModeProvider>
-          { }
           <Sentry.ErrorBoundary fallback={(_error: unknown) => <ErrorBoundary>{null}</ErrorBoundary>}>
             <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
               <AppContent />

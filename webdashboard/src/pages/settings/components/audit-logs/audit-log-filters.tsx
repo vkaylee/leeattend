@@ -1,15 +1,16 @@
+import { Activity } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Activity } from "lucide-react";
+
 import { Combobox } from "@/components/ui/combobox";
 
 interface AuditLogFiltersProps {
     actionFilter: string;
-    onActionChange: (value: string) => void;
-    startDateFilter: string;
-    onStartDateChange: (value: string) => void;
     endDateFilter: string;
+    onActionChange: (value: string) => void;
     onEndDateChange: (value: string) => void;
+    onStartDateChange: (value: string) => void;
+    startDateFilter: string;
 }
 
 export function AuditLogFilters({
@@ -55,7 +56,7 @@ export function AuditLogFilters({
                     <input
                         aria-label={t("audit_logs.filters.start_date")}
                         className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        onChange={(e) => onStartDateChange(e.target.value)}
+                        onChange={(e) => { onStartDateChange(e.target.value); }}
                         type="date"
                         value={startDateFilter}
                     />
@@ -63,7 +64,7 @@ export function AuditLogFilters({
                     <input
                         aria-label={t("audit_logs.filters.end_date")}
                         className="text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        onChange={(e) => onEndDateChange(e.target.value)}
+                        onChange={(e) => { onEndDateChange(e.target.value); }}
                         type="date"
                         value={endDateFilter}
                     />

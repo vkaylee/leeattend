@@ -389,7 +389,7 @@ function NavigableListTable<T>({
                   {col.header}
                 </th>
               ))}
-              {!!showChevron && <th className="px-4 py-5 w-10" />}
+              {showChevron && <th className="px-4 py-5 w-10" />}
             </tr>
           </thead>
 
@@ -417,6 +417,42 @@ function NavigableListTable<T>({
       </div>
     </div>
   );
+}
+
+function useNavigableListSticky({
+  isFullPage,
+  smartHeaderEnabled,
+}: {
+  isFullPage: boolean;
+  smartHeaderEnabled: boolean;
+}) {
+  const stickySearchRef = useRef<HTMLDivElement>(null);
+  const [measuredSearchHeight, setMeasuredSearchHeight] = useState(0);
+
+  const { headerRef: smartHeaderRef, isVisible: smartHeaderVisible, headerHeight: smartHeaderHeight } = useStickyHeader({
+    enabled: smartHeaderEnabled,
+  });
+
+  useEffect(() => {
+    if (!isFullPage || smartHeaderEnabled || !stickySearchRef.current) return;
+    const element = stickySearchRef.current;
+    const update = () => { setMeasuredSearchHeight(element.offsetHeight); };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(element);
+    return () => { ro.disconnect(); };
+  }, [isFullPage, smartHeaderEnabled]);
+
+  const stickyOffset = smartHeaderEnabled
+    ? (smartHeaderVisible ? smartHeaderHeight : 0)
+    : (isFullPage ? measuredSearchHeight : 0);
+
+  return {
+    stickySearchRef,
+    smartHeaderRef,
+    smartHeaderVisible,
+    stickyOffset,
+  };
 }
 
 export default function NavigableList<T>({
@@ -467,26 +503,13 @@ export default function NavigableList<T>({
 
   const isFullPage = !maxHeightClass;
   const smartHeaderEnabled = isFullPage && smartHeader;
-  const stickySearchRef = useRef<HTMLDivElement>(null);
-  const [measuredSearchHeight, setMeasuredSearchHeight] = useState(0);
 
-  const { headerRef: smartHeaderRef, isVisible: smartHeaderVisible, headerHeight: smartHeaderHeight } = useStickyHeader({
-    enabled: smartHeaderEnabled,
-  });
-
-  useEffect(() => {
-    if (!isFullPage || smartHeaderEnabled || !stickySearchRef.current) return;
-    const element = stickySearchRef.current;
-    const update = () => { setMeasuredSearchHeight(element.offsetHeight); };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(element);
-    return () => { ro.disconnect(); };
-  }, [isFullPage, smartHeaderEnabled]);
-
-  const stickyOffset = smartHeaderEnabled
-    ? (smartHeaderVisible ? smartHeaderHeight : 0)
-    : (isFullPage ? measuredSearchHeight : 0);
+  const {
+    stickySearchRef,
+    smartHeaderRef,
+    smartHeaderVisible,
+    stickyOffset,
+  } = useNavigableListSticky({ isFullPage, smartHeaderEnabled });
 
   const searchProps = { onSearchChange, searchTestId, searchInputRef, listNav, searchPlaceholder, searchValue };
 

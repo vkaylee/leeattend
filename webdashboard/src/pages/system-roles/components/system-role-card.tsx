@@ -1,41 +1,41 @@
+import { Plus, Shield, ShieldAlert, ShieldCheck, ShieldHalf, Trash2, Users } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ShieldAlert, ShieldCheck, Shield, Users, Plus, Trash2, ShieldHalf } from "lucide-react";
 
 interface Assignee {
-  user_id: string;
   assigned_at: string;
+  user_id: string;
 }
 
 interface Role {
+  assignees: Assignee[];
+  description?: string;
   id: string;
   name: string;
-  description?: string;
-  assignees: Assignee[];
 }
 
 interface SystemRoleCardProps {
-  role: Role;
+  isRevoking: boolean;
   onAssign: (roleName: string) => void;
   onRevoke: (userId: string, roleName: string) => void;
-  isRevoking: boolean;
+  role: Role;
 }
 
 const roleDescriptions: Record<string, string> = {
+  billing_admin: "system_roles.descriptions.billing_admin",
   platform_admin: "system_roles.descriptions.platform_admin",
   support: "system_roles.descriptions.support",
-  billing_admin: "system_roles.descriptions.billing_admin",
 };
 
 const roleIcons: Record<string, React.ElementType> = {
+  billing_admin: ShieldHalf,
   platform_admin: ShieldAlert,
   support: ShieldCheck,
-  billing_admin: ShieldHalf,
 };
 
-export function SystemRoleCard({ role, onAssign, onRevoke, isRevoking }: SystemRoleCardProps) {
+export function SystemRoleCard({ isRevoking, onAssign, onRevoke, role }: SystemRoleCardProps) {
   const { t } = useTranslation();
-  const Icon = (roleIcons[role.name] as React.ElementType | undefined) || Shield;
+  const Icon = (roleIcons[role.name] as React.ElementType | undefined) ?? Shield;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300 group flex flex-col">
@@ -55,14 +55,14 @@ export function SystemRoleCard({ role, onAssign, onRevoke, isRevoking }: SystemR
             </div>
             <div className="flex items-center gap-1.5 text-sm font-medium text-slate-500 mt-1">
               <Users size={14} />
-              <span>{t("system_roles.assignees_count", { count: role.assignees.length || 0 })}</span>
+              <span>{t("system_roles.assignees_count", { count: role.assignees.length })}</span>
             </div>
           </div>
         </div>
         
         <button
           className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl transition-colors"
-          onClick={() => onAssign(role.name)}
+          onClick={() => { onAssign(role.name); }}
           title={t("system_roles.assign_to_user")}
         >
           <Plus size={20} />
@@ -70,7 +70,7 @@ export function SystemRoleCard({ role, onAssign, onRevoke, isRevoking }: SystemR
       </div>
 
       <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 flex-1">
-        {role.description || t(roleDescriptions[role.name] || "system_roles.descriptions.default")}
+        {role.description ?? t(roleDescriptions[role.name] ?? "system_roles.descriptions.default")}
       </p>
 
       <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
@@ -92,7 +92,7 @@ export function SystemRoleCard({ role, onAssign, onRevoke, isRevoking }: SystemR
                 <button
                   className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-50"
                   disabled={isRevoking}
-                  onClick={() => onRevoke(assignee.user_id, role.name)}
+                  onClick={() => { onRevoke(assignee.user_id, role.name); }}
                   title={t("system_roles.revoke_role")}
                 >
                   <Trash2 size={16} />

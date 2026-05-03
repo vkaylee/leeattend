@@ -5,9 +5,9 @@ import { AssignPolicyModal } from "@/components/leave/assign-policy-modal";
 import { LeavePolicyManager } from "@/components/leave/leave-policy-manager";
 import { LeaveTypeManager } from "@/components/leave/leave-type-manager";
 
-import { LeaveAssignmentsTab } from "./components/leave/LeaveAssignmentsTab";
-import { LeaveSettingsHeader } from "./components/leave/LeaveSettingsHeader";
-import { LeaveSettingsTabs } from "./components/leave/LeaveSettingsTabs";
+import { LeaveAssignmentsTab } from "./components/leave/leave-assignments-tab";
+import { LeaveSettingsHeader } from "./components/leave/leave-settings-header";
+import { LeaveSettingsTabs } from "./components/leave/leave-settings-tabs";
 import { useLeaveSettings } from "./hooks/use-leave-settings";
 
 export default function LeaveSettings() {

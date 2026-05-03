@@ -1,7 +1,7 @@
-import { HolidayForm } from "./components/holidays/HolidayForm";
-import { HolidayHeader } from "./components/holidays/HolidayHeader";
-import { HolidayTable } from "./components/holidays/HolidayTable";
-import { YearNavigation } from "./components/holidays/YearNavigation";
+import { HolidayForm } from "./components/holidays/holiday-form";
+import { HolidayHeader } from "./components/holidays/holiday-header";
+import { HolidayTable } from "./components/holidays/holiday-table";
+import { YearNavigation } from "./components/holidays/year-navigation";
 import { useHolidays } from "./hooks/use-holidays";
 
 export default function HolidaysPage() {
