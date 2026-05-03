@@ -58,7 +58,7 @@ export class DevicesPage extends BasePage {
       await this.page.getByTestId('device-ip-input').fill(data.ip);
     }
     if (data.port !== undefined) {
-      await this.page.getByTestId('device-port-input').fill(data.port.toString());
+      await this.page.getByTestId('device-port-input').fill(data.port);
     }
     if (data.password !== undefined) {
       await this.page.getByTestId('device-password-input').fill(data.password);

@@ -10,13 +10,13 @@ test.describe.skip('Employee Search Integration', () => {
     await employeesPage.verifyTitle('employees-title');
 
     // 2. Create an employee via POM
-    console.log('Creating new employee via POM...');
+    
     await employeesPage.createEmployee('SearchTarget', 'EMP999', '2024-01-01');
 
     // Wait for the new employee to appear
     await employeesPage.verifyEmployeeVisible('SearchTarget');
 
-    console.log('Employee created. Starting search test...');
+    
 
     // 3. Use the search input
     await employeesPage.search('SearchTarget');
@@ -24,6 +24,6 @@ test.describe.skip('Employee Search Integration', () => {
     // 4. Verify the list is filtered
     await employeesPage.verifyEmployeeVisible('SearchTarget');
     
-    console.log('Search successful, target found in filtered list.');
+    
   });
 });

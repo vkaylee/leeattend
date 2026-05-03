@@ -23,7 +23,7 @@ export class LoginPage extends BasePage {
     // We inject keys directly into localStorage to bypass API calls.
     // Use correct snake_case keys used by the application.
     await this.page.evaluate(({ user, workspace }) => {
-      console.log("[E2E] Injecting localStorage keys...");
+      
       localStorage.setItem('access_token', 'mock-access-token');
       localStorage.setItem('refresh_token', 'mock-refresh-token');
       localStorage.setItem('active_user_id', user.id);

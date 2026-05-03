@@ -16,7 +16,7 @@ test.describe.skip("Change Password Flow", () => {
 
     await page.waitForTimeout(3000);
     if (page.url().includes("/login")) {
-      console.log("admin123 failed, trying newadmin123");
+      
       currentPwd = "newadmin123";
       await page.getByTestId('login-password-input').fill(currentPwd);
       await page.getByTestId('login-submit-btn').click();
@@ -32,7 +32,7 @@ test.describe.skip("Change Password Flow", () => {
 
     const nextPwd = currentPwd === "admin123" ? "newadmin123" : "admin123";
 
-    console.log(`Changing password from ${currentPwd} to ${nextPwd}`);
+    
 
     // Fill the change password form
     const oldPassInput = page.getByTestId('current-password-input');
@@ -57,7 +57,7 @@ test.describe.skip("Change Password Flow", () => {
     await expect(page).toHaveURL("/", { timeout: 15000 });
     
     // --- RESET PASSWORD BACK TO admin123 for other tests ---
-    console.log("Resetting password back to admin123...");
+    
     await page.goto("/profile");
     const securityTabReset = page.getByRole('button', { name: /SECURITY|Bảo mật/i });
     await expect(securityTabReset).toBeVisible({ timeout: 15000 });
@@ -69,6 +69,6 @@ test.describe.skip("Change Password Flow", () => {
     await page.getByTestId('update-password-btn').click();
     await expect(page).toHaveURL("/login", { timeout: 15000 });
     
-    console.log("Test passed and password reset!");
+    
   });
 });

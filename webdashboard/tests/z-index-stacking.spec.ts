@@ -11,19 +11,19 @@ test.describe.skip('UI Z-Index Stacking Verification', () => {
     await expect(page.locator('h1').filter({ hasText: /Dashboard/i })).toBeVisible({ timeout: 30000 });
 
     // 2. Navigate to Leave Settings
-    console.log('Navigating to Leave Settings...');
+    
     await page.goto('/workspace/settings/leave');
     
     await expect(page.getByRole('heading', { level: 2, name: /Leave Settings|Cài đặt nghỉ phép/i })).toBeVisible({ timeout: 15000 });
     
     // Switch to Assignments tab
-    console.log('Switching to Assignments tab...');
+    
     const assignmentsTab = page.getByTestId('leave-tab-assignments');
     await expect(assignmentsTab).toBeVisible({ timeout: 15000 });
     await assignmentsTab.click();
 
     // Open Assignment Modal
-    console.log('Opening Assignment Modal...');
+    
     const assignButton = page.getByTestId('assign-policy-btn');
     await expect(assignButton).toBeVisible({ timeout: 15000 });
     await assignButton.click();
@@ -35,7 +35,7 @@ test.describe.skip('UI Z-Index Stacking Verification', () => {
     const backdropZIndex = await backdrop.evaluate((element) => {
       return window.getComputedStyle(element).zIndex;
     });
-    console.log(`Modal Backdrop Z-Index: ${backdropZIndex}`);
+    
 
     // 4. Open a Combobox inside the modal
     const comboboxTrigger = page.locator('button[id="assignee-type"]');
@@ -55,7 +55,7 @@ test.describe.skip('UI Z-Index Stacking Verification', () => {
       }
       return 'auto';
     });
-    console.log(`Combobox Popover Z-Index: ${popoverZIndex}`);
+    
 
     // 6. Assertions
     const bZ = parseInt(backdropZIndex, 10);
@@ -65,6 +65,6 @@ test.describe.skip('UI Z-Index Stacking Verification', () => {
     expect(pZ).toBe(10000);
     expect(pZ).toBeGreaterThan(bZ);
     
-    console.log('✅ Z-Index stacking verified: Popover (10000) > Backdrop (9999)');
+    
   });
 });

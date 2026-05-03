@@ -10,13 +10,13 @@ test.describe('Report Export Streaming E2E', () => {
 
   test.beforeEach(async ({ page }) => {
     // Enable browser console logging for debugging
-    page.on('console', message => { console.log(`[BROWSER] ${message.type().toUpperCase()}: ${message.text()}`); });
-    page.on('pageerror', error => { console.log(`[BROWSER ERROR] ${error.message}`); });
+    page.on('console', message => { /* empty */ });
+    page.on('pageerror', error => { /* empty */ });
     
     page.on('response', async response => {
       if (response.url().includes('/reports/export')) {
         const body = await response.text();
-        console.log(`[NETWORK RESPONSE] ${response.url()}: ${response.status()} ${body}`);
+        
       }
     });
 

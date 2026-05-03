@@ -116,6 +116,52 @@ function SortableWidgetRow({
 
 // ── Main Panel ─────────────────────────────────────────────────────
 
+function CustomizePanelBackdrop({ onClose }: { onClose: () => void }) {
+    return (
+        <div
+            className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm z-40 transition-opacity"
+            onClick={onClose}
+            onKeyDown={(e) => {
+                if (e.key === 'Escape') onClose();
+            }}
+            role="presentation"
+        />
+    );
+}
+
+function CustomizePanelHeader({ onClose, isSaving, t }: any) {
+    return (
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+                <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">
+                    {t("dashboard.customize.title")}
+                </h2>
+                {!!isSaving && <Loader2 className="animate-spin text-primary-500" size={16} />}
+            </div>
+            <button
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                onClick={onClose}
+            >
+                <X className="text-slate-500" size={18} />
+            </button>
+        </div>
+    );
+}
+
+function CustomizePanelFooter({ onReset, t }: any) {
+    return (
+        <div className="px-6 py-5 border-t border-slate-100 dark:border-slate-800 space-y-3">
+            <button
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                onClick={onReset}
+            >
+                <RotateCcw size={14} />
+                {t("dashboard.customize.reset")}
+            </button>
+        </div>
+    );
+}
+
 export default function CustomizePanel({
     isOpen,
     onClose,
@@ -165,17 +211,7 @@ export default function CustomizePanel({
 
     return (
         <>
-            {/* Backdrop */}
-            <div
- 
- 
-                className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm z-40 transition-opacity"
-                onClick={onClose}
-                onKeyDown={(e) => {
-                    if (e.key === 'Escape') onClose();
-                }}
-                role="presentation"
-            />
+            <CustomizePanelBackdrop onClose={onClose} />
 
             {/* Panel */}
             <aside
@@ -185,21 +221,7 @@ export default function CustomizePanel({
                     "animate-in slide-in-from-right duration-300"
                 )}
             >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">
-                            {t("dashboard.customize.title")}
-                        </h2>
-                        {!!isSaving && <Loader2 className="animate-spin text-primary-500" size={16} />}
-                    </div>
-                    <button
-                        className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        onClick={onClose}
-                    >
-                        <X className="text-slate-500" size={18} />
-                    </button>
-                </div>
+                <CustomizePanelHeader isSaving={isSaving} onClose={onClose} t={t} />
 
                 {/* Widget list */}
                 <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
@@ -228,16 +250,7 @@ export default function CustomizePanel({
                     </DndContext>
                 </div>
 
-                {/* Footer */}
-                <div className="px-6 py-5 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                    <button
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                        onClick={onReset}
-                    >
-                        <RotateCcw size={14} />
-                        {t("dashboard.customize.reset")}
-                    </button>
-                </div>
+                <CustomizePanelFooter onReset={onReset} t={t} />
             </aside>
         </>
     );

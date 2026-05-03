@@ -23,14 +23,14 @@ test.describe.skip("Attendance Logs UI", () => {
       await logsLink.click({ force: true });
 
       // The page title in H1 is "Attendance Logs" or "Nhật ký quẹt thẻ"
-      console.log("Checking page content...");
+      
       await expect(page.getByRole('heading', { level: 1 })).toContainText(/Attendance Logs|Nhật ký quẹt thẻ/, { timeout: 30000 });
 
       // 3. Check if table headers are present
       await expect(page.getByRole('columnheader', { name: /Time|Thời gian/i })).toBeVisible();
       await expect(page.getByRole('columnheader', { name: /Employee|Nhân viên/i })).toBeVisible();
       
-      console.log("Test passed!");
+      
     } catch (e) {
       console.error("Test failed, taking screenshot...", e);
       await page.screenshot({ path: "test-failure.png" });

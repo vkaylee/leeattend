@@ -21,6 +21,93 @@ const COLORS = {
     on_leave: "#6366f1",
 };
 
+function AttendanceTrendChartArea({ chartData, t }: any) {
+    return (
+        <ResponsiveContainer height={280} width="100%">
+            <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                <defs>
+                    <linearGradient id="gradPresent" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="5%" stopColor={COLORS.present} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={COLORS.present} stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradLate" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="5%" stopColor={COLORS.late} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={COLORS.late} stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradAbsent" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="5%" stopColor={COLORS.absent} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={COLORS.absent} stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradLeave" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="5%" stopColor={COLORS.on_leave} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={COLORS.on_leave} stopOpacity={0} />
+                    </linearGradient>
+                </defs>
+                <CartesianGrid className="text-slate-100 dark:text-slate-800" stroke="currentColor" strokeDasharray="3 3" />
+                <XAxis
+                    axisLine={false}
+                    className="text-slate-400 dark:text-slate-500"
+                    dataKey="label"
+                    interval="preserveStartEnd"
+                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                    tickLine={false}
+                />
+                <YAxis
+                    allowDecimals={false}
+                    axisLine={false}
+                    className="text-slate-400 dark:text-slate-500"
+                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                    tickLine={false}
+                />
+                <Tooltip
+                    contentStyle={{
+                        borderRadius: "1rem",
+                        border: "none",
+                        boxShadow: "0 8px 30px rgba(0,0,0,.1)",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                    }}
+                />
+                <Legend
+                    wrapperStyle={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}
+                />
+                <Area
+                    dataKey="present"
+                    fill="url(#gradPresent)"
+                    name={t("dashboard.hr.present_today")}
+                    stroke={COLORS.present}
+                    strokeWidth={2}
+                    type="monotone"
+                />
+                <Area
+                    dataKey="late"
+                    fill="url(#gradLate)"
+                    name={t("dashboard.hr.late_today")}
+                    stroke={COLORS.late}
+                    strokeWidth={2}
+                    type="monotone"
+                />
+                <Area
+                    dataKey="absent"
+                    fill="url(#gradAbsent)"
+                    name={t("dashboard.hr.absent_today")}
+                    stroke={COLORS.absent}
+                    strokeWidth={2}
+                    type="monotone"
+                />
+                <Area
+                    dataKey="on_leave"
+                    fill="url(#gradLeave)"
+                    name={t("dashboard.hr.on_leave_today")}
+                    stroke={COLORS.on_leave}
+                    strokeWidth={2}
+                    type="monotone"
+                />
+            </AreaChart>
+        </ResponsiveContainer>
+    );
+}
+
 export default function AttendanceTrendChart() {
     const { t } = useTranslation();
     const { data: trend, isLoading } = useAttendanceTrend();
@@ -66,88 +153,7 @@ export default function AttendanceTrendChart() {
                     </p>
                 </div>
             ) : (
-                <ResponsiveContainer height={280} width="100%">
-                    <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                        <defs>
-                            <linearGradient id="gradPresent" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="5%" stopColor={COLORS.present} stopOpacity={0.3} />
-                                <stop offset="95%" stopColor={COLORS.present} stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="gradLate" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="5%" stopColor={COLORS.late} stopOpacity={0.3} />
-                                <stop offset="95%" stopColor={COLORS.late} stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="gradAbsent" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="5%" stopColor={COLORS.absent} stopOpacity={0.3} />
-                                <stop offset="95%" stopColor={COLORS.absent} stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="gradLeave" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="5%" stopColor={COLORS.on_leave} stopOpacity={0.3} />
-                                <stop offset="95%" stopColor={COLORS.on_leave} stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid className="text-slate-100 dark:text-slate-800" stroke="currentColor" strokeDasharray="3 3" />
-                        <XAxis
-                            axisLine={false}
-                            className="text-slate-400 dark:text-slate-500"
-                            dataKey="label"
-                            interval="preserveStartEnd"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            tickLine={false}
-                        />
-                        <YAxis
-                            allowDecimals={false}
-                            axisLine={false}
-                            className="text-slate-400 dark:text-slate-500"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            tickLine={false}
-                        />
-                        <Tooltip
-                            contentStyle={{
-                                borderRadius: "1rem",
-                                border: "none",
-                                boxShadow: "0 8px 30px rgba(0,0,0,.1)",
-                                fontSize: "11px",
-                                fontWeight: 600,
-                            }}
-                        />
-                        <Legend
-                            wrapperStyle={{ fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em" }}
-                        />
-                        <Area
-                            dataKey="present"
-                            fill="url(#gradPresent)"
-                            name={t("dashboard.hr.present_today")}
-                            stroke={COLORS.present}
-                            strokeWidth={2}
-                            type="monotone"
-                        />
-                        <Area
-                            dataKey="late"
-                            fill="url(#gradLate)"
-                            name={t("dashboard.hr.late_today")}
-                            stroke={COLORS.late}
-                            strokeWidth={2}
-                            type="monotone"
-                        />
-                        <Area
-                            dataKey="absent"
-                            fill="url(#gradAbsent)"
-                            name={t("dashboard.hr.absent_today")}
-                            stroke={COLORS.absent}
-                            strokeWidth={2}
-                            type="monotone"
-                        />
-                        <Area
-                            dataKey="on_leave"
-                            fill="url(#gradLeave)"
-                            name={t("dashboard.hr.on_leave_today")}
-                            stroke={COLORS.on_leave}
-                            strokeWidth={2}
-                            type="monotone"
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
+                <AttendanceTrendChartArea chartData={chartData} t={t} />
             )}
         </div>
     );

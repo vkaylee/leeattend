@@ -5,8 +5,8 @@ import { test } from "./worker-orchestrator";
 
 test.describe.skip("Leave Policies CRUD", () => {
   test('should create, edit, and delete a leave policy', async ({ page }) => {
-    page.on('console', message => { console.log(`[BROWSER] ${message.type().toUpperCase()}: ${message.text()}`); });
-    page.on('pageerror', error => { console.log(`[BROWSER ERROR] ${error.message}`); });
+    page.on('console', message => { /* empty */ });
+    page.on('pageerror', error => { /* empty */ });
 
     // 1. Login and Navigate
     await page.goto('/login');

@@ -23,7 +23,7 @@ test.describe.skip('Route & Sidebar Regression', () => {
 
   for (const route of criticalRoutes) {
     test(`should navigate to ${route.name} and render without blank page`, async ({ page }) => {
-      console.log(`Testing route: ${route.path}`);
+      
       
       // Use direct navigation to avoid sidebar animation flakiness in regression tests
       await page.goto(route.path);
@@ -35,7 +35,7 @@ test.describe.skip('Route & Sidebar Regression', () => {
       const title = page.getByTestId(route.titleTestId);
       await expect(title).toBeVisible({ timeout: 30000 });
       
-      console.log(`Successfully verified ${route.name} via data-testid: "${route.titleTestId}"`);
+      
     });
   }
 });

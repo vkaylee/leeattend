@@ -23,6 +23,75 @@ const COLORS = {
     on_leave: "#6366f1",
 };
 
+function DepartmentAttendanceChartBar({ chartData, t }: any) {
+    return (
+        <ResponsiveContainer height={320} width="100%">
+            <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid
+                    className="text-slate-100 dark:text-slate-800"
+                    stroke="currentColor"
+                    strokeDasharray="3 3"
+                />
+                <XAxis
+                    axisLine={false}
+                    className="text-slate-400 dark:text-slate-500"
+                    dataKey="name"
+                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                    tickLine={false}
+                />
+                <YAxis
+                    allowDecimals={false}
+                    axisLine={false}
+                    className="text-slate-400 dark:text-slate-500"
+                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                    tickLine={false}
+                />
+                <Tooltip
+                    contentStyle={{
+                        borderRadius: "1rem",
+                        border: "none",
+                        boxShadow: "0 8px 30px rgba(0,0,0,.1)",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                    }}
+                />
+                <Legend
+                    wrapperStyle={{
+                        fontSize: "9px",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.15em",
+                    }}
+                />
+                <Bar
+                    dataKey="on_time"
+                    fill={COLORS.on_time}
+                    name={t("dashboard.hr.on_time")}
+                    radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                    dataKey="late"
+                    fill={COLORS.late}
+                    name={t("dashboard.hr.late_today")}
+                    radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                    dataKey="absent"
+                    fill={COLORS.absent}
+                    name={t("dashboard.hr.absent_today")}
+                    radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                    dataKey="on_leave"
+                    fill={COLORS.on_leave}
+                    name={t("dashboard.hr.on_leave_today")}
+                    radius={[4, 4, 0, 0]}
+                />
+            </BarChart>
+        </ResponsiveContainer>
+    );
+}
+
 export default function DepartmentAttendanceChart() {
     const { t } = useTranslation();
     const [range, setRange] = useState<"today" | "week">("today");
@@ -92,70 +161,7 @@ export default function DepartmentAttendanceChart() {
                     </p>
                 </div>
             ) : (
-                <ResponsiveContainer height={320} width="100%">
-                    <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                        <CartesianGrid
-                            className="text-slate-100 dark:text-slate-800"
-                            stroke="currentColor"
-                            strokeDasharray="3 3"
-                        />
-                        <XAxis
-                            axisLine={false}
-                            className="text-slate-400 dark:text-slate-500"
-                            dataKey="name"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            tickLine={false}
-                        />
-                        <YAxis
-                            allowDecimals={false}
-                            axisLine={false}
-                            className="text-slate-400 dark:text-slate-500"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            tickLine={false}
-                        />
-                        <Tooltip
-                            contentStyle={{
-                                borderRadius: "1rem",
-                                border: "none",
-                                boxShadow: "0 8px 30px rgba(0,0,0,.1)",
-                                fontSize: "11px",
-                                fontWeight: 600,
-                            }}
-                        />
-                        <Legend
-                            wrapperStyle={{
-                                fontSize: "9px",
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.15em",
-                            }}
-                        />
-                        <Bar
-                            dataKey="on_time"
-                            fill={COLORS.on_time}
-                            name={t("dashboard.hr.on_time")}
-                            radius={[4, 4, 0, 0]}
-                        />
-                        <Bar
-                            dataKey="late"
-                            fill={COLORS.late}
-                            name={t("dashboard.hr.late_today")}
-                            radius={[4, 4, 0, 0]}
-                        />
-                        <Bar
-                            dataKey="absent"
-                            fill={COLORS.absent}
-                            name={t("dashboard.hr.absent_today")}
-                            radius={[4, 4, 0, 0]}
-                        />
-                        <Bar
-                            dataKey="on_leave"
-                            fill={COLORS.on_leave}
-                            name={t("dashboard.hr.on_leave_today")}
-                            radius={[4, 4, 0, 0]}
-                        />
-                    </BarChart>
-                </ResponsiveContainer>
+                <DepartmentAttendanceChartBar chartData={chartData} t={t} />
             )}
         </div>
     );

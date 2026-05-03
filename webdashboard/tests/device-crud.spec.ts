@@ -9,8 +9,8 @@ test.setTimeout(120000);
 
 test.describe.skip("Device CRUD E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
-    page.on('console', message => { console.log(`[BROWSER] ${message.type().toUpperCase()}: ${message.text()}`); });
-    page.on('pageerror', error => { console.log(`[BROWSER ERROR] ${error.message}`); });
+    page.on('console', message => { /* empty */ });
+    page.on('pageerror', error => { /* empty */ });
 
     // Login first
     await page.goto('/login');
@@ -58,7 +58,7 @@ test.describe.skip("Device CRUD E2E Tests", () => {
   test('should toggle device enable/disable and verify status changes', async ({ page }) => {
     // Handle confirmation dialog BEFORE navigating
     page.on('dialog', async dialog => {
-      console.log(`[DIALOG] ${dialog.type()}: ${dialog.message()}`);
+      
       await dialog.accept();
     });
 
@@ -90,7 +90,7 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     await expect(firstDevice).toBeVisible({ timeout: 10000 });
 
     // Get device ID from test id attribute
-    const testId = await firstDevice.getAttribute('data-testid') || '';
+    const testId = await firstDevice.getAttribute('data-testid') ?? '';
     const deviceId = testId.replace('device-item-', '');
 
     // Get toggle button to check current state (button text indicates action, not state)
@@ -105,18 +105,18 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     };
 
     // Get initial status from the status badge
-    const initialStatusText = await statusBadge.textContent() || '';
+    const initialStatusText = await statusBadge.textContent() ?? '';
     const wasEnabled = isEnabled(initialStatusText);
-    console.log(`[TEST] Initial status: "${initialStatusText}", wasEnabled: ${wasEnabled}`);
+    
 
     // Click toggle and wait for the network request to complete
     await toggleButton.click();
 
     // Wait for status to change (poll for change rather than fixed timeout)
     await expect(async () => {
-      const currentStatus = await statusBadge.textContent() || '';
+      const currentStatus = await statusBadge.textContent() ?? '';
       const isNowEnabled = isEnabled(currentStatus);
-      console.log(`[TEST] After toggle: "${currentStatus}", isNowEnabled: ${isNowEnabled}`);
+      
       expect(isNowEnabled).not.toBe(wasEnabled);
     }).toPass({ timeout: 10000 });
 
@@ -125,9 +125,9 @@ test.describe.skip("Device CRUD E2E Tests", () => {
 
     // Wait for status to revert
     await expect(async () => {
-      const finalStatus = await statusBadge.textContent() || '';
+      const finalStatus = await statusBadge.textContent() ?? '';
       const isFinalEnabled = isEnabled(finalStatus);
-      console.log(`[TEST] After revert: "${finalStatus}", isFinalEnabled: ${isFinalEnabled}`);
+      
       expect(isFinalEnabled).toBe(wasEnabled);
     }).toPass({ timeout: 10000 });
   });
@@ -151,7 +151,7 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     const firstDevice = page.locator('[data-testid^="device-item-"]').first();
     await expect(firstDevice).toBeVisible({ timeout: 10000 });
 
-    const testId = await firstDevice.getAttribute('data-testid') || '';
+    const testId = await firstDevice.getAttribute('data-testid') ?? '';
     const deviceId = testId.replace('device-item-', '');
 
     // Get original name
@@ -199,7 +199,7 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     const firstDevice = page.locator('[data-testid^="device-item-"]').first();
     await expect(firstDevice).toBeVisible({ timeout: 10000 });
 
-    const testId = await firstDevice.getAttribute('data-testid') || '';
+    const testId = await firstDevice.getAttribute('data-testid') ?? '';
     const deviceId = testId.replace('device-item-', '');
 
     const originalName = await connectivity.getDeviceName(deviceId);
@@ -245,7 +245,7 @@ test.describe.skip("Device CRUD E2E Tests", () => {
     }
 
     const firstDevice = page.locator('[data-testid^="device-item-"]').first();
-    const testId = await firstDevice.getAttribute('data-testid') || '';
+    const testId = await firstDevice.getAttribute('data-testid') ?? '';
     const deviceId = testId.replace('device-item-', '');
 
     // Delete device
@@ -288,7 +288,7 @@ test.describe.skip("Device CRUD E2E Tests", () => {
 
     // Expand single agent
     const firstCard = agentCards.first();
-    const firstTestId = await firstCard.getAttribute('data-testid') || '';
+    const firstTestId = await firstCard.getAttribute('data-testid') ?? '';
     const agentId = firstTestId.replace('agent-card-', '');
 
     await connectivity.expandAgent(agentId);

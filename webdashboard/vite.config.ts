@@ -85,11 +85,11 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
   // Tự động tìm port của API từ file Discovery nếu không có biến môi trường
   let apiPort = "";
   try {
-    const portFileName = process.env.VITE_BACKEND_PORT_FILE || ".api_port";
+    const portFileName = process.env.VITE_BACKEND_PORT_FILE ?? ".api_port";
     const apiPortFile = path.resolve(__dirname, `../apiserver/${portFileName}`);
     if (fs.existsSync(apiPortFile)) {
       apiPort = fs.readFileSync(apiPortFile, "utf8").trim();
-      console.log(`📡 Vite: Discovered API server on port ${apiPort} via ${portFileName}`);
+      
     }
   } catch {
     console.warn("📡 Vite: Could not discover API port");
@@ -99,11 +99,11 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
   const apiTarget = apiPort ? `http://127.0.0.1:${apiPort}` : (apiOrigin || `http://localhost:3000`);
   const wsTarget = apiTarget.replace(/^http/, "ws");
 
-  console.log(`📡 Vite: Proxying /api to ${apiTarget}`);
-  console.log(`📡 Vite: Proxying /ws to ${wsTarget}`);
+  
+  
 
   // Dùng port động nếu đang chạy test
-  const workerIndex = parseInt(process.env.VITE_BACKEND_PORT_FILE?.split('_').pop() || "0", 10);
+  const workerIndex = parseInt(process.env.VITE_BACKEND_PORT_FILE?.split('_').pop() ?? "0", 10);
   const isTest = !!process.env.VITE_WEB_PORT_FILE || mode === 'test' || !!process.env.PLAYWRIGHT_TEST || !!process.env.PW_TEST;
   const startPort = isTest ? (5173 + (workerIndex * 50)) : 5173;
   const port = await findAvailablePort(startPort);
@@ -142,9 +142,9 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
             const address = server.httpServer?.address();
             if (address && typeof address === 'object') {
               const actualPort = address.port;
-              const webPortFile = process.env.VITE_WEB_PORT_FILE || ".web_port";
+              const webPortFile = process.env.VITE_WEB_PORT_FILE ?? ".web_port";
               fs.writeFileSync(webPortFile, actualPort.toString());
-              console.log(`📡 Vite: Saved actual assigned port to ${webPortFile}: ${actualPort}`);
+              
             }
           });
         }
@@ -156,7 +156,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       },
     },
     server: {
-      host: process.env.VITE_DEV_SERVER_HOST || "127.0.0.1",
+      host: process.env.VITE_DEV_SERVER_HOST ?? "127.0.0.1",
       port,
       strictPort: true,
       allowedHosts: ["leeattend.nport.link"],
@@ -167,12 +167,8 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
           changeOrigin: true,
           ws: true,
           configure: (proxy: net.Socket, _options: unknown) => {
-            proxy.on('error', (error: Error, _request: IncomingMessage, _res: ServerResponse) => {
-              console.log('📡 Vite: WebSocket proxy error', error);
-            });
-            proxy.on('proxyReq', (_proxyRequest: unknown, request: IncomingMessage, _res: ServerResponse) => {
-              console.log(`📡 Vite: Proxying WebSocket ${request.method} ${request.url} -> ${wsTarget}${request.url}`);
-            });
+            proxy.on('error', (error: Error, _request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
+            proxy.on('proxyReq', (_proxyRequest: unknown, request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
           },
         },
         // HTTP API proxy
@@ -180,12 +176,8 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
           target: apiTarget,
           changeOrigin: true,
           configure: (proxy: net.Socket, _options: unknown) => {
-            proxy.on('error', (error: Error, _request: IncomingMessage, _res: ServerResponse) => {
-              console.log('📡 Vite: Proxy error', error);
-            });
-            proxy.on('proxyReq', (_proxyRequest: unknown, request: IncomingMessage, _res: ServerResponse) => {
-              console.log(`📡 Vite: Proxying request ${request.method} ${request.url} -> ${apiTarget}${request.url}`);
-            });
+            proxy.on('error', (error: Error, _request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
+            proxy.on('proxyReq', (_proxyRequest: unknown, request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
           },
         },
         // Legacy WebSocket proxy (kept for compatibility)

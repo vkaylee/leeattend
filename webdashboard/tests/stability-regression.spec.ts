@@ -23,7 +23,7 @@ test.skip("should include X-Workspace-Id header on initial dashboard load", asyn
   const headers = request.headers();
 
   // 4. VERIFY: The header must exist and not be empty/null
-  console.log("🛠️ Intercepted Headers for /stats:", JSON.stringify(headers, null, 2));
+  
   
   expect(headers["x-workspace-id"]).toBeDefined();
   expect(headers["x-workspace-id"]).toMatch(/^[0-9a-f-]{36}$/i); // Must be a UUID

@@ -15,7 +15,7 @@ export class ConnectivityPage extends BasePage {
   }
 
   async waitForLoad() {
-    console.log(`[ConnectivityPage] Waiting for load at: ${this.page.url()}`);
+    
     await expect(this.page.getByTestId('connectivity-topology')).toBeVisible({ timeout: 30000 });
     // Wait for either the agent list or the empty state to be visible (meaning data has finished loading)
     await expect(this.page.locator('[data-testid="agents-list"], [data-testid="empty-agents-state"]')).toBeVisible({ timeout: 15000 });
@@ -123,12 +123,12 @@ export class ConnectivityPage extends BasePage {
 
   async getDeviceStatus(deviceId: string): Promise<string> {
     const status = this.page.getByTestId(`device-status-${deviceId}`);
-    return await status.textContent() || '';
+    return await status.textContent() ?? '';
   }
 
   async getDeviceName(deviceId: string): Promise<string> {
     const name = this.page.getByTestId(`device-name-${deviceId}`);
-    return await name.textContent() || '';
+    return await name.textContent() ?? '';
   }
 
   // Utility

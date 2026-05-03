@@ -21,7 +21,7 @@ test.describe("Connectivity Buttons Visibility Tests", () => {
 
         if (agentCount > 0) {
             const firstCard = agentCards.first();
-            const testId = await firstCard.getAttribute('data-testid') || '';
+            const testId = await firstCard.getAttribute('data-testid') ?? '';
             const agentId = testId.replace('agent-card-', '');
 
             // Expand agent to see its inner "Add Device" button
@@ -32,7 +32,7 @@ test.describe("Connectivity Buttons Visibility Tests", () => {
             await expect(agentAddButton).toBeVisible();
             await expect(agentAddButton).toHaveText(/add device|thêm thiết bị/i);
         } else {
-            console.log("No agents found, skipping agent-specific button check");
+            
         }
     });
 

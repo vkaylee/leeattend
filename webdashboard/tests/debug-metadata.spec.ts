@@ -20,6 +20,6 @@ test.describe.skip('Debug Metadata Verification', () => {
     expect(data.devEmail).toBe('admin@leeattend.com');
     expect(data.devPass).toBe('admin123');
     
-    console.log('✅ Debug metadata verified successfully on Fast Login button.');
+    
   });
 });

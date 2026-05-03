@@ -6,20 +6,20 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     test.setTimeout(180000);
     
     // Capture console messages and errors
-    page.on('console', message => { console.log(`[BROWSER] ${message.type().toUpperCase()}: ${message.text()}`); });
-    page.on('pageerror', error => { console.log(`[BROWSER ERROR] ${error.message}`); });
+    page.on('console', message => { /* empty */ });
+    page.on('pageerror', error => { /* empty */ });
 
-    console.log('--- Starting Leave Policy Assignment Integration Test ---');
+    
     
     // 1. Login
     await page.goto('/login');
     await page.getByTestId('fast-login-btn').click();
     
-    console.log('Waiting for Dashboard heading...');
+    
     await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 30000 });
 
     // 2. Create an Employee
-    console.log('Navigating to Employees...');
+    
     await page.goto('/employees');
     await expect(page.getByTestId('employees-title')).toBeVisible({ timeout: 15000 });
     
@@ -28,7 +28,7 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     await addEmpButton.click({ force: true });
     
     // Wait for form input directly
-    console.log('Waiting for Add Employee form...');
+    
     const nameInput = page.getByTestId('employees-form-name-input');
     await expect(nameInput).toBeVisible({ timeout: 30000 });
 
@@ -42,10 +42,10 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     
     // Wait for row to appear
     await expect(page.getByRole('row', { name: fullName })).toBeVisible({ timeout: 30000 });
-    console.log('Employee created.');
+    
 
     // 3. Navigate to Leave Settings
-    console.log('Navigating to Leave Settings...');
+    
     await page.goto('/workspace/settings/leave');
     await expect(page.getByRole('heading', { level: 2, name: /Leave Settings|Cài đặt nghỉ phép/i })).toBeVisible({ timeout: 15000 });
 
@@ -59,7 +59,7 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     await page.fill('input[id="policy-name"]', policyName);
     await page.getByTestId('save-policy-btn').click();
     await expect(page.getByRole('heading', { name: policyName })).toBeVisible({ timeout: 15000 });
-    console.log('Policy created.');
+    
 
     // 5. Switch to Assignments Tab and assign
     await page.getByTestId('leave-tab-assignments').click();
@@ -67,7 +67,7 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     await expect(assignButton).toBeVisible({ timeout: 15000 });
     await assignButton.click();
     
-    console.log('Filling assignment modal...');
+    
     await page.getByTestId('assign-type-select').click();
     await page.getByRole('option', { name: /Individual|Cá nhân/i }).click();
 
@@ -83,6 +83,6 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     
     // Verify assignment exists in table
     await expect(page.getByRole('cell', { name: policyName })).toBeVisible({ timeout: 15000 });
-    console.log('Assignment successful.');
+    
   });
 });

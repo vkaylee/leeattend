@@ -17,7 +17,7 @@ test.describe("UI Build Smoke Test", () => {
     });
 
     // Đi tới trang chủ (hoặc login nếu chưa auth)
-    await page.goto(baseURL || "http://localhost:5173");
+    await page.goto(baseURL ?? "http://localhost:5173");
 
     // Chờ cho đến khi biến mất màn hình loading
     await page.waitForFunction(() => {
@@ -27,7 +27,7 @@ test.describe("UI Build Smoke Test", () => {
         !text.includes("Đang kiểm tra bảo mật") &&
         !text.includes("Loading workspace") &&
         !text.includes("Đang tải");
-    }, { timeout: 15000 }).catch(() => { console.log("Timeout waiting for security screen to detach, continuing..."); });
+    }, { timeout: 15000 }).catch(() => { /* empty */ });
 
     // 1. Kiểm tra không có lỗi runtime nghiêm trọng làm chết app
     expect(errors).toHaveLength(0);
@@ -51,7 +51,7 @@ test.describe("UI Build Smoke Test", () => {
   });
 
   test("should have correctly configured styles and assets", async ({ page, baseURL }) => {
-    await page.goto(baseURL || "http://localhost:5173");
+    await page.goto(baseURL ?? "http://localhost:5173");
 
     // Kiểm tra logo hoặc các asset quan trọng
     const images = await page.locator("img").count();

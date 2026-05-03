@@ -147,6 +147,98 @@ function DebugDatabaseTab({ isWiping, handleClearDatabase }: any) {
   );
 }
 
+function DebugToolbarTabs({ activeTab, setActiveTab }: any) {
+  return (
+    <div className="flex border-b border-slate-800 mt-2">
+      <button 
+        className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
+          activeTab === "identity" ? "bg-slate-800 text-blue-400 border-b-2 border-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
+        }`}
+        onClick={() => { setActiveTab("identity"); }}
+      >
+        <User size={12} /> Identity
+      </button>
+      <button 
+        className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
+          activeTab === "time" ? "bg-slate-800 text-teal-400 border-b-2 border-teal-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
+        }`}
+        onClick={() => { setActiveTab("time"); }}
+      >
+        <Calendar size={12} /> Time
+      </button>
+      <button 
+        className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
+          activeTab === "database" ? "bg-slate-800 text-red-400 border-b-2 border-red-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
+        }`}
+        onClick={() => { setActiveTab("database"); }}
+      >
+        <Database size={12} /> Database
+      </button>
+    </div>
+  );
+}
+
+function DebugToolbarHeader({ isEnabled, setIsEnabled, setIsOpen }: any) {
+  return (
+    <>
+      <div className="flex items-center justify-between p-3 border-b border-slate-800 bg-slate-950">
+        <div className="flex items-center gap-2">
+          <Terminal className="text-blue-400" size={16} />
+          <span className="text-xs font-bold tracking-wider uppercase">Debug Suite v2.0</span>
+        </div>
+        <button className="hover:text-slate-500 dark:text-slate-400" onClick={() => { setIsOpen(false); }}>
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="px-4 pt-4">
+        <div className="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Power className={isEnabled ? "text-green-400" : "text-slate-500 dark:text-slate-400"} size={14} />
+            <span className="text-xs font-medium">Global Debug Mode</span>
+          </div>
+          <button
+            className={`w-10 h-5 rounded-full relative transition-colors ${
+              isEnabled ? "bg-green-600" : "bg-slate-600"
+            }`}
+            onClick={() => { setIsEnabled(!isEnabled); }}
+          >
+            <div className={`absolute top-1 w-3 h-3 bg-white dark:bg-slate-900 rounded-full transition-all ${
+              isEnabled ? "left-6" : "left-1"
+            }`} />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function DebugToolbarFooter({ isEnabled, reset, setTemporaryId, setTemporaryDate }: any) {
+  return (
+    <div className="p-3 bg-slate-950 border-t border-slate-800 flex justify-between gap-2">
+      <button
+        className="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 py-2 rounded text-[10px] font-bold text-slate-300 dark:text-slate-600"
+        onClick={() => {
+          reset();
+          setTemporaryId("");
+          setTemporaryDate("");
+          window.location.reload();
+        }}
+      >
+        <RefreshCcw size={12} /> Clear Settings
+      </button>
+      {!!isEnabled && (
+        <button
+          className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 py-2 rounded text-[10px] font-bold"
+          onClick={() => { window.location.reload(); }}
+        >
+          Reload UI
+        </button>
+      )}
+    </div>
+  );
+}
+
 export const DebugToolbar: React.FC = () => {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -221,61 +313,8 @@ export const DebugToolbar: React.FC = () => {
 
   return (
     <div className="fixed bottom-4 right-4 bg-slate-900 text-white rounded-xl shadow-2xl z-[9999] border border-slate-700 w-80 overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
-      <div className="flex items-center justify-between p-3 border-b border-slate-800 bg-slate-950">
-        <div className="flex items-center gap-2">
-          <Terminal className="text-blue-400" size={16} />
-          <span className="text-xs font-bold tracking-wider uppercase">Debug Suite v2.0</span>
-        </div>
-        <button className="hover:text-slate-500 dark:text-slate-400" onClick={() => { setIsOpen(false); }}>
-          <X size={16} />
-        </button>
-      </div>
-
-      <div className="px-4 pt-4">
-        <div className="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Power className={isEnabled ? "text-green-400" : "text-slate-500 dark:text-slate-400"} size={14} />
-            <span className="text-xs font-medium">Global Debug Mode</span>
-          </div>
-          <button
-            className={`w-10 h-5 rounded-full relative transition-colors ${
-              isEnabled ? "bg-green-600" : "bg-slate-600"
-            }`}
-            onClick={() => { setIsEnabled(!isEnabled); }}
-          >
-            <div className={`absolute top-1 w-3 h-3 bg-white dark:bg-slate-900 rounded-full transition-all ${
-              isEnabled ? "left-6" : "left-1"
-            }`} />
-          </button>
-        </div>
-      </div>
-
-      <div className="flex border-b border-slate-800 mt-2">
-        <button 
-          className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
-            activeTab === "identity" ? "bg-slate-800 text-blue-400 border-b-2 border-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
-          }`}
-          onClick={() => { setActiveTab("identity"); }}
-        >
-          <User size={12} /> Identity
-        </button>
-        <button 
-          className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
-            activeTab === "time" ? "bg-slate-800 text-teal-400 border-b-2 border-teal-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
-          }`}
-          onClick={() => { setActiveTab("time"); }}
-        >
-          <Calendar size={12} /> Time
-        </button>
-        <button 
-          className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
-            activeTab === "database" ? "bg-slate-800 text-red-400 border-b-2 border-red-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
-          }`}
-          onClick={() => { setActiveTab("database"); }}
-        >
-          <Database size={12} /> Database
-        </button>
-      </div>
+      <DebugToolbarHeader isEnabled={isEnabled} setIsEnabled={setIsEnabled} setIsOpen={setIsOpen} />
+      <DebugToolbarTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className={`p-4 min-h-[160px] ${!isEnabled ? "opacity-40 pointer-events-none" : ""}`}>
         {activeTab === "identity" && (
@@ -291,28 +330,8 @@ export const DebugToolbar: React.FC = () => {
         )}
       </div>
 
-      <div className="p-3 bg-slate-950 border-t border-slate-800 flex justify-between gap-2">
-        <button
-          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 py-2 rounded text-[10px] font-bold text-slate-300 dark:text-slate-600"
-          onClick={() => {
-            reset();
-            setTemporaryId("");
-            setTemporaryDate("");
-            window.location.reload();
-          }}
-        >
-          <RefreshCcw size={12} /> Clear Settings
-        </button>
-        {!!isEnabled && (
-          <button
-            className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 py-2 rounded text-[10px] font-bold"
-            onClick={() => { window.location.reload(); }}
-          >
-            Reload UI
-          </button>
-        )}
-      </div>
+      <DebugToolbarFooter isEnabled={isEnabled} reset={reset} setTemporaryDate={setTemporaryDate} setTemporaryId={setTemporaryId} />
       <ConfirmationDialog />
     </div>
   );
-};
+}

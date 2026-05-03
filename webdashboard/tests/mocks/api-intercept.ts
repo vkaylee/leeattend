@@ -20,11 +20,11 @@ export async function setupApiMocks(page: Page) {
     const method = route.request().method();
     const pathname = new URL(url).pathname;
 
-    console.log(`[MOCK API] Intercepted API Call: ${method} ${pathname}`);
+    
 
  
     const fulfill = async (data: unknown, status = 200) => {
-      console.log(`[MOCK API] Fulfilling ${method} ${pathname} with status ${status}`);
+      
       return route.fulfill({
         status,
         contentType: 'application/json',
@@ -175,7 +175,7 @@ export async function setupApiMocks(page: Page) {
           is_trusted: true,
           last_seen: new Date().toISOString()
         }));
-        console.log(`[MOCK API] Fulfilling agents list with ${mockAgents.length} items`);
+        
         return fulfill(mockAgents);
       }
       if (method === 'POST') {
@@ -212,17 +212,17 @@ export async function setupApiMocks(page: Page) {
 
       // POST /api/devices (create)
       if (method === 'POST' && (pathname === '/api/devices' || pathname === '/api/devices/')) {
-        const body = JSON.parse(route.request().postData() || '{}');
+        const body = JSON.parse(route.request().postData() ?? '{}');
         const newDevice: Device = {
           id: `device-new-${nextDeviceId++}`,
-          agent_id: body.agent_id || "agent-mock-1",
-          name: body.name || "New Device",
-          ip: body.ip || "0.0.0.0",
-          port: body.port || 4370,
+          agent_id: body.agent_id ?? "agent-mock-1",
+          name: body.name ?? "New Device",
+          ip: body.ip ?? "0.0.0.0",
+          port: body.port ?? 4370,
           is_enabled: true,
-          brand: body.brand || "zkteco",
+          brand: body.brand ?? "zkteco",
           password: body.password,
-          timezone: body.timezone || "UTC",
+          timezone: body.timezone ?? "UTC",
           last_status: "pending",
           created_at: new Date().toISOString(),
           workspace_id: MOCK_WORKSPACE.id,
@@ -238,7 +238,7 @@ export async function setupApiMocks(page: Page) {
 
         // PUT /api/devices/:id (update)
         if (method === 'PUT') {
-          const body = JSON.parse(route.request().postData() || '{}');
+          const body = JSON.parse(route.request().postData() ?? '{}');
           const index = devices.findIndex(d => d.id === deviceId);
           if (index >= 0) {
             devices[index] = { ...devices[index], ...body };
@@ -285,7 +285,7 @@ export async function setupApiMocks(page: Page) {
     // 12. Report Export
     if ((/\/api\/workspaces\/[^/]+\/reports\/export$/.exec(pathname)) && method === 'POST') {
       const resp = { job_id: "job-mock-123", total_batches: 5 };
-      console.log(`[MOCK API EXPORT] Sending JSON: ${JSON.stringify(resp)}`);
+      
       return fulfill(resp, 201);
     }
     if ((/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+$/.exec(pathname)) && method === 'GET') {
@@ -319,7 +319,7 @@ export async function setupApiMocks(page: Page) {
 
   // Chặn WebSocket calls để tránh hang (mock stream API)
   await page.routeWebSocket(/.*/, ws => {
-    console.log(`[MOCK WS] Intercepted WebSocket Call: ${ws.url()}`);
+    
     if (ws.url().includes('/api/ws/reports/')) {
       // Simulate connection rejected so it falls back to HTTP polling
       ws.onMessage(message => {
@@ -329,7 +329,7 @@ export async function setupApiMocks(page: Page) {
       });
       // Triggers onError in useReportStream
       ws.send('{"type":"ERROR", "message": "Connection lost for mock testing"}');
-      ws.close();
+      void ws.close();
     }
   });
 }

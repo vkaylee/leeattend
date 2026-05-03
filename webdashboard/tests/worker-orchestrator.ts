@@ -25,7 +25,7 @@ interface TestFixtures {
 export const test = base.extend<TestFixtures>({
   // workerWebUrl giờ đơn giản lấy từ baseURL của config
   workerWebUrl: async ({ baseURL }, use) => {
-    await use(baseURL || 'http://127.0.0.1:5173');
+    await use(baseURL ?? 'http://127.0.0.1:5173');
   },
 
   loginPage: async ({ page }, use) => {
