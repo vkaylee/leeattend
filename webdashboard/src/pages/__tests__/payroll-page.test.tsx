@@ -87,7 +87,6 @@ describe('PayrollPage', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
         <ToastProvider>
           <BrowserRouter>
             <PayrollPage />

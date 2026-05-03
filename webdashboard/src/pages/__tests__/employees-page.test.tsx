@@ -197,12 +197,9 @@ describe("EmployeesPage", () => {
     it("uses PAGE_SIZE of 20 for infinite scroll", async () => {
         renderPage();
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
-            expect(calls.length).toBeGreaterThan(0);
-            // args: wsId, query, page, limit
-            expect(calls[0][2]).toBe(1);  // page = 1
-            expect(calls[0][3]).toBe(20); // limit = 20
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.objectContaining({ page: 1, limit: 20 })
+            );
         });
     });
 
@@ -248,11 +245,9 @@ describe("EmployeesPage", () => {
 
         await waitFor(
             () => {
- 
-                const calls = vi.mocked(api.searchEmployees).mock.calls;
- 
-                const searchCall = calls.find((c) => c[1] === "Bob");
-                expect(searchCall).toBeDefined();
+                expect(api.searchEmployees).toHaveBeenCalledWith(
+                    expect.objectContaining({ query: "Bob" })
+                );
             },
             { timeout: 3000 }
         );
@@ -339,12 +334,9 @@ describe("EmployeesPage", () => {
         await user.click(nameHeader);
 
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
- 
-            const sortCall = calls.find((c) => c[4] === "name");
-            expect(sortCall).toBeDefined();
-            expect(sortCall![5]).toBe("asc");
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.objectContaining({ sortBy: "name", sortDir: "asc" })
+            );
         });
     });
 
@@ -356,10 +348,9 @@ describe("EmployeesPage", () => {
         await user.click(findHeaderByText("employees.table.name"));
 
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
- 
-            expect(calls.some((c) => c[4] === "name" && c[5] === "asc")).toBe(true);
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.objectContaining({ sortBy: "name", sortDir: "asc" })
+            );
         }, { timeout: 3000 });
 
  
@@ -368,11 +359,9 @@ describe("EmployeesPage", () => {
         await user.click(findHeaderByText("employees.table.name"));
 
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
- 
-            const descCall = calls.find((c) => c[4] === "name" && c[5] === "desc");
-            expect(descCall).toBeDefined();
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.objectContaining({ sortBy: "name", sortDir: "desc" })
+            );
         }, { timeout: 3000 });
     });
 
@@ -387,12 +376,9 @@ describe("EmployeesPage", () => {
         await user.click(statusHeader);
 
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
- 
-            const sortCall = calls.find((c) => c[4] === "status");
-            expect(sortCall).toBeDefined();
-            expect(sortCall![5]).toBe("asc");
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.objectContaining({ sortBy: "status", sortDir: "asc" })
+            );
         });
     });
 
@@ -408,12 +394,9 @@ describe("EmployeesPage", () => {
         await user.click(deptHeader);
 
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
- 
-            const sortCall = calls.find((c) => c[4] === "department");
-            expect(sortCall).toBeDefined();
-            expect(sortCall![5]).toBe("asc");
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.objectContaining({ sortBy: "department", sortDir: "asc" })
+            );
         });
     });
 
@@ -473,11 +456,15 @@ describe("EmployeesPage", () => {
         await user.click(engOption);
 
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
- 
-            const filterCall = calls.find((c) => Array.isArray(c[6]) && c[6].includes("dept-1"));
-            expect(filterCall).toBeDefined();
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.anything(),
+                expect.anything(),
+                expect.anything(),
+                expect.anything(),
+                expect.anything(),
+                expect.arrayContaining(["dept-1"])
+            );
         });
     });
 
@@ -498,13 +485,15 @@ describe("EmployeesPage", () => {
         await user.click(await screen.findByTestId("dept-filter-option-dept-2"));
 
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
- 
-            const multiCall = calls.find((c) =>
-                Array.isArray(c[6]) && c[6].includes("dept-1") && c[6].includes("dept-2")
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.anything(),
+                expect.anything(),
+                expect.anything(),
+                expect.anything(),
+                expect.anything(),
+                expect.arrayContaining(["dept-1", "dept-2"])
             );
-            expect(multiCall).toBeDefined();
         });
     });
 
@@ -530,12 +519,9 @@ describe("EmployeesPage", () => {
         await user.click(screen.getByTestId("dept-chip-dept-1"));
 
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
-            // Should send undefined (no filter) when empty
- 
-            const clearCall = calls.find((c) => c[6] === undefined);
-            expect(clearCall).toBeDefined();
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.objectContaining({ departmentIds: undefined })
+            );
         });
     });
 
@@ -617,10 +603,9 @@ describe("EmployeesPage", () => {
 
         // Filter should be cleared
         await waitFor(() => {
- 
-            const calls = vi.mocked(api.searchEmployees).mock.calls;
- 
-            expect(calls.some((c) => c[6] === undefined)).toBe(true);
+            expect(api.searchEmployees).toHaveBeenCalledWith(
+                expect.objectContaining({ departmentIds: undefined })
+            );
         });
         // Chips should disappear
         expect(screen.queryByTestId("active-filter-chips")).toBeNull();

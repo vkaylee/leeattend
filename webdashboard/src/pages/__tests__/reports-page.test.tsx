@@ -22,7 +22,8 @@ vi.mock("@tanstack/react-router", () => ({
       const params = new URLSearchParams();
       Object.entries(search).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          params.append(key, String(value));
+          const stringValue = (value && typeof value === "object") ? JSON.stringify(value) : String(value as any);
+          params.append(key, stringValue);
         }
       });
       const qs = params.toString();
@@ -156,8 +157,8 @@ describe("ReportsPage", () => {
   });
 
   it("fetches full dataset with limit=99999 for stats and renders inline stats badges", async () => {
-    vi.mocked(api.fetchAttendanceReport).mockImplementation((...args) => {
-      const limit = args[0].limit;
+    vi.mocked(api.fetchAttendanceReport).mockImplementation((params) => {
+      const limit = params.limit;
       if (limit === 99999) {
         // Full stats query — return all employees
         return Promise.resolve({

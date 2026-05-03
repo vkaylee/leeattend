@@ -122,71 +122,43 @@ export async function apiFetch(
   const timeoutMs = options.timeout ?? TIMEOUT.DEFAULT;
   const id = setTimeout(() => { controller.abort(); }, timeoutMs);
 
-  const headers = { ...getHeaders(), ...options.headers };
+  const baseHeaders = getHeaders();
+  const customHeaders: Record<string, string> = options.headers 
+    ? (options.headers instanceof Headers 
+        ? Object.fromEntries(options.headers.entries()) 
+        : (Array.isArray(options.headers) 
+            ? Object.fromEntries(options.headers) 
+            : options.headers)) 
+    : {};
+
+  const headers = { ...baseHeaders, ...customHeaders };
 
   // Remove timeout from options to avoid passing it to fetch
   const { timeout: _timeout, ...fetchOptions } = options;
 
   if (fetchOptions.body instanceof FormData) {
- 
     delete (headers as Record<string, string>)["Content-Type"];
   }
 
-  // If url already starts with http/https or the API_BASE_URL, don't prepend API_BASE_URL
-  let fullUrl = url;
-  if (!url.startsWith("http") && !url.startsWith(API_BASE_URL)) {
-    const path = url.startsWith("/") ? url : `/${url}`;
-    fullUrl = `${API_BASE_URL}${path}`;
-  }
+  const fullUrl = getFullUrl(url);
 
   try {
     const response = await fetch(fullUrl, {
       ...fetchOptions,
       headers,
-      credentials: "include", // Send HttpOnly cookies
+      credentials: "include",
       signal: controller.signal
     });
     clearTimeout(id);
     
     if (response.status === 401 && !fullUrl.includes("/auth/login")) {
-      // Attempt to refresh token
-      const refreshToken = getRefreshToken();
-      if (refreshToken) {
-        try {
-          const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include", // Send HttpOnly cookies
-            body: JSON.stringify({ refresh_token: refreshToken }),
-          });
-
-          if (refreshResponse.ok) {
-            const data = (await refreshResponse.json()) as { access_token: string; refresh_token: string };
-            setAccessToken(data.access_token);
-            setRefreshToken(data.refresh_token);
-
-            // Retry original request with new token
-            const retryHeaders = { ...headers, Authorization: `Bearer ${data.access_token}` };
-            const retryResponse = await fetch(fullUrl, {
-              ...fetchOptions,
-              headers: retryHeaders,
-              credentials: "include", // Send HttpOnly cookies
-              signal: controller.signal
-            });
-            clearTimeout(id);
-            return retryResponse;
-          }
-        } catch (e) {
-          console.error("Token refresh failed", e);
-        }
-      }
-      
-      console.warn("Session expired (401). Redirecting to login...");
-      clearAuthSession();
-      if (window.location.pathname !== ROUTES.LOGIN) {
-        window.location.href = ROUTES.LOGIN;
-      }
-      throw new Error("Session expired");
+      return await handleUnauthorized({
+        fullUrl,
+        fetchOptions,
+        headers,
+        controller,
+        timeoutId: id
+      });
     }
 
     return response;
@@ -194,6 +166,67 @@ export async function apiFetch(
     clearTimeout(id);
     throw error;
   }
+}
+
+function getFullUrl(url: string): string {
+  if (url.startsWith("http") || url.startsWith(API_BASE_URL)) {
+    return url;
+  }
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${API_BASE_URL}${path}`;
+}
+
+interface UnauthorizedParams {
+  controller: AbortController;
+  fetchOptions: RequestInit;
+  fullUrl: string;
+  headers: Record<string, string>;
+  timeoutId: number | ReturnType<typeof setTimeout>;
+}
+
+async function handleUnauthorized({
+  fullUrl,
+  fetchOptions,
+  headers,
+  controller,
+  timeoutId
+}: UnauthorizedParams): Promise<Response> {
+  const refreshToken = getRefreshToken();
+  if (refreshToken) {
+    try {
+      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (refreshResponse.ok) {
+        const data = (await refreshResponse.json()) as { access_token: string; refresh_token: string };
+        setAccessToken(data.access_token);
+        setRefreshToken(data.refresh_token);
+
+        const retryHeaders = { ...headers, Authorization: `Bearer ${data.access_token}` };
+        const retryResponse = await fetch(fullUrl, {
+          ...fetchOptions,
+          headers: retryHeaders,
+          credentials: "include",
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return retryResponse;
+      }
+    } catch (e) {
+      console.error("Token refresh failed", e);
+    }
+  }
+  
+  console.warn("Session expired (401). Redirecting to login...");
+  clearAuthSession();
+  if (window.location.pathname !== ROUTES.LOGIN) {
+    window.location.href = ROUTES.LOGIN;
+  }
+  throw new Error("Session expired");
 }
 
 export async function fetchHealth(): Promise<{ status: string }> {

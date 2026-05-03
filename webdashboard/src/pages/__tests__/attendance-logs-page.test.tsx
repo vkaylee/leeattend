@@ -23,7 +23,8 @@ vi.mock("@tanstack/react-router", () => ({
       const params = new URLSearchParams();
       Object.entries(search).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          params.append(key, String(value));
+          const stringValue = (value && typeof value === "object") ? JSON.stringify(value) : String(value as any);
+          params.append(key, stringValue);
         }
       });
       const qs = params.toString();
