@@ -25,6 +25,68 @@ function getColor(sourceType: string, index: number): string {
     return SOURCE_COLORS[sourceType] || FALLBACK_COLORS[index % FALLBACK_COLORS.length];
 }
 
+function getRecruitmentChartData(data: { source_type: string; source_name: string; count: number }[] | undefined) {
+    const chartData = (data ?? [])
+        .filter((d) => d.count > 0)
+        .map((d, index) => ({
+            name: d.source_name,
+            value: d.count,
+            sourceType: d.source_type,
+            fill: getColor(d.source_type, index),
+        }));
+
+    const totalHires = chartData.reduce((accumulator, d) => accumulator + d.value, 0);
+
+    return { chartData, totalHires };
+}
+
+function RecruitmentHeader({ t }: { t: (k: string) => string }) {
+    return (
+        <div className="mb-6">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                {t("dashboard.hr.recruitment_sources")}
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {t("dashboard.hr.recruitment_sources_subtitle")}
+            </p>
+        </div>
+    );
+}
+
+interface RecruitmentChartEntry {
+    fill: string;
+    name: string;
+    sourceType: string;
+    value: number;
+}
+
+function RecruitmentLegend({ chartData }: { chartData: RecruitmentChartEntry[] }) {
+    return (
+        <div className="w-full lg:w-1/2 space-y-2">
+            {chartData.map((entry, index) => (
+                <div
+                    className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50"
+                    key={index}
+                >
+                    <div className="flex items-center gap-2">
+                        <span
+                            className="w-3 h-3 rounded-full inline-block"
+                            style={{ backgroundColor: entry.fill }}
+                        />
+                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                            {entry.name}
+                        </span>
+                    </div>
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {entry.name}: {entry.value}
+                    </span>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+
 export default function RecruitmentSourceChart() {
     const { t } = useTranslation();
     const { data, isLoading } = useRecruitmentSourceBreakdown();
@@ -38,26 +100,12 @@ export default function RecruitmentSourceChart() {
         );
     }
 
-    const chartData = (data ?? [])
-        .filter((d) => d.count > 0)
-        .map((d, index) => ({
-            name: d.source_name,
-            value: d.count,
-            sourceType: d.source_type,
-            fill: getColor(d.source_type, index),
-        }));
-
-    const totalHires = chartData.reduce((accumulator, d) => accumulator + d.value, 0);
+    const { chartData, totalHires } = getRecruitmentChartData(data);
 
     if (chartData.length === 0) {
         return (
             <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                    {t("dashboard.hr.recruitment_sources")}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {t("dashboard.hr.recruitment_sources_subtitle")}
-                </p>
+                <RecruitmentHeader t={t} />
                 <div className="flex items-center justify-center h-64 text-slate-400">
                     {t("common.no_data")}
                 </div>
@@ -67,14 +115,7 @@ export default function RecruitmentSourceChart() {
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <div className="mb-6">
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                    {t("dashboard.hr.recruitment_sources")}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {t("dashboard.hr.recruitment_sources_subtitle")}
-                </p>
-            </div>
+            <RecruitmentHeader t={t} />
 
             <div className="flex flex-col lg:flex-row items-center gap-4">
                 <div className="w-full lg:w-1/2" style={{ height: 260 }}>
@@ -92,6 +133,7 @@ export default function RecruitmentSourceChart() {
                                 stroke="none"
                             >
                                 {chartData.map((entry, index) => (
+                                    // eslint-disable-next-line @typescript-eslint/no-deprecated
                                     <Cell
                                         fill={entry.fill}
                                         key={`cell-${index}`}
@@ -105,7 +147,7 @@ export default function RecruitmentSourceChart() {
                                     boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
                                 }}
                                 formatter={(value: unknown) => [
-                                    `${Number(value ?? 0)} (${((Number(value ?? 0) / totalHires) * 100).toFixed(1)}%)`,
+                                    `${Number(value ?? 0)} (${((Number(value ?? 0) / (totalHires || 1)) * 100).toFixed(1)}%)`,
                                     t("dashboard.hr.people"),
                                 ]}
                             />
@@ -118,29 +160,10 @@ export default function RecruitmentSourceChart() {
                     </ResponsiveContainer>
                 </div>
 
-                {/* Inline legend with counts */}
-                <div className="w-full lg:w-1/2 space-y-2">
-                    {chartData.map((entry, index) => (
-                        <div
-                            className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50"
-                            key={index}
-                        >
-                            <div className="flex items-center gap-2">
-                                <span
-                                    className="w-3 h-3 rounded-full inline-block"
-                                    style={{ backgroundColor: entry.fill }}
-                                />
-                                <span className="text-sm text-slate-700 dark:text-slate-300">
-                                    {entry.name}
-                                </span>
-                            </div>
-                            <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                                {entry.name}: {entry.value}
-                            </span>
-                        </div>
-                    ))}
-                </div>
+                <RecruitmentLegend chartData={chartData} />
             </div>
         </div>
     );
 }
+
+

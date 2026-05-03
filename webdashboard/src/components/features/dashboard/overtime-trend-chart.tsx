@@ -19,10 +19,7 @@ const COLORS = {
     approved: "#10b981", // emerald-500
 };
 
-export default function OvertimeTrendChart() {
-    const { t } = useTranslation();
-    const { data: trend, isLoading } = useOvertimeTrend();
-
+function getOvertimeChartData(trend: { approved_ot_hours: number; date: string; system_ot_hours: number }[] | undefined) {
     const chartData = (trend ?? []).map((point) => ({
         ...point,
         label: new Date(point.date).toLocaleDateString(undefined, {
@@ -35,35 +32,56 @@ export default function OvertimeTrendChart() {
         chartData.length > 0 &&
         chartData.some((d) => d.system_ot_hours > 0 || d.approved_ot_hours > 0);
 
+    return { chartData, hasData };
+}
+
+function OvertimeHeader({ t }: { t: (k: string) => string }) {
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="bg-orange-50 dark:bg-orange-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-orange-600 dark:text-orange-400 shadow-inner border border-orange-100 dark:border-orange-800">
-                        <Clock size={22} />
-                    </div>
-                    <div>
-                        <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-                            {t("dashboard.hr.overtime_trend")}
-                        </h2>
-                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
-                            {t("dashboard.hr.overtime_trend_subtitle")}
-                        </p>
-                    </div>
+        <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+                <div className="bg-orange-50 dark:bg-orange-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-orange-600 dark:text-orange-400 shadow-inner border border-orange-100 dark:border-orange-800">
+                    <Clock size={22} />
+                </div>
+                <div>
+                    <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                        {t("dashboard.hr.overtime_trend")}
+                    </h2>
+                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                        {t("dashboard.hr.overtime_trend_subtitle")}
+                    </p>
                 </div>
             </div>
+        </div>
+    );
+}
+
+function OvertimeEmptyState({ t }: { t: (k: string) => string }) {
+    return (
+        <div className="h-[280px] flex flex-col items-center justify-center">
+            <Clock className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
+            <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+                {t("common.no_data")}
+            </p>
+        </div>
+    );
+}
+
+export default function OvertimeTrendChart() {
+    const { t } = useTranslation();
+    const { data: trend, isLoading } = useOvertimeTrend();
+
+    const { chartData, hasData } = getOvertimeChartData(trend);
+
+    return (
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+            <OvertimeHeader t={t} />
 
             {isLoading ? (
                 <div className="h-[280px] flex items-center justify-center">
                     <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
                 </div>
             ) : !hasData ? (
-                <div className="h-[280px] flex flex-col items-center justify-center">
-                    <Clock className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
-                    <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
-                        {t("common.no_data")}
-                    </p>
-                </div>
+                <OvertimeEmptyState t={t} />
             ) : (
                 <ResponsiveContainer height={280} width="100%">
                     <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
