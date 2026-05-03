@@ -52,7 +52,7 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{formatDate(segment.start_date)} — {formatDate(segment.end_date)}</p>
              </div>
           </div>
-          <span className={cn("text-[9px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-lg border shadow-sm", segment.reason === 'Standard' ? "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800" : "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800")}>{segment.reason || "Proration"}</span>
+          <span className={cn("text-[9px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-lg border shadow-sm", segment.reason === 'Standard' ? "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800" : "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800")}>{segment.reason}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -69,12 +69,12 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
                 <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 opacity-70">Std. Period</p>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">{segment.applied_std_days} Days</span>
-                  {!!segment.std_days_source && (
+                  {segment.std_days_source ? (
                     <Popover.Root>
                       <Popover.Trigger asChild><button className="p-1.5 rounded-lg bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:text-primary-400 transition-all"><Info size={12} /></button></Popover.Trigger>
                       <Popover.Portal><Popover.Content align="center" className="z-50 w-80 bg-transparent animate-in zoom-in-95 duration-300 origin-bottom" side="top" sideOffset={12}><PayrollPriorityLegend activeSource={segment.std_days_source} /></Popover.Content></Popover.Portal>
                     </Popover.Root>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -208,14 +208,14 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
         ))}
       </div>
 
-      {!!slip.incentives && slip.incentives.length > 0 && (
+      {(slip.incentives?.length ?? 0) > 0 ? (
         <div className="mt-12 space-y-6">
           <div className="flex items-center gap-3 px-2">
             <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
             <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-[0.25em]">{t("common.payroll.table.bonus")} Detail</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {slip.incentives.map((inc, index: number) => (
+            {slip.incentives?.map((inc, index: number) => (
               <div className="flex items-center justify-between p-6 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800/50 rounded-2xl" key={index}>
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-blue-600 dark:text-blue-300 shadow-sm border border-blue-100 dark:border-blue-800">
@@ -228,7 +228,7 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6 pt-10 border-t border-slate-50 dark:border-slate-800">
         {[
@@ -270,7 +270,7 @@ function PayslipCard({ slip, isExpanded, setExpandedId, slipAdjustments, onResol
     <div className={cn("group bg-white dark:bg-slate-900 border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 dark:border-primary-800 rounded-[2.5rem] shadow-2xl shadow-primary-100/20 dark:shadow-black/20" : "border-slate-100 dark:border-slate-800 hover:border-primary-100 dark:border-primary-800 rounded-[2rem] shadow-sm dark:shadow-black/10 hover:shadow-lg hover:shadow-primary-100/10")} data-testid={`payslip-card-${slip.id}`}>
       <PayslipCardHeader canReadSensitive={canReadSensitive} formatMonthYear={formatMonthYear} isExpanded={isExpanded} setExpandedId={setExpandedId} setIsModalOpen={setIsModalOpen} setSelectedPayslip={setSelectedPayslip} slip={slip} t={t} />
 
-      {!!isExpanded && <PayslipCardBody canReadSensitive={canReadSensitive} onResolveAdjustments={onResolveAdjustments} slip={slip} slipAdjustments={slipAdjustments} t={t} />}
+      {isExpanded ? <PayslipCardBody canReadSensitive={canReadSensitive} onResolveAdjustments={onResolveAdjustments} slip={slip} slipAdjustments={slipAdjustments} t={t} /> : null}
     </div>
   );
 }
@@ -331,7 +331,7 @@ export default function PayrollTable({
         );
       })}
 
-      {!!employee && !!selectedPayslip && (
+      {employee && selectedPayslip ? (
         <PayslipModal
           employee={employee}
           isOpen={isModalOpen}
@@ -342,7 +342,7 @@ export default function PayrollTable({
           payslip={selectedPayslip}
           workspace={workspace}
         />
-      )}
+      ) : null}
     </div>
   );
 }

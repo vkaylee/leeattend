@@ -313,7 +313,7 @@ export default function EmployeeDetailDrawer({
 
                 {activeDetailTab === "policies" && (
                     <div>
-                        <WorkingConditionConfig employeeId={employee.id} wsId={wsId} />
+                        <WorkingConditionConfig employeeId={employee.id} />
                     </div>
                 )}
 

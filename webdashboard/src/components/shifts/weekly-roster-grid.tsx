@@ -63,23 +63,23 @@ interface DayCardHeaderProps {
 function DayCardHeader({ day, currentLocale, isToday, isSelected, isHoliday, holidayName }: DayCardHeaderProps) {
   return (
     <div className="text-center mb-5 pb-5 border-b border-slate-50 dark:border-slate-800 relative">
-      {!!isSelected && (
+      {isSelected ? (
         <div className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full p-1 shadow-sm">
           <ShieldCheck size={12} />
         </div>
-      )}
+      ) : null}
       <div className={`text-[10px] font-bold uppercase tracking-tighter ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`}>
         {format(day, "EEEE", { locale: currentLocale })}
       </div>
       <div className={`text-2xl font-bold mt-1 ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200'}`}>
         {day.getDate()}
       </div>
-      {!!isHoliday && (
+      {isHoliday ? (
         <div className="mt-1.5 flex items-center justify-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 uppercase tracking-tighter">
           <PartyPopper size={9} />
           <span className="truncate max-w-[100px]">{holidayName}</span>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -118,7 +118,7 @@ function DayCardSourceTags({ source, effectiveSchedule, t }: DayCardSourceTagsPr
           <Building2 size={8} /> {t("common.department")}
         </span>
       )}
-      {!!effectiveSchedule && <ScheduleTracePopover source={effectiveSchedule.source} traces={effectiveSchedule.traces} />}
+      {effectiveSchedule ? <ScheduleTracePopover source={effectiveSchedule.source} traces={effectiveSchedule.traces} /> : null}
     </div>
   );
 }

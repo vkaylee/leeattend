@@ -96,7 +96,7 @@ export default function RawLogsTable({
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2">
                                             <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">{log.source}</span>
-                                            {!!log.device_name && <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase">{log.device_name}</span>}
+                                            {log.device_name ? <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase">{log.device_name}</span> : null}
                                         </div>
                                     </div>
                                 </td>
@@ -106,7 +106,7 @@ export default function RawLogsTable({
                             </tr>
                         ))
                     )}
-                    {!!hasNextPage && <InfiniteScrollSentinel colSpan={3} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} />}
+                    {hasNextPage ? <InfiniteScrollSentinel colSpan={3} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} /> : null}
                 </tbody>
             </table>
         </div>

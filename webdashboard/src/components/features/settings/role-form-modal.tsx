@@ -6,7 +6,7 @@ import { useWorkspaceRoles } from "@/hooks/use-workspace";
 import { cn } from "@/lib/utils";
 
 interface RoleFormModalProps {
-  editingRole?: { id: string; name: string; description: string; color: string } | null;
+  editingRole?: { id: string; name: string; description?: string; color?: string } | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -31,8 +31,8 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
     if (editingRole && isOpen) {
       // eslint-disable-next-line -- Derived state synced from props; intentional pattern
       setName(editingRole.name);
-      setDescription(editingRole.description || "");
-      setColor(editingRole.color || "slate");
+      setDescription(editingRole.description ?? "");
+      setColor(editingRole.color ?? "slate");
     } else if (isOpen) {
       setName("");
       setDescription("");

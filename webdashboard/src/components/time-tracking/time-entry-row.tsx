@@ -60,7 +60,7 @@ export function TimeEntryRow({
           </span>
         )}
       </td>
-      {!!showAdjustButton && (
+      {showAdjustButton ? (
         <td className="px-8 py-5 text-right">
           <button
             className="text-primary-600 dark:text-primary-400 bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 hover:bg-primary-50 dark:bg-primary-950 px-4 py-1.5 rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest active:scale-90 opacity-0 group-hover:opacity-100"
@@ -69,7 +69,7 @@ export function TimeEntryRow({
             {t("common.adjust")}
           </button>
         </td>
-      )}
+      ) : null}
     </tr>
   );
 }

@@ -1,12 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { X, TrendingUp, Calendar, Award, ArrowUpRight, ArrowDownRight, History as HistoryIcon, Clock } from "lucide-react";
-import { useState } from "react";
+import { History as HistoryIcon, Clock, ArrowUpRight, ArrowDownRight, Calendar } from "lucide-react";
+import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { WorkspaceLeaveBalance, fetchLeaveHistory, getCurrentWorkspaceId, LeaveHistoryItem } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+import { LeaveBalanceHeader } from "./leave-balance-detail-components/leave-balance-header";
+import { LeaveBalanceHero } from "./leave-balance-detail-components/leave-balance-hero";
+import { LeaveBalanceBreakdown } from "./leave-balance-detail-components/leave-balance-breakdown";
 
 interface LeaveBalanceDetailModalProps {
   balance: WorkspaceLeaveBalance;
@@ -21,7 +25,7 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: ["leave-history", wsId, balance.employee_id, balance.leave_type_id],
-    queryFn: () => fetchLeaveHistory(wsId!, balance.employee_id, balance.leave_type_id),
+    queryFn: () => wsId ? fetchLeaveHistory(wsId, balance.employee_id, balance.leave_type_id) : Promise.resolve([]),
     enabled: isOpen && !!wsId,
   });
 
@@ -34,144 +38,25 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
   const usage = history.filter(h => h.transaction_type === "usage");
 
   return createPortal(
- 
- 
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300">
-      {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-slate-900/20 backdrop-blur-md"
         onClick={onClose}
         onKeyDown={(e) => {
           if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
- 
- 
             onClose();
           }
         }}
         role="presentation"
       />
 
-      {/* Modal Content */}
       <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 flex flex-col">
-        {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 md:px-8 py-5 md:py-6 rounded-t-3xl z-10 flex-shrink-0">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <div className="w-14 h-14 bg-primary-50 dark:bg-primary-950 rounded-2xl flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-base shadow-inner border border-primary-100 dark:border-primary-800/50 uppercase flex-shrink-0">
-                {balance.employee_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-tight truncate">
-                  {balance.employee_name}
-                </h2>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="inline-block px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold uppercase tracking-wider border border-slate-200 dark:border-slate-700 shadow-sm">
-                    {balance.leave_type_name}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button
-              aria-label={t("common.close")}
-              className="p-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-90 flex-shrink-0 min-w-[44px] min-h-[44px]"
-              onClick={onClose}
-            >
-              <X size={24} />
-            </button>
-          </div>
-        </div>
+        <LeaveBalanceHeader balance={balance} onClose={onClose} />
 
-        {/* Body */}
         <div className="p-6 md:p-8 space-y-8 overflow-y-auto">
-          {/* Hero Metric: Remaining Balance */}
-          <div className="bg-gradient-to-br from-primary-50 via-primary-50/50 to-transparent dark:from-primary-950 dark:via-primary-950/50 dark:to-transparent rounded-3xl p-8 border border-primary-100 dark:border-primary-800/50 shadow-inner">
-            <div className="flex items-center gap-3 mb-3">
-              <Award className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-              <div className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-[0.2em]">
-                {t("leave_balances.table.remaining")}
-              </div>
-            </div>
-            <div className={cn(
-              "text-6xl md:text-7xl font-bold font-mono tracking-tighter",
-              balance.remaining > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-400"
-            )}>
-              {balance.remaining}
-              <span className="text-2xl md:text-3xl ml-2 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight">
-                {t("common.days_short", "days")}
-              </span>
-            </div>
-
-            {/* Usage Bar */}
-            <div className="mt-6 space-y-3">
-              <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>{t("leave_balances.table.usage")}</span>
-                <span className="font-mono">{usagePercent}%</span>
-              </div>
-              <div className="w-full h-3 bg-white dark:bg-slate-900/50 rounded-full overflow-hidden shadow-inner border border-primary-100 dark:border-primary-800/30">
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all duration-1000 shadow-sm",
-                    usagePercent > 80 ? "bg-rose-500 dark:bg-rose-400 shadow-rose-200" :
-                      usagePercent > 50 ? "bg-amber-500 dark:bg-amber-400 shadow-amber-200" :
-                        "bg-primary-600 shadow-primary-200"
-                  )}
-                  style={{ width: `${Math.min(100, usagePercent)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Breakdown Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-              <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-[0.15em]">
-                {t("leave_balances.detail.breakdown", "Balance Breakdown")}
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Base Entitlement */}
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
-                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  {t("leave_balances.table.base")}
-                </div>
-                <div className="text-2xl font-bold font-mono text-slate-600 dark:text-slate-300">
-                  {balance.entitlement}
-                </div>
-              </div>
-
-              {/* Accrued Amount */}
-              <div className="bg-primary-50 dark:bg-primary-950 rounded-2xl p-4 border border-primary-100 dark:border-primary-800">
-                <div className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider mb-1">
-                  {t("leave_balances.table.accrued")}
-                </div>
-                <div className="text-2xl font-bold font-mono text-primary-600 dark:text-primary-400">
-                  +{balance.accrued_amount}
-                </div>
-              </div>
-
-              {/* Carried Over */}
-              <div className="bg-amber-50 dark:bg-amber-950 rounded-2xl p-4 border border-amber-100 dark:border-amber-800">
-                <div className="text-[10px] font-bold text-amber-600 dark:text-amber-300 uppercase tracking-wider mb-1">
-                  {t("leave_balances.table.carried_over")}
-                </div>
-                <div className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-300">
-                  +{balance.carried_over}
-                </div>
-              </div>
-
-              {/* Used */}
-              <div className="bg-rose-50 dark:bg-rose-950 rounded-2xl p-4 border border-rose-100 dark:border-rose-800">
-                <div className="text-[10px] font-bold text-rose-600 dark:text-rose-300 uppercase tracking-wider mb-1">
-                  {t("leave_balances.table.used")}
-                </div>
-                <div className="text-2xl font-bold font-mono text-rose-600 dark:text-rose-300">
-                  -{balance.used}
-                </div>
-              </div>
-            </div>
-          </div>
+          <LeaveBalanceHero balance={balance} usagePercent={usagePercent} />
+          
+          <LeaveBalanceBreakdown balance={balance} />
 
           {/* History Section */}
           <div className="space-y-4">

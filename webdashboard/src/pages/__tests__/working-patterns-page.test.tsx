@@ -48,7 +48,7 @@ vi.mock("@/components/common/employee-search", () => ({
         >
           Select Employees Mock
         </button>
-        {multiple && Array.isArray(value) && value.includes("emp-1") && <span>Selected: John Doe</span>}
+        {multiple && Array.isArray(value) && value.includes("emp-1") ? <span>Selected: John Doe</span> : null}
       </div>
     );
   }

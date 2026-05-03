@@ -80,7 +80,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
         </button>
       </div>
 
-      {!!isAdding && (
+      {isAdding ? (
         <div className='bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 space-y-4 animate-in zoom-in-95 duration-200'>
           <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
             <div className='space-y-1.5'>
@@ -182,7 +182,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className='space-y-2'>
         {rules.sort((a, b) => b.priority - a.priority).map((rule: OvertimeRule) => (
@@ -203,9 +203,9 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
             {/* Delete button could go here */}
           </div>
         ))}
-        {rules.length === 0 && !isAdding && (
+        {rules.length === 0 && !isAdding ? (
           <p className='text-center py-4 text-xs text-slate-500 dark:text-slate-400 font-medium italic'>No rules defined yet.</p>
-        )}
+        ) : null}
       </div>
     </div>
   );

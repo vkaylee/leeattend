@@ -26,14 +26,14 @@ const InfiniteScrollSentinel = memo(function InfiniteScrollSentinel({
     return (
         <tr ref={sentinelRef}>
             <td className="py-4 text-center" colSpan={colSpan}>
-                {isFetchingNextPage && (
+                {isFetchingNextPage ? (
                     <div className="flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500">
                         <Loader2 className="animate-spin" size={16} />
                         <span className="text-[10px] font-bold uppercase tracking-widest">
                             {t("common.loading", "Loading...")}
                         </span>
                     </div>
-                  )}
+                  ) : null}
             </td>
         </tr>
     );

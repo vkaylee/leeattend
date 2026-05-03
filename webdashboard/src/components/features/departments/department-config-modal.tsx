@@ -49,7 +49,7 @@ export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }:
   });
 
   return (
-    <Modal icon={<Calculator size={24} />} isOpen={isOpen && Boolean(editingDept)} maxWidth="3xl" onClose={onClose} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
+    <Modal icon={<Calculator size={24} />} isOpen={isOpen && !!editingDept} maxWidth="3xl" onClose={onClose} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
       <div className="space-y-10 pt-4 animate-in fade-in duration-500">
         <TemporalConfigTable 
           isLoading={isConfigsLoading} 

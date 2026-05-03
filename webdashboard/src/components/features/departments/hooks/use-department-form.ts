@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import type { Department } from "@/lib/api";
 

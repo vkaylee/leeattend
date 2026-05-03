@@ -2,7 +2,7 @@ import { LayoutGrid, List, Zap } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { TabType } from "./hooks/use-shifts";
+import { TabType } from "./hooks/use-shifts-types";
 
 interface ShiftsTabsProps {
   activeTab: TabType;

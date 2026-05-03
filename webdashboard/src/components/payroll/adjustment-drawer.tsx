@@ -95,7 +95,7 @@ export default function AdjustmentDrawer({
 
               {!!adj.reason && (
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl mb-6 border border-slate-100 dark:border-slate-800 shadow-inner" data-testid="adjustment-reason">
-                  <div className="flex gap-2 items-start"><MessageSquare className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0" size={12} /><p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight leading-relaxed italic">"{adj.reason}"</p></div>
+                  <div className="flex gap-2 items-start"><MessageSquare className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0" size={12} /><p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight leading-relaxed italic">&quot;{adj.reason}&quot;</p></div>
                 </div>
               )}
 

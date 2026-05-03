@@ -74,19 +74,17 @@ export function AssigneePicker({
     );
   }
 
-  if (assigneeType === "workspace") {
-    return (
-      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800 rounded-2xl p-5 flex items-center gap-4">
-        <Globe className="text-amber-600 dark:text-amber-400 shrink-0" size={20} />
-        <p className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase tracking-tight">
-          {t(
-            "payroll.workspace_scope_info",
-            "This rule will apply to all employees in the workspace"
-          )}
-        </p>
-      </div>
-    );
-  }
+  return (
+    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800 rounded-2xl p-5 flex items-center gap-4">
+      <Globe className="text-amber-600 dark:text-amber-400 shrink-0" size={20} />
+      <p className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase tracking-tight">
+        {t(
+          "payroll.workspace_scope_info",
+          "This rule will apply to all employees in the workspace"
+        )}
+      </p>
+    </div>
+  );
 
   return null;
 }

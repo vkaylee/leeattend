@@ -39,7 +39,7 @@ export default function ConfirmReprocessModal({
                 <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
                     <p className="text-base font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight leading-relaxed text-center italic opacity-80">
                         &quot;
-                        {dialogData && t("reports.reprocess.confirm_message", {
+                        {!!dialogData && t("reports.reprocess.confirm_message", {
                                 employee: dialogData.employeeName,
                                 date: formatDate(dialogData.date),
                             })}

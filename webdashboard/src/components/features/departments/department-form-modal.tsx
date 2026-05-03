@@ -3,14 +3,14 @@ import type { TFunction } from "i18next";
 import { LayoutGrid, UserCircle, CalendarDays } from "lucide-react";
 import React from "react";
 
-import { useDepartmentForm } from "./hooks/use-department-form";
-
 import type { Department, User, WorkingPattern } from "@/lib/api";
 
 import Button from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import FormField, { LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
+
+import { useDepartmentForm } from "./hooks/use-department-form";
 
 export interface DepartmentFormModalProps {
   editingDept: Department | null;

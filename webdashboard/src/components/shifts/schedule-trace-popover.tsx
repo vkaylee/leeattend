@@ -28,11 +28,11 @@ function AppliedRuleSection({ appliedRule, t }: { appliedRule: ScheduleTrace; t:
           <CheckCircle2 size={14} />
           <span className="text-xs font-bold">{appliedRule.rule_name}</span>
         </div>
-        {!!appliedRule.reason && (
+        {appliedRule.reason ? (
           <p className="text-[10px] text-emerald-600 dark:text-emerald-300/80 leading-relaxed pl-5">
             {appliedRule.reason}
           </p>
-        )}
+        ) : null}
         <div className="pt-1 flex items-center gap-3 pl-5">
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
             {t("shifts.traceability.priority")}: {appliedRule.priority}
@@ -71,7 +71,7 @@ function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverri
         {showOverridden ? <ChevronDown className="text-slate-500 dark:text-slate-400" size={14} /> : <ChevronRight className="text-slate-500 dark:text-slate-400" size={14} />}
       </button>
 
-      {!!showOverridden && (
+      {showOverridden ? (
         <div className="space-y-2 animate-in slide-in-from-top-1 duration-200">
           {overriddenRules.map((rule, index) => (
             <div className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1 opacity-70" key={index}>
@@ -79,11 +79,11 @@ function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverri
                 <AlertCircle size={14} />
                 <span className="text-xs font-bold">{rule.rule_name}</span>
               </div>
-              {!!rule.reason && (
+              {rule.reason ? (
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5 italic">
                   {rule.reason}
                 </p>
-              )}
+              ) : null}
               <div className="pt-1 flex items-center gap-3 pl-5">
                 <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
                   {t("shifts.traceability.priority")}: {rule.priority}
@@ -92,7 +92,7 @@ function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverri
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

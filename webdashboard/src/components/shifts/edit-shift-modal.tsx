@@ -2,6 +2,8 @@ import { Save, Zap, Info } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { TFunction } from "i18next";
+
 import Modal from "@/components/ui/modal";
 import { Shift } from "@/lib/api";
 
@@ -55,7 +57,7 @@ function BasicShiftFields({
   setNewShiftName: (val: string) => void;
   setNewShiftStart: (val: string) => void;
   setNewShiftSymbol: (val: string) => void;
-  t: (k: string, d?: string) => string;
+  t: TFunction;
 }) {
   return (
     <>
@@ -119,7 +121,7 @@ function FixedBreakInputs({
   newBreakStart: string;
   setNewBreakEnd: (val: string) => void;
   setNewBreakStart: (val: string) => void;
-  t: (k: string, d?: string) => string;
+  t: TFunction;
 }) {
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -172,7 +174,7 @@ function BreakConfigPanel({
   setNewBreakStart: (val: string) => void;
   setNewShiftBreak: (val: number) => void;
   setNewShiftGrace: (val: number) => void;
-  t: (k: string, d?: string) => string;
+  t: TFunction;
 }) {
   return (
     <div className="space-y-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
@@ -256,7 +258,7 @@ function CorrectionConfigPanel({
   isCorrection: boolean;
   setCorrectionEffectiveDate: (val: string) => void;
   setIsCorrection: (val: boolean) => void;
-  t: (k: string, d?: string) => string;
+  t: TFunction;
 }) {
   return (
     <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-2xl border border-amber-100 dark:border-amber-800 space-y-3">

@@ -31,7 +31,7 @@ export function usePayrollData({
     queryKey: ["employees", wsId, debouncedSearchTerm],
     queryFn: () => {
       if (debouncedSearchTerm.trim()) {
-        return searchEmployees(wsId, debouncedSearchTerm, 1, 100);
+        return searchEmployees({ wsId, query: debouncedSearchTerm, page: 1, limit: 100 });
       }
       return fetchEmployees(wsId, 1, 3000);
     },

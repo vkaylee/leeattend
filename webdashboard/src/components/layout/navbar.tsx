@@ -35,7 +35,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
       [ROUTES.PROFILE]: t("common.profile"), [ROUTES.ESS_PROFILE]: t("common.my_profile"), [ROUTES.ESS_ATTENDANCE]: t("ess.attendance.title"),
       [ROUTES.ESS_CLOCK]: t("ess.clock.title"),
     };
-    return map[path] ?? (path.split('/').pop()?.replace(/-/g, ' ') ?? "");
+    return map[path] ?? path.split('/').pop()?.replace(/-/g, ' ') ?? "";
   };
 
   return (
@@ -54,7 +54,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
 
         {/* Premium Breadcrumbs */}
         <nav className="flex items-center gap-3">
-          <span className="hidden sm:inline text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-[0.25em] opacity-60">{currentWorkspaceName ?? "Workspace"}</span>
+          <span className="hidden sm:inline text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-[0.25em] opacity-60">{currentWorkspaceName}</span>
           <BreadcrumbSeparator className="w-3 h-3 text-slate-300 dark:text-slate-600" />
           <span className="text-slate-700 dark:text-slate-200 font-bold uppercase text-[10px] tracking-[0.25em] bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg shadow-inner">
             {getPageName(location.pathname).toUpperCase()}

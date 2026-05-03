@@ -1,5 +1,5 @@
 import { ArrowUpDown, Building2, ChevronDown, ChevronUp } from "lucide-react";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { NavigableListColumn } from "@/components/common/navigable-list";
@@ -34,7 +34,7 @@ export const useEmployeeColumns = ({
 }: UseEmployeeColumnsProps) => {
   const { t } = useTranslation();
 
-  const renderSortIcon = React.useCallback((col: SortKey) => {
+  const renderSortIcon = useCallback((col: SortKey) => {
     if (sortKey !== col)
       return <ArrowUpDown className="opacity-0 group-hover:opacity-50 transition-opacity ml-1" size={10} />;
     return sortDir === "asc" ? (

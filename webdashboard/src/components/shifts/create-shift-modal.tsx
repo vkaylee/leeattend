@@ -2,6 +2,8 @@ import { Save } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { TFunction } from "i18next";
+
 import Modal from "@/components/ui/modal";
 
 interface CreateShiftModalProps {
@@ -48,7 +50,7 @@ function BasicShiftFields({
   setNewShiftName: (val: string) => void;
   setNewShiftStart: (val: string) => void;
   setNewShiftSymbol: (val: string) => void;
-  t: (k: string, d?: string) => string;
+  t: TFunction;
 }) {
   return (
     <>
@@ -126,7 +128,7 @@ function BreakConfigPanel({
   setNewBreakEnd: (val: string) => void;
   setNewBreakStart: (val: string) => void;
   setNewShiftBreak: (val: number) => void;
-  t: (k: string, d?: string) => string;
+  t: TFunction;
 }) {
   return (
     <div className="space-y-4 bg-slate-50 dark:bg-slate-800 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800">

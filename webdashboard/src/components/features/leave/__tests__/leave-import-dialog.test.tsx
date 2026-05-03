@@ -249,7 +249,7 @@ describe("LeaveImportDialog", () => {
       });
     });
 
-    it("does not upload when no file is selected", async () => {
+    it("does not upload when no file is selected", () => {
       renderDialog();
       const importButton = screen.getByText(/BẮT ĐẦU IMPORT/i).closest("button")!;
       expect(importButton).toBeDisabled();

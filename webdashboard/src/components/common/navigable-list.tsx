@@ -10,9 +10,9 @@ import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { cn } from "@/lib/utils";
 
 export interface NavigableListColumn<T> {
+  cellClassName?: string;
   header: React.ReactNode;
   headerClassName?: string;
-  cellClassName?: string;
   hidden?: boolean;
   key: string;
   onHeaderClick?: () => void;

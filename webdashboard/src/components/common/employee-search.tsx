@@ -86,7 +86,7 @@ function SelectedEmployeeChips({ onRemove, selectedIds, selectedMeta }: Selected
 function useEmployeeSearch(workspaceId: string, debouncedSearchTerm: string, selectedIds: string[]) {
   const { data: employeesData } = useQuery({
     queryKey: ['employees', workspaceId, 'search', debouncedSearchTerm],
-    queryFn: () => searchEmployees(workspaceId, debouncedSearchTerm),
+    queryFn: () => searchEmployees({ wsId: workspaceId, query: debouncedSearchTerm, page: 1, limit: 100 }),
     enabled: workspaceId !== '',
   });
 

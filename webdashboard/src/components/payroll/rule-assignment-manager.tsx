@@ -65,14 +65,14 @@ export default function RuleAssignmentManager({
       </div>
 
       {/* Loading state */}
-      {!!isLoading && (
+      {isLoading ? (
         <div className="p-12 flex justify-center">
           <div className="w-8 h-8 border-[3px] border-teal-600 border-t-transparent rounded-full animate-spin" />
         </div>
-      )}
+      ) : null}
 
       {/* Empty state */}
-      {!isLoading && totalCount === 0 && (
+      {!isLoading && totalCount === 0 ? (
         <div className="p-12 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center gap-3">
           <div className="w-14 h-14 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800">
             <Users className="text-slate-200 dark:text-slate-700" size={24} />
@@ -84,17 +84,17 @@ export default function RuleAssignmentManager({
             )}
           </p>
         </div>
-      )}
+      ) : null}
 
       {/* Assignment cards by scope */}
-      {!isLoading && totalCount > 0 && (
+      {!isLoading && totalCount > 0 ? (
         <AssignmentList
           deptMap={deptMap}
           grouped={grouped}
           isDeleting={deleteMutation.isPending}
           onDelete={(id) => { deleteMutation.mutate(id); }}
         />
-      )}
+      ) : null}
 
       {/* Create Assignment Modal */}
       <AssignmentFormModal

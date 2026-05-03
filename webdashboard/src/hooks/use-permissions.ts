@@ -36,8 +36,8 @@ export function useMyPermissions() {
         gcTime: 10 * 60 * 1000,
     });
 
-    const permissions = data?.permissions ?? [];
-    const roles = data?.roles ?? [];
+    const permissions = useMemo(() => data?.permissions ?? [], [data?.permissions]);
+    const roles = useMemo(() => data?.roles ?? [], [data?.roles]);
     const managedDeptIds = data?.managed_department_ids ?? null;
 
     const permissionSet = useMemo(() => new Set(permissions), [permissions]);

@@ -90,17 +90,17 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         ))}
       </div>
 
-      {!!isAddingType && <AddLeaveTypeModal isSaving={createTypeMutation.isPending} onClose={() => { setIsAddingType(false); }} onSave={(data) => { createTypeMutation.mutate(data); }} />}
-      {!!editingType && <EditLeaveTypeModal isSaving={updateTypeMutation.isPending} leaveType={editingType} onClose={() => { setEditingType(null); }} onSave={(config: LeaveTypeConfig) => { updateTypeMutation.mutate({ typeId: editingType.id, config }); }} />}
+      {isAddingType ? <AddLeaveTypeModal isSaving={createTypeMutation.isPending} onClose={() => { setIsAddingType(false); }} onSave={(data) => { createTypeMutation.mutate(data); }} /> : null}
+      {editingType ? <EditLeaveTypeModal isSaving={updateTypeMutation.isPending} leaveType={editingType} onClose={() => { setEditingType(null); }} onSave={(config: LeaveTypeConfig) => { updateTypeMutation.mutate({ typeId: editingType.id, config }); }} /> : null}
       { }
-      {!!deletingType && (
+      {deletingType ? (
         <Modal isOpen={true} onClose={() => { setDeletingType(null); }} title="Confirm Delete">
           <div className="p-8">
-            <p className="text-sm">Are you sure you want to delete "{deletingType.name}"?</p>
+            <p className="text-sm">Are you sure you want to delete &quot;{deletingType.name}&quot;?</p>
             <div className="mt-8 flex justify-end gap-3"><button className="px-6 py-2 text-xs font-bold text-slate-400 dark:text-slate-500" onClick={() => { setDeletingType(null); }}>Cancel</button><button className="rounded-xl bg-rose-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase" onClick={() => { deleteTypeMutation.mutate(deletingType.id); }}>Delete</button></div>
           </div>
         </Modal>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -136,7 +136,7 @@ interface EditLeaveTypeModalProps {
 }
 
 function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveTypeModalProps) {
-  const [config, setConfig] = useState(leaveType.policy_config || { approval_required: true, requires_document: false, allow_negative_balance: false });
+  const [config, setConfig] = useState(leaveType.policy_config ?? { approval_required: true, requires_document: false, allow_negative_balance: false });
   return (
     <Modal isOpen={true} onClose={onClose} title={`Config: ${leaveType.name}`}>
       <form className="p-8 space-y-4" onSubmit={(e) => { e.preventDefault(); onSave(config); }}>

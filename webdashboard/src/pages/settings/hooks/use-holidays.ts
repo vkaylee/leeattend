@@ -56,7 +56,7 @@ export function useHolidays() {
         editingHoliday,
         onCancel,
         onSaveSuccess,
-        workspaceId: wsId,
+        workspaceId: wsId ?? undefined,
     });
 
     const openEdit = useCallback((h: Holiday) => {

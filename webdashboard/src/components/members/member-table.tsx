@@ -86,7 +86,7 @@ export default function MemberTable() {
                         const primaryRole = roles.find(r => r.id === member.role_id);
                         if (!primaryRole) return <span className="text-xs text-slate-400">Loading...</span>;
                         
-                        const extraRoles = (member.extra_role_ids || [])
+                        const extraRoles = (member.extra_role_ids ?? [])
                           .map(id => roles.find(r => r.id === id))
                           .filter(Boolean) as WorkspaceRole[];
 

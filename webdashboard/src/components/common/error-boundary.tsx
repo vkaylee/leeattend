@@ -72,11 +72,11 @@ export class ErrorBoundary extends Component<
                 Reload page
               </button>
             </div>
-            {!!this.state.error && import.meta.env.DEV && (
+            {this.state.error && import.meta.env.DEV ? (
               <pre className="mt-4 p-4 text-left text-xs bg-slate-100 dark:bg-slate-900 rounded-lg overflow-auto max-h-[200px] text-red-600 dark:text-red-400">
                 {this.state.error.stack}
               </pre>
-            )}
+            ) : null}
           </div>
         </div>
       );

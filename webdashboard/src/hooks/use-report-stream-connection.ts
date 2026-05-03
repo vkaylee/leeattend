@@ -1,5 +1,7 @@
 import { useCallback, useEffect } from "react";
+
 import type { StreamStatus } from "@/types/report-stream";
+
 import { useReportStreamSocket } from "./use-report-stream-socket";
 
 interface ConnectionProps {
@@ -17,6 +19,7 @@ interface ConnectionProps {
   statusRef: React.RefObject<StreamStatus>;
   totalBatchesRef: React.RefObject<number>;
 }
+
 
 export function useReportStreamConnection({
   jobId,
@@ -46,9 +49,9 @@ export function useReportStreamConnection({
   });
 
   const reconnect = useCallback(() => {
-    (retryCountRef as any).current = 0;
-    (shouldReconnectRef as any).current = true;
-    (chunksRef as any).current = [];
+    retryCountRef.current = 0;
+    shouldReconnectRef.current = true;
+    chunksRef.current = [];
     setChunks([]);
     setProgress(0);
     setError(null);
@@ -56,10 +59,10 @@ export function useReportStreamConnection({
   }, [connect, chunksRef, setChunks, setError, setProgress, retryCountRef, shouldReconnectRef]);
 
   useEffect(() => {
-    (chunksRef as any).current = [];
-    (retryCountRef as any).current = 0;
-    (shouldReconnectRef as any).current = true;
-    (totalBatchesRef as any).current = 0;
+    chunksRef.current = [];
+    retryCountRef.current = 0;
+    shouldReconnectRef.current = true;
+    totalBatchesRef.current = 0;
 
     if (!jobId) return;
 

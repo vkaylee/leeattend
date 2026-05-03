@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+
 import type { StreamMessage, StreamStatus } from "@/types/report-stream";
 
 export function useReportStreamHandlers({
@@ -27,7 +28,7 @@ export function useReportStreamHandlers({
       const message = JSON.parse(event.data as string) as StreamMessage;
       switch (message.type) {
         case "CHUNK": {
-          (totalBatchesRef as any).current = message.total_batches;
+          totalBatchesRef.current = message.total_batches;
           const newProgress = ((message.batch_index + 1) / message.total_batches) * 100;
           setProgress(Math.min(newProgress, 100));
           setStatus("streaming");
@@ -36,9 +37,9 @@ export function useReportStreamHandlers({
         case "DONE": {
           setStatus("completed");
           setProgress(100);
-          (shouldReconnectRef as any).current = false;
-          const finalChunks = [...(chunksRef.current ?? [])];
-          (chunksRef as any).current = [];
+          shouldReconnectRef.current = false;
+          const finalChunks = [...chunksRef.current];
+          chunksRef.current = [];
           setChunks(finalChunks);
           onCompleteRef.current?.(finalChunks);
           break;
@@ -46,7 +47,7 @@ export function useReportStreamHandlers({
         case "ERROR": {
           setStatus("error");
           setError(message.message);
-          (shouldReconnectRef as any).current = false;
+          shouldReconnectRef.current = false;
           onErrorRef.current?.(message.message);
           break;
         }
