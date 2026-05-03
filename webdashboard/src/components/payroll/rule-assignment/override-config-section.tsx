@@ -66,7 +66,7 @@ export function OverrideConfigSection({
         </div>
       </label>
 
-      {!!hasOverride && (
+      {hasOverride && (
         <div className="bg-orange-50 dark:bg-orange-950/20 rounded-2xl p-5 border border-orange-100 dark:border-orange-800 space-y-4 animate-in slide-in-from-top-2 duration-200">
           {calculationMethod === "percentage" && (
             <div className="grid grid-cols-2 gap-4">

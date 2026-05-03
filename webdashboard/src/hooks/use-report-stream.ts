@@ -7,6 +7,9 @@ import type {
   StreamStatus,
 } from "@/types/report-stream";
 
+import { clearAuthSession } from "@/lib/api/helpers";
+import { ROUTES } from "@/lib/routes";
+
 import { useReportStreamSocket } from "./use-report-stream-socket";
 
 export interface UseReportStreamOptions {
@@ -24,6 +27,10 @@ export interface UseReportStreamResult {
   status: StreamStatus;
 }
 
+/**
+ * Hook for WebSocket-based report streaming
+ * Connects to the report WebSocket endpoint and accumulates chunks
+ */
 function useReportStreamState() {
   const [status, setStatus] = useState<StreamStatus>("idle");
   const [progress, setProgress] = useState(0);
@@ -49,28 +56,34 @@ function useReportStreamState() {
   };
 }
 
-function useReportStreamMessageHandler({
-  setStatus,
-  setProgress,
-  setError,
-  setChunks,
-  chunksRef,
-  onErrorRef,
-  onCompleteRef,
-  shouldReconnectRef,
-  totalBatchesRef
-}: {
-  setStatus: React.Dispatch<React.SetStateAction<StreamStatus>>;
-  setProgress: React.Dispatch<React.SetStateAction<number>>;
-  setError: React.Dispatch<React.SetStateAction<string | null>>;
-  setChunks: React.Dispatch<React.SetStateAction<unknown[]>>;
-  chunksRef: React.RefObject<unknown[]>;
-  onErrorRef: React.RefObject<((message: string) => void) | undefined>;
-  onCompleteRef: React.RefObject<((data: unknown[]) => void) | undefined>;
-  shouldReconnectRef: React.RefObject<boolean>;
-  totalBatchesRef: React.RefObject<number>;
-}) {
-  return useCallback((event: MessageEvent) => {
+export function useReportStream({
+  jobId,
+  onComplete,
+  onError,
+  maxRetries = 3,
+}: UseReportStreamOptions): UseReportStreamResult {
+  const {
+    status, setStatus,
+    progress, setProgress,
+    error, setError,
+    chunks, setChunks,
+    chunksRef,
+    retryCountRef,
+    shouldReconnectRef,
+    totalBatchesRef,
+    statusRef,
+  } = useReportStreamState();
+
+  const onCompleteRef = useRef(onComplete);
+  const onErrorRef = useRef(onError);
+  
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+    onErrorRef.current = onError;
+    statusRef.current = status;
+  });
+
+  const handleMessage = useCallback((event: MessageEvent) => {
     try {
       const message = JSON.parse(event.data as string) as StreamMessage;
       switch (message.type) {
@@ -103,40 +116,6 @@ function useReportStreamMessageHandler({
       console.error("[ReportStream] Failed to parse message:", error_);
     }
   }, [setChunks, setError, setProgress, setStatus, chunksRef, onErrorRef, onCompleteRef, shouldReconnectRef, totalBatchesRef]);
-}
-
-export function useReportStream({
-  jobId,
-  onComplete,
-  onError,
-  maxRetries = 3,
-}: UseReportStreamOptions): UseReportStreamResult {
-  const {
-    status, setStatus,
-    progress, setProgress,
-    error, setError,
-    chunks, setChunks,
-    chunksRef,
-    retryCountRef,
-    shouldReconnectRef,
-    totalBatchesRef,
-    statusRef,
-  } = useReportStreamState();
-
-  const onCompleteRef = useRef(onComplete);
-  const onErrorRef = useRef(onError);
-  
-  useEffect(() => {
-    onCompleteRef.current = onComplete;
-    onErrorRef.current = onError;
-    statusRef.current = status;
-  });
-
-  const handleMessage = useReportStreamMessageHandler({
-    setStatus, setProgress, setError, setChunks,
-    chunksRef, onErrorRef, onCompleteRef,
-    shouldReconnectRef, totalBatchesRef
-  });
 
   const { connect, disconnect } = useReportStreamSocket({
     jobId,

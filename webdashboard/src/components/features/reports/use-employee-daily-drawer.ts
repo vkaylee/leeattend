@@ -1,4 +1,3 @@
-import { UseMutateFunction } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 
 import {
@@ -17,9 +16,15 @@ interface UseEmployeeDailyDrawerProps {
     workUnitMinutes: number;
 }
 
-function useEmployeeDailyDrawerState(isOpen: boolean) {
+export function useEmployeeDailyDrawer({
+    isOpen,
+    workspaceId,
+    employeeId,
+    dateRange,
+    workUnitMinutes,
+}: UseEmployeeDailyDrawerProps) {
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
-    
+
     // Reset to daily tab whenever the drawer is (re-)opened
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional
     useEffect(() => { if (isOpen) setViewMode("daily"); }, [isOpen]);
@@ -41,64 +46,56 @@ function useEmployeeDailyDrawerState(isOpen: boolean) {
         row: DailyAttendanceReport;
     } | null>(null);
 
-    return {
-        viewMode, setViewMode,
-        expandedDebugRows, setExpandedDebugRows,
-        reprocessingRow, setReprocessingRow,
-        confirmingRow, setConfirmingRow,
-        confirmDialog, setConfirmDialog,
-        confirmModalData, setConfirmModalData,
-        resolveModalData, setResolveModalData,
+    const {
+        isLoading,
+        reportData,
+        adjustmentMap,
+        shifts,
+        rawLogsData,
+        rawLogsLoading,
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
+        totalStdHours,
+        totalOtHours,
+    } = useDailyDrawerQueries({
+        workspaceId,
+        employeeId,
+        dateRange,
+        isOpen,
+        viewMode,
+        workUnitMinutes,
+    });
+
+    const toggleExpandRow = (rowKey: string) => {
+        const next = new Set(expandedDebugRows);
+        if (next.has(rowKey)) next.delete(rowKey);
+        else next.add(rowKey);
+        setExpandedDebugRows(next);
     };
-}
 
+    // Mutations using the extracted hook
+    const {
+        reprocessMutation,
+        confirmMutation,
+        approveOtMutation,
+        resolveUnscheduledMutation,
+    } = useDailyDrawerMutations({
+        workspaceId,
+        workUnitMinutes,
+        onReprocessSuccess: () => {
+            setReprocessingRow(null);
+            setConfirmDialog(null);
+        },
+        onConfirmSuccess: () => {
+            setConfirmingRow(null);
+            setConfirmModalData(null);
+        },
+        onResolveSuccess: () => {
+            setResolveModalData(null);
+        },
+    });
 
-
-type ConfirmDialogType = {
-    show: boolean;
-    employeeId: string;
-    employeeName: string;
-    date: string;
-} | null;
-
-type ConfirmModalDataType = {
-    row: DailyAttendanceReport;
-    existingRequest?: AttendanceAdjustmentRequest;
-} | null;
-
-type ResolveModalDataType = {
-    row: DailyAttendanceReport;
-} | null;
-
-interface DrawerHandlersProps {
-    approveOtMutation: { mutate: UseMutateFunction<void, Error, { row: DailyAttendanceReport; action: "approved" | "rejected" }> };
-    confirmDialog: ConfirmDialogType;
-    confirmModalData: ConfirmModalDataType;
-    confirmMutation: { mutate: UseMutateFunction<void, Error, { row: DailyAttendanceReport; reason?: string; existingRequestId?: string }> };
-    reprocessMutation: { mutate: UseMutateFunction<void, Error, { empId: string; date: string }> };
-    resolveModalData: ResolveModalDataType;
-    resolveUnscheduledMutation: { mutate: UseMutateFunction<void, Error, { row: DailyAttendanceReport; shiftId: string }> };
-    setConfirmDialog: (data: ConfirmDialogType) => void;
-    setConfirmingRow: (data: string | null) => void;
-    setConfirmModalData: (data: ConfirmModalDataType) => void;
-    setReprocessingRow: (data: string | null) => void;
-    setResolveModalData: (data: ResolveModalDataType) => void;
-}
-
-function useEmployeeDailyDrawerHandlers({
-    approveOtMutation,
-    resolveUnscheduledMutation,
-    reprocessMutation,
-    confirmMutation,
-    setResolveModalData,
-    setConfirmDialog,
-    setReprocessingRow,
-    setConfirmModalData,
-    setConfirmingRow,
-    confirmDialog,
-    confirmModalData,
-    resolveModalData
-}: DrawerHandlersProps) {
     const handleApproveOt = (row: DailyAttendanceReport, action: "approved" | "rejected") => {
         approveOtMutation.mutate({ row, action });
     };
@@ -160,90 +157,6 @@ function useEmployeeDailyDrawerHandlers({
     };
 
     return {
-        handleApproveOt,
-        handleResolveUnscheduled,
-        handleResolveSubmit,
-        handleReprocessClick,
-        handleConfirmReprocess,
-        handleConfirmClick,
-        handleConfirmSubmit,
-    };
-}
-
-export function useEmployeeDailyDrawer({
-    isOpen,
-    workspaceId,
-    employeeId,
-    dateRange,
-    workUnitMinutes,
-}: UseEmployeeDailyDrawerProps) {
-    const {
-        viewMode, setViewMode,
-        expandedDebugRows, setExpandedDebugRows,
-        reprocessingRow, setReprocessingRow,
-        confirmingRow, setConfirmingRow,
-        confirmDialog, setConfirmDialog,
-        confirmModalData, setConfirmModalData,
-        resolveModalData, setResolveModalData,
-    } = useEmployeeDailyDrawerState(isOpen);
-
-    const {
-        isLoading,
-        reportData,
-        adjustmentMap,
-        shifts,
-        rawLogsData,
-        rawLogsLoading,
-        hasNextPage,
-        isFetchingNextPage,
-        fetchNextPage,
-        totalStdHours,
-        totalOtHours,
-    } = useDailyDrawerQueries({
-        workspaceId,
-        employeeId,
-        dateRange,
-        isOpen,
-        viewMode,
-        workUnitMinutes,
-    });
-
-    const toggleExpandRow = (rowKey: string) => {
-        const next = new Set(expandedDebugRows);
-        if (next.has(rowKey)) next.delete(rowKey);
-        else next.add(rowKey);
-        setExpandedDebugRows(next);
-    };
-
-    const mutations = useDailyDrawerMutations({
-        workspaceId,
-        workUnitMinutes,
-        onReprocessSuccess: () => {
-            setReprocessingRow(null);
-            setConfirmDialog(null);
-        },
-        onConfirmSuccess: () => {
-            setConfirmingRow(null);
-            setConfirmModalData(null);
-        },
-        onResolveSuccess: () => {
-            setResolveModalData(null);
-        },
-    });
-
-    const handlers = useEmployeeDailyDrawerHandlers({
-        ...mutations,
-        setResolveModalData,
-        setConfirmDialog,
-        setReprocessingRow,
-        setConfirmModalData,
-        setConfirmingRow,
-        confirmDialog,
-        confirmModalData,
-        resolveModalData
-    });
-
-    return {
         viewMode,
         setViewMode,
         expandedDebugRows,
@@ -267,9 +180,15 @@ export function useEmployeeDailyDrawer({
         shifts,
         totalStdHours,
         totalOtHours,
-        ...handlers,
-        reprocessMutationPending: mutations.reprocessMutation.isPending,
-        confirmMutationPending: mutations.confirmMutation.isPending,
-        resolveUnscheduledMutationPending: mutations.resolveUnscheduledMutation.isPending,
+        handleReprocessClick,
+        handleConfirmReprocess,
+        handleConfirmClick,
+        handleConfirmSubmit,
+        handleApproveOt,
+        handleResolveUnscheduled,
+        handleResolveSubmit,
+        reprocessMutationPending: reprocessMutation.isPending,
+        confirmMutationPending: confirmMutation.isPending,
+        resolveUnscheduledMutationPending: resolveUnscheduledMutation.isPending,
     };
 }

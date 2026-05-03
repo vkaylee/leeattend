@@ -1,5 +1,4 @@
 import { useEffect, useRef, useCallback } from "react";
-
 import { clearAuthSession } from "@/lib/api/helpers";
 import { ROUTES } from "@/lib/routes";
 
@@ -10,15 +9,15 @@ import {
 } from "./use-report-stream-utils";
 
 interface UseReportStreamSocketProps {
-  handleMessage: (event: MessageEvent) => void;
   jobId: string | null;
   maxRetries: number;
-  onErrorRef: React.MutableRefObject<((message: string) => void) | undefined>;
-  retryCountRef: React.MutableRefObject<number>;
-  setError: (error: string | null) => void;
   setStatus: (status: "idle" | "connecting" | "streaming" | "completed" | "error") => void;
+  setError: (error: string | null) => void;
+  handleMessage: (event: MessageEvent) => void;
+  onErrorRef: React.MutableRefObject<((message: string) => void) | undefined>;
   shouldReconnectRef: React.MutableRefObject<boolean>;
   statusRef: React.MutableRefObject<"idle" | "connecting" | "streaming" | "completed" | "error">;
+  retryCountRef: React.MutableRefObject<number>;
 }
 
 export function useReportStreamSocket({
