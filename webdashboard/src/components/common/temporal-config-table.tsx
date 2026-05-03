@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 import { Plus, Calendar, History, Save, Calculator, AlertCircle, CheckCircle2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,15 +8,12 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { ConfigRecord } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-
 interface Props {
   isLoading?: boolean;
   onSave: (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => Promise<void>;
   records: ConfigRecord[];
   title: string;
 }
-
-import type { TFunction } from "i18next";
 
 interface TemporalConfigAddFormProps {
   handleSave: () => Promise<void>;
@@ -116,31 +115,112 @@ function TemporalConfigTableContent({ sortedRecords, activeIndex, now, t, format
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-        {sortedRecords.map((record, index: number) => {
-          const isActive = index === activeIndex; const isFuture = new Date(record.effective_date) > now;
-          return (
-            <tr className={cn("group transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50", isActive && "bg-emerald-50 dark:bg-emerald-950/30")} key={index}>
-              <td className="px-8 py-6">
-                {record.is_virtual ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800 shadow-sm"><AlertCircle size={12} /> {t("payroll.settings.virtual")}</span>
-                ) : isActive ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800 shadow-sm"><CheckCircle2 size={12} /> {t("common.active")}</span>
-                ) : isFuture ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800 shadow-sm"><Calendar size={12} /> {t("common.upcoming")}</span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60"><History size={12} /> {t("common.expired")}</span>
-                )}
-              </td>
-              <td className="px-8 py-6"><div className={cn("text-sm font-bold uppercase tracking-tight", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-500 dark:text-slate-400")}>{record.is_virtual ? t("common.from_start") : formatDate(record.effective_date)}</div></td>
-              <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-500 dark:text-slate-400")}>{record.std_working_days} {t("common.days_short")}</span></td>
-              <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-300 dark:text-slate-600")}>{record.hours_per_day}h / {t("common.day_short")}</span></td>
-              <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_day != null ? `${record.max_ot_hours_per_day}h` : '∞'}</span></td>
-              <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_month != null ? `${record.max_ot_hours_per_month}h` : '∞'}</span></td>
-            </tr>
-          );
-        })}
+        {sortedRecords.map((record, index: number) => (
+          <TemporalConfigRow
+            activeIndex={activeIndex}
+            formatDate={formatDate}
+            index={index}
+            key={index}
+            now={now}
+            record={record}
+            t={t}
+          />
+        ))}
       </tbody>
     </table>
+  );
+}
+
+function TemporalConfigStatusBadge({ 
+  isVirtual, 
+  isActive, 
+  isFuture, 
+  t 
+}: { 
+  isActive: boolean; 
+  isFuture: boolean; 
+  isVirtual: boolean; 
+  t: TFunction 
+}) {
+  if (isVirtual) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800 shadow-sm">
+        <AlertCircle size={12} /> {t("payroll.settings.virtual")}
+      </span>
+    );
+  }
+  if (isActive) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800 shadow-sm">
+        <CheckCircle2 size={12} /> {t("common.active")}
+      </span>
+    );
+  }
+  if (isFuture) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800 shadow-sm">
+        <Calendar size={12} /> {t("common.upcoming")}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60">
+      <History size={12} /> {t("common.expired")}
+    </span>
+  );
+}
+
+function TemporalConfigRow({
+  record,
+  index,
+  activeIndex,
+  now,
+  t,
+  formatDate,
+}: {
+  activeIndex: number;
+  formatDate: (date: string) => string;
+  index: number;
+  now: Date;
+  record: ConfigRecord;
+  t: TFunction;
+}) {
+  const isActive = index === activeIndex;
+  const isFuture = new Date(record.effective_date) > now;
+
+  return (
+    <tr className={cn("group transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50", isActive && "bg-emerald-50 dark:bg-emerald-950/30")}>
+      <td className="px-8 py-6">
+        <TemporalConfigStatusBadge 
+          isActive={isActive} 
+          isFuture={isFuture} 
+          isVirtual={!!record.is_virtual} 
+          t={t} 
+        />
+      </td>
+      <td className="px-8 py-6"><div className={cn("text-sm font-bold uppercase tracking-tight", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-500 dark:text-slate-400")}>{record.is_virtual ? t("common.from_start") : formatDate(record.effective_date)}</div></td>
+      <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-500 dark:text-slate-400")}>{record.std_working_days} {t("common.days_short")}</span></td>
+      <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-300 dark:text-slate-600")}>{record.hours_per_day}h / {t("common.day_short")}</span></td>
+      <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_day != null ? `${record.max_ot_hours_per_day}h` : "∞"}</span></td>
+      <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_month != null ? `${record.max_ot_hours_per_month}h` : "∞"}</span></td>
+    </tr>
+  );
+}
+
+function TemporalConfigHeader({ title, t, isAdding, setIsAdding }: { isAdding: boolean; setIsAdding: (val: boolean) => void; t: TFunction; title: string }) {
+  return (
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Calculator size={20} /></div>
+        <div>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{title}</h3>
+          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">{t("payroll.settings.policy_desc")}</p>
+        </div>
+      </div>
+      {!isAdding && (
+        <button className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95" onClick={() => { setIsAdding(true); }}><Plus size={14} /> {t("common.add_new").toUpperCase()}</button>
+      )}
+    </div>
   );
 }
 
@@ -178,20 +258,14 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Calculator size={20} /></div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{title}</h3>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">{t("payroll.settings.policy_desc")}</p>
-          </div>
-        </div>
-        {!isAdding && (
-          <button className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95" onClick={() => { setIsAdding(true); }}><Plus size={14} /> {t("common.add_new").toUpperCase()}</button>
-        )}
-      </div>
+      <TemporalConfigHeader
+        isAdding={isAdding}
+        setIsAdding={setIsAdding}
+        t={t}
+        title={title}
+      />
 
-      {!!isAdding && (
+      {isAdding ? (
         <TemporalConfigAddForm
           handleSave={handleSave}
           newDays={newDays}
@@ -207,7 +281,7 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
           setNewMaxOtMonth={setNewMaxOtMonth}
           t={t}
         />
-      )}
+      ) : null}
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
         {isLoading ? (

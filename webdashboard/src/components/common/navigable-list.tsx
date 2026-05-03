@@ -1,321 +1,206 @@
 import type { TFunction } from "i18next";
-
-import { SearchX, ChevronRight } from "lucide-react";
-import React, { RefObject, useEffect, useRef, useState } from "react";
+import { ChevronRight, Search, Loader2 } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
-import SearchBox from "@/components/common/search-box";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { useKeyboardListNav } from "@/hooks/use-keyboard-list-nav";
+import { useKeyboardListNav } from "@/hooks/use-keyboard-nav";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { cn } from "@/lib/utils";
 
-// ---------------------------------------------------------------------------
-// Column definition
-// ---------------------------------------------------------------------------
-
 export interface NavigableListColumn<T> {
-    cell: (item: T, index: number) => React.ReactNode;
-    cellClassName?: string;
-    header: React.ReactNode;
-    headerClassName?: string;
-    hidden?: boolean;
-    key: string;
-    onHeaderClick?: () => void;
+  header: React.ReactNode;
+  headerClassName?: string;
+  key: string;
+  onHeaderClick?: () => void;
+  render: (item: T) => React.ReactNode;
 }
 
-// ---------------------------------------------------------------------------
-// Component props
-// ---------------------------------------------------------------------------
-
-export interface NavigableListProps<T> {
-    className?: string;
-    columns: NavigableListColumn<T>[];
-    emptyMessage?: string;
-    fetchNextPage?: () => void;
-    hasNextPage?: boolean;
-    headerSlot?: React.ReactNode;
-    isFetchingNextPage?: boolean;
-    isLoading?: boolean;
-    itemKey: (item: T) => string;
-    items: T[];
-    maxHeightClass?: string;
-    onKeyDownRef?: RefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
-    onSearchChange?: (value: string) => void;
-    onSelect: (item: T) => void;
-    resetDeps?: unknown[];
-    rowIdPrefix?: string;
-    searchInputRef?: RefObject<HTMLInputElement | null>;
-    searchPlaceholder?: string;
-    searchTestId?: string;
-    searchValue?: string;
-    selectedKey?: string | null;
-    showActiveBar?: boolean;
-    showChevron?: boolean;
-    skeletonRows?: number;
-    smartHeader?: boolean;
-    testIdPrefix?: string;
+interface NavigableListProps<T> {
+  className?: string;
+  columns: NavigableListColumn<T>[];
+  emptyMessage?: string;
+  fetchNextPage?: () => void;
+  hasNextPage?: boolean;
+  headerSlot?: React.ReactNode;
+  isFetchingNextPage?: boolean;
+  isLoading?: boolean;
+  itemKey: (item: T) => string;
+  items: T[];
+  maxHeightClass?: string;
+  onKeyDownRef?: React.MutableRefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null | undefined>;
+  onSearchChange?: (val: string) => void;
+  onSelect: (item: T) => void;
+  resetDeps?: any[];
+  rowIdPrefix?: string;
+  searchInputRef?: React.RefObject<HTMLInputElement>;
+  searchPlaceholder?: string;
+  searchTestId?: string;
+  searchValue?: string;
+  selectedKey?: string | null;
+  showActiveBar?: boolean;
+  showChevron?: boolean;
+  skeletonRows?: number;
+  smartHeader?: boolean;
+  testIdPrefix?: string;
 }
 
-function NavigableListSkeleton<T>({ skeletonRows, visibleColumns, showChevron }: { skeletonRows: number; visibleColumns: NavigableListColumn<T>[]; showChevron: boolean }) {
-    return (
-        <>
-            {Array.from({ length: skeletonRows }).map((_, index) => (
-                <tr key={`skeleton-${index}`}>
-                    {visibleColumns.map((col) => (
-                        <td className={cn("px-8 py-5", col.cellClassName)} key={col.key}>
-                            <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
-                        </td>
-                    ))}
-                    {showChevron ? <td className="px-4 py-5" /> : null}
-                </tr>
-            ))}
-        </>
-    );
-}
-
-
-function NavigableListEmptyState({ colSpan, emptyMessage, t }: { colSpan: number; emptyMessage?: string; t: TFunction }) {
-    return (
-        <tr>
-            <td className="px-10 py-32" colSpan={colSpan}>
-                <div className="flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500 max-w-sm mx-auto">
-                    <div className="w-20 h-20 mb-6 rounded-3xl bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-inner border border-slate-100 dark:border-slate-700/50 rotate-3">
-                        <SearchX className="-rotate-3" size={32} />
-                    </div>
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest mb-2">
-                        {emptyMessage ?? t("common.no_data", "No data")}
-                    </h3>
-                </div>
-            </td>
+function NavigableListSkeleton({
+  skeletonRows,
+  colSpan,
+}: {
+  colSpan: number;
+  skeletonRows: number;
+}) {
+  return (
+    <>
+      {Array.from({ length: skeletonRows }).map((_, i) => (
+        <tr className="animate-pulse border-b border-slate-50 dark:border-slate-800" key={i}>
+          <td className="px-8 py-6" colSpan={colSpan}>
+            <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-lg w-2/3" />
+          </td>
         </tr>
-    );
+      ))}
+    </>
+  );
 }
 
-function NavigableListRow<T>({
-    item, index, listNav, isSelected, itemKey, testIdPrefix, rowIdPrefix, onSelect, visibleColumns, showChevron, showActiveBar
+function InfiniteScrollSentinel({
+  isFetchingNextPage,
+  sentinelRef,
+  colSpan,
 }: {
-    index: number;
-    isSelected: boolean;
-    item: T;
-    itemKey: (item: T) => string;
-    listNav: {
-        focusedIndex: number;
-        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-        setFocusedIndex: (index: number) => void;
-    };
-    onSelect: (item: T) => void;
-    rowIdPrefix?: string;
-    showActiveBar?: boolean;
-    showChevron?: boolean;
-    testIdPrefix?: string;
-    visibleColumns: NavigableListColumn<T>[];
+  colSpan: number;
+  isFetchingNextPage: boolean;
+  sentinelRef: React.Ref<HTMLTableRowElement>;
 }) {
-    const key = itemKey(item);
-    const isFocused = listNav.focusedIndex === index;
-
-    return (
-        <tr
-            className={cn(
-                "cursor-pointer transition-all group relative",
-                isSelected
-                    ? "bg-primary-50 dark:bg-primary-950/50"
-                    : isFocused
-                        ? "bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-inset ring-primary-500/50"
-                        : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
-            )}
-            data-testid={testIdPrefix ? `${testIdPrefix}-${key}` : undefined}
-            id={`${rowIdPrefix}-${index}`}
-            key={key}
-            onClick={() => { onSelect(item); }}
-        >
-            {visibleColumns.map((col) => (
-                <td className={cn("px-8 py-5", col.cellClassName)} key={col.key}>
-                    {col.cell(item, index)}
-                </td>
-            ))}
-            {showChevron ? (
-                <td className="px-4 py-5 text-right">
-                    <ChevronRight
-                        className={cn(
-                            "transition-all duration-200 ml-auto",
-                            isSelected
-                                ? "translate-x-1 text-primary-600 dark:text-primary-400"
-                                : "text-slate-300 dark:text-slate-600 group-hover:text-primary-500 dark:group-hover:text-primary-400 group-hover:translate-x-1"
-                        )}
-                        size={16}
-                    />
-                </td>
-            ) : null}
-            {showActiveBar && isSelected ? <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-600 rounded-r-full shadow-lg shadow-primary-500/50" /> : null}
-        </tr>
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
-function NavigableListSearchContent({
-    onSearchChange,
-    searchTestId,
-    searchInputRef,
-    listNav,
-    searchPlaceholder,
-    searchValue,
-}: {
-    listNav: {
-        focusedIndex: number;
-        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-        setFocusedIndex: (index: number) => void;
-    };
-    onSearchChange?: (value: string) => void;
-    searchInputRef?: React.RefObject<HTMLInputElement | null>;
-    searchPlaceholder?: string;
-    searchTestId?: string;
-    searchValue?: string;
-}) {
-    if (!onSearchChange) return null;
-    return (
-        <SearchBox
-            data-testid={searchTestId ?? "navigable-list-search"}
-            inputRef={searchInputRef}
-            onChange={onSearchChange}
-            onKeyDown={listNav.onKeyDown}
-            placeholder={searchPlaceholder}
-            value={searchValue ?? ""}
-        />
-    );
-}
-
-function NavigableListHeaderWrapper({
-    smartHeaderEnabled,
-    smartHeaderVisible,
-    smartHeaderRef,
-    headerSlot,
-    isFullPage,
-    stickySearchRef,
-    searchProps,
-}: {
-    headerSlot?: React.ReactNode;
-    isFullPage: boolean;
-    searchProps: React.ComponentProps<typeof NavigableListSearchContent>;
-    smartHeaderEnabled: boolean;
-    smartHeaderRef: React.RefObject<HTMLDivElement | null>;
-    smartHeaderVisible: boolean;
-    stickySearchRef: React.RefObject<HTMLDivElement | null>;
-}) {
-    if (smartHeaderEnabled) {
-        return (
-            <div
-                className={cn(
-                    "sticky top-0 z-20 backdrop-blur-md transition-transform duration-300 ease-out",
-                    smartHeaderVisible ? "translate-y-0" : "-translate-y-full"
-                )}
-                ref={smartHeaderRef}
-            >
-                <div className="flex flex-col gap-6 pb-2">
-                    {headerSlot}
-                    <NavigableListSearchContent {...searchProps} />
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <>
-            {headerSlot}
-            {isFullPage && searchProps.onSearchChange ? (
-                <div className="sticky top-0 z-20 backdrop-blur-md pt-1 pb-2 -mt-1" ref={stickySearchRef}>
-                    <NavigableListSearchContent {...searchProps} />
-                </div>
-              ) : null}
-        </>
-    );
+  return (
+    <tr ref={sentinelRef}>
+      <td className="px-8 py-4 text-center" colSpan={colSpan}>
+        {isFetchingNextPage ? (
+          <div className="flex items-center justify-center gap-2 text-slate-400">
+            <Loader2 className="animate-spin" size={16} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Loading...</span>
+          </div>
+        ) : null}
+      </td>
+    </tr>
+  );
 }
 
 function NavigableListTableContent<T>({
-    isLoading,
-    items,
-    itemKey,
-    selectedKey,
-    listNav,
-    onSelect,
-    rowIdPrefix,
-    showActiveBar,
-    showChevron,
-    testIdPrefix,
-    visibleColumns,
-    skeletonRows,
-    colSpan,
-    emptyMessage,
-    t,
-    fetchNextPage,
-    isFetchingNextPage,
-    loadMoreRef
+  isLoading,
+  items,
+  skeletonRows,
+  colSpan,
+  visibleColumns,
+  showChevron,
+  showActiveBar,
+  selectedKey,
+  onSelect,
+  rowIdPrefix,
+  testIdPrefix,
+  itemKey,
+  listNav,
+  emptyMessage,
+  t,
+  fetchNextPage,
+  isFetchingNextPage,
+  loadMoreRef,
 }: {
-    colSpan: number;
-    emptyMessage?: string;
-    fetchNextPage?: () => void;
-    isFetchingNextPage?: boolean;
-    isLoading: boolean;
-    itemKey: (item: T) => string;
-    items: T[];
-    listNav: {
-        focusedIndex: number;
-        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-        setFocusedIndex: (index: number) => void;
-    };
-    loadMoreRef: React.Ref<HTMLTableRowElement>;
-    onSelect: (item: T) => void;
-    rowIdPrefix?: string;
-    selectedKey?: string | null;
-    showActiveBar?: boolean;
-    showChevron?: boolean;
-    skeletonRows: number;
-    t: TFunction;
-    testIdPrefix?: string;
-    visibleColumns: NavigableListColumn<T>[];
+  colSpan: number;
+  emptyMessage?: string;
+  fetchNextPage?: () => void;
+  isFetchingNextPage?: boolean;
+  isLoading: boolean;
+  itemKey: (item: T) => string;
+  items: T[];
+  listNav: {
+    focusedIndex: number;
+    setFocusedIndex: (index: number) => void;
+  };
+  loadMoreRef: React.Ref<HTMLTableRowElement>;
+  onSelect: (item: T) => void;
+  rowIdPrefix: string;
+  selectedKey?: string | null;
+  showActiveBar: boolean;
+  showChevron: boolean;
+  skeletonRows: number;
+  t: TFunction;
+  testIdPrefix?: string;
+  visibleColumns: NavigableListColumn<T>[];
 }) {
-    return (
-        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-            {isLoading ? (
-                <NavigableListSkeleton showChevron={showChevron ?? true} skeletonRows={skeletonRows} visibleColumns={visibleColumns} />
-            ) : items.length === 0 ? (
-                <NavigableListEmptyState colSpan={colSpan} emptyMessage={emptyMessage} t={t} />
-            ) : (
-                items.map((item, index) => {
-                    const key = itemKey(item);
-                    const isSelected = selectedKey != null && key === selectedKey;
-                    return (
-                        <NavigableListRow
-                            index={index}
-                            isSelected={isSelected}
-                            item={item}
-                            itemKey={itemKey}
-                            key={key}
-                            listNav={listNav}
-                            onSelect={onSelect}
-                            rowIdPrefix={rowIdPrefix}
-                            showActiveBar={showActiveBar}
-                            showChevron={showChevron}
-                            testIdPrefix={testIdPrefix}
-                            visibleColumns={visibleColumns}
-                        />
-                    );
-                })
-            )}
+  if (isLoading && items.length === 0) {
+    return <NavigableListSkeleton colSpan={colSpan} skeletonRows={skeletonRows} />;
+  }
 
-            {fetchNextPage ? (
-                <InfiniteScrollSentinel
-                    colSpan={colSpan}
-                    isFetchingNextPage={isFetchingNextPage ?? false}
-                    sentinelRef={loadMoreRef}
-                />
-            ) : null}
-        </tbody>
+  if (items.length === 0) {
+    return (
+      <tr>
+        <td className="px-8 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]" colSpan={colSpan}>
+          {emptyMessage || t("common.no_data")}
+        </td>
+      </tr>
     );
+  }
+
+  return (
+    <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+      {items.map((item, index) => {
+        const key = itemKey(item);
+        const isFocused = listNav.focusedIndex === index;
+        const isSelected = selectedKey === key;
+
+        return (
+          <tr
+            className={cn(
+              "group cursor-pointer transition-all relative outline-none border-l-4 border-l-transparent",
+              isFocused && "bg-slate-50/80 dark:bg-slate-800/50 border-l-primary-500 shadow-inner",
+              isSelected && !isFocused && "bg-primary-50/30 dark:bg-primary-900/10 border-l-primary-400/50",
+              !isSelected && !isFocused && "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+            )}
+            id={rowIdPrefix ? `${rowIdPrefix}-${key}` : undefined}
+            key={key}
+            onClick={() => {
+              listNav.setFocusedIndex(index);
+              onSelect(item);
+            }}
+            onMouseEnter={() => listNav.setFocusedIndex(index)}
+            tabIndex={-1}
+          >
+            {visibleColumns.map((col) => (
+              <td className="px-8 py-5" key={col.key}>
+                {col.render(item)}
+              </td>
+            ))}
+
+            {showChevron ? (
+              <td className="px-4 py-5 w-10 text-right">
+                <ChevronRight
+                  className={cn(
+                    "w-4 h-4 transition-all",
+                    isFocused ? "text-primary-500 translate-x-1" : "text-slate-300 dark:text-slate-700 opacity-0 group-hover:opacity-100"
+                  )}
+                />
+              </td>
+            ) : null}
+
+            {showActiveBar && isSelected ? (
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500" />
+            ) : null}
+          </tr>
+        );
+      })}
+
+      {fetchNextPage ? (
+        <InfiniteScrollSentinel
+          colSpan={colSpan}
+          isFetchingNextPage={!!isFetchingNextPage}
+          sentinelRef={loadMoreRef}
+        />
+      ) : null}
+    </tbody>
+  );
 }
 
 function NavigableListTable<T>({
@@ -389,7 +274,7 @@ function NavigableListTable<T>({
                   {col.header}
                 </th>
               ))}
-              {showChevron && <th className="px-4 py-5 w-10" />}
+              {showChevron ? <th className="px-4 py-5 w-10" /> : null}
             </tr>
           </thead>
 
@@ -455,6 +340,162 @@ function useNavigableListSticky({
   };
 }
 
+function useNavigableListInitialization<T>({
+  items,
+  onSelect,
+  rowIdPrefix,
+  resetDeps,
+  onKeyDownRef,
+  hasNextPage,
+  isFetchingNextPage,
+  fetchNextPage,
+}: {
+  fetchNextPage?: () => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  items: T[];
+  onKeyDownRef?: React.MutableRefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null | undefined>;
+  onSelect: (item: T) => void;
+  resetDeps: any[];
+  rowIdPrefix: string;
+}) {
+  const listNav = useKeyboardListNav({ items, onSelect, rowIdPrefix, resetDeps });
+
+  useEffect(() => {
+    if (onKeyDownRef) {
+      onKeyDownRef.current = listNav.onKeyDown;
+    }
+  }, [onKeyDownRef, listNav.onKeyDown]);
+
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage: !!hasNextPage,
+    isFetchingNextPage: !!isFetchingNextPage,
+    fetchNextPage: fetchNextPage ?? (() => { /* empty */ }),
+  });
+
+  return { listNav, loadMoreRef };
+}
+
+function useNavigableListCalculations<T>({
+  columns,
+  maxHeightClass,
+  smartHeader,
+  showChevron,
+}: {
+  columns: NavigableListColumn<T>[];
+  maxHeightClass: string;
+  showChevron: boolean;
+  smartHeader: boolean;
+}) {
+  const visibleColumns = useMemo(() => columns.filter(Boolean), [columns]);
+  const isFullPage = maxHeightClass === "full";
+  const smartHeaderEnabled = smartHeader && isFullPage;
+
+  const {
+    stickySearchRef,
+    smartHeaderRef,
+    smartHeaderVisible,
+    stickyOffset,
+  } = useNavigableListSticky({ isFullPage, smartHeaderEnabled });
+
+  const colSpan = visibleColumns.length + (showChevron ? 1 : 0);
+
+  return {
+    visibleColumns,
+    isFullPage,
+    smartHeaderEnabled,
+    stickySearchRef,
+    smartHeaderRef,
+    smartHeaderVisible,
+    stickyOffset,
+    colSpan,
+  };
+}
+
+function NavigableListSearchContent({
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+  searchInputRef,
+  listNav,
+  searchTestId,
+}: {
+  listNav: { onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void };
+  onSearchChange?: (val: string) => void;
+  searchInputRef?: React.RefObject<HTMLInputElement>;
+  searchPlaceholder?: string;
+  searchTestId?: string;
+  searchValue?: string;
+}) {
+  if (searchValue === undefined) return null;
+
+  return (
+    <div className="relative group">
+      <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 transition-colors" size={18} />
+      <input
+        className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] pl-16 pr-8 py-5 text-sm font-bold shadow-sm focus:ring-4 focus:ring-primary-500/10 focus:border-primary-200 dark:focus:border-primary-800 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700"
+        onChange={(e) => onSearchChange?.(e.target.value)}
+        onKeyDown={listNav.onKeyDown}
+        placeholder={searchPlaceholder}
+        ref={searchInputRef}
+        type="text"
+        value={searchValue}
+        {...(searchTestId ? { "data-testid": searchTestId } : {})}
+      />
+    </div>
+  );
+}
+
+function NavigableListHeaderWrapper({
+  smartHeaderEnabled,
+  smartHeaderRef,
+  smartHeaderVisible,
+  stickySearchRef,
+  headerSlot,
+  isFullPage,
+  searchProps,
+}: {
+  headerSlot?: React.ReactNode;
+  isFullPage: boolean;
+  searchProps: any;
+  smartHeaderEnabled: boolean;
+  smartHeaderRef: React.Ref<HTMLDivElement>;
+  smartHeaderVisible: boolean;
+  stickySearchRef: React.Ref<HTMLDivElement>;
+}) {
+  return (
+    <>
+      {smartHeaderEnabled ? (
+        <div
+          className={cn(
+            "fixed top-0 left-0 right-0 z-[60] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-all duration-300",
+            smartHeaderVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+          )}
+          ref={smartHeaderRef}
+        >
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
+            <div className="flex-1 max-w-2xl">
+              <NavigableListSearchContent {...searchProps} />
+            </div>
+            {headerSlot}
+          </div>
+        </div>
+      ) : null}
+
+      {isFullPage && !smartHeaderEnabled ? (
+        <div className="sticky top-0 z-40 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-sm pb-6 -mx-2 px-2" ref={stickySearchRef}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex-1 max-w-2xl">
+              <NavigableListSearchContent {...searchProps} />
+            </div>
+            {headerSlot}
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export default function NavigableList<T>({
   columns,
   items,
@@ -467,7 +508,6 @@ export default function NavigableList<T>({
   showChevron = true,
   showActiveBar = false,
   rowIdPrefix = "nav-row",
-  testIdPrefix,
   resetDeps = [],
   searchValue,
   onSearchChange,
@@ -484,32 +524,27 @@ export default function NavigableList<T>({
   smartHeader = false,
 }: NavigableListProps<T>) {
   const { t } = useTranslation();
-  const listNav = useKeyboardListNav({ items, onSelect, rowIdPrefix, resetDeps });
-
-  useEffect(() => {
-    if (onKeyDownRef) {
-      onKeyDownRef.current = listNav.onKeyDown;
-    }
-  }, [onKeyDownRef, listNav.onKeyDown]);
-
-  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
-    hasNextPage: hasNextPage ?? false,
-    isFetchingNextPage: isFetchingNextPage ?? false,
-    fetchNextPage: fetchNextPage ?? (() => { /* empty */ }),
+  const { listNav, loadMoreRef } = useNavigableListInitialization({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    items,
+    onKeyDownRef,
+    onSelect,
+    resetDeps,
+    rowIdPrefix,
   });
 
-  const visibleColumns = columns.filter((c) => !c.hidden);
-  const colSpan = visibleColumns.length + (showChevron ? 1 : 0);
-
-  const isFullPage = !maxHeightClass;
-  const smartHeaderEnabled = isFullPage && smartHeader;
-
   const {
+    visibleColumns,
+    isFullPage,
+    smartHeaderEnabled,
     stickySearchRef,
     smartHeaderRef,
     smartHeaderVisible,
     stickyOffset,
-  } = useNavigableListSticky({ isFullPage, smartHeaderEnabled });
+    colSpan,
+  } = useNavigableListCalculations({ columns, maxHeightClass, smartHeader, showChevron });
 
   const searchProps = { onSearchChange, searchTestId, searchInputRef, listNav, searchPlaceholder, searchValue };
 
@@ -525,7 +560,7 @@ export default function NavigableList<T>({
         stickySearchRef={stickySearchRef}
       />
 
-      {!isFullPage && <NavigableListSearchContent {...searchProps} />}
+      {!isFullPage ? <NavigableListSearchContent {...searchProps} /> : null}
 
       <NavigableListTable
         colSpan={colSpan}
@@ -547,7 +582,6 @@ export default function NavigableList<T>({
         skeletonRows={skeletonRows}
         stickyOffset={stickyOffset}
         t={t}
-        testIdPrefix={testIdPrefix}
         visibleColumns={visibleColumns}
       />
     </div>

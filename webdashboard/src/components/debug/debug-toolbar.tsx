@@ -304,7 +304,7 @@ export const DebugToolbar: React.FC = () => {
             setDebugUsers([]);
           }
         })
-        .catch(error => {
+        .catch((error: unknown) => {
           console.error("Failed to fetch debug users:", error);
           setDebugUsers([]);
         });

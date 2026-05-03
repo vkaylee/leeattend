@@ -29,12 +29,12 @@ function AppContent() {
 
   return (
     <>
-      {hasNewVersion && (
+      {hasNewVersion ? (
         <NewVersionBanner
           onDismiss={dismiss}
           onRefresh={() => { window.location.reload(); }}
         />
-      )}
+      ) : null}
       <RouterProvider router={router} />
     </>
   );

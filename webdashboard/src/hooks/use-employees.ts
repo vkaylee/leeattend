@@ -46,3 +46,15 @@ export function useAllEmployees(
     error: query.error,
   };
 }
+
+export function useWorkingConditions(employeeId: string) {
+  return useQuery({
+    queryKey: ["working-conditions", employeeId],
+    queryFn: async () => {
+      const response = await fetch(`/api/employees/${employeeId}/working-conditions`);
+      if (!response.ok) throw new Error("Failed to fetch");
+      return response.json();
+    },
+    enabled: !!employeeId,
+  });
+}

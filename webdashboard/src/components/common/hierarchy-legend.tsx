@@ -38,13 +38,13 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
         </div>
         <div className="flex items-center gap-3">
           <HelpCircle className="text-slate-200 dark:text-slate-700" size={16} />
-          <div className={cn("w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 transition-transform duration-300", isOpen && "rotate-180")}>
+          <div className={cn("w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 transition-transform duration-300", !!isOpen && "rotate-180")}>
             <ChevronDown size={16} />
           </div>
         </div>
       </button>
 
-      {isOpen && (
+      {!!isOpen && (
         <div className="px-8 pb-10 pt-6 animate-in slide-in-from-top-4 duration-500">
           <div className="relative flex flex-col gap-0 pl-3">
             {/* Vertical Line */}
@@ -68,10 +68,10 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
                     </span>
                   </div>
                   
-                  {index === 0 && (
+                  {!!(index === 0) && (
                     <div className="mt-1.5 flex items-center gap-1.5"><div className="w-1 h-1 bg-primary-50 dark:bg-primary-950 rounded-full animate-pulse" /><span className="text-[8px] font-bold text-primary-500 uppercase tracking-widest">{t("shifts.traceability.highest_priority")}</span></div>
                   )}
-                  {index === steps.length - 1 && (
+                  {!!(index === steps.length - 1) && (
                     <div className="mt-1.5 flex items-center gap-1.5"><div className="w-1 h-1 bg-slate-300 rounded-full" /><span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("shifts.traceability.lowest_priority")}</span></div>
                   )}
                 </div>
