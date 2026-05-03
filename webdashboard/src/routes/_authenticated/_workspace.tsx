@@ -24,6 +24,7 @@ export const Route = createFileRoute("/_authenticated/_workspace")({
     });
 
     if (workspaces.length === 0) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({ to: "/onboarding" });
     }
 

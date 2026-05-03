@@ -47,35 +47,121 @@ interface SidebarProps {
   toggleSection: (section: string) => void;
 }
 
-export default function Sidebar({ isOpen, onClose, openSections, toggleSection, onShowSwitcher: _onShowSwitcher, isCollapsed }: SidebarProps) {
+interface MenuItemBase {
+  icon?: React.ElementType;
+  label: string;
+  testId: string;
+  to?: string;
+}
+
+interface MenuSectionType extends MenuItemBase {
+  items: MenuLinkType[];
+  section: string;
+  sectionIcon: React.ElementType;
+}
+
+interface MenuLinkType extends MenuItemBase {
+  exact?: boolean;
+  permissions?: string[];
+  systemRoles?: string[];
+  to: string;
+}
+
+type MenuItem = MenuSectionType | MenuLinkType;
+
+function SidebarLink({
+  to,
+  icon: Icon,
+  label,
+  testId,
+  isCollapsed,
+  isActive
+}: {
+  isActive: boolean;
+  isCollapsed: boolean;
+  label: string;
+  testId: string;
+  to: string;
+  icon?: React.ElementType;
+}) {
+  return (
+    <Link
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group",
+        isActive
+          ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50"
+          : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
+      )}
+      data-testid={testId}
+      to={to as "/"}
+    >
+      <div className={cn(
+        "p-2 rounded-xl transition-colors",
+        isActive
+          ? "bg-white dark:bg-primary-900/30 shadow-sm"
+          : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700"
+      )}>
+        {Icon ? <Icon className="h-4 w-4" /> : null}
+      </div>
+      {!isCollapsed && <span className="font-bold text-sm truncate">{label}</span>}
+    </Link>
+  );
+}
+
+function SidebarSection({
+  item,
+  isCollapsed,
+  openSections,
+  toggleSection,
+  location,
+}: {
+  isCollapsed: boolean;
+  item: MenuSectionType;
+  location: { pathname: string };
+  openSections: Partial<Record<string, boolean>>;
+  toggleSection: (section: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      {!isCollapsed && (
+        <button
+          className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group"
+          data-testid={item.testId}
+          onClick={() => { toggleSection(item.section); }}
+        >
+          <div className="flex items-center gap-2">
+            <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+            <span>{item.label}</span>
+          </div>
+          {openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        </button>
+      )}
+      {(openSections[item.section] ?? isCollapsed) && (
+        <div className="space-y-1">
+          {item.items.map((subItem) => (
+            <SidebarLink
+              icon={subItem.icon}
+              isActive={location.pathname === subItem.to}
+              isCollapsed={isCollapsed}
+              key={subItem.to}
+              label={subItem.label}
+              testId={subItem.testId}
+              to={subItem.to}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Sidebar({ isOpen, onClose, openSections, toggleSection, isCollapsed }: SidebarProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const { hasAnyPermission } = useMyPermissions();
   const { user } = useProfile();
 
   const handleLogout = () => { localStorage.clear(); window.location.href = ROUTES.LOGIN; };
-
-  interface MenuItemBase {
-    icon?: React.ElementType;
-    label: string;
-    testId: string;
-    to?: string;
-  }
-
-  interface MenuSection extends MenuItemBase {
-    items: MenuItem[];
-    section: string;
-    sectionIcon: React.ElementType;
-  }
-
-  interface MenuLink extends MenuItemBase {
-    exact?: boolean;
-    permissions?: string[];
-    systemRoles?: string[];
-    to: string;
-  }
-
-  type MenuItem = MenuSection | MenuLink;
 
   const menuItems: MenuItem[] = [
     { to: ROUTES.HOME, icon: LayoutDashboard, label: t("common.dashboard"), exact: true, testId: "sidebar-link-dashboard" },
@@ -124,10 +210,10 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       if ("section" in item) {
         const filteredItems = item.items.filter(
           (subItem) => {
-            if ("systemRoles" in subItem && subItem.systemRoles && subItem.systemRoles.length > 0) {
+            if (subItem.systemRoles && subItem.systemRoles.length > 0) {
               return subItem.systemRoles.some((role: string) => user?.system_roles?.includes(role));
             }
-            const permissions = "permissions" in subItem ? subItem.permissions : undefined;
+            const permissions = subItem.permissions;
             return !permissions || permissions.length === 0 || hasAnyPermission(...permissions);
           }
         );
@@ -152,24 +238,22 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
         {filteredMenuItems.map((item) => (
           <div key={item.label}>
             {"section" in item ? (
-              <div className="space-y-2">
-                {!isCollapsed && <button className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group" data-testid={item.testId} onClick={() => { toggleSection(item.section); }}><div className="flex items-center gap-2"><item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" /><span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
-                {!!(openSections[item.section] || isCollapsed) && (
-                  <div className="space-y-1">
-                    {item.items.map((subItem) => (
-                      <Link className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", location.pathname === subItem.to ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200")} data-testid={subItem.testId} key={subItem.to} to={subItem.to}>
-                        <div className={cn("p-2 rounded-xl transition-colors", location.pathname === subItem.to ? "bg-white dark:bg-primary-900/30 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700")}>{!!subItem.icon && <subItem.icon className="h-4 w-4" />}</div>
-                        {!isCollapsed && <span className="font-bold text-sm truncate">{subItem.label}</span>}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <SidebarSection
+                isCollapsed={isCollapsed}
+                item={item}
+                location={location}
+                openSections={openSections}
+                toggleSection={toggleSection}
+              />
             ) : (
-              <Link className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)) ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200")} data-testid={item.testId} to={item.to as "/"}>
-                <div className={cn("p-2 rounded-xl transition-colors", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)) ? "bg-white dark:bg-primary-900/30 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700")}>{!!item.icon && <item.icon className="h-4 w-4" />}</div>
-                {!isCollapsed && <span className="font-bold text-sm truncate">{item.label}</span>}
-              </Link>
+              <SidebarLink
+                icon={item.icon}
+                isActive={item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)}
+                isCollapsed={isCollapsed}
+                label={item.label}
+                testId={item.testId}
+                to={item.to}
+              />
             )}
           </div>
         ))}
@@ -180,3 +264,4 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     </div>
   );
 }
+

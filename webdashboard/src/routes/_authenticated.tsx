@@ -25,8 +25,10 @@ export const Route = createFileRoute("/_authenticated")({
         queryKey: profileKeys.me,
         queryFn: fetchMe,
       });
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!user) {
         clearAuthSession();
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw redirect({ to: "/login" });
       }
       return { user };
@@ -39,6 +41,7 @@ export const Route = createFileRoute("/_authenticated")({
       clearAuthSession();
       
       // Auth failure or network error → redirect to login
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({ to: "/login" });
     }
   },

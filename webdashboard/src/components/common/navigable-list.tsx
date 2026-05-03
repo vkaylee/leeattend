@@ -68,7 +68,7 @@ function NavigableListSkeleton<T>({ skeletonRows, visibleColumns, showChevron }:
                             <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                         </td>
                     ))}
-                    {!!showChevron && <td className="px-4 py-5" />}
+                    {showChevron ? <td className="px-4 py-5" /> : null}
                 </tr>
             ))}
         </>
@@ -135,7 +135,7 @@ function NavigableListRow<T>({
                     {col.cell(item, index)}
                 </td>
             ))}
-            {!!showChevron && (
+            {showChevron ? (
                 <td className="px-4 py-5 text-right">
                     <ChevronRight
                         className={cn(
@@ -147,8 +147,8 @@ function NavigableListRow<T>({
                         size={16}
                     />
                 </td>
-            )}
-            {!!showActiveBar && !!isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-600 rounded-r-full shadow-lg shadow-primary-500/50" />}
+            ) : null}
+            {showActiveBar && isSelected ? <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-600 rounded-r-full shadow-lg shadow-primary-500/50" /> : null}
         </tr>
     );
 }
@@ -226,11 +226,11 @@ function NavigableListHeaderWrapper({
     return (
         <>
             {headerSlot}
-            {!!isFullPage && !!searchProps.onSearchChange && (
+            {isFullPage && searchProps.onSearchChange ? (
                 <div className="sticky top-0 z-20 backdrop-blur-md pt-1 pb-2 -mt-1" ref={stickySearchRef}>
                     <NavigableListSearchContent {...searchProps} />
                 </div>
-              )}
+              ) : null}
         </>
     );
 }
@@ -267,7 +267,7 @@ function NavigableListTableContent<T>({
         onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
         setFocusedIndex: (index: number) => void;
     };
-    loadMoreRef: React.Ref<any>;
+    loadMoreRef: React.Ref<HTMLTableRowElement>;
     onSelect: (item: T) => void;
     rowIdPrefix?: string;
     selectedKey?: string | null;
@@ -281,7 +281,7 @@ function NavigableListTableContent<T>({
     return (
         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {isLoading ? (
-                <NavigableListSkeleton showChevron={!!showChevron} skeletonRows={skeletonRows} visibleColumns={visibleColumns} />
+                <NavigableListSkeleton showChevron={showChevron ?? true} skeletonRows={skeletonRows} visibleColumns={visibleColumns} />
             ) : items.length === 0 ? (
                 <NavigableListEmptyState colSpan={colSpan} emptyMessage={emptyMessage} t={t} />
             ) : (
@@ -307,151 +307,226 @@ function NavigableListTableContent<T>({
                 })
             )}
 
-            {!!fetchNextPage && (
+            {fetchNextPage ? (
                 <InfiniteScrollSentinel
                     colSpan={colSpan}
                     isFetchingNextPage={isFetchingNextPage ?? false}
                     sentinelRef={loadMoreRef}
                 />
-            )}
+            ) : null}
         </tbody>
     );
 }
 
+function NavigableListTable<T>({
+  colSpan,
+  emptyMessage,
+  fetchNextPage,
+  isFetchingNextPage,
+  isFullPage,
+  isLoading,
+  itemKey,
+  items,
+  listNav,
+  loadMoreRef,
+  maxHeightClass,
+  onSelect,
+  rowIdPrefix,
+  selectedKey,
+  showActiveBar,
+  showChevron,
+  skeletonRows,
+  stickyOffset,
+  t,
+  testIdPrefix,
+  visibleColumns,
+}: {
+  colSpan: number;
+  emptyMessage?: string;
+  fetchNextPage?: () => void;
+  isFetchingNextPage?: boolean;
+  isFullPage: boolean;
+  isLoading: boolean;
+  itemKey: (item: T) => string;
+  items: T[];
+  listNav: {
+    focusedIndex: number;
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    setFocusedIndex: (index: number) => void;
+  };
+  loadMoreRef: React.Ref<HTMLTableRowElement>;
+  maxHeightClass: string;
+  onSelect: (item: T) => void;
+  rowIdPrefix: string;
+  selectedKey?: string | null;
+  showActiveBar: boolean;
+  showChevron: boolean;
+  skeletonRows: number;
+  stickyOffset: number;
+  t: TFunction;
+  testIdPrefix?: string;
+  visibleColumns: NavigableListColumn<T>[];
+}) {
+  return (
+    <div className={cn("bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm", isFullPage ? "overflow-x-clip" : "overflow-hidden")}>
+      <div className={cn(isFullPage ? "" : "overflow-auto", maxHeightClass)}>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr
+              className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky z-10"
+              style={{ top: isFullPage ? stickyOffset : 0 }}
+            >
+              {visibleColumns.map((col) => (
+                <th
+                  className={cn(
+                    "px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]",
+                    col.onHeaderClick && "cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors group",
+                    col.headerClassName
+                  )}
+                  key={col.key}
+                  onClick={col.onHeaderClick}
+                >
+                  {col.header}
+                </th>
+              ))}
+              {showChevron && <th className="px-4 py-5 w-10" />}
+            </tr>
+          </thead>
+
+          <NavigableListTableContent
+            colSpan={colSpan}
+            emptyMessage={emptyMessage}
+            fetchNextPage={fetchNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            isLoading={isLoading}
+            itemKey={itemKey}
+            items={items}
+            listNav={listNav}
+            loadMoreRef={loadMoreRef}
+            onSelect={onSelect}
+            rowIdPrefix={rowIdPrefix}
+            selectedKey={selectedKey}
+            showActiveBar={showActiveBar}
+            showChevron={showChevron}
+            skeletonRows={skeletonRows}
+            t={t}
+            testIdPrefix={testIdPrefix}
+            visibleColumns={visibleColumns}
+          />
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function NavigableList<T>({
-    columns,
-    items,
-    itemKey,
-    onSelect,
-    selectedKey,
-    isLoading = false,
-    skeletonRows = 5,
-    emptyMessage,
-    showChevron = true,
-    showActiveBar = false,
-    rowIdPrefix = "nav-row",
-    testIdPrefix,
-    resetDeps = [],
-    searchValue,
-    onSearchChange,
-    searchPlaceholder,
-    searchInputRef,
-    searchTestId,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    className,
-    maxHeightClass = "max-h-[60vh]",
-    headerSlot,
-    onKeyDownRef,
-    smartHeader = false,
+  columns,
+  items,
+  itemKey,
+  onSelect,
+  selectedKey,
+  isLoading = false,
+  skeletonRows = 5,
+  emptyMessage,
+  showChevron = true,
+  showActiveBar = false,
+  rowIdPrefix = "nav-row",
+  testIdPrefix,
+  resetDeps = [],
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+  searchInputRef,
+  searchTestId,
+  hasNextPage,
+  isFetchingNextPage,
+  fetchNextPage,
+  className,
+  maxHeightClass = "max-h-[60vh]",
+  headerSlot,
+  onKeyDownRef,
+  smartHeader = false,
 }: NavigableListProps<T>) {
-    const { t } = useTranslation();
+  const { t } = useTranslation();
+  const listNav = useKeyboardListNav({ items, onSelect, rowIdPrefix, resetDeps });
 
-    const listNav = useKeyboardListNav({ items, onSelect, rowIdPrefix, resetDeps });
+  useEffect(() => {
+    if (onKeyDownRef) {
+      onKeyDownRef.current = listNav.onKeyDown;
+    }
+  }, [onKeyDownRef, listNav.onKeyDown]);
 
-    useEffect(() => {
-        if (onKeyDownRef) {
-            onKeyDownRef.current = listNav.onKeyDown;
-        }
-    }, [onKeyDownRef, listNav.onKeyDown]);
+  const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
+    hasNextPage: hasNextPage ?? false,
+    isFetchingNextPage: isFetchingNextPage ?? false,
+    fetchNextPage: fetchNextPage ?? (() => { /* empty */ }),
+  });
 
-    const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
-        hasNextPage: hasNextPage ?? false,
-        isFetchingNextPage: isFetchingNextPage ?? false,
-        fetchNextPage: fetchNextPage ?? (() => { /* empty */ }),
-    });
+  const visibleColumns = columns.filter((c) => !c.hidden);
+  const colSpan = visibleColumns.length + (showChevron ? 1 : 0);
 
-    const visibleColumns = columns.filter((c) => !c.hidden);
-    const colSpan = visibleColumns.length + (showChevron ? 1 : 0);
+  const isFullPage = !maxHeightClass;
+  const smartHeaderEnabled = isFullPage && smartHeader;
+  const stickySearchRef = useRef<HTMLDivElement>(null);
+  const [measuredSearchHeight, setMeasuredSearchHeight] = useState(0);
 
-    const isFullPage = !maxHeightClass;
-    const smartHeaderEnabled = isFullPage && smartHeader;
-    const stickySearchRef = useRef<HTMLDivElement>(null);
-    const [measuredSearchHeight, setMeasuredSearchHeight] = useState(0);
+  const { headerRef: smartHeaderRef, isVisible: smartHeaderVisible, headerHeight: smartHeaderHeight } = useStickyHeader({
+    enabled: smartHeaderEnabled,
+  });
 
-    const { headerRef: smartHeaderRef, isVisible: smartHeaderVisible, headerHeight: smartHeaderHeight } = useStickyHeader({
-        enabled: smartHeaderEnabled,
-    });
+  useEffect(() => {
+    if (!isFullPage || smartHeaderEnabled || !stickySearchRef.current) return;
+    const element = stickySearchRef.current;
+    const update = () => { setMeasuredSearchHeight(element.offsetHeight); };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(element);
+    return () => { ro.disconnect(); };
+  }, [isFullPage, smartHeaderEnabled]);
 
-    useEffect(() => {
-        if (!isFullPage || smartHeaderEnabled || !stickySearchRef.current) return;
-        const element = stickySearchRef.current;
-        const update = () => { setMeasuredSearchHeight(element.offsetHeight); };
-        update();
-        const ro = new ResizeObserver(update);
-        ro.observe(element);
-        return () => { ro.disconnect(); };
-    }, [isFullPage, smartHeaderEnabled]);
+  const stickyOffset = smartHeaderEnabled
+    ? (smartHeaderVisible ? smartHeaderHeight : 0)
+    : (isFullPage ? measuredSearchHeight : 0);
 
-    const stickyOffset = smartHeaderEnabled
-        ? (smartHeaderVisible ? smartHeaderHeight : 0)
-        : (isFullPage ? measuredSearchHeight : 0);
+  const searchProps = { onSearchChange, searchTestId, searchInputRef, listNav, searchPlaceholder, searchValue };
 
-    const searchProps = { onSearchChange, searchTestId, searchInputRef, listNav, searchPlaceholder, searchValue };
+  return (
+    <div className={cn("flex flex-col gap-6", className)}>
+      <NavigableListHeaderWrapper
+        headerSlot={headerSlot}
+        isFullPage={isFullPage}
+        searchProps={searchProps}
+        smartHeaderEnabled={smartHeaderEnabled}
+        smartHeaderRef={smartHeaderRef}
+        smartHeaderVisible={smartHeaderVisible}
+        stickySearchRef={stickySearchRef}
+      />
 
-    return (
-        <div className={cn("flex flex-col gap-6", className)}>
-            <NavigableListHeaderWrapper
-                headerSlot={headerSlot}
-                isFullPage={isFullPage}
-                searchProps={searchProps}
-                smartHeaderEnabled={smartHeaderEnabled}
-                smartHeaderRef={smartHeaderRef}
-                smartHeaderVisible={smartHeaderVisible}
-                stickySearchRef={stickySearchRef}
-            />
+      {!isFullPage && <NavigableListSearchContent {...searchProps} />}
 
-            {!isFullPage && <NavigableListSearchContent {...searchProps} />}
-
-            <div className={cn("bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm", isFullPage ? "overflow-x-clip" : "overflow-hidden")}>
-                <div className={cn(isFullPage ? "" : "overflow-auto", maxHeightClass)}>
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr
-                                className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky z-10"
-                                style={{ top: isFullPage ? stickyOffset : 0 }}
-                            >
-                                {visibleColumns.map((col) => (
-                                    <th
-                                        className={cn(
-                                            "px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]",
-                                            col.onHeaderClick && "cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors group",
-                                            col.headerClassName
-                                        )}
-                                        key={col.key}
-                                        onClick={col.onHeaderClick}
-                                    >
-                                        {col.header}
-                                    </th>
-                                ))}
-                                {!!showChevron && <th className="px-4 py-5 w-10" />}
-                            </tr>
-                        </thead>
-
-                        <NavigableListTableContent
-                            colSpan={colSpan}
-                            emptyMessage={emptyMessage}
-                            fetchNextPage={fetchNextPage}
-                            isFetchingNextPage={isFetchingNextPage}
-                            isLoading={isLoading}
-                            itemKey={itemKey}
-                            items={items}
-                            listNav={listNav}
-                            loadMoreRef={loadMoreRef}
-                            onSelect={onSelect}
-                            rowIdPrefix={rowIdPrefix}
-                            selectedKey={selectedKey}
-                            showActiveBar={showActiveBar}
-                            showChevron={showChevron}
-                            skeletonRows={skeletonRows}
-                            t={t}
-                            testIdPrefix={testIdPrefix}
-                            visibleColumns={visibleColumns}
-                        />
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
+      <NavigableListTable
+        colSpan={colSpan}
+        emptyMessage={emptyMessage}
+        fetchNextPage={fetchNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        isFullPage={isFullPage}
+        isLoading={isLoading}
+        itemKey={itemKey}
+        items={items}
+        listNav={listNav}
+        loadMoreRef={loadMoreRef}
+        maxHeightClass={maxHeightClass}
+        onSelect={onSelect}
+        rowIdPrefix={rowIdPrefix}
+        selectedKey={selectedKey}
+        showActiveBar={showActiveBar}
+        showChevron={showChevron}
+        skeletonRows={skeletonRows}
+        stickyOffset={stickyOffset}
+        t={t}
+        testIdPrefix={testIdPrefix}
+        visibleColumns={visibleColumns}
+      />
+    </div>
+  );
 }

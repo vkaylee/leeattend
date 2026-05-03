@@ -8,6 +8,7 @@ import {
   HardDrive,
   Plus
 } from "lucide-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToast } from "@/components/ui/toast";
@@ -34,6 +35,112 @@ interface AgentAccordionCardProps {
   onUpdateDevice: (id: string, data: Partial<Device>) => Promise<void>;
 }
 
+interface AgentHeaderProps {
+  agent: AuthorizedAgent;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onEdit: (agent: AuthorizedAgent) => void;
+  onToggleTrust: () => void;
+  onDelete: () => void;
+  deviceCount: number;
+}
+
+function AgentHeader({
+  agent,
+  isExpanded,
+  onToggleExpand,
+  onEdit,
+  onToggleTrust,
+  onDelete,
+  deviceCount,
+}: AgentHeaderProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div
+      className="flex items-center gap-6 p-8 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+      data-testid={`agent-header-${agent.id}`}
+      onClick={onToggleExpand}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggleExpand();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
+      <div className="text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+        {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+      </div>
+
+      <div className={cn(
+        "w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner border transition-all",
+        agent.is_active
+          ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800/50 group-hover:scale-110"
+          : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+      )}>
+        <Server size={24} />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-tight truncate" data-testid={`agent-name-${agent.id}`}>
+          {agent.name}
+        </div>
+        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold uppercase opacity-70">
+          ID: {agent.id}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={cn(
+          "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
+          agent.is_trusted
+            ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
+            : "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800"
+        )}>
+          {agent.is_trusted ? t("common.agents.status.trusted") : t("common.agents.status.pending")}
+        </span>
+        {!agent.is_active && (
+          <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700">
+            {t("common.status_inactive")}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-lg shrink-0">
+        <HardDrive className="text-slate-400 dark:text-slate-500" size={14} />
+        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{deviceCount}</span>
+      </div>
+
+      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[10px] font-mono font-bold uppercase bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800 shrink-0">
+        <RefreshCw size={12} />
+        {agent.last_seen_at ? new Date(agent.last_seen_at).toLocaleString() : t("common.never")}
+      </div>
+
+      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0" onClick={e => e.stopPropagation()}>
+        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => onEdit(agent)}>
+          <Pencil size={18} />
+        </button>
+        <button
+          className={cn(
+            "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border shadow-sm transition-all active:scale-95",
+            agent.is_trusted
+              ? "text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 bg-white dark:bg-slate-900"
+              : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
+          )}
+          onClick={onToggleTrust}
+        >
+          {agent.is_trusted ? t("common.revoke") : t("common.approve")}
+        </button>
+        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={onDelete}>
+          <Trash2 size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AgentAccordionCard({
   agent,
   devices,
@@ -57,7 +164,7 @@ export default function AgentAccordionCard({
   async function handleToggleTrust() {
     const confirmKey = agent.is_trusted ? "agents.messages.confirm_revoke" : "agents.messages.confirm_approve";
     const ok = await confirm({
-      title: t("common.warning", { defaultValue: "Warning" }),
+      title: t("common.warning"),
       message: t(confirmKey, { name: agent.name }),
       variant: agent.is_trusted ? "danger" : "info"
     });
@@ -72,7 +179,7 @@ export default function AgentAccordionCard({
 
   async function handleDelete() {
     const ok = await confirm({
-      title: t("common.warning", { defaultValue: "Warning" }),
+      title: t("common.warning"),
       message: t("agents.messages.confirm_delete", { name: agent.name }),
       variant: "danger"
     });
@@ -88,116 +195,22 @@ export default function AgentAccordionCard({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden transition-all",
+        "bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden transition-all shadow-sm",
         "hover:shadow-lg hover:shadow-primary-100/20",
         !agent.is_active && "opacity-50 grayscale"
       )}
       data-testid={`agent-card-${agent.id}`}
     >
-      {/* Header row - clickable to expand */}
-      { }
-      { }
-      <div
-        className="flex items-center gap-6 p-8 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
-        data-testid={`agent-header-${agent.id}`}
-        onClick={onToggleExpand}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onToggleExpand();
-          }
-        }}
-        role="button"
-        tabIndex={0}
-      >
-        {/* Chevron */}
-        <div className="text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-          {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-        </div>
+      <AgentHeader
+        agent={agent}
+        deviceCount={devices.length}
+        isExpanded={isExpanded}
+        onDelete={() => { void handleDelete(); }}
+        onEdit={onEdit}
+        onToggleExpand={onToggleExpand}
+        onToggleTrust={() => { void handleToggleTrust(); }}
+      />
 
-        {/* Agent icon */}
-        <div className={cn(
-          "w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner border transition-all",
-          agent.is_active
-            ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800/50 group-hover:scale-110"
-            : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-        )}>
-          <Server size={24} />
-        </div>
-
-        {/* Agent info */}
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-tight truncate" data-testid={`agent-name-${agent.id}`}>
-            {agent.name}
-          </div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold uppercase opacity-70">
-            ID: {agent.id}
-          </div>
-        </div>
-
-        {/* Status badges */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span
-            className={cn(
-              "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
-              agent.is_trusted
-                ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
-                : "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800"
-            )}
-            data-testid={`agent-trust-status-${agent.id}`}
-          >
-            {agent.is_trusted ? t("common.agents.status.trusted") : t("common.agents.status.pending")}
-          </span>
-          {!agent.is_active && (
-            <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700" data-testid={`agent-inactive-badge-${agent.id}`}>
-              {t("common.status_inactive")}
-            </span>
-          )}
-        </div>
-
-        {/* Device count badge */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-lg shrink-0" data-testid={`agent-device-count-${agent.id}`}>
-          <HardDrive className="text-slate-400 dark:text-slate-500" size={14} />
-          <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{devices.length}</span>
-        </div>
-        { }
-        { }
-
-        {/* Last seen */}
-        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[10px] font-mono font-bold uppercase bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800 shrink-0">
-          <RefreshCw size={12} />
-          {agent.last_seen_at ? new Date(agent.last_seen_at).toLocaleString() : t("common.never")}
-        </div>
-
-        {/* Action buttons - show on hover */}
-        <div 
-          className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-          onClick={e => { e.stopPropagation(); }}
-          onKeyDown={(e) => { e.stopPropagation(); }}
-          role="presentation"
-        >
-          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-edit-${agent.id}`} onClick={() => { onEdit(agent); }} title={t("common.edit")}>
-            <Pencil size={18} />
-          </button>
-          <button
-            className={cn(
-              "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border shadow-sm transition-all active:scale-95",
-              agent.is_trusted
-                ? "text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 bg-white dark:bg-slate-900"
-                : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
-            )}
-            data-testid={`agent-trust-toggle-${agent.id}`}
-            onClick={handleToggleTrust}
-          >
-            {agent.is_trusted ? t("common.revoke") : t("common.approve")}
-          </button>
-          <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-delete-${agent.id}`} onClick={handleDelete} title={t("common.delete")}>
-            <Trash2 size={18} />
-          </button>
-        </div>
-      </div>
-
-      {/* Expandable content */}
       <div className={cn(
         "overflow-hidden transition-all duration-500",
         isExpanded ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
@@ -225,7 +238,6 @@ export default function AgentAccordionCard({
               ))
             )}
 
-            {/* Add Device Button - Horizontal Style */}
             {!!onAddDevice && (
               <button
                 className="group relative flex items-center justify-center p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[1.5rem] text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 hover:bg-primary-50 dark:bg-primary-950/30 transition-all gap-4"

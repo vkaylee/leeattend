@@ -147,7 +147,7 @@ export async function fetchEmployeePayslips(
 export async function fetchEmployeePayrollConfigs(wsId: string, employeeId: string) {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payroll-config`);
   if (!response.ok) throw new Error("Failed to fetch employee payroll configs");
-  return response.json() as Promise<any[]>;
+  return response.json() as Promise<Record<string, unknown>[]>;
 }
 
 // Overtime Policies

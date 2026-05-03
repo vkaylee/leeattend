@@ -17,7 +17,7 @@ export const lazyLoadBackend: BackendModule = {
     const lng = language.split('-')[0];
     if (localeLoaders[lng]) {
       localeLoaders[lng]()
-        .then((module_: { default?: Record<string, unknown> } | Record<string, unknown>) => { callback(null, 'default' in module_ ? module_.default || module_ : module_); })
+        .then((module_: { default?: Record<string, unknown> } | Record<string, unknown>) => { callback(null, 'default' in module_ ? module_.default ?? module_ : module_); })
         .catch((error: unknown) => { callback(error instanceof Error ? error : new Error(String(error)), null); });
     } else {
       callback(new Error(`Language ${lng} not found`), null);
