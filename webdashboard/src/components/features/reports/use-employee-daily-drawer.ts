@@ -1,21 +1,13 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { UseMutateFunction } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 
-import { useToast } from "@/components/ui/toast";
 import {
-    fetchAttendanceReport,
     DailyAttendanceReport,
-    reprocessAttendance,
-    fetchWorkspaceAttendanceAdjustments,
-    adminConfirmAttendance,
     AttendanceAdjustmentRequest,
-    approveOt,
-    fetchRawAttendanceLogs,
-    fetchShifts,
-    upsertRoster,
 } from "@/lib/api";
-import { formatUnitsToHours } from "@/lib/utils/attendance";
+
+import { useDailyDrawerMutations } from "./use-daily-drawer-mutations";
+import { useDailyDrawerQueries } from "./use-daily-drawer-queries";
 
 interface UseEmployeeDailyDrawerProps {
     dateRange: { start: string; end: string };
@@ -25,19 +17,9 @@ interface UseEmployeeDailyDrawerProps {
     workUnitMinutes: number;
 }
 
-export function useEmployeeDailyDrawer({
-    isOpen,
-    workspaceId,
-    employeeId,
-    dateRange,
-    workUnitMinutes,
-}: UseEmployeeDailyDrawerProps) {
-    const { t } = useTranslation();
-    const queryClient = useQueryClient();
-    const toast = useToast();
-
+function useEmployeeDailyDrawerState(isOpen: boolean) {
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
-
+    
     // Reset to daily tab whenever the drawer is (re-)opened
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional
     useEffect(() => { if (isOpen) setViewMode("daily"); }, [isOpen]);
@@ -59,172 +41,64 @@ export function useEmployeeDailyDrawer({
         row: DailyAttendanceReport;
     } | null>(null);
 
-    // Fetch daily data for this single employee
-    const { data: reportResponse, isLoading } = useQuery({
-        queryKey: ["attendance-report", workspaceId, dateRange, "daily", 1, 100, undefined, [employeeId]],
-        queryFn: () =>
-            fetchAttendanceReport({
-                wsId: workspaceId,
-                start: dateRange.start,
-                end: dateRange.end,
-                type: "daily",
-                page: 1,
-                limit: 100,
-                employeeIds: [employeeId],
-            }),
-        enabled: isOpen && !!workspaceId && !!employeeId,
-    });
-
-    const { data: pendingAdjustments } = useQuery({
-        queryKey: ["attendance-adjustments", workspaceId, "pending"],
-        queryFn: () => fetchWorkspaceAttendanceAdjustments(workspaceId, "pending"),
-        enabled: isOpen && !!workspaceId,
-    });
-
-    // Fetch shift types for the unscheduled resolution modal
-    const { data: shifts } = useQuery({
-        queryKey: ["shifts", workspaceId],
-        queryFn: () => fetchShifts(workspaceId),
-        enabled: isOpen && !!workspaceId,
-    });
-
-    // Fetch raw logs for this single employee with infinite scroll
-    const {
-        data: rawLogsResponse,
-        isLoading: rawLogsLoading,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage
-    } = useInfiniteQuery({
-        queryKey: ["raw-logs", workspaceId, dateRange, [employeeId]],
-        queryFn: ({ pageParam }) => {
-            const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
-            const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
-            return fetchRawAttendanceLogs({ employee_id: employeeId, from, to, page: pageParam, limit: 100 });
-        },
-        getNextPageParam: (lastPage, allPages) => {
-            if (lastPage.data.length < 100) return undefined;
-            return allPages.length + 1;
-        },
-        initialPageParam: 1,
-        enabled: isOpen && !!workspaceId && !!employeeId && viewMode === "raw",
-    });
-
-    // Extract flat array of logs
-    const rawLogsData = useMemo(() => {
-        if (!rawLogsResponse) return [];
-        return rawLogsResponse.pages.flatMap((p) => p.data);
-    }, [rawLogsResponse]);
-
-    const adjustmentMap = useMemo(() => {
-        const map: Record<string, AttendanceAdjustmentRequest> = {};
-        pendingAdjustments?.forEach((request) => {
-            const key = `${request.employee_id}-${request.requested_date}`;
-            map[key] = request;
-        });
-        return map;
-    }, [pendingAdjustments]);
-
-    const reportData = useMemo(
-        () => (reportResponse?.data ?? (Array.isArray(reportResponse) ? reportResponse : [])) as DailyAttendanceReport[],
-        [reportResponse]
-    );
-
-    // Compute total hours for summary bar
-    const { totalStdHours, totalOtHours } = useMemo(() => {
-        const stdUnits = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.std_work_units || 0), 0);
-        const otUnits = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.ot_work_units || 0), 0);
-        return {
-            totalStdHours: formatUnitsToHours(stdUnits, workUnitMinutes),
-            totalOtHours: formatUnitsToHours(otUnits, workUnitMinutes),
-        };
-    }, [reportData, workUnitMinutes]);
-
-    const toggleExpandRow = (rowKey: string) => {
-        const next = new Set(expandedDebugRows);
-        if (next.has(rowKey)) next.delete(rowKey);
-        else next.add(rowKey);
-        setExpandedDebugRows(next);
+    return {
+        viewMode, setViewMode,
+        expandedDebugRows, setExpandedDebugRows,
+        reprocessingRow, setReprocessingRow,
+        confirmingRow, setConfirmingRow,
+        confirmDialog, setConfirmDialog,
+        confirmModalData, setConfirmModalData,
+        resolveModalData, setResolveModalData,
     };
+}
 
-    // Reprocess mutation
-    const reprocessMutation = useMutation({
-        mutationFn: ({ empId, date }: { empId: string; date: string }) =>
-            reprocessAttendance(workspaceId, empId, date, date),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-            setReprocessingRow(null);
-            setConfirmDialog(null);
-            toast.success(t("common.success"));
-        },
-    });
 
-    // Confirm mutation
-    const confirmMutation = useMutation({
-        mutationFn: ({
-            row,
-            existingRequestId,
-            reason,
-        }: {
-            row: DailyAttendanceReport;
-            existingRequestId?: string;
-            reason?: string;
-        }) => adminConfirmAttendance(workspaceId, row, existingRequestId, reason),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-            void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
-            setConfirmingRow(null);
-            setConfirmModalData(null);
-            toast.success(t("reports.confirm.success"));
-        },
-        onError: () => {
-            setConfirmingRow(null);
-            toast.error(t("reports.confirm.error"));
-        },
-    });
 
-    // OT approve mutation
-    const approveOtMutation = useMutation({
-        mutationFn: ({ row, action }: { row: DailyAttendanceReport; action: "approved" | "rejected" }) =>
-            approveOt(workspaceId, row.employee_id, {
-                date: row.date,
-                approved_minutes: row.ot_work_units * (workUnitMinutes || 60),
-                status: action,
-            }),
-        onSuccess: (_data, variables) => {
-            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-            const message =
-                variables.action === "approved"
-                    ? t("reports.ot_approve.success_approved")
-                    : t("reports.ot_approve.success_rejected");
-            toast.success(message);
-        },
-        onError: () => {
-            toast.error(t("reports.ot_approve.error"));
-        },
-    });
+type ConfirmDialogType = {
+    show: boolean;
+    employeeId: string;
+    employeeName: string;
+    date: string;
+} | null;
 
-    // Resolve unscheduled mutation: upsert roster + reprocess
-    const resolveUnscheduledMutation = useMutation({
-        mutationFn: async ({ row, shiftId }: { row: DailyAttendanceReport; shiftId: string }) => {
-            // Step 1: Assign the shift to this day
-            await upsertRoster(workspaceId, row.employee_id, {
-                date: row.date,
-                shift_id: shiftId,
-            });
-            // Step 2: Reprocess to recalculate attendance with the new shift
-            await reprocessAttendance(workspaceId, row.employee_id, row.date, row.date);
-        },
-        onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-            setResolveModalData(null);
-            toast.success(t("reports.unscheduled.success"));
-        },
-        onError: () => {
-            toast.error(t("reports.unscheduled.error"));
-        },
-    });
+type ConfirmModalDataType = {
+    row: DailyAttendanceReport;
+    existingRequest?: AttendanceAdjustmentRequest;
+} | null;
 
+type ResolveModalDataType = {
+    row: DailyAttendanceReport;
+} | null;
+
+interface DrawerHandlersProps {
+    approveOtMutation: { mutate: UseMutateFunction<any, Error, { row: DailyAttendanceReport; action: "approved" | "rejected" }> };
+    confirmDialog: ConfirmDialogType;
+    confirmModalData: ConfirmModalDataType;
+    confirmMutation: { mutate: UseMutateFunction<any, Error, { row: DailyAttendanceReport; reason?: string; existingRequestId?: string }> };
+    reprocessMutation: { mutate: UseMutateFunction<any, Error, { empId: string; date: string }> };
+    resolveModalData: ResolveModalDataType;
+    resolveUnscheduledMutation: { mutate: UseMutateFunction<any, Error, { row: DailyAttendanceReport; shiftId: string }> };
+    setConfirmDialog: (data: ConfirmDialogType) => void;
+    setConfirmingRow: (data: string | null) => void;
+    setConfirmModalData: (data: ConfirmModalDataType) => void;
+    setReprocessingRow: (data: string | null) => void;
+    setResolveModalData: (data: ResolveModalDataType) => void;
+}
+
+function useEmployeeDailyDrawerHandlers({
+    approveOtMutation,
+    resolveUnscheduledMutation,
+    reprocessMutation,
+    confirmMutation,
+    setResolveModalData,
+    setConfirmDialog,
+    setReprocessingRow,
+    setConfirmModalData,
+    setConfirmingRow,
+    confirmDialog,
+    confirmModalData,
+    resolveModalData
+}: DrawerHandlersProps) {
     const handleApproveOt = (row: DailyAttendanceReport, action: "approved" | "rejected") => {
         approveOtMutation.mutate({ row, action });
     };
@@ -286,6 +160,90 @@ export function useEmployeeDailyDrawer({
     };
 
     return {
+        handleApproveOt,
+        handleResolveUnscheduled,
+        handleResolveSubmit,
+        handleReprocessClick,
+        handleConfirmReprocess,
+        handleConfirmClick,
+        handleConfirmSubmit,
+    };
+}
+
+export function useEmployeeDailyDrawer({
+    isOpen,
+    workspaceId,
+    employeeId,
+    dateRange,
+    workUnitMinutes,
+}: UseEmployeeDailyDrawerProps) {
+    const {
+        viewMode, setViewMode,
+        expandedDebugRows, setExpandedDebugRows,
+        reprocessingRow, setReprocessingRow,
+        confirmingRow, setConfirmingRow,
+        confirmDialog, setConfirmDialog,
+        confirmModalData, setConfirmModalData,
+        resolveModalData, setResolveModalData,
+    } = useEmployeeDailyDrawerState(isOpen);
+
+    const {
+        isLoading,
+        reportData,
+        adjustmentMap,
+        shifts,
+        rawLogsData,
+        rawLogsLoading,
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
+        totalStdHours,
+        totalOtHours,
+    } = useDailyDrawerQueries({
+        workspaceId,
+        employeeId,
+        dateRange,
+        isOpen,
+        viewMode,
+        workUnitMinutes,
+    });
+
+    const toggleExpandRow = (rowKey: string) => {
+        const next = new Set(expandedDebugRows);
+        if (next.has(rowKey)) next.delete(rowKey);
+        else next.add(rowKey);
+        setExpandedDebugRows(next);
+    };
+
+    const mutations = useDailyDrawerMutations({
+        workspaceId,
+        workUnitMinutes,
+        onReprocessSuccess: () => {
+            setReprocessingRow(null);
+            setConfirmDialog(null);
+        },
+        onConfirmSuccess: () => {
+            setConfirmingRow(null);
+            setConfirmModalData(null);
+        },
+        onResolveSuccess: () => {
+            setResolveModalData(null);
+        },
+    });
+
+    const handlers = useEmployeeDailyDrawerHandlers({
+        ...mutations,
+        setResolveModalData,
+        setConfirmDialog,
+        setReprocessingRow,
+        setConfirmModalData,
+        setConfirmingRow,
+        confirmDialog,
+        confirmModalData,
+        resolveModalData
+    });
+
+    return {
         viewMode,
         setViewMode,
         expandedDebugRows,
@@ -309,15 +267,9 @@ export function useEmployeeDailyDrawer({
         shifts,
         totalStdHours,
         totalOtHours,
-        handleReprocessClick,
-        handleConfirmReprocess,
-        handleConfirmClick,
-        handleConfirmSubmit,
-        handleApproveOt,
-        handleResolveUnscheduled,
-        handleResolveSubmit,
-        reprocessMutationPending: reprocessMutation.isPending,
-        confirmMutationPending: confirmMutation.isPending,
-        resolveUnscheduledMutationPending: resolveUnscheduledMutation.isPending,
+        ...handlers,
+        reprocessMutationPending: mutations.reprocessMutation.isPending,
+        confirmMutationPending: mutations.confirmMutation.isPending,
+        resolveUnscheduledMutationPending: mutations.resolveUnscheduledMutation.isPending,
     };
 }
