@@ -45,27 +45,57 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     if (!active || !payload?.length) return null;
 
     const data = payload[0]?.payload;
+    if (!data) return null;
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-xl min-w-[200px]">
             <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
                 {label}
             </p>
             <div className="space-y-1.5">
-                <div className="flex justify-between text-[11px]">
-                    <span className="text-red-500 font-semibold">{t("dashboard.hr.unexcused")}</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-200">{data?.unexcused_count ?? 0}</span>
-                </div>
-
-                <div className="flex justify-between text-[11px]">
-                    <span className="text-orange-500 font-semibold">{t("dashboard.hr.consecutive_days")}</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-200">{data?.consecutive_count ?? 0}</span>
-                </div>
-                <div className="border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1.5 flex justify-between text-[11px]">
-                    <span className="text-slate-500 font-semibold">{t("dashboard.hr.total_absent")}</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-200">{data?.total_absent_count ?? 0}</span>
+                <TooltipRow color="text-red-500" label={t("dashboard.hr.unexcused")} value={data.unexcused_count ?? 0} />
+                <TooltipRow color="text-orange-500" label={t("dashboard.hr.consecutive_days")} value={data.consecutive_count ?? 0} />
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1.5">
+                    <TooltipRow color="text-slate-500" label={t("dashboard.hr.total_absent")} value={data.total_absent_count ?? 0} />
                 </div>
             </div>
         </div>
+    );
+}
+
+function TooltipRow({ label, value, color }: { color: string; label: string; value: number }) {
+    return (
+        <div className="flex justify-between text-[11px]">
+            <span className={cn(color, "font-semibold")}>{label}</span>
+            <span className="font-bold text-slate-700 dark:text-slate-200">{value}</span>
+        </div>
+    );
+}
+
+interface TotalLabelProps {
+    chartData: (ChartDataEntry & { name: string; remaining_unexcused: number; unexcused_count: number })[];
+    height?: number;
+    index?: number;
+    width?: number;
+    x?: number;
+    y?: number;
+}
+
+function TotalLabel({ x = 0, y = 0, width = 0, height = 0, index = 0, chartData }: TotalLabelProps) {
+    const row = chartData[index];
+    const total = row.unexcused_count;
+    if (!total || total === 0) return null;
+    return (
+        <text
+            dominantBaseline="middle"
+            fill="#64748b"
+            fontSize={9}
+            fontWeight={700}
+            x={x + width + 4}
+            y={y + height / 2}
+        >
+            {total}
+        </text>
     );
 }
 
@@ -104,6 +134,8 @@ export default function UnexcusedAbsencesChart() {
 
     const hasData = chartData.length > 0 && chartData.some((d) => d.unexcused_count > 0);
 
+    const chartHeight = Math.max(320, chartData.length * 40 + 80);
+
     const presets: { key: RangePreset; label: string }[] = [
         { key: "7d", label: t("dashboard.hr.last_7_days") },
         { key: "30d", label: t("dashboard.hr.last_30_days_range") },
@@ -114,142 +146,173 @@ export default function UnexcusedAbsencesChart() {
         { key: "employee", label: t("dashboard.hr.group_by_employee"), icon: Users },
     ];
 
-    // Dynamic chart height based on number of entries for horizontal layout
-    const chartHeight = Math.max(320, chartData.length * 40 + 80);
-
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="bg-red-50 dark:bg-red-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-red-600 dark:text-red-400 shadow-inner border border-red-100 dark:border-red-800">
-                        <ShieldAlert size={22} />
-                    </div>
-                    <div>
-                        <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
-                            {t("dashboard.hr.unexcused_absences")}
-                        </h2>
-                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
-                            {t("dashboard.hr.unexcused_absences_subtitle")}
-                        </p>
-                    </div>
+            <ChartHeader
+                groupBy={groupBy}
+                groupByOptions={groupByOptions}
+                preset={preset}
+                presets={presets}
+                setGroupBy={setGroupBy}
+                setPreset={setPreset}
+            />
+
+            {isLoading ? (
+                <ChartLoading />
+            ) : !hasData ? (
+                <ChartEmpty />
+            ) : (
+                <ChartMain chartData={chartData} chartHeight={chartHeight} />
+            )}
+        </div>
+    );
+}
+
+function ChartHeader({
+    presets,
+    preset,
+    setPreset,
+    groupByOptions,
+    groupBy,
+    setGroupBy,
+}: {
+    groupBy: GroupBy;
+    groupByOptions: { icon: typeof Building2; key: GroupBy; label: string }[];
+    preset: RangePreset;
+    presets: { key: RangePreset; label: string }[];
+    setGroupBy: (g: GroupBy) => void;
+    setPreset: (p: RangePreset) => void;
+}) {
+    const { t } = useTranslation();
+    return (
+        <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+                <div className="bg-red-50 dark:bg-red-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-red-600 dark:text-red-400 shadow-inner border border-red-100 dark:border-red-800">
+                    <ShieldAlert size={22} />
                 </div>
-
-                <div className="flex items-center gap-3">
-                    {/* Group-by toggle */}
-                    <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
-                        {groupByOptions.map((g) => {
-                            const Icon = g.icon;
-                            return (
-                                <button
-                                    className={cn(
-                                        "px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5",
-                                        groupBy === g.key
-                                            ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                                    )}
-                                    key={g.key}
-                                    onClick={() => { setGroupBy(g.key); }}
-                                >
-                                    <Icon size={12} />
-                                    {g.label}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {/* Time-range toggle */}
-                    <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
-                        {presets.map((p) => (
-                            <button
-                                className={cn(
-                                    "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
-                                    preset === p.key
-                                        ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                                )}
-                                key={p.key}
-                                onClick={() => { setPreset(p.key); }}
-                            >
-                                {p.label}
-                            </button>
-                        ))}
-                    </div>
+                <div>
+                    <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                        {t("dashboard.hr.unexcused_absences")}
+                    </h2>
+                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                        {t("dashboard.hr.unexcused_absences_subtitle")}
+                    </p>
                 </div>
             </div>
 
+            <div className="flex items-center gap-3">
+                <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
+                    {groupByOptions.map((g) => {
+                        const Icon = g.icon;
+                        return (
+                            <button
+                                className={cn(
+                                    "px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5",
+                                    groupBy === g.key
+                                        ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                )}
+                                key={g.key}
+                                onClick={() => { setGroupBy(g.key); }}
+                            >
+                                <Icon size={12} />
+                                {g.label}
+                            </button>
+                        );
+                    })}
+                </div>
 
-            {isLoading ? (
-                <div className="h-[320px] flex items-center justify-center">
-                    <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
+                <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-[14px] border border-slate-200 dark:border-slate-700/50 shadow-inner">
+                    {presets.map((p) => (
+                        <button
+                            className={cn(
+                                "px-5 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest transition-all",
+                                preset === p.key
+                                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                            )}
+                            key={p.key}
+                            onClick={() => { setPreset(p.key); }}
+                        >
+                            {p.label}
+                        </button>
+                    ))}
                 </div>
-            ) : !hasData ? (
-                <div className="h-[320px] flex flex-col items-center justify-center">
-                    <ShieldAlert className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
-                    <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
-                        {t("common.no_data")}
-                    </p>
-                </div>
-            ) : (
-                <ResponsiveContainer height={chartHeight} width="100%">
-                    <BarChart
-                        data={chartData}
-                        layout="vertical"
-                        margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-                    >
-                        <CartesianGrid
-                            className="text-slate-100 dark:text-slate-800"
-                            horizontal={false}
-                            stroke="currentColor"
-                            strokeDasharray="3 3"
-                        />
-                        <XAxis
-                            allowDecimals={false}
-                            axisLine={false}
-                            className="text-slate-400 dark:text-slate-500"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            tickLine={false}
-                            type="number"
-                        />
-                        <YAxis
-                            axisLine={false}
-                            className="text-slate-400 dark:text-slate-500"
-                            dataKey="name"
-                            tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
-                            tickLine={false}
-                            type="category"
-                            width={120}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-                        <Bar
-                            dataKey="consecutive_count"
- 
-                            fill={COLORS.consecutive}
-                            label={false}
-                            name={t("dashboard.hr.consecutive_days")}
-                            radius={[0, 0, 0, 0]}
-                            stackId="absences"
-                        />
-                        <Bar
-                            dataKey="remaining_unexcused"
-                            fill={COLORS.unexcused}
-                            label={(props: unknown) => {
-                                const { x, y, width, height, index } = props as { x: number; y: number; width: number; height: number; index: number };
-                                const row = chartData[index];
-                                const total = row.unexcused_count;
-                                if (!total || total === 0) return null;
-                                return (
-                                    <text dominantBaseline="middle" fill="#64748b" fontSize={9} fontWeight={700} x={x + width + 4} y={y + height / 2}>
-                                        {total}
-                                    </text>
-                                );
-                            }}
-                            name={t("dashboard.hr.unexcused")}
-                            radius={[0, 4, 4, 0]}
-                            stackId="absences"
-                        />
-                    </BarChart>
-                </ResponsiveContainer>
-            )}
+            </div>
         </div>
+    );
+}
+
+function ChartLoading() {
+    return (
+        <div className="h-[320px] flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin" />
+        </div>
+    );
+}
+
+function ChartEmpty() {
+    const { t } = useTranslation();
+    return (
+        <div className="h-[320px] flex flex-col items-center justify-center">
+            <ShieldAlert className="text-slate-200 dark:text-slate-700 mb-4" size={48} />
+            <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+                {t("common.no_data")}
+            </p>
+        </div>
+    );
+}
+
+function ChartMain({ chartData, chartHeight }: { chartData: (ChartDataEntry & { name: string; remaining_unexcused: number; unexcused_count: number })[]; chartHeight: number }) {
+    const { t } = useTranslation();
+    return (
+        <ResponsiveContainer height={chartHeight} width="100%">
+            <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+            >
+                <CartesianGrid
+                    className="text-slate-100 dark:text-slate-800"
+                    horizontal={false}
+                    stroke="currentColor"
+                    strokeDasharray="3 3"
+                />
+                <XAxis
+                    allowDecimals={false}
+                    axisLine={false}
+                    className="text-slate-400 dark:text-slate-500"
+                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                    tickLine={false}
+                    type="number"
+                />
+                <YAxis
+                    axisLine={false}
+                    className="text-slate-400 dark:text-slate-500"
+                    dataKey="name"
+                    tick={{ fontSize: 9, fontWeight: 700, fill: "currentColor" }}
+                    tickLine={false}
+                    type="category"
+                    width={120}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+                <Bar
+                    dataKey="consecutive_count"
+                    fill={COLORS.consecutive}
+                    label={false}
+                    name={t("dashboard.hr.consecutive_days")}
+                    radius={[0, 0, 0, 0]}
+                    stackId="absences"
+                />
+                <Bar
+                    dataKey="remaining_unexcused"
+                    fill={COLORS.unexcused}
+                    label={<TotalLabel chartData={chartData} />}
+                    name={t("dashboard.hr.unexcused")}
+                    radius={[0, 4, 4, 0]}
+                    stackId="absences"
+                />
+            </BarChart>
+        </ResponsiveContainer>
     );
 }

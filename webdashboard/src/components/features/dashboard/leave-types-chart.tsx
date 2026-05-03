@@ -77,6 +77,7 @@ export default function LeaveTypesChart() {
                                 stroke="none"
                             >
                                 {chartData.map((entry, index) => (
+                                    // eslint-disable-next-line @typescript-eslint/no-deprecated
                                     <Cell fill={entry.color} key={`cell-${index}`} />
                                 ))}
                             </Pie>
