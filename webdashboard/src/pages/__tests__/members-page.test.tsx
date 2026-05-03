@@ -65,7 +65,7 @@ describe("MembersPage", () => {
     ]);
     vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue([
       { id: "role-owner", name: "Owner", is_system: true, color: "rose", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
-      { id: "role-admin", name: "Admin", is_system: true, color: "indigo", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
+      { id: "role-admin", name: "Admin", is_system: true, color: "primary", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" },
       { id: "role-member", name: "Member", is_system: true, color: "slate", scope_type: RoleScopeType.Global, created_at: "", updated_at: "" }
     ]);
   });

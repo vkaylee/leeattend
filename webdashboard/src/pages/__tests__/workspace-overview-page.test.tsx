@@ -69,7 +69,7 @@ describe("WorkspaceOverviewPage", () => {
     
     vi.mocked(useWorkspaceRoles).mockReturnValue({ 
       roles: [
-        { id: 'role-1', name: 'Admin', is_system: true, color: 'indigo' },
+        { id: 'role-1', name: 'Admin', is_system: true, color: 'primary' },
         { id: 'role-2', name: 'Member', is_system: false, color: 'slate' },
       ] as unknown as Record<string, unknown>[],
       isLoading: false,

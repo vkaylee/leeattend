@@ -45,7 +45,7 @@ describe("WorkspaceRolesPage", () => {
 
     const mockRoles = [
         { id: "role-1", name: "Owner", is_system: true, description: "Workspace Owner", color: "rose" },
-        { id: "role-2", name: "Manager", is_system: false, description: "Custom Manager", color: "indigo" },
+        { id: "role-2", name: "Manager", is_system: false, description: "Custom Manager", color: "primary" },
     ];
 
     beforeEach(() => {

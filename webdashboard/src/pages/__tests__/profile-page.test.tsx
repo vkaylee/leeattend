@@ -43,7 +43,7 @@ vi.mock("react-i18next", () => ({
         "profile.security.messages.confirm_mismatch": "Passwords mismatch",
         "profile.security.messages.password_changed": "Password changed",
         "common.colors.emerald": "Emerald",
-        "common.colors.indigo": "Indigo",
+        "common.colors.primary": "Primary",
         "common.colors.blue": "Blue",
         "common.colors.amber": "Amber",
         "common.colors.rose": "Rose",

@@ -139,7 +139,7 @@ describe("useWorkspaceMembers", () => {
 describe("useWorkspaceRoles", () => {
   it("fetches roles successfully", async () => {
     const mockRoles = [
-      { id: "role-1", name: "Admin", is_system: true, color: "indigo", created_at: "", updated_at: "" }
+      { id: "role-1", name: "Admin", is_system: true, color: "primary", created_at: "", updated_at: "" }
     ];
  
     vi.mocked(api.fetchWorkspaceRoles).mockResolvedValue(mockRoles as unknown as never);
@@ -200,7 +200,7 @@ describe("useWorkspaceRoles", () => {
 describe("useWorkspacePermissionsMatrix", () => {
   it("fetches matrix successfully", async () => {
     const mockRoles = [
-      { id: "role-1", name: "Admin", is_system: true, color: "indigo" },
+      { id: "role-1", name: "Admin", is_system: true, color: "primary" },
       { id: "role-2", name: "Member", is_system: false, color: "slate" }
     ];
  
@@ -228,7 +228,7 @@ describe("useWorkspacePermissionsMatrix", () => {
 
   it("includes role IDs in the query key to trigger refetch when roles change", async () => {
     const mockRoles = [
-      { id: "role-1", name: "Admin", is_system: true, color: "indigo" },
+      { id: "role-1", name: "Admin", is_system: true, color: "primary" },
       { id: "role-new", name: "New", is_system: false, color: "slate" }
     ];
  
