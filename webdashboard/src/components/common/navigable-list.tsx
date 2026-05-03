@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { useKeyboardListNav } from "@/hooks/use-keyboard-nav";
+import { useKeyboardListNav } from "@/hooks/use-keyboard-list-nav";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { cn } from "@/lib/utils";
 
@@ -29,10 +29,10 @@ interface NavigableListProps<T> {
   itemKey: (item: T) => string;
   items: T[];
   maxHeightClass?: string;
-  onKeyDownRef?: React.MutableRefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null | undefined>;
+  onKeyDownRef?: React.RefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null | undefined>;
   onSearchChange?: (val: string) => void;
   onSelect: (item: T) => void;
-  resetDeps?: any[];
+  resetDeps?: unknown[];
   rowIdPrefix?: string;
   searchInputRef?: React.RefObject<HTMLInputElement>;
   searchPlaceholder?: string;
@@ -89,26 +89,7 @@ function InfiniteScrollSentinel({
   );
 }
 
-function NavigableListTableContent<T>({
-  isLoading,
-  items,
-  skeletonRows,
-  colSpan,
-  visibleColumns,
-  showChevron,
-  showActiveBar,
-  selectedKey,
-  onSelect,
-  rowIdPrefix,
-  testIdPrefix,
-  itemKey,
-  listNav,
-  emptyMessage,
-  t,
-  fetchNextPage,
-  isFetchingNextPage,
-  loadMoreRef,
-}: {
+interface TableContentProps<T> {
   colSpan: number;
   emptyMessage?: string;
   fetchNextPage?: () => void;
@@ -128,9 +109,87 @@ function NavigableListTableContent<T>({
   showChevron: boolean;
   skeletonRows: number;
   t: TFunction;
-  testIdPrefix?: string;
+  visibleColumns: NavigableListColumn<T>[];
+}
+
+function getRowClass(isFocused: boolean, isSelected: boolean): string {
+  if (isFocused) return "bg-slate-50/80 dark:bg-slate-800/50 border-l-primary-500 shadow-inner";
+  if (isSelected) return "bg-primary-50/30 dark:bg-primary-900/10 border-l-primary-400/50";
+  return "hover:bg-slate-50/50 dark:hover:bg-slate-800/30";
+}
+
+function getChevronClass(isFocused: boolean): string {
+  return isFocused ? "text-primary-500 translate-x-1" : "text-slate-300 dark:text-slate-700 opacity-0 group-hover:opacity-100";
+}
+
+function renderTableRow<T>({
+  item,
+  index,
+  itemKey,
+  listNav,
+  onSelect,
+  rowIdPrefix,
+  selectedKey,
+  showActiveBar,
+  showChevron,
+  visibleColumns,
+}: {
+  index: number;
+  item: T;
+  itemKey: (item: T) => string;
+  listNav: { focusedIndex: number; setFocusedIndex: (index: number) => void };
+  onSelect: (item: T) => void;
+  rowIdPrefix: string;
+  selectedKey?: string | null;
+  showActiveBar: boolean;
+  showChevron: boolean;
   visibleColumns: NavigableListColumn<T>[];
 }) {
+  const key = itemKey(item);
+  const isFocused = listNav.focusedIndex === index;
+  const isSelected = selectedKey === key;
+  const rowClass = cn("group cursor-pointer transition-all relative outline-none border-l-4 border-l-transparent", getRowClass(isFocused, isSelected));
+  return (
+    <tr
+      className={rowClass}
+      id={rowIdPrefix ? `${rowIdPrefix}-${key}` : undefined}
+      key={key}
+      onClick={() => { listNav.setFocusedIndex(index); onSelect(item); }}
+      onMouseEnter={() => { listNav.setFocusedIndex(index); }}
+      tabIndex={-1}
+    >
+      {visibleColumns.map((col) => (
+        <td className="px-8 py-5" key={col.key}>{col.render(item)}</td>
+      ))}
+      {showChevron ? (
+        <td className="px-4 py-5 w-10 text-right">
+          <ChevronRight className={cn("w-4 h-4 transition-all", getChevronClass(isFocused))} />
+        </td>
+      ) : null}
+      {showActiveBar && isSelected ? <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500" /> : null}
+    </tr>
+  );
+}
+
+function NavigableListTableContent<T>({
+  isLoading,
+  items,
+  skeletonRows,
+  colSpan,
+  visibleColumns,
+  showChevron,
+  showActiveBar,
+  selectedKey,
+  onSelect,
+  rowIdPrefix,
+  itemKey,
+  listNav,
+  emptyMessage,
+  t,
+  fetchNextPage,
+  isFetchingNextPage,
+  loadMoreRef,
+}: TableContentProps<T>) {
   if (isLoading && items.length === 0) {
     return <NavigableListSkeleton colSpan={colSpan} skeletonRows={skeletonRows} />;
   }
@@ -139,7 +198,7 @@ function NavigableListTableContent<T>({
     return (
       <tr>
         <td className="px-8 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]" colSpan={colSpan}>
-          {emptyMessage || t("common.no_data")}
+          {emptyMessage ?? t("common.no_data")}
         </td>
       </tr>
     );
@@ -147,56 +206,11 @@ function NavigableListTableContent<T>({
 
   return (
     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-      {items.map((item, index) => {
-        const key = itemKey(item);
-        const isFocused = listNav.focusedIndex === index;
-        const isSelected = selectedKey === key;
-
-        return (
-          <tr
-            className={cn(
-              "group cursor-pointer transition-all relative outline-none border-l-4 border-l-transparent",
-              isFocused && "bg-slate-50/80 dark:bg-slate-800/50 border-l-primary-500 shadow-inner",
-              isSelected && !isFocused && "bg-primary-50/30 dark:bg-primary-900/10 border-l-primary-400/50",
-              !isSelected && !isFocused && "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
-            )}
-            id={rowIdPrefix ? `${rowIdPrefix}-${key}` : undefined}
-            key={key}
-            onClick={() => {
-              listNav.setFocusedIndex(index);
-              onSelect(item);
-            }}
-            onMouseEnter={() => { listNav.setFocusedIndex(index); }}
-            tabIndex={-1}
-          >
-            {visibleColumns.map((col) => (
-              <td className="px-8 py-5" key={col.key}>
-                {col.render(item)}
-              </td>
-            ))}
-
-            {showChevron ? (
-              <td className="px-4 py-5 w-10 text-right">
-                <ChevronRight
-                  className={cn(
-                    "w-4 h-4 transition-all",
-                    isFocused ? "text-primary-500 translate-x-1" : "text-slate-300 dark:text-slate-700 opacity-0 group-hover:opacity-100"
-                  )}
-                />
-              </td>
-            ) : null}
-
-            {showActiveBar && isSelected ? (
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500" />
-            ) : null}
-          </tr>
-        );
-      })}
-
+      {items.map((item, index) => renderTableRow({ item, index, itemKey, listNav, onSelect, rowIdPrefix, selectedKey, showActiveBar, showChevron, visibleColumns }))}
       {fetchNextPage ? (
         <InfiniteScrollSentinel
           colSpan={colSpan}
-          isFetchingNextPage={!!isFetchingNextPage}
+          isFetchingNextPage={isFetchingNextPage ?? false}
           sentinelRef={loadMoreRef}
         />
       ) : null}
@@ -224,7 +238,6 @@ function NavigableListTable<T>({
   skeletonRows,
   stickyOffset,
   t,
-  testIdPrefix,
   visibleColumns,
 }: {
   colSpan: number;
@@ -250,7 +263,6 @@ function NavigableListTable<T>({
   skeletonRows: number;
   stickyOffset: number;
   t: TFunction;
-  testIdPrefix?: string;
   visibleColumns: NavigableListColumn<T>[];
 }) {
   return (
@@ -296,7 +308,6 @@ function NavigableListTable<T>({
             showChevron={showChevron}
             skeletonRows={skeletonRows}
             t={t}
-            testIdPrefix={testIdPrefix}
             visibleColumns={visibleColumns}
           />
         </table>
@@ -355,9 +366,9 @@ function useNavigableListInitialization<T>({
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   items: T[];
-  onKeyDownRef?: React.MutableRefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null | undefined>;
+  onKeyDownRef?: React.RefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null | undefined>;
   onSelect: (item: T) => void;
-  resetDeps: any[];
+  resetDeps: unknown[];
   rowIdPrefix: string;
 }) {
   const listNav = useKeyboardListNav({ items, onSelect, rowIdPrefix, resetDeps });
@@ -369,8 +380,8 @@ function useNavigableListInitialization<T>({
   }, [onKeyDownRef, listNav.onKeyDown]);
 
   const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
-    hasNextPage: !!hasNextPage,
-    isFetchingNextPage: !!isFetchingNextPage,
+    hasNextPage: hasNextPage ?? false,
+    isFetchingNextPage: isFetchingNextPage ?? false,
     fetchNextPage: fetchNextPage ?? (() => { /* empty */ }),
   });
 
@@ -458,7 +469,14 @@ function NavigableListHeaderWrapper({
 }: {
   headerSlot?: React.ReactNode;
   isFullPage: boolean;
-  searchProps: any;
+  searchProps: {
+    listNav: { onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void };
+    onSearchChange?: (val: string) => void;
+    searchInputRef?: React.RefObject<HTMLInputElement>;
+    searchPlaceholder?: string;
+    searchTestId?: string;
+    searchValue?: string;
+  };
   smartHeaderEnabled: boolean;
   smartHeaderRef: React.Ref<HTMLDivElement>;
   smartHeaderVisible: boolean;

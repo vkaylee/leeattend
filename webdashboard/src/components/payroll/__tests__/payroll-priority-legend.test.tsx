@@ -17,7 +17,7 @@ describe('PayrollPriorityLegend', () => {
     expect(screen.getByText('payroll.traceability.hierarchy_title')).toBeInTheDocument();
   });
 
-  it('highlights the active source', async () => {
+  it('highlights the active source', () => {
     render(<PayrollPriorityLegend activeSource="department" />);
 
     // Expand the legend

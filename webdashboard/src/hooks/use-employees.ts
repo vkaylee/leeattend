@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchEmployees } from "@/lib/api";
+import { WorkingCondition } from "@/lib/api/types";
 
 /**
  * Maximum number of employees fetched in a single "all employees" request.
@@ -53,7 +54,7 @@ export function useWorkingConditions(employeeId: string) {
     queryFn: async () => {
       const response = await fetch(`/api/employees/${employeeId}/working-conditions`);
       if (!response.ok) throw new Error("Failed to fetch");
-      return response.json();
+      return response.json() as Promise<WorkingCondition[]>;
     },
     enabled: !!employeeId,
   });

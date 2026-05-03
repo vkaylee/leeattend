@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
-const CHECK_ON_VISIBLE = true;
 
 declare const __BUILD_HASH__: string;
 

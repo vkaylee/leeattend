@@ -46,7 +46,7 @@ describe("BonusPolicyManager", () => {
     vi.mocked(api.fetchIncentivePolicies).mockResolvedValue([]);
   });
 
-  it("renders correctly and opens creation form", async () => {
+  it("renders correctly and opens creation form", () => {
     renderWithProviders(<BonusPolicyManager wsId={mockWsId} />);
     
     expect(screen.getByText(/payroll.incentives.title/i)).toBeDefined();
@@ -58,7 +58,7 @@ describe("BonusPolicyManager", () => {
     expect(screen.getByText(/payroll.incentives.tiers_config/i)).toBeDefined();
   });
 
-  it("allows adding and removing tiers", async () => {
+  it("allows adding and removing tiers", () => {
     renderWithProviders(<BonusPolicyManager wsId={mockWsId} />);
     fireEvent.click(screen.getByText(/payroll.incentives.add_btn/i));
     

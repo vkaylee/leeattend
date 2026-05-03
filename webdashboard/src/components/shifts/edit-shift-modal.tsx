@@ -351,7 +351,7 @@ export function EditShiftModal({
             setNewShiftName={setNewShiftName}
             setNewShiftStart={setNewShiftStart}
             setNewShiftSymbol={setNewShiftSymbol}
-            t={t as any}
+            t={t}
           />
 
           <BreakConfigPanel
@@ -367,7 +367,7 @@ export function EditShiftModal({
             setNewBreakStart={setNewBreakStart}
             setNewShiftBreak={setNewShiftBreak}
             setNewShiftGrace={setNewShiftGrace}
-            t={t as any}
+            t={t}
           />
 
           <CorrectionConfigPanel
@@ -375,7 +375,7 @@ export function EditShiftModal({
             isCorrection={isCorrection}
             setCorrectionEffectiveDate={setCorrectionEffectiveDate}
             setIsCorrection={setIsCorrection}
-            t={t as any}
+            t={t}
           />
         </div>
 

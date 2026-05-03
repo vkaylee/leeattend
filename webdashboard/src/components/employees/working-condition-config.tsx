@@ -41,8 +41,18 @@ const getIcon = (type: string) => {
   }
 };
 
+interface CreateWorkingConditionData {
+  end_date: string | null;
+  is_paid: boolean;
+  start_date: string;
+  type: EmployeeWorkingConditionType;
+}
+
 interface WorkingConditionFormProps {
-  createMutation: any;
+  createMutation: {
+    isPending: boolean;
+    mutate: (data: CreateWorkingConditionData) => void;
+  };
   endDate: string;
   isPaid: boolean;
   isSubmitting: boolean;
@@ -149,21 +159,21 @@ function useWorkingConditionActions({
       const response = await fetch(`/api/employees/${employeeId}/working-conditions/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Failed to delete");
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: CreateWorkingConditionData) => {
       const response = await fetch(`/api/employees/${employeeId}/working-conditions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error("Failed to create");
-      return response.json();
+      return response.json() as Promise<WorkingCondition>;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] });
+      void queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] });
       setIsAdding(false);
     },
   });
@@ -223,7 +233,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
             <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("employees.policies.no_conditions")}</h4>
           </div>
         ) : (
-          (conditions as WorkingCondition[]).map((cond) => (
+          conditions.map((cond) => (
             <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 hover:shadow-premium-xl transition-all group relative overflow-hidden" key={cond.id}>
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex gap-6">

@@ -52,7 +52,7 @@ function PayrollSummaryTableRow({
           data-testid={`select-employee-${emp.id}`} 
           onClick={() => { onToggleSelect(emp.id); }}
         >
-          {!!isSelected && <Check size={14} strokeWidth={4} />}
+          {isSelected && <Check size={14} strokeWidth={4} />}
         </button>
       </td>
       <td className="px-4 py-6">
@@ -126,10 +126,11 @@ export default function PayrollSummaryTable({
     );
   }, [employees, searchTerm]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
+  const [prevSearchTerm, setPrevSearchTerm] = useState(searchTerm);
+  if (searchTerm !== prevSearchTerm) {
+    setPrevSearchTerm(searchTerm);
     setCurrentPage(1);
-  }, [searchTerm]);
+  }
 
   const totalPages = Math.ceil(filteredEmployees.length / pageSize);
   const paginatedEmployees = filteredEmployees.slice(
@@ -200,7 +201,7 @@ export default function PayrollSummaryTable({
             <tr>
               <th className="px-10 py-5 w-16">
                 <button className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isPageSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary-300")} onClick={handleSelectPage}>
-                  {!!isPageSelected && <Check size={14} strokeWidth={4} />}
+                  {isPageSelected && <Check size={14} strokeWidth={4} />}
                 </button>
               </th>
               <th className="px-4 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("employees.table.name")}</th>

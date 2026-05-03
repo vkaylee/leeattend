@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LayoutGrid, UserCircle, CalendarDays } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 import type { Department, User, WorkingPattern } from "@/lib/api";
 
@@ -30,15 +30,12 @@ export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, users,
   const [selectedManagerId, setSelectedManagerId] = useState<string>("");
   const [selectedPatternId, setSelectedPatternId] = useState<string>("");
 
-  useEffect(() => {
-    if (editingDept) {
-      setSelectedManagerId(editingDept.manager_id ?? "");
-      setSelectedPatternId(editingDept.default_working_pattern_id ?? "");
-    } else {
-      setSelectedManagerId("");
-      setSelectedPatternId("");
-    }
-  }, [editingDept]);
+  const [prevDeptId, setPrevDeptId] = useState<string | null>(editingDept?.id ?? null);
+  if (editingDept?.id !== prevDeptId) {
+    setSelectedManagerId(editingDept?.manager_id ?? "");
+    setSelectedPatternId(editingDept?.default_working_pattern_id ?? "");
+    setPrevDeptId(editingDept?.id ?? null);
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => createDepartment(wsId, data),
@@ -50,7 +47,10 @@ export function DepartmentFormModal({ editingDept, isOpen, onClose, wsId, users,
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => updateDepartment(wsId, editingDept!.id, data),
+    mutationFn: (data: Record<string, unknown>) => {
+      if (!editingDept) throw new Error("Editing department is required for update");
+      return updateDepartment(wsId, editingDept.id, data);
+    },
     onSuccess: () => { 
       void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); 
       onClose(); 

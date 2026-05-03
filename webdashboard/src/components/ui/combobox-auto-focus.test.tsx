@@ -13,13 +13,10 @@ vi.mock("@radix-ui/react-popover", () => ({
   Root: ({ children, open, onOpenChange }: { children: React.ReactNode, open?: boolean, onOpenChange?: (open: boolean) => void }) => (
  
     <>
-// eslint-disable-next-line jsx-a11y/no-static-element-interactions
-// eslint-disable-next-line jsx-a11y/click-events-have-key-events
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div data-open={open} data-testid="popover-root" onClick={() => onOpenChange?.(!open)}>
         {children}
       </div>
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
     </>
  
   ),

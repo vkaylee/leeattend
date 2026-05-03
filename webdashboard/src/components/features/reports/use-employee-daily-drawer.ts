@@ -71,13 +71,13 @@ type ResolveModalDataType = {
 } | null;
 
 interface DrawerHandlersProps {
-    approveOtMutation: { mutate: UseMutateFunction<any, Error, { row: DailyAttendanceReport; action: "approved" | "rejected" }> };
+    approveOtMutation: { mutate: UseMutateFunction<void, Error, { row: DailyAttendanceReport; action: "approved" | "rejected" }> };
     confirmDialog: ConfirmDialogType;
     confirmModalData: ConfirmModalDataType;
-    confirmMutation: { mutate: UseMutateFunction<any, Error, { row: DailyAttendanceReport; reason?: string; existingRequestId?: string }> };
-    reprocessMutation: { mutate: UseMutateFunction<any, Error, { empId: string; date: string }> };
+    confirmMutation: { mutate: UseMutateFunction<void, Error, { row: DailyAttendanceReport; reason?: string; existingRequestId?: string }> };
+    reprocessMutation: { mutate: UseMutateFunction<void, Error, { empId: string; date: string }> };
     resolveModalData: ResolveModalDataType;
-    resolveUnscheduledMutation: { mutate: UseMutateFunction<any, Error, { row: DailyAttendanceReport; shiftId: string }> };
+    resolveUnscheduledMutation: { mutate: UseMutateFunction<void, Error, { row: DailyAttendanceReport; shiftId: string }> };
     setConfirmDialog: (data: ConfirmDialogType) => void;
     setConfirmingRow: (data: string | null) => void;
     setConfirmModalData: (data: ConfirmModalDataType) => void;

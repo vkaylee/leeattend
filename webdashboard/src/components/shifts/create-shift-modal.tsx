@@ -237,7 +237,7 @@ export function CreateShiftModal({
             setNewShiftName={setNewShiftName}
             setNewShiftStart={setNewShiftStart}
             setNewShiftSymbol={setNewShiftSymbol}
-            t={t as any}
+            t={t}
           />
 
           <BreakConfigPanel
@@ -251,7 +251,7 @@ export function CreateShiftModal({
             setNewBreakEnd={setNewBreakEnd}
             setNewBreakStart={setNewBreakStart}
             setNewShiftBreak={setNewShiftBreak}
-            t={t as any}
+            t={t}
           />
         </div>
 

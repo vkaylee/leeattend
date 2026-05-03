@@ -28,7 +28,7 @@ export const getReportColumns = ({
 
   return [
     {
-      cell: (row) => (
+      render: (row) => (
         <div>
           <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{row.employee_name}</div>
           <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">{row.employee_id_number ?? "—"}</div>
@@ -41,7 +41,7 @@ export const getReportColumns = ({
       onHeaderClick: () => { handleSort("name"); },
     },
     {
-      cell: (row) => (
+      render: (row) => (
         <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter cursor-default" title={`${row.total_std_units} units`}>
           {formatUnitsToHours(row.total_std_units, workUnitMinutes)}h
         </div>
@@ -53,7 +53,7 @@ export const getReportColumns = ({
       onHeaderClick: () => { handleSort("work_hours"); },
     },
     {
-      cell: (row) => row.total_ot_units > 0 ? (
+      render: (row) => row.total_ot_units > 0 ? (
         <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter cursor-default" title={`${row.total_ot_units} OT units`}>
           {formatUnitsToHours(row.total_ot_units, workUnitMinutes)}h
         </div>
@@ -67,7 +67,7 @@ export const getReportColumns = ({
       onHeaderClick: () => { handleSort("ot_hours"); },
     },
     {
-      cell: (row) => (
+      render: (row) => (
         <div className="font-mono font-bold text-slate-700 dark:text-slate-200 text-base tracking-tighter cursor-default" title={`${row.total_std_units + row.total_ot_units} total units`}>
           {formatUnitsToHours(row.total_std_units + row.total_ot_units, workUnitMinutes)}h
         </div>
@@ -79,7 +79,7 @@ export const getReportColumns = ({
       onHeaderClick: () => { handleSort("total_hours"); },
     },
     {
-      cell: (row) => <span className="font-mono font-bold text-orange-600 dark:text-orange-300 text-base tracking-tighter">{row.total_leave_days} {t("common.days_short")}</span>,
+      render: (row) => <span className="font-mono font-bold text-orange-600 dark:text-orange-300 text-base tracking-tighter">{row.total_leave_days} {t("common.days_short")}</span>,
       cellClassName: "px-10 py-6 text-right",
       header: <div className="flex items-center justify-end">{t("reports.table.leave_days")}{getSortIcon("leave_days")}</div>,
       headerClassName: "px-10 text-right",
@@ -87,7 +87,7 @@ export const getReportColumns = ({
       onHeaderClick: () => { handleSort("leave_days"); },
     },
     {
-      cell: () => <span className="text-slate-200 dark:text-slate-700 font-bold tracking-widest">—</span>,
+      render: () => <span className="text-slate-200 dark:text-slate-700 font-bold tracking-widest">—</span>,
       cellClassName: "px-10 py-6 text-right",
       header: t("common.notes"),
       headerClassName: "px-10 text-right",

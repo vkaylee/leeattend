@@ -43,6 +43,12 @@ function useSheetState(isOpen: boolean, onClose: () => void) {
   return isVisible;
 }
 
+function getPanelTransform(side: "left" | "right", isOpen: boolean): string {
+  const roundedClass = side === "right" ? "rounded-l-[3rem]" : "rounded-r-[3rem]";
+  const translateClass = isOpen ? "translate-x-0" : side === "right" ? "translate-x-full" : "-translate-x-full";
+  return `${translateClass} ${roundedClass}`;
+}
+
 function SheetHeader({
   title,
   subtitle,
@@ -61,23 +67,23 @@ function SheetHeader({
           <Menu size={24} />
         </div>
         <div>
-          {!!title && (
+          {title ? (
             <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
               {title}
             </h2>
-          )}
-          {!!subtitle && (
+          ) : null}
+          {subtitle ? (
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
               {subtitle}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
-      {!!headerExtra && (
+      {headerExtra ? (
         <div className="flex items-center gap-2">
           {headerExtra}
         </div>
-      )}
+      ) : null}
       <button
         className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90"
         onClick={onClose}
@@ -125,13 +131,11 @@ export default function Sheet({
       )}>
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- Custom interactive element (click-away/backdrop/dropzone); keyboard interaction not applicable */}
         <div
-          className={cn(
-            "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
-            side === "right"
-              ? (isOpen ? "translate-x-0 rounded-l-[3rem]" : "translate-x-full rounded-l-[3rem]")
-              : (isOpen ? "translate-x-0 rounded-r-[3rem]" : "-translate-x-full rounded-r-[3rem]"),
-            className
-          )}
+            className={cn(
+              "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
+              getPanelTransform(side, isOpen),
+              className
+            )}
           data-testid="sheet-panel"
           onClick={(e) => { e.stopPropagation(); }}
         >

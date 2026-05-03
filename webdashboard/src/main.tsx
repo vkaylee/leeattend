@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom/client";
+import { createRoot } from "react-dom/client";
 
 import App from "./app";
 import { ToastProvider } from "./components/ui/toast";
@@ -13,22 +13,27 @@ import { trackWebVitals } from "./lib/web-vitals";
 initSentry();
 trackWebVitals();
 
-window.addEventListener("unhandledrejection", (event) => {
-  const reason = event.reason as Error | undefined;
+function isChunkLoadError(reason: Error | undefined): boolean {
   const url = (reason?.message ?? "") + " " + (reason?.stack ?? "");
-  if (url.includes("chunk") || url.includes(".js") || /loading.*chunk/i.test(reason?.message ?? "")) {
-    event.preventDefault();
-    const retryCount = Number(sessionStorage.getItem("chunkRetry") ?? "0");
-    if (retryCount < 3) {
-      sessionStorage.setItem("chunkRetry", String(retryCount + 1));
-      window.location.reload();
-    }
+  return url.includes("chunk") || url.includes(".js") || /loading.*chunk/i.test(reason?.message ?? "");
+}
+
+function handleChunkError(event: PromiseRejectionEvent): void {
+  const reason = event.reason as Error | undefined;
+  if (!isChunkLoadError(reason)) return;
+  event.preventDefault();
+  const retryCount = Number(sessionStorage.getItem("chunkRetry") ?? "0");
+  if (retryCount < 3) {
+    sessionStorage.setItem("chunkRetry", String(retryCount + 1));
+    window.location.reload();
   }
-});
+}
+
+window.addEventListener("unhandledrejection", handleChunkError);
 
 const rootElement = document.getElementById("root");
 if (rootElement) {
-  ReactDOM.createRoot(rootElement).render(
+  createRoot(rootElement).render(
     <React.StrictMode>
       <ToastProvider>
         <App />

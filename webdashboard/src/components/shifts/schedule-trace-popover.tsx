@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 import * as Popover from '@radix-ui/react-popover';
 import { Info, CheckCircle2, AlertCircle, Shield, ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
@@ -10,7 +12,7 @@ interface ScheduleTracePopoverProps {
   traces: ScheduleTrace[];
 }
 
-function AppliedRuleSection({ appliedRule, t }: { appliedRule: ScheduleTrace; t: any }) {
+function AppliedRuleSection({ appliedRule, t }: { appliedRule: ScheduleTrace; t: TFunction }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -54,7 +56,7 @@ function AppliedRuleSection({ appliedRule, t }: { appliedRule: ScheduleTrace; t:
   );
 }
 
-function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverridden, t }: { overriddenRules: ScheduleTrace[]; setShowOverridden: (v: boolean) => void; showOverridden: boolean; t: any }) {
+function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverridden, t }: { overriddenRules: ScheduleTrace[]; setShowOverridden: (v: boolean) => void; showOverridden: boolean; t: TFunction }) {
   if (overriddenRules.length === 0) return null;
 
   return (
@@ -135,7 +137,7 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
               </div>
             </div>
 
-            {!!appliedRule && <AppliedRuleSection appliedRule={appliedRule} t={t} />}
+            {appliedRule ? <AppliedRuleSection appliedRule={appliedRule} t={t} /> : null}
             <OverriddenRulesSection overriddenRules={overriddenRules} setShowOverridden={setShowOverridden} showOverridden={showOverridden} t={t} />
           </div>
           <Popover.Arrow className="fill-white" />

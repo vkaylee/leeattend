@@ -6,7 +6,7 @@ export function retryImport<T>(
   retries = MAX_RETRIES,
   delay = RETRY_DELAY_MS,
 ): Promise<T> {
-  return importer().catch((error) => {
+  return importer().catch((error: unknown) => {
     if (retries <= 0) throw error;
     return new Promise<T>((resolve) =>
       setTimeout(

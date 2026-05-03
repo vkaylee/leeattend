@@ -6,6 +6,17 @@ import { fetchMyPermissions, getCurrentWorkspaceId } from "@/lib/api";
 export const myPermissionsKey = (wsId: string) =>
     ["my-permissions", wsId] as const;
 
+function checkHasRole(roles: string[], role: string): boolean {
+  return roles.some((r) => r.toLowerCase() === role.toLowerCase());
+}
+
+function checkScopedPermission(permissionSet: Set<string>, allowedDepts: string[] | null | undefined, permission: string, targetDepartmentId?: string): boolean {
+  if (!permissionSet.has(permission)) return false;
+  if (allowedDepts === null || allowedDepts === undefined) return true;
+  if (targetDepartmentId && Array.isArray(allowedDepts)) return allowedDepts.includes(targetDepartmentId);
+  return false;
+}
+
 /**
  * Hook that fetches and caches the current user's effective permissions
  * for the active workspace.
@@ -21,11 +32,12 @@ export function useMyPermissions() {
         queryKey: myPermissionsKey(wsId),
         queryFn: fetchMyPermissions,
         enabled: !!wsId,
-        staleTime: 5 * 60 * 1000, // cache for 5 minutes — permissions don't change often
+        staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
     });
 
     const permissionSet = new Set(query.data?.permissions ?? []);
+    const roles = query.data?.roles ?? [];
 
     const hasPermission = useCallback(
         (permission: string): boolean => permissionSet.has(permission),
@@ -41,38 +53,21 @@ export function useMyPermissions() {
     );
 
     const hasRole = useCallback(
-        (role: string): boolean =>
-            (query.data?.roles ?? []).some(
-                (r: string) => r.toLowerCase() === role.toLowerCase(),
-            ),
+        (role: string): boolean => checkHasRole(roles, role),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [query.data?.roles],
     );
 
     const hasScopedPermission = useCallback(
-        (permission: string, targetDepartmentId?: string): boolean => {
-            if (!permissionSet.has(permission)) return false;
-
-            const allowedDepts = query.data?.managed_department_ids;
-
-            // null or undefined means global scope
-            if (allowedDepts === null || allowedDepts === undefined) {
-                return true;
-            }
-
-            // Must match one of the allowed departments
-            if (targetDepartmentId && Array.isArray(allowedDepts)) {
-                return allowedDepts.includes(targetDepartmentId);
-            }
-
-            return false;
-        },
+        (permission: string, targetDepartmentId?: string): boolean =>
+            checkScopedPermission(permissionSet, query.data?.managed_department_ids, permission, targetDepartmentId),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [query.data?.permissions, query.data?.managed_department_ids],
     );
 
     return {
         permissions: query.data?.permissions ?? [],
-        roles: query.data?.roles ?? [],
+        roles,
         managedDepartmentIds: query.data?.managed_department_ids ?? null,
         isLoading: query.isLoading,
         hasPermission,
@@ -81,3 +76,4 @@ export function useMyPermissions() {
         hasScopedPermission,
     };
 }
+
