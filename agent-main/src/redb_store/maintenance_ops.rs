@@ -429,7 +429,7 @@ mod tests {
         use crate::models::AttendanceData;
         let data = AttendanceData {
             user_id: user_id.into(),
-            timestamp: format!("2026-01-01 10:00:00"),
+            timestamp: "2026-01-01 10:00:00".to_string(),
             status: Some(1),
             punch: Some(1),
         };

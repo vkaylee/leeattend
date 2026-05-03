@@ -1,5 +1,5 @@
-import { format } from "date-fns";
-import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
+import type { TFunction } from "i18next";
+
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,13 +17,16 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { format } from "date-fns";
+import { vi, enUS, zhCN, type Locale } from "date-fns/locale";
+
 import { Combobox } from "@/components/ui/combobox";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { Employee, EmployeeSchedule } from "@/lib/api/types";
+import { Employee, EmployeeSchedule, EffectiveSchedule } from "@/lib/api/types";
 
 import { ScheduleTracePopover } from "./schedule-trace-popover";
 
-const dateLocales: Record<string, Locale> = {
+const dateLocales: Partial<Record<string, Locale>> = {
   vi: vi,
   en: enUS,
   zh: zhCN,
@@ -48,10 +51,19 @@ interface WeeklyRosterGridProps {
   weekDays: Date[];
 }
 
-function DayCardHeader({ day, currentLocale, isToday, isSelected, isHoliday, holidayName }: any) {
+interface DayCardHeaderProps {
+  currentLocale: Locale;
+  day: Date;
+  holidayName?: string | null;
+  isHoliday: boolean;
+  isSelected: boolean;
+  isToday: boolean;
+}
+
+function DayCardHeader({ day, currentLocale, isToday, isSelected, isHoliday, holidayName }: DayCardHeaderProps) {
   return (
     <div className="text-center mb-5 pb-5 border-b border-slate-50 dark:border-slate-800 relative">
-      {!!isSelected && (
+      {isSelected && (
         <div className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full p-1 shadow-sm">
           <ShieldCheck size={12} />
         </div>
@@ -62,7 +74,7 @@ function DayCardHeader({ day, currentLocale, isToday, isSelected, isHoliday, hol
       <div className={`text-2xl font-bold mt-1 ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200'}`}>
         {day.getDate()}
       </div>
-      {!!isHoliday && (
+      {isHoliday && (
         <div className="mt-1.5 flex items-center justify-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 uppercase tracking-tighter">
           <PartyPopper size={9} />
           <span className="truncate max-w-[100px]">{holidayName}</span>
@@ -72,7 +84,13 @@ function DayCardHeader({ day, currentLocale, isToday, isSelected, isHoliday, hol
   );
 }
 
-function DayCardSourceTags({ source, effectiveSchedule, t }: any) {
+interface DayCardSourceTagsProps {
+  effectiveSchedule?: EffectiveSchedule;
+  source?: string;
+  t: TFunction;
+}
+
+function DayCardSourceTags({ source, effectiveSchedule, t }: DayCardSourceTagsProps) {
   return (
     <div className="flex justify-center items-center gap-1">
       {source === "roster" && (
@@ -100,12 +118,21 @@ function DayCardSourceTags({ source, effectiveSchedule, t }: any) {
           <Building2 size={8} /> {t("common.department")}
         </span>
       )}
-      {!!effectiveSchedule && <ScheduleTracePopover source={effectiveSchedule.source} traces={effectiveSchedule.traces || []} />}
+      {effectiveSchedule && <ScheduleTracePopover source={effectiveSchedule.source} traces={effectiveSchedule.traces} />}
     </div>
   );
 }
 
-function DayCardShiftDetails({ effectiveSchedule, source, formatTime, onDeleteRoster, dateString, t }: any) {
+interface DayCardShiftDetailsProps {
+  dateString: string;
+  effectiveSchedule?: EffectiveSchedule;
+  formatTime: (time: string | null | undefined) => string;
+  onDeleteRoster: (date: string) => void;
+  source?: string;
+  t: TFunction;
+}
+
+function DayCardShiftDetails({ effectiveSchedule, source, formatTime, onDeleteRoster, dateString, t }: DayCardShiftDetailsProps) {
   if (!effectiveSchedule?.shift_id) {
     return (
       <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 border-dashed p-6 rounded-[24px] text-[10px] text-slate-500 dark:text-slate-400 font-bold text-center uppercase tracking-widest flex flex-col items-center justify-center gap-2">
@@ -151,6 +178,20 @@ function DayCardShiftDetails({ effectiveSchedule, source, formatTime, onDeleteRo
   );
 }
 
+interface WeeklyRosterDayCardProps {
+  currentLocale: Locale;
+  dateString: string;
+  day: Date;
+  effectiveSchedule?: EffectiveSchedule;
+  formatTime: (time: string | null | undefined) => string;
+  isHoliday: boolean;
+  isSelected: boolean;
+  isToday: boolean;
+  onDeleteRoster: (date: string) => void;
+  onToggleDaySelection: (dateString: string) => void;
+  t: TFunction;
+}
+
 function WeeklyRosterDayCard({
   currentLocale,
   dateString,
@@ -163,7 +204,7 @@ function WeeklyRosterDayCard({
   onDeleteRoster,
   onToggleDaySelection,
   t
-}: any) {
+}: WeeklyRosterDayCardProps) {
   const holidayName = effectiveSchedule?.holiday_name;
   const source = effectiveSchedule?.source;
 

@@ -84,7 +84,7 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
               <div className="p-5 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/80">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-slate-800 dark:text-slate-200">{group.name}</h3>
-                  {!!group.is_system && <span className="bg-primary-50 text-primary-600 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full dark:bg-primary-900/30 dark:text-primary-400 border border-primary-100 dark:border-primary-800/50">System</span>}
+                  {group.is_system && <span className="bg-primary-50 text-primary-600 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full dark:bg-primary-900/30 dark:text-primary-400 border border-primary-100 dark:border-primary-800/50">System</span>}
                 </div>
                 <p className="text-xs text-slate-500 line-clamp-2">{group.description ?? "No description provided."}</p>
                 <div className="mt-3 text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded inline-block">

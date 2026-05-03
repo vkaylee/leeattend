@@ -18,7 +18,7 @@ const VARIANT_STYLES = {
   neutral:
     "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60",
   indigo:
-    "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border-indigo-100 dark:border-indigo-800",
+    "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 border-primary-100 dark:border-primary-800",
   emerald:
     "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800",
   orange:

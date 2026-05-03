@@ -52,7 +52,7 @@ describe("useDashboardLayout hook", () => {
         vi.mocked(api.apiFetch).mockResolvedValueOnce({
             ok: true,
             json: () => Promise.resolve(mockPreferences),
-        } as unknown as never);
+        } as Response);
 
         const { result } = renderHook(() => useDashboardLayout(), {
             wrapper: createWrapper(),
@@ -71,7 +71,7 @@ describe("useDashboardLayout hook", () => {
             json: () => Promise.resolve({
                 id: "pref-123", active_view: "overview"
             }),
-        } as unknown as never);
+        } as Response);
 
         const { result } = renderHook(() => useDashboardLayout(), {
             wrapper: createWrapper(),
@@ -90,7 +90,7 @@ describe("useDashboardLayout hook", () => {
         vi.mocked(api.apiFetch).mockResolvedValue({
             ok: true,
             json: () => Promise.resolve({ active_view: "overview" }),
-        } as unknown as never);
+        } as Response);
 
         const { result } = renderHook(() => useDashboardLayout(), {
             wrapper: createWrapper(),
@@ -107,7 +107,7 @@ describe("useDashboardLayout hook", () => {
         expect(putCallArguments[0]).toBe("/dashboard/preferences");
         expect(putCallArguments[1]!.method).toBe("PUT");
 
-        const body = JSON.parse(putCallArguments[1]!.body as string);
+        const body = JSON.parse(putCallArguments[1]!.body as string) as { active_view: string, visible_widgets: { overtime_trend: boolean, kpi_cards: boolean } };
         expect(body.active_view).toBe("trends");
         // Ensure trends preset config is passed
         expect(body.visible_widgets.overtime_trend).toBe(true);
@@ -119,7 +119,7 @@ describe("useDashboardLayout hook", () => {
         vi.mocked(api.apiFetch).mockResolvedValue({
             ok: true,
             json: () => Promise.resolve(mockPreferences),
-        } as unknown as never);
+        } as Response);
 
         const { result } = renderHook(() => useDashboardLayout(), {
             wrapper: createWrapper(),
@@ -136,7 +136,7 @@ describe("useDashboardLayout hook", () => {
 
  
         const putCallArguments = vi.mocked(api.apiFetch).mock.calls[1];
-        const body = JSON.parse(putCallArguments[1]!.body as string);
+        const body = JSON.parse(putCallArguments[1]!.body as string) as { collapsed_sections: { summary: boolean } };
         expect(body.collapsed_sections.summary).toBe(false);
     });
 });

@@ -229,7 +229,7 @@ describe("excel-builder", () => {
       expect(onProgress).toHaveBeenCalledWith(100); // Complete
 
       // Verify progress is called during data processing (20-80 range)
-      const progressCalls = onProgress.mock.calls.map((call) => call[0]);
+      const progressCalls = onProgress.mock.calls.map((call) => call[0] as number);
       const dataProcessCalls = progressCalls.filter((p) => p > 20 && p < 85);
       expect(dataProcessCalls.length).toBeGreaterThan(0);
     });
@@ -252,7 +252,7 @@ describe("excel-builder", () => {
       await generateExcel(largeDataset, options);
 
       // Verify multiple progress updates during data processing
-      const progressCalls = onProgress.mock.calls.map((call) => call[0]);
+      const progressCalls = onProgress.mock.calls.map((call) => call[0] as number);
       const dataProcessCalls = progressCalls.filter((p) => p > 20 && p < 85);
 
       // Should have multiple progress updates for 2500 rows in chunks of 1000

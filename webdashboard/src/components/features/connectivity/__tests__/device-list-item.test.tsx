@@ -19,7 +19,7 @@ vi.mock("react-i18next", () => ({
 // Mock useTickingDeviceTime — returns the deviceTime as-is for simplicity in tests
 const mockUseTickingDeviceTime = vi.fn();
 vi.mock("@/hooks/use-ticking-device-time", () => ({
-  useTickingDeviceTime: (...arguments_: unknown[]) => mockUseTickingDeviceTime(...arguments_),
+  useTickingDeviceTime: (deviceTime?: string) => mockUseTickingDeviceTime(deviceTime) as string | null,
 }));
 
 const mockDevice: Device = {

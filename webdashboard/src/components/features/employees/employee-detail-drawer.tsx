@@ -140,7 +140,7 @@ export default function EmployeeDetailDrawer({
                         { id: "policies", label: t("employees.details.special_policies") },
                         { id: "history", label: t("employees.details.work_history") }
                     ].map(tab => (
-                        <button className={cn("px-8 py-2.5 rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent")} data-testid={`employees-tab-${tab.id ?? ""}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id as DetailTabType); }}>{tab.label.toUpperCase()}</button>
+                        <button className={cn("px-8 py-2.5 rounded-[18px] text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500", activeDetailTab === tab.id ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent")} data-testid={`employees-tab-${tab.id}`} key={tab.id} onClick={() => { setActiveDetailTab(tab.id as DetailTabType); }}>{tab.label.toUpperCase()}</button>
                     ))}
                 </div>
             </div>
@@ -180,7 +180,7 @@ export default function EmployeeDetailDrawer({
                         </section>
 
                         <section className="space-y-5">
-                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 opacity-70"><User className="text-indigo-500" size={14} /> {t("common.user").toUpperCase()}</span>
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 px-2 opacity-70"><User className="text-primary-500" size={14} /> {t("common.user").toUpperCase()}</span>
                             <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
                                 {linkedUser ? (
                                     <div>

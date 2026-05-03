@@ -667,6 +667,7 @@ impl LeaveAccrualService {
 use crate::utils::chrono_helpers::local_to_utc_sqlx as local_to_utc;
 
 #[cfg(test)]
+#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
     use crate::models::{AccrualFrequency, EmploymentPeriod, LeavePolicyConfig, SeniorityBonus};
@@ -881,7 +882,7 @@ mod tests {
         // Phase 1: 366+1 = 367 days ≈ 12 months
         // Phase 2: 181 days ≈ 6 months
         assert!(
-            months >= 17 && months <= 18,
+            (17..=18).contains(&months),
             "Expected 17-18 months, got {months}"
         );
     }

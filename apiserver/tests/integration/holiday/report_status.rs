@@ -89,7 +89,7 @@ async fn test_report_status_holiday_no_punch() {
     assert_eq!(row.holiday_name.as_deref(), Some("Test Holiday"));
 }
 
-/// Create a holiday for today, employee HAS a punch → status should be "holiday_work"
+/// Create a holiday for today, employee HAS a punch → status should be "`holiday_work`"
 #[tokio::test]
 async fn test_report_status_holiday_with_punch() {
     let (address, test_db) = spawn_app().await;

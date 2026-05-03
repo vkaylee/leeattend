@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-/// Helper: build a request to read workspace members (requires permissions, triggers MemberContext cache)
+/// Helper: build a request to read workspace members (requires permissions, triggers `MemberContext` cache)
 fn member_list_request(ws_id: Uuid, caller_id: Uuid) -> axum::http::Request<axum::body::Body> {
     axum::http::Request::builder()
         .method("GET")

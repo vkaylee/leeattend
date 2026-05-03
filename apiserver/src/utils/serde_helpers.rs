@@ -13,6 +13,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::option_option)]
 mod tests {
     use serde::Deserialize;
 

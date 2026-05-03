@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-useless-constructor, @typescript-eslint/prefer-nullish-coalescing, no-console */
+/* eslint-disable @typescript-eslint/no-useless-constructor */
 import { Page, expect, Locator } from '@playwright/test';
 
 import { BasePage } from './base-page';

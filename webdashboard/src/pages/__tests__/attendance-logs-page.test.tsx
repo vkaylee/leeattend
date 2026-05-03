@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
 import { StagingLogsResponse } from "../../lib/api/attendance";
-import { Employee, PaginatedResponse, RawAttendanceLog, Workspace, Device } from "../../lib/api/types";
+import { PaginatedResponse, RawAttendanceLog, Workspace } from "../../lib/api/types";
 import AttendanceLogsPage from "../attendance-logs-page";
 
 
@@ -27,7 +27,7 @@ vi.mock("@tanstack/react-router", () => ({
         }
       });
       const qs = params.toString();
-      if (qs) href += `?${qs ?? ""}`;
+      if (qs) href += `?${qs}`;
     }
     return <a href={href} {...props}>{children}</a>;
   },

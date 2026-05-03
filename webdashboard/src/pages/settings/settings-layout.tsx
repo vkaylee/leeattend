@@ -30,7 +30,7 @@ function NavGroup({ title, items, isActive }: { title: string, items: { path: st
           <Link
             className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
               isActive(item.path)
-                ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 shadow-sm shadow-indigo-100/50 border border-indigo-100 dark:border-indigo-800/50"
+                ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm shadow-primary-100/50 border border-primary-100 dark:border-primary-800/50"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent"
             }`}
             key={item.path}
@@ -51,9 +51,9 @@ function NavGroup({ title, items, isActive }: { title: string, items: { path: st
                 {item.description}
               </span>
             </div>
-            {isActive(item.path) && (
-              <ChevronRight className="w-4 h-4 ml-auto text-indigo-400" />
-            )}
+            {isActive(item.path) ? (
+              <ChevronRight className="w-4 h-4 ml-auto text-primary-400" />
+            ) : null}
           </Link>
         ))}
       </div>
@@ -194,8 +194,8 @@ export default function SettingsLayout() {
       <aside className="w-full lg:w-72 flex-shrink-0">
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar">
           <div className="px-4 py-3 mb-4 flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl">
-              <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+              <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">
@@ -208,12 +208,12 @@ export default function SettingsLayout() {
           </div>
           
           <nav>
-            {filteredWorkspaceGroup.length > 0 && <NavGroup isActive={isActive} items={filteredWorkspaceGroup} title={t("settings.layout.workspace")} />}
-            {filteredAccessGroup.length > 0 && <NavGroup isActive={isActive} items={filteredAccessGroup} title={t("settings.layout.access")} />}
-            {filteredOperationsGroup.length > 0 && <NavGroup isActive={isActive} items={filteredOperationsGroup} title={t("settings.layout.operations")} />}
-            {filteredSystemGroup.length > 0 && <NavGroup isActive={isActive} items={filteredSystemGroup} title={t("settings.layout.security_system")} />}
+            {filteredWorkspaceGroup.length > 0 ? <NavGroup isActive={isActive} items={filteredWorkspaceGroup} title={t("settings.layout.workspace")} /> : null}
+            {filteredAccessGroup.length > 0 ? <NavGroup isActive={isActive} items={filteredAccessGroup} title={t("settings.layout.access")} /> : null}
+            {filteredOperationsGroup.length > 0 ? <NavGroup isActive={isActive} items={filteredOperationsGroup} title={t("settings.layout.operations")} /> : null}
+            {filteredSystemGroup.length > 0 ? <NavGroup isActive={isActive} items={filteredSystemGroup} title={t("settings.layout.security_system")} /> : null}
             
-            {!!showDangerItem && (
+            {showDangerItem ? (
               <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
                 <Link
                   className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
@@ -238,12 +238,12 @@ export default function SettingsLayout() {
                       {dangerItem.description}
                     </span>
                   </div>
-                  {isActive(dangerItem.path) && (
+                  {isActive(dangerItem.path) ? (
                     <ChevronRight className="w-4 h-4 ml-auto text-rose-400" />
-                  )}
+                  ) : null}
                 </Link>
               </div>
-            )}
+            ) : null}
           </nav>
 
           <div className="mt-8 pt-6 border-t border-slate-50 dark:border-slate-800 px-4 pb-2">

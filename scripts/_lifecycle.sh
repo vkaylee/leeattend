@@ -59,7 +59,7 @@ lifecycle_up() {
 
     # Ensure a clean slate first for the requested profiles only
     echo -e "${BLUE}🧹 Cleaning up stale containers...${NC}"
-    dc "${profiles[@]}" down --remove-orphans --timeout 1 >/dev/null 2>&1 || true
+    timeout 15 bash -c "$DOCKER_COMPOSE_CMD ${profiles[*]} down --remove-orphans --timeout 1" </dev/null >/dev/null 2>&1 || true
 
     echo -e "${BLUE}🚀 Bringing up test infrastructure [Mode: $mode]...${NC}"
     dc "${profiles[@]}" up -d
@@ -77,6 +77,20 @@ lifecycle_up() {
             sleep 1
         done
         echo -e "\n${RED}❌ Infrastructure failed to reach healthy state!${NC}"
+        "$CONTAINER_ENGINE" ps -a --filter "name=leeattend-test"
+        return 1
+    else
+        # Web mode: wait for bun_init to finish installing dependencies
+        echo -n "  Waiting for web dependencies (bun install)..."
+        for i in {1..120}; do
+            if [[ "$("$CONTAINER_ENGINE" inspect --format='{{.State.Health.Status}}' "leeattend-test_bun_init_1" 2>/dev/null)" == "healthy" ]]; then
+                echo -e " ${GREEN}Ready!${NC}"
+                return 0
+            fi
+            echo -n "."
+            sleep 1
+        done
+        echo -e "\n${RED}❌ Web dependencies failed to install!${NC}"
         "$CONTAINER_ENGINE" ps -a --filter "name=leeattend-test"
         return 1
     fi

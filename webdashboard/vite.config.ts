@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-deprecated, @typescript-eslint/no-unused-vars, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/restrict-template-expressions, complexity, max-lines-per-function, no-console */
+/* eslint-disable @typescript-eslint/no-deprecated, complexity, max-lines-per-function */
 import react from "@vitejs/plugin-react";
 
 import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
@@ -167,8 +167,8 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
           changeOrigin: true,
           ws: true,
           configure: (proxy: net.Socket, _options: unknown) => {
-            proxy.on('error', (error: Error, _request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
-            proxy.on('proxyReq', (_proxyRequest: unknown, request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
+            proxy.on('_error', (_error: Error, _request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
+            proxy.on('proxyReq', (_proxyRequest: unknown, _request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
           },
         },
         // HTTP API proxy
@@ -176,8 +176,8 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
           target: apiTarget,
           changeOrigin: true,
           configure: (proxy: net.Socket, _options: unknown) => {
-            proxy.on('error', (error: Error, _request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
-            proxy.on('proxyReq', (_proxyRequest: unknown, request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
+            proxy.on('_error', (_error: Error, _request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
+            proxy.on('proxyReq', (_proxyRequest: unknown, _request: IncomingMessage, _res: ServerResponse) => { /* empty */ });
           },
         },
         // Legacy WebSocket proxy (kept for compatibility)

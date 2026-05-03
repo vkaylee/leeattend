@@ -16,7 +16,7 @@ vi.mock("@tanstack/react-router", () => ({
     useNavigate: () => vi.fn(),
     useLocation: () => ({ pathname: "/", search: "", hash: "" }),
  
-    Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode } & Record<string, unknown>) => <a href={to} {...props}>{children}</a>,
 }));
 
 // Mock i18next

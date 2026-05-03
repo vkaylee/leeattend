@@ -22,21 +22,21 @@ vi.mock("react-i18next", () => ({
 // Mock Recharts to avoid rendering SVG in tests
 vi.mock("recharts", () => ({
  
-    BarChart: ({ children, ...props }: any) => (
-        <div data-layout={props.layout} data-testid="bar-chart" {...props}>{children as React.ReactNode}</div>
+    BarChart: ({ children, ...props }: { layout?: string; children?: React.ReactNode; [key: string]: unknown }) => (
+        <div data-layout={props.layout!} data-testid="bar-chart" {...props}>{children}</div>
     ),
  
-    Bar: (props: any) => <div data-testid={`bar-${props.dataKey ?? ""}`} />,
+    Bar: (props: { dataKey?: string; [key: string]: unknown }) => <div data-testid={`bar-${props.dataKey}`} />,
  
-    XAxis: (props: any) => <div data-testid="x-axis" data-type={props.type} />,
+    XAxis: (props: { type?: string; [key: string]: unknown }) => <div data-testid="x-axis" data-type={props.type!} />,
  
-    YAxis: (props: any) => <div data-testid="y-axis" data-type={props.type} />,
+    YAxis: (props: { type?: string; [key: string]: unknown }) => <div data-testid="y-axis" data-type={props.type!} />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
  
-    Tooltip: (_props: any) => <div data-testid="tooltip" />,
+    Tooltip: (_props: unknown) => <div data-testid="tooltip" />,
  
-    ResponsiveContainer: ({ children }: any) => (
-        <div data-testid="responsive-container">{children as React.ReactNode}</div>
+    ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="responsive-container">{children}</div>
     ),
     Legend: () => <div data-testid="legend" />,
 }));
@@ -67,10 +67,10 @@ describe("UnexcusedAbsencesChart", () => {
 
     it("renders loading spinner when data is loading", () => {
  
-        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: undefined,
             isLoading: true,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 
@@ -80,10 +80,10 @@ describe("UnexcusedAbsencesChart", () => {
 
     it("renders empty state when no data available", () => {
  
-        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: [],
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 
@@ -93,10 +93,10 @@ describe("UnexcusedAbsencesChart", () => {
 
     it("renders chart with data when unexcused absences data is available", () => {
  
-        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 
@@ -106,10 +106,10 @@ describe("UnexcusedAbsencesChart", () => {
 
     it("renders chart with horizontal (vertical) layout", () => {
  
-        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 
@@ -119,10 +119,10 @@ describe("UnexcusedAbsencesChart", () => {
 
     it("renders stacked bars: consecutive + remaining_unexcused (no excused leave)", () => {
  
-        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 
@@ -133,10 +133,10 @@ describe("UnexcusedAbsencesChart", () => {
 
     it("displays chart title and subtitle", () => {
  
-        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 
@@ -146,10 +146,10 @@ describe("UnexcusedAbsencesChart", () => {
 
     it("shows 7 Days and 30 Days toggle buttons", () => {
  
-        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 
@@ -159,10 +159,10 @@ describe("UnexcusedAbsencesChart", () => {
 
     it("shows group-by toggle buttons (Department and Employee)", () => {
  
-        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 
@@ -172,10 +172,10 @@ describe("UnexcusedAbsencesChart", () => {
 
     it("calls useUnexcusedAbsences with groupBy parameter", () => {
  
-        (dashboardHooks.useUnexcusedAbsences as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useUnexcusedAbsences).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useUnexcusedAbsences>);
 
         renderWithProviders(<UnexcusedAbsencesChart />);
 

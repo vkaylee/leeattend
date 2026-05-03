@@ -23,7 +23,7 @@ const roleColorMap: Record<string, string> = {
   blue: "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800",
   slate: "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800",
   rose: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100",
-  indigo: "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border-indigo-100",
+  indigo: "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 border-primary-100",
   emerald: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100",
 };
 
@@ -96,13 +96,13 @@ export default function MemberTable() {
                               "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm",
                               roleColorMap[primaryRole.color] || roleColorMap.slate
                             )}>
-                              {!!primaryRole.is_system && primaryRole.name.toLowerCase() === "owner" && <Shield size={10} />}
+                              {primaryRole.is_system && primaryRole.name.toLowerCase() === "owner" ? <Shield size={10} /> : null}
                               {primaryRole.name}
                             </span>
                             
                             {extraRoles.length > 0 && (
                               <div className="relative group/badge">
-                                <span className="inline-flex items-center justify-center min-w-[28px] h-[26px] px-1.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-help transition-colors group-hover/badge:bg-indigo-50 group-hover/badge:text-indigo-600 group-hover/badge:border-indigo-200 dark:group-hover/badge:bg-indigo-900/50 dark:group-hover/badge:border-indigo-800">
+                                <span className="inline-flex items-center justify-center min-w-[28px] h-[26px] px-1.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-help transition-colors group-hover/badge:bg-primary-50 group-hover/badge:text-primary-600 group-hover/badge:border-primary-200 dark:group-hover/badge:bg-primary-900/50 dark:group-hover/badge:border-primary-800">
                                   +{extraRoles.length}
                                 </span>
                                 

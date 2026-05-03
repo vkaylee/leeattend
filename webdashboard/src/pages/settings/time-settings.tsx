@@ -9,7 +9,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { LABEL_BASE } from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace, reprocessAllAttendance, fetchGenericJobStatus, fetchDefaultAttendanceRules, updateDefaultAttendanceRules, fetchAttendancePolicyVersions, AttendanceRules, AttendancePolicyVersion, UpdateAttendanceRulesRequest } from "@/lib/api";
+import { fetchWorkspace, getCurrentWorkspaceId, Workspace, reprocessAllAttendance, fetchGenericJobStatus, fetchDefaultAttendanceRules, updateDefaultAttendanceRules, fetchAttendancePolicyVersions, AttendanceRules, AttendancePolicyVersion, UpdateAttendanceRulesRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import AssignmentRulesPage from "@/pages/assignment-rules-page";
 import WorkingPatternsPage from "@/pages/working-patterns-page";
@@ -78,7 +78,7 @@ function AttendanceVersionTimeline({ versions, t }: { versions: AttendancePolicy
   return (
     <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
       <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
-        <div className="flex items-center gap-3"><History className="w-6 h-6 text-indigo-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.attendance_config")}</h2></div>
+        <div className="flex items-center gap-3"><History className="w-6 h-6 text-primary-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.attendance_config")}</h2></div>
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{versions.length} {versions.length === 1 ? "VERSION" : "VERSIONS"}</span>
       </div>
 
@@ -109,8 +109,8 @@ function AttendanceVersionTimeline({ versions, t }: { versions: AttendancePolicy
                     </div>
                     <div>
                       <div className="flex items-center gap-3 mb-1">
-                        {!!isCurrent && <span className="px-2.5 py-0.5 bg-primary-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm">{t("status_active_caps")}</span>}
-                        {!!v.valid_to && <span className="px-2.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase tracking-widest rounded-lg">{t("status_expired")}</span>}
+                        {isCurrent ? <span className="px-2.5 py-0.5 bg-primary-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm">{t("status_active_caps")}</span> : null}
+                        {v.valid_to ? <span className="px-2.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase tracking-widest rounded-lg">{t("status_expired")}</span> : null}
                       </div>
                       <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                         {formatDate(v.valid_from)}{v.valid_to ? ` → ${formatDate(v.valid_to)}` : " → Present"}
@@ -148,7 +148,16 @@ function AttendanceVersionTimeline({ versions, t }: { versions: AttendancePolicy
   );
 }
 
-function BulkReprocessSection({ t, reprocessStart, setReprocessStart, reprocessEnd, setReprocessEnd, setShowReprocessConfirm }: any) {
+interface BulkReprocessSectionProps {
+  reprocessEnd: string;
+  reprocessStart: string;
+  setReprocessEnd: (date: string) => void;
+  setReprocessStart: (date: string) => void;
+  setShowReprocessConfirm: (show: boolean) => void;
+  t: (k: string) => string;
+}
+
+function BulkReprocessSection({ t, reprocessStart, setReprocessStart, reprocessEnd, setReprocessEnd, setShowReprocessConfirm }: BulkReprocessSectionProps) {
   return (
     <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10 mt-8">
       <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-6">
@@ -280,9 +289,9 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
             <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("common.settings.categories.time_desc")}</p>
           </div>
         </div>
-        {activeTab === "general" && (
+        {activeTab === "general" ? (
           <Button icon={<Plus size={18} />} onClick={() => { setShowCreateModal(true); setNewValidFrom(new Date().toISOString().split("T")[0]); }}>{t("common.workspace_settings.new_version") || "NEW VERSION"}</Button>
-        )}
+        ) : null}
       </div>
 
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">

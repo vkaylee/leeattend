@@ -1,4 +1,4 @@
-//! Test overnight overtime with split_interval_by_day (Issue 6)
+//! Test overnight overtime with `split_interval_by_day` (Issue 6)
 //!
 //! Verifies that OT intervals crossing midnight are properly split by day
 //! instead of losing date context.

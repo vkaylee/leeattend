@@ -22,7 +22,7 @@ import {
 // --- Profile ---
 
 export async function fetchMyProfile(): Promise<MyProfileResponse> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/profile`);
+  const response = await apiFetch(`${API_BASE_URL}/ess/profile`);
   if (!response.ok) {
     const error = await response.text();
     throw new Error(error || "Failed to fetch profile");
@@ -33,7 +33,7 @@ export async function fetchMyProfile(): Promise<MyProfileResponse> {
 export async function updateMyProfile(
   data: UpdateProfileRequest
 ): Promise<EmployeeProfile> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/profile`, {
+  const response = await apiFetch(`${API_BASE_URL}/ess/profile`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
@@ -49,7 +49,7 @@ export async function updateMyProfile(
 export async function fetchMyEmergencyContacts(): Promise<
   EmployeeEmergencyContact[]
 > {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/emergency-contacts`);
+  const response = await apiFetch(`${API_BASE_URL}/ess/emergency-contacts`);
   if (!response.ok) throw new Error("Failed to fetch emergency contacts");
   return response.json() as Promise<EmployeeEmergencyContact[]>;
 }
@@ -57,7 +57,7 @@ export async function fetchMyEmergencyContacts(): Promise<
 export async function addEmergencyContact(
   data: CreateEmergencyContactRequest
 ): Promise<EmployeeEmergencyContact> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/emergency-contacts`, {
+  const response = await apiFetch(`${API_BASE_URL}/ess/emergency-contacts`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -70,7 +70,7 @@ export async function addEmergencyContact(
 
 export async function deleteEmergencyContact(contactId: string): Promise<void> {
   const response = await apiFetch(
-    `${API_BASE_URL ?? ""}/ess/emergency-contacts/${contactId ?? ""}`,
+    `${API_BASE_URL}/ess/emergency-contacts/${contactId}`,
     {
       method: "DELETE",
     }
@@ -81,7 +81,7 @@ export async function deleteEmergencyContact(contactId: string): Promise<void> {
 // --- Documents ---
 
 export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/documents`);
+  const response = await apiFetch(`${API_BASE_URL}/ess/documents`);
   if (!response.ok) throw new Error("Failed to fetch documents");
   return response.json() as Promise<EmployeeDocument[]>;
 }
@@ -91,7 +91,7 @@ export async function fetchMyDocuments(): Promise<EmployeeDocument[]> {
 // --- Payslips ---
 
 export async function fetchMyPayslips(): Promise<Payslip[]> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/payslips`);
+  const response = await apiFetch(`${API_BASE_URL}/ess/payslips`);
   if (!response.ok) throw new Error("Failed to fetch payslips");
   return response.json() as Promise<Payslip[]>;
 }
@@ -111,7 +111,7 @@ export async function fetchMyAttendance(
   if (params?.end_date) searchParams.set("end_date", params.end_date);
 
   const query = searchParams.toString();
-  const url = `${API_BASE_URL ?? ""}/ess/attendance${query ? `?${query ?? ""}` : ""}`;
+  const url = `${API_BASE_URL}/ess/attendance${query ? `?${query}` : ""}`;
 
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch attendance");
@@ -128,7 +128,7 @@ export async function fetchMyTimeEntries(
   if (params?.end_date) searchParams.set("end_date", params.end_date);
 
   const query = searchParams.toString();
-  const url = `${API_BASE_URL ?? ""}/ess/time-entries${query ? `?${query ?? ""}` : ""}`;
+  const url = `${API_BASE_URL}/ess/time-entries${query ? `?${query}` : ""}`;
 
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch time entries");
@@ -138,7 +138,7 @@ export async function fetchMyTimeEntries(
 export async function punchInMySelf(
   data: { entry_type: "work" | "break"; note?: string }
 ): Promise<TimeEntry> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/punch-in`, {
+  const response = await apiFetch(`${API_BASE_URL}/ess/punch-in`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -152,7 +152,7 @@ export async function punchInMySelf(
 export async function punchOutMySelf(
   data?: { note?: string }
 ): Promise<TimeEntry> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/punch-out`, {
+  const response = await apiFetch(`${API_BASE_URL}/ess/punch-out`, {
     method: "POST",
     body: JSON.stringify(data ?? {}),
   });
@@ -166,13 +166,13 @@ export async function punchOutMySelf(
 // --- Leave ---
 
 export async function fetchEssLeaveBalances(): Promise<EmployeeLeaveBalance[]> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/leave/balances`);
+  const response = await apiFetch(`${API_BASE_URL}/ess/leave/balances`);
   if (!response.ok) throw new Error("Failed to fetch leave balances");
   return response.json() as Promise<EmployeeLeaveBalance[]>;
 }
 
 export async function fetchEssLeaveRequests(): Promise<LeaveRequest[]> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/leave/requests`);
+  const response = await apiFetch(`${API_BASE_URL}/ess/leave/requests`);
   if (!response.ok) throw new Error("Failed to fetch leave requests");
   return response.json() as Promise<LeaveRequest[]>;
 }

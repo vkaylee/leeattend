@@ -33,17 +33,17 @@ export default function WorkspaceOverviewPage() {
       />
 
       {/* Hero Card */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-indigo-600 p-10 text-white shadow-xl shadow-indigo-200 dark:shadow-none">
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-10 text-white shadow-xl shadow-slate-200 dark:shadow-none">
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Building2 size={200} />
         </div>
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-50">{t('overview.activeWorkspace', { defaultValue: 'Active Workspace' })}</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-slate-100">{t('overview.activeWorkspace', { defaultValue: 'Active Workspace' })}</span>
           </div>
           <h2 className="text-5xl font-black tracking-tight mb-2">{workspace.name}</h2>
-          <div className="flex items-center gap-6 mt-8 text-indigo-100 font-medium">
+          <div className="flex items-center gap-6 mt-8 text-slate-300 font-medium">
             <div className="flex items-center gap-2">
               <Clock className="opacity-70" size={16} />
               <span>{t('overview.timezone', { defaultValue: 'Timezone:' })} {workspace.timezone}</span>

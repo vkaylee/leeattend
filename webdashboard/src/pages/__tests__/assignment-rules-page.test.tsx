@@ -19,7 +19,7 @@ vi.mock("@tanstack/react-router", () => ({
 // Mock i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: any) => {
+    t: (key: string, fallback?: string | { defaultValue?: string }) => {
       const translations: Record<string, string> = {
         "rules.title": "Assignment Rules",
         "rules.subtitle": "Configure automatic shift assignment",
@@ -60,7 +60,7 @@ vi.mock("react-i18next", () => ({
       const value = translations[key];
       if (value) return value;
       if (typeof fallback === "string") return fallback;
-      if (fallback?.defaultValue) return fallback.defaultValue;
+      if (fallback && typeof fallback === "object" && "defaultValue" in fallback && fallback.defaultValue) return fallback.defaultValue;
       return key;
     },
     i18n: { language: "en" },

@@ -1,9 +1,9 @@
 //! Comprehensive Pairing Strategy integration tests
 //!
-//! Tests the ShiftAwareStrategy across all 3 tiers:
+//! Tests the `ShiftAwareStrategy` across all 3 tiers:
 //!   Tier 1: punch_type-based pairing (device reports IN/OUT)
 //!   Tier 2: shift_window-based pairing (shift schedule context)
-//!   Tier 3: anchor_first fallback (no context)
+//!   Tier 3: `anchor_first` fallback (no context)
 
 use apiserver::services::pairing_algo::{
     self, LogEvent, PairedSession, PairingShiftConfig, ShiftAwareStrategy,
@@ -25,7 +25,7 @@ fn log(minutes: i32) -> LogEvent {
     }
 }
 
-fn day_shift() -> PairingShiftConfig {
+const fn day_shift() -> PairingShiftConfig {
     PairingShiftConfig {
         start_minutes: 480, // 08:00
         end_minutes: 1020,  // 17:00
@@ -34,7 +34,7 @@ fn day_shift() -> PairingShiftConfig {
     }
 }
 
-fn overnight_shift() -> PairingShiftConfig {
+const fn overnight_shift() -> PairingShiftConfig {
     PairingShiftConfig {
         start_minutes: 1320,             // 22:00
         end_minutes: 1800,               // 06:00 next day (30h from midnight = 1800)
@@ -43,7 +43,7 @@ fn overnight_shift() -> PairingShiftConfig {
     }
 }
 
-fn early_morning_shift() -> PairingShiftConfig {
+const fn early_morning_shift() -> PairingShiftConfig {
     PairingShiftConfig {
         start_minutes: 360, // 06:00
         end_minutes: 840,   // 14:00

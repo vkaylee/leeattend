@@ -1,13 +1,13 @@
 //! Integration tests for system administration endpoints.
 //!
 //! Validates that:
-//! - GET /system/roles works for PlatformAdmin
+//! - GET /system/roles works for `PlatformAdmin`
 //! - POST /system/users/:id/roles can assign roles
 //! - GET /system/users/:id/roles shows assigned roles
 //! - DELETE /system/users/:id/roles/:name revokes roles
-//! - GET /system/health is accessible by PlatformAdmin and Support
+//! - GET /system/health is accessible by `PlatformAdmin` and Support
 //! - Non-PlatformAdmin gets 403 on restricted routes
-//! - Cannot revoke the last PlatformAdmin
+//! - Cannot revoke the last `PlatformAdmin`
 
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;

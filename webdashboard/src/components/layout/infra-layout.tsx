@@ -32,7 +32,7 @@ export default function InfraLayout() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-500 shadow-lg shadow-primary-200 flex items-center justify-center text-white font-black text-xl tracking-tighter italic">
+          <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-primary-400 shadow-lg shadow-primary-200 flex items-center justify-center text-white font-black text-xl tracking-tighter italic">
             L
           </div>
           <span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-100 uppercase italic">

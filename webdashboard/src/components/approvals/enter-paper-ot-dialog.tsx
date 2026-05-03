@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Upload, FileText, Calendar } from "lucide-react";
 import { useState } from "react";
@@ -15,6 +17,23 @@ interface Props {
   open: boolean;
 }
 
+interface EnterPaperOtFormProps {
+  date: string;
+  employeeId: string;
+  error: string | null;
+  handleSubmit: (e: React.SyntheticEvent) => void;
+  isSubmitting: boolean;
+  minutes: number;
+  onCancel: () => void;
+  reason: string;
+  setDate: (date: string) => void;
+  setEmployeeId: (id: string) => void;
+  setMinutes: (minutes: number) => void;
+  setReason: (reason: string) => void;
+  t: TFunction;
+  wsId: string;
+}
+
 function EnterPaperOtForm({
   employeeId,
   setEmployeeId,
@@ -30,7 +49,7 @@ function EnterPaperOtForm({
   onCancel,
   wsId,
   t
-}: any) {
+}: EnterPaperOtFormProps) {
   return (
     <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
       {/* Employee Selector */}

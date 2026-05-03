@@ -67,6 +67,7 @@
     "eslint-plugin-perfectionist": "^4.9.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-unicorn": "^57.0.0",
+    "eslint-plugin-unused-imports": "^4.1.4",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import-x": "^4.16.2",
     "eslint-plugin-jsx-a11y": "^6.10.2",

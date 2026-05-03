@@ -40,11 +40,12 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
 
   if (!isOpen || !agent) return null;
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
+    if (!agent) return;
     try {
       const updated = await updateAgent({ 
-        id: agent!.id, 
+        id: agent.id, 
         agent: { 
           name, 
           token, 
@@ -55,7 +56,7 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
           retention_days: retentionDays
         } 
       });
-      onSave(updated || agent!); onClose();
+      onSave(updated); onClose();
     } catch (e) { console.error(e); }
   }
 

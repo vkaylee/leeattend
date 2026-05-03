@@ -11,7 +11,7 @@ import { LeaveHistoryModal } from '../leave-history-modal';
 
 // Mock react-dom BEFORE imports that might use it
 vi.mock('react-dom', () => ({
-    createPortal: vi.fn((node) => node),
+    createPortal: vi.fn((node: React.ReactNode) => node),
 }));
 
 vi.mock('react-i18next', () => ({

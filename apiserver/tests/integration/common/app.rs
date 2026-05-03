@@ -13,7 +13,7 @@ use uuid::Uuid;
 use super::db::TestDatabase;
 use super::factory::TestFactory;
 
-/// Basic app spawn - returns address (URL) and TestDatabase
+/// Basic app spawn - returns address (URL) and `TestDatabase`
 #[allow(dead_code)]
 pub async fn spawn_app() -> (String, TestDatabase) {
     let test_db = TestDatabase::new().await;
@@ -301,7 +301,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     (format!("http://127.0.0.1:{port}"), test_db)
 }
 
-/// App spawn with factory - returns address, workspace_id, user_id, factory, and TestDatabase
+/// App spawn with factory - returns address, `workspace_id`, `user_id`, factory, and `TestDatabase`
 #[allow(dead_code)]
 pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
     let test_db = TestDatabase::new().await;

@@ -88,7 +88,7 @@ describe("useReportStream Double-Buffering Fix", () => {
 
         // The chunks passed to onComplete should be an array (possibly empty
         // since we didn't send CHUNK messages, but it should not be undefined)
-        const completedChunks = onComplete.mock.calls[0][0];
+        const completedChunks = onComplete.mock.calls[0][0] as unknown[];
         expect(Array.isArray(completedChunks)).toBe(true);
     });
 
@@ -119,7 +119,7 @@ describe("useReportStream Double-Buffering Fix", () => {
         });
 
         // Both the state chunks and the onComplete arg should be the same content
-        const completedChunks = onComplete.mock.calls[0][0];
+        const completedChunks = onComplete.mock.calls[0][0] as unknown[];
         expect(result.current.chunks).toEqual(completedChunks);
     });
 

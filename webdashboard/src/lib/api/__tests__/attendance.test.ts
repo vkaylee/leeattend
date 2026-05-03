@@ -29,7 +29,7 @@ describe("fetchAttendanceReport", () => {
  
         const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
-        expect(calledUrl).toContain(`${API_BASE_URL ?? ""}/workspaces/test-ws-id/reports/attendance`);
+        expect(calledUrl).toContain(`${API_BASE_URL}/workspaces/test-ws-id/reports/attendance`);
         expect(calledUrl).toContain("start_date=2026-03-01");
         expect(calledUrl).toContain("end_date=2026-03-31");
         expect(calledUrl).toContain("type=summary");
@@ -63,7 +63,7 @@ describe("fetchAttendanceReport", () => {
         const calledUrl = vi.mocked(apiFetch).mock.calls[0][0];
 
         // Verify department_id is appended correctly
-        expect(calledUrl).toContain(`department_id=${departmentId ?? ""}`);
+        expect(calledUrl).toContain(`department_id=${departmentId}`);
 
         // Check some other standard params were mapped correctly
         expect(calledUrl).toContain("page=1");

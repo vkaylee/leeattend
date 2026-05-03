@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate, Link } from "@tanstack/react-router";
 import {
@@ -25,7 +27,6 @@ import { RecordedLogsTable } from "@/components/features/attendance/recorded-log
 import { StagingLogsTable } from "@/components/features/attendance/staging-logs-table";
 import Button from "@/components/ui/button";
 import { LABEL_BASE } from "@/components/ui/form-field";
-import _StatusBadge from "@/components/ui/status-badge";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useAllEmployees } from "@/hooks/use-employees";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
@@ -33,8 +34,139 @@ import { fetchRawAttendanceLogs, getCurrentWorkspaceId, fetchDevices, fetchStagi
 import { RawAttendanceLog, Employee } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-
 type TabType = "recorded" | "unknown";
+
+interface AttendanceLogsHeaderProps {
+  dateRange: { start: string; end: string };
+  setIsImportDialogOpen: (open: boolean) => void;
+  t: TFunction;
+}
+
+function AttendanceLogsHeader({ dateRange, setIsImportDialogOpen, t }: AttendanceLogsHeaderProps) {
+  return (
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200" data-testid="attendance-logs-title">{t("attendance_logs.title")}</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("attendance_logs.subtitle")}</p>
+      </div>
+      <div className="flex items-center gap-3">
+        <Link
+          className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-5 py-2.5 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"
+          search={{ from: dateRange.start, to: dateRange.end } as Record<string, unknown>}
+          to="/reports"
+        >
+          <BarChart3 size={14} /> {t("attendance_logs.view_reports")}
+        </Link>
+        <Button icon={<Download size={14} />} onClick={() => { window.print(); }} size="sm" variant="outline">{t("attendance_logs.export_btn")}</Button>
+        <PermissionGate permission="attendance_staging:manage">
+          <Button icon={<Upload size={14} />} onClick={() => { setIsImportDialogOpen(true); }} size="sm">{t("attendance_logs.import_btn")}</Button>
+        </PermissionGate>
+      </div>
+    </div>
+  );
+}
+
+interface AttendanceLogsTabsProps {
+  activeTab: TabType;
+  setActiveTab: (tab: TabType) => void;
+  stagingCount?: number;
+  t: TFunction;
+}
+
+function AttendanceLogsTabs({ activeTab, setActiveTab, stagingCount, t }: AttendanceLogsTabsProps) {
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-1 flex items-center gap-1 w-fit">
+      <button
+        className={cn(
+          "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
+          activeTab === "recorded"
+            ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800"
+            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+        )}
+        onClick={() => { setActiveTab("recorded"); }}
+      >
+        <Clock size={14} />
+        {t("attendance_logs.tabs.recorded")}
+      </button>
+      <button
+        className={cn(
+          "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
+          activeTab === "unknown"
+            ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 shadow-sm border border-amber-100 dark:border-amber-800"
+            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+        )}
+        onClick={() => { setActiveTab("unknown"); }}
+      >
+        <AlertTriangle size={14} />
+        {t("attendance_logs.tabs.unknown")}
+        {(stagingCount ?? 0) > 0 && (
+          <span className="ml-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-200 rounded-full text-[9px] font-bold">
+            {stagingCount}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+interface DateRange {
+  end: string;
+  start: string;
+}
+
+interface AttendanceLogsFiltersProps {
+  dateRange: DateRange;
+  employeeId: string;
+  filterMode: "this_month" | "last_month" | "custom" | "specific_month";
+  handleFilterModeChange: (mode: "this_month" | "last_month" | "custom" | "specific_month") => void;
+  handleSpecificMonthChange: (month: number, year: number) => void;
+  setDateRange: (range: DateRange | ((prev: DateRange) => DateRange)) => void;
+  setEmployeeId: (id: string) => void;
+  specificMonth: { month: number; year: number };
+  t: TFunction;
+  wsId: string | null;
+}
+
+function AttendanceLogsFilters({ filterMode, handleFilterModeChange, specificMonth, handleSpecificMonthChange, employeeId, setEmployeeId, wsId, t, dateRange, setDateRange }: AttendanceLogsFiltersProps) {
+  return (
+    <>
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm p-2 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
+          {(["this_month", "last_month"] as const).map(mode => (
+            <button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} key={mode} onClick={() => { handleFilterModeChange(mode); }}>{t(`common.filters.${mode}`)}</button>
+          ))}
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-1" />
+          <div className="relative group">
+            <button className={cn("flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>
+              <CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month")}
+            </button>
+            <div className="absolute left-0 top-full mt-2 z-[100] hidden group-hover:block animate-in zoom-in-95 duration-200 origin-top-left"><MonthYearPicker month={specificMonth.month} onChange={handleSpecificMonthChange} year={specificMonth.year} /></div>
+          </div>
+          <button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} onClick={() => { handleFilterModeChange("custom"); }}>{t("common.filters.custom")}</button>
+        </div>
+
+        <div className="flex-1 max-w-md flex items-center gap-3 px-2">
+          <div className="flex-1"><EmployeeSearch clearOnEscape data-testid="employee-search" keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId} workspaceId={wsId ?? ""} /></div>
+          {employeeId !== "all" && <button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }}><Users size={18} /></button>}
+        </div>
+      </div>
+
+      {filterMode === "custom" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-2 duration-300 max-w-2xl">
+          <div className="space-y-2">
+            <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.from_date")}</label>
+            <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" onChange={(e) => { setDateRange((previous) => ({ ...previous, start: e.target.value })); }} type="date" value={dateRange.start} />
+          </div>
+          <div className="space-y-2">
+            <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.to_date")}</label>
+            <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" onChange={(e) => { setDateRange((previous) => ({ ...previous, end: e.target.value })); }} type="date" value={dateRange.end} />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 
 export default function AttendanceLogsPage() {
   const { t } = useTranslation();
@@ -115,8 +247,8 @@ export default function AttendanceLogsPage() {
   } = useInfiniteQuery({
     queryKey: ["attendance-raw-logs", wsId, employeeId, dateRange],
     queryFn: ({ pageParam }) => {
-      const from = dateRange.start ? new Date(`${dateRange.start ?? ""}T00:00:00`).toISOString() : undefined;
-      const to = dateRange.end ? new Date(`${dateRange.end ?? ""}T23:59:59`).toISOString() : undefined;
+      const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
+      const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
       return fetchRawAttendanceLogs({ employee_id: employeeId === "all" ? undefined : employeeId, from, to, page: pageParam, limit: PAGE_SIZE });
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -130,7 +262,7 @@ export default function AttendanceLogsPage() {
 
   const allRecordedLogs = useMemo(() => {
     if (!recordedPages) return [];
-    return recordedPages.pages.flatMap((p) => p.data || []);
+    return recordedPages.pages.flatMap((p) => p.data);
   }, [recordedPages]);
 
   const recordedTotal = recordedPages?.pages[0]?.total ?? 0;
@@ -155,7 +287,7 @@ export default function AttendanceLogsPage() {
 
   const allStagingLogs = useMemo(() => {
     if (!stagingPages) return [];
-    return stagingPages.pages.flatMap((p) => p.data || []);
+    return stagingPages.pages.flatMap((p) => p.data);
   }, [stagingPages]);
 
   const stagingTotal = stagingPages?.pages[0]?.total ?? 0;
@@ -236,96 +368,33 @@ export default function AttendanceLogsPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-700 dark:text-slate-200" data-testid="attendance-logs-title">{t("attendance_logs.title")}</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("attendance_logs.subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-5 py-2.5 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"
-            search={{ from: dateRange.start, to: dateRange.end } as Record<string, unknown>}
-            to="/reports"
-          >
-            <BarChart3 size={14} /> {t("attendance_logs.view_reports")}
-          </Link>
-          { }
-          <Button icon={<Download size={14} />} onClick={() => { window.print(); }} size="sm" variant="outline">{t("attendance_logs.export_btn")}</Button>
-          <PermissionGate permission="attendance_staging:manage">
-            <Button icon={<Upload size={14} />} onClick={() => { setIsImportDialogOpen(true); }} size="sm">{t("attendance_logs.import_btn")}</Button>
-          </PermissionGate>
-        </div>
-      </div>
+      <AttendanceLogsHeader
+        dateRange={dateRange}
+        setIsImportDialogOpen={setIsImportDialogOpen}
+        t={t}
+      />
 
-      {/* Tabs */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-1 flex items-center gap-1 w-fit">
-        <button
-          className={cn(
-            "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
-            activeTab === "recorded"
-              ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-          )}
-          onClick={() => { setActiveTab("recorded"); }}
-        >
-          <Clock size={14} />
-          {t("attendance_logs.tabs.recorded")}
-        </button>
-        <button
-          className={cn(
-            "px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2",
-            activeTab === "unknown"
-              ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 shadow-sm border border-amber-100 dark:border-amber-800"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-          )}
-          onClick={() => { setActiveTab("unknown"); }}
-        >
-          <AlertTriangle size={14} />
-          {t("attendance_logs.tabs.unknown")}
-          {(stagingCount ?? 0) > 0 && (
-            <span className="ml-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-200 rounded-full text-[9px] font-bold">
-              {stagingCount}
-            </span>
-          )}
-        </button>
-      </div>
+      <AttendanceLogsTabs
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        stagingCount={stagingCount}
+        t={t}
+      />
 
       {activeTab === "recorded" && (
         <>
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm p-2 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-            <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl p-1 shadow-inner border border-slate-200 dark:border-slate-700/50">
-              {["this_month", "last_month"].map(mode => (
-                <button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} key={mode} onClick={() => { handleFilterModeChange(mode as "this_month" | "last_month" | "custom" | "specific_month"); }}>{t(`common.filters.${mode ?? ""}`)}</button>
-              ))}
-              <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-1" />
-              <div className="relative group">
-                <button className={cn("flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>
-                  { }
-                  <CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month ?? ""}/${specificMonth.year ?? ""}` : t("common.filters.specific_month")}
-                </button>
-                <div className="absolute left-0 top-full mt-2 z-[100] hidden group-hover:block animate-in zoom-in-95 duration-200 origin-top-left"><MonthYearPicker month={specificMonth.month} onChange={handleSpecificMonthChange} year={specificMonth.year} /></div>
-              </div>
-              <button className={cn("px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} onClick={() => { handleFilterModeChange("custom"); }}>{t("common.filters.custom")}</button>
-            </div>
-
-            <div className="flex-1 max-w-md flex items-center gap-3 px-2">
-              <div className="flex-1"><EmployeeSearch clearOnEscape data-testid="employee-search" keyboardShortcut={["/", "Enter"]} onChange={(value) => { setEmployeeId((Array.isArray(value) ? value[0] : value) || "all"); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} value={employeeId === "all" ? "" : employeeId} workspaceId={wsId!} /></div>
-              {employeeId !== "all" && <button className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all" onClick={() => { setEmployeeId("all"); }}><Users size={18} /></button>}
-            </div>
-          </div>
-
-          {filterMode === "custom" && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-2 duration-300 max-w-2xl">
-              <div className="space-y-2">
-                <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.from_date")}</label>
-                <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" onChange={(e) => { setDateRange(previous => ({ ...previous, start: e.target.value })); }} type="date" value={dateRange.start} />
-              </div>
-              <div className="space-y-2">
-                <label className={cn(LABEL_BASE, "flex items-center gap-2")}><Calendar size={12} /> {t("common.to_date")}</label>
-                <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold text-sm" onChange={(e) => { setDateRange(previous => ({ ...previous, end: e.target.value })); }} type="date" value={dateRange.end} />
-              </div>
-            </div>
-          )}
+          <AttendanceLogsFilters
+            dateRange={dateRange}
+            employeeId={employeeId}
+            filterMode={filterMode}
+            handleFilterModeChange={handleFilterModeChange}
+            handleSpecificMonthChange={handleSpecificMonthChange}
+            setDateRange={setDateRange}
+            setEmployeeId={setEmployeeId}
+            specificMonth={specificMonth}
+            t={t}
+            wsId={wsId}
+          />
           
           <RecordedLogsTable
             formatDate={formatDate}

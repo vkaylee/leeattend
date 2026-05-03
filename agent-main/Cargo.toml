@@ -26,6 +26,11 @@ async-trait = "0.1"
 redb = "3"
 bincode = "1"
 
+[lints.clippy]
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+
 [dev-dependencies]
 tempfile = "3.10"
 libc = "0.2"

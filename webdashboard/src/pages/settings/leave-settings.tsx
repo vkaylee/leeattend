@@ -105,7 +105,7 @@ export default function LeaveSettings() {
         </div>
 
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-          {activeTab === "types" && (
+          {activeTab === "types" ? (
             <div>
               <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6">
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
@@ -117,9 +117,9 @@ export default function LeaveSettings() {
               </div>
               <LeaveTypeManager wsId={wsId} />
             </div>
-          )}
+          ) : null}
 
-          {activeTab === "policies" && (
+          {activeTab === "policies" ? (
             <div>
               <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6">
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
@@ -131,9 +131,9 @@ export default function LeaveSettings() {
               </div>
               <LeavePolicyManager wsId={wsId} />
             </div>
-          )}
+          ) : null}
 
-          {activeTab === "assignments" && (
+          {activeTab === "assignments" ? (
             <div>
               <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6 flex justify-between items-end">
                 <div>
@@ -206,7 +206,7 @@ export default function LeaveSettings() {
                 </table>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 

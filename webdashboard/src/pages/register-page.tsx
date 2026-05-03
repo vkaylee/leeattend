@@ -27,7 +27,7 @@ export default function RegisterPage() {
     return null;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault(); setError(null);
     if (formData.password !== formData.confirm_password) { setError(t("auth.password_mismatch")); return; }
     if (formData.password.length < 6) { setError(t("auth.password_too_short")); return; }
@@ -47,7 +47,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 relative overflow-hidden animate-in fade-in duration-1000">
       <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-100 dark:bg-primary-900/30 rounded-full blur-[140px] animate-pulse duration-[12s]" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-100/30 dark:bg-indigo-900/20 rounded-full blur-[140px] animate-pulse duration-[10s]" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-100/30 dark:bg-blue-900/20 rounded-full blur-[140px] animate-pulse duration-[10s]" />
       
       <div className="max-w-md w-full space-y-10 p-12 bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-premium-2xl relative z-10 animate-in zoom-in-95 duration-1000 border border-white/60">
         <div className="text-center">
@@ -60,11 +60,11 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {!!error && (
+        {error ? (
           <div className="bg-rose-50 dark:bg-rose-950 border-2 border-rose-100 dark:border-rose-800 text-rose-600 dark:text-rose-300 p-5 rounded-[2rem] text-[11px] font-bold uppercase tracking-widest text-center animate-in slide-in-from-top-4 shadow-inner" role="alert">
             {error}
           </div>
-        )}
+        ) : null}
 
         <form className="space-y-8" onSubmit={handleSubmit}>
           <div className="space-y-5">
@@ -75,7 +75,7 @@ export default function RegisterPage() {
               { id: "confirm_password", label: "confirm_password", type: "password", placeholder: "••••••••", auto: "new-password" }
             ].map((field) => (
               <div className="space-y-2 px-1" key={field.id}>
-                <label className={LABEL_BASE} htmlFor={field.id}>{t(`auth.${field.label ?? ""}`)}</label>
+                <label className={LABEL_BASE} htmlFor={field.id}>{t(`auth.${field.label}`)}</label>
                 <input autoComplete={field.auto} className="block w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-300 text-sm tracking-tight shadow-inner" id={field.id} name={field.id} onChange={handleChange} placeholder={field.placeholder} required type={field.type} value={formData[field.id as keyof typeof formData]} />
               </div>
             ))}

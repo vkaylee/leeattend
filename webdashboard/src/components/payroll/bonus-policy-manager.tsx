@@ -132,7 +132,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
         </button>
       </div>
 
-      {!!isCreating && (
+      {isCreating && (
         <div className="bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] p-10 border border-slate-200 dark:border-slate-700 shadow-inner animate-in slide-in-from-top-4 duration-500 space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
@@ -178,11 +178,11 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`late-${index ?? ""}`}><Clock size={10} /> Max Late/Early</label>
+                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`late-${index}`}><Clock size={10} /> Max Late/Early</label>
                       { }
                       <input 
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs"
-                        id={`late-${index ?? ""}`} 
+                        id={`late-${index}`} 
                         onChange={e => { updateTier(index, "max_late_early_count", e.target.value); }} 
                         placeholder="Any"
                         type="number"
@@ -191,10 +191,10 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                     </div>
                     <div className="space-y-2">
                       { }
-                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`unpaid-${index ?? ""}`}><AlertCircle size={10} /> Max Unpaid</label>
+                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`unpaid-${index}`}><AlertCircle size={10} /> Max Unpaid</label>
                       <input 
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs"
-                        id={`unpaid-${index ?? ""}`} 
+                        id={`unpaid-${index}`} 
                         onChange={e => { updateTier(index, "max_unpaid_leave_days", e.target.value); }} 
                         placeholder="Any"
                         type="number"
@@ -203,10 +203,10 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                     </div>
                     { }
                     <div className="space-y-2">
-                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`sick-${index ?? ""}`}><AlertCircle size={10} /> Max Sick</label>
+                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`sick-${index}`}><AlertCircle size={10} /> Max Sick</label>
                       <input 
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs"
-                        id={`sick-${index ?? ""}`} 
+                        id={`sick-${index}`} 
                         onChange={e => { updateTier(index, "max_sick_leave_days", e.target.value); }} 
                         placeholder="Any"
                         type="number"
@@ -215,10 +215,10 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                       { }
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`total-${index ?? ""}`}><AlertCircle size={10} /> Max Total Days</label>
+                      <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`total-${index}`}><AlertCircle size={10} /> Max Total Days</label>
                       <input 
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs"
-                        id={`total-${index ?? ""}`} 
+                        id={`total-${index}`} 
                         onChange={e => { updateTier(index, "max_total_leave_days", e.target.value); }} 
                         placeholder="Any"
                         type="number"
@@ -226,10 +226,10 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`payout-${index ?? ""}`}><TrendingUp size={10} /> Payout</label>
+                      <label className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest flex items-center gap-1.5" htmlFor={`payout-${index}`}><TrendingUp size={10} /> Payout</label>
                       <input 
                         className="w-full bg-primary-50 dark:bg-primary-950/50 border border-primary-100 dark:border-primary-800 rounded-xl px-4 py-2.5 outline-none focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-xs font-mono text-primary-700 dark:text-primary-300"
-                        id={`payout-${index ?? ""}`} 
+                        id={`payout-${index}`} 
                         onChange={e => { updateTier(index, "payout_amount", e.target.value); }} 
                         type="number"
                         value={tier.payout_amount}
@@ -281,11 +281,11 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                       +{new Intl.NumberFormat('vi-VN').format(tier.payout_amount)}
                     </span>
                     <div className="mt-2 flex flex-col items-center gap-1 opacity-60">
-                      {tier.max_late_early_count !== null && <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Late &lt; {tier.max_late_early_count}</span>}
-                      {tier.max_unpaid_leave_days !== null && <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Unpaid &lt; {tier.max_unpaid_leave_days}d</span>}
-                      {tier.max_sick_leave_days !== null && <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Sick &lt; {tier.max_sick_leave_days}d</span>}
-                      {tier.max_total_leave_days !== null && <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Total &lt; {tier.max_total_leave_days}d</span>}
-                      {tier.max_late_early_count === null && tier.max_unpaid_leave_days === null && tier.max_sick_leave_days === null && tier.max_total_leave_days === null && (
+                      {tier.max_late_early_count != null && <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Late &lt; {tier.max_late_early_count}</span>}
+                      {tier.max_unpaid_leave_days != null && <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Unpaid &lt; {tier.max_unpaid_leave_days}d</span>}
+                      {tier.max_sick_leave_days != null && <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Sick &lt; {tier.max_sick_leave_days}d</span>}
+                      {tier.max_total_leave_days != null && <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Total &lt; {tier.max_total_leave_days}d</span>}
+                      {tier.max_late_early_count == null && tier.max_unpaid_leave_days == null && tier.max_sick_leave_days == null && tier.max_total_leave_days == null && (
                         <span className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase italic">Default</span>
                       )}
                     </div>

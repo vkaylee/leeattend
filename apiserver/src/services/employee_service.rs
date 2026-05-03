@@ -476,6 +476,7 @@ impl EmployeeService {
 }
 
 #[cfg(test)]
+#[allow(clippy::unimplemented)]
 mod tests {
     use super::*;
     use crate::models::{

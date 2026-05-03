@@ -28,6 +28,7 @@ leeattend_bootstrap_env() {
     export CONTAINER_ENGINE="${CONTAINER_ENGINE:-podman}"
     local _COMPOSE_ENGINE="${DOCKER_COMPOSE_CMD:-podman-compose}"
     export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-leeattend-test}"
+    export PODMAN_COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT_NAME"
     export DOCKER_COMPOSE_CMD="$_COMPOSE_ENGINE -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
     export USE_DOCKER=true
 

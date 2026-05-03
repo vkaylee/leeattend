@@ -39,7 +39,7 @@ async fn body_json(resp: axum::http::Response<axum::body::Body>) -> serde_json::
     serde_json::from_slice(&bytes).unwrap()
 }
 
-/// Helper to create a user linked to an employee record (required by EmployeeContext)
+/// Helper to create a user linked to an employee record (required by `EmployeeContext`)
 async fn create_employee_user(
     factory: &TestFactory,
     test_db: &TestDatabase,

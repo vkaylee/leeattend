@@ -33,7 +33,7 @@ async fn test_shift_api_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/shifts", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/shifts"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
@@ -56,7 +56,7 @@ async fn test_shift_api_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/shifts", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/shifts"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
@@ -79,7 +79,7 @@ async fn test_shift_api_lifecycle_smoke() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/shifts/assign", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/shifts/assign"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())

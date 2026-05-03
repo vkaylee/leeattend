@@ -16,7 +16,7 @@ async fn get_test_redis() -> RedisPool {
         .expect("Failed to create Redis pool")
 }
 
-/// Grant platform_admin system role to the given user so they can access monitor endpoints.
+/// Grant `platform_admin` system role to the given user so they can access monitor endpoints.
 async fn grant_platform_admin(factory: &TestFactory, user_id: Uuid) {
     sqlx::query(
         "INSERT INTO user_system_roles (user_id, role_id, assigned_by)
@@ -52,10 +52,7 @@ async fn test_monitor_overview_rest() {
     });
 
     let _: () = conn
-        .set(
-            format!("monitor:worker:{}", worker_id),
-            heartbeat.to_string(),
-        )
+        .set(format!("monitor:worker:{worker_id}"), heartbeat.to_string())
         .await
         .unwrap();
 
@@ -99,10 +96,7 @@ async fn test_monitor_stream_sse() {
     });
 
     let _: () = conn
-        .set(
-            format!("monitor:worker:{}", worker_id),
-            heartbeat.to_string(),
-        )
+        .set(format!("monitor:worker:{worker_id}"), heartbeat.to_string())
         .await
         .unwrap();
 

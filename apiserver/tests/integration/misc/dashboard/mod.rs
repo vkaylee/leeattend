@@ -194,13 +194,11 @@ async fn test_leave_types_returns_breakdown_with_data() {
         .collect();
     assert!(
         type_names.contains(&"Vacation"),
-        "Expected Vacation in breakdown, got: {:?}",
-        type_names
+        "Expected Vacation in breakdown, got: {type_names:?}"
     );
     assert!(
         type_names.contains(&"Sick Leave"),
-        "Expected Sick Leave in breakdown, got: {:?}",
-        type_names
+        "Expected Sick Leave in breakdown, got: {type_names:?}"
     );
 }
 
@@ -281,8 +279,7 @@ async fn test_lateness_by_day_returns_data_with_late_entries() {
         let day = item["day"].as_str().unwrap();
         assert!(
             ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].contains(&day),
-            "Day '{}' is not a valid day name",
-            day
+            "Day '{day}' is not a valid day name"
         );
     }
 
@@ -1018,9 +1015,9 @@ async fn test_overtime_trend_returns_correct_structure() {
 
     // Insert a summary row with overtime data
     sqlx::query(
-        r#"INSERT INTO attendance_daily_summaries
+        r"INSERT INTO attendance_daily_summaries
            (workspace_id, employee_id, date, system_detected_ot_minutes, approved_ot_minutes)
-           VALUES ($1, $2, $3, 60, 30)"#,
+           VALUES ($1, $2, $3, 60, 30)",
     )
     .bind(ws_id)
     .bind(emp_id)

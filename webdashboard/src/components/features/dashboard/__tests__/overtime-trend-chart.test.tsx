@@ -26,7 +26,7 @@ vi.mock("recharts", () => ({
         <div data-testid="area-chart" {...props}>{children}</div>
     ),
  
-    Area: (props: { dataKey: string }) => <div data-testid={`area-${props.dataKey ?? ""}`} />,
+    Area: (props: { dataKey: string }) => <div data-testid={`area-${props.dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
@@ -67,7 +67,7 @@ describe("OvertimeTrendChart", () => {
         vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: undefined,
             isLoading: true,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useOvertimeTrend>);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -80,7 +80,7 @@ describe("OvertimeTrendChart", () => {
         vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: [],
             isLoading: false,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useOvertimeTrend>);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -93,7 +93,7 @@ describe("OvertimeTrendChart", () => {
         vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: [{ date: "2026-02-01", system_ot_hours: 0, approved_ot_hours: 0 }],
             isLoading: false,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useOvertimeTrend>);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -105,7 +105,7 @@ describe("OvertimeTrendChart", () => {
         vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: mockOtData,
             isLoading: false,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useOvertimeTrend>);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -118,7 +118,7 @@ describe("OvertimeTrendChart", () => {
         vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: mockOtData,
             isLoading: false,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useOvertimeTrend>);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -128,10 +128,10 @@ describe("OvertimeTrendChart", () => {
 
     it("displays the correct chart title and subtitle", () => {
  
-        (dashboardHooks.useOvertimeTrend as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: mockOtData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useOvertimeTrend>);
 
         renderWithProviders(<OvertimeTrendChart />);
 
@@ -144,7 +144,7 @@ describe("OvertimeTrendChart", () => {
         vi.mocked(dashboardHooks.useOvertimeTrend).mockReturnValue({
             data: mockOtData,
             isLoading: false,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useOvertimeTrend>);
 
         renderWithProviders(<OvertimeTrendChart />);
 

@@ -116,12 +116,12 @@ export default function WorkerMonitorPage() {
       </div>
 
       {/* Error Banner */}
-      {!!error && (
+      {error ? (
         <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm font-medium">
           <AlertTriangle className="shrink-0" size={18} />
           {t("monitor.error_loading", { defaultValue: "Failed to load monitoring data. Retrying..." })}
         </div>
-      )}
+      ) : null}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6">
@@ -170,7 +170,7 @@ export default function WorkerMonitorPage() {
         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
           {t("monitor.live_updates", { seconds: MONITOR_REFETCH_INTERVAL_S })}
         </span>
-        {!!isFetching && <Loader2 className="text-slate-400 dark:text-slate-500 animate-spin" size={14} />}
+        {isFetching && <Loader2 className="text-slate-400 dark:text-slate-500 animate-spin" size={14} />}
       </div>
 
       {/* Workers Table */}
@@ -366,11 +366,11 @@ export default function WorkerMonitorPage() {
                     <td className="px-6 py-4">
                       <span className="text-sm text-slate-700 dark:text-slate-200">
                         {job.completed_batches}/{job.total_batches}
-                        {job.failed_batches > 0 && (
+                        {job.failed_batches > 0 ? (
                           <span className="text-rose-500 ml-1">
                             ({job.failed_batches} failed)
                           </span>
-                        )}
+                        ) : null}
                       </span>
                     </td>
                     <td className="px-6 py-4">

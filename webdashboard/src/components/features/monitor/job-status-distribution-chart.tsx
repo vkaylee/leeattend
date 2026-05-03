@@ -18,7 +18,7 @@ export default function JobStatusDistributionChart({ data, isLoading }: Props) {
     <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-[2rem] p-6 shadow-lg dark:shadow-black/20 flex flex-col items-center gap-4 relative overflow-hidden group">
       {/* Hover glow */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-gradient-to-br from-blue-400/15 to-indigo-400/10 blur-2xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-gradient-to-br from-blue-400/15 to-blue-400/10 blur-2xl" />
       </div>
 
       <h5 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] w-full text-center">
@@ -78,7 +78,7 @@ export default function JobStatusDistributionChart({ data, isLoading }: Props) {
               "bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-700/50",
               "hover:scale-105 transition-transform duration-200 cursor-default"
             )}
-            data-testid={`legend-${entry.status ?? ""}`}
+            data-testid={`legend-${entry.status}`}
             key={entry.status}
           >
             <span

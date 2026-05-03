@@ -1,4 +1,4 @@
-//! Tests that Department queries return correct active_employee_count.
+//! Tests that Department queries return correct `active_employee_count`.
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
@@ -12,7 +12,7 @@ async fn setup_db() -> (TestDatabase, TestFactory) {
     (test_db, factory)
 }
 
-/// Helper: assign an employee to a department via employee_department_history.
+/// Helper: assign an employee to a department via `employee_department_history`.
 async fn transfer(pool: &sqlx::PgPool, employee_id: Uuid, department_id: Uuid, date: NaiveDate) {
     sqlx::query(
         "INSERT INTO employee_department_history (employee_id, department_id, effective_date) \

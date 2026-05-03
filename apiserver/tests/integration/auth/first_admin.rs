@@ -1,4 +1,4 @@
-//! Integration tests for auto-assign platform_admin to the first registered user.
+//! Integration tests for auto-assign `platform_admin` to the first registered user.
 
 use crate::common::app::spawn_app;
 use crate::common::db::TestDatabase;

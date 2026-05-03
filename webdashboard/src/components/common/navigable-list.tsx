@@ -1,7 +1,8 @@
+import type { TFunction } from "i18next";
+
 import { SearchX, ChevronRight } from "lucide-react";
 import React, { RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 
 import InfiniteScrollSentinel from "@/components/common/infinite-scroll-sentinel";
 import SearchBox from "@/components/common/search-box";
@@ -40,7 +41,7 @@ export interface NavigableListProps<T> {
     itemKey: (item: T) => string;
     items: T[];
     maxHeightClass?: string;
-    onKeyDownRef?: React.MutableRefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
+    onKeyDownRef?: RefObject<((e: React.KeyboardEvent<HTMLInputElement>) => void) | null>;
     onSearchChange?: (value: string) => void;
     onSelect: (item: T) => void;
     resetDeps?: unknown[];
@@ -67,7 +68,7 @@ function NavigableListSkeleton<T>({ skeletonRows, visibleColumns, showChevron }:
                             <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                         </td>
                     ))}
-                    {!!showChevron && <td className="px-4 py-5" />}
+                    {showChevron && <td className="px-4 py-5" />}
                 </tr>
             ))}
         </>
@@ -99,7 +100,11 @@ function NavigableListRow<T>({
     isSelected: boolean;
     item: T;
     itemKey: (item: T) => string;
-    listNav: any;
+    listNav: {
+        focusedIndex: number;
+        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+        setFocusedIndex: (index: number) => void;
+    };
     onSelect: (item: T) => void;
     rowIdPrefix?: string;
     showActiveBar?: boolean;
@@ -143,7 +148,7 @@ function NavigableListRow<T>({
                     />
                 </td>
             )}
-            {!!showActiveBar && !!isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-600 rounded-r-full shadow-lg shadow-primary-500/50" />}
+            {showActiveBar && isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-600 rounded-r-full shadow-lg shadow-primary-500/50" />}
         </tr>
     );
 }
@@ -160,7 +165,11 @@ function NavigableListSearchContent({
     searchPlaceholder,
     searchValue,
 }: {
-    listNav: any;
+    listNav: {
+        focusedIndex: number;
+        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+        setFocusedIndex: (index: number) => void;
+    };
     onSearchChange?: (value: string) => void;
     searchInputRef?: React.RefObject<HTMLInputElement | null>;
     searchPlaceholder?: string;
@@ -191,11 +200,11 @@ function NavigableListHeaderWrapper({
 }: {
     headerSlot?: React.ReactNode;
     isFullPage: boolean;
-    searchProps: any;
+    searchProps: React.ComponentProps<typeof NavigableListSearchContent>;
     smartHeaderEnabled: boolean;
-    smartHeaderRef: any;
+    smartHeaderRef: React.RefObject<HTMLDivElement | null>;
     smartHeaderVisible: boolean;
-    stickySearchRef: any;
+    stickySearchRef: React.RefObject<HTMLDivElement | null>;
 }) {
     if (smartHeaderEnabled) {
         return (
@@ -217,7 +226,7 @@ function NavigableListHeaderWrapper({
     return (
         <>
             {headerSlot}
-            {!!isFullPage && !!searchProps.onSearchChange && (
+            {isFullPage && !!searchProps.onSearchChange && (
                 <div className="sticky top-0 z-20 backdrop-blur-md pt-1 pb-2 -mt-1" ref={stickySearchRef}>
                     <NavigableListSearchContent {...searchProps} />
                 </div>
@@ -253,15 +262,19 @@ function NavigableListTableContent<T>({
     isLoading: boolean;
     itemKey: (item: T) => string;
     items: T[];
-    listNav: any;
-    loadMoreRef: any;
+    listNav: {
+        focusedIndex: number;
+        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+        setFocusedIndex: (index: number) => void;
+    };
+    loadMoreRef: React.Ref<any>;
     onSelect: (item: T) => void;
     rowIdPrefix?: string;
     selectedKey?: string | null;
     showActiveBar?: boolean;
     showChevron?: boolean;
     skeletonRows: number;
-    t: any;
+    t: TFunction;
     testIdPrefix?: string;
     visibleColumns: NavigableListColumn<T>[];
 }) {
@@ -412,7 +425,7 @@ export default function NavigableList<T>({
                                         {col.header}
                                     </th>
                                 ))}
-                                {!!showChevron && <th className="px-4 py-5 w-10" />}
+                                {showChevron && <th className="px-4 py-5 w-10" />}
                             </tr>
                         </thead>
 

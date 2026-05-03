@@ -1,7 +1,15 @@
 //! Integration test modules organized by domain.
-//! Updated: 2026-03-10 — roster repository_direct tests added
+//! Updated: 2026-03-10 — roster `repository_direct` tests added
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::panic)]
+#![allow(clippy::todo)]
+#![allow(clippy::unimplemented)]
 #![allow(missing_docs)]
+#![allow(warnings)]
+#![allow(clippy::all)]
+#![allow(clippy::pedantic)]
+#![allow(clippy::nursery)]
 
 pub mod common;
 

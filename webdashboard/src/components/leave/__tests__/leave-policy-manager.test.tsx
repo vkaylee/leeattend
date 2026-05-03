@@ -27,7 +27,7 @@ vi.mock("@/lib/api/leaves", () => ({
   createLeavePolicy: vi.fn(),
   updateLeavePolicy: vi.fn(),
  
-  deleteLeavePolicy: (...arguments_: unknown[]) => mockDelete(...arguments_)
+  deleteLeavePolicy: (wsId: string, policyId: string) => mockDelete(wsId, policyId) as Promise<void>
 }));
 
 // Mock translation

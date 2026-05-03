@@ -40,41 +40,41 @@ export default function PayrollSettings() {
       </div>
 
       <div className="animate-in slide-in-from-bottom-4 duration-500">
-        {activeTab === "policy" && (
+        {activeTab === "policy" ? (
           <div className="grid grid-cols-1 gap-8">
             <PayrollSettingsSection wsId={wsId!} />
           </div>
-        )}
+        ) : null}
 
-        {activeTab === "components" && (
+        {activeTab === "components" ? (
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
             <SalaryComponentManager wsId={wsId!} />
           </div>
-        )}
+        ) : null}
 
-        {activeTab === "bases" && (
+        {activeTab === "bases" ? (
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
             <SalaryBaseGroupManager wsId={wsId!} />
           </div>
-        )}
+        ) : null}
 
-        {activeTab === "overtime" && (
+        {activeTab === "overtime" ? (
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
             <OvertimePolicyManager wsId={wsId!} />
           </div>
-        )}
+        ) : null}
 
-        {activeTab === "incentives" && (
+        {activeTab === "incentives" ? (
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
             <BonusPolicyManager wsId={wsId!} />
           </div>
-        )}
+        ) : null}
 
-        {activeTab === "statutory_rules" && (
+        {activeTab === "statutory_rules" ? (
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-8">
             <PayrollRulesManager wsId={wsId!} />
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

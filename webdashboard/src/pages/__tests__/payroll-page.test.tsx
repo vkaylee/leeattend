@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToastProvider } from '../../components/ui/toast';
 import { useWorkspace } from "../../hooks/use-workspace";
 import * as api from '../../lib/api';
-import { Employee, PaginatedResponse, Payslip, AttendanceAdjustmentRequest } from "../../lib/api/types";
+import { Payslip } from "../../lib/api/types";
 import PayrollPage from '../payroll-page';
 
 // Partially mock the API library

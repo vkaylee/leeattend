@@ -26,7 +26,7 @@ vi.mock("recharts", () => ({
         <div data-testid="bar-chart" {...props}>{children}</div>
     ),
  
-    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey ?? ""}`} />,
+    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
@@ -67,7 +67,7 @@ describe("DepartmentAttendanceChart", () => {
         vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: undefined,
             isLoading: true,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useDepartmentAttendance>);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -80,7 +80,7 @@ describe("DepartmentAttendanceChart", () => {
         vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: [],
             isLoading: false,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useDepartmentAttendance>);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -93,7 +93,7 @@ describe("DepartmentAttendanceChart", () => {
         vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: mockDeptData,
             isLoading: false,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useDepartmentAttendance>);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -106,7 +106,7 @@ describe("DepartmentAttendanceChart", () => {
         vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: mockDeptData,
             isLoading: false,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useDepartmentAttendance>);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -121,7 +121,7 @@ describe("DepartmentAttendanceChart", () => {
         vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: mockDeptData,
             isLoading: false,
-        } as unknown as never);
+        } as unknown as ReturnType<typeof dashboardHooks.useDepartmentAttendance>);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 
@@ -131,10 +131,10 @@ describe("DepartmentAttendanceChart", () => {
 
     it("shows Today and This Week toggle buttons", () => {
  
-        (dashboardHooks.useDepartmentAttendance as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useDepartmentAttendance).mockReturnValue({
             data: mockDeptData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useDepartmentAttendance>);
 
         renderWithProviders(<DepartmentAttendanceChart />);
 

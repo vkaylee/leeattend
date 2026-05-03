@@ -4,3 +4,21 @@ members = [
     "agent-main"
 ]
 resolver = "2"
+
+[workspace.lints.rust]
+warnings = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+perf = { level = "deny", priority = -1 }
+complexity = { level = "deny", priority = -1 }
+clone_on_ref_ptr = "warn"
+format_push_string = "warn"

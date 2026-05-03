@@ -56,11 +56,12 @@ run_lint() {
         local services=""
         local need_web=false
         
-        if [[ "$filter" == *"web"* ]]; then
+        local target_filter="${filter:-$MODE}"
+        if [[ "$target_filter" == *"web"* ]]; then
             # We need apiserver for api-sync even if testing web
             services="webdashboard apiserver bun_init db_init db redis"
             need_web=true
-        elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
+        elif [[ "$target_filter" == *"apiserver"* || "$target_filter" == *"agent"* || "$target_filter" == *"api"* ]]; then
             services="apiserver agent-main db_init db redis"
         else
             services="apiserver agent-main webdashboard db_init bun_init db redis"
@@ -87,10 +88,11 @@ run_unit() {
         local services=""
         local need_web=false
         
-        if [[ "$filter" == *"web"* ]]; then
+        local target_filter="${filter:-$MODE}"
+        if [[ "$target_filter" == *"web"* ]]; then
             services="webdashboard bun_init db redis"
             need_web=true
-        elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
+        elif [[ "$target_filter" == *"apiserver"* || "$target_filter" == *"agent"* || "$target_filter" == *"api"* ]]; then
             services="apiserver agent-main db_init db redis"
         else
             services="apiserver agent-main webdashboard db_init bun_init db redis"
@@ -118,14 +120,15 @@ run_integration() {
         local services=""
         local need_web=false
         
-        if [[ "$filter" == *"web"* ]]; then
+        local target_filter="${filter:-$MODE}"
+        if [[ "$target_filter" == *"web"* ]]; then
             # Web E2E uses Mock API, does NOT need real DB and Backend
             services="webdashboard bun_init"
             need_web=true
         else
             # Integration tests for API require real DB
             services="db redis apiserver agent-main db_init"
-            if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then 
+            if [[ "$target_filter" == "" || "$target_filter" == "all" ]]; then 
                 services="$services webdashboard bun_init"
                 need_web=true
             fi

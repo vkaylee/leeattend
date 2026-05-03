@@ -90,7 +90,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         ))}
       </div>
 
-      {!!isAddingType && <AddLeaveTypeModal isSaving={createTypeMutation.isPending} onClose={() => { setIsAddingType(false); }} onSave={(data) => { createTypeMutation.mutate(data); }} />}
+      {isAddingType && <AddLeaveTypeModal isSaving={createTypeMutation.isPending} onClose={() => { setIsAddingType(false); }} onSave={(data) => { createTypeMutation.mutate(data); }} />}
       {!!editingType && <EditLeaveTypeModal isSaving={updateTypeMutation.isPending} leaveType={editingType} onClose={() => { setEditingType(null); }} onSave={(config: LeaveTypeConfig) => { updateTypeMutation.mutate({ typeId: editingType.id, config }); }} />}
       { }
       {!!deletingType && (
@@ -138,7 +138,7 @@ interface EditLeaveTypeModalProps {
 function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveTypeModalProps) {
   const [config, setConfig] = useState(leaveType.policy_config || { approval_required: true, requires_document: false, allow_negative_balance: false });
   return (
-    <Modal isOpen={true} onClose={onClose} title={`Config: ${leaveType.name ?? ""}`}>
+    <Modal isOpen={true} onClose={onClose} title={`Config: ${leaveType.name}`}>
       <form className="p-8 space-y-4" onSubmit={(e) => { e.preventDefault(); onSave(config); }}>
         <div className="flex items-center gap-3"><input checked={config.approval_required} id="approval-req-input" onChange={(e) => { setConfig({ ...config, approval_required: e.target.checked }); }} type="checkbox" /><label className="text-xs font-bold uppercase" htmlFor="approval-req-input">Approval Required</label></div>
         <div className="flex justify-end gap-3 pt-6"><button onClick={onClose} type="button">Cancel</button><button className="rounded-xl bg-primary-600 px-8 py-3 text-xs font-bold text-white uppercase" disabled={isSaving} type="submit">Save</button></div>

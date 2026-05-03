@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type {
   StreamMessage,
   StreamStatus,
-  ChunkMessage,
 } from "@/types/report-stream";
 
 import { API_BASE_URL } from "@/lib/api/config";
@@ -25,7 +24,7 @@ interface UseReportStreamOptions {
   onError?: (message: string) => void;
 }
 
-interface UseReportStreamResult {
+export interface UseReportStreamResult {
   chunks: unknown[];
   error: string | null;
   progress: number; // 0-100
@@ -43,7 +42,7 @@ function buildWebSocketUrl(jobId: string): string {
   const host = window.location.host;
   const token = getAccessToken();
   const params = token ? `?token=${encodeURIComponent(token)}` : "";
-  return `${protocol ?? ""}//${host ?? ""}/api/ws/reports/${jobId ?? ""}${params ?? ""}`;
+  return `${protocol}//${host}/api/ws/reports/${jobId}${params}`;
 }
 
 /**
@@ -63,14 +62,14 @@ async function tryRefreshToken(): Promise<boolean> {
   if (!refreshToken) return false;
 
   try {
-    const response = await fetch(`${API_BASE_URL ?? ""}/auth/refresh`, {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
     if (response.ok) {
-      const data = await response.json();
+      const data = await response.json() as { access_token: string; refresh_token: string };
       setAccessToken(data.access_token);
       setRefreshToken(data.refresh_token);
       
@@ -123,7 +122,7 @@ export function useReportStream({
    */
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
-      const message: StreamMessage = JSON.parse(event.data);
+      const message = JSON.parse(event.data as string) as StreamMessage;
 
       switch (message.type) {
         case "CHUNK": {
@@ -180,7 +179,7 @@ export function useReportStream({
     }
 
     const url = buildWebSocketUrl(jobId);
-    console.error(`[ReportStream] Connecting to ${url ?? ""}`);
+    console.error(`[ReportStream] Connecting to ${url}`);
 
     setStatus("connecting");
     setError(null);
@@ -214,7 +213,7 @@ export function useReportStream({
 
       socket.onmessage = handleMessage;
 
-      socket.onerror = (event) => { /* empty */ };
+      socket.onerror = (_event) => { /* empty */ };
 
       socket.onclose = (event) => {
         clearTimeout(connectionTimeoutId);

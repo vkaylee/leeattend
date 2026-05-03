@@ -13,7 +13,7 @@ vi.mock("@/lib/api", () => ({
     createDevice: vi.fn(),
     updateDevice: vi.fn(),
     deleteDevice: vi.fn(),
-    fetchDeviceInfo: (...arguments_: unknown[]) => mockFetchDeviceInfo(...arguments_),
+    fetchDeviceInfo: (deviceId: string) => mockFetchDeviceInfo(deviceId) as Promise<unknown>,
 }));
 
 function createWrapper() {

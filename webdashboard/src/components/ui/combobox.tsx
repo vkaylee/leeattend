@@ -155,11 +155,12 @@ export function Combobox({
     : "";
   const [highlightedValue, setHighlightedValue] = useState(firstItemCmdkValue);
 
-  useEffect(() => {
-    if (firstItemCmdkValue) {
-      setHighlightedValue(firstItemCmdkValue);
-    }
-  }, [firstItemCmdkValue]);
+  const [prevFirstItem, setPrevFirstItem] = useState(firstItemCmdkValue);
+
+  if (firstItemCmdkValue !== prevFirstItem) {
+    setPrevFirstItem(firstItemCmdkValue);
+    setHighlightedValue(firstItemCmdkValue);
+  }
 
   return (
     <Popover.Root onOpenChange={setOpen} open={open}>

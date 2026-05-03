@@ -5,7 +5,7 @@
 //! - `holiday_leave`: unpaid holiday + approved leave request → leave deducted
 //! - `holiday_unpaid`: unpaid holiday + NO leave request → unpaid day
 //!
-//! Also tests the process-leave API endpoint and CRUD with leave_type_id.
+//! Also tests the process-leave API endpoint and CRUD with `leave_type_id`.
 
 use crate::common::app::spawn_app;
 use apiserver::models::LeaveStatus;
@@ -37,7 +37,7 @@ struct HolidayResponse {
 // CRUD: leave_type_id field
 // =============================================================================
 
-/// Creating an unpaid holiday with leave_type_id should persist correctly
+/// Creating an unpaid holiday with `leave_type_id` should persist correctly
 #[tokio::test]
 async fn test_create_holiday_with_leave_type_id() {
     let (address, test_db) = spawn_app().await;
@@ -81,7 +81,7 @@ async fn test_create_holiday_with_leave_type_id() {
     assert_eq!(holiday.leave_type_id, Some(leave_type_id));
 }
 
-/// Updating a holiday to set leave_type_id
+/// Updating a holiday to set `leave_type_id`
 #[tokio::test]
 async fn test_update_holiday_with_leave_type_id() {
     let (address, test_db) = spawn_app().await;
@@ -146,7 +146,7 @@ async fn test_update_holiday_with_leave_type_id() {
 // Report status: holiday_unpaid
 // =============================================================================
 
-/// Unpaid holiday + no leave request → status should be "holiday_unpaid"
+/// Unpaid holiday + no leave request → status should be "`holiday_unpaid`"
 #[tokio::test]
 async fn test_report_status_holiday_unpaid() {
     let (address, test_db) = spawn_app().await;
@@ -219,7 +219,7 @@ async fn test_report_status_holiday_unpaid() {
 // Report status: holiday_leave
 // =============================================================================
 
-/// Unpaid holiday + approved leave request → status should be "holiday_leave"
+/// Unpaid holiday + approved leave request → status should be "`holiday_leave`"
 #[tokio::test]
 async fn test_report_status_holiday_leave_deducted() {
     let (address, test_db) = spawn_app().await;

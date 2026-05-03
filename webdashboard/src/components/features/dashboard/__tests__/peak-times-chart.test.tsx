@@ -23,7 +23,7 @@ vi.mock("recharts", () => ({
         <div data-testid="bar-chart" {...props}>{children}</div>
     ),
  
-    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey ?? ""}`} />,
+    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
@@ -125,10 +125,10 @@ describe("PeakTimesChart", () => {
 
     it("displays the correct chart title and subtitle", () => {
  
-        (dashboardHooks.usePeakTimes as any).mockReturnValue({
+        vi.mocked(dashboardHooks.usePeakTimes).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.usePeakTimes>);
 
         renderWithProviders(<PeakTimesChart />);
 

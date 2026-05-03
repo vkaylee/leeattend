@@ -4,13 +4,13 @@ import { Shift, EmployeeSchedule, AssignmentHistory, ShiftRoster } from "./types
 
 
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/shifts`);
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts`);
   if (!response.ok) throw new Error("Failed to fetch shifts");
   return response.json() as Promise<Shift[]>;
 }
 
 export async function createShift(wsId: string, data: Partial<Shift>): Promise<Shift> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/shifts`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -23,7 +23,7 @@ export async function updateShift(
   shiftId: string, 
   data: Partial<Shift> & { is_correction?: boolean, effective_date?: string }
 ): Promise<Shift> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/shifts/${shiftId ?? ""}`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts/${shiftId}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
@@ -35,7 +35,7 @@ export async function assignShift(
   wsId: string,
   data: { employee_id: string; shift_id: string; start_date: string; end_date?: string | null }
 ): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/shifts/assign`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts/assign`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -44,13 +44,13 @@ export async function assignShift(
 
 export const fetchWorkspaceSchedules = async (wsId: string, startDate: string, endDate: string): Promise<EmployeeSchedule[]> => {
   const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/schedules?${params ?? ""}`);
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/schedules?${params}`);
   if (!response.ok) throw new Error("Failed to fetch schedules");
   return response.json() as Promise<EmployeeSchedule[]>;
 };
 
 export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHistory[]> => {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/assignment-history`);
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-history`);
   if (!response.ok) throw new Error("Failed to fetch assignment history");
   return response.json() as Promise<AssignmentHistory[]>;
 };
@@ -61,7 +61,7 @@ export const fetchEmployeeRosters = async (
   startDate?: string, 
   endDate?: string
 ): Promise<ShiftRoster[]> => {
-  let url = `${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${employeeId ?? ""}/rosters`;
+  let url = `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters`;
   const params = new URLSearchParams();
   if (startDate) params.append("start_date", startDate);
   if (endDate) params.append("end_date", endDate);
@@ -74,7 +74,7 @@ export const fetchEmployeeRosters = async (
  
 
 export async function upsertRoster(wsId: string, employeeId: string, data: Partial<ShiftRoster>): Promise<ShiftRoster> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${employeeId ?? ""}/rosters`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -84,7 +84,7 @@ export async function upsertRoster(wsId: string, employeeId: string, data: Parti
  
 
 export async function bulkUpsertRoster(wsId: string, employeeId: string, items: Partial<ShiftRoster>[]): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${employeeId ?? ""}/rosters/bulk`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters/bulk`, {
     method: "POST",
     body: JSON.stringify({ items }),
   });
@@ -92,7 +92,7 @@ export async function bulkUpsertRoster(wsId: string, employeeId: string, items: 
 }
 
 export async function deleteRoster(wsId: string, employeeId: string, date: string): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/employees/${employeeId ?? ""}/rosters/${date ?? ""}`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters/${date}`, {
     method: "DELETE",
   });
   if (!response.ok) throw new Error("Failed to delete roster");

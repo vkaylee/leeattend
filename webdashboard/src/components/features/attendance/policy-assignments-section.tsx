@@ -74,7 +74,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
     if (v === 15) return t("common.workspace_settings.work_unit_options.15min");
     if (v === 30) return t("common.workspace_settings.work_unit_options.30min");
     if (v === 60) return t("common.workspace_settings.work_unit_options.60min");
-    return `${v ?? ""} min`;
+    return `${v} min`;
   };
 
   const roundingLabel = (v: string) => {
@@ -129,7 +129,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
   };
 
   const targetOptions = targetType === "GROUP"
-    ? departments.map(d => ({ value: d.id, label: d.name, icon: <Building2 className="w-4 h-4 text-indigo-500" /> }))
+    ? departments.map(d => ({ value: d.id, label: d.name, icon: <Building2 className="w-4 h-4 text-primary-500" /> }))
     : employees.map((e: Employee) => ({ value: e.id, label: e.full_name, description: e.employee_id_number, icon: <User className="w-4 h-4 text-teal-500" /> }));
 
 
@@ -166,12 +166,12 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
             {filteredAssignments.map(assignment => (
               <div className="group relative border border-slate-100 dark:border-slate-800 rounded-2xl p-6 bg-slate-50/50 dark:bg-slate-800/20 hover:bg-white dark:hover:bg-slate-800 transition-all flex items-center justify-between" key={assignment.id}>
                 <div className="flex items-center gap-5">
-                  <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm border", assignment.target_type === "GROUP" ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400" : "bg-teal-50 dark:bg-teal-950/30 border-teal-100 dark:border-teal-800 text-teal-600 dark:text-teal-400")}>
+                  <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm border", assignment.target_type === "GROUP" ? "bg-primary-50 dark:bg-primary-950/30 border-primary-100 dark:border-primary-800 text-primary-600 dark:text-primary-400" : "bg-teal-50 dark:bg-teal-950/30 border-teal-100 dark:border-teal-800 text-teal-600 dark:text-teal-400")}>
                     {assignment.target_type === "GROUP" ? <Building2 size={24} /> : <User size={24} />}
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={cn("px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md", assignment.target_type === "GROUP" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300" : "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300")}>
+                      <span className={cn("px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md", assignment.target_type === "GROUP" ? "bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300" : "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300")}>
                         {assignment.target_type === "GROUP" ? t("attendance_policy_overrides.labels.department") : t("attendance_policy_overrides.labels.employee")}
                       </span>
                     </div>
@@ -192,7 +192,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t("common.workspace_settings.early_arrival_strategy")}</p>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{t(`common.workspace_settings.early_arrival_options.${assignment.rules.early_arrival_strategy || "block"}`)}</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{t(`common.workspace_settings.early_arrival_options.${assignment.rules.early_arrival_strategy}`)}</p>
                   </div>
                 </div>
 
@@ -222,7 +222,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
             
             <div className="grid grid-cols-2 gap-3 mb-4">
               <button
-                className={cn("p-4 rounded-2xl border transition-all flex flex-col items-center gap-2", targetType === "GROUP" ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 shadow-inner" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-700")}
+                className={cn("p-4 rounded-2xl border transition-all flex flex-col items-center gap-2", targetType === "GROUP" ? "bg-primary-50 dark:bg-primary-950/30 border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-400 shadow-inner" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-700")}
                 onClick={() => { setTargetType("GROUP"); setTargetId(""); }}
               >
                 <Building2 size={24} />

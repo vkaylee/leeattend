@@ -47,7 +47,7 @@ export default function PayslipModal({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Payslip - ${employee.full_name ?? ""}</title>
+          <title>Payslip - ${employee.full_name}</title>
           <style>
             @page {
               size: A5 portrait;
@@ -216,7 +216,7 @@ export default function PayslipModal({
         </head>
         <body>
           <div class="payslip-container">
-            ${content ?? ""}
+            ${content}
           </div>
         </body>
       </html>

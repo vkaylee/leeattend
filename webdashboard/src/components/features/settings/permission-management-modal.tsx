@@ -39,7 +39,7 @@ export default function PermissionManagementModal({
             !permissions.some((ep) => ep.permission === p),
     );
 
-    async function handleAssign(e: React.FormEvent) {
+    async function handleAssign(e: React.SyntheticEvent) {
         e.preventDefault();
         if (!expiresAt || !newPermission || !userId) return;
         try {

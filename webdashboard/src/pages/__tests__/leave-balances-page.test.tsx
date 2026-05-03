@@ -11,9 +11,9 @@ import LeaveBalancesPage from "../leave-balances-page";
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, fallback?: any) => {
+        t: (key: string, fallback?: string | Record<string, unknown>) => {
             if (typeof fallback === 'string') return fallback;
-            if (fallback?.defaultValue) return fallback.defaultValue;
+            if (typeof fallback === "object" && fallback !== null && "defaultValue" in fallback && fallback.defaultValue) return fallback.defaultValue as string;
             return key;
         },
     }),
@@ -25,9 +25,9 @@ vi.mock("@/hooks/use-debounce", () => ({
 }));
 
 vi.mock("@/lib/api", async () => {
-    const actual = await vi.importActual("@/lib/api");
+    const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
     return {
-        ...actual as unknown as Record<string, unknown>,
+        ...actual,
         fetchWorkspaceLeaveBalances: vi.fn(),
         triggerAccrualRun: vi.fn(),
  
@@ -212,7 +212,7 @@ describe("LeaveBalancesPage", () => {
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalledWith(
                 "test-ws-id",
-                expect.objectContaining({ date: expect.any(String) })
+                expect.objectContaining({ date: expect.any(String) as unknown as string })
             );
         });
     });
@@ -306,7 +306,7 @@ describe("LeaveBalancesPage", () => {
         await waitFor(() => {
             expect(api.triggerAccrualRun).toHaveBeenCalledWith(
                 "test-ws-id",
-                expect.objectContaining({ date: expect.any(String) })
+                expect.objectContaining({ date: expect.any(String) as unknown as string })
             );
         });
     });

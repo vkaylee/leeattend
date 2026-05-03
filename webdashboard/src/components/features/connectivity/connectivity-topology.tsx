@@ -72,7 +72,7 @@ export default function ConnectivityTopology() {
  
       console.error("Refresh failed:", e);
       const message = e instanceof Error ? e.message : "";
-      toast.error(`${t("devices.toast.refresh_error")} ${message ? `(${message ?? ""})` : ""}`);
+      toast.error(`${t("devices.toast.refresh_error")} ${message ? `(${message})` : ""}`);
     }
   }
 
@@ -94,14 +94,14 @@ export default function ConnectivityTopology() {
 
   // Group devices by agent_id
   const { groupedDevices, unassignedDevices } = useMemo(() => {
-    const grouped: Record<string, Device[]> = {};
+    const grouped: Partial<Record<string, Device[]>> = {};
     const unassigned: Device[] = [];
 
     for (const device of devices) {
       const agentExists = agents.some(a => a.id === device.agent_id);
       if (agentExists) {
-        if (!grouped[device.agent_id]) grouped[device.agent_id] = [];
-        grouped[device.agent_id].push(device);
+        if (grouped[device.agent_id] === undefined) grouped[device.agent_id] = [];
+        (grouped[device.agent_id] as Device[]).push(device);
       } else {
         unassigned.push(device);
       }
@@ -122,7 +122,7 @@ export default function ConnectivityTopology() {
   const expandAll = () => { setExpandedAgents(new Set(agents.map(a => a.id))); };
   const collapseAll = () => { setExpandedAgents(new Set()); };
 
-  async function handleAddAgent(e: React.FormEvent) {
+  async function handleAddAgent(e: React.SyntheticEvent) {
     e.preventDefault();
     try {
       await createAgent(newAgent);
@@ -150,7 +150,7 @@ export default function ConnectivityTopology() {
     await deleteDevice(id);
   }
 
-  async function handleAddDevice(e: React.FormEvent) {
+  async function handleAddDevice(e: React.SyntheticEvent) {
     e.preventDefault();
     try {
       await createDevice(newDevice);
@@ -169,7 +169,7 @@ export default function ConnectivityTopology() {
     void refetchAgents();
   };
 
-  async function handleSaveDevice(e: React.FormEvent) {
+  async function handleSaveDevice(e: React.SyntheticEvent) {
     e.preventDefault();
     if (!editingDevice) return;
     try {
@@ -270,7 +270,7 @@ export default function ConnectivityTopology() {
       </div>
 
       {/* Add Agent Form */}
-      {!!showAddForm && (
+      {showAddForm ? (
         <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500" data-testid="add-agent-form" onSubmit={handleAddAgent}>
           <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
             <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
@@ -295,7 +295,7 @@ export default function ConnectivityTopology() {
             <button className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95" data-testid="agent-form-submit" type="submit">{t("agents.save_btn")}</button>
           </div>
         </form>
-      )}
+      ) : null}
 
       {/* Agent Topology */}
       {isLoading ? (

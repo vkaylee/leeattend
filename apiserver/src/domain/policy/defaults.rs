@@ -23,6 +23,7 @@ pub const DEFAULT_WORK_MINUTES_PER_DAY: i32 = DEFAULT_HOURS_PER_DAY * 60;
 pub const DEFAULT_OT_MULTIPLIER: f64 = 1.5;
 
 #[cfg(test)]
+#[allow(clippy::assertions_on_constants)]
 mod tests {
     use super::*;
 

@@ -71,7 +71,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     )
     .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
     .await
-    .map_err(|s| format!("Import failed with status: {}", s))?;
+    .map_err(|s| format!("Import failed with status: {s}"))?;
 
     // Wait for job completion
     let mut job_finished = false;
@@ -190,7 +190,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     )
     .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
     .await
-    .map_err(|s| format!("Import failed with status: {}", s))?;
+    .map_err(|s| format!("Import failed with status: {s}"))?;
 
     // Wait for job completion
     let mut job_finished = false;

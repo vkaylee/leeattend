@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions, no-console */
+ 
 import { test, expect } from './worker-orchestrator';
 
 /**
@@ -10,12 +10,12 @@ test.describe('Report Export Streaming E2E', () => {
 
   test.beforeEach(async ({ page }) => {
     // Enable browser console logging for debugging
-    page.on('console', message => { /* empty */ });
-    page.on('pageerror', error => { /* empty */ });
+    page.on('console', _message => { /* empty */ });
+    page.on('pageerror', _error => { /* empty */ });
     
     page.on('response', async response => {
       if (response.url().includes('/reports/export')) {
-        const body = await response.text();
+        const _body = await response.text();
         
       }
     });

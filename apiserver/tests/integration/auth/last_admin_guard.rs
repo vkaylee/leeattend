@@ -1,12 +1,12 @@
-//! Integration tests for the "last platform_admin" safety guard.
+//! Integration tests for the "last `platform_admin`" safety guard.
 //!
 //! Validates that:
-//! - Revoking the sole platform_admin (self-revoke) returns 422 Validation error
+//! - Revoking the sole `platform_admin` (self-revoke) returns 422 Validation error
 //! - Admin A cannot revoke Admin B when B is the only other admin (leaving A as last)
 //!   — wait, actually after the fix the guard checks total count, so if there are 2 admins
 //!   revoking one is allowed, but revoking when only 1 is left is blocked.
 //! - Revoking a non-platform_admin role (e.g. support) from the last admin is allowed
-//! - Revoking a platform_admin when there are ≥2 admins succeeds
+//! - Revoking a `platform_admin` when there are ≥2 admins succeeds
 
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
@@ -38,7 +38,7 @@ async fn assign_system_role(pool: &sqlx::PgPool, user_id: Uuid, role_name: &str)
     .unwrap();
 }
 
-/// Test: self-revoking the sole platform_admin must be rejected (422).
+/// Test: self-revoking the sole `platform_admin` must be rejected (422).
 #[tokio::test]
 async fn test_cannot_revoke_sole_platform_admin_self() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
@@ -53,10 +53,7 @@ async fn test_cannot_revoke_sole_platform_admin_self() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(&format!(
-                    "/api/system/users/{}/roles/platform_admin",
-                    admin_id
-                ))
+                .uri(format!("/api/system/users/{admin_id}/roles/platform_admin"))
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -78,7 +75,7 @@ async fn test_cannot_revoke_sole_platform_admin_self() {
     );
 }
 
-/// Test: admin A cannot revoke admin B when B is the only platform_admin.
+/// Test: admin A cannot revoke admin B when B is the only `platform_admin`.
 /// After the fix, the guard checks total admin count regardless of who performs
 /// the operation — so even admin A revoking admin B (the only admin) is blocked.
 #[tokio::test]
@@ -100,10 +97,7 @@ async fn test_cannot_revoke_other_sole_platform_admin() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(&format!(
-                    "/api/system/users/{}/roles/platform_admin",
-                    user_a
-                ))
+                .uri(format!("/api/system/users/{user_a}/roles/platform_admin"))
                 .header("X-User-Id", user_b.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -125,10 +119,7 @@ async fn test_cannot_revoke_other_sole_platform_admin() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(&format!(
-                    "/api/system/users/{}/roles/platform_admin",
-                    user_b
-                ))
+                .uri(format!("/api/system/users/{user_b}/roles/platform_admin"))
                 .header("X-User-Id", user_b.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -143,7 +134,7 @@ async fn test_cannot_revoke_other_sole_platform_admin() {
     );
 }
 
-/// Test: revoking platform_admin when there are ≥2 admins is allowed.
+/// Test: revoking `platform_admin` when there are ≥2 admins is allowed.
 #[tokio::test]
 async fn test_revoke_platform_admin_succeeds_when_multiple_admins() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
@@ -161,10 +152,7 @@ async fn test_revoke_platform_admin_succeeds_when_multiple_admins() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(&format!(
-                    "/api/system/users/{}/roles/platform_admin",
-                    admin_b
-                ))
+                .uri(format!("/api/system/users/{admin_b}/roles/platform_admin"))
                 .header("X-User-Id", admin_a.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -180,7 +168,7 @@ async fn test_revoke_platform_admin_succeeds_when_multiple_admins() {
 }
 
 /// Test: revoking a non-platform_admin role from the sole admin is allowed.
-/// The guard only protects the platform_admin role specifically.
+/// The guard only protects the `platform_admin` role specifically.
 #[tokio::test]
 async fn test_revoke_support_role_from_sole_admin_is_allowed() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
@@ -196,7 +184,7 @@ async fn test_revoke_support_role_from_sole_admin_is_allowed() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/system/users/{}/roles/support", admin_id))
+                .uri(format!("/api/system/users/{admin_id}/roles/support"))
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -226,10 +214,7 @@ async fn test_blocked_revoke_preserves_role_assignment() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(&format!(
-                    "/api/system/users/{}/roles/platform_admin",
-                    admin_id
-                ))
+                .uri(format!("/api/system/users/{admin_id}/roles/platform_admin"))
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),

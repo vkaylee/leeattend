@@ -1,6 +1,6 @@
 //! Test batch payroll concurrency limit (Issue 4)
 //!
-//! Verifies that calculate_batch_payslips works correctly with buffer_unordered(10)
+//! Verifies that `calculate_batch_payslips` works correctly with `buffer_unordered(10)`
 //! when processing many employees simultaneously.
 
 use crate::common::app::spawn_app_with_factory;

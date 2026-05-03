@@ -44,7 +44,7 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
         </div>
       </button>
 
-      {!!isOpen && (
+      {isOpen && (
         <div className="px-8 pb-10 pt-6 animate-in slide-in-from-top-4 duration-500">
           <div className="relative flex flex-col gap-0 pl-3">
             {/* Vertical Line */}
@@ -54,7 +54,7 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
               <div className={`relative flex items-start gap-6 pb-6 last:pb-0 group ${p.isActive ? 'opacity-100' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-500'}`} key={index}>
                 {/* Node */}
                 <div className="relative z-10 mt-1.5">
-                  <div className={`w-3.5 h-3.5 rounded-full border-[3px] border-white shadow-md ring-4 ${p.color ?? ""} transition-transform group-hover:scale-125 duration-300 ${p.isActive ? 'scale-125 ring-primary-50' : 'ring-slate-50'}`} />
+                  <div className={`w-3.5 h-3.5 rounded-full border-[3px] border-white shadow-md ring-4 ${p.color} transition-transform group-hover:scale-125 duration-300 ${p.isActive ? 'scale-125 ring-primary-50' : 'ring-slate-50'}`} />
                 </div>
 
                 {/* Content */}

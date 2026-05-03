@@ -49,10 +49,10 @@ async fn test_payroll_settings_update_and_history() {
 
     // Seed initial payroll settings
     sqlx::query(
-        r#"INSERT INTO payroll_settings 
+        r"INSERT INTO payroll_settings 
            (workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date)
            VALUES ($1, 'fixed', 26, 6, 8, '2026-01-01')
-           ON CONFLICT (workspace_id, effective_date) DO NOTHING"#
+           ON CONFLICT (workspace_id, effective_date) DO NOTHING"
     )
     .bind(ws_id)
     .execute(&test_db.pool())

@@ -1,7 +1,7 @@
 //! Integration tests for background jobs tracking.
 //!
 //! Validates that:
-//! - GET /workspaces/:ws_id/jobs/:job_id/status returns 200 with valid job metadata
+//! - GET /`workspaces/:ws_id/jobs/:job_id/status` returns 200 with valid job metadata
 //! - Returns 404 for non-existent job
 //! - Returns 403 when trying to access a job from a different workspace
 

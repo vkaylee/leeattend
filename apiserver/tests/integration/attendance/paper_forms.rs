@@ -186,7 +186,7 @@ async fn test_bulk_upload_paper_ot_no_file() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(&format!(
+                .uri(format!(
                     "/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -232,7 +232,7 @@ async fn test_bulk_upload_paper_ot_with_csv() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(&format!(
+                .uri(format!(
                     "/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -282,7 +282,7 @@ async fn test_bulk_upload_paper_ot_rbac_forbidden() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(&format!(
+                .uri(format!(
                     "/api/workspaces/{ws_id}/attendance/bulk-upload-paper-ot"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())

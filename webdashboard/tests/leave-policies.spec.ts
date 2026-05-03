@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions, no-console */
+ 
 import { expect } from "@playwright/test";
 
 import { test } from "./worker-orchestrator";
 
 test.describe.skip("Leave Policies CRUD", () => {
   test('should create, edit, and delete a leave policy', async ({ page }) => {
-    page.on('console', message => { /* empty */ });
-    page.on('pageerror', error => { /* empty */ });
+    page.on('console', _message => { /* empty */ });
+    page.on('pageerror', _error => { /* empty */ });
 
     // 1. Login and Navigate
     await page.goto('/login');

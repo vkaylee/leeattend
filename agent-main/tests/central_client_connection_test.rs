@@ -79,8 +79,8 @@ async fn test_central_client_connection_and_sync() {
         time_sync,
     );
 
-    let tx = client.get_tx();
-    let (mut client_tx, client_rx) = mpsc::channel(100);
+    let _tx = client.get_tx();
+    let (_client_tx, client_rx) = mpsc::channel(100);
 
     // Spawn the client
     tokio::spawn(async move {

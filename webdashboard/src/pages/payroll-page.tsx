@@ -10,17 +10,14 @@ import { useTranslation } from "react-i18next";
 import { MonthYearPicker } from "@/components/common/month-year-picker";
 import AdjustmentDrawer from "@/components/payroll/adjustment-drawer";
 import BatchCalculationModal from "@/components/payroll/batch-calculation-modal";
-import _EmployeeSalaryConfig from "@/components/payroll/employee-salary-config";
 import PayrollDetailDrawer from "@/components/payroll/payroll-detail-drawer";
 import PayrollSummaryTable from "@/components/payroll/payroll-summary-table";
-import _PayrollTable from "@/components/payroll/payroll-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import _Modal from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
 
 import { useToast } from "../components/ui/toast";

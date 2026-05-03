@@ -23,8 +23,8 @@ describe("apiFetch utility", () => {
     expect(fetch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
-        signal: expect.any(AbortSignal),
-      })
+        signal: expect.any(AbortSignal) as unknown as AbortSignal,
+      }) as RequestInit
     );
   });
 
@@ -39,8 +39,8 @@ describe("apiFetch utility", () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           "Content-Type": "application/json",
-        }),
-      })
+        }) as unknown as HeadersInit,
+      }) as RequestInit
     );
   });
 
@@ -67,8 +67,8 @@ describe("apiFetch utility", () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           "X-Workspace-Id": "ws-123",
-        }),
-      })
+        }) as unknown as HeadersInit,
+      }) as RequestInit
     );
   });
 
@@ -84,8 +84,8 @@ describe("apiFetch utility", () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           "Authorization": "Bearer token-abc",
-        }),
-      })
+        }) as unknown as HeadersInit,
+      }) as RequestInit
     );
   });
 

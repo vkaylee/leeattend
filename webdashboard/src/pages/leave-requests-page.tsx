@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays, Calendar, CheckCircle2, XCircle, Clock, MessageSquare, Plus, Info, PlayCircle, FileText, ShieldCheck, Sun, Moon, Timer,
@@ -8,7 +10,6 @@ import { useTranslation } from "react-i18next";
 
 import type { LeaveImportJob } from "@/lib/api/leaves";
 import type { LeaveDurationType, Employee, LeaveType } from "@/lib/api/types";
-import type { TFunction } from "i18next";
 
 import { EmployeeSearch } from "@/components/common/employee-search";
 import LeaveImportDialog from "@/components/features/leave/leave-import-dialog";
@@ -105,14 +106,14 @@ function LeaveImportBanner({ importJob, importBannerDismissed, setImportBannerDi
                   .replace('{{total}}', String((info?.success_count ?? 0) + (info?.error_count ?? 0)))
                   .replace('{{errors}}', String(info?.error_count ?? 0))}
               </p>
-              {!!info?.error_file_path && (
+              {info?.error_file_path ? (
                 <button
                   className="ml-2 flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline underline-offset-2"
                   onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ }); }}
                 >
                   <Download size={14} /> {t("leave_requests.download_errors", "Tải file lỗi")}
                 </button>
-              )}
+              ) : null}
             </>
           );
         })()}
@@ -121,7 +122,7 @@ function LeaveImportBanner({ importJob, importBannerDismissed, setImportBannerDi
             <XCircle className="text-red-500 flex-shrink-0" size={20} />
             <p className="text-sm font-semibold text-red-700 dark:text-red-300">
               {t("leave_requests.upload_failed", "Import thất bại")}
-              {!!importJob.error_log && <span className="font-normal ml-2 text-xs opacity-75">— {importJob.error_log.substring(0, 100)}</span>}
+              {importJob.error_log ? <span className="font-normal ml-2 text-xs opacity-75">— {importJob.error_log.substring(0, 100)}</span> : null}
             </p>
           </>
         )}
@@ -172,11 +173,9 @@ function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }: Creat
     enabled: !!wsId && !!selectedEmpId && isOpen 
   });
 
-  useEffect(() => {
-    if (leaveTypes.length > 0 && !leaveTypeId) {
-      setLeaveTypeId(leaveTypes[0].id);
-    }
-  }, [leaveTypes, leaveTypeId]);
+  if (leaveTypes.length > 0 && !leaveTypeId) {
+    setLeaveTypeId(leaveTypes[0].id);
+  }
 
   const submitMutation = useMutation({
     mutationFn: (data: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string }) => submitLeaveRequest(wsId, data),
@@ -193,7 +192,7 @@ function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }: Creat
     },
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault(); 
     const formData = new FormData(e.currentTarget);
     if (!leaveTypeId) { toast.error(t("leave_requests.invalid_leave_type")); return; }
@@ -220,7 +219,7 @@ function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }: Creat
           <label className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1" htmlFor="leave-emp">{t("common.employee")}</label>
           <EmployeeSearch className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 shadow-sm" id="leave-emp" onChange={(value) => { setSelectedEmpId(Array.isArray(value) ? value[0] || "" : value); }} value={selectedEmpId} workspaceId={wsId} />
         </div>
-        {!!selectedEmpId && balances.length > 0 && (
+        {selectedEmpId && balances.length > 0 ? (
           <div className="bg-primary-50 dark:bg-primary-950/50 p-8 rounded-[2.5rem] border border-primary-100 dark:border-primary-800/50 grid grid-cols-2 gap-8 shadow-inner">
             {balances.map(b => (
               <div className="space-y-2" key={b.leave_type_id || b.leave_type_code}>
@@ -229,7 +228,7 @@ function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }: Creat
               </div>
             ))}
           </div>
-        )}
+        ) : null}
         <div className="space-y-3 px-1">
           <label className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1" htmlFor="leave-type">{t("common.type")}</label>
           <Combobox 
@@ -328,17 +327,17 @@ function LeaveRequestRow({ request, emp, leaveTypes, formatDate, t, onApprove }:
       <td className="px-8 py-6">
         <div className="text-xs font-bold text-primary-700 dark:text-primary-300 uppercase tracking-tight mb-1.5">
           {formatDate(request.start_date)} — {formatDate(request.end_date)}
-          {!!request.duration_type && request.duration_type !== "full_day" && (
+          {request.duration_type !== "full_day" ? (
             <span className={cn("ml-2 px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider inline-flex items-center gap-1 border",
               request.duration_type === "first_half" ? "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-200 dark:border-amber-800" :
-              request.duration_type === "second_half" ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800" :
+              request.duration_type === "second_half" ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-800" :
               "bg-cyan-50 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800"
             )}>
-              {request.duration_type === "first_half" && <><Sun size={8} /> {t("leave_requests.duration.first_half")}</>}
-              {request.duration_type === "second_half" && <><Moon size={8} /> {t("leave_requests.duration.second_half")}</>}
-              {request.duration_type === "custom_hours" && <><Timer size={8} /> {request.start_time?.slice(0,5) ?? ""}–{request.end_time?.slice(0,5) ?? ""}</>}
+              {request.duration_type === "first_half" ? <><Sun size={8} /> {t("leave_requests.duration.first_half")}</> : null}
+              {request.duration_type === "second_half" ? <><Moon size={8} /> {t("leave_requests.duration.second_half")}</> : null}
+              {request.duration_type === "custom_hours" ? <><Timer size={8} /> {request.start_time?.slice(0,5) ?? ""}–{request.end_time?.slice(0,5) ?? ""}</> : null}
             </span>
-          )}
+          ) : null}
         </div>
         <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-primary-100 dark:border-primary-800/50 shadow-inner group-hover:bg-white dark:hover:bg-slate-900 transition-colors">
           <p className="text-[10px] text-primary-400 font-bold leading-relaxed line-clamp-1 italic opacity-80 flex gap-2"><MessageSquare className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0" size={12} /> "{request.reason ?? t("common.no_description")}"</p>
@@ -355,12 +354,12 @@ function LeaveRequestRow({ request, emp, leaveTypes, formatDate, t, onApprove }:
         </span>
       </td>
       <td className="px-10 py-6 text-right">
-        {request.status === "pending" && (
+        {request.status === "pending" ? (
           <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
             <button className="p-3 bg-white dark:bg-slate-900 text-emerald-400 hover:text-emerald-600 dark:text-emerald-300 rounded-xl shadow-md border border-primary-100 dark:border-primary-800/50 transition-all active:scale-90" onClick={() => { onApprove(request.id, "approved"); }} title={t("common.approve")}><CheckCircle2 size={20} /></button>
             <button className="p-3 bg-white dark:bg-slate-900 text-rose-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-primary-100 dark:border-primary-800/50 transition-all active:scale-90" onClick={() => { onApprove(request.id, "rejected"); }} title={t("common.reject")}><XCircle size={20} /></button>
           </div>
-        )}
+        ) : null}
       </td>
     </tr>
   );

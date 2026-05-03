@@ -21,6 +21,7 @@ import {
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { type TFunction } from "i18next";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 import CollapsibleSection from "@/components/features/dashboard/collapsible-section";
@@ -31,10 +32,11 @@ import PromoCard from "@/components/ui/promo-card";
 import StatCard from "@/components/ui/stat-card";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useCurrency } from "@/hooks/use-currency";
-import { useDashboardStats } from "@/hooks/use-dashboard";
-import { useDashboardLayout, type WidgetId } from "@/hooks/use-dashboard-layout";
+import { useDashboardStats, type WorkspaceStats } from "@/hooks/use-dashboard";
+import { useDashboardLayout, type WidgetId, type DashboardView } from "@/hooks/use-dashboard-layout";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useDevices } from "@/hooks/use-devices";
+import { type AgentStatus, type Device } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -42,10 +44,18 @@ const DONUT_COLORS = {
   on_time: "#10b981",   // emerald-500
   late: "#f59e0b",      // amber-500
   absent: "#ef4444",    // rose-500
-  on_leave: "#6366f1",  // indigo-500
+  on_leave: "#3b82f6",  // blue-500
 };
+interface DashboardHeaderProps {
+  activeView: DashboardView;
+  setActiveView: (view: DashboardView) => void;
+  setCustomizeOpen: (open: boolean) => void;
+  setShowSystemTab: (show: boolean) => void;
+  showSystemTab: boolean;
+  t: TFunction;
+}
 
-function DashboardHeader({ t, showSystemTab, setShowSystemTab, activeView, setActiveView, setCustomizeOpen }: any) {
+function DashboardHeader({ t, showSystemTab, setShowSystemTab, activeView, setActiveView, setCustomizeOpen }: DashboardHeaderProps) {
   return (
     <header className="flex flex-col gap-6 px-2">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -58,7 +68,7 @@ function DashboardHeader({ t, showSystemTab, setShowSystemTab, activeView, setAc
           <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", showSystemTab ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200")} onClick={() => { setShowSystemTab(true); }}><Cpu size={14} /> {t("dashboard.tabs.system")}</button>
         </div>
       </div>
-      {!showSystemTab && (
+      {!showSystemTab ? (
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <DashboardViewTabs activeView={activeView} onViewChange={setActiveView} />
           <button
@@ -69,15 +79,34 @@ function DashboardHeader({ t, showSystemTab, setShowSystemTab, activeView, setAc
             <span className="hidden sm:inline">{t("dashboard.customize.btn")}</span>
           </button>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }
 
-function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections, toggleSection, donutData, hasDonutData, formatCurrency, chartElements, t }: any) {
+interface DonutData {
+  color: string;
+  name: string;
+  value: number;
+}
+
+interface DashboardHrTabProps {
+  chartElements: React.ReactNode[];
+  collapsedSections: Record<string, boolean>;
+  donutData: DonutData[];
+  formatCurrency: (value: number) => string;
+  hasDonutData: boolean;
+  hrStats: WorkspaceStats | undefined;
+  isLoading: boolean;
+  t: TFunction;
+  toggleSection: (id: string) => void;
+  visibleWidgets: Record<string, boolean>;
+}
+
+function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections, toggleSection, donutData, hasDonutData, formatCurrency, chartElements, t }: DashboardHrTabProps) {
   return (
     <div className="space-y-8">
-      {!!visibleWidgets.kpi_cards && (
+      {visibleWidgets.kpi_cards ? (
         <CollapsibleSection
           id="summary"
           isCollapsed={collapsedSections.summary}
@@ -90,7 +119,7 @@ function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections,
               { label: "present_today", value: hrStats?.present_today, icon: UserCheck, color: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" },
               { label: "late_today", value: hrStats?.late_today, icon: Clock, color: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800" },
               { label: "absent_today", value: hrStats?.absent_today, icon: UserX, color: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800" },
-              { label: "on_leave_today", value: hrStats?.on_leave_today, icon: CalendarClock, color: "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border-indigo-100 dark:border-indigo-800" },
+              { label: "on_leave_today", value: hrStats?.on_leave_today, icon: CalendarClock, color: "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800" },
               { label: "pending_requests", value: hrStats?.pending_leave_requests, icon: AlertTriangle, color: "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-100 dark:border-orange-800" },
             ].map((stat, index) => (
               <StatCard
@@ -105,11 +134,11 @@ function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections,
             ))}
           </div>
         </CollapsibleSection>
-      )}
+      ) : null}
 
-      {(visibleWidgets.donut_chart || visibleWidgets.quick_stats) && (
+      {visibleWidgets.donut_chart || visibleWidgets.quick_stats ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {!!visibleWidgets.donut_chart && (
+          {visibleWidgets.donut_chart ? (
             <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
               <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-8">{t("dashboard.hr.attendance_breakdown")}</h2>
               {hasDonutData ? (
@@ -117,7 +146,7 @@ function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections,
                   <ResponsiveContainer height={260} width="100%">
                     <PieChart>
                       <Pie cx="50%" cy="50%" data={donutData} dataKey="value" innerRadius={70} outerRadius={110} paddingAngle={3} stroke="none">
-                        {donutData.map((entry: any, index: number) => (
+                        {donutData.map((entry, index) => (
                           <Cell fill={entry.color} key={`cell-${index}`} />
                         ))}
                       </Pie>
@@ -125,7 +154,7 @@ function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections,
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="flex flex-wrap justify-center gap-4 mt-4">
-                    {donutData.map((entry: any, index: number) => (
+                    {donutData.map((entry, index) => (
                       <div className="flex items-center gap-2" key={index}>
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
                         <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{entry.name}: {entry.value}</span>
@@ -140,15 +169,15 @@ function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections,
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
-          {!!visibleWidgets.quick_stats && (
+          {visibleWidgets.quick_stats ? (
             <div className="space-y-4 sm:space-y-6">
               <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] px-4">{t("dashboard.hr.quick_stats")}</h2>
               {[
                 { label: "avg_work_hours", value: isLoading ? "..." : `${(hrStats?.avg_work_hours_today ?? 0).toFixed(1)}h`, icon: Timer, color: "bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800", mono: true },
                 { label: "early_departures", value: isLoading ? "..." : hrStats?.early_departure_today ?? 0, icon: LogOut, color: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800", mono: false },
-                { label: "estimated_payroll", value: isLoading ? "..." : formatCurrency(hrStats?.estimated_monthly_payroll ?? 0), icon: Banknote, color: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800", mono: true },
+                { label: "estimated_payroll", value: isLoading ? "..." : formatCurrency(Number(hrStats?.estimated_monthly_payroll ?? 0)), icon: Banknote, color: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800", mono: true },
               ].map((item, index) => (
                 <StatCard
                   colorClasses={item.color}
@@ -161,11 +190,11 @@ function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections,
                 />
               ))}
             </div>
-          )}
+          ) : null}
         </div>
-      )}
+      ) : null}
 
-      {chartElements.length > 0 && (
+      {chartElements.length > 0 ? (
         <CollapsibleSection
           id="charts"
           isCollapsed={collapsedSections.charts}
@@ -176,9 +205,9 @@ function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections,
             {chartElements}
           </div>
         </CollapsibleSection>
-      )}
+      ) : null}
 
-      {!!visibleWidgets.promo_cards && (
+      {visibleWidgets.promo_cards ? (
         <CollapsibleSection
           id="actions"
           isCollapsed={collapsedSections.actions}
@@ -214,19 +243,29 @@ function DashboardHrTab({ hrStats, isLoading, visibleWidgets, collapsedSections,
             />
           </div>
         </CollapsibleSection>
-      )}
+      ) : null}
     </div>
   );
 }
 
-function DashboardSystemTab({ agents, devices, onlineAgents, activeDevices, isLoading, formatTime, t }: any) {
+interface DashboardSystemTabProps {
+  activeDevices: number;
+  agents: AgentStatus[];
+  devices: Device[];
+  formatTime: (time: string | undefined) => string;
+  isLoading: boolean;
+  onlineAgents: number;
+  t: TFunction;
+}
+
+function DashboardSystemTab({ agents, devices, onlineAgents, activeDevices, isLoading, formatTime, t }: DashboardSystemTabProps) {
   return (
     <div className="space-y-12 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
         {[
           { label: "total_agents", value: agents.length, icon: Users, color: "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800" },
           { label: "online_agents", value: onlineAgents, icon: Activity, color: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" },
-          { label: "total_devices", value: devices.length, icon: Cpu, color: "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 border-indigo-100" },
+          { label: "total_devices", value: devices.length, icon: Cpu, color: "bg-blue-50 dark:bg-blue-950 text-blue-600 border-blue-100" },
           { label: "active_devices", value: activeDevices, icon: ShieldCheck, color: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800" }
         ].map((stat, index) => (
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden" key={index}>
@@ -245,7 +284,7 @@ function DashboardSystemTab({ agents, devices, onlineAgents, activeDevices, isLo
             <span className="text-[9px] font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-4 py-1.5 rounded-full uppercase tracking-widest border border-primary-100 dark:border-primary-800 shadow-sm">{t("dashboard.system.live_data")}</span>
           </div>
           <div className="space-y-4">
-            {agents.map((agent: any) => (
+            {agents.map((agent) => (
               <div className="bg-white dark:bg-slate-900 p-6 px-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden" key={agent.agent_id}>
                 <div className="flex items-center gap-6">
                   <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-[1.5rem] text-slate-500 dark:text-slate-400 group-hover:bg-primary-50 dark:group-hover:bg-primary-950 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-all border border-slate-100 dark:border-slate-800 shadow-inner">
@@ -410,7 +449,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {!!error && (
+      {error ? (
         <div className="bg-rose-50 dark:bg-rose-950 border-2 border-rose-100 dark:border-rose-800 p-8 sm:p-10 rounded-[3rem] flex items-center gap-6 sm:gap-8 text-rose-700 dark:text-rose-300 animate-in slide-in-from-bottom-8 shadow-2xl shadow-rose-100/50">
           <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-[1.5rem] shadow-sm border border-rose-100 dark:border-rose-800"><ShieldAlert className="text-rose-500" size={40} /></div>
           <div>
@@ -418,7 +457,7 @@ export default function DashboardPage() {
             <p className="font-bold opacity-70 uppercase tracking-tight text-sm">{t("dashboard.connection_error_desc")}</p>
           </div>
         </div>
-      )}
+      ) : null}
 
       <CustomizePanel
         allWidgets={allWidgets}

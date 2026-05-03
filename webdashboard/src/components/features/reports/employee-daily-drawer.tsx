@@ -1,6 +1,10 @@
+import type { TFunction } from "i18next";
+
 import { CalendarCheck, FileBarChart, Clock } from "lucide-react";
 import React, { useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+
+import type { DailyAttendanceReport, AttendanceAdjustmentRequest, Shift } from "@/lib/api";
 
 import Sheet from "@/components/ui/sheet";
 import { useDebug } from "@/context/debug-context";
@@ -23,7 +27,17 @@ interface EmployeeDailyDrawerProps {
     workUnitMinutes: number;
 }
 
-function EmployeeDailyDrawerHeader({ viewMode, setViewMode, isLoading, reportData, totalStdHours, totalOtHours, t }: any) {
+interface EmployeeDailyDrawerHeaderProps {
+    isLoading: boolean;
+    reportData: any[];
+    setViewMode: (mode: "daily" | "raw") => void;
+    t: TFunction;
+    totalOtHours: string | number;
+    totalStdHours: string | number;
+    viewMode: "daily" | "raw";
+}
+
+function EmployeeDailyDrawerHeader({ viewMode, setViewMode, isLoading, reportData, totalStdHours, totalOtHours, t }: EmployeeDailyDrawerHeaderProps) {
     return (
         <>
             <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
@@ -66,6 +80,22 @@ function EmployeeDailyDrawerHeader({ viewMode, setViewMode, isLoading, reportDat
     );
 }
 
+interface EmployeeDailyDrawerModalsProps {
+    confirmDialog: { show?: boolean; employeeId: string; employeeName: string; date: string } | null;
+    confirmModalData: { row: DailyAttendanceReport; existingRequest?: AttendanceAdjustmentRequest } | null;
+    confirmMutationPending: boolean;
+    handleConfirmReprocess: () => void;
+    handleConfirmSubmit: (data: any) => void;
+    handleResolveSubmit: (shiftId: string) => void;
+    reprocessMutationPending: boolean;
+    resolveModalData: { row: DailyAttendanceReport } | null;
+    resolveUnscheduledMutationPending: boolean;
+    setConfirmDialog: (data: { show: boolean; employeeId: string; employeeName: string; date: string } | null) => void;
+    setConfirmModalData: (data: { row: DailyAttendanceReport; existingRequest?: AttendanceAdjustmentRequest } | null) => void;
+    setResolveModalData: (data: { row: DailyAttendanceReport } | null) => void;
+    shifts?: Shift[];
+}
+
 function EmployeeDailyDrawerModals({
     confirmDialog,
     reprocessMutationPending,
@@ -80,7 +110,7 @@ function EmployeeDailyDrawerModals({
     setResolveModalData,
     handleResolveSubmit,
     shifts
-}: any) {
+}: EmployeeDailyDrawerModalsProps) {
     return (
         <>
             <ConfirmReprocessModal

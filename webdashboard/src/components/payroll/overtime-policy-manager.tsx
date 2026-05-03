@@ -109,7 +109,7 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
         </div>
       </div>
 
-      {!!isCreating && (
+      {isCreating && (
         <div className='bg-slate-50 dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-4 duration-300'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='space-y-2'>

@@ -108,7 +108,20 @@ function SegmentCard({ segment, index, canReadSensitive }: { segment: PayrollSeg
   );
 }
 
-function PayslipCardHeader({ slip, isExpanded, setExpandedId, t, formatMonthYear, canReadSensitive, setSelectedPayslip, setIsModalOpen }: any) {
+import type { TFunction } from "i18next";
+
+interface PayslipCardHeaderProps {
+  canReadSensitive: boolean;
+  formatMonthYear: (date: string) => string;
+  isExpanded: boolean;
+  setExpandedId: (id: string | null) => void;
+  setIsModalOpen: (open: boolean) => void;
+  setSelectedPayslip: (slip: Payslip) => void;
+  slip: Payslip;
+  t: TFunction;
+}
+
+function PayslipCardHeader({ slip, isExpanded, setExpandedId, t, formatMonthYear, canReadSensitive, setSelectedPayslip, setIsModalOpen }: PayslipCardHeaderProps) {
   return (
     <div 
       className={cn("p-8 flex items-center justify-between cursor-pointer transition-colors", isExpanded ? "bg-primary-50 dark:bg-primary-950/30 dark:bg-primary-950/30" : "hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50")} 
@@ -156,7 +169,15 @@ function PayslipCardHeader({ slip, isExpanded, setExpandedId, t, formatMonthYear
   );
 }
 
-function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadSensitive, t }: any) {
+interface PayslipCardBodyProps {
+  canReadSensitive: boolean;
+  onResolveAdjustments: () => void;
+  slip: Payslip;
+  slipAdjustments: AttendanceAdjustmentRequest[];
+  t: TFunction;
+}
+
+function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadSensitive, t }: PayslipCardBodyProps) {
   return (
     <div className="px-8 pb-10 animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="h-px bg-gradient-to-r from-transparent via-slate-100 to-transparent mb-10" />
@@ -176,7 +197,7 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
 
       <div className="space-y-8 relative">
         <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-slate-100 dark:bg-slate-700" />
-        {slip.segments?.map((seg: any, index: number) => (
+        {slip.segments?.map((seg, index: number) => (
           <SegmentCard 
             canReadSensitive={canReadSensitive} 
             index={index} 
@@ -194,7 +215,7 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
             <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-[0.25em]">{t("common.payroll.table.bonus")} Detail</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {slip.incentives.map((inc: any, index: number) => (
+            {slip.incentives.map((inc, index: number) => (
               <div className="flex items-center justify-between p-6 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800/50 rounded-2xl" key={index}>
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-blue-600 dark:text-blue-300 shadow-sm border border-blue-100 dark:border-blue-800">
@@ -215,7 +236,7 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
           { label: t("common.payroll.table.overtime"), value: slip.overtime_pay_amount, color: "text-emerald-600 dark:text-emerald-300", prefix: "+" },
           { 
             label: t("common.payroll.table.bonus"), 
-            value: slip.incentives?.reduce((accumulator: number, index: any) => accumulator + parseFloat(index.amount), 0).toString() ?? "0", 
+            value: slip.incentives?.reduce((accumulator: number, inc) => accumulator + parseFloat(inc.amount), 0).toString() ?? "0", 
             color: "text-blue-600 dark:text-blue-300", 
             prefix: "+" 
           },
@@ -231,12 +252,25 @@ function PayslipCardBody({ slip, slipAdjustments, onResolveAdjustments, canReadS
   );
 }
 
-function PayslipCard({ slip, isExpanded, setExpandedId, slipAdjustments, onResolveAdjustments, t, formatMonthYear, canReadSensitive, setSelectedPayslip, setIsModalOpen }: any) {
+interface PayslipCardProps {
+  canReadSensitive: boolean;
+  formatMonthYear: (date: string) => string;
+  isExpanded: boolean;
+  onResolveAdjustments: () => void;
+  setExpandedId: (id: string | null) => void;
+  setIsModalOpen: (open: boolean) => void;
+  setSelectedPayslip: (slip: Payslip) => void;
+  slip: Payslip;
+  slipAdjustments: AttendanceAdjustmentRequest[];
+  t: TFunction;
+}
+
+function PayslipCard({ slip, isExpanded, setExpandedId, slipAdjustments, onResolveAdjustments, t, formatMonthYear, canReadSensitive, setSelectedPayslip, setIsModalOpen }: PayslipCardProps) {
   return (
     <div className={cn("group bg-white dark:bg-slate-900 border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 dark:border-primary-800 rounded-[2.5rem] shadow-2xl shadow-primary-100/20 dark:shadow-black/20" : "border-slate-100 dark:border-slate-800 hover:border-primary-100 dark:border-primary-800 rounded-[2rem] shadow-sm dark:shadow-black/10 hover:shadow-lg hover:shadow-primary-100/10")} data-testid={`payslip-card-${slip.id}`}>
       <PayslipCardHeader canReadSensitive={canReadSensitive} formatMonthYear={formatMonthYear} isExpanded={isExpanded} setExpandedId={setExpandedId} setIsModalOpen={setIsModalOpen} setSelectedPayslip={setSelectedPayslip} slip={slip} t={t} />
 
-      {!!isExpanded && (
+      {isExpanded && (
         <PayslipCardBody canReadSensitive={canReadSensitive} onResolveAdjustments={onResolveAdjustments} slip={slip} slipAdjustments={slipAdjustments} t={t} />
       )}
     </div>

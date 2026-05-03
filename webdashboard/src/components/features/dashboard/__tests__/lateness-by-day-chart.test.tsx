@@ -23,9 +23,9 @@ vi.mock("recharts", () => ({
         <div data-testid="composed-chart" {...props}>{children}</div>
     ),
  
-    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey ?? ""}`} />,
+    Bar: (props: { dataKey: string }) => <div data-testid={`bar-${props.dataKey}`} />,
  
-    Line: (props: { dataKey: string }) => <div data-testid={`line-${props.dataKey ?? ""}`} />,
+    Line: (props: { dataKey: string }) => <div data-testid={`line-${props.dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
@@ -129,10 +129,10 @@ describe("LatenessByDayChart", () => {
 
     it("displays the correct chart title and subtitle", () => {
  
-        (dashboardHooks.useLatenessByDay as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useLatenessByDay).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useLatenessByDay>);
 
         renderWithProviders(<LatenessByDayChart />);
 

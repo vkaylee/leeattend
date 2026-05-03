@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions, no-console */
+ 
 import { test, expect } from './worker-orchestrator';
 
 test.describe.skip('Leave Policy Assignment Integration', () => {
@@ -6,8 +6,8 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     test.setTimeout(180000);
     
     // Capture console messages and errors
-    page.on('console', message => { /* empty */ });
-    page.on('pageerror', error => { /* empty */ });
+    page.on('console', _message => { /* empty */ });
+    page.on('pageerror', _error => { /* empty */ });
 
     
     

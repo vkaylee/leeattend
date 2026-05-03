@@ -57,14 +57,8 @@ async fn test_update_dashboard_preferences_upserts_and_returns_updated() {
     let pref_id = body["id"].as_str().unwrap();
     assert_ne!(pref_id, Uuid::nil().to_string());
     assert_eq!(body["active_view"].as_str().unwrap(), "attendance");
-    assert_eq!(
-        body["visible_widgets"]["peak_times"].as_bool().unwrap(),
-        true
-    );
-    assert_eq!(
-        body["collapsed_sections"]["charts"].as_bool().unwrap(),
-        true
-    );
+    assert!(body["visible_widgets"]["peak_times"].as_bool().unwrap());
+    assert!(body["collapsed_sections"]["charts"].as_bool().unwrap());
 
     // 2. GET again should return the persisted data
     let res2 = client

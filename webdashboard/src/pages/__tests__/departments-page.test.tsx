@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
-import { Department, User, WorkingPattern } from "../../lib/api/types";
+import { Department, WorkingPattern } from "../../lib/api/types";
 import DepartmentsPage from "../departments-page";
 
 

@@ -189,7 +189,7 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
     setSeniorityBonus(next);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
     onSave({
       ...formData,
@@ -256,10 +256,10 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
         <div className="space-y-8">
           <div className="flex justify-between items-center px-1">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-indigo-600"><Milestone size={18} /></div>
+              <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600"><Milestone size={18} /></div>
               <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter">Service Bonuses</h4>
             </div>
-            <button className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100" onClick={addBonusMilestone} type="button"><Plus size={12} /> Add Row</button>
+            <button className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100" onClick={addBonusMilestone} type="button"><Plus size={12} /> Add Row</button>
           </div>
           
           <div className="space-y-8 px-2">
@@ -270,7 +270,7 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
                 <div className="absolute -left-4 top-10 font-black text-[8px] text-slate-300 dark:text-slate-600 uppercase vertical-text tracking-widest">Row {index + 1}</div>
                 
                 <FormRow label="After Years">
-                  <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center h-[54px] focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none" onChange={(e) => { updateBonusMilestone(index, "min_years", parseInt(e.target.value)); }} type="number" value={bonus.min_years} />
+                  <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center h-[54px] focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" onChange={(e) => { updateBonusMilestone(index, "min_years", parseInt(e.target.value)); }} type="number" value={bonus.min_years} />
                 </FormRow>
                 
                 <FormRow label="Bonus Amount">

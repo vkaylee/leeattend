@@ -3,7 +3,7 @@
  * Uses Intl.DateTimeFormat for robust conversion without heavy libraries.
  */
 export function toUTCISO(dateString: string, timeString: string, timezone: string): string {
-  const localString = `${dateString ?? ""}T${timeString ?? ""}:00`;
+  const localString = `${dateString}T${timeString}:00`;
   
   try {
     const formatter = new Intl.DateTimeFormat('en-GB', {
@@ -26,7 +26,7 @@ export function toUTCISO(dateString: string, timeString: string, timezone: strin
       const p: Record<string, string> = {};
       parts.forEach(part => p[part.type] = part.value);
       // Ensure ISO-like string YYYY-MM-DDTHH:mm:ss
-      return `${p.year ?? ""}-${p.month ?? ""}-${p.day ?? ""}T${p.hour ?? ""}:${p.minute ?? ""}:${p.second ?? ""}`;
+      return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}`;
     };
 
     // Refine the UTC date by calculating the difference

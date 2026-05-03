@@ -285,7 +285,7 @@ async fn test_build_returns_arc_with_consistent_data() {
     let data2 = build_roster_data(&pool, ws).await.unwrap();
 
     assert_eq!(data1.shifts.len(), data2.shifts.len());
-    for (id, shift) in data1.shifts.iter() {
+    for (id, shift) in &data1.shifts {
         let other = data2
             .shifts
             .get(id)

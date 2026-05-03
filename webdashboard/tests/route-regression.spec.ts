@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+ 
 import { test, expect } from './worker-orchestrator';
 
 test.describe.skip('Route & Sidebar Regression', () => {

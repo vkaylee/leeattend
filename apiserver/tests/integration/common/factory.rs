@@ -9,67 +9,80 @@ pub struct TestFactory {
 
 impl TestFactory {
     #[allow(dead_code)]
-    pub fn new(pool: PgPool) -> Self {
+    #[must_use]
+    pub const fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn user(&self) -> UserBuilder {
         UserBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn workspace(&self) -> WorkspaceBuilder {
         WorkspaceBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn agent(&self) -> AgentBuilder {
         AgentBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn employee(&self) -> EmployeeBuilder {
         EmployeeBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn shift(&self) -> ShiftBuilder {
         ShiftBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn time_entry(&self) -> TimeEntryBuilder {
         TimeEntryBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn leave_request(&self) -> LeaveRequestBuilder {
         LeaveRequestBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn leave_balance(&self) -> LeaveBalanceBuilder {
         LeaveBalanceBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn leave_policy(&self) -> LeavePolicyBuilder {
         LeavePolicyBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn department(&self) -> DepartmentBuilder {
         DepartmentBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn assignment_rule(&self) -> AssignmentRuleBuilder {
         AssignmentRuleBuilder::new(self.pool.clone())
     }
 
     #[allow(dead_code)]
-    pub fn auth(&self) -> AuthHelper {
+    #[must_use]
+    pub const fn auth(&self) -> AuthHelper {
         AuthHelper::new()
     }
 }
@@ -78,11 +91,13 @@ impl TestFactory {
 pub struct AuthHelper;
 
 impl AuthHelper {
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn create_token(&self, user_id: Uuid) -> String {
         let now = chrono::Utc::now();
         let claims = apiserver::services::auth_service::Claims {
@@ -109,6 +124,7 @@ pub struct UserBuilder {
 
 impl UserBuilder {
     #[allow(dead_code)]
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
@@ -120,12 +136,14 @@ impl UserBuilder {
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_email(mut self, email: &str) -> Self {
         self.email = email.to_string();
         self
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_full_name(mut self, name: &str) -> Self {
         self.full_name = Some(name.to_string());
         self
@@ -156,6 +174,7 @@ pub struct WorkspaceBuilder {
 
 impl WorkspaceBuilder {
     #[allow(dead_code)]
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
@@ -166,12 +185,14 @@ impl WorkspaceBuilder {
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = name.to_string();
         self
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_timezone(mut self, tz: &str) -> Self {
         self.timezone = tz.to_string();
         self
@@ -293,6 +314,7 @@ pub struct EmployeeBuilder {
 
 #[allow(dead_code)]
 impl EmployeeBuilder {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
@@ -306,31 +328,36 @@ impl EmployeeBuilder {
     }
 
     #[allow(dead_code)]
-    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_workspace(mut self, ws_id: Uuid) -> Self {
         self.workspace_id = Some(ws_id);
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_user(mut self, user_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_user(mut self, user_id: Uuid) -> Self {
         self.user_id = Some(user_id);
         self
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_employee_id_number(mut self, id_num: &str) -> Self {
         self.employee_id_number = id_num.to_string();
         self
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_full_name(mut self, name: &str) -> Self {
         self.full_name = name.to_string();
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_hire_date(mut self, date: chrono::NaiveDate) -> Self {
+    #[must_use]
+    pub const fn with_hire_date(mut self, date: chrono::NaiveDate) -> Self {
         self.hire_date = date;
         self
     }
@@ -381,6 +408,7 @@ pub struct ShiftBuilder {
 
 #[allow(dead_code)]
 impl ShiftBuilder {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
@@ -397,38 +425,44 @@ impl ShiftBuilder {
     }
 
     #[allow(dead_code)]
-    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_workspace(mut self, ws_id: Uuid) -> Self {
         self.workspace_id = Some(ws_id);
         self
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = name.to_string();
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_times(mut self, start: chrono::NaiveTime, end: chrono::NaiveTime) -> Self {
+    #[must_use]
+    pub const fn with_times(mut self, start: chrono::NaiveTime, end: chrono::NaiveTime) -> Self {
         self.start_time = start;
         self.end_time = end;
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_break_duration(mut self, minutes: i32) -> Self {
+    #[must_use]
+    pub const fn with_break_duration(mut self, minutes: i32) -> Self {
         self.break_duration_minutes = minutes;
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_grace_period(mut self, minutes: i32) -> Self {
+    #[must_use]
+    pub const fn with_grace_period(mut self, minutes: i32) -> Self {
         self.early_punch_in_grace_period_minutes = minutes;
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_allow_early_ot(mut self, allow: bool) -> Self {
+    #[must_use]
+    pub const fn with_allow_early_ot(mut self, allow: bool) -> Self {
         self.allow_early_ot = allow;
         self
     }
@@ -485,6 +519,7 @@ pub struct TimeEntryBuilder {
 
 #[allow(dead_code)]
 impl TimeEntryBuilder {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -497,30 +532,35 @@ impl TimeEntryBuilder {
     }
 
     #[allow(dead_code)]
-    pub fn with_employee(mut self, employee_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_employee(mut self, employee_id: Uuid) -> Self {
         self.employee_id = Some(employee_id);
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_punch_in(mut self, time: DateTime<Utc>) -> Self {
+    #[must_use]
+    pub const fn with_punch_in(mut self, time: DateTime<Utc>) -> Self {
         self.punch_in_time = time;
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_punch_out(mut self, time: DateTime<Utc>) -> Self {
+    #[must_use]
+    pub const fn with_punch_out(mut self, time: DateTime<Utc>) -> Self {
         self.punch_out_time = Some(time);
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_is_break_overtime(mut self, val: bool) -> Self {
+    #[must_use]
+    pub const fn with_is_break_overtime(mut self, val: bool) -> Self {
         self.is_break_overtime = val;
         self
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_entry_type(mut self, entry_type: &str) -> Self {
         self.entry_type = entry_type.to_string();
         self
@@ -568,6 +608,7 @@ pub struct AgentBuilder {
 
 #[allow(dead_code)]
 impl AgentBuilder {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
@@ -581,25 +622,29 @@ impl AgentBuilder {
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_id(mut self, id: &str) -> Self {
         self.id = id.to_string();
         self
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_token(mut self, token: &str) -> Self {
         self.token = token.to_string();
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_workspace(mut self, ws_id: Uuid) -> Self {
         self.workspace_id = Some(ws_id);
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_trust(mut self, trusted: bool) -> Self {
+    #[must_use]
+    pub const fn with_trust(mut self, trusted: bool) -> Self {
         self.is_trusted = trusted;
         self
     }
@@ -722,6 +767,7 @@ pub struct LeaveRequestBuilder {
 
 #[allow(dead_code)]
 impl LeaveRequestBuilder {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -733,23 +779,27 @@ impl LeaveRequestBuilder {
         }
     }
 
-    pub fn with_employee(mut self, employee_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_employee(mut self, employee_id: Uuid) -> Self {
         self.employee_id = Some(employee_id);
         self
     }
 
-    pub fn with_dates(mut self, start: chrono::NaiveDate, end: chrono::NaiveDate) -> Self {
+    #[must_use]
+    pub const fn with_dates(mut self, start: chrono::NaiveDate, end: chrono::NaiveDate) -> Self {
         self.start_date = start;
         self.end_date = end;
         self
     }
 
-    pub fn with_status(mut self, status: LeaveStatus) -> Self {
+    #[must_use]
+    pub const fn with_status(mut self, status: LeaveStatus) -> Self {
         self.status = status;
         self
     }
 
-    pub fn with_leave_type(mut self, leave_type_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_leave_type(mut self, leave_type_id: Uuid) -> Self {
         self.leave_type_id = Some(leave_type_id);
         self
     }
@@ -799,6 +849,7 @@ pub struct LeaveBalanceBuilder {
 
 #[allow(dead_code)]
 impl LeaveBalanceBuilder {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -810,17 +861,20 @@ impl LeaveBalanceBuilder {
         }
     }
 
-    pub fn with_employee(mut self, employee_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_employee(mut self, employee_id: Uuid) -> Self {
         self.employee_id = Some(employee_id);
         self
     }
 
-    pub fn with_entitlement(mut self, entitlement: i32) -> Self {
+    #[must_use]
+    pub const fn with_entitlement(mut self, entitlement: i32) -> Self {
         self.entitlement = entitlement;
         self
     }
 
-    pub fn with_leave_type(mut self, leave_type_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_leave_type(mut self, leave_type_id: Uuid) -> Self {
         self.leave_type_id = Some(leave_type_id);
         self
     }
@@ -868,6 +922,7 @@ pub struct LeavePolicyBuilder {
 
 #[allow(dead_code)]
 impl LeavePolicyBuilder {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -881,16 +936,19 @@ impl LeavePolicyBuilder {
         }
     }
 
-    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_workspace(mut self, ws_id: Uuid) -> Self {
         self.workspace_id = Some(ws_id);
         self
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = name.to_string();
         self
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: serde_json::Value) -> Self {
         self.rule_config = config;
         self
@@ -959,6 +1017,7 @@ pub struct DepartmentBuilder {
 
 #[allow(dead_code)]
 impl DepartmentBuilder {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
@@ -970,11 +1029,13 @@ impl DepartmentBuilder {
         }
     }
 
-    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_workspace(mut self, ws_id: Uuid) -> Self {
         self.workspace_id = Some(ws_id);
         self
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = name.to_string();
         self
@@ -1007,6 +1068,7 @@ pub struct AssignmentRuleBuilder {
 
 #[allow(dead_code)]
 impl AssignmentRuleBuilder {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -1022,26 +1084,31 @@ impl AssignmentRuleBuilder {
         }
     }
 
-    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_workspace(mut self, ws_id: Uuid) -> Self {
         self.workspace_id = Some(ws_id);
         self
     }
 
-    pub fn with_pattern(mut self, pattern_id: Uuid) -> Self {
+    #[must_use]
+    pub const fn with_pattern(mut self, pattern_id: Uuid) -> Self {
         self.pattern_id = Some(pattern_id);
         self
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = name.to_string();
         self
     }
 
-    pub fn with_priority(mut self, priority: i32) -> Self {
+    #[must_use]
+    pub const fn with_priority(mut self, priority: i32) -> Self {
         self.priority = priority;
         self
     }
 
+    #[must_use]
     pub fn with_conditions(
         mut self,
         conditions: apiserver::models::AssignmentRuleConditions,

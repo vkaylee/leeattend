@@ -23,7 +23,18 @@ const COLORS = {
     on_leave: "#6366f1",
 };
 
-function DepartmentAttendanceChartBar({ chartData, t }: any) {
+interface DepartmentAttendanceChartBarProps {
+    chartData: {
+        name: string;
+        on_time: number;
+        late: number;
+        absent: number;
+        on_leave: number;
+    }[];
+    t: (k: string) => string;
+}
+
+function DepartmentAttendanceChartBar({ chartData, t }: DepartmentAttendanceChartBarProps) {
     return (
         <ResponsiveContainer height={320} width="100%">
             <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
@@ -110,7 +121,7 @@ export default function DepartmentAttendanceChart() {
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <div className="bg-indigo-50 dark:bg-indigo-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner border border-indigo-100 dark:border-indigo-800">
+                    <div className="bg-blue-50 dark:bg-blue-950 w-12 h-12 rounded-[1rem] flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-inner border border-blue-100 dark:border-blue-800">
                         <Building2 size={22} />
                     </div>
                     <div>

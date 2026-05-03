@@ -55,7 +55,7 @@ export default function AttendanceAdjustmentsPage() {
 
   const downloadTemplate = () => {
     const headers = "empNo,empName,empDt"; const example = "EMP001,Nguyen Van A,11/01/2026 08:00";
-    const blob = new Blob([`\uFEFF${headers ?? ""}\n${example ?? ""}`], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([`\uFEFF${headers}\n${example}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.body.appendChild(document.createElement("a")); link.href = URL.createObjectURL(blob); link.download = "attendance_template.csv"; link.click(); document.body.removeChild(link);
   };
 
@@ -127,7 +127,7 @@ export default function AttendanceAdjustmentsPage() {
                   </td>
                   <td className="px-8 py-6 text-center">
                     <StatusBadge variant={request.status === "pending" ? "warning" : request.status === "approved" ? "success" : "danger"}>
-                      {t(`common.status_${request.status ?? ""}`).toUpperCase()}
+                      {t(`common.status_${request.status}`).toUpperCase()}
                     </StatusBadge>
                   </td>
                   <td className="px-10 py-6 text-right">

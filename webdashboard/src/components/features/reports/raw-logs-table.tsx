@@ -44,7 +44,7 @@ export default function RawLogsTable({
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                     {rawLogsLoading ? (
                         Array.from({ length: 5 }).map((_, index) => (
-                            <tr className="border-b border-slate-50 dark:border-slate-800/50" key={`skeleton-log-${index ?? ""}`}>
+                            <tr className="border-b border-slate-50 dark:border-slate-800/50" key={`skeleton-log-${index}`}>
                                 <td className="px-8 py-5">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse"></div>
@@ -106,7 +106,7 @@ export default function RawLogsTable({
                             </tr>
                         ))
                     )}
-                    {!!hasNextPage && <InfiniteScrollSentinel colSpan={3} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} />}
+                    {hasNextPage && <InfiniteScrollSentinel colSpan={3} isFetchingNextPage={isFetchingNextPage} sentinelRef={loadMoreRef} />}
                 </tbody>
             </table>
         </div>

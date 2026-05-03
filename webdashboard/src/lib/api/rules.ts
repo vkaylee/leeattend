@@ -35,12 +35,12 @@ export interface UpdateAssignmentRuleRequest {
 }
 
 export async function fetchAssignmentRules(wsId: string): Promise<AssignmentRule[]> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/assignment-rules`);
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules`);
   return response.json() as Promise<AssignmentRule[]>;
 }
 
 export async function createAssignmentRule(wsId: string, data: CreateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/assignment-rules`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -48,7 +48,7 @@ export async function createAssignmentRule(wsId: string, data: CreateAssignmentR
 }
 
 export async function updateAssignmentRule(wsId: string, ruleId: string, data: UpdateAssignmentRuleRequest): Promise<AssignmentRule> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/assignment-rules/${ruleId ?? ""}`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules/${ruleId}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
@@ -56,7 +56,7 @@ export async function updateAssignmentRule(wsId: string, ruleId: string, data: U
 }
 
 export async function deleteAssignmentRule(wsId: string, ruleId: string): Promise<void> {
-  await apiFetch(`${API_BASE_URL ?? ""}/workspaces/${wsId ?? ""}/assignment-rules/${ruleId ?? ""}`, {
+  await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-rules/${ruleId}`, {
     method: "DELETE",
   });
 }

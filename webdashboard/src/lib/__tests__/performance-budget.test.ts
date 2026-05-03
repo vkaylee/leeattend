@@ -39,7 +39,7 @@ describe("performance budget", () => {
       for (const [prefix, maxSize] of Object.entries(budgets)) {
         if (file.startsWith(prefix)) {
           const size = statSync(resolve(distDir, file)).size;
-          expect(size, `${file ?? ""} exceeds budget of ${maxSize ?? ""}`).toBeLessThan(maxSize);
+          expect(size, `${file} exceeds budget of ${maxSize}`).toBeLessThan(maxSize);
         }
       }
     }
@@ -52,7 +52,7 @@ describe("performance budget", () => {
     expect(files.length).toBeGreaterThan(20); // at least 20 lazy chunks
     for (const file of files) {
       const size = statSync(resolve(distDir, file)).size;
-      expect(size, `${file ?? ""} exceeds 150 kB budget`).toBeLessThan(150_000);
+      expect(size, `${file} exceeds 150 kB budget`).toBeLessThan(150_000);
     }
   });
 

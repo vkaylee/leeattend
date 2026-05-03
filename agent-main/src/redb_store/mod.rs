@@ -353,7 +353,7 @@ mod tests {
         };
         let id = store.insert("DEV1", &data, 50000).unwrap();
 
-        let key = format!("DEV1:USR1:50000:2:1");
+        let key = "DEV1:USR1:50000:2:1".to_string();
         let found = store.get_id_by_composite_key(&key);
         assert_eq!(found, Some(id));
     }

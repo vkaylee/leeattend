@@ -57,7 +57,7 @@ export default function MyProfilePage() {
     }
   }, [profile]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     try {
       await updateProfile(formData);
@@ -65,7 +65,7 @@ export default function MyProfilePage() {
     } catch (error) { console.error(error); }
   }
 
-  async function handleAddContact(e: React.FormEvent) {
+  async function handleAddContact(e: React.SyntheticEvent) {
     e.preventDefault();
     try {
       await addContact(newContact);
@@ -113,7 +113,7 @@ export default function MyProfilePage() {
       <div className="animate-in slide-in-from-bottom-8 duration-700">
         <div className="max-w-5xl bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mb-10 group/hero">
           <div className="h-40 bg-slate-900 relative overflow-hidden">
-             <div className="absolute inset-0 bg-gradient-to-br from-primary-600/40 via-indigo-600/20 to-transparent" />
+             <div className="absolute inset-0 bg-gradient-to-br from-primary-600/40 via-blue-600/20 to-transparent" />
              <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_0,transparent_50%)]" />
           </div>
           <div className="px-12 pb-10">
@@ -142,7 +142,7 @@ export default function MyProfilePage() {
                 { label: "national_id", key: "national_id", icon: ShieldCheck, placeholder: "xxx xxx xxx xxx" }
               ].map(field => (
                 <div className="space-y-3 px-1" key={field.key}>
-                  <label className={LABEL_BASE}><field.icon className="inline mr-2" size={12} /> {t(`ess.${field.label ?? ""}`)}</label>
+                  <label className={LABEL_BASE}><field.icon className="inline mr-2" size={12} /> {t(`ess.${field.label}`)}</label>
                   { }
                   <input className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm" onChange={(e) => { setFormData({ ...formData, [field.key]: e.target.value }); }} placeholder={field.placeholder} type={field.type} value={(formData as Record<string, string>)[field.key]} />
                 </div>
@@ -181,7 +181,7 @@ export default function MyProfilePage() {
                 { label: "bank_branch", key: "bank_branch", icon: MapPin, placeholder: t("ess.branch_placeholder") }
               ].map(field => (
                 <div className="space-y-3 px-1" key={field.key}>
-                  <label className={LABEL_BASE}><field.icon className="inline mr-2" size={12} /> {t(`ess.${field.label ?? ""}`)}</label>
+                  <label className={LABEL_BASE}><field.icon className="inline mr-2" size={12} /> {t(`ess.${field.label}`)}</label>
                   { }
                   <input className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm tracking-tight shadow-sm font-mono" onChange={(e) => { setFormData({ ...formData, [field.key]: e.target.value }); }} placeholder={field.placeholder} type="text" value={(formData as Record<string, string>)[field.key] || ""} />
                 </div>
@@ -220,7 +220,7 @@ export default function MyProfilePage() {
                       <div>
                         <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight flex items-center gap-3 uppercase leading-none mb-2">
                           {contact.contact_name}
-                          {!!contact.is_primary && <StatusBadge variant="primary">{t("ess.primary")}</StatusBadge>}
+                          {contact.is_primary && <StatusBadge variant="primary">{t("ess.primary")}</StatusBadge>}
                         </div>
                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] opacity-70">{contact.relationship} • <span className="font-mono text-slate-500 dark:text-slate-400 font-bold">{contact.phone}</span></div>
                       </div>

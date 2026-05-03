@@ -7,20 +7,20 @@ interface VitalMetric {
 }
 
 function getRating(name: string, value: number): VitalMetric["rating"] {
-  const thresholds: Record<string, [number, number]> = {
+  const thresholds: Partial<Record<string, [number, number]>> = {
     LCP: [2500, 4000],
     FCP: [1800, 3000],
     CLS: [0.1, 0.25],
     INP: [200, 500],
     TTFB: [800, 1800],
   };
-  const [good, poor] = thresholds[name] || [0, Infinity];
+  const [good, poor] = thresholds[name] ?? [0, Infinity];
   if (value <= good) return "good";
   if (value <= poor) return "needs-improvement";
   return "poor";
 }
 
-function reportMetric(metric: VitalMetric) {
+function reportMetric(_metric: VitalMetric) {
   if (import.meta.env.DEV) {
     
   }

@@ -12,16 +12,16 @@ interface SegmentVisualizerProps {
   segments: PayrollSegment[];
 }
 
-const REASON_COLORS: Record<string, string> = {
+const REASON_COLORS: Partial<Record<string, string>> = {
   "Standard": "from-emerald-400 to-emerald-500",
-  "Salary Change": "from-blue-500 to-indigo-600",
+  "Salary Change": "from-blue-500 to-blue-600",
   "New Hire": "from-amber-400 to-orange-500",
   "Termination": "from-rose-400 to-rose-600",
-  "Department Transfer": "from-indigo-400 to-teal-600",
+  "Department Transfer": "from-blue-400 to-teal-600",
 };
 
 export default function SegmentVisualizer({ segments, periodStart, periodEnd, className }: SegmentVisualizerProps) {
-  if (!segments || segments.length === 0) return null;
+  if (segments.length === 0) return null;
 
   const start = startOfDay(new Date(periodStart));
   const end = endOfDay(new Date(periodEnd));
@@ -44,8 +44,8 @@ export default function SegmentVisualizer({ segments, periodStart, periodEnd, cl
           <div 
             className={cn("h-full first:rounded-l-full last:rounded-r-full hover:brightness-110 hover:scale-y-110 transition-all bg-gradient-to-b relative group cursor-help", colorClass)}
             key={index}
-            style={{ width: `${width ?? ""}%` }}
-            title={`${seg.reason ?? ""}: ${seg.start_date ?? ""} - ${seg.end_date ?? ""}`}
+            style={{ width: `${width}%` }}
+            title={`${seg.reason}: ${seg.start_date} - ${seg.end_date}`}
           />
         );
       })}

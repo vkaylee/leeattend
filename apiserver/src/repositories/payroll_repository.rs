@@ -810,9 +810,9 @@ mod tests {
     fn test_decimal_to_f64_normal_values() {
         let values = [
             Decimal::ZERO,
-            Decimal::new(1_500_000_00, 2), // 1,500,000.00
-            Decimal::new(999_999_99, 2),   // 9,999,99.99
-            Decimal::new(-500_00, 2),      // -500.00
+            Decimal::new(150_000_000, 2), // 1,500,000.00
+            Decimal::new(99_999_999, 2),  // 999,999.99
+            Decimal::new(-50_000, 2),     // -500.00
         ];
         for val in values {
             assert!(
@@ -865,8 +865,8 @@ mod tests {
     fn test_create_payslip_incentive_decimal_validation_error_message() {
         let result = IncentiveEvaluationResult {
             policy_name: "Attendance Bonus".to_string(),
-            amount: Decimal::new(1_000_000_00, 2),
-            standard_amount: Decimal::new(1_000_000_00, 2),
+            amount: Decimal::new(100_000_000, 2),
+            standard_amount: Decimal::new(100_000_000, 2),
             tier_id: Some(Uuid::new_v4()),
         };
 
@@ -891,8 +891,8 @@ mod tests {
     fn test_create_payslip_incentive_normal_amounts_pass() {
         let result = IncentiveEvaluationResult {
             policy_name: "Monthly Bonus".to_string(),
-            amount: Decimal::new(5_000_000_00, 2), // 5,000,000.00 VND
-            standard_amount: Decimal::new(5_000_000_00, 2),
+            amount: Decimal::new(500_000_000, 2), // 5,000,000.00 VND
+            standard_amount: Decimal::new(500_000_000, 2),
             tier_id: None,
         };
 
@@ -903,7 +903,7 @@ mod tests {
     /// Validates the f64→Decimal roundtrip in `get_payslip_incentives`.
     #[test]
     fn test_f64_to_decimal_roundtrip_precision() {
-        let original = Decimal::new(1_234_567_89, 2); // 12,345,678.9
+        let original = Decimal::new(123_456_789, 2); // 1,234,567.89
         let as_f64 = original.to_f64().expect("normal conversion");
         let back = Decimal::from_f64(as_f64).expect("roundtrip should work");
 

@@ -59,7 +59,7 @@ export default function RoleManagementModal({
  
   }
 
-  async function handleAssign(e: React.FormEvent) {
+  async function handleAssign(e: React.SyntheticEvent) {
     e.preventDefault(); if (!expiresAt || !userId || !newRoleId) return;
     try {
       const isoExpiresAt = new Date(expiresAt).toISOString();

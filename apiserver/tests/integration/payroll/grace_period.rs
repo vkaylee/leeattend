@@ -1,6 +1,6 @@
 //! Test grace period conditional override (Issue 5)
 //!
-//! Verifies that shift's early_punch_in_grace_period_minutes only overrides
+//! Verifies that shift's `early_punch_in_grace_period_minutes` only overrides
 //! policy grace period when non-zero.
 
 use crate::common::db::TestDatabase;

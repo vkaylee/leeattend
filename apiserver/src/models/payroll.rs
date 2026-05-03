@@ -263,6 +263,7 @@ pub struct SalaryComponentWithDefinition {
 }
 
 #[cfg(test)]
+#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
     use rust_decimal::Decimal;

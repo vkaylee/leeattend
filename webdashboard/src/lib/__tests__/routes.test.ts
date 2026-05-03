@@ -28,21 +28,21 @@ describe("ROUTES constants", () => {
 
   it("every path starts with /", () => {
     for (const path of allPaths) {
-      expect(path, `"${path ?? ""}" should start with /`).toMatch(/^\//);
+      expect(path, `"${path}" should start with /`).toMatch(/^\//);
     }
   });
 
   it("no path has a trailing slash (except HOME)", () => {
     for (const path of allPaths) {
       if (path === "/") continue;
-      expect(path, `"${path ?? ""}" should not end with /`).not.toMatch(/\/$/);
+      expect(path, `"${path}" should not end with /`).not.toMatch(/\/$/);
     }
   });
 
   it("no duplicate paths exist", () => {
     const seen = new Set<string>();
     for (const path of allPaths) {
-      expect(seen.has(path), `duplicate path: "${path ?? ""}"`).toBe(false);
+      expect(seen.has(path), `duplicate path: "${path}"`).toBe(false);
       seen.add(path);
     }
   });
@@ -51,8 +51,8 @@ describe("ROUTES constants", () => {
     const root = ROUTES.SETTINGS.ROOT;
     for (const [key, value] of Object.entries(ROUTES.SETTINGS)) {
       if (key === "ROOT") continue;
-      expect(value, `SETTINGS.${key ?? ""} should be under ${root ?? ""}`).toMatch(
-        new RegExp(`^${root ?? ""}/`),
+      expect(value, `SETTINGS.${key} should be under ${root}`).toMatch(
+        new RegExp(`^${root}/`),
       );
     }
   });
@@ -105,7 +105,7 @@ describe("ROUTES constants", () => {
     for (const expected of EXPECTED_APP_ROUTES) {
       expect(
         allPaths,
-        `Missing ROUTES constant for app route "${expected ?? ""}"`,
+        `Missing ROUTES constant for app route "${expected}"`,
       ).toContain(expected);
     }
   });
@@ -118,7 +118,7 @@ describe("ROUTES constants", () => {
     // If extras appear, add them to EXPECTED_APP_ROUTES or document why
     // they're expected extras (e.g. feature-flagged routes).
     for (const extra of extras) {
-      expect(extra, `Extra ROUTES constant "${extra ?? ""}" not in expected routes — is this intentional?`).toMatch(/^\//);
+      expect(extra, `Extra ROUTES constant "${extra}" not in expected routes — is this intentional?`).toMatch(/^\//);
     }
   });
 });
@@ -180,7 +180,7 @@ describe("Route compliance — no hardcoded paths in source", () => {
         for (const pattern of VIOLATION_PATTERNS) {
           if (pattern.test(lines[index])) {
             const rel = path.relative(srcDir, filePath);
-            violations.push(`${rel ?? ""}:${index + 1}: ${lines[index].trim()}`);
+            violations.push(`${rel}:${index + 1}: ${lines[index].trim()}`);
           }
         }
       }

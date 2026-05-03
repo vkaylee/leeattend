@@ -61,7 +61,7 @@ export function useDateTimeFormatter() {
   const formatDateTime = (date: string | Date | null | undefined) => {
     if (!date) return "---";
     try {
-      return format(new Date(date), `${datePattern ?? ""} ${timePattern ?? ""}`);
+      return format(new Date(date), `${datePattern} ${timePattern}`);
     } catch {
       return String(date);
     }

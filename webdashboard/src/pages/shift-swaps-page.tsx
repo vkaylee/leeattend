@@ -155,7 +155,7 @@ export default function ShiftSwapsPage() {
             banner={
                 <>
                     {/* Usage Guide */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-800/50 rounded-[2rem] overflow-hidden shadow-sm">
+                    <div className="bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-950/30 dark:to-sky-950/30 border border-blue-100 dark:border-blue-800/50 rounded-[2rem] overflow-hidden shadow-sm">
                         <button
                             className="flex items-center justify-between w-full px-8 py-5 group"
                             onClick={() => { setShowGuide(!showGuide); }}
@@ -175,7 +175,7 @@ export default function ShiftSwapsPage() {
                             )}
                         </button>
 
-                        {!!showGuide && (
+                        {showGuide ? (
                             <div className="px-8 pb-8 animate-in slide-in-from-top-4 duration-300">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-blue-100 dark:border-blue-800/30">
                                     <div className="space-y-3">
@@ -190,7 +190,7 @@ export default function ShiftSwapsPage() {
                                         </p>
                                     </div>
                                     <div className="space-y-3">
-                                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold font-mono text-xs">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold font-mono text-xs">
                                             2
                                         </div>
                                         <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">
@@ -220,11 +220,11 @@ export default function ShiftSwapsPage() {
                                     </p>
                                 </div>
                             </div>
-                          )}
+                          ) : null}
                     </div>
 
                     {/* Quick Stats */}
-                    {!!stats && (
+                    {stats ? (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-bottom-4 duration-500 delay-100">
                             {[
                                 {
@@ -256,7 +256,7 @@ export default function ShiftSwapsPage() {
                                     className={cn(
                                         "bg-white dark:bg-slate-900 p-5 rounded-[2rem] border shadow-sm cursor-pointer hover:shadow-md transition-all group",
                                         activeTab === stat.key
-                                            ? `border-${stat.color ?? ""}-300 dark:border-${stat.color ?? ""}-700 ring-2 ring-${stat.color ?? ""}-100 dark:ring-${stat.color ?? ""}-900`
+                                            ? `border-${stat.color === 'blue' ? 'primary' : stat.color}-300 dark:border-${stat.color === 'blue' ? 'primary' : stat.color}-700 ring-2 ring-${stat.color === 'blue' ? 'primary' : stat.color}-100 dark:ring-${stat.color === 'blue' ? 'primary' : stat.color}-900`
                                             : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700",
                                     )}
                                     key={stat.key}
@@ -274,17 +274,17 @@ export default function ShiftSwapsPage() {
                                         {stat.label}
                                     </div>
                                     <div
-                                        className={`text-3xl font-black tracking-tighter text-${stat.color ?? ""}-600 dark:text-${stat.color ?? ""}-400 font-mono`}
+                                        className={`text-3xl font-black tracking-tighter text-${stat.color}-600 dark:text-${stat.color}-400 font-mono`}
                                     >
                                         {stat.value}
                                     </div>
                                 </div>
                             ))}
                         </div>
-                      )}
+                      ) : null}
 
                     {/* Create Form */}
-                    {!!showCreateForm && (
+                    {showCreateForm ? (
                         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 rounded-[2rem] shadow-sm animate-in zoom-in-95 duration-300 mb-8">
                             <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight mb-6 flex items-center gap-2">
                                 <ArrowLeftRight className="text-primary-500" />
@@ -374,7 +374,7 @@ export default function ShiftSwapsPage() {
                                 </Button>
                             </div>
                         </div>
-                      )}
+                        ) : null}
                 </>
             }
             emptyMessage={t("shift_swaps.messages.no_data")}
@@ -454,13 +454,13 @@ export default function ShiftSwapsPage() {
                             swap.status === "pending_admin" ? "warning" :
                             swap.status === "approved" ? "success" : "danger"
                         }>
-                            {t(`shift_swaps.status.${swap.status ?? ""}`)}
+                            {t(`shift_swaps.status.${swap.status}`)}
                         </StatusBadge>
                     </td>
 
                     {/* Actions */}
                     <td className="px-10 py-6 text-right">
-                        {swap.status === "pending_admin" && (
+                        {swap.status === "pending_admin" ? (
                             <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
                                 <button
                                     className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90"
@@ -487,7 +487,7 @@ export default function ShiftSwapsPage() {
                                     <X size={18} />
                                 </button>
                             </div>
-                        )}
+                        ) : null}
                     </td>
                 </tr>
             ))}

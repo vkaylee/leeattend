@@ -1,5 +1,5 @@
 //! Integration tests for WF5: Attendance Summary holiday flag
-//! Verifies that the attendance summary API returns is_holiday and holiday_name
+//! Verifies that the attendance summary API returns `is_holiday` and `holiday_name`
 //! correctly when holidays exist for the queried date range.
 
 use crate::common::app::spawn_app;
@@ -14,7 +14,7 @@ struct SummaryRow {
     actual_work_minutes: i32,
 }
 
-/// Create a holiday, trigger recalculation, verify the summary record has is_holiday=true
+/// Create a holiday, trigger recalculation, verify the summary record has `is_holiday=true`
 #[tokio::test]
 async fn test_summary_records_holiday_flag_after_recalculate() {
     let (address, test_db) = spawn_app().await;

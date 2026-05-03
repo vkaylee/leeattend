@@ -43,7 +43,7 @@ export default function CollapsibleSection({
     return (
         <section className={cn("group/section", className)}>
             <button
-                aria-controls={`section-${id ?? ""}`}
+                aria-controls={`section-${id}`}
                 aria-expanded={!isCollapsed}
                 className="flex items-center justify-between w-full px-4 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 onClick={() => onToggle?.(id)}
@@ -63,10 +63,10 @@ export default function CollapsibleSection({
 
             <div
                 className="transition-[height] duration-300 ease-in-out"
-                id={`section-${id ?? ""}`}
+                id={`section-${id}`}
                 ref={contentRef}
                 style={{
-                    height: typeof height === "number" ? `${height ?? ""}px` : "auto",
+                    height: typeof height === "number" ? `${height}px` : "auto",
                     overflow: isCollapsed ? "hidden" : "visible",
                 }}
             >

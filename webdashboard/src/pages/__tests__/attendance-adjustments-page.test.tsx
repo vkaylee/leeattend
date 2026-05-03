@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
-import { Employee, PaginatedResponse, AttendanceAdjustmentRequest } from "../../lib/api/types";
+import { AttendanceAdjustmentRequest } from "../../lib/api/types";
 import AttendanceAdjustmentsPage from "../attendance-adjustments-page";
 
 

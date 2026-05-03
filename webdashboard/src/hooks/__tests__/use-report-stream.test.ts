@@ -2,6 +2,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
+import type { UseReportStreamResult } from "../use-report-stream";
 import { useReportStream } from "../use-report-stream";
 
 /**
@@ -55,9 +56,9 @@ describe("useReportStream Hook", () => {
 
   describe("State Transitions with jobId Changes", () => {
     it("should reset state when jobId becomes null", async () => {
-      const { result, rerender } = renderHook(
-        ({ jobId }: { jobId: string | null }) => useReportStream({ jobId }),
-        { initialProps: { jobId: "test-job" as string | null } }
+      const { result, rerender } = renderHook<UseReportStreamResult, { jobId: string | null }>(
+        ({ jobId }) => useReportStream({ jobId }),
+        { initialProps: { jobId: "test-job" } }
       );
 
       // When jobId is set, it will try to connect
@@ -75,9 +76,9 @@ describe("useReportStream Hook", () => {
 
     it("should reset chunks and progress on new jobId", async () => {
       // Manually set up the state transition without relying on actual WebSocket
-      const { result, rerender } = renderHook(
-        ({ jobId }: { jobId: string | null }) => useReportStream({ jobId }),
-        { initialProps: { jobId: "job-1" as string | null } }
+      const { result, rerender } = renderHook<UseReportStreamResult, { jobId: string | null }>(
+        ({ jobId }) => useReportStream({ jobId }),
+        { initialProps: { jobId: "job-1" } }
       );
 
       const initialStatus = result.current.status;
@@ -386,8 +387,8 @@ describe("useReportStream Hook", () => {
     it("should not attempt reconnect when status is completed", () => {
       // The fix uses statusRef.current instead of captured status.
       // When status is "completed", onclose should NOT retry.
-      const { result } = renderHook(
-        ({ jobId }: { jobId: string | null }) =>
+      const { result } = renderHook<UseReportStreamResult, { jobId: string | null }>(
+        ({ jobId }) =>
           useReportStream({ jobId, maxRetries: 3 }),
         { initialProps: { jobId: "test-job" } }
       );
@@ -433,8 +434,8 @@ describe("useReportStream Hook", () => {
     it("should handle rapid status transitions without stale reads", () => {
       // Simulates the problematic scenario: status changes rapidly
       // between "streaming" -> "completed" but onclose reads old value
-      const { result, rerender } = renderHook(
-        ({ jobId }: { jobId: string | null }) =>
+      const { result, rerender } = renderHook<UseReportStreamResult, { jobId: string | null }>(
+        ({ jobId }) =>
           useReportStream({ jobId, maxRetries: 3 }),
         { initialProps: { jobId: "job-1" } }
       );

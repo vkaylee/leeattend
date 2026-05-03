@@ -1,5 +1,5 @@
 //! Workspace isolation integration tests.
-//! Verifies that repository queries with workspace_id correctly scope data,
+//! Verifies that repository queries with `workspace_id` correctly scope data,
 //! preventing cross-workspace data leaks.
 
 use crate::common::db::TestDatabase;
@@ -12,7 +12,7 @@ use chrono::{Duration, NaiveDate, Utc};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Helper: create a workspace with an employee and return (workspace_id, employee_id).
+/// Helper: create a workspace with an employee and return (`workspace_id`, `employee_id`).
 async fn create_workspace_with_employee(factory: &TestFactory) -> (Uuid, Uuid) {
     let ws_id = factory.workspace().create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
@@ -128,7 +128,7 @@ async fn test_get_workspace_time_entries_batch_isolated() {
         time_entry_repository::get_workspace_time_entries_batch(&pool, ws_a, &[emp_a], start, end)
             .await
             .unwrap();
-    assert_eq!(batch_a.get(&emp_a).map(|v| v.len()).unwrap_or(0), 1);
+    assert_eq!(batch_a.get(&emp_a).map_or(0, std::vec::Vec::len), 1);
 
     // Batch query with wrong workspace
     let batch_b =
@@ -136,7 +136,7 @@ async fn test_get_workspace_time_entries_batch_isolated() {
             .await
             .unwrap();
     assert_eq!(
-        batch_b.get(&emp_a).map(|v| v.len()).unwrap_or(0),
+        batch_b.get(&emp_a).map_or(0, std::vec::Vec::len),
         0,
         "Batch query should return 0 entries for wrong workspace"
     );

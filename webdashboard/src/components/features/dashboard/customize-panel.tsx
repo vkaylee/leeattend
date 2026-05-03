@@ -129,7 +129,13 @@ function CustomizePanelBackdrop({ onClose }: { onClose: () => void }) {
     );
 }
 
-function CustomizePanelHeader({ onClose, isSaving, t }: any) {
+interface CustomizePanelHeaderProps {
+    isSaving?: boolean;
+    onClose: () => void;
+    t: (key: string) => string;
+}
+
+function CustomizePanelHeader({ onClose, isSaving, t }: CustomizePanelHeaderProps) {
     return (
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
@@ -148,7 +154,12 @@ function CustomizePanelHeader({ onClose, isSaving, t }: any) {
     );
 }
 
-function CustomizePanelFooter({ onReset, t }: any) {
+interface CustomizePanelFooterProps {
+    onReset: () => void;
+    t: (key: string) => string;
+}
+
+function CustomizePanelFooter({ onReset, t }: CustomizePanelFooterProps) {
     return (
         <div className="px-6 py-5 border-t border-slate-100 dark:border-slate-800 space-y-3">
             <button
@@ -240,7 +251,7 @@ export default function CustomizePanel({
                         >
                             {orderedWidgets.map((widget) => (
                                 <SortableWidgetRow
-                                    isVisible={visibleWidgets[widget.id] ?? false}
+                                    isVisible={visibleWidgets[widget.id]}
                                     key={widget.id}
                                     onToggle={onToggleWidget}
                                     widget={widget}

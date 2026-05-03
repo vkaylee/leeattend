@@ -102,7 +102,7 @@ export interface RegisterRequest {
 export interface WorkspaceMember {
   avatar_url?: string;
   email: string;
-  extra_role_ids: string[];
+  extra_role_ids?: string[];
   full_name?: string;
   role_id: string;
   user_id: string;
@@ -409,8 +409,8 @@ export interface IncentiveEvaluationResult {
 
 
 export interface SalaryComponentWithDefinition {
-  component: EmployeeSalaryComponent;
-  definition: SalaryComponentDefinition;
+  component?: EmployeeSalaryComponent;
+  definition?: SalaryComponentDefinition;
 }
 
  
@@ -651,7 +651,7 @@ export interface LeaveType {
   id: string;
   is_paid: boolean;
   name: string;
-  policy_config: LeaveTypeConfig;
+  policy_config?: LeaveTypeConfig;
   workspace_id: string;
  
 }

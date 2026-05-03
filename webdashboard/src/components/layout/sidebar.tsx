@@ -43,7 +43,7 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onShowSwitcher: () => void;
-  openSections: Record<string, boolean>;
+  openSections: Partial<Record<string, boolean>>;
   toggleSection: (section: string) => void;
 }
 
@@ -55,7 +55,29 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
 
   const handleLogout = () => { localStorage.clear(); window.location.href = ROUTES.LOGIN; };
 
-  const menuItems = [
+  interface MenuItemBase {
+    icon?: React.ElementType;
+    label: string;
+    testId: string;
+    to?: string;
+  }
+
+  interface MenuSection extends MenuItemBase {
+    items: MenuItem[];
+    section: string;
+    sectionIcon: React.ElementType;
+  }
+
+  interface MenuLink extends MenuItemBase {
+    exact?: boolean;
+    permissions?: string[];
+    systemRoles?: string[];
+    to: string;
+  }
+
+  type MenuItem = MenuSection | MenuLink;
+
+  const menuItems: MenuItem[] = [
     { to: ROUTES.HOME, icon: LayoutDashboard, label: t("common.dashboard"), exact: true, testId: "sidebar-link-dashboard" },
     {
       section: "org", sectionIcon: Folder, label: t("common.sections.organization"), testId: "sidebar-section-org", items: [
@@ -99,13 +121,14 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
 
   const filteredMenuItems = menuItems
     .map((item) => {
-      if (item.section && item.items) {
+      if ("section" in item) {
         const filteredItems = item.items.filter(
-          (subItem: { to: string; systemRoles?: string[]; permissions?: string[] }) => {
-            if (subItem.systemRoles && subItem.systemRoles.length > 0) {
+          (subItem) => {
+            if ("systemRoles" in subItem && subItem.systemRoles && subItem.systemRoles.length > 0) {
               return subItem.systemRoles.some((role: string) => user?.system_roles?.includes(role));
             }
-            return !subItem.permissions || subItem.permissions.length === 0 || hasAnyPermission(...subItem.permissions);
+            const permissions = "permissions" in subItem ? subItem.permissions : undefined;
+            return !permissions || permissions.length === 0 || hasAnyPermission(...permissions);
           }
         );
         return { ...item, items: filteredItems };
@@ -113,30 +136,29 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       return item;
     })
     .filter((item) => {
-      if (item.section) {
-        return item.items && item.items.length > 0;
+      if ("section" in item) {
+        return item.items.length > 0;
       }
- 
       return true;
     });
 
   return (
     <div className={cn("fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 transition-all duration-300 shadow-xl shadow-slate-200/50 dark:shadow-black/30", isCollapsed ? "w-20" : "w-72", !isOpen && "-translate-x-full lg:translate-x-0")}>
       <div className="flex h-24 items-center justify-between px-6 border-b border-slate-50 dark:border-slate-800">
-        {!isCollapsed && <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-500 shadow-lg shadow-primary-200 flex items-center justify-center text-white font-black text-xl tracking-tighter italic">L</div><span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase italic">Lee<span className="text-primary-600 dark:text-primary-400">Attend</span></span></div>}
+        {!isCollapsed && <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-primary-400 shadow-lg shadow-primary-200 flex items-center justify-center text-white font-black text-xl tracking-tighter italic">L</div><span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase italic">Lee<span className="text-primary-600 dark:text-primary-400">Attend</span></span></div>}
         <button className="lg:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors" onClick={onClose}><X className="h-5 w-5" /></button>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6 space-y-8">
         {filteredMenuItems.map((item) => (
           <div key={item.label}>
-            {item.section ? (
+            {"section" in item ? (
               <div className="space-y-2">
-                {!isCollapsed && <button className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group" data-testid={item.testId} onClick={() => { toggleSection(item.section); }}><div className="flex items-center gap-2">{!!item.sectionIcon && <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />}<span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
+                {!isCollapsed && <button className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group" data-testid={item.testId} onClick={() => { toggleSection(item.section); }}><div className="flex items-center gap-2"><item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" /><span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
                 {(openSections[item.section] || isCollapsed) && (
                   <div className="space-y-1">
                     {item.items.map((subItem) => (
                       <Link className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", location.pathname === subItem.to ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200")} data-testid={subItem.testId} key={subItem.to} to={subItem.to}>
-                        <div className={cn("p-2 rounded-xl transition-colors", location.pathname === subItem.to ? "bg-white dark:bg-primary-900/30 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700")}>{!!subItem.icon && <subItem.icon className="h-4 w-4" />}</div>
+                        <div className={cn("p-2 rounded-xl transition-colors", location.pathname === subItem.to ? "bg-white dark:bg-primary-900/30 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700")}>{subItem.icon && <subItem.icon className="h-4 w-4" />}</div>
                         {!isCollapsed && <span className="font-bold text-sm truncate">{subItem.label}</span>}
                       </Link>
                     ))}
@@ -144,8 +166,8 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
                 )}
               </div>
             ) : (
-              <Link className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to!)) ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200")} data-testid={item.testId} to={item.to!}>
-                <div className={cn("p-2 rounded-xl transition-colors", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to!)) ? "bg-white dark:bg-primary-900/30 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700")}>{!!item.icon && <item.icon className="h-4 w-4" />}</div>
+              <Link className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)) ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200")} data-testid={item.testId} to={item.to as "/"}>
+                <div className={cn("p-2 rounded-xl transition-colors", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)) ? "bg-white dark:bg-primary-900/30 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700")}>{item.icon && <item.icon className="h-4 w-4" />}</div>
                 {!isCollapsed && <span className="font-bold text-sm truncate">{item.label}</span>}
               </Link>
             )}

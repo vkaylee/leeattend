@@ -97,7 +97,7 @@ function ReportOtStatusBadge({ status, t }: ReportOtStatusBadgeProps) {
 }
 
 interface DailyReportTableRowProps {
-  adjustmentMap: Record<string, AttendanceAdjustmentRequest>;
+  adjustmentMap: Partial<Record<string, AttendanceAdjustmentRequest>>;
   confirmingRow: string | null;
   expandedDebugRows: Set<string>;
   formatDate: (date: string) => string;
@@ -133,7 +133,7 @@ function DailyReportTableRow({
   t,
   workUnitMinutes,
 }: DailyReportTableRowProps) {
-  const rowKey = `${row.employee_id ?? ""}-${row.date ?? ""}`;
+  const rowKey = `${row.employee_id}-${row.date}`;
   const isReprocessing = reprocessingRow === rowKey;
   const isConfirming = confirmingRow === rowKey;
   const isExpanded = expandedDebugRows.has(rowKey);
@@ -235,7 +235,7 @@ function DailyReportTableRow({
           <ReportStatusBadge onResolveUnscheduled={onResolveUnscheduled} row={row} status={row.status} t={t} />
         </td>
 
-        {!!isDebugMode && (
+        {isDebugMode && (
           <td className="px-4 py-2.5 text-center">
             <button
               className={cn(
@@ -256,14 +256,14 @@ function DailyReportTableRow({
             <button
               className={cn(
                 "flex items-center justify-center p-1.5 rounded-lg transition-all shadow-sm border active:scale-95",
-                existingAdjustment
+                existingAdjustment !== undefined
                   ? "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900"
                   : "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900",
                 isConfirming && "opacity-70 cursor-wait"
               )}
               disabled={isConfirming}
               onClick={() => { onConfirmClick(row, existingAdjustment); }}
-              title={existingAdjustment ? t("reports.confirm.pending_badge") : t("common.attendance_confirm")}
+              title={existingAdjustment !== undefined ? t("reports.confirm.pending_badge") : t("common.attendance_confirm")}
             >
               {isConfirming
                 ? <RefreshCw className="animate-spin" size={14} />
@@ -283,7 +283,7 @@ function DailyReportTableRow({
         </td>
       </tr>
 
-      {!!isDebugMode && !!isExpanded && (
+      {isDebugMode && isExpanded && (
         <tr className="bg-slate-900/5 animate-in slide-in-from-top-2 duration-500">
           <td className="px-10 py-10" colSpan={10}>
             <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border-2 border-amber-200/20 overflow-hidden relative">
@@ -386,7 +386,7 @@ export default function DailyReportTable({
             <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">
               {t("common.status")}
             </th>
-            {!!isDebugMode && (
+            {isDebugMode && (
               <th className="px-4 py-2.5 text-[10px] font-bold text-amber-600 dark:text-amber-300 uppercase tracking-widest text-center">
                 DEBUG
               </th>
@@ -417,7 +417,6 @@ export default function DailyReportTable({
           ) : (
             data.map((row: DailyAttendanceReport) => (
               <DailyReportTableRow
-                key={`${row.employee_id ?? ""}-${row.date ?? ""}`}
                 adjustmentMap={adjustmentMap}
                 confirmingRow={confirmingRow}
                 expandedDebugRows={expandedDebugRows}
@@ -425,6 +424,7 @@ export default function DailyReportTable({
                 formatTime={formatTime}
                 hideEmployeeName={hideEmployeeName}
                 isDebugMode={isDebugMode}
+                key={`${row.employee_id}-${row.date}`}
                 onApproveOt={onApproveOt}
                 onConfirmClick={onConfirmClick}
                 onReprocessClick={onReprocessClick}

@@ -674,7 +674,7 @@ mod tests {
         // Exactly 10s should NOT trigger (> 10, not >=).
         let edge_elapsed = std::time::Duration::from_secs(10);
         assert!(
-            !(edge_elapsed.as_secs() > 10),
+            (edge_elapsed.as_secs() <= 10),
             "Exactly 10s should not trigger"
         );
     }

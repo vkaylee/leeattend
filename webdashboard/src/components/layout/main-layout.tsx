@@ -98,7 +98,7 @@ export default function MainLayout() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden">
-      {!!isSidebarOpen && (
+      {isSidebarOpen ? (
         <div
           className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
           onClick={() => { setIsSidebarOpen(false); }}
@@ -109,7 +109,7 @@ export default function MainLayout() {
           }}
           role="presentation"
         />
-      )}
+      ) : null}
 
       <Sidebar
         isCollapsed={isCollapsed}

@@ -169,7 +169,7 @@ export default function ReportsPage() {
   // Flatten all pages into a single array
   const filteredData = useMemo(() => {
     if (!reportPages) return [];
-    return reportPages.pages.flatMap((p) => p.data || []);
+    return reportPages.pages.flatMap((p) => p.data);
   }, [reportPages]);
 
   // Separate query for ALL employees (unpaginated) — used only for stats computation
@@ -203,15 +203,15 @@ export default function ReportsPage() {
 
   const getSortIcon = (field: SortField) => {
     const prefix = field;
-    if (sortBy === `${prefix ?? ""}_asc`) return <ArrowUp className="ml-1 text-primary-600 dark:text-primary-400" size={12} />;
-    if (sortBy === `${prefix ?? ""}_desc`) return <ArrowDown className="ml-1 text-primary-600 dark:text-primary-400" size={12} />;
+    if (sortBy === `${prefix}_asc`) return <ArrowUp className="ml-1 text-primary-600 dark:text-primary-400" size={12} />;
+    if (sortBy === `${prefix}_desc`) return <ArrowDown className="ml-1 text-primary-600 dark:text-primary-400" size={12} />;
     return <ArrowUpDown className="ml-1 opacity-20 group-hover:opacity-100 transition-opacity" size={12} />;
   };
 
   const handleSort = (field: SortField) => {
     const defaultDesc = field !== 'name'; // numeric fields default to desc first
-    const descKey = `${field ?? ""}_desc` as AttendanceReportSort;
-    const ascKey = `${field ?? ""}_asc` as AttendanceReportSort;
+    const descKey = `${field}_desc` as AttendanceReportSort;
+    const ascKey = `${field}_asc` as AttendanceReportSort;
     if (defaultDesc) {
       setSortBy(sortBy === descKey ? ascKey : descKey);
     } else {
@@ -239,7 +239,7 @@ export default function ReportsPage() {
       header: <div className="flex items-center justify-end">{t("reports.table.std_hours")}{getSortIcon('work_hours')}</div>,
       onHeaderClick: () => { handleSort('work_hours'); },
       cell: (row) => (
-        <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter cursor-default" title={`${row.total_std_units ?? ""} units`}>
+        <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter cursor-default" title={`${row.total_std_units} units`}>
           {formatUnitsToHours(row.total_std_units, workUnitMinutes)}h
         </div>
       ),
@@ -251,7 +251,7 @@ export default function ReportsPage() {
       header: <div className="flex items-center justify-end">{t("reports.table.ot_hours")}{getSortIcon('ot_hours')}</div>,
       onHeaderClick: () => { handleSort('ot_hours'); },
       cell: (row) => row.total_ot_units > 0 ? (
-        <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter cursor-default" title={`${row.total_ot_units ?? ""} OT units`}>
+        <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter cursor-default" title={`${row.total_ot_units} OT units`}>
           {formatUnitsToHours(row.total_ot_units, workUnitMinutes)}h
         </div>
       ) : (

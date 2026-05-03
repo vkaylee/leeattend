@@ -5,7 +5,7 @@ const STORAGE_KEY = 'theme_mode';
 
 /** Safe localStorage wrapper for private browsing / restricted environments */
 function readStorage(): ThemeMode {
-  try { return (localStorage.getItem(STORAGE_KEY) as ThemeMode) || 'system'; }
+  try { return (localStorage.getItem(STORAGE_KEY) as ThemeMode | null) || 'system'; }
   catch { return 'system'; }
 }
 
@@ -55,7 +55,7 @@ export function useDarkMode() {
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
-        const value = (e.newValue as ThemeMode) || 'system';
+        const value = (e.newValue as ThemeMode | null) || 'system';
         setModeState(value);
         applyTheme(resolveTheme(value));
       }

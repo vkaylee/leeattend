@@ -89,9 +89,9 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
       </div>
 
       <div className="animate-in slide-in-from-bottom-4 duration-500">
-        {activeTab === "localization" && (
+        {activeTab === "localization" ? (
           <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
-            <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Globe className="w-6 h-6 text-indigo-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.general_config")}</h2></div>
+            <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Globe className="w-6 h-6 text-primary-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.general_config")}</h2></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
                 <label className={LABEL_BASE}>{t("common.workspace_settings.date_format")}</label>
@@ -111,9 +111,9 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {activeTab === "appearance" && (
+        {activeTab === "appearance" ? (
           <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
             <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Palette className="w-6 h-6 text-pink-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.theme_config")}</h2></div>
             <div className="space-y-10">
@@ -121,7 +121,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                 <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
                 <div className="flex flex-wrap gap-5 items-center">
                   {[
-                    { name: t("common.colors.emerald"), color: '#10b981' }, { name: t("common.colors.indigo"), color: '#4f46e5' }, { name: t("common.colors.blue"), color: '#2563eb' },
+                    { name: t("common.colors.emerald"), color: '#10b981' }, { name: t("common.colors.blue"), color: '#2563eb' },
                     { name: t("common.colors.emerald"), color: '#059669' }, { name: t("common.colors.amber"), color: '#d97706' }, { name: t("common.colors.rose"), color: '#e11d48' }, { name: t("common.colors.slate"), color: '#475569' },
                   ].map((preset) => (
                     <button className={cn("w-14 h-14 rounded-2xl transition-all border-4 flex items-center justify-center shadow-lg group active:scale-90", themePrimaryColor === preset.color ? 'border-slate-900 scale-110' : 'border-white hover:scale-105 hover:border-slate-100 dark:border-slate-800')} key={preset.color} onClick={() => { setThemePrimaryColor(preset.color); }} style={{ backgroundColor: preset.color }} title={preset.name}>
@@ -141,7 +141,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
               <DarkModeSelector />
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -170,7 +170,7 @@ function DarkModeSelector() {
                 ? "border-primary-500 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-lg shadow-primary-100 dark:shadow-black/30"
                 : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 hover:border-slate-200 dark:hover:border-slate-700 hover:text-slate-600 dark:hover:text-slate-300"
             )}
-            data-testid={`dark-mode-option-${opt.value ?? ""}`}
+            data-testid={`dark-mode-option-${opt.value}`}
             key={opt.value}
             onClick={() => { setMode(opt.value); }}
           >

@@ -157,11 +157,11 @@ export default function AuditLogPage() {
                                                         {log.actor_id ? log.actor_id.substring(0, 8) + '...' : t("audit_logs.messages.system")}
                                                     </span>
                                                 </div>
-                                                {!!log.target_user_id && (
+                                                {log.target_user_id ? (
                                                     <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                                                         {t("audit_logs.messages.target")} <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded" title={log.target_user_id}>{log.target_user_id.substring(0, 8)}...</span>
                                                     </div>
-                                                  )}
+                                                  ) : null}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 max-w-[300px]">
@@ -175,18 +175,18 @@ export default function AuditLogPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
-                                                {!!log.ip_address && (
+                                                {log.ip_address ? (
                                                     <div className="flex items-center gap-1.5" title="IP Address">
                                                         <Globe className="h-3.5 w-3.5" />
                                                         <span className="truncate w-24">{log.ip_address}</span>
                                                     </div>
-                                                  )}
-                                                {!!log.user_agent && (
+                                                  ) : null}
+                                                {log.user_agent ? (
                                                     <div className="flex items-center gap-1.5" title={log.user_agent}>
                                                         <Monitor className="h-3.5 w-3.5" />
                                                         <span className="truncate w-24">{log.user_agent}</span>
                                                     </div>
-                                                  )}
+                                                  ) : null}
                                             </div>
                                         </td>
                                     </tr>
@@ -196,7 +196,7 @@ export default function AuditLogPage() {
                     </table>
                 </div>
 
-                {!!data && data.total > 0 && (
+                {data && data.total > 0 ? (
                     <div className="border-t border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/10">
                         <div className="text-sm text-slate-500 dark:text-slate-400">
                             {t("audit_logs.pagination.showing")} <span className="font-medium text-slate-900 dark:text-white">{((page - 1) * limit) + 1}</span> {t("audit_logs.pagination.to")} <span className="font-medium text-slate-900 dark:text-white">{Math.min(page * limit, data.total)}</span> {t("audit_logs.pagination.of")} <span className="font-medium text-slate-900 dark:text-white">{data.total}</span> {t("audit_logs.pagination.entries")}
@@ -220,7 +220,7 @@ export default function AuditLogPage() {
                             </button>
                         </div>
                     </div>
-                  )}
+                  ) : null}
             </div>
         </div>
     );

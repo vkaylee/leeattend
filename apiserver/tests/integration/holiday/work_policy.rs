@@ -2,7 +2,7 @@
 //! - Payroll: holiday work compensation (credit + premium with configurable multiplier)
 //! - Leave reversal: threshold-based auto-cancel of system leave when employee works
 //! - Leave breakdown: paid holidays excluded from leave day count
-//! - CRUD: new work_threshold_percent and is_credit_on_work fields
+//! - CRUD: new `work_threshold_percent` and `is_credit_on_work` fields
 
 use crate::common::app::spawn_app;
 use apiserver::models::LeaveStatus;
@@ -552,11 +552,11 @@ async fn test_leave_reversal_full_shift() {
 
     // Verify system-generated leave can be found
     let found: Option<(Uuid,)> = sqlx::query_as(
-        r#"SELECT lr.id FROM leave_requests lr
+        r"SELECT lr.id FROM leave_requests lr
            WHERE lr.employee_id = $1
              AND lr.status = 'approved'::leave_status_type
              AND lr.start_date <= $2 AND lr.end_date >= $2
-             AND lr.requested_by_user_id IS NULL"#,
+             AND lr.requested_by_user_id IS NULL",
     )
     .bind(emp)
     .bind(today)
@@ -761,11 +761,11 @@ async fn test_leave_reversal_custom_threshold() {
 
     // Query only system-generated leaves (matching service behavior)
     let system_only: Vec<(Uuid,)> = sqlx::query_as(
-        r#"SELECT lr.id FROM leave_requests lr
+        r"SELECT lr.id FROM leave_requests lr
            WHERE lr.employee_id = $1
              AND lr.status = 'approved'::leave_status_type
              AND lr.start_date <= $2 AND lr.end_date >= $2
-             AND lr.requested_by_user_id IS NULL"#,
+             AND lr.requested_by_user_id IS NULL",
     )
     .bind(emp)
     .bind(today)

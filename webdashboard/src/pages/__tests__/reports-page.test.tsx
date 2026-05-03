@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToastProvider } from "../../components/ui/toast";
 import i18n from "../../i18n/config";
 import * as api from "../../lib/api";
-import { Employee, PaginatedResponse, AttendanceSummary, DailyAttendanceReport, Department } from "../../lib/api/types";
+import { PaginatedResponse, AttendanceSummary, DailyAttendanceReport } from "../../lib/api/types";
 import ReportsPage from "../reports-page";
 
 // Mock TanStack Router
@@ -26,7 +26,7 @@ vi.mock("@tanstack/react-router", () => ({
         }
       });
       const qs = params.toString();
-      if (qs) href += `?${qs ?? ""}`;
+      if (qs) href += `?${qs}`;
     }
     return <a href={href} {...props}>{children}</a>;
   },
@@ -563,7 +563,7 @@ describe("ReportsPage", () => {
     const fromString = `${lastMonth.getFullYear()}-${pad(lastMonth.getMonth() + 1)}-01`;
     const toString_ = `${lastMonthEnd.getFullYear()}-${pad(lastMonthEnd.getMonth() + 1)}-${pad(lastMonthEnd.getDate())}`;
 
-    expect(link.getAttribute("href")).toBe(`/attendance-logs?from=${fromString ?? ""}&to=${toString_ ?? ""}`);
+    expect(link.getAttribute("href")).toBe(`/attendance-logs?from=${fromString}&to=${toString_}`);
   });
   it("filters the report by selected department", async () => {
     const user = userEvent.setup();

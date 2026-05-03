@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ToastProvider } from "../../components/ui/toast";
 import * as api from "../../lib/api";
-import { Employee, PaginatedResponse, LeaveRequest, EmployeeLeaveBalance, LeavePolicy, LeaveType } from "../../lib/api/types";
+import { LeaveRequest, EmployeeLeaveBalance } from "../../lib/api/types";
 import LeaveRequestsPage from "../leave-requests-page";
 
 // Mock TanStack Router

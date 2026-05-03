@@ -326,7 +326,7 @@ export default function WorkingPatternsPage() {
                             <Clock className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={10} />
                             <span className="text-[10px] font-bold text-primary-700 dark:text-primary-300 uppercase tracking-tight">{shiftName.toUpperCase()}</span>
                             <button
-                              aria-label={`Remove ${shiftName ?? ""}`}
+                              aria-label={`Remove ${shiftName}`}
                               className="p-0.5 rounded-md text-primary-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors flex-shrink-0 ml-0.5"
                               onClick={() => { removeShiftFromDay(index, shiftId); }}
                               type="button"

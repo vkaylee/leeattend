@@ -33,7 +33,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     <ErrorBoundary>
       <Outlet />
       <DebugToolbar />
-      {!!import.meta.env.DEV && <TanStackRouterDevtools />}
+      {import.meta.env.DEV ? <TanStackRouterDevtools /> : null}
     </ErrorBoundary>
   ),
   notFoundComponent: NotFoundPage,

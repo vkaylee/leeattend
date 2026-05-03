@@ -1,10 +1,10 @@
-//! Integration tests for system_roles in /me endpoint and auth responses.
+//! Integration tests for `system_roles` in /me endpoint and auth responses.
 //!
 //! Validates that:
-//! - GET /me returns system_roles for platform admins
-//! - GET /me returns empty system_roles for regular users
-//! - Refresh token response includes system_roles
-//! - First registered user's /me response includes platform_admin
+//! - GET /me returns `system_roles` for platform admins
+//! - GET /me returns empty `system_roles` for regular users
+//! - Refresh token response includes `system_roles`
+//! - First registered user's /me response includes `platform_admin`
 
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;

@@ -1,4 +1,4 @@
-//! Tests that Employee queries return the current department_name.
+//! Tests that Employee queries return the current `department_name`.
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
@@ -12,7 +12,7 @@ async fn setup_db() -> (TestDatabase, TestFactory) {
     (test_db, factory)
 }
 
-/// Helper: insert a row in employee_department_history to assign an employee
+/// Helper: insert a row in `employee_department_history` to assign an employee
 /// to a department.
 async fn transfer(pool: &sqlx::PgPool, employee_id: Uuid, department_id: Uuid, date: NaiveDate) {
     sqlx::query(

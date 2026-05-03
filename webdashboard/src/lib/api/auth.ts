@@ -3,7 +3,7 @@ import { apiFetch, setAccessToken, setRefreshToken, setCurrentUserId, clearAuthS
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/auth/login`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     body: JSON.stringify({ email: username, password }),
   });
@@ -27,12 +27,12 @@ export async function login(username: string, password: string): Promise<AuthRes
 }
 
 export async function logout(): Promise<void> {
-  await apiFetch(`${API_BASE_URL ?? ""}/auth/logout`, { method: "POST" });
+  await apiFetch(`${API_BASE_URL}/auth/logout`, { method: "POST" });
   clearAuthSession();
 }
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/auth/register`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/register`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -46,7 +46,7 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 export async function changePassword(
   data: ChangePasswordRequest,
 ): Promise<string> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/auth/change-password`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/change-password`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -58,13 +58,13 @@ export async function changePassword(
 }
 
 export async function fetchMe(): Promise<User> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/me`);
+  const response = await apiFetch(`${API_BASE_URL}/me`);
   if (!response.ok) throw new Error("Failed to fetch profile");
   return response.json() as Promise<User>;
 }
 
 export async function updateMe(data: Partial<User>): Promise<User> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/me`, {
+  const response = await apiFetch(`${API_BASE_URL}/me`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
@@ -73,7 +73,7 @@ export async function updateMe(data: Partial<User>): Promise<User> {
 }
 
 export async function fetchUsers(): Promise<User[]> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/users`);
+  const response = await apiFetch(`${API_BASE_URL}/users`);
   if (!response.ok) throw new Error("Failed to fetch users");
   return response.json() as Promise<User[]>;
 }
@@ -84,7 +84,7 @@ export async function fetchDevSuperUser(): Promise<{
   access_token?: string;
   refresh_token?: string;
 }> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/dev/super-user`);
+  const response = await apiFetch(`${API_BASE_URL}/dev/super-user`);
   if (!response.ok) throw new Error("Failed to fetch dev super user");
   return response.json() as Promise<{ user_id: string; workspace_id: string; access_token?: string; refresh_token?: string; }>;
 }
@@ -94,7 +94,7 @@ export async function fetchMyPermissions(): Promise<{
   roles: string[];
   managed_department_ids: string[] | null;
 }> {
-  const response = await apiFetch(`${API_BASE_URL ?? ""}/me/permissions`);
+  const response = await apiFetch(`${API_BASE_URL}/me/permissions`);
   if (!response.ok) throw new Error("Failed to fetch my permissions");
   return response.json() as Promise<{ permissions: string[]; roles: string[]; managed_department_ids: string[] | null; }>;
 }

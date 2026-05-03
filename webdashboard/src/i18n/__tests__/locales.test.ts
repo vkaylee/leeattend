@@ -5,15 +5,15 @@ import vi from '../locales/vi.json';
 import zh from '../locales/zh.json';
 
  
-type JsonObject = Record<string, any>;
+type JsonObject = Record<string, unknown>;
 
 function getAllKeys(object: JsonObject, prefix = ''): string[] {
   return Object.keys(object).reduce((keys: string[], key: string) => {
     const value = object[key];
-    const newPrefix = prefix ? `${prefix ?? ""}.${key ?? ""}` : key;
+    const newPrefix = prefix ? `${prefix}.${key}` : key;
 
     if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return [...keys, ...getAllKeys(value, newPrefix)];
+      return [...keys, ...getAllKeys(value as JsonObject, newPrefix)];
     }
 
     return [...keys, newPrefix];
@@ -39,17 +39,17 @@ describe('i18n Locales Synchronization', () => {
     allLanguages.forEach((targetLang) => {
       if (sourceLang === targetLang) return;
 
-      it(`should have all keys from ${sourceLang ?? ""} present in ${targetLang ?? ""}`, () => {
+      it(`should have all keys from ${sourceLang} present in ${targetLang}`, () => {
         const sourceKeys = localeKeys[sourceLang];
         const targetKeys = localeKeys[targetLang];
 
         const missingKeys = sourceKeys.filter(key => !targetKeys.includes(key));
 
         if (missingKeys.length > 0) {
-          console.error(`Missing keys in ${targetLang ?? ""} (present in ${sourceLang ?? ""}):`, missingKeys);
+          console.error(`Missing keys in ${targetLang} (present in ${sourceLang}):`, missingKeys);
         }
 
-        expect(missingKeys, `Missing keys in ${targetLang ?? ""} that exist in ${sourceLang ?? ""}`).toEqual([]);
+        expect(missingKeys, `Missing keys in ${targetLang} that exist in ${sourceLang}`).toEqual([]);
       });
     });
   });

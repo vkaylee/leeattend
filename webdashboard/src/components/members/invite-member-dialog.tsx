@@ -22,7 +22,7 @@ export default function InviteMemberDialog({
   const [roleId, setRoleId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault(); setError(null);
     try {
       const selectedRoleId = roleId || roles[0]?.id;

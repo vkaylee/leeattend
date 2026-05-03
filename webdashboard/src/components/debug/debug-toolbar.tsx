@@ -8,10 +8,22 @@ import { useConfirm } from "../../hooks/use-confirm";
 import { debugApi, ClearDbGroup as ClearDatabaseGroup } from "../../lib/api/debug";
 import { getCurrentWorkspaceId } from "../../lib/api/helpers";
 
-
 type DebugTab = "identity" | "time" | "database";
 
-function DebugIdentityTab({ debugUsers, temporaryId, setTemporaryId, setImpersonateId }: any) {
+export interface DebugUser {
+  id: string;
+  name: string;
+  role: string;
+}
+
+interface DebugIdentityTabProps {
+  debugUsers: DebugUser[];
+  setImpersonateId: (id: string) => void;
+  setTemporaryId: (id: string) => void;
+  temporaryId: string;
+}
+
+function DebugIdentityTab({ debugUsers, temporaryId, setTemporaryId, setImpersonateId }: DebugIdentityTabProps) {
   return (
     <div className="space-y-3 animate-in fade-in duration-300">
       <div className="space-y-1.5">
@@ -25,8 +37,8 @@ function DebugIdentityTab({ debugUsers, temporaryId, setTemporaryId, setImperson
           value={temporaryId}
         >
           <option value="">-- All Workspace Users --</option>
-          {Array.isArray(debugUsers) && debugUsers.map((u: any) => (
-            <option key={String(u.id)} value={String(u.id)}>{String(u.name)} ({String(u.role)})</option>
+          {Array.isArray(debugUsers) && debugUsers.map((u) => (
+            <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
           ))}
         </select>
         <div className="flex gap-2">
@@ -49,7 +61,13 @@ function DebugIdentityTab({ debugUsers, temporaryId, setTemporaryId, setImperson
   );
 }
 
-function DebugTimeTab({ temporaryDate, setTemporaryDate, setMockDate }: any) {
+interface DebugTimeTabProps {
+  setMockDate: (date: string) => void;
+  setTemporaryDate: (date: string) => void;
+  temporaryDate: string;
+}
+
+function DebugTimeTab({ temporaryDate, setTemporaryDate, setMockDate }: DebugTimeTabProps) {
   return (
     <div className="space-y-3 animate-in fade-in duration-300">
       <div className="space-y-1.5">
@@ -79,7 +97,12 @@ function DebugTimeTab({ temporaryDate, setTemporaryDate, setMockDate }: any) {
   );
 }
 
-function DebugDatabaseTab({ isWiping, handleClearDatabase }: any) {
+interface DebugDatabaseTabProps {
+  handleClearDatabase: (group: ClearDatabaseGroup) => Promise<void>;
+  isWiping: boolean;
+}
+
+function DebugDatabaseTab({ isWiping, handleClearDatabase }: DebugDatabaseTabProps) {
   return (
     <div className="space-y-3 animate-in fade-in duration-300">
       <div className="grid grid-cols-3 gap-2">
@@ -147,7 +170,12 @@ function DebugDatabaseTab({ isWiping, handleClearDatabase }: any) {
   );
 }
 
-function DebugToolbarTabs({ activeTab, setActiveTab }: any) {
+interface DebugToolbarTabsProps {
+  activeTab: DebugTab;
+  setActiveTab: (tab: DebugTab) => void;
+}
+
+function DebugToolbarTabs({ activeTab, setActiveTab }: DebugToolbarTabsProps) {
   return (
     <div className="flex border-b border-slate-800 mt-2">
       <button 
@@ -178,7 +206,13 @@ function DebugToolbarTabs({ activeTab, setActiveTab }: any) {
   );
 }
 
-function DebugToolbarHeader({ isEnabled, setIsEnabled, setIsOpen }: any) {
+interface DebugToolbarHeaderProps {
+  isEnabled: boolean;
+  setIsEnabled: (enabled: boolean) => void;
+  setIsOpen: (open: boolean) => void;
+}
+
+function DebugToolbarHeader({ isEnabled, setIsEnabled, setIsOpen }: DebugToolbarHeaderProps) {
   return (
     <>
       <div className="flex items-center justify-between p-3 border-b border-slate-800 bg-slate-950">
@@ -213,7 +247,14 @@ function DebugToolbarHeader({ isEnabled, setIsEnabled, setIsOpen }: any) {
   );
 }
 
-function DebugToolbarFooter({ isEnabled, reset, setTemporaryId, setTemporaryDate }: any) {
+interface DebugToolbarFooterProps {
+  isEnabled: boolean;
+  reset: () => void;
+  setTemporaryDate: (date: string) => void;
+  setTemporaryId: (id: string) => void;
+}
+
+function DebugToolbarFooter({ isEnabled, reset, setTemporaryId, setTemporaryDate }: DebugToolbarFooterProps) {
   return (
     <div className="p-3 bg-slate-950 border-t border-slate-800 flex justify-between gap-2">
       <button
@@ -227,7 +268,7 @@ function DebugToolbarFooter({ isEnabled, reset, setTemporaryId, setTemporaryDate
       >
         <RefreshCcw size={12} /> Clear Settings
       </button>
-      {!!isEnabled && (
+      {isEnabled && (
         <button
           className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 py-2 rounded text-[10px] font-bold"
           onClick={() => { window.location.reload(); }}
@@ -249,7 +290,7 @@ export const DebugToolbar: React.FC = () => {
   const [temporaryId, setTemporaryId] = useState(impersonateId ?? "");
   const [temporaryDate, setTemporaryDate] = useState(mockDate ?? "");
  
-  const [debugUsers, setDebugUsers] = useState<Record<string, unknown>[]>([]);
+  const [debugUsers, setDebugUsers] = useState<DebugUser[]>([]);
   const [isWiping, setIsWiping] = useState(false);
 
   useEffect(() => {
@@ -257,7 +298,7 @@ export const DebugToolbar: React.FC = () => {
       debugApi.getUsers()
         .then(res => {
           if (Array.isArray(res)) {
-            setDebugUsers(res);
+            setDebugUsers(res as DebugUser[]);
           } else {
             console.warn("Debug users API did not return an array:", res);
             setDebugUsers([]);
@@ -282,7 +323,7 @@ export const DebugToolbar: React.FC = () => {
     
     const ok = await confirm({
       title: "Confirm " + actionVerb,
-      message: `Are you sure you want to ${actionVerb ?? ""} ${group === "seed" ? "data" : group + " data"}?${warning ?? ""}`,
+      message: `Are you sure you want to ${actionVerb} ${group === "seed" ? "data" : group + " data"}?${warning}`,
       variant: group === "seed" ? "warning" : "danger"
     });
     if (!ok) return;

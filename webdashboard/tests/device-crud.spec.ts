@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/restrict-template-expressions, max-lines-per-function, no-console */
+/* eslint-disable max-lines-per-function */
 import { expect } from "@playwright/test";
 
 import { ConnectivityPage } from "./pom/connectivity-page";
@@ -9,8 +9,8 @@ test.setTimeout(120000);
 
 test.describe.skip("Device CRUD E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
-    page.on('console', message => { /* empty */ });
-    page.on('pageerror', error => { /* empty */ });
+    page.on('console', _message => { /* empty */ });
+    page.on('pageerror', _error => { /* empty */ });
 
     // Login first
     await page.goto('/login');

@@ -48,7 +48,7 @@ export default function TransferEmployeeModal({
     },
   });
 
-  const handleTransferSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleTransferSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     transferMutation.mutate({

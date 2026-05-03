@@ -26,14 +26,14 @@ import { cn } from "@/lib/utils";
 
 const colorMap: Record<string, string> = {
   rose: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200/50 dark:border-rose-500/20",
-  indigo: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-500/20",
+  blue: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200/50 dark:border-blue-500/20",
   emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-500/20",
   slate: "bg-slate-50 text-slate-600 dark:bg-slate-500/10 dark:text-slate-400 border-slate-200/50 dark:border-slate-500/20"
 };
 
 const iconColorMap: Record<string, string> = {
   rose: "text-rose-500 dark:text-rose-400",
-  indigo: "text-indigo-500 dark:text-indigo-400",
+  blue: "text-blue-500 dark:text-blue-400",
   emerald: "text-emerald-500 dark:text-emerald-400",
   slate: "text-slate-500 dark:text-slate-400"
 };
@@ -83,7 +83,7 @@ export default function WorkspaceRolesPage() {
           title={t('rolesPage.title', { defaultValue: 'Role Management' })}
         />
         <PermissionGate permission="members:roles:manage">
-          <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0" onClick={handleCreate}>
+          <button className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-primary-200 dark:shadow-primary-900/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0" onClick={handleCreate}>
             <Plus size={18} />
             {t('rolesPage.createRole', { defaultValue: 'Create Role' })}
           </button>
@@ -92,7 +92,7 @@ export default function WorkspaceRolesPage() {
       
       {isLoading ? (
         <div className="flex justify-center p-20">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -118,11 +118,11 @@ export default function WorkspaceRolesPage() {
                       <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
                         {role.name}
                       </h3>
-                      {!!role.is_system && (
+                      {role.is_system ? (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
                           {t('common.system', { defaultValue: 'System' })}
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-1.5 text-sm font-medium text-slate-500 mt-1">
                       <Users size={14} />
@@ -141,26 +141,26 @@ export default function WorkspaceRolesPage() {
                       <MoreVertical size={20} />
                     </button>
                     
-                    {activeMenu === role.id && (
+                    {activeMenu === role.id ? (
                       <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 border border-slate-100 dark:border-slate-800 py-2 z-10 animate-in fade-in zoom-in-95 duration-200">
-                        {!role.is_system && (
+                        {!role.is_system ? (
                           <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" onClick={() => { handleEdit(role); }}>
                             <Edit2 size={16} /> {t('rolesPage.editRole', { defaultValue: 'Edit Role' })}
                           </button>
-                        )}
+                        ) : null}
                         <Link className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" to="/workspace/settings/permissions">
                           <CheckCircle2 size={16} /> {t('rolesPage.matrix', { defaultValue: 'Matrix' })}
                         </Link>
-                        {!role.is_system && (
+                        {!role.is_system ? (
                           <>
                             <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
                             <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors" onClick={() => handleDelete(role.id)}>
                               <Trash2 size={16} /> {t('rolesPage.deleteRole', { defaultValue: 'Delete Role' })}
                             </button>
                           </>
-                        )}
+                        ) : null}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </PermissionGate>
               </div>
@@ -177,7 +177,7 @@ export default function WorkspaceRolesPage() {
                     </div>
                   </div>
                   <PermissionGate permission="members:roles:manage">
-                    <Link className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" to="/workspace/settings/permissions">
+                    <Link className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" to="/workspace/settings/permissions">
                       {t('rolesPage.manageAccess', { defaultValue: 'Manage Access' })} <ChevronRight size={14} />
                     </Link>
                   </PermissionGate>

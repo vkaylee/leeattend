@@ -568,6 +568,7 @@ impl AttendanceHandler {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_collect)]
 mod tests {
     use super::*;
     use crate::models::DailyAttendanceReport;
@@ -903,7 +904,7 @@ mod tests {
 
         // Exactly 5s should NOT trigger (> 5).
         let edge = std::time::Duration::from_secs(5);
-        assert!(!(edge.as_secs() > 5), "Exactly 5s should not trigger");
+        assert!((edge.as_secs() <= 5), "Exactly 5s should not trigger");
     }
 
     #[test]

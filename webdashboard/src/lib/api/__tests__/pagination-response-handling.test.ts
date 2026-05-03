@@ -240,7 +240,7 @@ describe("Pagination Response Handling", () => {
   describe("Edge Cases and Error Scenarios", () => {
     it("should handle large dataset pagination", () => {
       const largeData = Array.from({ length: 1000 }, (_, index) => ({
-        id: `item-${index ?? ""}`,
+        id: `item-${index}`,
       }));
 
       const response: PaginatedResponse<{ id: string }> = {
@@ -300,7 +300,7 @@ describe("Pagination Response Handling", () => {
           data.filter((x) => x);
           data.find((x) => x);
           expect(data.length).toBeGreaterThanOrEqual(0);
-        }).not.toThrow(`Should not throw for ${name ?? ""}`);
+        }).not.toThrow(`Should not throw for ${name}`);
       });
     });
 
@@ -352,10 +352,10 @@ describe("Pagination Response Handling", () => {
       // This test validates the function signature
       // The actual API mock would be handled by integration tests
 
-      const mockFetch = vi.fn();
+      const mockFetch = vi.fn<() => Promise<{ ok: boolean; json: () => Promise<PaginatedResponse<{ id: string; full_name: string }>> }>>();
 
       // Mock the apiFetch to validate response structure
-      const createMockResponse = (data: unknown) => ({
+      const createMockResponse = (data: PaginatedResponse<{ id: string; full_name: string }>) => ({
         ok: true,
  
         json: async () => data,
@@ -388,9 +388,9 @@ describe("Pagination Response Handling", () => {
     });
 
     it("should validate searchEmployees returns PaginatedResponse type", async () => {
-      const mockFetch = vi.fn();
+      const mockFetch = vi.fn<() => Promise<{ ok: boolean; json: () => Promise<PaginatedResponse<{ id: string; full_name: string }>> }>>();
 
-      const createMockResponse = (data: unknown) => ({
+      const createMockResponse = (data: PaginatedResponse<{ id: string; full_name: string }>) => ({
         ok: true,
  
         json: async () => data,
@@ -411,7 +411,7 @@ describe("Pagination Response Handling", () => {
       );
 
       const result = await mockFetch();
-      const parsed = await result.json() as PaginatedResponse<{ id: string; full_name: string }>;
+      const parsed = await result.json();
 
       expect(parsed.data).toHaveLength(1);
       expect(parsed.data[0].full_name).toContain("John");

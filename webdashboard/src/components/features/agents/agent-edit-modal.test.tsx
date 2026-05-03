@@ -136,7 +136,7 @@ describe("AgentEditModal", () => {
             max_concurrent_workers: 10,
             success_cooldown_secs: 300,
             retention_days: 365,
-          }),
+          }) as unknown as Record<string, unknown>,
         }),
       );
       expect(onSave).toHaveBeenCalled();

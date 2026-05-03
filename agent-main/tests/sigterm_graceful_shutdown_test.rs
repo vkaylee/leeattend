@@ -1,3 +1,4 @@
+#![allow(clippy::panic)]
 //! Tests for SIGTERM graceful shutdown behavior.
 //!
 //! Validates that:

@@ -53,7 +53,7 @@ export default function AdjustmentDrawer({
     <Sheet
       isOpen={isOpen}
       onClose={onClose}
-      subtitle={`${employeeName ?? ""} • ${employeeAdjustments.length ?? ""} Pending`}
+      subtitle={`${employeeName} • ${employeeAdjustments.length} Pending`}
       title={t("payroll.adjustments.title")}
     >
       <div className="space-y-6 pt-4 animate-in fade-in duration-500">

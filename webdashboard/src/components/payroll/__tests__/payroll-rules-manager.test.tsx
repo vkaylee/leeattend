@@ -127,7 +127,7 @@ describe("PayrollRulesManager", () => {
       expect(api.createPayrollRule).toHaveBeenCalledWith(mockWsId, expect.objectContaining({
         name: "Health Insurance",
         code: "HI",
-        rule_config: expect.objectContaining({ rate: 1.5 })
+        rule_config: expect.objectContaining({ rate: 1.5 }) as unknown as Record<string, unknown>
       }));
     }, { timeout: 3000 });
   });

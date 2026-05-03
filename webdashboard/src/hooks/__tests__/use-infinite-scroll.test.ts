@@ -110,7 +110,7 @@ describe("useInfiniteScroll", () => {
                 fetchNextPage,
             });
  
-            (ref as any).current = div;
+            (ref as unknown as { current: HTMLDivElement | null }).current = div;
             return ref;
         });
 

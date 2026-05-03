@@ -1,7 +1,7 @@
-//! Test deductions in net_pay formula (Issue 7)
+//! Test deductions in `net_pay` formula (Issue 7)
 //!
-//! Verifies that net_pay = base_pay + overtime_pay + incentive - deductions
-//! Currently deductions = 0, so net_pay should equal base_pay + overtime_pay + incentive.
+//! Verifies that `net_pay` = `base_pay` + `overtime_pay` + incentive - deductions
+//! Currently deductions = 0, so `net_pay` should equal `base_pay` + `overtime_pay` + incentive.
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;

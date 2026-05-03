@@ -336,8 +336,7 @@ async fn test_multiple_updates_version_chain_integrity() {
     for v in &versions[1..] {
         assert!(
             !v["valid_to"].is_null(),
-            "Expired version must have valid_to set: {:?}",
-            v
+            "Expired version must have valid_to set: {v:?}"
         );
     }
 }

@@ -94,7 +94,7 @@ export default function LeaveBalancesPage() {
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("leave_balances.subtitle")}</p>
         </div>
         <button
-          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
+          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-primary-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
           disabled={accrualMutation.isPending || selectedYear !== currentYear}
           onClick={async () => {
             const ok = await confirm({
@@ -168,7 +168,7 @@ export default function LeaveBalancesPage() {
               ) : (balances).map((balance, index) => (
                 <DesktopBalanceRow
                   balance={balance}
-                  key={`${balance.employee_id ?? ""}-${balance.leave_type_id ?? ""}-${index ?? ""}`}
+                  key={`${balance.employee_id}-${balance.leave_type_id}-${index}`}
                   onViewDetails={() => { setSelectedBalance(balance); }}
                   onViewHistory={() => { setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name }); }}
                 />
@@ -186,7 +186,7 @@ export default function LeaveBalancesPage() {
           ) : (balances).map((balance, index) => (
             <MobileBalanceCard
               balance={balance}
-              key={`${balance.employee_id ?? ""}-${balance.leave_type_id ?? ""}-${index ?? ""}`}
+              key={`${balance.employee_id}-${balance.leave_type_id}-${index}`}
               onViewDetails={() => { setSelectedBalance(balance); }}
               onViewHistory={() => { setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name }); }}
             />
@@ -223,7 +223,7 @@ export default function LeaveBalancesPage() {
                       className={cn(
                         "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition-all",
                         page === p
-                          ? "bg-primary-600 text-white shadow-md shadow-indigo-100"
+                          ? "bg-primary-600 text-white shadow-md shadow-primary-100"
                           : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                       )}
                       key={p}

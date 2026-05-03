@@ -6,7 +6,7 @@ import type { WorkerMonitorStats } from "@/lib/api/types";
 import { monitorKeys } from "./use-worker-monitor";
 
 /** SSE base URL – mirrors the REST API_BASE_URL logic. */
-const SSE_URL = (import.meta.env.DEV ? "/api" : (import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "/api")) + "/monitor/stream";
+const SSE_URL = (import.meta.env.DEV ? "/api" : ((import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "/api")) + "/monitor/stream";
 
 /** Max consecutive connection errors before giving up (resets on success). */
 const MAX_RETRIES = 5;
@@ -42,7 +42,7 @@ export function useMonitorStream() {
 
       es.addEventListener("monitor-update", (e: MessageEvent) => {
         try {
-          const data: WorkerMonitorStats = JSON.parse(e.data);
+          const data = JSON.parse(e.data as string) as WorkerMonitorStats;
           queryClient.setQueryData(monitorKeys.overview(), data);
           setConnected(true);
           retryCount.current = 0;           // reset on success

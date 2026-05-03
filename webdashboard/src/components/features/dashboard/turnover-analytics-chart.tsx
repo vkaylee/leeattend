@@ -231,7 +231,7 @@ function SourceChart({
                             stroke="none"
                         >
                             {chartData.map((entry, index) => (
-                                <Cell fill={entry.fill} key={`cell-${index ?? ""}`} />
+                                <Cell fill={entry.fill} key={`cell-${index}`} />
                             ))}
                         </Pie>
                         <Tooltip

@@ -77,7 +77,7 @@ export function AssignmentFormModal({
     setOverrideBase("gross");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
     let overrideConfig: Record<string, unknown> | undefined;
     if (hasOverride) {
@@ -127,7 +127,7 @@ export function AssignmentFormModal({
                   className={cn(
                     "flex flex-col items-center gap-2.5 p-5 rounded-2xl border-2 transition-all active:scale-[0.97]",
                     isActive
-                      ? `${colors.bg ?? ""} ${colors.border ?? ""} shadow-lg`
+                      ? `${colors.bg} ${colors.border} shadow-lg`
                       : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900"
                   )}
                   key={scope}
@@ -151,7 +151,7 @@ export function AssignmentFormModal({
                         : "text-slate-500 dark:text-slate-400"
                     )}
                   >
-                    {t(`payroll.scope_${scope ?? ""}`, scope)}
+                    {t(`payroll.scope_${scope}`, scope)}
                   </span>
                 </button>
               );
@@ -292,9 +292,9 @@ export function AssignmentFormModal({
               </div>
             </label>
 
-            {!!hasOverride && (
+            {hasOverride ? (
               <div className="bg-orange-50 dark:bg-orange-950/20 rounded-2xl p-5 border border-orange-100 dark:border-orange-800 space-y-4 animate-in slide-in-from-top-2 duration-200">
-                {calculationMethod === "percentage" && (
+                {calculationMethod === "percentage" ? (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label
@@ -338,8 +338,8 @@ export function AssignmentFormModal({
                       </select>
                     </div>
                   </div>
-                )}
-                {calculationMethod === "fixed" && (
+                ) : null}
+                {calculationMethod === "fixed" ? (
                   <div className="space-y-2">
                     <label
                       className="text-[10px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-widest"
@@ -356,9 +356,9 @@ export function AssignmentFormModal({
                       value={overrideAmount}
                     />
                   </div>
-                )}
+                ) : null}
               </div>
-            )}
+            ) : null}
           </div>
         )}
 

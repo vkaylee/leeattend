@@ -63,7 +63,7 @@ export default function ReportFilters({
                 key={mode}
                 onClick={() => { onFilterModeChange(mode); }}
               >
-                {t(`common.filters.${mode ?? ""}`).toUpperCase()}
+                {t(`common.filters.${mode}`).toUpperCase()}
               </button>
             ))}
 
@@ -81,7 +81,7 @@ export default function ReportFilters({
                 >
                   <CalendarRange size={14} />
                   {filterMode === "specific_month"
-                    ? `${specificMonth.month ?? ""}/${specificMonth.year ?? ""}`
+                    ? `${specificMonth.month}/${specificMonth.year}`
                     : t("common.filters.specific_month").toUpperCase()}
                 </button>
               </DropdownMenuTrigger>

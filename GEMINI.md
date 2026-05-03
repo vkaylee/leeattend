@@ -104,36 +104,39 @@ If you see a bug, typo, or poor pattern nearby while working on a file, FIX IT I
 - **Memory Retention:** Document major architectural shifts in `.ai/ADRs/` to retain long-term AI context.
 - **Clean Workspace:** Do NOT save `.txt` or temporary planning files in project root. Use `/tmp/` or prefix `ai_` (added to `.gitignore`).
 
-### 4.8 Script Discipline & PTY Safety (NEW)
-> 🔴 **MANDATORY SUPREME RULE (ANTI-LAZINESS):** You are STRICTLY FORBIDDEN from using inline code execution flags (`python -c`, `node -e`, etc.) or multiline string commands (Heredocs).
-> - **CONSEQUENCE**: Using these causes infinite PTY Deadlocks.
-> - **Protocol:** You MUST read `AGENTS.md` for the full list of banned commands. Always create physical script files in `scripts/ai-tools/` and execute them via `./scripts/_safe_run.py`.
-> - **Git Protocol:** NEVER run `git` directly (especially `git commit`). ALWAYS use the `./git.sh` wrapper (e.g., `./git.sh commit -m "message"`) to prevent PTY hangs caused by multi-line AI commits.
+<execution_protocol>
+### 4.8 EXECUTION & PTY SAFETY RULES (CRITICAL)
 
-### 4.9 The Universal Command Rule: "Logic belongs to Files" (CRITICAL)
-> 🔴 **MANDATORY:** Any command (Bash, Python, Node, etc.) that contains **Logic** (loops, conditionals, multi-line blocks, or complex piping) MUST be placed in a physical script file.
-- **Never** use inline strings for complex automation.
-- **Threshold**: If a command exceeds 1 line or 100 characters, it belongs in a file.
-- **Result**: This ensures repeatability, easier debugging, and zero PTY hangs.
-*❌ Failure Condition:* Proposing a complex one-liner is a P0 Protocol Violation.
+To prevent infinite PTY Deadlocks and maintain absolute environment isolation, you MUST strictly follow this execution hierarchy for any command.
 
-### 4.10 PTY & FD Leak Safety (CRITICAL)
-> 🔴 **MANDATORY:** AI environments (like Antigravity) use strict PTY stream tracking. Any background process holding `stdout`/`stderr` will cause an infinite hang.
-- **NEVER** run background scripts (`&`) or pipes (`|`) that inherit the PTY's `stdout/stderr` without full redirection.
-- **ALWAYS** append `</dev/null >/dev/null 2>&1` to ANY background command.
-- **NEVER** leave orphaned processes (like `tail -f` or `grep`) running after the main script exits.
-*❌ Failure Condition:* The AI agent hangs indefinitely waiting for a background command's EOF.
-
-### 4.11 Hermetic Toolbox (Zero Host Dependency)
-> 🔴 **MANDATORY:** NEVER run `cargo`, `npm`, or `sqlx` directly on the host machine. These tools run inside isolated Podman containers via wrapper scripts to guarantee a reproducible, host-agnostic environment.
+<priority_1_hermetic_toolbox>
+#### 1. Always Use the Hermetic Toolbox First
+All standard development tools run inside isolated Podman containers. You MUST execute them via these wrapper scripts instead of using native commands:
 
 | Tool | ❌ WRONG (Direct on Host) | ✅ RIGHT (Inside Container) | Target Container |
 | :--- | :--- | :--- | :--- |
 | Rust/Cargo | `cargo build` | `./scripts/_cargo.sh build` | `apiserver_test` |
 | Node/NPM | `npm install` | `./scripts/_npm.sh install` | `web_test` |
 | SQLx/DB | `sqlx migrate run` | `./scripts/_sqlx.sh migrate run` | `apiserver_test` |
+| Testing | `npm run test` | `./test.sh` | Multiple |
 
-*❌ Failure Condition:* Running tools directly on the host bypasses container isolation, causes "works on my machine" bugs, and can corrupt the host environment.
+- **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./git.sh` wrapper (e.g., `./git.sh commit -m "msg"`) to prevent PTY hangs during multi-line commits.
+*❌ Failure Condition:* Running tools natively on the host bypasses container isolation. Proposing inline strings for tasks that the toolbox can handle is a P0 protocol violation.
+</priority_1_hermetic_toolbox>
+
+<priority_2_direct_execution>
+#### 2. Direct Execution
+Custom logic should be executed directly where possible, following PTY safety guidelines.
+</priority_2_direct_execution>
+
+<background_process_safety>
+#### 3. Background Process Stream Redirection
+When executing any background command (`&`) or long-running pipe (`tail -f`), you MUST sever it from the PTY stream by appending:
+`</dev/null >/dev/null 2>&1`
+*❌ Failure Condition:* Failing to append this redirection to background scripts guarantees an infinite terminal hang, wasting tokens and blocking the session.
+</background_process_safety>
+
+</execution_protocol>
 
 ### 4.11 Enterprise-Grade Premium Standard (MANDATORY)
 > 🔴 **MANDATORY:** Every single feature, component, and API developed in this workspace MUST default to an **Enterprise-Grade Premium Ready** standard. Do NOT deliver MVP-style or basic implementations.

@@ -8,6 +8,7 @@ import importX from 'eslint-plugin-import-x';
 import perfectionist from 'eslint-plugin-perfectionist';
 import unicorn from 'eslint-plugin-unicorn';
 import react from 'eslint-plugin-react';
+import unusedImports from 'eslint-plugin-unused-imports';
 
 export default tseslint.config(
   { 
@@ -55,12 +56,25 @@ export default tseslint.config(
       'perfectionist': perfectionist,
       'unicorn': unicorn,
       'react': react,
+      'unused-imports': unusedImports,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
       ...jsxA11y.flatConfigs.recommended.rules,
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
+
+      '@typescript-eslint/no-unused-vars': 'off',
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
+        'error',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+        },
+      ],
 
       // --- Option A: Type-Aware Strictness ---
       '@typescript-eslint/no-floating-promises': 'error',
@@ -71,6 +85,14 @@ export default tseslint.config(
       ],
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        {
+          allowNumber: true,
+          allowBoolean: true,
+          allowNullish: true,
+        },
+      ],
 
       // --- Option B: Pattern Consistency (Perfectionist & Unicorn) ---
       'perfectionist/sort-imports': [
@@ -124,6 +146,8 @@ export default tseslint.config(
     files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
       'max-lines-per-function': 'off',
       'complexity': 'off',
     },

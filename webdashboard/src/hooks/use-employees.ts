@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 
-import type { Employee } from "@/lib/api/types";
-
 import { fetchEmployees } from "@/lib/api";
 
 /**

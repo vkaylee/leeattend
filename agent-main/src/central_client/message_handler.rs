@@ -226,6 +226,7 @@ pub async fn handle_incoming_text(
 }
 
 #[cfg(test)]
+#[allow(clippy::panic)]
 mod tests {
     use super::*;
     use crate::hybrid_database::HybridDatabase;

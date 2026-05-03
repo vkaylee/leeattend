@@ -47,7 +47,7 @@ vi.mock("cmdk", () => ({
  
       Empty: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
       Group: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-      Item: ({ children, value }: { children: React.ReactNode, value?: string }) => <div data-testid={`cmdk-item-${value ?? ""}`}>{children}</div>,
+      Item: ({ children, value }: { children: React.ReactNode, value?: string }) => <div data-testid={`cmdk-item-${value}`}>{children}</div>,
     }
   ),
 }));

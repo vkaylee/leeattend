@@ -19,18 +19,18 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("recharts", () => ({
  
-    PieChart: ({ children, ...props }: any) => (
-        <div data-testid="pie-chart" {...props}>{children as React.ReactNode}</div>
+    PieChart: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => (
+        <div data-testid="pie-chart" {...props}>{children}</div>
     ),
  
-    Pie: ({ children, ...props }: any) => (
-        <div data-testid="pie" {...props}>{children as React.ReactNode}</div>
+    Pie: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => (
+        <div data-testid="pie" {...props}>{children}</div>
     ),
  
-    Cell: (props: any) => <div data-testid="cell" {...props} />,
+    Cell: (props: Record<string, unknown>) => <div data-testid="cell" {...props} />,
  
-    ResponsiveContainer: ({ children }: any) => (
-        <div data-testid="responsive-container">{children as React.ReactNode}</div>
+    ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="responsive-container">{children}</div>
     ),
     Tooltip: () => <div data-testid="tooltip" />,
     Legend: () => <div data-testid="legend" />,
@@ -62,10 +62,10 @@ describe("RecruitmentSourceChart", () => {
 
     it("renders loading spinner when data is loading", () => {
  
-        (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useRecruitmentSourceBreakdown).mockReturnValue({
             data: undefined,
             isLoading: true,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useRecruitmentSourceBreakdown>);
 
         renderWithProviders(<RecruitmentSourceChart />);
 
@@ -75,10 +75,10 @@ describe("RecruitmentSourceChart", () => {
 
     it("renders empty state when no data available", () => {
  
-        (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useRecruitmentSourceBreakdown).mockReturnValue({
             data: [],
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useRecruitmentSourceBreakdown>);
 
         renderWithProviders(<RecruitmentSourceChart />);
 
@@ -88,10 +88,10 @@ describe("RecruitmentSourceChart", () => {
 
     it("renders empty state when all counts are zero", () => {
  
-        (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useRecruitmentSourceBreakdown).mockReturnValue({
             data: [{ source_type: "direct", source_name: "Direct", count: 0 }],
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useRecruitmentSourceBreakdown>);
 
         renderWithProviders(<RecruitmentSourceChart />);
 
@@ -100,10 +100,10 @@ describe("RecruitmentSourceChart", () => {
 
     it("renders pie chart when data is available", () => {
  
-        (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useRecruitmentSourceBreakdown).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useRecruitmentSourceBreakdown>);
 
         renderWithProviders(<RecruitmentSourceChart />);
 
@@ -113,10 +113,10 @@ describe("RecruitmentSourceChart", () => {
 
     it("displays inline legend with source names and counts", () => {
  
-        (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useRecruitmentSourceBreakdown).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useRecruitmentSourceBreakdown>);
 
         renderWithProviders(<RecruitmentSourceChart />);
 
@@ -127,10 +127,10 @@ describe("RecruitmentSourceChart", () => {
 
     it("displays the correct chart title and subtitle", () => {
  
-        (dashboardHooks.useRecruitmentSourceBreakdown as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useRecruitmentSourceBreakdown).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useRecruitmentSourceBreakdown>);
 
         renderWithProviders(<RecruitmentSourceChart />);
 

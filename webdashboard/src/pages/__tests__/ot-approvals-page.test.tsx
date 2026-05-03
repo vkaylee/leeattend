@@ -66,13 +66,13 @@ describe("OtApprovalsPage", () => {
     vi.mocked(attendanceHooks.useApproveOt).mockReturnValue({
       approveOt: approveOtMock,
       isProcessing: false,
-    } as any);
+    } as unknown as ReturnType<typeof attendanceHooks.useApproveOt>);
 
     vi.mocked(attendanceHooks.useAttendanceSummaries).mockReturnValue({
       summaries: mockSummaries,
       isLoading: false,
       refetch: refetchMock,
-    } as any);
+    } as unknown as ReturnType<typeof attendanceHooks.useAttendanceSummaries>);
   });
 
   const renderPage = () =>
@@ -158,7 +158,7 @@ describe("OtApprovalsPage", () => {
       summaries: [],
       isLoading: false,
       refetch: refetchMock,
-    } as any);
+    } as unknown as ReturnType<typeof attendanceHooks.useAttendanceSummaries>);
     
     renderPage();
     expect(screen.getByText("No pending OT")).toBeInTheDocument();

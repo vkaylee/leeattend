@@ -1,6 +1,5 @@
-use log::{debug, error, info, warn};
+use log::{error, info};
 use rustzk::{ZK, ZKProtocol};
-use serde_json::Value;
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -19,6 +18,12 @@ impl std::error::Error for ZkError {}
 pub struct ZkWorker {
     zk: Option<ZK>,
     ip: String,
+}
+
+impl Default for ZkWorker {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ZkWorker {

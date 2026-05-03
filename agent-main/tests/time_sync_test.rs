@@ -1,3 +1,4 @@
+#![allow(clippy::panic)]
 //! Integration tests for server time synchronization.
 //!
 //! These tests verify the end-to-end flow:
@@ -168,7 +169,7 @@ async fn test_device_upsert_uses_corrected_timestamp() {
     // corrected should be ~300s ahead of raw
     let diff = corrected_ts - raw_ts;
     assert!(
-        diff >= 299 && diff <= 301,
+        (299..=301).contains(&diff),
         "Expected corrected_timestamp ~300s ahead, got {diff}s"
     );
 
@@ -248,7 +249,7 @@ async fn test_device_metadata_update_uses_corrected_timestamp() {
     let raw_ts = Utc::now().timestamp();
     let diff = raw_ts - corrected_ts;
     assert!(
-        diff >= 119 && diff <= 121,
+        (119..=121).contains(&diff),
         "Expected corrected_ts ~120s behind raw, got {diff}s"
     );
 }
@@ -300,7 +301,7 @@ async fn test_config_push_uses_time_sync_for_device_upsert() {
     let raw_ts = Utc::now().timestamp();
     let diff = dev.last_seen.unwrap() - raw_ts;
     assert!(
-        diff >= 179 && diff <= 181,
+        (179..=181).contains(&diff),
         "Expected config_push device last_seen ~180s ahead, got {diff}s"
     );
 }
@@ -394,7 +395,7 @@ async fn test_concurrent_heartbeat_acks_are_safe() {
     // Just verify no panics — the final offset will be from whichever task ran last
     let offset = time_sync.offset_ms();
     assert!(
-        offset >= 0 && offset <= 91000,
+        (0..=91000).contains(&offset),
         "Offset should be within expected range, got {offset}ms"
     );
 }

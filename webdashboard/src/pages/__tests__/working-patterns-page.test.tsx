@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as api from "../../lib/api";
-import { WorkingPattern, Shift, PaginatedResponse, Employee, WorkingPatternDetail, BulkAssignResponse } from "../../lib/api/types";
+import { WorkingPattern, Shift } from "../../lib/api/types";
 import WorkingPatternsPage from "../working-patterns-page";
 
 
@@ -48,7 +48,7 @@ vi.mock("@/components/common/employee-search", () => ({
         >
           Select Employees Mock
         </button>
-        {!!multiple && Array.isArray(value) && value.includes("emp-1") && <span>Selected: John Doe</span>}
+        {multiple && Array.isArray(value) && value.includes("emp-1") && <span>Selected: John Doe</span>}
       </div>
     );
   }
@@ -70,8 +70,8 @@ vi.mock('react-i18next', () => ({
  
   useTranslation: () => ({
     t: (key: string, options?: Record<string, unknown>) => {
-        if (key === "patterns.messages.bulk_assign_success_count") return `Success: ${options?.count ?? ""}`;
-        if (key === "patterns.messages.bulk_assign_conflict") return `Conflict: ${options?.count ?? ""}`;
+        if (key === "patterns.messages.bulk_assign_success_count") return `Success: ${options?.count}`;
+        if (key === "patterns.messages.bulk_assign_conflict") return `Conflict: ${options?.count}`;
         return key;
     },
     i18n: {

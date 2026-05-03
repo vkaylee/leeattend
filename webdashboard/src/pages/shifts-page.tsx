@@ -337,7 +337,6 @@ export default function ShiftsPage() {
           <Link className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all" search={{ tab: "patterns" } as never} to={ROUTES.SETTINGS.TIME}>
             <CalendarRange className="w-4 h-4" />
             <span className="text-xs uppercase tracking-widest">{t("patterns.manage_btn")}</span>
-            { }
           </Link>
           <button className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all" onClick={() => { setIsCreateModalOpen(true); }}>
             <Plus className="w-5 h-5" />
@@ -360,7 +359,7 @@ export default function ShiftsPage() {
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {activeTab !== "directory" && (
+        {activeTab !== "directory" ? (
           <div className="max-w-md mb-8">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block ml-1">{t("common.employees")}</label>
             <EmployeeSearch
@@ -374,7 +373,7 @@ export default function ShiftsPage() {
               workspaceId={wsId}
             />
           </div>
-        )}
+        ) : null}
 
         {!selectedEmployee && activeTab !== "directory" ? (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[40px] h-[500px] flex flex-col items-center justify-center text-center p-12 shadow-sm">

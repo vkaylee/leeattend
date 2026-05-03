@@ -193,7 +193,7 @@ async fn test_handler_claims_multiple_staged_logs() {
     assert_eq!(raw_logs.len(), 3, "Three raw logs should exist");
 }
 
-/// Handler only claims logs matching the employee_id_number, not other employees.
+/// Handler only claims logs matching the `employee_id_number`, not other employees.
 #[tokio::test]
 async fn test_handler_only_claims_matching_employee() {
     let test_db = TestDatabase::new().await;

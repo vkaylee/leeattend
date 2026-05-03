@@ -9,7 +9,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
  
-        t: (key: string, options?: any) => options?.defaultValue ?? key,
+        t: (key: string, options?: Record<string, unknown>) => (options && "defaultValue" in options ? (options.defaultValue as string) : key),
     }),
 }));
 

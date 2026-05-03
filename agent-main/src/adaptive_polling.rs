@@ -274,6 +274,7 @@ mod tests {
     /// This value must stay below typical ZK device UDP session timeout (~60s)
     /// to prevent silent session loss during adaptive polling.
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn test_max_poll_interval_below_udp_session_timeout() {
         assert_eq!(
             MAX_POLL_INTERVAL_SECS, 45,

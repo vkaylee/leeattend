@@ -69,6 +69,7 @@ class Orchestrator:
         self.env_vars: dict[str, str] = {
             "USE_DOCKER": "true",
             "COMPOSE_PROJECT_NAME": "leeattend-test",
+            "PODMAN_COMPOSE_PROJECT_NAME": "leeattend-test",
             "PROJECT_ROOT": str(PROJECT_ROOT),
             "CONTAINER_ENGINE": self.engine,
             "DOCKER_COMPOSE_CMD": " ".join(self.compose_engine),
@@ -252,14 +253,16 @@ class Orchestrator:
     def handle_test(self, args: argparse.Namespace) -> None:
         sub = getattr(args, "test_subcommand", None)
         if sub:
-            if sub == "lint:api":
-                self.run_phase("Linting", "api", args)
-            elif sub == "lint:web":
-                self.run_phase("Linting", "web", args)
-            elif sub == "lint:infra":
+            if sub == "lint:infra":
                 self.handle_lint_infra()
-            elif sub == "lint:all":
-                self.run_phase("Linting", "all", args)
+            elif sub in ("lint:api", "lint:web", "lint:all"):
+                # Auto-start containers so standalone lint commands are self-contained
+                mode = sub.split(":")[1]
+                self.active_mode = mode
+                startup_mode = "integration" if mode == "api" else mode
+                self.run_phase("Startup", startup_mode, args)
+                self.needs_cleanup = True
+                self.run_phase("Linting", mode, args)
             return
 
         if not any([args.all, args.api, args.web, args.integration]):
@@ -308,11 +311,14 @@ class Orchestrator:
         }
 
         bootstrap = SCRIPTS_DIR / "_bootstrap.sh"
+        component = getattr(args, "component", None)
+        if component is None:
+            component = ""
         cmd = [
             "/bin/bash",
             "-c",
             f'source "{bootstrap}" && leeattend_bootstrap_env && '
-            f'{func_map[phase_name]} "{getattr(args, "component", "")}"',
+            f'{func_map[phase_name]} "{component}"',
         ]
 
         env = os.environ.copy()
@@ -412,16 +418,20 @@ class Orchestrator:
         compose_cmd = self.compose_engine + [
             "-p",
             self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
-            "--profile",
-            "backend",
-            "--profile",
-            "frontend",
+        ]
+        
+        if tool in ["cargo", "sqlx"]:
+            compose_cmd.extend(["--profile", "int-api", "--profile", "infra-db", "--profile", "infra-db-init", "--profile", "infra-redis"])
+        else:
+            compose_cmd.extend(["--profile", "frontend"])
+
+        compose_cmd.extend([
             "-f",
             str(PROJECT_ROOT / ".compose" / "docker-compose.test.yml"),
             "run",
             "-T",
             "--rm",
-        ]
+        ])
 
         if tool == "npm":
             self._handle_run_npm(compose_cmd, tool_args, service)

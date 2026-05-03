@@ -13,7 +13,7 @@ export const API_BASE_URL: string = import.meta.env.DEV
 
 // WebSocket URL derived from API URL
 export const WS_BASE_URL: string = import.meta.env.DEV
-  ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host ?? ""}/api/ws`
+  ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/api/ws`
   : BASE_URL_FROM_ENV
     ? `${BASE_URL_FROM_ENV.replace(/^http/, "ws")}/ws`
-    : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host ?? ""}/api/ws`;
+    : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/api/ws`;

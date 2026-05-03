@@ -66,7 +66,7 @@ export function useWorkspace(wsId?: string) {
 
   const workspaceQuery = useQuery({
     queryKey: ["workspace", activeWsId],
-    queryFn: () => fetchWorkspace(activeWsId!),
+    queryFn: () => fetchWorkspace((activeWsId ?? "")),
     enabled: !!activeWsId,
   });
 
@@ -83,29 +83,29 @@ export function useWorkspaceRoles(wsId?: string) {
 
   const rolesQuery = useQuery({
     queryKey: workspaceKeys.workspaceRoles(activeWsId ?? ""),
-    queryFn: () => fetchWorkspaceRoles(activeWsId!),
+    queryFn: () => fetchWorkspaceRoles((activeWsId ?? "")),
     enabled: !!activeWsId,
     staleTime: 5 * 60 * 1000,
   });
 
   const createRoleMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string; color: string }) => createWorkspaceRole(activeWsId!, data),
+    mutationFn: (data: { name: string; description?: string; color: string }) => createWorkspaceRole((activeWsId ?? ""), data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: workspaceKeys.workspaceRoles(activeWsId!) });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.workspaceRoles((activeWsId ?? "")) });
     },
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: ({ roleId, data }: { roleId: string; data: { name?: string; description?: string; color?: string } }) => updateWorkspaceRole(activeWsId!, roleId, data),
+    mutationFn: ({ roleId, data }: { roleId: string; data: { name?: string; description?: string; color?: string } }) => updateWorkspaceRole((activeWsId ?? ""), roleId, data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: workspaceKeys.workspaceRoles(activeWsId!) });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.workspaceRoles((activeWsId ?? "")) });
     },
   });
 
   const deleteRoleMutation = useMutation({
-    mutationFn: (roleId: string) => deleteWorkspaceRole(activeWsId!, roleId),
+    mutationFn: (roleId: string) => deleteWorkspaceRole((activeWsId ?? ""), roleId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: workspaceKeys.workspaceRoles(activeWsId!) });
+      void queryClient.invalidateQueries({ queryKey: workspaceKeys.workspaceRoles((activeWsId ?? "")) });
     },
   });
 
@@ -127,25 +127,25 @@ export function useWorkspaceMembers(wsId?: string) {
 
   const membersQuery = useQuery({
     queryKey: workspaceKeys.members(activeWsId ?? ""),
-    queryFn: () => fetchWorkspaceMembers(activeWsId!),
+    queryFn: () => fetchWorkspaceMembers((activeWsId ?? "")),
     enabled: !!activeWsId,
   });
 
   const addMemberMutation = useMutation({
     mutationFn: ({ email, roleId }: { email: string; roleId: string }) =>
-      addWorkspaceMember(activeWsId!, email, roleId),
+      addWorkspaceMember((activeWsId ?? ""), email, roleId),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: workspaceKeys.members(activeWsId!),
+        queryKey: workspaceKeys.members((activeWsId ?? "")),
       });
     },
   });
 
   const removeMemberMutation = useMutation({
-    mutationFn: (userId: string) => removeWorkspaceMember(activeWsId!, userId),
+    mutationFn: (userId: string) => removeWorkspaceMember((activeWsId ?? ""), userId),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: workspaceKeys.members(activeWsId!),
+        queryKey: workspaceKeys.members((activeWsId ?? "")),
       });
     },
   });
@@ -166,39 +166,39 @@ export function useMemberRoles(userId: string, wsId?: string) {
 
   const rolesQuery = useQuery({
     queryKey: workspaceKeys.roles(activeWsId ?? "", userId),
-    queryFn: () => fetchMemberRoles(activeWsId!, userId),
+    queryFn: () => fetchMemberRoles((activeWsId ?? ""), userId),
     enabled: !!activeWsId && !!userId,
   });
 
   const updatePrimaryRoleMutation = useMutation({
     mutationFn: (role: string) =>
-      updateWorkspaceMemberRole(activeWsId!, userId, role),
+      updateWorkspaceMemberRole((activeWsId ?? ""), userId, role),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: workspaceKeys.roles(activeWsId!, userId),
+        queryKey: workspaceKeys.roles((activeWsId ?? ""), userId),
       });
       void queryClient.invalidateQueries({
-        queryKey: workspaceKeys.members(activeWsId!),
+        queryKey: workspaceKeys.members((activeWsId ?? "")),
       });
     },
   });
 
   const assignRoleMutation = useMutation({
     mutationFn: ({ role, expiresAt }: { role: string; expiresAt: string }) =>
-      assignExtraRole(activeWsId!, userId, role, expiresAt),
+      assignExtraRole((activeWsId ?? ""), userId, role, expiresAt),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: workspaceKeys.roles(activeWsId!, userId),
+        queryKey: workspaceKeys.roles((activeWsId ?? ""), userId),
       });
     },
   });
 
   const revokeRoleMutation = useMutation({
     mutationFn: (roleId: string) =>
-      revokeExtraRole(activeWsId!, userId, roleId),
+      revokeExtraRole((activeWsId ?? ""), userId, roleId),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: workspaceKeys.roles(activeWsId!, userId),
+        queryKey: workspaceKeys.roles((activeWsId ?? ""), userId),
       });
     },
   });
@@ -218,32 +218,32 @@ export function useMemberPermissions(userId: string, wsId?: string) {
 
   const permissionsQuery = useQuery({
     queryKey: workspaceKeys.permissions(activeWsId ?? "", userId),
-    queryFn: () => fetchMemberPermissions(activeWsId!, userId),
+    queryFn: () => fetchMemberPermissions((activeWsId ?? ""), userId),
     enabled: !!activeWsId && !!userId,
   });
 
   const availableQuery = useQuery({
     queryKey: workspaceKeys.availablePermissions(activeWsId ?? ""),
-    queryFn: () => fetchAvailablePermissions(activeWsId!),
+    queryFn: () => fetchAvailablePermissions((activeWsId ?? "")),
     enabled: !!activeWsId,
   });
 
   const assignMutation = useMutation({
     mutationFn: ({ permission, expiresAt }: { permission: string; expiresAt: string }) =>
-      assignExtraPermission(activeWsId!, userId, permission, expiresAt),
+      assignExtraPermission((activeWsId ?? ""), userId, permission, expiresAt),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: workspaceKeys.permissions(activeWsId!, userId),
+        queryKey: workspaceKeys.permissions((activeWsId ?? ""), userId),
       });
     },
   });
 
   const revokeMutation = useMutation({
     mutationFn: (permId: string) =>
-      revokeExtraPermission(activeWsId!, userId, permId),
+      revokeExtraPermission((activeWsId ?? ""), userId, permId),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: workspaceKeys.permissions(activeWsId!, userId),
+        queryKey: workspaceKeys.permissions((activeWsId ?? ""), userId),
       });
     },
   });
@@ -265,15 +265,15 @@ export function useRolePermissions(roleId: string, wsId?: string) {
 
   const permissionsQuery = useQuery({
     queryKey: workspaceKeys.rolePermissions(activeWsId ?? "", roleId),
-    queryFn: () => fetchRolePermissions(activeWsId!, roleId),
+    queryFn: () => fetchRolePermissions((activeWsId ?? ""), roleId),
     enabled: !!activeWsId && !!roleId,
   });
 
   const updateMutation = useMutation({
-    mutationFn: (permissions: string[]) => updateRolePermissions(activeWsId!, roleId, permissions),
+    mutationFn: (permissions: string[]) => updateRolePermissions((activeWsId ?? ""), roleId, permissions),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: workspaceKeys.rolePermissions(activeWsId!, roleId),
+        queryKey: workspaceKeys.rolePermissions((activeWsId ?? ""), roleId),
       });
     },
   });
@@ -300,7 +300,7 @@ export function useWorkspacePermissionsMatrix(wsId?: string) {
       const matrix: Record<string, string[]> = {};
       await Promise.all(roles.map(async (role) => {
         try {
-          const perms = await fetchRolePermissions(activeWsId!, role.id);
+          const perms = await fetchRolePermissions((activeWsId ?? ""), role.id);
           matrix[role.id] = perms;
         } catch {
           matrix[role.id] = [];

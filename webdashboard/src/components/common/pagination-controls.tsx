@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +16,14 @@ interface PaginationControlsProps {
   totalPages: number;
 }
 
-function MobilePagination({ currentPage, totalPages, onPageChange, t }: any) {
+interface MobilePaginationProps {
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  t: TFunction;
+  totalPages: number;
+}
+
+function MobilePagination({ currentPage, totalPages, onPageChange, t }: MobilePaginationProps) {
   return (
       <div className="flex justify-between flex-1 sm:hidden">
         <button
@@ -35,6 +44,20 @@ function MobilePagination({ currentPage, totalPages, onPageChange, t }: any) {
   );
 }
 
+interface DesktopPaginationProps {
+  currentOptions: number[];
+  currentPage: number;
+  endItem: number;
+  getPageNumbers: () => number[];
+  onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  pageSize: number;
+  startItem: number;
+  t: TFunction;
+  totalItems: number;
+  totalPages: number;
+}
+
 function DesktopPagination({
     currentPage,
     totalPages,
@@ -47,7 +70,7 @@ function DesktopPagination({
     currentOptions,
     getPageNumbers,
     t
-}: any) {
+}: DesktopPaginationProps) {
   return (
       <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between gap-8">
         <div className="flex items-center gap-6">

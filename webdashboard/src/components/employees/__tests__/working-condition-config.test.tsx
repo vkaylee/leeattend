@@ -25,7 +25,7 @@ vi.mock("@/lib/api/employees", () => ({
   ]),
   createWorkingCondition: vi.fn(),
  
-  deleteWorkingCondition: (...arguments_: unknown[]) => mockDelete(...arguments_)
+  deleteWorkingCondition: (wsId: string, employeeId: string, id: string) => mockDelete(wsId, employeeId, id) as Promise<void>
 }));
 
 // Mock translation

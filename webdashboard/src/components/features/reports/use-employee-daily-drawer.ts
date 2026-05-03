@@ -90,12 +90,12 @@ export function useEmployeeDailyDrawer({
     } = useInfiniteQuery({
         queryKey: ["raw-logs", workspaceId, dateRange, [employeeId]],
         queryFn: ({ pageParam }) => {
-            const from = dateRange.start ? new Date(`${dateRange.start ?? ""}T00:00:00`).toISOString() : undefined;
-            const to = dateRange.end ? new Date(`${dateRange.end ?? ""}T23:59:59`).toISOString() : undefined;
+            const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
+            const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
             return fetchRawAttendanceLogs({ employee_id: employeeId, from, to, page: pageParam, limit: 100 });
         },
         getNextPageParam: (lastPage, allPages) => {
-            if (!lastPage.data || lastPage.data.length < 100) return undefined;
+            if (lastPage.data.length < 100) return undefined;
             return allPages.length + 1;
         },
         initialPageParam: 1,
@@ -105,13 +105,13 @@ export function useEmployeeDailyDrawer({
     // Extract flat array of logs
     const rawLogsData = useMemo(() => {
         if (!rawLogsResponse) return [];
-        return rawLogsResponse.pages.flatMap((p) => p.data || []);
+        return rawLogsResponse.pages.flatMap((p) => p.data);
     }, [rawLogsResponse]);
 
     const adjustmentMap = useMemo(() => {
         const map: Record<string, AttendanceAdjustmentRequest> = {};
         pendingAdjustments?.forEach((request) => {
-            const key = `${request.employee_id ?? ""}-${request.requested_date ?? ""}`;
+            const key = `${request.employee_id}-${request.requested_date}`;
             map[key] = request;
         });
         return map;
@@ -244,7 +244,7 @@ export function useEmployeeDailyDrawer({
 
     const handleConfirmReprocess = () => {
         if (!confirmDialog) return;
-        setReprocessingRow(`${confirmDialog.employeeId ?? ""}-${confirmDialog.date ?? ""}`);
+        setReprocessingRow(`${confirmDialog.employeeId}-${confirmDialog.date}`);
         reprocessMutation.mutate({ empId: confirmDialog.employeeId, date: confirmDialog.date });
     };
 
@@ -255,7 +255,7 @@ export function useEmployeeDailyDrawer({
     const handleConfirmSubmit = ({ punchIn, punchOut, reason }: { punchIn: string; punchOut: string; reason: string }) => {
         if (!confirmModalData) return;
         const { row, existingRequest } = confirmModalData;
-        const rowKey = `${row.employee_id ?? ""}-${row.date ?? ""}`;
+        const rowKey = `${row.employee_id}-${row.date}`;
         setConfirmingRow(rowKey);
 
         if (existingRequest) {

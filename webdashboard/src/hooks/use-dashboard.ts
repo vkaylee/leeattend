@@ -38,7 +38,7 @@ export function useDashboardStats() {
         throw new Error("Failed to fetch dashboard stats");
       }
 
-      return response.json();
+      return response.json() as Promise<WorkspaceStats>;
     },
     enabled: !!workspace,
   });
@@ -58,7 +58,7 @@ export function useAttendanceTrend() {
         throw new Error("Failed to fetch attendance trend");
       }
 
-      return response.json();
+      return response.json() as Promise<AttendanceTrendPoint[]>;
     },
     enabled: !!workspace,
   });
@@ -82,14 +82,14 @@ export function useDepartmentAttendance(range: "today" | "week" = "today") {
       if (!workspace) throw new Error("No workspace selected");
 
       const response = await apiFetch(
-        `/dashboard/department-attendance?range=${range ?? ""}`
+        `/dashboard/department-attendance?range=${range}`
       );
 
       if (!response.ok) {
         throw new Error("Failed to fetch department attendance");
       }
 
-      return response.json();
+      return response.json() as Promise<DepartmentAttendancePoint[]>;
     },
     enabled: !!workspace,
   });
@@ -119,13 +119,13 @@ export function useUnexcusedAbsences(startDate?: string, endDate?: string, group
       if (endDate) params.set("end_date", endDate);
       if (groupBy) params.set("group_by", groupBy);
       const qs = params.toString();
-      const response = await apiFetch(`/dashboard/unexcused-absences${qs ? `?${qs ?? ""}` : ""}`);
+      const response = await apiFetch(`/dashboard/unexcused-absences${qs ? `?${qs}` : ""}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch unexcused absences");
       }
 
-      return response.json();
+      return response.json() as Promise<UnexcusedAbsencesPoint[]>;
     },
     enabled: !!workspace,
   });
@@ -151,7 +151,7 @@ export function useOvertimeTrend() {
         throw new Error("Failed to fetch overtime trend");
       }
 
-      return response.json();
+      return response.json() as Promise<OvertimeTrendPoint[]>;
     },
     enabled: !!workspace,
   });
@@ -179,7 +179,7 @@ export function usePeakTimes() {
         throw new Error("Failed to fetch peak times");
       }
 
-      return response.json();
+      return response.json() as Promise<PeakTimeSlot[]>;
     },
     enabled: !!workspace,
   });
@@ -206,7 +206,7 @@ export function useLeaveTypesBreakdown() {
         throw new Error("Failed to fetch leave types breakdown");
       }
 
-      return response.json();
+      return response.json() as Promise<LeaveTypeBreakdown[]>;
     },
     enabled: !!workspace,
   });
@@ -234,7 +234,7 @@ export function useLatenessByDay() {
         throw new Error("Failed to fetch lateness by day");
       }
 
-      return response.json();
+      return response.json() as Promise<LatenessByDay[]>;
     },
     enabled: !!workspace,
   });
@@ -262,7 +262,7 @@ export function useRecruitmentSourceBreakdown() {
         throw new Error("Failed to fetch recruitment source breakdown");
       }
 
-      return response.json();
+      return response.json() as Promise<RecruitmentSourceBreakdown[]>;
     },
     enabled: !!workspace,
   });
@@ -304,14 +304,14 @@ export function useTurnoverAnalytics(startDate: string, endDate: string) {
       if (!workspace) throw new Error("No workspace selected");
 
       const response = await apiFetch(
-        `/dashboard/turnover-analytics?start=${startDate ?? ""}&end=${endDate ?? ""}`
+        `/dashboard/turnover-analytics?start=${startDate}&end=${endDate}`
       );
 
       if (!response.ok) {
         throw new Error("Failed to fetch turnover analytics");
       }
 
-      return response.json();
+      return response.json() as Promise<TurnoverAnalytics>;
     },
     enabled: !!workspace && !!startDate && !!endDate,
   });

@@ -127,7 +127,7 @@ mod tests {
         let corrected = ts.corrected_timestamp();
         // corrected should be ~10 seconds ahead of raw
         let diff = corrected - raw;
-        assert!(diff >= 9 && diff <= 11, "diff was {diff}s, expected ~10s");
+        assert!((9..=11).contains(&diff), "diff was {diff}s, expected ~10s");
     }
 
     #[test]
@@ -139,7 +139,7 @@ mod tests {
         let raw = Utc::now().timestamp();
         let corrected = ts.corrected_timestamp();
         let diff = raw - corrected;
-        assert!(diff >= 9 && diff <= 11, "diff was {diff}s, expected ~10s");
+        assert!((9..=11).contains(&diff), "diff was {diff}s, expected ~10s");
     }
 
     #[test]

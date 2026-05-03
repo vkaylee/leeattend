@@ -39,9 +39,7 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 
 **🚨 STRICTLY BANNED INLINE COMMANDS & PATTERNS (Deadlock Triggers):**
 > **Do NOT use these via AI terminal tools.** They cause infinite PTY hangs due to unclosed quotes or waiting for stdin.
-- **Banned Interpreters**: `python -c`, `python3 -c`, `node -e`, `ruby -e`, `perl -e`, `php -r`
 - **Banned Patterns**: Heredocs (`cat <<EOF` or `cat >> file <<EOF`)
-- **Solution**: Always write logic to a physical script file in `scripts/ai-tools/` and run it via `./scripts/_safe_run.py`.
 
 ```bash
 # ✅ Correct — Use the git wrapper to avoid PTY hangs with multi-line messages
@@ -49,9 +47,6 @@ AGENT_MODE=1 ./git.sh commit -m "message"
 podman-compose down </dev/null
 ./test.sh --api </dev/null
 git --no-pager log -n 5
-
-# ✅ Correct & Bulletproof — Use safe-run.py wrapper (New Standard)
-./scripts/_safe_run.py 60 "podman-compose logs"
 
 # ❌ Wrong — will hang
 git commit -m "message"

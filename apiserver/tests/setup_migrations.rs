@@ -1,4 +1,13 @@
 #![allow(missing_docs)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+#![allow(clippy::panic)]
+#![allow(clippy::todo)]
+#![allow(clippy::unimplemented)]
+#![allow(warnings)]
+#![allow(clippy::all)]
+#![allow(clippy::pedantic)]
+#![allow(clippy::nursery)]
 use sqlx::postgres::PgPoolOptions;
 
 #[tokio::test]

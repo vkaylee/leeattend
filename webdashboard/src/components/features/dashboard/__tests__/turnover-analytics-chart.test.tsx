@@ -19,29 +19,29 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("recharts", () => ({
  
-    BarChart: ({ children, ...props }: any) => (
-        <div data-testid="bar-chart" {...props}>{children as React.ReactNode}</div>
+    BarChart: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => (
+        <div data-testid="bar-chart" {...props}>{children}</div>
     ),
  
-    Bar: (props: any) => <div data-testid="bar" {...props} />,
+    Bar: (props: Record<string, unknown>) => <div data-testid="bar" {...props} />,
  
-    XAxis: (props: any) => <div data-testid="x-axis" {...props} />,
+    XAxis: (props: Record<string, unknown>) => <div data-testid="x-axis" {...props} />,
  
-    YAxis: (props: any) => <div data-testid="y-axis" {...props} />,
+    YAxis: (props: Record<string, unknown>) => <div data-testid="y-axis" {...props} />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
  
-    PieChart: ({ children, ...props }: any) => (
-        <div data-testid="pie-chart" {...props}>{children as React.ReactNode}</div>
+    PieChart: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => (
+        <div data-testid="pie-chart" {...props}>{children}</div>
     ),
  
-    Pie: ({ children, ...props }: any) => (
-        <div data-testid="pie" {...props}>{children as React.ReactNode}</div>
+    Pie: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => (
+        <div data-testid="pie" {...props}>{children}</div>
     ),
  
-    Cell: (props: any) => <div data-testid="cell" {...props} />,
+    Cell: (props: Record<string, unknown>) => <div data-testid="cell" {...props} />,
  
-    ResponsiveContainer: ({ children }: any) => (
-        <div data-testid="responsive-container">{children as React.ReactNode}</div>
+    ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="responsive-container">{children}</div>
     ),
     Tooltip: () => <div data-testid="tooltip" />,
     Legend: () => <div data-testid="legend" />,
@@ -87,10 +87,10 @@ describe("TurnoverAnalyticsChart", () => {
 
     it("renders loading skeleton when data is loading", () => {
  
-        (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: undefined,
             isLoading: true,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
 
         renderWithProviders(<TurnoverAnalyticsChart />);
 
@@ -102,7 +102,7 @@ describe("TurnoverAnalyticsChart", () => {
 
     it("renders empty state when no data available", () => {
  
-        (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: {
                 tenure_distribution: [],
                 by_source: [],
@@ -112,7 +112,7 @@ describe("TurnoverAnalyticsChart", () => {
                 period_end: "2026-03-03",
             },
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
 
         renderWithProviders(<TurnoverAnalyticsChart />);
 
@@ -121,10 +121,10 @@ describe("TurnoverAnalyticsChart", () => {
 
     it("renders tenure bar chart by default when data is available", () => {
  
-        (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
 
         renderWithProviders(<TurnoverAnalyticsChart />);
 
@@ -134,10 +134,10 @@ describe("TurnoverAnalyticsChart", () => {
 
     it("displays the correct chart title", () => {
  
-        (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
 
         renderWithProviders(<TurnoverAnalyticsChart />);
 
@@ -147,10 +147,10 @@ describe("TurnoverAnalyticsChart", () => {
 
     it("displays total terminated badge", () => {
  
-        (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
 
         renderWithProviders(<TurnoverAnalyticsChart />);
 
@@ -159,10 +159,10 @@ describe("TurnoverAnalyticsChart", () => {
 
     it("shows tab navigation with 3 tabs", () => {
  
-        (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
 
         renderWithProviders(<TurnoverAnalyticsChart />);
 
@@ -173,10 +173,10 @@ describe("TurnoverAnalyticsChart", () => {
 
     it("switches to source pie chart when source tab clicked", () => {
  
-        (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
 
         renderWithProviders(<TurnoverAnalyticsChart />);
 
@@ -189,10 +189,10 @@ describe("TurnoverAnalyticsChart", () => {
 
     it("switches to department chart when dept tab clicked", () => {
  
-        (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
 
         renderWithProviders(<TurnoverAnalyticsChart />);
 
@@ -205,10 +205,10 @@ describe("TurnoverAnalyticsChart", () => {
 
     it("has a period selector dropdown with options", () => {
  
-        (dashboardHooks.useTurnoverAnalytics as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useTurnoverAnalytics).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useTurnoverAnalytics>);
 
         renderWithProviders(<TurnoverAnalyticsChart />);
 

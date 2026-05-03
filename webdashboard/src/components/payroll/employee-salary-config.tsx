@@ -44,18 +44,18 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
   const [selectedCompId, setSelectedCompId] = useState("");
   const [amount, setAmount] = useState("");
   const [effectiveDate, setEffectiveDate] = useState(format(new Date(), "yyyy-MM-01"));
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Partial<Record<string, boolean>>>({});
 
   const { data: definitions = [] } = useQuery({ queryKey: ["salary-components", wsId], queryFn: () => fetchSalaryComponents(wsId) });
   const { data: employeeComps = [], isLoading } = useQuery({ queryKey: ["employee-salary-components", employeeId], queryFn: () => fetchEmployeeSalaryComponents(wsId, employeeId) });
   const { data: individualConfigs = [], isLoading: isConfigsLoading } = useQuery({ queryKey: ["employee-payroll-configs", employeeId], queryFn: () => fetchEmployeePayrollConfigs(wsId, employeeId) });
 
-  const groupedComps = employeeComps.reduce<Record<string, EmployeeSalaryComponent[]>>((accumulator, comp) => {
-    const key = comp.component_definition_id; if (!accumulator[key]) accumulator[key] = [];
+  const groupedComps = employeeComps.reduce<Partial<Record<string, EmployeeSalaryComponent[]>>>((accumulator, comp) => {
+    const key = comp.component_definition_id; if (accumulator[key] === undefined) accumulator[key] = [];
     accumulator[key].push(comp); return accumulator;
   }, {});
 
-  Object.keys(groupedComps).forEach(key => { groupedComps[key].sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()); });
+  Object.keys(groupedComps).forEach(key => { (groupedComps[key] as EmployeeSalaryComponent[]).sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime()); });
 
   const toggleGroup = (id: string) => { setExpandedGroups(previous => ({ ...previous, [id]: !previous[id] })); };
 
@@ -69,7 +69,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
     onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["employee-salary-components", employeeId] }); setIsAdding(false); setAmount(""); setSelectedCompId(""); },
   });
 
-  const handleAssign = (e: React.FormEvent) => {
+  const handleAssign = (e: React.SyntheticEvent) => {
     e.preventDefault(); if (!selectedCompId || !amount) return;
     assignMutation.mutate({ component_definition_id: selectedCompId, amount: amount, effective_date: effectiveDate });
   };
@@ -88,7 +88,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
         </button>
       </div>
 
-      {!!isAdding && (
+      {isAdding ? (
         <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500" onSubmit={handleAssign}>
           <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
             <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><ArrowUpRight size={16} /></div>
@@ -112,7 +112,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
             <button className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={assignMutation.isPending} type="submit">{assignMutation.isPending ? t("common.saving").toUpperCase() : t("common.save")}</button>
           </div>
         </form>
-      )}
+      ) : null}
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
         <table className="w-full text-left border-collapse">
@@ -132,6 +132,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
               <tr><td className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={5}>{t("payroll.employee_config.no_config")}</td></tr>
             ) : (
               Object.entries(groupedComps).map(([defId, comps]) => {
+                if (!comps) return null;
                 const latest = comps[0]; const hasHistory = comps.length > 1; const isExpanded = expandedGroups[defId];
                 return (
                   <React.Fragment key={defId}>
@@ -163,7 +164,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
                         <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                       </td>
                     </tr>
-                    {!!isExpanded && comps.slice(1).map((comp) => (
+                    {isExpanded ? comps.slice(1).map((comp) => (
                       <tr className="bg-slate-50 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 animate-in slide-in-from-top-2 duration-300" key={comp.id}>
                         <td className="px-8 py-4 pl-20 relative">
                           <div className="absolute left-12 top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-600" />
@@ -179,7 +180,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
                           <button className="p-1.5 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 transition-all opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
                         </td>
                       </tr>
-                    ))}
+                    )) : null}
                   </React.Fragment>
                 );
               })

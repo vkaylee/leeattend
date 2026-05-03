@@ -41,7 +41,7 @@ export default function RuleTierManager({ wsId, ruleId, onClose: _onClose }: Pro
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
     createMutation.mutate(newTier);
   };

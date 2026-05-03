@@ -56,7 +56,19 @@ function DeviceTimeTicker({ deviceTime, lastSync }: { deviceTime?: string; lastS
   );
 }
 
-function DeviceTopBar({ device, status, isRefreshing, handleRefresh, onEdit, setShowDeleteModal, t }: any) {
+import type { TFunction } from "i18next";
+
+interface DeviceTopBarProps {
+  device: Device;
+  handleRefresh: () => void;
+  isRefreshing: boolean;
+  onEdit?: (device: Device) => void;
+  setShowDeleteModal: (show: boolean) => void;
+  status?: DeviceStatus;
+  t: TFunction;
+}
+
+function DeviceTopBar({ device, status, isRefreshing, handleRefresh, onEdit, setShowDeleteModal, t }: DeviceTopBarProps) {
   return (
     <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-50 dark:border-slate-800/50">
       <div className="flex items-center gap-3 min-w-0">
@@ -89,21 +101,21 @@ function DeviceTopBar({ device, status, isRefreshing, handleRefresh, onEdit, set
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" data-testid={`device-menu-${device.id ?? ""}`}>
+            <button className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" data-testid={`device-menu-${device.id}`}>
               <MoreVertical size={16} />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52 p-2 rounded-xl shadow-2xl">
-            <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-refresh-${device.id ?? ""}`} disabled={isRefreshing} onSelect={handleRefresh}>
+            <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-refresh-${device.id}`} disabled={isRefreshing} onSelect={handleRefresh}>
               <RefreshCw className={cn(isRefreshing && "animate-spin")} size={14} />
               {isRefreshing ? t("common.loading") : t("common.refresh")}
             </DropdownMenuItem>
             {!!onEdit && (
-              <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-edit-${device.id ?? ""}`} onSelect={() => { onEdit(device); }}>
+              <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase" data-testid={`device-edit-${device.id}`} onSelect={() => { onEdit(device); }}>
                 <Pencil size={14} /> {t("devices.table.edit")}
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase text-rose-600 focus:text-rose-600" data-testid={`device-delete-${device.id ?? ""}`} onSelect={() => { setShowDeleteModal(true); }}>
+            <DropdownMenuItem className="gap-3 p-3 rounded-lg font-bold text-xs uppercase text-rose-600 focus:text-rose-600" data-testid={`device-delete-${device.id}`} onSelect={() => { setShowDeleteModal(true); }}>
               <Trash2 size={14} /> {t("devices.table.delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -113,7 +125,12 @@ function DeviceTopBar({ device, status, isRefreshing, handleRefresh, onEdit, set
   );
 }
 
-function DeviceStats({ displayInfo, t }: any) {
+interface DeviceStatsProps {
+  displayInfo: DeviceInfo | null;
+  t: TFunction;
+}
+
+function DeviceStats({ displayInfo, t }: DeviceStatsProps) {
   return (
     <div className="flex flex-wrap gap-y-6 gap-x-8">
       {/* Users */}
@@ -124,7 +141,7 @@ function DeviceStats({ displayInfo, t }: any) {
           <span className="text-sm font-black text-slate-700 dark:text-slate-200">
             {displayInfo ? (
               <>
-                {(displayInfo.users_count ?? 0).toLocaleString()}
+                {displayInfo.users_count.toLocaleString()}
                 {typeof displayInfo.users_capacity === 'number' && (
                   <span className="text-slate-400 font-bold text-[10px]"> / {displayInfo.users_capacity.toLocaleString()}</span>
                 )}
@@ -142,7 +159,7 @@ function DeviceStats({ displayInfo, t }: any) {
           <span className="text-sm font-black text-amber-600">
             {displayInfo ? (
               <>
-                {displayInfo.logs_count != null ? displayInfo.logs_count.toLocaleString() : "N/A"}
+                {displayInfo.logs_count.toLocaleString()}
                 {typeof displayInfo.logs_capacity === 'number' && displayInfo.logs_capacity > 0 && (
                   <span className="text-slate-400 font-bold text-[10px]"> / {displayInfo.logs_capacity.toLocaleString()}</span>
                 )}
@@ -185,24 +202,36 @@ function DeviceStats({ displayInfo, t }: any) {
   );
 }
 
-function DeviceModals({ device, showToggleModal, setShowToggleModal, showDeleteModal, setShowDeleteModal, isToggling, handleToggleConfirm, handleDeleteConfirm, t }: any) {
+interface DeviceModalsProps {
+  device: Device;
+  handleDeleteConfirm: () => void;
+  handleToggleConfirm: () => void;
+  isToggling: boolean;
+  setShowDeleteModal: (show: boolean) => void;
+  setShowToggleModal: (show: boolean) => void;
+  showDeleteModal: boolean;
+  showToggleModal: boolean;
+  t: TFunction;
+}
+
+function DeviceModals({ device, showToggleModal, setShowToggleModal, showDeleteModal, setShowDeleteModal, isToggling, handleToggleConfirm, handleDeleteConfirm, t }: DeviceModalsProps) {
   return (
     <>
-      <Modal icon={<Power size={20} />} isOpen={showToggleModal} maxWidth="sm" onClose={() => { setShowToggleModal(false); }} testId={`toggle-modal-${device.id ?? ""}`} title={t(device.is_enabled ? "devices.modal.disable_title" : "devices.modal.enable_title")}>
+      <Modal icon={<Power size={20} />} isOpen={showToggleModal} maxWidth="sm" onClose={() => { setShowToggleModal(false); }} testId={`toggle-modal-${device.id}`} title={t(device.is_enabled ? "devices.modal.disable_title" : "devices.modal.enable_title")}>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">{t(device.is_enabled ? "devices.confirm_disable" : "devices.confirm_enable", { name: device.name })}</p>
         <div className="flex justify-end gap-3">
-          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`toggle-cancel-${device.id ?? ""}`} onClick={() => { setShowToggleModal(false); }}>{t("common.cancel")}</button>
-          <button className={cn("px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl transition-colors", device.is_enabled ? "bg-rose-600 text-white" : "bg-emerald-600 text-white")} data-testid={`toggle-confirm-${device.id ?? ""}`} onClick={handleToggleConfirm}>
+          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`toggle-cancel-${device.id}`} onClick={() => { setShowToggleModal(false); }}>{t("common.cancel")}</button>
+          <button className={cn("px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl transition-colors", device.is_enabled ? "bg-rose-600 text-white" : "bg-emerald-600 text-white")} data-testid={`toggle-confirm-${device.id}`} onClick={handleToggleConfirm}>
             {device.is_enabled ? t("common.disable") : t("common.enable")}
           </button>
         </div>
       </Modal>
 
-      <Modal icon={<AlertTriangle size={20} />} isOpen={showDeleteModal} maxWidth="sm" onClose={() => { setShowDeleteModal(false); }} testId={`delete-modal-${device.id ?? ""}`} title={t("devices.modal.delete_title")}>
+      <Modal icon={<AlertTriangle size={20} />} isOpen={showDeleteModal} maxWidth="sm" onClose={() => { setShowDeleteModal(false); }} testId={`delete-modal-${device.id}`} title={t("devices.modal.delete_title")}>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">{t("devices.toast.delete_confirm", { name: device.name })}</p>
         <div className="flex justify-end gap-3">
-          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`delete-cancel-${device.id ?? ""}`} onClick={() => { setShowDeleteModal(false); }}>{t("common.cancel")}</button>
-          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-rose-600 text-white rounded-xl transition-colors" data-testid={`delete-confirm-${device.id ?? ""}`} onClick={handleDeleteConfirm}>{t("devices.table.delete")}</button>
+          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 rounded-xl transition-colors" data-testid={`delete-cancel-${device.id}`} onClick={() => { setShowDeleteModal(false); }}>{t("common.cancel")}</button>
+          <button className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-rose-600 text-white rounded-xl transition-colors" data-testid={`delete-confirm-${device.id}`} onClick={handleDeleteConfirm}>{t("devices.table.delete")}</button>
         </div>
       </Modal>
     </>
@@ -281,7 +310,7 @@ export default function DeviceListItem({
           ? "bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 opacity-60"
           : "bg-white dark:bg-slate-900 border-transparent hover:border-primary-100 dark:hover:border-primary-900 shadow-sm",
       )}
-      data-testid={`device-item-${device.id ?? ""}`}
+      data-testid={`device-item-${device.id}`}
     >
       <DeviceTopBar device={device} handleRefresh={handleRefresh} isRefreshing={isRefreshing} onEdit={onEdit} setShowDeleteModal={setShowDeleteModal} status={status} t={t} />
 
@@ -305,7 +334,7 @@ export default function DeviceListItem({
               ? "text-rose-500 border-rose-100 dark:border-rose-900/50 hover:bg-rose-500 hover:text-white"
               : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
           )}
-          data-testid={`device-toggle-${device.id ?? ""}`}
+          data-testid={`device-toggle-${device.id}`}
           disabled={isToggling}
           onClick={() => { setShowToggleModal(true); }}
         >

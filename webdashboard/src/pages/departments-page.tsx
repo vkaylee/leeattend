@@ -57,7 +57,7 @@ export default function DepartmentsPage() {
 
   const toast = useToast();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault(); const formData = new FormData(e.currentTarget);
     const data = { name: formData.get("name") as string, description: formData.get("description") as string, manager_id: selectedManagerId || null, default_working_pattern_id: selectedPatternId || null };
     if (editingDept) { updateMutation.mutate(data); } else { createMutation.mutate(data); }
@@ -150,7 +150,7 @@ export default function DepartmentsPage() {
         ))}
       </div>
 
-      <Modal icon={<Calculator size={24} />} isOpen={!!isConfigModalOpen && !!editingDept} maxWidth="3xl" onClose={() => { setIsConfigModalOpen(false); }} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
+      <Modal icon={<Calculator size={24} />} isOpen={isConfigModalOpen && !!editingDept} maxWidth="3xl" onClose={() => { setIsConfigModalOpen(false); }} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
         <div className="space-y-10 pt-4 animate-in fade-in duration-500">
           <TemporalConfigTable isLoading={isConfigsLoading} onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }} records={deptConfigs as any[]} title={t("payroll.settings.std_days_history")} />
           <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button onClick={() => { setIsConfigModalOpen(false); }} size="lg" variant="secondary">{t("common.close").toUpperCase()}</Button></div>

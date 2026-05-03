@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createRouter as _createRouter, RouterProvider as _RouterProvider } from "@tanstack/react-router";
 import { render, screen, waitFor } from "@testing-library/react";
 import React, { Suspense, createElement, lazy } from "react";
 
@@ -329,7 +328,7 @@ describe("Page-level code splitting", () => {
 describe("i18n lazy locale loading", () => {
     it("has fallback language set to vi", () => {
         const f = i18n.options.fallbackLng;
-        const fallback = Array.isArray(f) ? f[0] : f;
+        const fallback = Array.isArray(f) ? (f[0] as string) : f;
         expect(fallback).toBe("vi");
     });
 
@@ -348,7 +347,7 @@ describe("i18n lazy locale loading", () => {
         await i18n.changeLanguage("en");
 
         await waitFor(() => {
-            const resources = i18n.getResourceBundle("en", "translation");
+            const resources = i18n.getResourceBundle("en", "translation") as Record<string, unknown> | undefined;
             expect(resources).toBeDefined();
             expect(Object.keys(resources ?? {}).length).toBeGreaterThan(0);
         }, { timeout: 3000 });

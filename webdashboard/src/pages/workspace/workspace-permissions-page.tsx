@@ -35,7 +35,7 @@ export default function WorkspacePermissionsPage() {
   const { hasPermission } = useMyPermissions();
   const hasManagePermission = hasPermission("members:roles:manage");
 
-  const [permissions, setPermissions] = useState<Record<string, string[]>>(matrix || {});
+  const [permissions, setPermissions] = useState<Record<string, string[]>>(matrix);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hiddenRoleIds, setHiddenRoleIds] = useState<string[]>([]);
@@ -66,11 +66,14 @@ export default function WorkspacePermissionsPage() {
     }
   };
 
-  useEffect(() => {
-    if (matrix && Object.keys(matrix).length > 0) {
+  const [prevMatrix, setPrevMatrix] = useState<Record<string, string[]> | null>(null);
+
+  if (matrix !== prevMatrix) {
+    setPrevMatrix(matrix);
+    if (Object.keys(matrix).length > 0) {
       setPermissions(matrix);
     }
-  }, [matrix]);
+  }
 
 
  
@@ -94,14 +97,14 @@ export default function WorkspacePermissionsPage() {
     try {
       // Find which roles have been modified by comparing with matrix
       const modifiedRoles = roles.filter(role => {
-        const initial = matrix[role.id] || [];
-        const current = permissions[role.id] || [];
+        const initial = matrix[role.id];
+        const current = permissions[role.id];
         // simple array equality
         return initial.length !== current.length || !initial.every(p => current.includes(p));
       });
 
       await Promise.all(modifiedRoles.map(role => 
-        updateRolePermissions(wsId, role.id, permissions[role.id] || [])
+        updateRolePermissions(wsId, role.id, permissions[role.id])
       ));
       
       setHasChanges(false);
@@ -121,7 +124,7 @@ export default function WorkspacePermissionsPage() {
           title={t('permissions.title', { defaultValue: 'Permission Matrix' })}
         />
         <div className="flex items-center gap-3">
-          {!!hasChanges && <span className="text-xs font-bold text-amber-500 animate-pulse">{t('permissions.unsavedChanges', { defaultValue: 'Unsaved changes' })}</span>}
+          {hasChanges ? <span className="text-xs font-bold text-amber-500 animate-pulse">{t('permissions.unsavedChanges', { defaultValue: 'Unsaved changes' })}</span> : null}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -143,8 +146,8 @@ export default function WorkspacePermissionsPage() {
                     );
                   }}
                 >
-                  {t(`roles.${role.name ?? ""}`, { defaultValue: role.name })}
-                  {!!role.is_system && <span className="ml-2 text-[9px] text-slate-400 font-normal uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{t('common.system', { defaultValue: 'System' })}</span>}
+                  {t(`roles.${role.name}`, { defaultValue: role.name })}
+                  {role.is_system ? <span className="ml-2 text-[9px] text-slate-400 font-normal uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{t('common.system', { defaultValue: 'System' })}</span> : null}
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>
@@ -155,7 +158,7 @@ export default function WorkspacePermissionsPage() {
               className={cn(
                 "flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all",
                 hasChanges 
-                  ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 hover:-translate-y-0.5" 
+                  ? "bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-200 dark:shadow-primary-900/20 hover:-translate-y-0.5" 
                   : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
               )}
               disabled={!hasChanges || isSaving}
@@ -175,7 +178,7 @@ export default function WorkspacePermissionsPage() {
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         {isRolesLoading || isMatrixLoading ? (
           <div className="flex justify-center p-20">
-            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
         <div className="relative group/table">
@@ -210,8 +213,8 @@ export default function WorkspacePermissionsPage() {
               <tr>
                 <th className="sticky left-0 z-20 bg-slate-50 dark:bg-slate-900 border-b border-r border-slate-100 dark:border-slate-800 p-6 min-w-[280px]">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl">
-                      <KeyRound className="w-5 h-5 text-indigo-500" />
+                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+                      <KeyRound className="w-5 h-5 text-blue-500" />
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-800 dark:text-slate-200">{t('permissions.modules', { defaultValue: 'Modules' })}</h3>
@@ -222,13 +225,13 @@ export default function WorkspacePermissionsPage() {
                 {visibleRoles.map(role => (
                   <th className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-6 text-center min-w-[140px]" key={role.id}>
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate w-full px-2" title={t(`roles.${role.name ?? ""}`, { defaultValue: role.name })}>
-                        {t(`roles.${role.name ?? ""}`, { defaultValue: role.name })}
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate w-full px-2" title={t(`roles.${role.name}`, { defaultValue: role.name })}>
+                        {t(`roles.${role.name}`, { defaultValue: role.name })}
                       </h4>
                       {role.is_system ? (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500">{t('common.system', { defaultValue: 'System' })}</span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">{t('common.custom', { defaultValue: 'Custom' })}</span>
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{t('common.custom', { defaultValue: 'Custom' })}</span>
                       )}
                     </div>
                   </th>
@@ -246,7 +249,7 @@ export default function WorkspacePermissionsPage() {
                     >
                       <div className="flex items-center gap-2">
                         <group.icon className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t(`permissions.groups.${group.id ?? ""}`, { defaultValue: group.name })}</span>
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t(`permissions.groups.${group.id}`, { defaultValue: group.name })}</span>
                       </div>
                     </td>
                   </tr>
@@ -257,8 +260,8 @@ export default function WorkspacePermissionsPage() {
                       <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 border-b border-r border-slate-100 dark:border-slate-800 p-4 pl-6">
                         <div className="flex items-start gap-2">
                           <div>
-                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{t(`permissions.items.${perm.id ?? ""}.name`, { defaultValue: perm.name })}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">{t(`permissions.items.${perm.id ?? ""}.desc`, { defaultValue: perm.desc })}</p>
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{t(`permissions.items.${perm.id}.name`, { defaultValue: perm.name })}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{t(`permissions.items.${perm.id}.desc`, { defaultValue: perm.desc })}</p>
                           </div>
                         </div>
                       </td>
@@ -268,12 +271,12 @@ export default function WorkspacePermissionsPage() {
                         const isSystem = role.is_system;
                         
                         return (
-                          <td className="border-b border-slate-100 dark:border-slate-800 p-4 text-center" key={`${role.id ?? ""}-${perm.id ?? ""}`}>
+                          <td className="border-b border-slate-100 dark:border-slate-800 p-4 text-center" key={`${role.id}-${perm.id}`}>
                             <label className={cn(
                               "relative inline-flex items-center justify-center w-6 h-6 rounded-lg border-2 transition-all",
-                              isSystem || !hasManagePermission ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-indigo-400",
+                              isSystem || !hasManagePermission ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-primary-400",
                               isChecked 
-                                ? "bg-indigo-500 border-indigo-500 text-white" 
+                                ? "bg-primary-500 border-primary-500 text-white" 
                                 : "bg-transparent border-slate-200 dark:border-slate-700 text-transparent"
                             )}>
                               <input 

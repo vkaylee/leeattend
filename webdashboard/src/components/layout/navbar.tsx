@@ -24,7 +24,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
   const { roles, managedDepartmentIds } = useMyPermissions();
 
   const getPageName = (path: string) => {
-    const map: Record<string, string> = {
+    const map: Partial<Record<string, string>> = {
       [ROUTES.HOME]: t("common.dashboard"), [ROUTES.PEOPLE]: t("common.people"), [ROUTES.EMPLOYEES]: t("common.employees"), [ROUTES.DEPARTMENTS]: t("common.departments"),
       [ROUTES.ATTENDANCE_LOGS]: t("common.logs"), [ROUTES.LEAVE_REQUESTS]: t("leave_requests.title"),
       [ROUTES.LEAVE_BALANCES]: t("common.leave_balances"), [ROUTES.ATTENDANCE_ADJUSTMENTS]: t("common.attendance_confirm"), [ROUTES.REPORTS]: t("common.reports"),
@@ -35,7 +35,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
       [ROUTES.PROFILE]: t("common.profile"), [ROUTES.ESS_PROFILE]: t("common.my_profile"), [ROUTES.ESS_ATTENDANCE]: t("ess.attendance.title"),
       [ROUTES.ESS_CLOCK]: t("ess.clock.title"),
     };
-    return map[path] ?? path.split('/').pop()?.replace(/-/g, ' ') ?? "";
+    return (map[path] !== undefined) ? map[path] : (path.split('/').pop()?.replace(/-/g, ' ') || "");
   };
 
   return (
@@ -120,7 +120,7 @@ function ThemeToggle() {
               ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-700"
               : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
           )}
-          data-testid={`theme-toggle-${opt.value ?? ""}`}
+          data-testid={`theme-toggle-${opt.value}`}
           key={opt.value}
           onClick={() => { setMode(opt.value); }}
           title={opt.label}

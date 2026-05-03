@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, no-console */
+ 
 import { test, expect } from "./worker-orchestrator";
 
 test.describe("Connectivity Buttons Visibility Tests", () => {

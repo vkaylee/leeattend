@@ -105,7 +105,7 @@ async fn test_assignment_rules_crud_lifecycle() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let list = body_json(resp).await;
-    assert!(list.as_array().unwrap().len() >= 1);
+    assert!(!list.as_array().unwrap().is_empty());
 
     // 3. Update assignment rule
     let update_body = serde_json::json!({

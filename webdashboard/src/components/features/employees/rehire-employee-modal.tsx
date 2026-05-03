@@ -44,7 +44,7 @@ export default function RehireEmployeeModal({
     },
   });
 
-  const handleRehireSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRehireSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     rehireMutation.mutate({ hire_date: formData.get("hire_date") as string });

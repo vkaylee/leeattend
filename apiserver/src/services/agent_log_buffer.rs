@@ -325,9 +325,9 @@ mod tests {
     fn test_sanitize_agent_log_entry() {
         let entry = AgentLogEntry::new(AgentLogEntryArgs {
             workspace_id: Uuid::new_v4(),
-            employee_id_number: "EMP\0001 ".to_string(), // Null byte and trailing space
-            punch_time_raw: "2026-01-26\0 09:00:00".to_string(),
-            device_id: Some("D\01".to_string()),
+            employee_id_number: "EMP\x00001 ".to_string(), // Null byte and trailing space
+            punch_time_raw: "2026-01-26\x00 09:00:00".to_string(),
+            device_id: Some("D\x001".to_string()),
             raw_data: None,
             timezone: "UTC".to_string(),
             date_fmt: "YYYY-MM-DD".to_string(),

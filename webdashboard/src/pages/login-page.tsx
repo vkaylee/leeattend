@@ -46,13 +46,13 @@ export default function LoginPage() {
  
   };
 
-  const handleLogin = async (e: React.FormEvent) => { e.preventDefault(); await performLogin(email, password); };
+  const handleLogin = async (e: React.SyntheticEvent) => { e.preventDefault(); await performLogin(email, password); };
   const _handleFastLogin = undefined; // Removed: no seeded admin credentials
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 relative overflow-hidden animate-in fade-in duration-1000">
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-100 dark:bg-primary-900/30 rounded-full blur-[140px] animate-pulse duration-[12s]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-100/30 dark:bg-indigo-900/20 rounded-full blur-[140px] animate-pulse duration-[10s]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-100/30 dark:bg-blue-900/20 rounded-full blur-[140px] animate-pulse duration-[10s]" />
       
       <div className="max-w-md w-full space-y-12 p-12 bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-premium-2xl relative z-10 animate-in zoom-in-95 duration-1000 border border-white/60">
         <div className="text-center">
@@ -65,11 +65,11 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {!!error && (
+        {error ? (
           <div className="bg-rose-50 dark:bg-rose-950 border-2 border-rose-100 dark:border-rose-800 text-rose-600 dark:text-rose-300 p-5 rounded-[2rem] text-[11px] font-bold uppercase tracking-widest text-center animate-in slide-in-from-top-4 shadow-inner" role="alert">
             {error}
           </div>
-        )}
+        ) : null}
 
         <div className="space-y-10">
 

@@ -7,7 +7,6 @@ import {
   bulkUploadPaperOt,
 } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
-import { AttendanceDailySummary } from "@/lib/api/types";
 
 interface SummaryParams {
   employeeId?: string;

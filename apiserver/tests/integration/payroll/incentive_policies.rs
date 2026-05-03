@@ -131,8 +131,8 @@ async fn test_incentive_policy_delete() {
     // Insert policy directly
     let policy_id = Uuid::new_v4();
     sqlx::query(
-        r#"INSERT INTO payroll_incentive_policies (id, workspace_id, name, base_amount, payout_type, is_active, created_at)
-           VALUES ($1, $2, 'Test Policy', 100000, 'monthly', TRUE, NOW()::timestamp)"#,
+        r"INSERT INTO payroll_incentive_policies (id, workspace_id, name, base_amount, payout_type, is_active, created_at)
+           VALUES ($1, $2, 'Test Policy', 100000, 'monthly', TRUE, NOW()::timestamp)",
     )
     .bind(policy_id)
     .bind(ws_id)

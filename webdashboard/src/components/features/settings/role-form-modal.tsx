@@ -14,7 +14,7 @@ interface RoleFormModalProps {
 const AVAILABLE_COLORS = [
   { id: "slate", label: "Slate", class: "bg-slate-500" },
   { id: "rose", label: "Rose", class: "bg-rose-500" },
-  { id: "indigo", label: "Indigo", class: "bg-indigo-500" },
+  { id: "primary", label: "Primary", class: "bg-primary-500" },
   { id: "emerald", label: "Emerald", class: "bg-emerald-500" },
   { id: "amber", label: "Amber", class: "bg-amber-500" },
   { id: "cyan", label: "Cyan", class: "bg-cyan-500" },
@@ -40,7 +40,7 @@ export default function RoleFormModal({ isOpen, onClose, editingRole }: RoleForm
     }
   }, [editingRole, isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     try {
       if (editingRole) {

@@ -792,8 +792,8 @@ mod tests {
             .await
             .expect("enqueue should succeed");
 
-        let high_len: usize = conn.llen(&queue.queue_high()).await.unwrap_or(0);
-        let low_len: usize = conn.llen(&queue.queue_low()).await.unwrap_or(0);
+        let high_len: usize = conn.llen(queue.queue_high()).await.unwrap_or(0);
+        let low_len: usize = conn.llen(queue.queue_low()).await.unwrap_or(0);
 
         assert!(high_len >= 1, "High-priority job should be in high queue");
         assert_eq!(low_len, 0, "Low queue should be empty");
@@ -847,8 +847,8 @@ mod tests {
             .await
             .expect("enqueue should succeed");
 
-        let high_len: usize = conn.llen(&queue.queue_high()).await.unwrap_or(0);
-        let low_len: usize = conn.llen(&queue.queue_low()).await.unwrap_or(0);
+        let high_len: usize = conn.llen(queue.queue_high()).await.unwrap_or(0);
+        let low_len: usize = conn.llen(queue.queue_low()).await.unwrap_or(0);
 
         assert_eq!(high_len, 0, "High queue should be empty");
         assert!(low_len >= 1, "Low-priority job should be in low queue");
@@ -1066,8 +1066,8 @@ mod tests {
 
         queue.enqueue_single(job).await.unwrap();
 
-        let high_len: usize = conn.llen(&queue.queue_high()).await.unwrap_or(0);
-        let low_len: usize = conn.llen(&queue.queue_low()).await.unwrap_or(0);
+        let high_len: usize = conn.llen(queue.queue_high()).await.unwrap_or(0);
+        let low_len: usize = conn.llen(queue.queue_low()).await.unwrap_or(0);
 
         assert!(high_len >= 1, "Normal priority should route to high queue");
         assert_eq!(low_len, 0, "Low queue should remain empty");

@@ -213,6 +213,7 @@ mod tests {
 
     /// Extract SQL string literals from Rust source code.
     /// Handles both `r#"..."#` raw strings and `"..."` regular strings.
+    #[allow(clippy::needless_range_loop)]
     fn extract_sql_strings(content: &str) -> Vec<(usize, String)> {
         let mut results = Vec::new();
         let lines: Vec<&str> = content.lines().collect();
@@ -364,18 +365,17 @@ mod tests {
             }
         }
 
-        if !violations.is_empty() {
-            panic!(
-                "\n\n🔴 WORKSPACE_ID GUARD FAILURE\n\
+        assert!(
+            violations.is_empty(),
+            "\n\n🔴 WORKSPACE_ID GUARD FAILURE\n\
                  ════════════════════════════════════════════════════════════\n\
                  {} query/queries touch tenant-scoped tables WITHOUT workspace_id:\n\n{}\n\n\
                  FIX: Add `WHERE workspace_id = $N` to each query, or add\n\
                  an entry to ALLOWLIST in workspace_id_guard.rs with a reason.\n\
                  ════════════════════════════════════════════════════════════\n",
-                violations.len(),
-                violations.join("\n")
-            );
-        }
+            violations.len(),
+            violations.join("\n")
+        );
 
         // Sanity check: ensure we actually scanned a meaningful number of queries
         assert!(
@@ -530,9 +530,9 @@ mod tests {
             }
         }
 
-        if !violations.is_empty() {
-            panic!(
-                "\n\n🔴 CONTEXT SOURCE GUARD FAILURE\n\
+        assert!(
+            violations.is_empty(),
+            "\n\n🔴 CONTEXT SOURCE GUARD FAILURE\n\
                  ════════════════════════════════════════════════════════════\n\
                  {} handler(s) extract workspace_id from Path instead of MemberContext:\n\n{}\n\n\
                  FIX: Replace `Path(ws_id): Path<Uuid>` with `ctx: MemberContext`\n\
@@ -541,10 +541,9 @@ mod tests {
                  If this is a legitimate exception (e.g., admin endpoint),\n\
                  add to CONTEXT_ALLOWLIST with a reason.\n\
                  ════════════════════════════════════════════════════════════\n",
-                violations.len(),
-                violations.join("\n")
-            );
-        }
+            violations.len(),
+            violations.join("\n")
+        );
 
         assert!(
             scanned_handlers > 5,
@@ -613,17 +612,16 @@ mod tests {
             }
         }
 
-        if !violations.is_empty() {
-            panic!(
-                "\n\n🔴 QUERY PARAM GUARD FAILURE\n\
+        assert!(
+            violations.is_empty(),
+            "\n\n🔴 QUERY PARAM GUARD FAILURE\n\
                  ════════════════════════════════════════════════════════════\n\
                  {} handler(s) accept workspace_id via Query params:\n\n{}\n\n\
                  FIX: Remove workspace_id from query params. Use MemberContext\n\
                  to get the workspace from the authenticated session.\n\
                  ════════════════════════════════════════════════════════════\n",
-                violations.len(),
-                violations.join("\n")
-            );
-        }
+            violations.len(),
+            violations.join("\n")
+        )
     }
 }

@@ -49,7 +49,7 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     try {
       await updateProfile(formData);
@@ -75,10 +75,10 @@ export default function ProfilePage() {
       </div>
 
       <div className="animate-in slide-in-from-bottom-8 duration-700">
-        {activeTab === "profile" && (
+        {activeTab === "profile" ? (
           <div className="max-w-5xl bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden group/hero">
             <div className="h-40 bg-slate-900 relative overflow-hidden">
-               <div className="absolute inset-0 bg-gradient-to-br from-primary-600/40 via-indigo-600/20 to-transparent" />
+               <div className="absolute inset-0 bg-gradient-to-br from-primary-600/40 via-blue-600/20 to-transparent" />
                <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_0,transparent_50%)]" />
             </div>
             <div className="px-12 pb-10">
@@ -126,9 +126,9 @@ export default function ProfilePage() {
               </form>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {activeTab === "personalization" && (
+        {activeTab === "personalization" ? (
           <div className="max-w-5xl bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm p-12 space-y-12 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
               <div className="flex items-center gap-5">
@@ -138,7 +138,7 @@ export default function ProfilePage() {
                   <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70">{t("profile.personalization.subtitle")}</p>
                 </div>
               </div>
-              {!!isOverridden && <button className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all bg-slate-50 dark:bg-slate-800 px-6 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm active:scale-95" onClick={() => { setUserTheme(null); }}><Undo2 size={14} /> {t("profile.personalization.use_workspace_default").toUpperCase()}</button>}
+              {isOverridden && <button className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all bg-slate-50 dark:bg-slate-800 px-6 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm active:scale-95" onClick={() => { setUserTheme(null); }}><Undo2 size={14} /> {t("profile.personalization.use_workspace_default").toUpperCase()}</button>}
             </div>
 
             <div className="space-y-10">
@@ -146,7 +146,7 @@ export default function ProfilePage() {
                 <label className={LABEL_BASE}>{t("common.workspace_settings.primary_color")}</label>
                 <div className="flex flex-wrap gap-5 items-center">
                   {[
-                    { name: t("common.colors.emerald"), color: '#10b981' }, { name: t("common.colors.indigo"), color: '#4f46e5' }, { name: t("common.colors.blue"), color: '#2563eb' },
+                    { name: t("common.colors.emerald"), color: '#10b981' }, { name: t("common.colors.blue"), color: '#2563eb' },
                     { name: t("common.colors.emerald"), color: '#059669' }, { name: t("common.colors.amber"), color: '#d97706' }, { name: t("common.colors.rose"), color: '#e11d48' },
                     { name: t("common.colors.slate"), color: '#475569' }, { name: t("common.colors.black"), color: '#0f172a' },
                   ].map((preset) => (
@@ -164,9 +164,9 @@ export default function ProfilePage() {
               <div className="p-10 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-inner"><p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic uppercase tracking-tight opacity-80">{t("profile.personalization.note")}</p></div>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {activeTab === "security" && (
+        {activeTab === "security" ? (
           <div className="max-w-5xl bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm p-12 space-y-12 animate-in fade-in duration-500">
             <div className="flex items-center gap-5">
               <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-300 shadow-inner border border-orange-100/50"><ShieldCheck size={28} /></div>
@@ -177,7 +177,7 @@ export default function ProfilePage() {
             </div>
             <div className="bg-slate-50 dark:bg-slate-800/50 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner"><ChangePasswordForm /></div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -215,9 +215,9 @@ function ChangePasswordForm() {
         { id: "confirm", label: "confirm_password", key: "confirm_password" }
       ].map((field) => (
         <div className="space-y-3 px-1" key={field.id}>
-          <label className={LABEL_BASE}>{t(`profile.security.${field.label ?? ""}`)}</label>
+          <label className={LABEL_BASE}>{t(`profile.security.${field.label}`)}</label>
           <div className="relative group">
-            <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-300 outline-none transition-all pr-14 font-bold text-sm tracking-tight shadow-sm" data-testid={`${field.id ?? ""}-password-input`} onChange={(e) => { setFormData({ ...formData, [field.key]: e.target.value }); }} required type="password" value={(formData as Record<string, string>)[field.key]} />
+            <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-6 py-4 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-300 outline-none transition-all pr-14 font-bold text-sm tracking-tight shadow-sm" data-testid={`${field.id}-password-input`} onChange={(e) => { setFormData({ ...formData, [field.key]: e.target.value }); }} required type="password" value={(formData as Record<string, string>)[field.key]} />
             { }
             <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-orange-500 transition-colors" size={20} />
           </div>

@@ -43,9 +43,9 @@ export function useWebSocket() {
       }, 30000);
     };
 
-    socket.onmessage = (event) => {
+    socket.onmessage = (event: MessageEvent) => {
       try {
-        const data = JSON.parse(event.data) as WsMessage;
+        const data = JSON.parse(event.data as string) as WsMessage;
         setLastMessage(data);
       } catch (e) {
         console.error("Failed to parse WS message", e);

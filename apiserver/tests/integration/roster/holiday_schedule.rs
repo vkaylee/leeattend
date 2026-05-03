@@ -1,4 +1,4 @@
-//! Tests for holiday metadata in EffectiveSchedule
+//! Tests for holiday metadata in `EffectiveSchedule`
 
 use crate::common::app::spawn_app_with_factory;
 use crate::common::db::TestDatabase;

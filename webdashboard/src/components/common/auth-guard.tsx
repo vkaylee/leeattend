@@ -13,8 +13,8 @@ import { ROUTES } from "@/lib/routes";
  */
 export default function AuthGuard() {
   const { t } = useTranslation();
-  const location = useLocation();
-  const userId = getCurrentUserId();
+  const _location = useLocation();
+  const _userId = getCurrentUserId();
   const { user, isLoading, isError } = useProfile();
 
   

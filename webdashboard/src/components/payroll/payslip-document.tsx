@@ -15,7 +15,17 @@ interface PayslipDocumentProps {
   workspace: Workspace | null;
 }
 
-function PayslipHeader({ workspace, payslip, formatMonthYear, formatDate, t }: any) {
+import type { TFunction } from 'i18next';
+
+interface PayslipHeaderProps {
+  formatDate: (date: string) => string;
+  formatMonthYear: (date: string) => string;
+  payslip: Payslip;
+  t: TFunction;
+  workspace: Workspace | null;
+}
+
+function PayslipHeader({ workspace, payslip, formatMonthYear, formatDate, t }: PayslipHeaderProps) {
   return (
     <div className='flex justify-between items-start border-b-2 border-slate-900 pb-10 mb-10'>
       <div className='space-y-4'>
@@ -50,7 +60,14 @@ function PayslipHeader({ workspace, payslip, formatMonthYear, formatDate, t }: a
   );
 }
 
-function EmployeeDetails({ employee, payslip, formatAmount, t }: any) {
+interface EmployeeDetailsProps {
+  employee: Employee;
+  formatAmount: (value: string | number) => string;
+  payslip: Payslip;
+  t: TFunction;
+}
+
+function EmployeeDetails({ employee, payslip, formatAmount, t }: EmployeeDetailsProps) {
   return (
     <div className='grid grid-cols-2 gap-12 mb-12'>
       <div className='space-y-6' data-testid="employee-details">
@@ -80,7 +97,12 @@ function EmployeeDetails({ employee, payslip, formatAmount, t }: any) {
   );
 }
 
-function EarningsBreakdown({ payslip, formatAmount }: any) {
+interface EarningsBreakdownProps {
+  formatAmount: (value: string | number) => string;
+  payslip: Payslip;
+}
+
+function EarningsBreakdown({ payslip, formatAmount }: EarningsBreakdownProps) {
   return (
     <div>
       <h3 className='text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4'>Earnings Breakdown</h3>
@@ -93,13 +115,13 @@ function EarningsBreakdown({ payslip, formatAmount }: any) {
         </thead>
         <tbody className='divide-y divide-slate-50 dark:divide-slate-800'>
           {/* Salary Components Breakdown */}
-          {payslip.salary_components?.map((sc: any, index: number) => {
+          {payslip.salary_components?.map((sc, index: number) => {
             if (!sc.component || !sc.definition) return null;
             
             const amountString = sc.component.amount || "0";
             const monthlyRate = parseFloat(amountString);
             const standardDays = parseFloat((payslip.segments?.[0]?.applied_std_days ?? 22).toString());
-            const totalPaidDays = payslip.segments?.reduce((sum: number, seg: any) => sum + parseFloat(seg.paid_work_days.toString()), 0) ?? 0;
+            const totalPaidDays = payslip.segments?.reduce((sum: number, seg) => sum + parseFloat(seg.paid_work_days.toString()), 0) ?? 0;
             const dailyRate = standardDays > 0 ? monthlyRate / standardDays : 0;
             const proratedAmount = dailyRate * totalPaidDays;
 
@@ -124,7 +146,7 @@ function EarningsBreakdown({ payslip, formatAmount }: any) {
           })}
 
           {/* Base Salary Segments */}
-          {(!payslip.salary_components || payslip.salary_components.length === 0) && payslip.segments?.map((seg: any, index: number) => (
+          {(!payslip.salary_components || payslip.salary_components.length === 0) && payslip.segments?.map((seg, index: number) => (
             <tr className='group' data-testid={`salary-segment-${index}`} key={index}>
               <td className='py-4'>
                 <div className='flex items-center gap-3'>
@@ -162,7 +184,7 @@ function EarningsBreakdown({ payslip, formatAmount }: any) {
           )}
 
           {/* Incentives */}
-          {payslip.incentives?.map((inc: any, index: number) => (
+          {payslip.incentives?.map((inc, index: number) => (
             <tr data-testid={`incentive-${index}`} key={index}>
               <td className='py-4'>
                 <div className='flex items-center gap-3'>
@@ -181,7 +203,13 @@ function EarningsBreakdown({ payslip, formatAmount }: any) {
   );
 }
 
-function PayslipTotals({ payslip, grossPay, formatAmount }: any) {
+interface PayslipTotalsProps {
+  formatAmount: (value: string | number) => string;
+  grossPay: number;
+  payslip: Payslip;
+}
+
+function PayslipTotals({ payslip, grossPay, formatAmount }: PayslipTotalsProps) {
   return (
     <div className='pt-8 border-t-2 border-slate-900' data-testid="totals-section">
       <div className='grid grid-cols-[1fr_250px] gap-12'>

@@ -26,9 +26,7 @@ impl TestDatabase {
             .or_else(|_| std::env::var("DATABASE_URL"))
             .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
 
-        if base_url.contains("leeattzkt") {
-            panic!("SAFETY TRIGGERED: Tests are attempting to run against the production database (leeattzkt)! Check your .env vs .env.test configuration.");
-        }
+        assert!(!base_url.contains("leeattzkt"), "SAFETY TRIGGERED: Tests are attempting to run against the production database (leeattzkt)! Check your .env vs .env.test configuration.");
 
         let mut url_parts: Vec<&str> = base_url.split('/').collect();
         let _database_name = url_parts.pop().unwrap_or("postgres");
@@ -101,7 +99,7 @@ impl TestDatabase {
             return Self {
                 pool,
                 db_name,
-                base_url: base_url.to_string(),
+                base_url: base_url.clone(),
             };
         }
 
@@ -118,7 +116,7 @@ impl TestDatabase {
         Self {
             pool,
             db_name,
-            base_url: base_url.to_string(),
+            base_url: base_url.clone(),
         }
     }
 
@@ -172,7 +170,7 @@ impl TestDatabase {
 
     /// Blocking cleanup wrapper for use in Drop trait.
     /// Runs cleanup on a dedicated thread with its own runtime to avoid
-    /// panics from block_in_place (requires multi-threaded runtime, but
+    /// panics from `block_in_place` (requires multi-threaded runtime, but
     /// nextest uses current-thread). Joins the thread to ensure cleanup
     /// completes before the test process exits.
     fn cleanup_database_blocking(db_name: String, admin_url: String) {
@@ -192,9 +190,11 @@ impl TestDatabase {
         let _ = handle.join();
     }
 
+    #[must_use]
     pub fn pool(&self) -> PgPool {
         self.pool.clone()
     }
+    #[must_use]
     pub fn db_name(&self) -> &str {
         &self.db_name
     }

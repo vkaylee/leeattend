@@ -34,7 +34,7 @@ const UnexcusedAbsencesChart = lazy(
 
 // ── Static chart map (hoisted to module scope — never re-created) ──
 
-const chartMap: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
+const chartMap: Partial<Record<WidgetId, React.LazyExoticComponent<React.ComponentType>>> = {
     attendance_trend: AttendanceTrendChart,
     department_chart: DepartmentAttendanceChart,
     overtime_trend: OvertimeTrendChart,

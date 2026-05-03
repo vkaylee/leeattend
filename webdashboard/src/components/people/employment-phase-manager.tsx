@@ -27,13 +27,13 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
     onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["employment-phases"] }); setIsModalOpen(false); setFormData({ name: "", description: "", phase_type: "probation", default_duration_days: 60, is_active: true, display_order: 1 }); },
   });
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); createMutation.mutate(formData); };
+  const handleSubmit = (e: React.SyntheticEvent) => { e.preventDefault(); createMutation.mutate(formData); };
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-700">
       <div className="p-10 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/30 px-12">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[1.25rem] bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-indigo-600 dark:text-indigo-300 shadow-inner border border-indigo-100 dark:border-indigo-800/50"><Users size={24} /></div>
+          <div className="w-12 h-12 rounded-[1.25rem] bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-blue-300 shadow-inner border border-blue-100 dark:border-blue-800/50"><Users size={24} /></div>
           <div>
             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase leading-none">Employment Phases</h2>
             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">Manage probation, intern and official phases</p>

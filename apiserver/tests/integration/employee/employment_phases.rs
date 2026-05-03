@@ -111,8 +111,7 @@ async fn test_employment_phases_crud_api() {
     let req = axum::http::Request::builder()
         .method("PUT")
         .uri(format!(
-            "/api/workspaces/{ws_id}/employees/{employee_id}/phases/{assignment_id}/status",
-            assignment_id = _assignment_id
+            "/api/workspaces/{ws_id}/employees/{employee_id}/phases/{_assignment_id}/status"
         ))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("X-User-Id", user_id.to_string())

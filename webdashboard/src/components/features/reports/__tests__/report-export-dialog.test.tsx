@@ -29,7 +29,7 @@ vi.mock("@/hooks/use-report-stream", () => ({
 // Mock Modal component
 vi.mock("@/components/ui/modal", () => ({
  
-  default: ({ isOpen, title, children, testId, ...props }: any) =>
+  default: ({ isOpen, title, children, testId, ...props }: { isOpen?: boolean; title?: React.ReactNode; children?: React.ReactNode; testId?: string } & Record<string, unknown>) =>
     isOpen ? (
       <div data-testid={testId ?? "modal"} {...props}>
         <h2>{title}</h2>

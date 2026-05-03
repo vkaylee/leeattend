@@ -23,6 +23,24 @@ interface Props {
   title: string;
 }
 
+import type { TFunction } from "i18next";
+
+interface TemporalConfigAddFormProps {
+  handleSave: () => Promise<void>;
+  newDays: number;
+  newEffectiveDate: string;
+  newHours: number;
+  newMaxOtDay: string;
+  newMaxOtMonth: string;
+  setIsAdding: (val: boolean) => void;
+  setNewDays: (val: number) => void;
+  setNewEffectiveDate: (val: string) => void;
+  setNewHours: (val: number) => void;
+  setNewMaxOtDay: (val: string) => void;
+  setNewMaxOtMonth: (val: string) => void;
+  t: TFunction;
+}
+
 function TemporalConfigAddForm({
   newEffectiveDate,
   setNewEffectiveDate,
@@ -37,7 +55,7 @@ function TemporalConfigAddForm({
   setIsAdding,
   handleSave,
   t
-}: any) {
+}: TemporalConfigAddFormProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 rounded-[2.5rem] p-8 shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
       <div className="flex items-center gap-3 mb-8 text-primary-700 dark:text-primary-300">
@@ -85,7 +103,15 @@ function TemporalConfigAddForm({
   );
 }
 
-function TemporalConfigTableContent({ sortedRecords, activeIndex, now, t, formatDate }: any) {
+interface TemporalConfigTableContentProps {
+  activeIndex: number;
+  formatDate: (date: string) => string;
+  now: Date;
+  sortedRecords: ConfigRecord[];
+  t: TFunction;
+}
+
+function TemporalConfigTableContent({ sortedRecords, activeIndex, now, t, formatDate }: TemporalConfigTableContentProps) {
   return (
     <table className="w-full text-left border-collapse">
       <thead>
@@ -99,7 +125,7 @@ function TemporalConfigTableContent({ sortedRecords, activeIndex, now, t, format
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-        {sortedRecords.map((record: any, index: number) => {
+        {sortedRecords.map((record, index: number) => {
           const isActive = index === activeIndex; const isFuture = new Date(record.effective_date) > now;
           return (
             <tr className={cn("group transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50", isActive && "bg-emerald-50 dark:bg-emerald-950/30")} key={index}>
@@ -117,8 +143,8 @@ function TemporalConfigTableContent({ sortedRecords, activeIndex, now, t, format
               <td className="px-8 py-6"><div className={cn("text-sm font-bold uppercase tracking-tight", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-500 dark:text-slate-400")}>{record.is_virtual ? t("common.from_start") : formatDate(record.effective_date)}</div></td>
               <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-500 dark:text-slate-400")}>{record.std_working_days} {t("common.days_short")}</span></td>
               <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-300 dark:text-slate-600")}>{record.hours_per_day}h / {t("common.day_short")}</span></td>
-              <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_day != null ? `${record.max_ot_hours_per_day ?? ""}h` : '∞'}</span></td>
-              <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_month != null ? `${record.max_ot_hours_per_month ?? ""}h` : '∞'}</span></td>
+              <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_day != null ? `${record.max_ot_hours_per_day}h` : '∞'}</span></td>
+              <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_month != null ? `${record.max_ot_hours_per_month}h` : '∞'}</span></td>
             </tr>
           );
         })}
@@ -174,7 +200,7 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
         )}
       </div>
 
-      {!!isAdding && (
+      {isAdding && (
         <TemporalConfigAddForm
           handleSave={handleSave}
           newDays={newDays}

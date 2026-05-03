@@ -35,7 +35,7 @@ vi.mock("@/hooks/use-datetime", () => ({
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
-      return `${day ?? ""}/${month ?? ""}/${year ?? ""}`;
+      return `${day}/${month}/${year}`;
     },
   }),
 }));
@@ -224,7 +224,7 @@ describe("PayslipModal", () => {
     expect(openMock).toHaveBeenCalledWith('', '_blank', 'width=600,height=800');
     // Document should be written to with A5 page size styling
     expect(mockPrintWindow.document.write).toHaveBeenCalled();
-    const writeCall = mockPrintWindow.document.write.mock.calls[0][0];
+    const writeCall = mockPrintWindow.document.write.mock.calls[0][0] as string;
     expect(writeCall).toContain('size: A5 portrait');
     expect(writeCall).toContain('Payslip - Nguyen Van A');
   });

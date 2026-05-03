@@ -37,7 +37,7 @@ export default function SystemRolesPage() {
     setIsModalOpen(true);
   };
 
-  const handleAssignSubmit = async (e: React.FormEvent) => {
+  const handleAssignSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!selectedRole || !userIdInput.trim()) return;
     try {
@@ -78,7 +78,7 @@ export default function SystemRolesPage() {
 
       {isLoading ? (
         <div className="flex justify-center p-20">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -92,7 +92,7 @@ export default function SystemRolesPage() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center border bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-500/20">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center border bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200/50 dark:border-blue-500/20">
                       <Icon size={24} />
                     </div>
                     <div>
@@ -112,7 +112,7 @@ export default function SystemRolesPage() {
                   </div>
                   
                   <button
-                    className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 rounded-xl transition-colors"
+                    className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl transition-colors"
                     onClick={() => { handleOpenAssign(role.name); }}
                     title={t("system_roles.assign_to_user")}
                   >
@@ -172,14 +172,14 @@ export default function SystemRolesPage() {
               {t("system_roles.user_id_label")}
             </label>
             <input
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-mono text-sm"
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-mono text-sm"
               onChange={(e) => { setUserIdInput(e.target.value); }}
               placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
               required
               type="text"
               value={userIdInput}
             />
-            {!!assignError && <p className="text-sm text-rose-500 font-medium mt-1">{assignError}</p>}
+            {assignError ? <p className="text-sm text-rose-500 font-medium mt-1">{assignError}</p> : null}
           </div>
           
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
@@ -191,7 +191,7 @@ export default function SystemRolesPage() {
               {t("common.cancel")}
             </button>
             <button
-              className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all disabled:opacity-50 shadow-md shadow-indigo-200 dark:shadow-none"
+              className="px-5 py-2.5 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-all disabled:opacity-50 shadow-md shadow-primary-200 dark:shadow-none"
               disabled={isAssigning || !userIdInput.trim()}
               type="submit"
             >

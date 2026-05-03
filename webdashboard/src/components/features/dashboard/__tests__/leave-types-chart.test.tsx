@@ -127,10 +127,10 @@ describe("LeaveTypesChart", () => {
 
     it("displays the correct chart title and subtitle", () => {
  
-        (dashboardHooks.useLeaveTypesBreakdown as any).mockReturnValue({
+        vi.mocked(dashboardHooks.useLeaveTypesBreakdown).mockReturnValue({
             data: mockData,
             isLoading: false,
-        });
+        } as unknown as ReturnType<typeof dashboardHooks.useLeaveTypesBreakdown>);
 
         renderWithProviders(<LeaveTypesChart />);
 

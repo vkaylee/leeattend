@@ -46,8 +46,6 @@ export function useVersionCheck() {
   }, [check]);
 
   useEffect(() => {
-    if (!CHECK_ON_VISIBLE) return;
-
     const handleVisibility = () => {
       if (document.visibilityState === "visible") void check();
     };

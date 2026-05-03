@@ -21,7 +21,18 @@ const COLORS = {
     on_leave: "#6366f1",
 };
 
-function AttendanceTrendChartArea({ chartData, t }: any) {
+interface AttendanceTrendChartAreaProps {
+    chartData: {
+        present: number;
+        late: number;
+        absent: number;
+        on_leave: number;
+        label: string;
+    }[];
+    t: (k: string) => string;
+}
+
+function AttendanceTrendChartArea({ chartData, t }: AttendanceTrendChartAreaProps) {
     return (
         <ResponsiveContainer height={280} width="100%">
             <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>

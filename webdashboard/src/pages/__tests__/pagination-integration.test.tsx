@@ -200,8 +200,8 @@ describe("Pagination Integration Tests", () => {
     it("should handle paginated response with pagination metadata", async () => {
       const mockEmployees = createPaginatedResponse<Employee>(
         Array.from({ length: 50 }, (_, index) => ({
-          id: `emp-${index ?? ""}`,
-          full_name: `Employee ${index ?? ""}`,
+          id: `emp-${index}`,
+          full_name: `Employee ${index}`,
           employee_id_number: `EMP${String(index).padStart(3, "0")}`,
           workspace_id: "ws-1",
           is_active: true,
@@ -378,8 +378,8 @@ describe("Pagination Integration Tests", () => {
 
     it("should handle very large paginated response", async () => {
       const largeEmployeeList = Array.from({ length: 500 }, (_, index) => ({
-        id: `emp-${index ?? ""}`,
-        full_name: `Employee ${index ?? ""}`,
+        id: `emp-${index}`,
+        full_name: `Employee ${index}`,
         employee_id_number: `EMP${String(index).padStart(3, "0")}`,
         workspace_id: "ws-1",
         is_active: true,

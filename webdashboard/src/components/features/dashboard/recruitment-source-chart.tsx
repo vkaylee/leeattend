@@ -94,7 +94,7 @@ export default function RecruitmentSourceChart() {
                                 {chartData.map((entry, index) => (
                                     <Cell
                                         fill={entry.fill}
-                                        key={`cell-${index ?? ""}`}
+                                        key={`cell-${index}`}
                                     />
                                 ))}
                             </Pie>

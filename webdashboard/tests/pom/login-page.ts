@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-useless-constructor, no-console */
+/* eslint-disable @typescript-eslint/no-useless-constructor */
 import { Page, expect } from '@playwright/test';
 
 import { MOCK_USER, MOCK_WORKSPACE } from '../mocks/mock-data';

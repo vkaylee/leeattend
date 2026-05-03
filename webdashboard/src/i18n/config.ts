@@ -4,7 +4,7 @@ import { initReactI18next } from 'react-i18next';
 import i18n, { BackendModule } from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-const localeLoaders: Record<string, () => Promise<{ default: Record<string, unknown> }>> = {
+const localeLoaders: Partial<Record<string, () => Promise<{ default: Record<string, unknown> }>>> = {
   en: () => import('./locales/en.json'),
   vi: () => import('./locales/vi.json'),
   zh: () => import('./locales/zh.json'),
@@ -17,10 +17,10 @@ export const lazyLoadBackend: BackendModule = {
     const lng = language.split('-')[0];
     if (localeLoaders[lng]) {
       localeLoaders[lng]()
-        .then((module_) => { callback(null, module_.default || module_); })
-        .catch((error) => { callback(error, null); });
+        .then((module_: { default?: Record<string, unknown> } | Record<string, unknown>) => { callback(null, 'default' in module_ ? module_.default || module_ : module_); })
+        .catch((error: unknown) => { callback(error instanceof Error ? error : new Error(String(error)), null); });
     } else {
-      callback(new Error(`Language ${lng ?? ""} not found`), null);
+      callback(new Error(`Language ${lng} not found`), null);
     }
   },
 };

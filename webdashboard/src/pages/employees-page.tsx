@@ -141,7 +141,7 @@ export default function EmployeesPage() {
 
   const employees = useMemo(() => {
     if (!employeesPages) return [];
-    return employeesPages.pages.flatMap((p) => p.data || []);
+    return employeesPages.pages.flatMap((p) => p.data);
   }, [employeesPages]);
 
   const totalItems = employeesPages?.pages[0]?.total ?? 0;
@@ -193,11 +193,11 @@ export default function EmployeesPage() {
                 type="button"
               >
                 <ListFilter size={12} />
-                {filterDeptIds.length > 0 && (
+                {filterDeptIds.length > 0 ? (
                   <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 flex items-center justify-center bg-primary-500 text-white text-[8px] font-bold rounded-full leading-none animate-in zoom-in">
                     {filterDeptIds.length}
                   </span>
-                )}
+                ) : null}
               </button>
             </Popover.Trigger>
             <Popover.Portal>
@@ -214,7 +214,7 @@ export default function EmployeesPage() {
                 </div>
                 <div className="max-h-60 overflow-y-auto custom-scrollbar">
                   {/* Clear filter button — only shown when filter is active */}
-                  {filterDeptIds.length > 0 && (
+                  {filterDeptIds.length > 0 ? (
                     <button
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors mb-1"
                       onClick={() => { setFilterDeptIds([]); }}
@@ -223,7 +223,7 @@ export default function EmployeesPage() {
                       <X className="shrink-0" size={12} />
                       {t("employees.clear_filter", "Xóa bộ lọc")}
                     </button>
-                  )}
+                  ) : null}
 
                   {departments && departments.length > 0 ? (
                     departments.map(d => {
@@ -236,7 +236,7 @@ export default function EmployeesPage() {
                               ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400"
                               : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                           )}
-                          data-testid={`dept-filter-option-${d.id ?? ""}`}
+                          data-testid={`dept-filter-option-${d.id}`}
                           key={d.id}
                           onClick={() => { toggleDeptFilter(d.id); }}
                           type="button"
@@ -246,7 +246,7 @@ export default function EmployeesPage() {
                               ? "bg-primary-600 border-primary-600 text-white"
                               : "border-slate-300 dark:border-slate-600"
                           )}>
-                            {!!isChecked && <Check size={10} strokeWidth={3} />}
+                            {isChecked ? <Check size={10} strokeWidth={3} /> : null}
                           </div>
                           <Building2 className="opacity-50 shrink-0" size={12} />
                           <span className="truncate">{d.name}</span>
@@ -325,7 +325,7 @@ export default function EmployeesPage() {
       />
 
       {/* Active filter chips */}
-      {filterDeptIds.length > 0 && !!departments && (
+      {filterDeptIds.length > 0 && !!departments ? (
         <div className="flex items-center gap-2 flex-wrap animate-in slide-in-from-top-4 duration-300" data-testid="active-filter-chips">
           <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mr-1">
             {t("employees.filtering_by", "Đang lọc")}
@@ -336,7 +336,7 @@ export default function EmployeesPage() {
             return (
               <button
                 className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-full text-[10px] font-bold uppercase tracking-wide border border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900 transition-colors group"
-                data-testid={`dept-chip-${id ?? ""}`}
+                data-testid={`dept-chip-${id}`}
                 key={id}
                 onClick={() => { toggleDeptFilter(id); }}
                 type="button"
@@ -355,7 +355,7 @@ export default function EmployeesPage() {
             {t("employees.clear_all", "Xóa tất cả")}
           </button>
         </div>
-      )}
+      ) : null}
 
       <div className={cn("transition-opacity duration-300", isPlaceholderData && isFetching && "opacity-50")}>
       <NavigableList<Employee>

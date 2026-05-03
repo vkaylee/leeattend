@@ -79,10 +79,7 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!(
-                    "/api/workspaces/{}/employees/{}",
-                    ws_id, emp_target_b
-                ))
+                .uri(format!("/api/workspaces/{ws_id}/employees/{emp_target_b}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", tl_user_id.to_string())
@@ -115,10 +112,7 @@ async fn test_rbac_teamlead_scope_and_admin_bypass() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!(
-                    "/api/workspaces/{}/employees/{}",
-                    ws_id, emp_target_b
-                ))
+                .uri(format!("/api/workspaces/{ws_id}/employees/{emp_target_b}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_user_id.to_string())
@@ -166,8 +160,7 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{}/members/{}/permissions",
-                    ws_id, target_user_id
+                    "/api/workspaces/{ws_id}/members/{target_user_id}/permissions"
                 ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -207,8 +200,7 @@ async fn test_rbac_audit_log_on_permissions_grant_revoke() {
             axum::http::Request::builder()
                 .method("DELETE")
                 .uri(format!(
-                    "/api/workspaces/{}/members/{}/permissions/{}",
-                    ws_id, target_user_id, perm_id
+                    "/api/workspaces/{ws_id}/members/{target_user_id}/permissions/{perm_id}"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_user_id.to_string())

@@ -1,4 +1,4 @@
-//! Integration tests for TeamLead leave submit + auto-approve
+//! Integration tests for `TeamLead` leave submit + auto-approve
 
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
@@ -49,7 +49,7 @@ async fn assign_to_department(pool: &sqlx::PgPool, employee_id: Uuid, department
     .unwrap();
 }
 
-/// TeamLead submits leave for employee in their department → auto-approved (pre_approved)
+/// `TeamLead` submits leave for employee in their department → auto-approved (`pre_approved`)
 #[tokio::test]
 async fn test_teamlead_submit_own_dept_auto_approved() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
@@ -140,7 +140,7 @@ async fn test_teamlead_submit_own_dept_auto_approved() {
     assert_eq!(leave_req.requested_by_user_id, Some(tl_user_id));
 }
 
-/// TeamLead submits leave for employee in OTHER department → 403 Forbidden
+/// `TeamLead` submits leave for employee in OTHER department → 403 Forbidden
 #[tokio::test]
 async fn test_teamlead_submit_other_dept_forbidden() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
@@ -291,7 +291,7 @@ async fn test_hr_submit_stays_pending() {
     assert_eq!(leave_req.approved_by_user_id, Some(hr_user_id));
 }
 
-/// Regular Employee without LeaveRequestsSubmit → 403 Forbidden
+/// Regular Employee without `LeaveRequestsSubmit` → 403 Forbidden
 #[tokio::test]
 async fn test_employee_submit_forbidden() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
