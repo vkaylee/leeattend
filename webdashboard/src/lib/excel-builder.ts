@@ -3,6 +3,8 @@
  * Matches backend excel_writer.rs column structure for consistency
  */
 
+import type { Worksheet, Cell } from "exceljs";
+
 import type { SummaryRow, DetailRow, AttendanceRow } from "@/types/report-stream";
 
 // Dynamic imports to reduce initial bundle size
@@ -62,7 +64,7 @@ export async function generateExcel(
   rows: AttendanceRow[],
   options: GenerateOptions
 ): Promise<void> {
-  const { reportType, workspaceName, dateRange, filename, onProgress } = options;
+  const { reportType, filename, onProgress } = options;
   const ExcelJS = await loadExcelJS();
   const saveAs = await loadFileSaver();
 
@@ -74,11 +76,47 @@ export async function generateExcel(
 
   const sheetName = reportType === "summary" ? "Summary" : "Detail";
   const worksheet = workbook.addWorksheet(sheetName);
-
   const columns = reportType === "summary" ? SUMMARY_COLUMNS : DETAIL_COLUMNS;
   worksheet.columns = columns;
 
-  // Title row (row 1)
+  setupWorksheetTitles(worksheet, columns.length, options);
+  onProgress?.(10);
+
+  const headerRowNumber = 4;
+  writeWorksheetHeader(worksheet, columns, headerRowNumber);
+  onProgress?.(20);
+
+  const dataStartRow = headerRowNumber + 1;
+  await processDataChunks(worksheet, rows, {
+    columns,
+    dataStartRow,
+    onProgress,
+    reportType
+  });
+  onProgress?.(85);
+
+  finalizeWorksheet(worksheet, {
+    colCount: columns.length,
+    dataStartRow,
+    headerRowNumber,
+    rowCount: rows.length
+  });
+  onProgress?.(90);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  const timestamp = new Date().toISOString().slice(0, 10);
+  const defaultFilename = `attendance-${reportType}-${timestamp}.xlsx`;
+  saveAs(blob, filename ?? defaultFilename);
+
+  onProgress?.(100);
+}
+
+function setupWorksheetTitles(worksheet: Worksheet, colCount: number, options: GenerateOptions) {
+  const { reportType, workspaceName, dateRange } = options;
   const titleText = reportType === "summary"
     ? `Attendance Summary Report${workspaceName ? ` - ${workspaceName}` : ""}`
     : `Attendance Detail Report${workspaceName ? ` - ${workspaceName}` : ""}`;
@@ -86,20 +124,17 @@ export async function generateExcel(
   const titleCell = worksheet.getCell("A1");
   titleCell.value = titleText;
   titleCell.font = { bold: true, size: 14, color: { argb: "FF1F4E79" } };
-  worksheet.mergeCells(1, 1, 1, columns.length);
+  worksheet.mergeCells(1, 1, 1, colCount);
 
-  // Date range row (row 2)
   if (dateRange) {
     const rangeCell = worksheet.getCell("A2");
     rangeCell.value = `Period: ${dateRange.start} to ${dateRange.end}`;
     rangeCell.font = { italic: true, color: { argb: "FF5B5B5B" } };
-    worksheet.mergeCells(2, 1, 2, columns.length);
+    worksheet.mergeCells(2, 1, 2, colCount);
   }
+}
 
-  onProgress?.(10);
-
-  // Header row (row 4)
-  const headerRowNumber = 4;
+function writeWorksheetHeader(worksheet: Worksheet, columns: ExcelColumn[], headerRowNumber: number) {
   const headerRow = worksheet.getRow(headerRowNumber);
   columns.forEach((col, index) => {
     const cell = headerRow.getCell(index + 1);
@@ -113,13 +148,22 @@ export async function generateExcel(
     cell.alignment = { horizontal: "center", vertical: "middle" };
   });
   headerRow.commit();
+}
 
-  onProgress?.(20);
+interface ProcessOptions {
+  columns: ExcelColumn[];
+  dataStartRow: number;
+  onProgress?: (percent: number) => void;
+  reportType: ReportType;
+}
 
-  // Data rows - process in chunks for progress and UI responsiveness
+async function processDataChunks(
+  worksheet: Worksheet,
+  rows: AttendanceRow[],
+  options: ProcessOptions
+) {
+  const { columns, dataStartRow, reportType, onProgress } = options;
   const chunkSize = 1000;
-  const dataStartRow = headerRowNumber + 1;
-
   for (let index = 0; index < rows.length; index += chunkSize) {
     const chunk = rows.slice(index, index + chunkSize);
 
@@ -132,60 +176,51 @@ export async function generateExcel(
         const cell = excelRow.getCell(colIndex + 1);
         cell.value = value;
 
-        // Status column styling (detail report)
-        if (col.key === "status" && reportType === "detail") {
-          const statusColors: Record<string, string> = {
-            present: "FF2E7D32",
-            late: "FFF57C00",
-            absent: "FFD32F2F",
-            off: "FF757575",
-          };
-          const color = statusColors[value.toLowerCase()];
-          if (color) {
-            cell.font = { color: { argb: color } };
-          }
-          cell.alignment = { horizontal: "center" };
+        if (col.key === "status" && reportType === "detail" && typeof value === "string") {
+          applyStatusColor(cell, value);
         }
       });
-
       excelRow.commit();
     });
 
-    // Update progress (20% to 80% for data rows)
     const progress = 20 + Math.floor((Math.min(index + chunkSize, rows.length) / rows.length) * 60);
     onProgress?.(progress);
-
-    // Yield to UI thread
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
+}
 
-  onProgress?.(85);
+function applyStatusColor(cell: Cell, statusValue: string) {
+  const statusColors: Record<string, string> = {
+    present: "FF2E7D32",
+    late: "FFF57C00",
+    absent: "FFD32F2F",
+    off: "FF757575",
+  };
+  const color = statusColors[statusValue.toLowerCase()];
+  if (color) {
+    cell.font = { color: { argb: color } };
+  }
+  cell.alignment = { horizontal: "center" };
+}
 
-  // Auto-filter on data range
-  if (rows.length > 0) {
+interface FinalizeOptions {
+  colCount: number;
+  dataStartRow: number;
+  headerRowNumber: number;
+  rowCount: number;
+}
+
+function finalizeWorksheet(worksheet: Worksheet, options: FinalizeOptions) {
+  const { rowCount, colCount, headerRowNumber, dataStartRow } = options;
+  if (rowCount > 0) {
     worksheet.autoFilter = {
       from: { row: headerRowNumber, column: 1 },
-      to: { row: dataStartRow + rows.length - 1, column: columns.length },
+      to: { row: dataStartRow + rowCount - 1, column: colCount },
     };
   }
-
-  // Freeze header rows
   worksheet.views = [{ state: "frozen", ySplit: headerRowNumber }];
-
-  onProgress?.(90);
-
-  // Generate and download
-  const buffer = await workbook.xlsx.writeBuffer();
-  const blob = new Blob([buffer], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-
-  const timestamp = new Date().toISOString().slice(0, 10);
-  const defaultFilename = `attendance-${reportType}-${timestamp}.xlsx`;
-  saveAs(blob, filename ?? defaultFilename);
-
-  onProgress?.(100);
 }
+
 
 /**
  * Type guard to check if row is SummaryRow
