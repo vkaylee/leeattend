@@ -34,23 +34,23 @@ export default function EmployeeFormModal({
   const toast = useToast();
 
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState(editingEmployee?.user_id || "");
+  const [selectedUserId, setSelectedUserId] = useState(editingEmployee?.user_id ?? "");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-    setSelectedUserId(editingEmployee?.user_id || "");
+    setSelectedUserId(editingEmployee?.user_id ?? "");
   }, [editingEmployee]);
 
   useEffect(() => {
     if (isOpen && wsId) {
-      void fetchWorkspaceMembers(wsId).then(setMembers).catch(() => {});
+      void fetchWorkspaceMembers(wsId).then(setMembers).catch(() => { /* empty */ });
     }
   }, [isOpen, wsId]);
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<Employee>) => createEmployee(wsId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       onClose();
       toast.success(t("common.success"));
       onSuccess?.();
@@ -61,7 +61,7 @@ export default function EmployeeFormModal({
     mutationFn: (data: { id: string; employee: Partial<Employee> }) =>
       updateEmployee(wsId, data.id, data.employee),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       onClose();
       toast.success(t("common.success"));
       onSuccess?.();
@@ -106,7 +106,7 @@ export default function EmployeeFormModal({
         />
         <FormField
           data-testid="employees-form-id-input"
-          defaultValue={editingEmployee?.employee_id_number || prefillEnrollmentId}
+          defaultValue={editingEmployee?.employee_id_number ?? prefillEnrollmentId}
           inputClassName="font-mono tracking-widest"
           label={t("employees.form.employee_id")}
           name="employee_id_number"
@@ -130,7 +130,7 @@ export default function EmployeeFormModal({
             onChange={setSelectedUserId}
             options={members.map(m => ({
               value: m.user_id,
-              label: m.full_name || m.email,
+              label: m.full_name ?? m.email,
               description: m.email,
             }))}
             placeholder={t("employees.form.select_user")}

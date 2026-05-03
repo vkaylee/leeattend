@@ -95,7 +95,7 @@ export default function DailyReportTable({
           "px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm",
           styles[status] || styles.off
         )}
-        title={row.holiday_name || undefined}
+        title={row.holiday_name ?? undefined}
       >
         {labels[status] || status}
       </span>
@@ -363,7 +363,7 @@ export default function DailyReportTable({
                           </div>
                           <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed overflow-x-auto custom-scrollbar relative z-10 p-2 selection:bg-emerald-50 dark:bg-emerald-950/20 max-h-[400px]">
                             {JSON.stringify(
-                              row.generation_metadata || { message: "No metadata available" },
+                              row.generation_metadata ?? { message: "No metadata available" },
                               null,
                               2
                             )}

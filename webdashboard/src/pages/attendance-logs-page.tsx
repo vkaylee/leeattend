@@ -56,7 +56,7 @@ export default function AttendanceLogsPage() {
 
   const [activeTab, setActiveTab] = useState<TabType>("recorded");
   const PAGE_SIZE = 20;
-  const [employeeId, setEmployeeId] = useState<string>(urlEmployee || "all");
+  const [employeeId, setEmployeeId] = useState<string>(urlEmployee ?? "all");
 
   const getMonthRange = (offset = 0) => {
     const d = new Date(); d.setMonth(d.getMonth() + offset);
@@ -120,7 +120,7 @@ export default function AttendanceLogsPage() {
       return fetchRawAttendanceLogs({ employee_id: employeeId === "all" ? undefined : employeeId, from, to, page: pageParam, limit: PAGE_SIZE });
     },
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
       if (totalLoaded >= (lastPage.total || 0)) return undefined;
       return allPages.length + 1;
     },
@@ -133,7 +133,7 @@ export default function AttendanceLogsPage() {
     return recordedPages.pages.flatMap((p) => p.data || []);
   }, [recordedPages]);
 
-  const recordedTotal = recordedPages?.pages[0]?.total || 0;
+  const recordedTotal = recordedPages?.pages[0]?.total ?? 0;
 
   const {
     data: stagingPages,
@@ -145,7 +145,7 @@ export default function AttendanceLogsPage() {
     queryKey: ["staging-logs", wsId],
     queryFn: ({ pageParam }) => fetchStagingLogs(wsId!, pageParam, PAGE_SIZE),
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
       if (totalLoaded >= (lastPage.total || 0)) return undefined;
       return allPages.length + 1;
     },
@@ -158,7 +158,7 @@ export default function AttendanceLogsPage() {
     return stagingPages.pages.flatMap((p) => p.data || []);
   }, [stagingPages]);
 
-  const stagingTotal = stagingPages?.pages[0]?.total || 0;
+  const stagingTotal = stagingPages?.pages[0]?.total ?? 0;
 
   const { data: stagingCount } = useQuery({
     queryKey: ["staging-logs-count", wsId],
@@ -178,8 +178,8 @@ export default function AttendanceLogsPage() {
   const dismissMutation = useMutation({
     mutationFn: (logId: string) => dismissStagingLog(wsId!, logId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
+      void queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
+      void queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
     },
   });
 
@@ -187,9 +187,9 @@ export default function AttendanceLogsPage() {
     mutationFn: ({ logId, employeeId }: { logId: string; employeeId: string }) =>
       resolveStagingLog(wsId!, logId, employeeId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
-      queryClient.invalidateQueries({ queryKey: ["attendance-raw-logs"] });
+      void queryClient.invalidateQueries({ queryKey: ["staging-logs"] });
+      void queryClient.invalidateQueries({ queryKey: ["staging-logs-count"] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-raw-logs"] });
     },
   });
 
@@ -231,7 +231,7 @@ export default function AttendanceLogsPage() {
   });
 
   const handleCreateEmployee = (enrollmentId: string) => {
-    navigate({ to: "/employees", search: { enrollment_id: enrollmentId } });
+    void navigate({ to: "/employees", search: { enrollment_id: enrollmentId } });
   };
 
   return (

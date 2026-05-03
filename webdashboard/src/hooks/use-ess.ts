@@ -53,7 +53,7 @@ export function useMyProfile() {
   const updateMutation = useMutation({
     mutationFn: (data: UpdateProfileRequest) => updateMyProfile(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: essKeys.profile() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.profile() });
     },
   });
 
@@ -61,7 +61,7 @@ export function useMyProfile() {
     data: profileQuery.data,
     employee: profileQuery.data?.employee,
     profile: profileQuery.data?.profile,
-    emergencyContacts: profileQuery.data?.emergency_contacts || [],
+    emergencyContacts: profileQuery.data?.emergency_contacts ?? [],
     isLoading: profileQuery.isLoading,
     isError: profileQuery.isError,
     error: profileQuery.error,
@@ -86,21 +86,21 @@ export function useEmergencyContacts() {
     mutationFn: (data: CreateEmergencyContactRequest) =>
       addEmergencyContact(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: essKeys.emergencyContacts() });
-      queryClient.invalidateQueries({ queryKey: essKeys.profile() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.emergencyContacts() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.profile() });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (contactId: string) => deleteEmergencyContact(contactId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: essKeys.emergencyContacts() });
-      queryClient.invalidateQueries({ queryKey: essKeys.profile() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.emergencyContacts() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.profile() });
     },
   });
 
   return {
-    contacts: contactsQuery.data || [],
+    contacts: contactsQuery.data ?? [],
     isLoading: contactsQuery.isLoading,
     isError: contactsQuery.isError,
     error: contactsQuery.error,
@@ -123,7 +123,7 @@ export function useMyDocuments() {
   });
 
   return {
-    documents: documentsQuery.data || [],
+    documents: documentsQuery.data ?? [],
     isLoading: documentsQuery.isLoading,
     isError: documentsQuery.isError,
     error: documentsQuery.error,
@@ -140,7 +140,7 @@ export function useMyPayslips() {
   });
 
   return {
-    payslips: payslipsQuery.data || [],
+    payslips: payslipsQuery.data ?? [],
     isLoading: payslipsQuery.isLoading,
     isError: payslipsQuery.isError,
     error: payslipsQuery.error,
@@ -157,7 +157,7 @@ export function useMyAttendance(params?: AttendanceParams) {
   });
 
   return {
-    entries: attendanceQuery.data || [],
+    entries: attendanceQuery.data ?? [],
     isLoading: attendanceQuery.isLoading,
     isError: attendanceQuery.isError,
     error: attendanceQuery.error,
@@ -179,11 +179,11 @@ export function useMyLeave() {
   });
 
   return {
-    balances: balancesQuery.data || [],
-    requests: requestsQuery.data || [],
+    balances: balancesQuery.data ?? [],
+    requests: requestsQuery.data ?? [],
     isLoading: balancesQuery.isLoading || requestsQuery.isLoading,
     isError: balancesQuery.isError || requestsQuery.isError,
-    error: balancesQuery.error || requestsQuery.error,
+    error: balancesQuery.error ?? requestsQuery.error,
     refetchBalances: balancesQuery.refetch,
     refetchRequests: requestsQuery.refetch,
   };
@@ -216,21 +216,21 @@ export function useMyClock() {
     mutationFn: (data: { entry_type: "work" | "break"; note?: string }) =>
       punchInMySelf(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
-      queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
     },
   });
 
   const punchOutMutation = useMutation({
     mutationFn: (data?: { note?: string }) => punchOutMySelf(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
-      queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
     },
   });
 
   return {
-    entries: entriesQuery.data || [],
+    entries: entriesQuery.data ?? [],
     activeEntry,
     isOnBreak,
     isLoading: entriesQuery.isLoading,
@@ -254,7 +254,7 @@ export function useMyAttendanceSummaries(start: string, end: string) {
   });
 
   return {
-    summaries: query.data || [],
+    summaries: query.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
@@ -269,7 +269,7 @@ export function useSubmitOtClaim() {
     mutationFn: (data: { date: string; minutes: number; reason: string }) =>
       submitMyOtClaim(data.date, data.minutes, data.reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...essKeys.all, "summaries"] });
+      void queryClient.invalidateQueries({ queryKey: [...essKeys.all, "summaries"] });
     },
   });
 

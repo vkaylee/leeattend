@@ -56,7 +56,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
   const createMutation = useMutation({
     mutationFn: (data: Parameters<typeof createIncentivePolicy>[1]) => createIncentivePolicy(wsId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["incentive-policies"] });
+      void queryClient.invalidateQueries({ queryKey: ["incentive-policies"] });
       setIsCreating(false);
       toast.success(t("common.success"));
       // Reset form
@@ -67,7 +67,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteIncentivePolicy(wsId, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["incentive-policies"] });
+      void queryClient.invalidateQueries({ queryKey: ["incentive-policies"] });
       toast.success(t("common.deleted"));
     },
   });
@@ -186,7 +186,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                         onChange={e => { updateTier(index, "max_late_early_count", e.target.value); }} 
                         placeholder="Any"
                         type="number"
-                        value={tier.max_late_early_count || ""}
+                        value={tier.max_late_early_count ?? ""}
                       />
                     </div>
                     <div className="space-y-2">
@@ -198,7 +198,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                         onChange={e => { updateTier(index, "max_unpaid_leave_days", e.target.value); }} 
                         placeholder="Any"
                         type="number"
-                        value={tier.max_unpaid_leave_days || ""}
+                        value={tier.max_unpaid_leave_days ?? ""}
                       />
                     </div>
                     { }
@@ -210,7 +210,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                         onChange={e => { updateTier(index, "max_sick_leave_days", e.target.value); }} 
                         placeholder="Any"
                         type="number"
-                        value={tier.max_sick_leave_days || ""}
+                        value={tier.max_sick_leave_days ?? ""}
                       />
                       { }
                     </div>
@@ -222,7 +222,7 @@ export default function BonusPolicyManager({ wsId }: BonusPolicyManagerProps) {
                         onChange={e => { updateTier(index, "max_total_leave_days", e.target.value); }} 
                         placeholder="Any"
                         type="number"
-                        value={tier.max_total_leave_days || ""}
+                        value={tier.max_total_leave_days ?? ""}
                       />
                     </div>
                     <div className="space-y-2">

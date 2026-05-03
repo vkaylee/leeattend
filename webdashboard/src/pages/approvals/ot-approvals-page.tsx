@@ -54,7 +54,7 @@ export default function OtApprovalsPage() {
             manager_note: approved ? "Approved via Manager Portal" : "Rejected via Manager Portal"
         });
         toast.success(approved ? "Overtime approved successfully" : "Overtime rejected successfully");
-        refetch();
+        void refetch();
     } catch (e) {
         console.error(e);
         toast.error("Action failed");

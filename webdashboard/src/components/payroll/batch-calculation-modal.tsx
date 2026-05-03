@@ -51,7 +51,7 @@ export default function BatchCalculationModal({
       calculateBatchPayslips(workspaceId, { employee_ids: employeeIds, year: data.year, month: data.month }),
     onSuccess: (data) => {
       setResults(data.results);
-      queryClient.invalidateQueries({ queryKey: ["payslips"] });
+      void queryClient.invalidateQueries({ queryKey: ["payslips"] });
       toast.success(t("payroll.messages.calculate_success"));
     },
   });
@@ -59,15 +59,15 @@ export default function BatchCalculationModal({
   const handleCalculate = () => { batchMutation.mutate({ year: calcYear, month: calcMonth }); };
   const resetAndClose = () => { setResults(null); batchMutation.reset(); onClose(); };
 
-  const successCount = results?.filter(r => r.status === "success").length || 0;
-  const errorCount = (results?.length || 0) - successCount;
+  const successCount = results?.filter(r => r.status === "success").length ?? 0;
+  const errorCount = (results?.length ?? 0) - successCount;
 
   return (
     <Modal 
       icon={<Calculator size={24} />} 
       isOpen={isOpen} 
       maxWidth="lg" 
-      onClose={batchMutation.isPending ? () => {} : resetAndClose} 
+      onClose={batchMutation.isPending ? () => { /* empty */ } : resetAndClose} 
       subtitle={t("payroll.modal.subtitle")} 
       testId="batch-calc-modal"
       title={t("payroll.modal.title")}

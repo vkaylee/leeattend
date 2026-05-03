@@ -463,7 +463,7 @@ describe("EmployeeDailyDrawer", () => {
         expect(contentWrapper).not.toBeNull();
 
         // The scroll container is the overflow-auto child or the wrapper itself
-        const scrollContainer = contentWrapper!.querySelector(".overflow-auto") || contentWrapper!;
+        const scrollContainer = contentWrapper!.querySelector(".overflow-auto") ?? contentWrapper!;
         const scrollBySpy = vi.fn();
         scrollContainer.scrollBy = scrollBySpy;
 

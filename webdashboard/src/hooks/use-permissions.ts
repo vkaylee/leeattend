@@ -15,7 +15,7 @@ export const myPermissionsKey = (wsId: string) =>
  *   if (hasPermission("employees:create")) { ... }
  */
 export function useMyPermissions() {
-    const wsId = getCurrentWorkspaceId() || "";
+    const wsId = getCurrentWorkspaceId() ?? "";
 
     const query = useQuery({
         queryKey: myPermissionsKey(wsId),

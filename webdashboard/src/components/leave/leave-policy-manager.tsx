@@ -51,7 +51,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteLeavePolicy(wsId, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
       toast.success("Policy deleted successfully");
     },
   });
@@ -69,7 +69,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
     mutationFn: (data: Partial<LeavePolicy>) => 
       editingPolicy ? updateLeavePolicy(wsId, editingPolicy.id, data) : createLeavePolicy(wsId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
       toast.success(editingPolicy ? "Policy updated" : "Policy created");
       setIsCreating(false);
       setEditingPolicy(null);
@@ -103,13 +103,13 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
           </div>
         ) : policies.map((policy) => {
           const type = leaveTypes.find(t => t.id === policy.leave_type_id);
-          const bonusCount = policy.rule_config.seniority_bonus?.length || 0;
+          const bonusCount = policy.rule_config.seniority_bonus.length || 0;
           return (
             <div className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-7 shadow-sm hover:shadow-md transition-all group" key={policy.id}>
               <div>
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center rounded-lg bg-primary-50 dark:bg-primary-950 px-2.5 py-1 text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest border border-primary-100 dark:border-primary-800 shadow-sm">
-                    {type?.name || "Unknown"}
+                    {type?.name ?? "Unknown"}
                   </span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800" data-testid="edit-policy-btn" onClick={() => { setEditingPolicy(policy); }}><Pencil size={16} /></button>
@@ -162,17 +162,17 @@ interface PolicyModalProps {
 
 function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: PolicyModalProps) {
   const [formData, setFormData] = useState({
-    name: policy?.name || "",
-    description: policy?.description || "",
-    leave_type_id: policy?.leave_type_id || (leaveTypes.length > 0 ? leaveTypes[0].id : ""),
-    accrual_amount: policy?.rule_config.accrual_amount || 1.0,
-    frequency: (policy?.rule_config.frequency || "monthly"),
-    carry_over_limit: policy?.rule_config.carry_over_limit || 5,
-    min_work_days_threshold: policy?.rule_config.min_work_days_threshold || 14
+    name: policy?.name ?? "",
+    description: policy?.description ?? "",
+    leave_type_id: policy?.leave_type_id ?? (leaveTypes.length > 0 ? leaveTypes[0].id : ""),
+    accrual_amount: policy?.rule_config.accrual_amount ?? 1.0,
+    frequency: (policy?.rule_config.frequency ?? "monthly"),
+    carry_over_limit: policy?.rule_config.carry_over_limit ?? 5,
+    min_work_days_threshold: policy?.rule_config.min_work_days_threshold ?? 14
   });
 
   const [seniorityBonus, setSeniorityBonus] = useState<{ min_years: number; extra_days: number }[]>(
-    policy?.rule_config.seniority_bonus || []
+    policy?.rule_config.seniority_bonus ?? []
   );
 
   const addBonusMilestone = () => {

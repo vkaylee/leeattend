@@ -43,8 +43,8 @@ export default function ProfilePage() {
     if (user) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setFormData({
-        full_name: user.full_name || "", avatar_url: user.avatar_url || "",
-        bio: user.bio || "", preferred_language: user.preferred_language || "",
+        full_name: user.full_name ?? "", avatar_url: user.avatar_url ?? "",
+        bio: user.bio ?? "", preferred_language: user.preferred_language ?? "",
       });
     }
   }, [user]);
@@ -87,8 +87,8 @@ export default function ProfilePage() {
                   {formData.avatar_url ? <img alt="avatar" className="w-full h-full object-cover" src={formData.avatar_url} /> : <UserCircle size={64} />}
                 </div>
                 <div className="mb-2">
-                  <h2 className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-2">{user?.full_name || user?.email}</h2>
-                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70">{t("profile.join_date")}: {formatDate(user?.created_at || "")}</p>
+                  <h2 className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none mb-2">{user?.full_name ?? user?.email}</h2>
+                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70">{t("profile.join_date")}: {formatDate(user?.created_at ?? "")}</p>
                 </div>
               </div>
 
@@ -199,7 +199,7 @@ function ChangePasswordForm() {
     try {
       await changePassword({ old_password: formData.old_password, new_password: formData.new_password });
       toast.success(t("profile.security.messages.password_changed"));
-      setTimeout(() => { clearAuthSession(); navigate({ to: ROUTES.LOGIN }); }, 2000);
+      setTimeout(() => { clearAuthSession(); void navigate({ to: ROUTES.LOGIN }); }, 2000);
  
     } catch (e: unknown) {
  

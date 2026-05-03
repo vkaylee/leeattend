@@ -63,8 +63,8 @@ describe("AgentEditModal", () => {
       <AgentEditModal
         agent={mockAgent}
         isOpen={true}
-        onClose={() => {}}
-        onSave={() => {}}
+        onClose={() => { /* empty */ }}
+        onSave={() => { /* empty */ }}
       />,
     );
 

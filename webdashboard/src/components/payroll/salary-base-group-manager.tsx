@@ -32,7 +32,7 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
     mutationFn: ({ baseId, componentId }: { baseId: string, componentId: string }) => 
       assignComponentToSalaryBase(wsId, baseId, componentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["salary-base-members", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["salary-base-members", wsId] });
       toast.success("Component assigned to base successfully");
     },
     onError: () => {
@@ -44,7 +44,7 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
     mutationFn: ({ baseId, componentId }: { baseId: string, componentId: string }) => 
       unassignComponentFromSalaryBase(wsId, baseId, componentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["salary-base-members", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["salary-base-members", wsId] });
       toast.success("Component unassigned from base successfully");
     },
     onError: () => {
@@ -76,7 +76,7 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {groups?.map(group => {
-          const groupMembers = members?.filter(m => m.base_group_id === group.id) || [];
+          const groupMembers = members?.filter(m => m.base_group_id === group.id) ?? [];
           const memberIds = new Set(groupMembers.map(m => m.component_definition_id));
 
           return (
@@ -86,7 +86,7 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
                   <h3 className="font-semibold text-slate-800 dark:text-slate-200">{group.name}</h3>
                   {!!group.is_system && <span className="bg-primary-50 text-primary-600 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full dark:bg-primary-900/30 dark:text-primary-400 border border-primary-100 dark:border-primary-800/50">System</span>}
                 </div>
-                <p className="text-xs text-slate-500 line-clamp-2">{group.description || "No description provided."}</p>
+                <p className="text-xs text-slate-500 line-clamp-2">{group.description ?? "No description provided."}</p>
                 <div className="mt-3 text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded inline-block">
                   {group.slug}
                 </div>

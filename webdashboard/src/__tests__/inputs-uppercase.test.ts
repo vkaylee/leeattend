@@ -8,7 +8,7 @@ function walk(dir: string): string[] {
   list.forEach(function (file) {
     file = path.join(dir, file);
     const stat = fs.statSync(file);
-    if (stat && stat.isDirectory()) {
+    if (stat.isDirectory()) {
       results = results.concat(walk(file));
     } else if (file.endsWith(".tsx") || file.endsWith(".jsx")) {
       results.push(file);

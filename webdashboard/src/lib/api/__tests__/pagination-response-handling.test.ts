@@ -81,7 +81,7 @@ describe("Pagination Response Handling", () => {
       };
 
       // Safe extraction pattern used in components
-      const data = response?.data ?? [];
+      const data = response.data ?? [];
       expect(Array.isArray(data)).toBe(true);
       expect(data).toHaveLength(2);
     });
@@ -112,7 +112,7 @@ describe("Pagination Response Handling", () => {
         limit: 50,
       };
 
-      const data = response?.data ?? [];
+      const data = response.data ?? [];
       let forEachCount = 0;
 
       // Should not throw "TypeError: employees.forEach is not a function"
@@ -137,7 +137,7 @@ describe("Pagination Response Handling", () => {
         limit: 50,
       };
 
-      const data = response?.data ?? [];
+      const data = response.data ?? [];
 
       // map
       const mapped = data.map((item) => item.value);
@@ -168,7 +168,7 @@ describe("Pagination Response Handling", () => {
       };
 
       // Correct: Access .data property
-      const employees = employeesData?.data ?? [];
+      const employees = employeesData.data ?? [];
       expect(Array.isArray(employees)).toBe(true);
       expect(employees).toHaveLength(1);
 
@@ -193,7 +193,7 @@ describe("Pagination Response Handling", () => {
 
       // The fix ensures we use .data before array operations
       expect(() => {
-        const employees = employeesData?.data ?? [];
+        const employees = employeesData.data ?? [];
         employees.forEach(() => {
           /* iteration */
         });
@@ -209,7 +209,7 @@ describe("Pagination Response Handling", () => {
       } as unknown as PaginatedResponse<unknown>;
 
  
-      const data = (malformedResponse as unknown as Record<string, unknown>)?.data ?? [];
+      const data = (malformedResponse as unknown as Record<string, unknown>).data ?? [];
       expect(Array.isArray(data)).toBe(true);
       expect(data).toHaveLength(0);
     });
@@ -223,7 +223,7 @@ describe("Pagination Response Handling", () => {
       };
 
       // Extract data for iteration
-      const data = response?.data ?? [];
+      const data = response.data ?? [];
 
       // Use pagination metadata for UI
       const totalPages = Math.ceil(response.total / response.limit);
@@ -250,7 +250,7 @@ describe("Pagination Response Handling", () => {
         limit: 50,
       };
 
-      const data = response?.data ?? [];
+      const data = response.data ?? [];
       expect(data).toHaveLength(50);
       expect(response.total).toBe(1000);
     });
@@ -263,7 +263,7 @@ describe("Pagination Response Handling", () => {
         limit: 50,
       };
 
-      const data = response?.data ?? [];
+      const data = response.data ?? [];
       expect(data).toHaveLength(1);
       expect(data[0].name).toBe("Single Item");
     });
@@ -277,7 +277,7 @@ describe("Pagination Response Handling", () => {
       } as unknown as PaginatedResponse<unknown>;
 
  
-      const data = (response as unknown as Record<string, unknown>)?.data ?? [];
+      const data = (response as unknown as Record<string, unknown>).data ?? [];
       expect(Array.isArray(data)).toBe(true);
       expect(data).toHaveLength(0);
     });
@@ -311,7 +311,7 @@ describe("Pagination Response Handling", () => {
       } as unknown as PaginatedResponse<unknown>;
 
  
-      const data = (unexpectedResponse as unknown as Record<string, unknown>)?.data ?? [];
+      const data = (unexpectedResponse as unknown as Record<string, unknown>).data ?? [];
       expect(Array.isArray(data)).toBe(true);
       expect(data).toHaveLength(0);
     });

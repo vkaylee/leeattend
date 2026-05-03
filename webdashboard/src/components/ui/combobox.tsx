@@ -52,7 +52,7 @@ export function Combobox({
   disabled,
 }: ComboboxProps) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(autoFocus || false);
+  const [open, setOpen] = useState(autoFocus ?? false);
 
   // Global keyboard shortcut(s) to re-open and refocus the combobox, or to clear it
   useEffect(() => {
@@ -84,9 +84,9 @@ export function Combobox({
     return () => { window.removeEventListener('keydown', handleKeyDown); };
   }, [keyboardShortcut, onSearchChange, open, clearOnEscape, value, onChange]);
 
-  placeholder = placeholder || t("common.combobox.placeholder");
-  searchPlaceholder = searchPlaceholder || t("common.combobox.search");
-  emptyText = emptyText || t("common.combobox.no_results");
+  placeholder = placeholder ?? t("common.combobox.placeholder");
+  searchPlaceholder = searchPlaceholder ?? t("common.combobox.search");
+  emptyText = emptyText ?? t("common.combobox.no_results");
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -149,8 +149,8 @@ export function Combobox({
                     <div className="flex flex-1 items-center gap-4">
                       {option.icon}
                       <div className="flex flex-col">
-                        <span className="leading-tight">{option.displayLabel || option.label}</span>
-                        {!!option.description && <div className="mt-1 opacity-60">{option.displayDescription || option.description}</div>}
+                        <span className="leading-tight">{option.displayLabel ?? option.label}</span>
+                        {!!option.description && <div className="mt-1 opacity-60">{option.displayDescription ?? option.description}</div>}
                       </div>
                     </div>
                     {value === option.value && <Check className="ml-auto h-4 w-4 text-primary-600 dark:text-primary-300" />}

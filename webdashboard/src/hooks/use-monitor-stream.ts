@@ -6,7 +6,7 @@ import type { WorkerMonitorStats } from "@/lib/api/types";
 import { monitorKeys } from "./use-worker-monitor";
 
 /** SSE base URL – mirrors the REST API_BASE_URL logic. */
-const SSE_URL = (import.meta.env.DEV ? "/api" : (import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "/api")) + "/monitor/stream";
+const SSE_URL = (import.meta.env.DEV ? "/api" : (import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "/api")) + "/monitor/stream";
 
 /** Max consecutive connection errors before giving up (resets on success). */
 const MAX_RETRIES = 5;

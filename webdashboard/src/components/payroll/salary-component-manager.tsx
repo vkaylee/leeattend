@@ -24,7 +24,7 @@ export default function SalaryComponentManager({ wsId }: Props) {
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<SalaryComponentDefinition>) => createSalaryComponent(wsId, data),
-    onSuccess: () => { toast.success(t("common.success")); queryClient.invalidateQueries({ queryKey: ["salary-components"] }); setIsModalOpen(false); setFormData({ name: "", code: "", is_base_for_ot: true, is_taxable: true }); },
+    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["salary-components"] }); setIsModalOpen(false); setFormData({ name: "", code: "", is_base_for_ot: true, is_taxable: true }); },
   });
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); createMutation.mutate(formData); };
@@ -100,7 +100,7 @@ export default function SalaryComponentManager({ wsId }: Props) {
  
                   (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
                 )} htmlFor={`comp-${field.key ?? ""}`}>
-                  <input checked={!!(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`comp-${field.key ?? ""}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
+                  <input checked={(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`comp-${field.key ?? ""}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
                   <div>
                     <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon className="opacity-50" size={14} /> {t(`payroll.components.${field.label ?? ""}`)}</p>
                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{t(`payroll.components.${field.desc ?? ""}`)}</p>

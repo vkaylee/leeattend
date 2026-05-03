@@ -30,7 +30,7 @@ describe("LoginPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    i18n.changeLanguage("en");
+    void i18n.changeLanguage("en");
  
     vi.mocked(api.getCurrentUserId).mockReturnValue(null);
   });

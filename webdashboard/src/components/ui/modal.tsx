@@ -66,7 +66,7 @@ export default function Modal({
         style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
       >
         {/* Header — fixed at top, never shrinks */}
-        {!!(title || icon) && (
+        {!!(title ?? icon) && (
           <div className="flex items-center justify-between p-8 border-b border-slate-50 dark:border-slate-800" style={{ flexShrink: 0 }}>
             <div className="flex items-center gap-4">
               {!!icon && (

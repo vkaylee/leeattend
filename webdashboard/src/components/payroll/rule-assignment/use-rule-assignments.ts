@@ -33,7 +33,7 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
       createPayrollRuleAssignment(wsId, ruleId, data),
     onSuccess: () => {
       toast.success(t("common.success", "Success"));
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["payroll-rule-assignments", ruleId],
       });
     },
@@ -45,7 +45,7 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
       deletePayrollRuleAssignment(wsId, ruleId, assignmentId),
     onSuccess: () => {
       toast.success(t("common.success", "Success"));
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["payroll-rule-assignments", ruleId],
       });
     },
@@ -66,7 +66,7 @@ export function useRuleAssignments(wsId: string, ruleId: string) {
       department: [] as PayrollRuleAssignment[],
       employee: [] as PayrollRuleAssignment[],
     };
-    assignmentsQuery.data?.forEach((a) => g[a.assignee_type]?.push(a));
+    assignmentsQuery.data?.forEach((a) => g[a.assignee_type].push(a));
     return g;
   }, [assignmentsQuery.data]);
 

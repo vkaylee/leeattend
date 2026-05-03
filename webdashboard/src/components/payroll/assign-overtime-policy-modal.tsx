@@ -58,7 +58,7 @@ export default function AssignOvertimePolicyModal({
  
     mutationFn: (data: Parameters<typeof assignOvertimePolicy>[1]) => assignOvertimePolicy(wsId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['overtime-policy-assignment'] });
+      void queryClient.invalidateQueries({ queryKey: ['overtime-policy-assignment'] });
       toast.success(t('common.success'));
       onClose();
     },

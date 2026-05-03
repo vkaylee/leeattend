@@ -68,7 +68,7 @@ export default function MyClockPage() {
     }
 
     try {
-      const tz = workspace?.timezone || "UTC";
+      const tz = workspace?.timezone ?? "UTC";
       const punchInTime = toUTCISO(data.date, data.punchIn, tz);
       const punchOutTime = toUTCISO(data.date, data.punchOut, tz);
 
@@ -185,7 +185,7 @@ export default function MyClockPage() {
         isOpen={isAdjustmentModalOpen}
         onClose={() => { setIsAdjustmentModalOpen(false); }}
         onSubmit={handleAdjustmentSubmit}
-        timezone={workspace?.timezone || "UTC"}
+        timezone={workspace?.timezone ?? "UTC"}
       />
     </div>
   );

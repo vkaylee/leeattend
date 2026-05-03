@@ -42,9 +42,9 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
   const assignMutation = useMutation({
     mutationFn: (data: { assignee_type: string; assignee_id: string | null; policy_id: string; effective_from: string }) => assignLeavePolicy(wsId!, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
-      queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
-      queryClient.invalidateQueries({ queryKey: ["leave-assignments"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-policies"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-assignments"] });
       toast.success(t("leave_requests.policy.messages.assign_success"));
       onClose();
     },
@@ -87,7 +87,7 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
 
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-primary-400 uppercase tracking-widest ml-1" htmlFor="assign-policy">{t("leave_requests.policy.title_single")}</label>
-          <Combobox className="bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 h-14" data-testid="assign-policy-select" id="assign-policy" onChange={setAssignPolicyId} options={policies.map(p => ({ value: p.id, label: p.name, description: leaveTypes.find(t => t.id === p.leave_type_id)?.name || p.leave_type_id, icon: <ShieldCheck size={14} /> }))} placeholder={policiesLoading ? t("common.loading") : t("leave_requests.policy.select_placeholder")} value={assignPolicyId} />
+          <Combobox className="bg-slate-50 dark:bg-slate-800 border-primary-100 dark:border-primary-800/50 h-14" data-testid="assign-policy-select" id="assign-policy" onChange={setAssignPolicyId} options={policies.map(p => ({ value: p.id, label: p.name, description: leaveTypes.find(t => t.id === p.leave_type_id)?.name ?? p.leave_type_id, icon: <ShieldCheck size={14} /> }))} placeholder={policiesLoading ? t("common.loading") : t("leave_requests.policy.select_placeholder")} value={assignPolicyId} />
         </div>
 
         <div className="space-y-2">

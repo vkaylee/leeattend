@@ -54,10 +54,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const success = (message: string, title?: string) => { show(message, 'success', title || t('common.success')); };
-  const error = (message: string, title?: string) => { show(message, 'error', title || t('common.error')); };
-  const info = (message: string, title?: string) => { show(message, 'info', title || t('common.info')); };
-  const warning = (message: string, title?: string) => { show(message, 'warning', title || t('common.warning')); };
+  const success = (message: string, title?: string) => { show(message, 'success', title ?? t('common.success')); };
+  const error = (message: string, title?: string) => { show(message, 'error', title ?? t('common.error')); };
+  const info = (message: string, title?: string) => { show(message, 'info', title ?? t('common.info')); };
+  const warning = (message: string, title?: string) => { show(message, 'warning', title ?? t('common.warning')); };
 
   return (
     <ToastContext.Provider value={{ show, success, error, info, warning }}>

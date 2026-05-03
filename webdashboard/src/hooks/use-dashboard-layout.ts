@@ -179,14 +179,14 @@ export function useDashboardLayout() {
         if (activeView === "custom") {
             return (preferences?.visible_widgets ?? {}) as Record<WidgetId, boolean>;
         }
-        return (PRESET_VIEWS[activeView]?.visible ?? {}) as Record<WidgetId, boolean>;
+        return (PRESET_VIEWS[activeView].visible ?? {}) as Record<WidgetId, boolean>;
     })();
 
     const widgetOrder: WidgetId[] = (() => {
-        if (activeView === "custom" && preferences?.widget_order?.length) {
+        if (activeView === "custom" && preferences?.widget_order.length) {
             return preferences.widget_order;
         }
-        return PRESET_VIEWS[activeView as Exclude<DashboardView, "custom">]?.order ?? ALL_WIDGETS.map((w) => w.id);
+        return PRESET_VIEWS[activeView as Exclude<DashboardView, "custom">].order ?? ALL_WIDGETS.map((w) => w.id);
     })();
 
     const collapsedSections: Record<string, boolean> =
@@ -197,8 +197,8 @@ export function useDashboardLayout() {
     const setActiveView = (view: DashboardView) => {
         mutation.mutate({
             active_view: view,
-            visible_widgets: view === "custom" ? preferences?.visible_widgets : PRESET_VIEWS[view]?.visible as Record<string, boolean>,
-            widget_order: view === "custom" ? preferences?.widget_order : PRESET_VIEWS[view]?.order,
+            visible_widgets: view === "custom" ? preferences?.visible_widgets : PRESET_VIEWS[view].visible as Record<string, boolean>,
+            widget_order: view === "custom" ? preferences?.widget_order : PRESET_VIEWS[view].order,
             collapsed_sections: preferences?.collapsed_sections,
         });
     };

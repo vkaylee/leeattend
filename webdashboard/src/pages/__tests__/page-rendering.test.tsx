@@ -27,7 +27,7 @@ class MockIntersectionObserver {
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
-  constructor() { }
+  constructor() { /* empty */ }
 }
  
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
@@ -117,7 +117,7 @@ describe("Page Rendering", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    i18n.changeLanguage("en");
+    void i18n.changeLanguage("en");
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });

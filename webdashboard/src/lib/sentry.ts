@@ -4,7 +4,7 @@ export function initSentry() {
   const dsn = import.meta.env.VITE_SENTRY_DSN;
   if (!dsn) {
     if (import.meta.env.DEV) {
-      console.log("[Sentry] No VITE_SENTRY_DSN configured, skipping");
+      
     }
     return false;
   }

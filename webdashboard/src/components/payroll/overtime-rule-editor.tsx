@@ -37,7 +37,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
   const addMutation = useMutation({
     mutationFn: (data: Partial<OvertimeRule>) => addOvertimeRule(wsId, policyId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['overtime-policies'] });
+      void queryClient.invalidateQueries({ queryKey: ['overtime-policies'] });
       setIsAdding(false);
       resetForm();
       toast.success(t('common.success'));
@@ -193,7 +193,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
               </div>
               <div className='flex flex-col'>
                 <span className='text-xs font-bold text-slate-700 dark:text-slate-200'>
-                  {rule.time_start || '00:00'} - {rule.time_end || '23:59'}
+                  {rule.time_start ?? '00:00'} - {rule.time_end ?? '23:59'}
                 </span>
                 <span className='text-[10px] text-slate-500 dark:text-slate-400 font-medium'>
                   Priority: {rule.priority} | {rule.is_holiday ? 'Holidays Only' : 'Regular Days'}

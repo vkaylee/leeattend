@@ -154,7 +154,7 @@ export async function punchOutMySelf(
 ): Promise<TimeEntry> {
   const response = await apiFetch(`${API_BASE_URL ?? ""}/ess/punch-out`, {
     method: "POST",
-    body: JSON.stringify(data || {}),
+    body: JSON.stringify(data ?? {}),
   });
   if (!response.ok) {
     const error = await response.text();

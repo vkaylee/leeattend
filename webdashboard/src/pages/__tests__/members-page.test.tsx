@@ -39,7 +39,7 @@ describe("MembersPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    i18n.changeLanguage("en");
+    void i18n.changeLanguage("en");
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {

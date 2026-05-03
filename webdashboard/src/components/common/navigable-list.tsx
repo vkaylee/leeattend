@@ -147,7 +147,7 @@ export default function NavigableList<T>({
     const loadMoreRef = useInfiniteScroll<HTMLTableRowElement>({
         hasNextPage: hasNextPage ?? false,
         isFetchingNextPage: isFetchingNextPage ?? false,
-        fetchNextPage: fetchNextPage ?? (() => { }),
+        fetchNextPage: fetchNextPage ?? (() => { /* empty */ }),
     });
 
     const visibleColumns = columns.filter((c) => !c.hidden);

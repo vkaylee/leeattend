@@ -33,7 +33,7 @@ vi.mock("../../lib/api", () => ({
  
 vi.mock("@/components/common/employee-search", () => ({
   EmployeeSearch: ({ value, onChange, onSelect, multiple }: { value: unknown; onChange: (_v: unknown) => void; onSelect: (_v: unknown) => void; multiple: boolean }) => {
-    const handler = onSelect || onChange || (() => {});
+    const handler = onSelect || onChange || (() => { /* empty */ });
     return (
       <div data-testid="employee-search-mock">
         <button 

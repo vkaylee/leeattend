@@ -59,7 +59,7 @@ export function AssignmentList({ grouped, deptMap, onDelete, isDeleting }: Props
     if (a.assignee_type === "workspace")
       return t("payroll_rules.scope_workspace", "Entire Workspace");
     if (a.assignee_type === "department")
-      return deptMap[a.assignee_id!]?.name || a.assignee_id?.slice(0, 8) + "…";
+      return deptMap[a.assignee_id!].name || a.assignee_id?.slice(0, 8) + "…";
     return a.assignee_id?.slice(0, 8) + "…";
   };
 

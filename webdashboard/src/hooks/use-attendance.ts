@@ -35,7 +35,7 @@ export function useAttendanceSummaries(start: string, end: string, employeeId?: 
   });
 
   return {
-    summaries: (query.data || []),
+    summaries: (query.data ?? []),
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
@@ -57,7 +57,7 @@ export function useApproveOt() {
         });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
     },
   });
 
@@ -88,7 +88,7 @@ export function useEnterPaperOt() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
     },
   });
 
@@ -108,7 +108,7 @@ export function useBulkUploadPaperOt() {
       return bulkUploadPaperOt(wsId, file);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
+      void queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
     },
   });
 

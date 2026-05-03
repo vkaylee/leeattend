@@ -21,9 +21,9 @@ vi.mock("@tanstack/react-router", () => ({
 
 // Mock IntersectionObserver for jsdom
 class MockIntersectionObserver {
-    observe() { }
-    unobserve() { }
-    disconnect() { }
+    observe() { /* empty */ }
+    unobserve() { /* empty */ }
+    disconnect() { /* empty */ }
  
 }
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
@@ -323,7 +323,7 @@ describe("EmployeesPage", () => {
     const findHeaderByText = (text: string) => {
         const ths = document.querySelectorAll("th");
         for (const th of ths) {
-            if (th.textContent?.includes(text)) return th;
+            if (th.textContent.includes(text)) return th;
         }
         throw new Error(`Header containing "${text ?? ""}" not found`);
     };

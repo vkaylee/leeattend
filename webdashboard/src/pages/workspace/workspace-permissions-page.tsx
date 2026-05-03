@@ -30,8 +30,8 @@ import { cn } from "@/lib/utils";
 export default function WorkspacePermissionsPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
-  const { roles, isLoading: isRolesLoading } = useWorkspaceRoles(wsId || undefined);
-  const { matrix, isLoading: isMatrixLoading, refetch } = useWorkspacePermissionsMatrix(wsId || undefined);
+  const { roles, isLoading: isRolesLoading } = useWorkspaceRoles(wsId ?? undefined);
+  const { matrix, isLoading: isMatrixLoading, refetch } = useWorkspacePermissionsMatrix(wsId ?? undefined);
   const { hasPermission } = useMyPermissions();
   const hasManagePermission = hasPermission("members:roles:manage");
 
@@ -105,7 +105,7 @@ export default function WorkspacePermissionsPage() {
       ));
       
       setHasChanges(false);
-      refetch();
+      void refetch();
     } catch (e) {
       console.error("Failed to save permissions", e);
     } finally {
@@ -264,7 +264,7 @@ export default function WorkspacePermissionsPage() {
                       </td>
                       
                       {visibleRoles.map(role => {
-                        const isChecked = permissions[role.id]?.includes(perm.id);
+                        const isChecked = permissions[role.id].includes(perm.id);
                         const isSystem = role.is_system;
                         
                         return (
@@ -277,7 +277,7 @@ export default function WorkspacePermissionsPage() {
                                 : "bg-transparent border-slate-200 dark:border-slate-700 text-transparent"
                             )}>
                               <input 
-                                checked={!!isChecked} 
+                                checked={isChecked} 
                                 className="sr-only"
                                 disabled={isSystem || !hasManagePermission}
                                 onChange={() => { togglePermission(role, perm.id); }}

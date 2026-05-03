@@ -78,9 +78,9 @@ export default function ResolveUnscheduledModal({
                         value={selectedShiftId}
                     >
                         <option value="">-- {t("reports.unscheduled.select_shift")} --</option>
-                        {(shifts || []).map((shift: Shift) => (
+                        {(shifts ?? []).map((shift: Shift) => (
                             <option key={shift.id} value={shift.id}>
-                                {shift.name} ({shift.start_time?.substring(0, 5)} — {shift.end_time?.substring(0, 5)})
+                                {shift.name} ({shift.start_time.substring(0, 5)} — {shift.end_time.substring(0, 5)})
                             </option>
                         ))}
                     </select>

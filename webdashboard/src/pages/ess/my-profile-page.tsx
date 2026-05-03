@@ -50,9 +50,9 @@ export default function MyProfilePage() {
     if (profile) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setFormData({
-        phone: profile.phone || "", address: profile.address || "", date_of_birth: profile.date_of_birth || "",
-        gender: profile.gender || "", national_id: profile.national_id || "", bank_name: profile.bank_name || "",
-        bank_account_number: profile.bank_account_number || "", bank_branch: profile.bank_branch || "",
+        phone: profile.phone ?? "", address: profile.address ?? "", date_of_birth: profile.date_of_birth ?? "",
+        gender: profile.gender ?? "", national_id: profile.national_id ?? "", bank_name: profile.bank_name ?? "",
+        bank_account_number: profile.bank_account_number ?? "", bank_branch: profile.bank_branch ?? "",
       });
     }
   }, [profile]);

@@ -17,7 +17,7 @@ import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment,
 
 export default function DepartmentsPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() || "";
+  const wsId = getCurrentWorkspaceId() ?? "";
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -32,7 +32,7 @@ export default function DepartmentsPage() {
 
   const saveConfigMutation = useMutation({
     mutationFn: (data: { std_working_days: number; hours_per_day: number; effective_date: string }) => setDepartmentPayrollConfig(wsId, editingDept!.id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["dept-payroll-configs", editingDept?.id] }); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["dept-payroll-configs", editingDept?.id] }); },
   });
 
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: fetchUsers });
@@ -40,19 +40,19 @@ export default function DepartmentsPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => createDepartment(wsId, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); setIsModalOpen(false); toast.success(t("common.success")); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); setIsModalOpen(false); toast.success(t("common.success")); },
  
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => updateDepartment(wsId, editingDept!.id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); setIsModalOpen(false); setEditingDept(null); toast.success(t("common.success")); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); setIsModalOpen(false); setEditingDept(null); toast.success(t("common.success")); },
  
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDepartment(wsId, id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); toast.success(t("common.success")); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["departments", wsId] }); toast.success(t("common.success")); },
   });
 
   const toast = useToast();
@@ -66,8 +66,8 @@ export default function DepartmentsPage() {
   useEffect(() => {
     if (editingDept) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
-      setSelectedManagerId(editingDept.manager_id || "");
-      setSelectedPatternId(editingDept.default_working_pattern_id || "");
+      setSelectedManagerId(editingDept.manager_id ?? "");
+      setSelectedPatternId(editingDept.default_working_pattern_id ?? "");
     } else {
       setSelectedManagerId("");
       setSelectedPatternId("");
@@ -119,7 +119,7 @@ export default function DepartmentsPage() {
             </div>
             
             <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tight mb-3 uppercase leading-none">{dept.name}</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-xs mb-10 line-clamp-2 min-h-[3rem] font-bold uppercase tracking-tight opacity-60 leading-relaxed italic">{dept.description || t("common.no_description")}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mb-10 line-clamp-2 min-h-[3rem] font-bold uppercase tracking-tight opacity-60 leading-relaxed italic">{dept.description ?? t("common.no_description")}</p>
             
             <div className="mt-auto pt-8 border-t border-slate-50 dark:border-slate-800 flex flex-col gap-6">
               <div className="flex items-center gap-5 group/info">
@@ -134,7 +134,7 @@ export default function DepartmentsPage() {
                 <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-inner group-hover/info:text-primary-600 dark:text-primary-400 group-hover/info:bg-primary-50 dark:bg-primary-950 group-hover/info:border-primary-100 dark:border-primary-800 transition-all"><UserCircle size={20} /></div>
                 <div>
                   <span className="block text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] text-[9px] mb-1">{t("departments.manager_label")}</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-100 text-xs uppercase tracking-tight">{users.find(u => u.id === dept.manager_id)?.full_name || t("departments.not_assigned").toUpperCase()}</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 text-xs uppercase tracking-tight">{users.find(u => u.id === dept.manager_id)?.full_name ?? t("departments.not_assigned").toUpperCase()}</span>
                 </div>
               </div>
 
@@ -142,7 +142,7 @@ export default function DepartmentsPage() {
                 <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-inner group-hover/info:text-primary-600 dark:text-primary-400 group-hover/info:bg-primary-50 dark:bg-primary-950 group-hover/info:border-primary-100 dark:border-primary-800 transition-all"><CalendarDays size={20} /></div>
                 <div>
                   <span className="block text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] text-[9px] mb-1">{t("departments.default_pattern_label")}</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-100 text-xs uppercase tracking-tight">{patterns.find(p => p.id === dept.default_working_pattern_id)?.name || t("departments.not_assigned").toUpperCase()}</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 text-xs uppercase tracking-tight">{patterns.find(p => p.id === dept.default_working_pattern_id)?.name ?? t("departments.not_assigned").toUpperCase()}</span>
                 </div>
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function DepartmentsPage() {
         ))}
       </div>
 
-      <Modal icon={<Calculator size={24} />} isOpen={!!isConfigModalOpen && !!editingDept} maxWidth="3xl" onClose={() => { setIsConfigModalOpen(false); }} subtitle={editingDept?.name?.toUpperCase()} title={t("payroll.settings.dept_title")}>
+      <Modal icon={<Calculator size={24} />} isOpen={!!isConfigModalOpen && !!editingDept} maxWidth="3xl" onClose={() => { setIsConfigModalOpen(false); }} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
         <div className="space-y-10 pt-4 animate-in fade-in duration-500">
           <TemporalConfigTable isLoading={isConfigsLoading} onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }} records={deptConfigs as any[]} title={t("payroll.settings.std_days_history")} />
           <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button onClick={() => { setIsConfigModalOpen(false); }} size="lg" variant="secondary">{t("common.close").toUpperCase()}</Button></div>
@@ -160,9 +160,9 @@ export default function DepartmentsPage() {
       <Modal icon={<LayoutGrid size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle={t("departments.modal.subtitle")} title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")}>
         <form className="space-y-8 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
           <FormField defaultValue={editingDept?.name} id="dept-name" label={t("departments.form.name_label")} name="name" placeholder={t("departments.form.name_placeholder")} required />
-          <FormField defaultValue={editingDept?.description || undefined} id="dept-desc" label={t("common.description")} name="description" placeholder={t("departments.form.desc_placeholder")} rows={4} type="textarea" />
+          <FormField defaultValue={editingDept?.description ?? undefined} id="dept-desc" label={t("common.description")} name="description" placeholder={t("departments.form.desc_placeholder")} rows={4} type="textarea" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-manager">{t("departments.manager_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" id="dept-manager" onChange={setSelectedManagerId} options={users.map(u => ({ value: u.id, label: (u.full_name || u.email).toUpperCase(), icon: <UserCircle size={14} /> }))} placeholder={t("departments.form.manager_placeholder")} value={selectedManagerId} /></div>
+            <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-manager">{t("departments.manager_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" id="dept-manager" onChange={setSelectedManagerId} options={users.map(u => ({ value: u.id, label: (u.full_name ?? u.email).toUpperCase(), icon: <UserCircle size={14} /> }))} placeholder={t("departments.form.manager_placeholder")} value={selectedManagerId} /></div>
             <div className="space-y-3 px-1"><label className={LABEL_BASE} htmlFor="dept-pattern">{t("departments.default_pattern_label")}</label><Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" data-testid="dept-pattern" id="dept-pattern" onChange={setSelectedPatternId} options={patterns.map(p => ({ value: p.id, label: p.name.toUpperCase(), icon: <CalendarDays size={14} /> }))} placeholder={t("departments.form.pattern_placeholder")} value={selectedPatternId} /></div>
           </div>
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">

@@ -51,7 +51,7 @@ type TabType = "weekly-roster" | "assignments" | "directory";
 
 export default function ShiftsPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() || "";
+  const wsId = getCurrentWorkspaceId() ?? "";
   const queryClient = useQueryClient();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("weekly-roster");
@@ -97,7 +97,7 @@ export default function ShiftsPage() {
     queryFn: () => fetchEmployees(wsId, 1, 3000),
     enabled: !!wsId,
   });
-  const _employees = employeesData?.data || [];
+  const _employees = employeesData?.data ?? [];
 
   const { data: shifts } = useQuery({
     queryKey: ["shifts", wsId],
@@ -148,8 +148,8 @@ export default function ShiftsPage() {
       setSelectedPatternId("");
       setEndDate("");
       setIsForever(true);
-      queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.assign_error")); }
   });
@@ -158,8 +158,8 @@ export default function ShiftsPage() {
     mutationFn: (data: { date: string; shift_id: string | null; notes?: string }) => upsertRoster(wsId, selectedEmployee!.id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.update_roster_success"));
-      queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.update_roster_error")); }
   });
@@ -169,8 +169,8 @@ export default function ShiftsPage() {
     onSuccess: () => {
       toast.success(t("shifts.messages.bulk_update_success"));
       setSelectedDays([]);
-      queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.bulk_update_error")); }
   });
@@ -179,8 +179,8 @@ export default function ShiftsPage() {
     mutationFn: (date: string) => deleteRoster(wsId, selectedEmployee!.id, date),
     onSuccess: () => {
       toast.success(t("shifts.messages.remove_override_success"));
-      queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.remove_override_error")); }
   });
@@ -200,7 +200,7 @@ export default function ShiftsPage() {
       setIsFixedBreak(false);
       setIsCreateModalOpen(false);
       setActiveTab("directory");
-      queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.create_shift_error")); }
   });
@@ -210,9 +210,9 @@ export default function ShiftsPage() {
     onSuccess: () => {
       toast.success(t("shifts.messages.update_shift_success"));
       setEditingShift(null);
-      queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
-      queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+      void queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      void queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
     onError: (error: Error) => { toast.error(error.message, t("shifts.messages.update_shift_error")); }
   });
@@ -303,13 +303,13 @@ export default function ShiftsPage() {
   const openEditModal = (shift: Shift) => {
     setEditingShift(shift);
     setNewShiftName(shift.name);
-    setNewShiftSymbol(shift.report_symbol || "");
+    setNewShiftSymbol(shift.report_symbol ?? "");
     setNewShiftStart(shift.start_time.substring(0, 5));
     setNewShiftEnd(shift.end_time.substring(0, 5));
     setNewShiftBreak(shift.break_duration_minutes);
     setNewShiftGrace(shift.early_punch_in_grace_period_minutes ?? 15);
-    setNewBreakStart(shift.break_start?.substring(0, 5) || "");
-    setNewBreakEnd(shift.break_end?.substring(0, 5) || "");
+    setNewBreakStart(shift.break_start?.substring(0, 5) ?? "");
+    setNewBreakEnd(shift.break_end?.substring(0, 5) ?? "");
     setIsFixedBreak(!!shift.break_start);
     setIsAutoDeduct(shift.is_break_auto_deduct ?? true);
     setIsCorrection(false);
@@ -370,7 +370,7 @@ export default function ShiftsPage() {
               onChange={(id) => { if (!id) setSelectedEmployee(null); }}
               onSelectEmployee={(emp) => { setSelectedEmployee(emp); }}
               placeholder={t("shifts.empty_state.title")}
-              value={selectedEmployee?.id || ""}
+              value={selectedEmployee?.id ?? ""}
               workspaceId={wsId}
             />
           </div>

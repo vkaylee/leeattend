@@ -59,11 +59,11 @@ vi.mock("react-i18next", () => ({
 vi.mock("../../components/ui/combobox", () => ({
   Combobox: ({ options, value, onChange, placeholder, "data-testid": testId }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; placeholder?: string; "data-testid"?: string }) => (
     <select
-      data-testid={testId || "mock-combobox"}
+      data-testid={testId ?? "mock-combobox"}
       onChange={(e) => { onChange(e.target.value); }}
       value={value}
     >
-      <option value="">{placeholder || "Select..."}</option>
+      <option value="">{placeholder ?? "Select..."}</option>
       {options.map((opt: { value: string; label: string }) => (
         <option key={opt.value} value={opt.value}>
           {opt.label}

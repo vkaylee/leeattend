@@ -25,8 +25,8 @@ export function useSystemRoles() {
     mutationFn: ({ userId, request }: { userId: string; request: AssignSystemRoleRequest }) =>
       assignSystemRole(userId, request),
     onSuccess: (_, { userId }) => {
-      queryClient.invalidateQueries({ queryKey: systemRoleKeys.all });
-      queryClient.invalidateQueries({ queryKey: systemRoleKeys.user(userId) });
+      void queryClient.invalidateQueries({ queryKey: systemRoleKeys.all });
+      void queryClient.invalidateQueries({ queryKey: systemRoleKeys.user(userId) });
     },
   });
 
@@ -34,13 +34,13 @@ export function useSystemRoles() {
     mutationFn: ({ userId, roleName }: { userId: string; roleName: string }) =>
       revokeSystemRole(userId, roleName),
     onSuccess: (_, { userId }) => {
-      queryClient.invalidateQueries({ queryKey: systemRoleKeys.all });
-      queryClient.invalidateQueries({ queryKey: systemRoleKeys.user(userId) });
+      void queryClient.invalidateQueries({ queryKey: systemRoleKeys.all });
+      void queryClient.invalidateQueries({ queryKey: systemRoleKeys.user(userId) });
     },
   });
 
   return {
-    roles: rolesQuery.data || [],
+    roles: rolesQuery.data ?? [],
     isLoading: rolesQuery.isLoading,
     isError: rolesQuery.isError,
     error: rolesQuery.error,
@@ -60,7 +60,7 @@ export function useUserSystemRoles(userId: string) {
   });
 
   return {
-    roles: query.data || [],
+    roles: query.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

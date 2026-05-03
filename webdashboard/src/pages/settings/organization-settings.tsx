@@ -61,7 +61,7 @@ export default function OrganizationSettings() {
 
         {activeTab === "employment_phases" && (
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm p-4">
-            <EmploymentPhaseManager wsId={roles[0]?.workspace_id || ""} />
+            <EmploymentPhaseManager wsId={roles[0]?.workspace_id ?? ""} />
           </div>
         )}
 

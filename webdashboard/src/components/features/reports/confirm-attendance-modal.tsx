@@ -36,18 +36,18 @@ export default function ConfirmAttendanceModal({
     };
 
     const [punchIn, setPunchIn] = useState(
-        utcToLocalHHmm(existingRequest?.requested_punch_in_time) ||
-        utcToLocalHHmm(row?.actual_punch_in) ||
-        row?.scheduled_start?.substring(0, 5) ||
+        utcToLocalHHmm(existingRequest?.requested_punch_in_time) ??
+        utcToLocalHHmm(row?.actual_punch_in) ??
+        row?.scheduled_start?.substring(0, 5) ??
         ""
     );
     const [punchOut, setPunchOut] = useState(
-        utcToLocalHHmm(existingRequest?.requested_punch_out_time) ||
-        utcToLocalHHmm(row?.actual_punch_out) ||
-        row?.scheduled_end?.substring(0, 5) ||
+        utcToLocalHHmm(existingRequest?.requested_punch_out_time) ??
+        utcToLocalHHmm(row?.actual_punch_out) ??
+        row?.scheduled_end?.substring(0, 5) ??
         ""
     );
-    const [reason, setReason] = useState(existingRequest?.reason || "");
+    const [reason, setReason] = useState(existingRequest?.reason ?? "");
 
     if (!row) return null;
 

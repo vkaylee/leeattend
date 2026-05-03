@@ -30,7 +30,7 @@ export function useAuthorizedAgents() {
   const createMutation = useMutation({
     mutationFn: createAuthorizedAgent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
+      void queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
     },
   });
 
@@ -38,14 +38,14 @@ export function useAuthorizedAgents() {
     mutationFn: ({ id, is_trusted }: { id: string; is_trusted: boolean }) =>
       updateAgentTrust(id, is_trusted),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
+      void queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAuthorizedAgent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
+      void queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
     },
   });
 
@@ -58,7 +58,7 @@ export function useAuthorizedAgents() {
       agent: Partial<AuthorizedAgent>;
     }) => updateAuthorizedAgent(id, agent),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
+      void queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
     },
   });
 

@@ -44,8 +44,8 @@ describe("useReportStream Double-Buffering Fix", () => {
     beforeEach(() => {
         capturedSocket = null;
         vi.stubGlobal("WebSocket", createMockWebSocket);
-        vi.spyOn(console, "debug").mockImplementation(() => { });
-        vi.spyOn(console, "error").mockImplementation(() => { });
+        vi.spyOn(console, "debug").mockImplementation(() => { /* empty */ });
+        vi.spyOn(console, "error").mockImplementation(() => { /* empty */ });
     });
 
     afterEach(() => {

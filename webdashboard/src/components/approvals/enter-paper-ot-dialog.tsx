@@ -17,7 +17,7 @@ interface Props {
 
 export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() || "";
+  const wsId = getCurrentWorkspaceId() ?? "";
   const { enterPaperOt, isSubmitting } = useEnterPaperOt();
 
   // Form state
@@ -60,7 +60,7 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
         date,
         claimed_minutes: minutes,
         reason,
-        paper_form_photo_url: photoUrl || undefined,
+        paper_form_photo_url: photoUrl ?? undefined,
       });
       resetForm();
       onOpenChange(false);

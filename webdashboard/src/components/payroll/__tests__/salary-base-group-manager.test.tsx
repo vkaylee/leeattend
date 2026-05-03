@@ -118,7 +118,7 @@ describe("SalaryBaseGroupManager", () => {
     
     const allowanceInSI = screen.getAllByTitle("Assign Component").find(button => {
       const container = button.closest('div.flex.items-center.justify-between');
-      return siGroup?.contains(button) && container?.textContent?.includes("Allowance");
+      return siGroup?.contains(button) && container?.textContent.includes("Allowance");
     });
     expect(allowanceInSI).toBeDefined();
     
@@ -148,7 +148,7 @@ describe("SalaryBaseGroupManager", () => {
     
     const basicInSI = screen.getAllByTitle("Unassign Component").find(button => {
       const container = button.closest('div.flex.items-center.justify-between');
-      return siGroup?.contains(button) && container?.textContent?.includes("Basic Salary");
+      return siGroup?.contains(button) && container?.textContent.includes("Basic Salary");
     });
     expect(basicInSI).toBeDefined();
     

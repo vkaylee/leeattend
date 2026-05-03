@@ -235,7 +235,7 @@ export default function UnexcusedAbsencesChart() {
                             label={(props: unknown) => {
                                 const { x, y, width, height, index } = props as { x: number; y: number; width: number; height: number; index: number };
                                 const row = chartData[index];
-                                const total = row?.unexcused_count ?? 0;
+                                const total = row.unexcused_count ?? 0;
                                 if (!total || total === 0) return null;
                                 return (
                                     <text dominantBaseline="middle" fill="#64748b" fontSize={9} fontWeight={700} x={x + width + 4} y={y + height / 2}>

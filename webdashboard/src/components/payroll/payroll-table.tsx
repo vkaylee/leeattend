@@ -143,7 +143,7 @@ export default function PayrollTable({
                     <SegmentCard 
                       canReadSensitive={canReadSensitive} 
                       index={index} 
-                      isLast={index === (slip.segments?.length || 0) - 1} 
+                      isLast={index === (slip.segments?.length ?? 0) - 1} 
                       key={index} 
                       segment={seg}
                     />
@@ -178,7 +178,7 @@ export default function PayrollTable({
                     { label: t("common.payroll.table.overtime"), value: slip.overtime_pay_amount, color: "text-emerald-600 dark:text-emerald-300", prefix: "+" },
                     { 
                       label: t("common.payroll.table.bonus"), 
-                      value: slip.incentives?.reduce((accumulator, index) => accumulator + parseFloat(index.amount), 0).toString() || "0", 
+                      value: slip.incentives?.reduce((accumulator, index) => accumulator + parseFloat(index.amount), 0).toString() ?? "0", 
                       color: "text-blue-600 dark:text-blue-300", 
                       prefix: "+" 
                     },
@@ -186,7 +186,7 @@ export default function PayrollTable({
                   ].map((stat, index) => (
                     <div className="p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-inner flex flex-col gap-1" key={index}>
                        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{stat.label}</p>
-                       <p className={cn("text-xl font-bold font-mono tracking-tighter", stat.color)}>{!canReadSensitive ? "***" : `${stat.prefix || ''}${new Intl.NumberFormat('vi-VN').format(parseFloat(stat.value))}`}</p>
+                       <p className={cn("text-xl font-bold font-mono tracking-tighter", stat.color)}>{!canReadSensitive ? "***" : `${stat.prefix ?? ''}${new Intl.NumberFormat('vi-VN').format(parseFloat(stat.value))}`}</p>
                     </div>
                   ))}
                 </div>

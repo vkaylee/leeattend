@@ -414,9 +414,9 @@ describe("Pagination Integration Tests", () => {
         createPaginatedResponse([{ id: "1" }, { id: "2" }]);
 
       // CORRECT PATTERN
-      const correctData = paginatedResponse?.data ?? [];
+      const correctData = paginatedResponse.data ?? [];
       expect(Array.isArray(correctData)).toBe(true);
-      expect(() => { correctData.forEach(() => { }); }).not.toThrow();
+      expect(() => { correctData.forEach(() => { /* empty */ }); }).not.toThrow();
 
       // This pattern ensures:
       // 1. Optional chaining prevents null reference errors
@@ -436,13 +436,13 @@ describe("Pagination Integration Tests", () => {
       // This would throw: TypeError: incorrectUsage.forEach is not a function
       // because paginatedResponse is an object, not an array
       expect(() => {
-        incorrectUsage.forEach(() => { });
+        incorrectUsage.forEach(() => { /* empty */ });
       }).toThrow();
 
       // But the correct pattern works:
       const correctData = paginatedResponse.data;
       expect(() => {
-        correctData.forEach(() => { });
+        correctData.forEach(() => { /* empty */ });
       }).not.toThrow();
     });
   });

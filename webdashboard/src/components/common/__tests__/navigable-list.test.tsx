@@ -10,9 +10,9 @@ import NavigableList from "../navigable-list";
 
 // Mock IntersectionObserver for jsdom
 class MockIntersectionObserver {
-    observe() { }
-    unobserve() { }
-    disconnect() { }
+    observe() { /* empty */ }
+    unobserve() { /* empty */ }
+    disconnect() { /* empty */ }
 }
  
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
@@ -24,7 +24,7 @@ Element.prototype.scrollTo = vi.fn();
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, fallback?: string) => fallback || key,
+        t: (key: string, fallback?: string) => fallback ?? key,
         i18n: { changeLanguage: () => Promise.resolve(), language: "en" },
     }),
 }));

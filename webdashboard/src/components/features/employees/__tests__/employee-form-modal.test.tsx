@@ -244,7 +244,7 @@ describe("EmployeeFormModal", () => {
 
     it("shows loading state on submit button while mutation is pending", async () => {
         const user = userEvent.setup();
-        vi.mocked(api.createEmployee).mockImplementation(() => new Promise(() => {}));
+        vi.mocked(api.createEmployee).mockImplementation(() => new Promise(() => { /* empty */ }));
         renderWithClient(<EmployeeFormModal {...defaultProps} />);
 
         await user.type(screen.getByTestId("employees-form-name-input"), "New Emp");

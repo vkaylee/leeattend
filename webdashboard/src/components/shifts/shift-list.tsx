@@ -19,7 +19,7 @@ export function ShiftList({ shifts, onEdit, onDelete }: ShiftListProps) {
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between">
         <h2 className="font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">{t("shifts.directory_title")}</h2>
-        <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800 shadow-sm">{t("common.total").toUpperCase()}: {shifts?.length || 0}</span>
+        <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800 shadow-sm">{t("common.total").toUpperCase()}: {shifts?.length ?? 0}</span>
       </div>
       <table className="w-full text-left border-collapse">
         <thead>

@@ -63,7 +63,7 @@ const Button = memo(
           SIZE_STYLES[size],
           className,
         )}
-        disabled={disabled || loading}
+        disabled={disabled ?? loading}
         ref={ref}
         type={type}
         {...rest}

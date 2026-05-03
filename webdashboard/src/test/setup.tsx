@@ -5,10 +5,10 @@ import viLocale from "../i18n/locales/vi.json";
 
 // Helper to resolve nested keys
 const resolveKey = (key: string, object: Record<string, unknown>, variables?: Record<string, unknown>): string => {
-  let result = key.split('.').reduce((o: unknown, index) => (o as Record<string, unknown>)?.[index], object) as string | undefined;
+  let result = key.split('.').reduce((o: unknown, index) => (o as Record<string, unknown>)[index], object) as string | undefined;
   if (!result && key.startsWith('common.')) {
     const fallbackKey = key.substring(7);
-    result = fallbackKey.split('.').reduce((o: unknown, index) => (o as Record<string, unknown>)?.[index], object) as string | undefined;
+    result = fallbackKey.split('.').reduce((o: unknown, index) => (o as Record<string, unknown>)[index], object) as string | undefined;
   }
   if (!result) {
     console.warn(`Missing key in test mock: ${key ?? ""}`);
@@ -32,15 +32,15 @@ vi.mock('react-i18next', () => ({
   }),
   initReactI18next: {
     type: '3rdParty',
-    init: () => {},
+    init: () => { /* empty */ },
   },
 }));
 
 // Mock ResizeObserver for Radix UI
 global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe() { /* empty */ }
+  unobserve() { /* empty */ }
+  disconnect() { /* empty */ }
 };
 
 // Mock EventSource for SSE

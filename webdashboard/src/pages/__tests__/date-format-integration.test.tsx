@@ -67,7 +67,7 @@ describe("Date Format Integration", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    i18n.changeLanguage("en"); // Force English
+    void i18n.changeLanguage("en"); // Force English
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
     });

@@ -65,11 +65,11 @@ export default function HolidaysPage() {
         setFormDate(h.date);
         setFormType(h.holiday_type);
         setFormIsPaid(h.is_paid);
-        setFormLeaveTypeId(h.leave_type_id || "");
-        setFormOtMultiplier(h.ot_multiplier?.toString() || "");
-        setFormDescription(h.description || "");
+        setFormLeaveTypeId(h.leave_type_id ?? "");
+        setFormOtMultiplier(h.ot_multiplier?.toString() ?? "");
+        setFormDescription(h.description ?? "");
         setFormIsCreditOnWork(h.is_credit_on_work ?? true);
-        setFormThresholdPercent(h.work_threshold_percent?.toString() || "");
+        setFormThresholdPercent(h.work_threshold_percent?.toString() ?? "");
         setShowForm(true);
     };
 
@@ -100,7 +100,7 @@ export default function HolidaysPage() {
             }
             resetForm();
  
-            loadHolidays();
+            void loadHolidays();
         } catch (error_: unknown) {
             setError(error_ instanceof Error ? error_.message : t('holidays.messages.save_error'));
         }
@@ -116,7 +116,7 @@ export default function HolidaysPage() {
         if (!ok) return;
         try {
             await deleteHoliday(wsId, id);
-            loadHolidays();
+            void loadHolidays();
         } catch {
             setError(t('holidays.messages.delete_error'));
         }
@@ -427,7 +427,7 @@ export default function HolidaysPage() {
                                         {h.work_threshold_percent != null ? `${h.work_threshold_percent ?? ""}%` : "—"}
                                     </td>
                                     <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
-                                        {h.description || "—"}
+                                        {h.description ?? "—"}
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

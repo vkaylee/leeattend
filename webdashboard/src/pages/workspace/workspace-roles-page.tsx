@@ -56,7 +56,7 @@ export default function WorkspaceRolesPage() {
     setEditingRole({
       id: role.id,
       name: role.name,
-      description: role.description || "",
+      description: role.description ?? "",
       color: role.color
     });
     setIsModalOpen(true);
@@ -166,7 +166,7 @@ export default function WorkspaceRolesPage() {
               </div>
 
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 line-clamp-2 min-h-[40px]">
-                {role.description || t('rolesPage.noDescription', { defaultValue: 'No description provided.' })}
+                {role.description ?? t('rolesPage.noDescription', { defaultValue: 'No description provided.' })}
               </p>
 
               <div className="space-y-4">

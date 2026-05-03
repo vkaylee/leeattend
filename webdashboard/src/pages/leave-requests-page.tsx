@@ -65,12 +65,12 @@ export default function LeaveRequestsPage() {
 
   const submitMutation = useMutation({
     mutationFn: (data: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string }) => submitLeaveRequest(wsId!, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); setIsModalOpen(false); setDurationType("full_day"); setStartTime(""); setEndTime(""); setStartDate(""); setEndDate(""); toast.success(t("common.success")); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); setIsModalOpen(false); setDurationType("full_day"); setStartTime(""); setEndTime(""); setStartDate(""); setEndDate(""); toast.success(t("common.success")); },
   });
 
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: string }) => approveLeaveRequest(wsId!, data.id, { status: data.status }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); toast.success(t("common.success")); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); toast.success(t("common.success")); },
   });
 
   // ===== LEAVE IMPORT STATE =====
@@ -91,7 +91,7 @@ export default function LeaveRequestsPage() {
           setImportBannerDismissed(false);
         }
       }
-    }).catch(() => {});
+    }).catch(() => { /* empty */ });
   }, [wsId]);
 
   // Poll when import is processing
@@ -105,7 +105,7 @@ export default function LeaveRequestsPage() {
           if (job.status !== 'processing' && job.status !== 'pending') {
             if (pollingRef.current) clearInterval(pollingRef.current);
             pollingRef.current = null;
-            queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+            void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
           }
         }
       } catch {
@@ -132,8 +132,8 @@ export default function LeaveRequestsPage() {
           setImportJob(job);
           setImportBannerDismissed(false);
         }
-      }).catch(() => {});
-      queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+      }).catch(() => { /* empty */ });
+      void queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
     }
   }, [wsId, queryClient]);
 
@@ -243,7 +243,7 @@ export default function LeaveRequestsPage() {
                     {!!info?.error_file_path && !!wsId && (
                       <button
                         className="ml-2 flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline underline-offset-2"
-                        onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => {}); }}
+                        onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ }); }}
                       >
                         <Download size={14} /> {t("leave_requests.download_errors", "Tải file lỗi")}
                       </button>
@@ -397,7 +397,7 @@ export default function LeaveRequestsPage() {
                 </div>
               </div>
             </td>
-            <td className="px-8 py-6"><span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-primary-700 dark:text-primary-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-primary-200 dark:border-primary-800/50 shadow-sm">{(leaveTypes.find(t => t.id === request.leave_type_id)?.name || "Unknown").toUpperCase()}</span></td>
+            <td className="px-8 py-6"><span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-primary-700 dark:text-primary-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-primary-200 dark:border-primary-800/50 shadow-sm">{(leaveTypes.find(t => t.id === request.leave_type_id)?.name ?? "Unknown").toUpperCase()}</span></td>
             <td className="px-8 py-6">
               <div className="text-xs font-bold text-primary-700 dark:text-primary-300 uppercase tracking-tight mb-1.5">
                 {formatDate(request.start_date)} — {formatDate(request.end_date)}
@@ -414,7 +414,7 @@ export default function LeaveRequestsPage() {
                 )}
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-primary-100 dark:border-primary-800/50 shadow-inner group-hover:bg-white dark:hover:bg-slate-900 transition-colors">
-                <p className="text-[10px] text-primary-400 font-bold leading-relaxed line-clamp-1 italic opacity-80 flex gap-2"><MessageSquare className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0" size={12} /> "{request.reason || t("common.no_description")}"</p>
+                <p className="text-[10px] text-primary-400 font-bold leading-relaxed line-clamp-1 italic opacity-80 flex gap-2"><MessageSquare className="text-slate-300 dark:text-slate-600 mt-0.5 shrink-0" size={12} /> "{request.reason ?? t("common.no_description")}"</p>
               </div>
             </td>
             <td className="px-8 py-6 text-center">

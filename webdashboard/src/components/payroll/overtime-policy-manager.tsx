@@ -71,7 +71,7 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
  
     mutationFn: (data: Parameters<typeof createOvertimePolicy>[1]) => createOvertimePolicy(wsId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['overtime-policies'] });
+      void queryClient.invalidateQueries({ queryKey: ['overtime-policies'] });
       setIsCreating(false);
       setName('');
       setDescription('');

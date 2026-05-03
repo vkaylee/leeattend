@@ -5,8 +5,8 @@ import { useWorkspace } from "./use-workspace";
 export function useDateTimeFormatter() {
   const { workspace } = useWorkspace();
   
-  const dateFormat = workspace?.date_format || "DD/MM/YYYY";
-  const timeFormat = workspace?.time_format || "24h";
+  const dateFormat = workspace?.date_format ?? "DD/MM/YYYY";
+  const timeFormat = workspace?.time_format ?? "24h";
 
   // Map backend formats to date-fns tokens
   // Backend: DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD

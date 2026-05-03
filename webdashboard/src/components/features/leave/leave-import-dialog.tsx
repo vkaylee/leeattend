@@ -44,7 +44,7 @@ export default function LeaveImportDialog({
           setImportJob(job);
         }
       }
-    }).catch(() => {});
+    }).catch(() => { /* empty */ });
   }, [isOpen, wsId]);
 
   // Polling for job status
@@ -194,7 +194,7 @@ export default function LeaveImportDialog({
                 {!!info?.error_file_path && !!wsId && (
                   <button
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-all border border-amber-200 dark:border-amber-800 active:scale-95"
-                    onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => {}); }}
+                    onClick={() => { void downloadLeaveImportErrors(wsId, importJob.id).catch(() => { /* empty */ }); }}
                   >
                     <Download size={14} /> {t("leave_import.download_errors", "Tải file lỗi")}
                   </button>
@@ -295,7 +295,7 @@ export default function LeaveImportDialog({
               aria-label="File Upload"
               className="hidden"
               id="leave-import-file-input"
-              onChange={(e) => { setFile(e.target.files?.[0] || null); }}
+              onChange={(e) => { setFile(e.target.files?.[0] ?? null); }}
               type="file"
             />
             {file ? (

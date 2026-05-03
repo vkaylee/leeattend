@@ -35,7 +35,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
       [ROUTES.PROFILE]: t("common.profile"), [ROUTES.ESS_PROFILE]: t("common.my_profile"), [ROUTES.ESS_ATTENDANCE]: t("ess.attendance.title"),
       [ROUTES.ESS_CLOCK]: t("ess.clock.title"),
     };
-    return map[path] || path.split('/').pop()?.replace(/-/g, ' ') || "";
+    return map[path] ?? path.split('/').pop()?.replace(/-/g, ' ') ?? "";
   };
 
   return (
@@ -91,7 +91,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
             <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-[0.2em] opacity-60 leading-none">{t("common.workspace_owner")}</p>
           </div>
           <div className="w-12 h-12 rounded-[1.25rem] bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-2xl shadow-slate-400 dark:shadow-black border border-slate-800 group-hover:bg-primary-600 group-hover:border-primary-500 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
-            {roles?.[0]?.substring(0, 2).toUpperCase() || "AD"}
+            {roles[0]?.substring(0, 2).toUpperCase() || "AD"}
           </div>
         </div>
       </div>

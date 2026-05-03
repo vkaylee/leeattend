@@ -11,7 +11,7 @@ export async function login(username: string, password: string): Promise<AuthRes
     let errorMessage = "Login failed";
     try {
       const errorData = (await response.json()) as { error?: { message?: string } };
-      if (errorData?.error?.message) {
+      if (errorData.error?.message) {
         errorMessage = errorData.error.message;
       }
     } catch {

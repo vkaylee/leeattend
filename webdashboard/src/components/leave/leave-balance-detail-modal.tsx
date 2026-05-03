@@ -256,7 +256,7 @@ function HistoryItemRow({ item }: { item: LeaveHistoryItem }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
           <span className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight truncate">
-            {item.reason || t(`leave_balances.transaction_type.${item.transaction_type ?? ""}`)}
+            {item.reason ?? t(`leave_balances.transaction_type.${item.transaction_type ?? ""}`)}
           </span>
           <span className={cn(
             "font-mono font-bold text-sm",

@@ -49,7 +49,7 @@ export default function WorkspaceDangerPage() {
       <ClearDataModal 
         isOpen={isClearDataOpen} 
         onClose={() => { setIsClearDataOpen(false); }} 
-        workspaceName={workspace?.name || ""}
+        workspaceName={workspace?.name ?? ""}
       />
     </div>
   );
@@ -60,7 +60,7 @@ function ClearDataModal({ isOpen, onClose, workspaceName }: { isOpen: boolean, o
   const [confirmText, setConfirmText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
-  const wsId = getCurrentWorkspaceId() || "";
+  const wsId = getCurrentWorkspaceId() ?? "";
 
   const handleClear = async () => {
     if (confirmText !== workspaceName) return;

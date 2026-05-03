@@ -60,7 +60,7 @@ export default function ReportExportDialog({
   } = useReportStream({
     jobId,
     onComplete: () => {
-      console.debug("[ReportExport] Stream completed");
+      
       setPhase("completed");
     },
     onError: (message) => {
@@ -117,7 +117,7 @@ export default function ReportExportDialog({
       setPhase("completed");
     } else if (pollingStatusValue === "failed" && phaseState !== "failed") {
       setPhase("failed");
-      setError(pollingError || t("report_export.status.failed"));
+      setError(pollingError ?? t("report_export.status.failed"));
     }
   }, [pollingStatusValue, pollingError, useFallbackPolling, t, phaseState, pollingStatus]);
 
@@ -166,7 +166,7 @@ export default function ReportExportDialog({
   // Calculate percentage from appropriate source
   const percentage =
     jobId && phase === "polling"
-      ? useFallbackPolling && pollingStatus?.progress?.percentage
+      ? useFallbackPolling && pollingStatus?.progress.percentage
         ? pollingStatus.progress.percentage
         : streamProgress
       : 0;

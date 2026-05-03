@@ -56,7 +56,7 @@ export default function ConnectivityTopology() {
 
   async function handleRefreshDevice(agentId: string, deviceId: string) {
     try {
-      console.log(`Refreshing device ${deviceId ?? ""} on agent ${agentId ?? ""}`);
+      
       await sendCommand({
         id: agentId,
         command: {
@@ -166,7 +166,7 @@ export default function ConnectivityTopology() {
   const handleEditAgent = (agent: AuthorizedAgent) => { setEditingAgent(agent); };
   const handleSaveAgent = (updated: AuthorizedAgent) => {
     toast.success(t("agents.messages.update_success", { name: updated.name }));
-    refetchAgents();
+    void refetchAgents();
   };
 
   async function handleSaveDevice(e: React.FormEvent) {
@@ -405,7 +405,7 @@ export default function ConnectivityTopology() {
               {/* Show agent name as read-only (device always belongs to an agent) */}
               <div className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm uppercase tracking-tight text-slate-600 dark:text-slate-300 flex items-center gap-2">
                 <Server className="text-slate-400 dark:text-slate-500" size={14} />
-                {agents.find(a => a.id === (editingDevice ? editingDevice.agent_id : newDevice.agent_id))?.name || "—"}
+                {agents.find(a => a.id === (editingDevice ? editingDevice.agent_id : newDevice.agent_id))?.name ?? "—"}
               </div>
             </div>
             <div className="space-y-3 px-1">
@@ -457,7 +457,7 @@ export default function ConnectivityTopology() {
                   onChange={(e) => { editingDevice ? setEditingDevice({ ...editingDevice, password: e.target.value }) : setNewDevice({ ...newDevice, password: e.target.value }); }}
                   placeholder={t("devices.form.password_placeholder")}
                   type="password"
-                  value={editingDevice ? (editingDevice.password || "") : newDevice.password}
+                  value={editingDevice ? (editingDevice.password ?? "") : newDevice.password}
                 />
               </div>
             </div>

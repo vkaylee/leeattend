@@ -22,7 +22,7 @@ export function useProfile() {
   const updateMutation = useMutation({
     mutationFn: updateMe,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: profileKeys.me });
+      void queryClient.invalidateQueries({ queryKey: profileKeys.me });
     },
   });
 

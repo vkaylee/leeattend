@@ -61,8 +61,8 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
     mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
     onSuccess: () => {
       toast.success(t("common.success"));
-      queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
     },
   });
 

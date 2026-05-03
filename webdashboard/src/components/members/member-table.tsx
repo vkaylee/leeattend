@@ -69,11 +69,11 @@ export default function MemberTable() {
                         {member.avatar_url ? (
                           <img alt="Member avatar" className="w-full h-full object-cover" src={member.avatar_url} />
                         ) : (
-                          <span className="text-lg uppercase">{(member.full_name || member.email).substring(0, 2)}</span>
+                          <span className="text-lg uppercase">{(member.full_name ?? member.email).substring(0, 2)}</span>
                         )}
                       </div>
                       <div>
-                        <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name || t("common.no_name")}</div>
+                        <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name ?? t("common.no_name")}</div>
                         <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-2 opacity-70">
                           <Mail className="text-primary-400" size={12} /> {member.email}
                         </div>

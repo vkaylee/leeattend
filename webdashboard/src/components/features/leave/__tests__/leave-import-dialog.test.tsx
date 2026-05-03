@@ -19,7 +19,7 @@ vi.mock("@/lib/api", () => ({
 // Mock i18n — return key as text for testability
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback || key,
+    t: (key: string, fallback?: string) => fallback ?? key,
     i18n: { language: "vi" },
   }),
 }));

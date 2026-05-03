@@ -21,24 +21,24 @@ export default function RoleManagementModal({
 }: RoleManagementModalProps) {
   const { t } = useTranslation();
   const { formatDateTime } = useDateTimeFormatter();
-  const { roles: memberRoles, isLoading, updatePrimaryRole, assignRole, revokeRole } = useMemberRoles(userId || "", undefined);
+  const { roles: memberRoles, isLoading, updatePrimaryRole, assignRole, revokeRole } = useMemberRoles(userId ?? "", undefined);
   const { roles: workspaceRoles } = useWorkspaceRoles();
   const { confirm, ConfirmationDialog } = useConfirm();
 
   const [newRoleId, setNewRoleId] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
 
-  const primaryRoleId = memberRoles?.primary || "";
-  const extraRoles = memberRoles?.extra || [];
+  const primaryRoleId = memberRoles?.primary ?? "";
+  const extraRoles = memberRoles?.extra ?? [];
 
   const getRoleName = (roleId: string) => {
-    return workspaceRoles.find(r => r.id === roleId)?.name || roleId;
+    return workspaceRoles.find(r => r.id === roleId)?.name ?? roleId;
   };
 
   const roleOptions = workspaceRoles.map(r => ({
     value: r.id,
     label: r.name.toUpperCase(),
-    description: r.description || undefined,
+    description: r.description ?? undefined,
     icon: <Shield className={`w-4 h-4 ${r.is_system ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} />,
   }));
 

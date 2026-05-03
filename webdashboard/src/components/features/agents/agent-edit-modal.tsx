@@ -30,13 +30,13 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
   const { updateAgent, isUpdating } = useAuthorizedAgents();
   
   // Initialize state directly from agent since parent uses key={agent?.id} to force remount
-  const [name, setName] = useState(agent?.name || "");
-  const [token, setToken] = useState(agent?.token || "");
-  const [isTrusted, setIsTrusted] = useState(agent?.is_trusted || false);
+  const [name, setName] = useState(agent?.name ?? "");
+  const [token, setToken] = useState(agent?.token ?? "");
+  const [isTrusted, setIsTrusted] = useState(agent?.is_trusted ?? false);
   const [isActive, setIsActive] = useState(agent?.is_active ?? true);
-  const [maxConcurrentWorkers, setMaxConcurrentWorkers] = useState(agent?.max_concurrent_workers || 2);
-  const [successCooldownSecs, setSuccessCooldownSecs] = useState(agent?.success_cooldown_secs || 300);
-  const [retentionDays, setRetentionDays] = useState(agent?.retention_days || 365);
+  const [maxConcurrentWorkers, setMaxConcurrentWorkers] = useState(agent?.max_concurrent_workers ?? 2);
+  const [successCooldownSecs, setSuccessCooldownSecs] = useState(agent?.success_cooldown_secs ?? 300);
+  const [retentionDays, setRetentionDays] = useState(agent?.retention_days ?? 365);
 
   if (!isOpen || !agent) return null;
 

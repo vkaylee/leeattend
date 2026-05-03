@@ -63,7 +63,7 @@ export default function WorkspaceOverviewPage() {
             <Users size={24} />
           </div>
           <div className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-            {stats?.total_employees || 0}
+            {stats?.total_employees ?? 0}
           </div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
             {t('overview.totalEmployees', { defaultValue: 'Total Employees' })}
@@ -75,7 +75,7 @@ export default function WorkspaceOverviewPage() {
             <BarChart3 size={24} />
           </div>
           <div className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-            {stats?.present_today || 0}
+            {stats?.present_today ?? 0}
           </div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
             {t('overview.presentToday', { defaultValue: 'Present Today' })}
@@ -87,7 +87,7 @@ export default function WorkspaceOverviewPage() {
             <Clock size={24} />
           </div>
           <div className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-            {stats?.late_today || 0}
+            {stats?.late_today ?? 0}
           </div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
             {t('overview.lateToday', { defaultValue: 'Late Today' })}
@@ -99,7 +99,7 @@ export default function WorkspaceOverviewPage() {
             <CalendarDays size={24} />
           </div>
           <div className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-            {stats?.on_leave_today || 0}
+            {stats?.on_leave_today ?? 0}
           </div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
             {t('overview.onLeave', { defaultValue: 'On Leave' })}
@@ -128,11 +128,11 @@ export default function WorkspaceOverviewPage() {
                 {admin.avatar_url ? (
                   <img alt="Admin avatar" className="w-full h-full object-cover rounded-xl" src={admin.avatar_url} />
                 ) : (
-                  (admin.full_name || admin.email).substring(0, 2).toUpperCase()
+                  (admin.full_name ?? admin.email).substring(0, 2).toUpperCase()
                 )}
               </div>
               <div>
-                <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{admin.full_name || t('overview.adminFallback', { defaultValue: 'Admin' })}</div>
+                <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{admin.full_name ?? t('overview.adminFallback', { defaultValue: 'Admin' })}</div>
                 <div className="text-[10px] font-medium text-slate-500">{admin.email}</div>
               </div>
             </div>

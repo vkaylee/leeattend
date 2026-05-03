@@ -15,7 +15,7 @@ Element.prototype.scrollIntoView = vi.fn();
 
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, fallback?: string) => fallback || key,
+        t: (key: string, fallback?: string) => fallback ?? key,
         i18n: { changeLanguage: () => Promise.resolve(), language: "en" },
     }),
 }));

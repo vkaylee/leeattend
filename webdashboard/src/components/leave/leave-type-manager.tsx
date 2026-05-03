@@ -28,7 +28,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
   const createTypeMutation = useMutation({
     mutationFn: (data: { code: string; name: string; is_paid: boolean }) => createLeaveType(wsId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-types"] });
       toast.success("Leave type created successfully");
       setIsAddingType(false);
     },
@@ -38,7 +38,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
   const updateTypeMutation = useMutation({
     mutationFn: (data: { typeId: string; config: LeaveTypeConfig }) => updateLeaveTypeConfig(wsId, data.typeId, data.config),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-types"] });
       toast.success("Leave type updated successfully");
       setEditingType(null);
     },
@@ -48,7 +48,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
   const deleteTypeMutation = useMutation({
     mutationFn: (typeId: string) => deleteLeaveType(wsId, typeId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-types"] });
       toast.success("Leave type deleted successfully");
       setDeletingType(null);
     },

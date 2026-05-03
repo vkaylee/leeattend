@@ -19,14 +19,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const from = (location.state as { from?: string })?.from || ROUTES.HOME;
+  const from = (location.state as { from?: string }).from ?? ROUTES.HOME;
 
   const userId = getCurrentUserId();
  
 
   useEffect(() => {
     if (userId) {
-      navigate({ to: from, replace: true });
+      void navigate({ to: from, replace: true });
     }
   }, [userId, navigate, from]);
 
@@ -39,7 +39,7 @@ export default function LoginPage() {
     try {
       await apiLogin(loginEmail, loginPass);
       // Điều hướng về trang trước đó hoặc Dashboard
-      navigate({ to: from, replace: true });
+      void navigate({ to: from, replace: true });
     } catch (error_: unknown) {
       setError(error_ instanceof Error ? error_.message : t("auth.login_error"));
     } finally { setIsSubmitting(false); }

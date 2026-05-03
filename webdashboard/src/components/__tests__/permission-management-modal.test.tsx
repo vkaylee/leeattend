@@ -60,7 +60,7 @@ describe("PermissionManagementModal", () => {
   };
 
   it("renders correctly when open", async () => {
-    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
+    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => { /* empty */ }} userId="user-1" />);
     
     // Check if title is present
     expect(await screen.findByText(/Manage Permissions|Quản lý quyền hạn/i)).toBeDefined();
@@ -74,7 +74,7 @@ describe("PermissionManagementModal", () => {
  
     vi.mocked(api.revokeExtraPermission).mockResolvedValue({} as never);
 
-    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
+    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => { /* empty */ }} userId="user-1" />);
 
     // Wait for data to load
     await screen.findByText(/members:invite/i);
@@ -100,7 +100,7 @@ describe("PermissionManagementModal", () => {
   });
 
   it("filters out existing permissions from search", async () => {
-    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
+    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => { /* empty */ }} userId="user-1" />);
     
     await waitFor(() => {
       expect(api.fetchAvailablePermissions).toHaveBeenCalled();
@@ -122,7 +122,7 @@ describe("PermissionManagementModal", () => {
  
     vi.mocked(api.assignExtraPermission).mockResolvedValue({} as never);
 
-    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => {}} userId="user-1" />);
+    renderWithProviders(<PermissionManagementModal isOpen={true} onClose={() => { /* empty */ }} userId="user-1" />);
 
     await waitFor(() => {
       expect(api.fetchAvailablePermissions).toHaveBeenCalled();
@@ -154,7 +154,7 @@ describe("PermissionManagementModal", () => {
   });
 
   it("does not render when isOpen is false", () => {
-    renderWithProviders(<PermissionManagementModal isOpen={false} onClose={() => {}} userId="user-1" />);
+    renderWithProviders(<PermissionManagementModal isOpen={false} onClose={() => { /* empty */ }} userId="user-1" />);
     expect(screen.queryByText(/Manage Permissions|Quản lý quyền hạn/i)).toBeNull();
   });
 });

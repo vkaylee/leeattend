@@ -8,12 +8,12 @@ import SearchBox from "../search-box";
 
 describe("SearchBox", () => {
     it("renders with placeholder text", () => {
-        render(<SearchBox onChange={() => { }} placeholder="Search employees..." value="" />);
+        render(<SearchBox onChange={() => { /* empty */ }} placeholder="Search employees..." value="" />);
         expect(screen.getByPlaceholderText("Search employees...")).toBeDefined();
     });
 
     it("renders the search icon", () => {
-        const { container } = render(<SearchBox onChange={() => { }} value="" />);
+        const { container } = render(<SearchBox onChange={() => { /* empty */ }} value="" />);
         const svg = container.querySelector("svg");
         expect(svg).toBeDefined();
     });
@@ -29,14 +29,14 @@ describe("SearchBox", () => {
     });
 
     it("shows clear X button when value is non-empty", () => {
-        const { container } = render(<SearchBox onChange={() => { }} value="hello" />);
+        const { container } = render(<SearchBox onChange={() => { /* empty */ }} value="hello" />);
         // X button should be present as a button inside the component
         const buttons = container.querySelectorAll("button");
         expect(buttons.length).toBe(1);
     });
 
     it("does NOT show clear X button when value is empty", () => {
-        const { container } = render(<SearchBox onChange={() => { }} value="" />);
+        const { container } = render(<SearchBox onChange={() => { /* empty */ }} value="" />);
         const buttons = container.querySelectorAll("button");
         expect(buttons.length).toBe(0);
     });
@@ -55,7 +55,7 @@ describe("SearchBox", () => {
         const selectSpy = vi.spyOn(HTMLInputElement.prototype, "select");
         const user = userEvent.setup();
  
-        render(<SearchBox data-testid="search" onChange={() => { }} value="hello" />);
+        render(<SearchBox data-testid="search" onChange={() => { /* empty */ }} value="hello" />);
 
         const input = screen.getByTestId("search");
         await user.click(input);
@@ -65,7 +65,7 @@ describe("SearchBox", () => {
     });
 
     it("applies custom className", () => {
-        const { container } = render(<SearchBox className="custom-class" onChange={() => { }} value="" />);
+        const { container } = render(<SearchBox className="custom-class" onChange={() => { /* empty */ }} value="" />);
         const wrapper = container.firstChild as HTMLElement;
         expect(wrapper.className).toContain("custom-class");
     });

@@ -61,14 +61,14 @@ export default function ConfirmDialog({
             onClick={onClose}
             variant="outline"
           >
-            {cancelLabel || t('common.cancel', { defaultValue: 'Cancel' })}
+            {cancelLabel ?? t('common.cancel', { defaultValue: 'Cancel' })}
           </Button>
           <Button
             loading={isLoading}
             onClick={handleConfirm}
             variant={variant === 'danger' ? 'destructive' : 'primary'}
           >
-            {confirmLabel || t('common.confirm', { defaultValue: 'Confirm' })}
+            {confirmLabel ?? t('common.confirm', { defaultValue: 'Confirm' })}
           </Button>
         </div>
       </div>

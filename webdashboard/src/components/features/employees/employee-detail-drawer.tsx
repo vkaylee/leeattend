@@ -165,7 +165,7 @@ export default function EmployeeDetailDrawer({
                             <div className="flex justify-between items-center px-2">
                                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 opacity-70"><Building2 className="text-primary-500" size={14} /> {t("employees.details.current_dept").toUpperCase()}</span>
                                 <PermissionGate permission="employees:update">
-                                    <button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90" onClick={() => { onTransfer(deptHistory?.[0]?.department_id || ""); }}>{t("employees.details.transfer").toUpperCase()}</button>
+                                    <button className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline active:scale-90" onClick={() => { onTransfer(deptHistory?.[0]?.department_id ?? ""); }}>{t("employees.details.transfer").toUpperCase()}</button>
                                 </PermissionGate>
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
@@ -184,7 +184,7 @@ export default function EmployeeDetailDrawer({
                             <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] group hover:bg-white dark:hover:bg-slate-900 hover:shadow-xl hover:shadow-primary-100/10 transition-all shadow-inner relative overflow-hidden">
                                 {linkedUser ? (
                                     <div>
-                                        <div className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none mb-1">{linkedUser.full_name || linkedUser.email}</div>
+                                        <div className="font-bold text-slate-700 dark:text-slate-200 text-lg tracking-tight uppercase leading-none mb-1">{linkedUser.full_name ?? linkedUser.email}</div>
                                         <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest opacity-70">{linkedUser.email}</div>
                                     </div>
                                 ) : employee.user_id ? (

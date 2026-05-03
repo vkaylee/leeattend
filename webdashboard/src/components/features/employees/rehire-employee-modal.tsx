@@ -36,8 +36,8 @@ export default function RehireEmployeeModal({
       return rehireEmployee(wsId, employeeId, data);
     },
     onSuccess: (updatedEmp) => {
-      queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
-      queryClient.invalidateQueries({ queryKey: ["employmentHistory", employeeId] });
+      void queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["employmentHistory", employeeId] });
       onClose();
       toast.success(t("common.success"));
       onSuccess?.(updatedEmp);

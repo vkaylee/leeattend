@@ -28,7 +28,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
     return currencyFormatter.format(typeof value === 'string' ? parseFloat(value) : value);
   };
 
-  const totalIncentives = payslip.incentives?.reduce((accumulator, index) => accumulator + parseFloat(index.amount), 0) || 0;
+  const totalIncentives = payslip.incentives?.reduce((accumulator, index) => accumulator + parseFloat(index.amount), 0) ?? 0;
   const grossPay = parseFloat(payslip.base_pay_amount) + parseFloat(payslip.overtime_pay_amount) + totalIncentives;
 
   return (
@@ -41,7 +41,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
               <Building2 size={24} />
             </div>
             <div>
-              <h1 className='text-2xl font-bold uppercase tracking-tight' data-testid="workspace-name">{workspace?.name || 'LeeAttend'}</h1>
+              <h1 className='text-2xl font-bold uppercase tracking-tight' data-testid="workspace-name">{workspace?.name ?? 'LeeAttend'}</h1>
               <p className='text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]'>{t('payroll.document.system_subtitle')}</p>
             </div>
           </div>
@@ -77,7 +77,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
             <span className='font-bold text-slate-700 dark:text-slate-200' data-testid="employee-id">{employee.employee_id_number}</span>
 
             <span className='font-bold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-widest'>{t('payroll.document.department')}</span>
-            <span className='font-bold text-slate-700 dark:text-slate-200' data-testid="employee-department">{employee.department_name || 'N/A'}</span>
+            <span className='font-bold text-slate-700 dark:text-slate-200' data-testid="employee-department">{employee.department_name ?? 'N/A'}</span>
           </div>
         </div>
 
@@ -106,12 +106,12 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
             <tbody className='divide-y divide-slate-50 dark:divide-slate-800'>
               {/* Salary Components Breakdown */}
               {payslip.salary_components?.map((sc, index) => {
-                if (!sc?.component || !sc.definition) return null;
+                if (!sc.component || !sc.definition) return null;
                 
                 const amountString = sc.component.amount || "0";
                 const monthlyRate = parseFloat(amountString);
-                const standardDays = parseFloat((payslip.segments?.[0]?.applied_std_days || 22).toString());
-                const totalPaidDays = payslip.segments?.reduce((sum, seg) => sum + parseFloat(seg.paid_work_days.toString()), 0) || 0;
+                const standardDays = parseFloat((payslip.segments?.[0]?.applied_std_days ?? 22).toString());
+                const totalPaidDays = payslip.segments?.reduce((sum, seg) => sum + parseFloat(seg.paid_work_days.toString()), 0) ?? 0;
                 const dailyRate = standardDays > 0 ? monthlyRate / standardDays : 0;
                 const proratedAmount = dailyRate * totalPaidDays;
 

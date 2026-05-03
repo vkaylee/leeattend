@@ -16,20 +16,12 @@ export default function WorkspaceGuard() {
   const { workspaces, isLoading, isError } = useWorkspaces();
   const [activeWsId, setActiveWsId] = useState(getCurrentWorkspaceId());
 
-  console.log("[WorkspaceGuard] State:", {
-    workspacesCount: workspaces.length,
-    isLoading,
-    isError,
-    activeWsId,
-  });
+  
 
   useEffect(() => {
     // Nếu có workspace nhưng chưa có active ID trong localStorage
     if (!isLoading && workspaces.length > 0 && !activeWsId) {
-      console.log(
-        "[WorkspaceGuard] Auto-setting first workspace:",
-        workspaces[0].id,
-      );
+      
       setCurrentWorkspaceId(workspaces[0].id);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Derived state synced from props; intentional pattern
       setActiveWsId(workspaces[0].id);
@@ -72,7 +64,7 @@ export default function WorkspaceGuard() {
   // Nếu chưa có activeWsId nhưng có workspaces, ta render Outlet kèm theo giá trị vừa set
   // Điều này tránh được việc reload trang
   const currentWsId =
-    activeWsId || (workspaces.length > 0 ? workspaces[0].id : null);
+    activeWsId ?? (workspaces.length > 0 ? workspaces[0].id : null);
 
   if (!currentWsId) {
     return <Navigate replace to={ROUTES.ONBOARDING} />;

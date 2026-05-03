@@ -37,13 +37,13 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, leaveTypeId,
   const adjustMutation = useMutation({
     mutationFn: (data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }) => adjustLeaveBalance(wsId, employeeId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leave-history"] });
-      queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+      void queryClient.invalidateQueries({ queryKey: ["leave-history"] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
       toast.success(t("leave_balances.history.messages.adjust_success")); setActiveTab("history");
     },
   });
 
-  const [adjustForm, setAdjustForm] = useState({ type: "add", leave_type_id: leaveTypeId || "", amount: "", reason: "", date: format(new Date(), 'yyyy-MM-dd') });
+  const [adjustForm, setAdjustForm] = useState({ type: "add", leave_type_id: leaveTypeId ?? "", amount: "", reason: "", date: format(new Date(), 'yyyy-MM-dd') });
 
   const handleAdjustSubmit = (e: React.FormEvent) => {
     e.preventDefault(); const amount = parseFloat(adjustForm.amount);
@@ -92,7 +92,7 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, leaveTypeId,
                         <td className="px-6 py-5 text-xs font-bold text-slate-500 dark:text-slate-400 font-mono uppercase">{formatDate(item.date)}</td>
                         <td className="px-6 py-5 text-center"><span className={cn("px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border", getTransactionColor(item.transaction_type))}>{item.transaction_type}</span></td>
                         <td className={cn("px-6 py-5 text-right font-bold text-sm font-mono tracking-tighter", item.amount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>{item.amount > 0 ? "+" : ""}{item.amount}</td>
-                        <td className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter max-w-[200px] truncate" title={item.reason || ""}>{item.reason || "-"}</td>
+                        <td className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter max-w-[200px] truncate" title={item.reason ?? ""}>{item.reason ?? "-"}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -52,7 +52,7 @@ import {
 
 export default function EmployeesPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() || "";
+  const wsId = getCurrentWorkspaceId() ?? "";
   const queryClient = useQueryClient();
   const { formatDate } = useDateTimeFormatter();
   const [searchParams] = useState(() => new URLSearchParams(window.location.search));
@@ -130,7 +130,7 @@ export default function EmployeesPage() {
       return searchEmployees(wsId, debouncedSearch, pageParam, PAGE_SIZE, apiSortKey, sortDir, filterDeptIds.length > 0 ? filterDeptIds : undefined);
     },
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
       if (totalLoaded >= (lastPage.total || 0)) return undefined;
       return allPages.length + 1;
     },
@@ -144,7 +144,7 @@ export default function EmployeesPage() {
     return employeesPages.pages.flatMap((p) => p.data || []);
   }, [employeesPages]);
 
-  const totalItems = employeesPages?.pages[0]?.total || 0;
+  const totalItems = employeesPages?.pages[0]?.total ?? 0;
 
   const { data: departments } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
 
@@ -289,7 +289,7 @@ export default function EmployeesPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; employee: Partial<Employee> }) => updateEmployee(wsId, data.id, data.employee),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["employees", wsId] }); setIsModalOpen(false); setEditingEmployee(null); toast.success(t("common.success")); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["employees", wsId] }); setIsModalOpen(false); setEditingEmployee(null); toast.success(t("common.success")); },
   });
 
   const toast = useToast();
@@ -391,7 +391,7 @@ export default function EmployeesPage() {
         employmentHistory={employmentHistory}
         formatDate={formatDate}
         isOpen={!!selectedEmployee}
-        key={selectedEmployee?.id || "closed"}
+        key={selectedEmployee?.id ?? "closed"}
         onClose={handleDrawerClose}
         onEdit={(emp) => { setEditingEmployee(emp); setIsModalOpen(true); }}
         onRehire={() => { setIsRehireModalOpen(true); }}
@@ -421,7 +421,7 @@ export default function EmployeesPage() {
       {/* Transfer Modal */}
       <TransferEmployeeModal
         departments={departments}
-        employeeId={selectedEmployee?.id || null}
+        employeeId={selectedEmployee?.id ?? null}
         isOpen={isTransferModalOpen}
         onClose={() => { setIsTransferModalOpen(false); }}
         selectedDeptId={selectedDeptId}
@@ -439,7 +439,7 @@ export default function EmployeesPage() {
 
       {/* Rehire Modal */}
       <RehireEmployeeModal
-        employeeId={selectedEmployee?.id || null}
+        employeeId={selectedEmployee?.id ?? null}
         isOpen={isRehireModalOpen}
         onClose={() => { setIsRehireModalOpen(false); }}
         onSuccess={(updatedEmp) => { setSelectedEmployee(updatedEmp); }}

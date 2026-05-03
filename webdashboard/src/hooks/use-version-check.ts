@@ -33,10 +33,10 @@ export function useVersionCheck() {
     const run = async () => {
       await check();
     };
-    run();
+    void run();
 
     const interval = setInterval(() => {
-      if (!cancelled) check();
+      if (!cancelled) void check();
     }, CHECK_INTERVAL_MS);
 
     return () => {
@@ -49,7 +49,7 @@ export function useVersionCheck() {
     if (!CHECK_ON_VISIBLE) return;
 
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") check();
+      if (document.visibilityState === "visible") void check();
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () =>

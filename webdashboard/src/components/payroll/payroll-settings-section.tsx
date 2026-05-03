@@ -34,8 +34,8 @@ export default function PayrollSettingsSection({ wsId }: Props) {
         effective_date: data.effective_date
       });
       toast.success(t("common.success"));
-      queryClient.invalidateQueries({ queryKey: ["payroll-settings", wsId] });
-      queryClient.invalidateQueries({ queryKey: ["payroll-settings-history", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["payroll-settings", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["payroll-settings-history", wsId] });
  
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : t("common.error"));
@@ -49,10 +49,10 @@ export default function PayrollSettingsSection({ wsId }: Props) {
           isLoading={isHistoryLoading}
           onSave={handleSavePolicy}
           records={history.map(h => ({
-            std_working_days: Number(h.fixed_std_days),
-            hours_per_day: Number(h.hours_per_day),
-            max_ot_hours_per_day: h.max_ot_hours_per_day != null ? Number(h.max_ot_hours_per_day) : null,
-            max_ot_hours_per_month: h.max_ot_hours_per_month != null ? Number(h.max_ot_hours_per_month) : null,
+            std_working_days: h.fixed_std_days,
+            hours_per_day: h.hours_per_day,
+            max_ot_hours_per_day: h.max_ot_hours_per_day ?? null,
+            max_ot_hours_per_month: h.max_ot_hours_per_month ?? null,
             effective_date: h.effective_date
           }))}
           title={t("common.payroll.settings.title")}

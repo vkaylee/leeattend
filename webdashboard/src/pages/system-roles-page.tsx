@@ -106,7 +106,7 @@ export default function SystemRolesPage() {
                       </div>
                       <div className="flex items-center gap-1.5 text-sm font-medium text-slate-500 mt-1">
                         <Users size={14} />
-                        <span>{t("system_roles.assignees_count", { count: role.assignees?.length || 0 })}</span>
+                        <span>{t("system_roles.assignees_count", { count: role.assignees.length || 0 })}</span>
                       </div>
                     </div>
                   </div>
@@ -126,11 +126,11 @@ export default function SystemRolesPage() {
 
                 <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("system_roles.assigned_users")}</h4>
-                  {role.assignees?.length === 0 ? (
+                  {role.assignees.length === 0 ? (
                     <p className="text-sm text-slate-500 italic">{t("system_roles.no_users")}</p>
                   ) : (
                     <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                      {role.assignees?.map((assignee) => (
+                      {role.assignees.map((assignee) => (
                         <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800" key={assignee.user_id}>
                           <div className="flex flex-col">
                             <span className="text-sm font-bold text-slate-700 dark:text-slate-300 font-mono">

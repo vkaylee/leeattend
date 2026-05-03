@@ -33,7 +33,7 @@ import {
 
 export default function AssignmentRulesPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() || "";
+  const wsId = getCurrentWorkspaceId() ?? "";
   const queryClient = useQueryClient();
   const toast = useToast();
   const { confirm, ConfirmationDialog } = useConfirm();
@@ -52,17 +52,17 @@ export default function AssignmentRulesPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: Parameters<typeof createAssignmentRule>[1]) => createAssignmentRule(wsId, data),
-    onSuccess: () => { toast.success(t("rules.messages.create_success")); closeModal(); queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); },
+    onSuccess: () => { toast.success(t("rules.messages.create_success")); closeModal(); void queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string, data: Parameters<typeof updateAssignmentRule>[2] }) => updateAssignmentRule(wsId, id, data),
-    onSuccess: () => { toast.success(t("rules.messages.update_success")); closeModal(); queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); },
+    onSuccess: () => { toast.success(t("rules.messages.update_success")); closeModal(); void queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteAssignmentRule(wsId, id),
-    onSuccess: () => { toast.success(t("rules.messages.delete_success")); queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); }
+    onSuccess: () => { toast.success(t("rules.messages.delete_success")); void queryClient.invalidateQueries({ queryKey: ["assignment-rules"] }); }
   });
 
   const openCreateModal = () => { setName(""); setPatternId(""); setPriority(0); setConditions({}); setIsCreateModalOpen(true); };
@@ -105,7 +105,7 @@ export default function AssignmentRulesPage() {
                   <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{rule.name}</div>
                   {!rule.is_active && <StatusBadge variant="danger">{t("common.inactive").toUpperCase()}</StatusBadge>}
                 </td>
-                <td className="px-8 py-6"><span className="bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-primary-100 dark:border-primary-800 shadow-sm dark:shadow-black/10">{patterns?.find(p => p.id === rule.pattern_id)?.name.toUpperCase() || "UNKNOWN"}</span></td>
+                <td className="px-8 py-6"><span className="bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-primary-100 dark:border-primary-800 shadow-sm dark:shadow-black/10">{patterns?.find(p => p.id === rule.pattern_id)?.name.toUpperCase() ?? "UNKNOWN"}</span></td>
                 <td className="px-8 py-6">
                   <div className="flex flex-wrap gap-2.5">
                     {!!rule.conditions.department_id && <span className="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800 flex items-center gap-2 shadow-sm dark:shadow-black/10"><Building2 className="opacity-50" size={12} /> {departments?.find(d => d.id === rule.conditions.department_id)?.name.toUpperCase()}</span>}
@@ -176,7 +176,7 @@ export default function AssignmentRulesPage() {
               className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-[5px] font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
               data-testid="pattern-combobox"
               onChange={setPatternId}
-              options={(patterns || []).map((p) => ({ value: p.id, label: p.name }))}
+              options={(patterns ?? []).map((p) => ({ value: p.id, label: p.name }))}
               placeholder={t("patterns.form.select_pattern_placeholder")}
               value={patternId}
             />
@@ -193,9 +193,9 @@ export default function AssignmentRulesPage() {
                 <Combobox
                   className="w-full bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200"
                   onChange={(value) => { setConditions({ ...conditions, department_id: value || undefined }); }}
-                  options={(departments || []).map((d) => ({ value: d.id, label: d.name }))}
+                  options={(departments ?? []).map((d) => ({ value: d.id, label: d.name }))}
                   placeholder={t("common.all_departments")}
-                  value={conditions.department_id || ""}
+                  value={conditions.department_id ?? ""}
                 />
               </div>
 
@@ -209,7 +209,7 @@ export default function AssignmentRulesPage() {
                   }}
                   placeholder={t("rules.form.tags_placeholder")}
                   type="text"
-                  value={conditions.tags?.join(", ") || ""}
+                  value={conditions.tags?.join(", ") ?? ""}
                 />
               </div>
             </div>

@@ -79,7 +79,7 @@ export default function ShiftSwapsPage() {
             reason?: string;
         }) => createShiftSwap(wsId!, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
+            void queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
             toast.success(t("shift_swaps.messages.create_success"));
             setShowCreateForm(false);
             setRequesterId("");
@@ -96,9 +96,9 @@ export default function ShiftSwapsPage() {
         mutationFn: (data: { id: string; status: ShiftSwapStatus }) =>
             approveShiftSwap(wsId!, data.id, { status: data.status }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
-            queryClient.invalidateQueries({ queryKey: ["employee-rosters"] });
-            queryClient.invalidateQueries({ queryKey: ["workspace-schedules"] });
+            void queryClient.invalidateQueries({ queryKey: ["shift-swaps"] });
+            void queryClient.invalidateQueries({ queryKey: ["employee-rosters"] });
+            void queryClient.invalidateQueries({ queryKey: ["workspace-schedules"] });
             toast.success(t("common.success"));
         },
     });
@@ -413,10 +413,10 @@ export default function ShiftSwapsPage() {
                     <td className="px-8 py-6">
                         <div>
                             <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1">
-                                {swap.requester_name || "—"}
+                                {swap.requester_name ?? "—"}
                             </div>
                             <div className="text-[10px] text-primary-600 dark:text-primary-400 font-bold">
-                                {swap.requester_shift_name || t("shift_swaps.day_off")}
+                                {swap.requester_shift_name ?? t("shift_swaps.day_off")}
                             </div>
                         </div>
                     </td>
@@ -433,10 +433,10 @@ export default function ShiftSwapsPage() {
                     <td className="px-8 py-6">
                         <div>
                             <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1">
-                                {swap.target_name || "—"}
+                                {swap.target_name ?? "—"}
                             </div>
                             <div className="text-[10px] text-primary-600 dark:text-primary-400 font-bold">
-                                {swap.target_shift_name || t("shift_swaps.day_off")}
+                                {swap.target_shift_name ?? t("shift_swaps.day_off")}
                             </div>
                         </div>
                     </td>
@@ -444,7 +444,7 @@ export default function ShiftSwapsPage() {
                     {/* Reason */}
                     <td className="px-8 py-6">
                         <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed">
-                            {swap.reason || t("common.no_notes")}
+                            {swap.reason ?? t("common.no_notes")}
                         </p>
                     </td>
 

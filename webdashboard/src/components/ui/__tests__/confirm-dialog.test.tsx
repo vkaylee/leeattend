@@ -26,8 +26,8 @@ describe("ConfirmDialog Component", () => {
         confirmLabel="Yes, Do It"
         isOpen={true}
         message="Are you sure you want to proceed?"
-        onClose={() => {}}
-        onConfirm={() => {}}
+        onClose={() => { /* empty */ }}
+        onConfirm={() => { /* empty */ }}
         title="Test Confirm"
       />
     );
@@ -45,7 +45,7 @@ describe("ConfirmDialog Component", () => {
         isOpen={true}
         message="Are you sure?"
         onClose={onClose}
-        onConfirm={() => {}}
+        onConfirm={() => { /* empty */ }}
         title="Test Confirm"
       />
     );
@@ -60,7 +60,7 @@ describe("ConfirmDialog Component", () => {
       <ConfirmDialog
         isOpen={true}
         message="Are you sure?"
-        onClose={() => {}}
+        onClose={() => { /* empty */ }}
         onConfirm={onConfirm}
         title="Test Confirm"
       />
@@ -76,8 +76,8 @@ describe("ConfirmDialog Component", () => {
         isLoading={true}
         isOpen={true}
         message="Are you sure?"
-        onClose={() => {}}
-        onConfirm={() => {}}
+        onClose={() => { /* empty */ }}
+        onConfirm={() => { /* empty */ }}
         title="Test Confirm"
       />
     );

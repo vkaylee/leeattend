@@ -53,7 +53,7 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
     mutationFn: (data: Partial<WorkingCondition>) => createWorkingCondition(wsId, employeeId, data),
     onSuccess: () => { 
       toast.success(t("common.success")); 
-      queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); 
+      void queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); 
       setIsAdding(false); 
     },
   });
@@ -62,7 +62,7 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
     mutationFn: (id: string) => deleteWorkingCondition(wsId, employeeId, id),
     onSuccess: () => { 
       toast.success(t("common.success")); 
-      queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); 
+      void queryClient.invalidateQueries({ queryKey: ["working-conditions", employeeId] }); 
     },
   });
 
@@ -110,7 +110,7 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
         </button>
       </div>
 
-      {!!isAdding && (
+      {isAdding && (
         <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500 space-y-8" onSubmit={handleAdd}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">

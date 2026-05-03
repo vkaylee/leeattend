@@ -36,7 +36,7 @@ import {
 
 export default function PayrollPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() || "";
+  const wsId = getCurrentWorkspaceId() ?? "";
   const queryClient = useQueryClient();
   const _toast = useToast();
   
@@ -149,9 +149,9 @@ export default function PayrollPage() {
   }, [employees]);
 
   const handleAdjustmentResolved = () => {
-    queryClient.invalidateQueries({ queryKey: ["payslips", selectedEmployee?.id] });
-    queryClient.invalidateQueries({ queryKey: ["workspace-payslips"] });
-    queryClient.invalidateQueries({ queryKey: ["adjustments"] });
+    void queryClient.invalidateQueries({ queryKey: ["payslips", selectedEmployee?.id] });
+    void queryClient.invalidateQueries({ queryKey: ["workspace-payslips"] });
+    void queryClient.invalidateQueries({ queryKey: ["adjustments"] });
   };
 
   const changeMonth = (delta: number) => {

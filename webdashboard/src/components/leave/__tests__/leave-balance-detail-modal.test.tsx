@@ -15,7 +15,7 @@ vi.mock('react-dom', () => ({
 }));
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (keyPath: string, fallback?: string) => fallback || keyPath }),
+  useTranslation: () => ({ t: (keyPath: string, fallback?: string) => fallback ?? keyPath }),
 }));
 
 vi.mock('@/lib/api', async () => {

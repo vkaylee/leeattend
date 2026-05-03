@@ -14,10 +14,10 @@ initSentry();
 trackWebVitals();
 
 window.addEventListener("unhandledrejection", (event) => {
-  const url = (event.reason?.message || "") + " " + (event.reason?.stack || "");
-  if (url.includes("chunk") || url.includes(".js") || /loading.*chunk/i.test(event.reason?.message || "")) {
+  const url = (event.reason?.message ?? "") + " " + (event.reason?.stack ?? "");
+  if (url.includes("chunk") || url.includes(".js") || /loading.*chunk/i.test(event.reason?.message ?? "")) {
     event.preventDefault();
-    const retryCount = Number(sessionStorage.getItem("chunkRetry") || "0");
+    const retryCount = Number(sessionStorage.getItem("chunkRetry") ?? "0");
     if (retryCount < 3) {
       sessionStorage.setItem("chunkRetry", String(retryCount + 1));
       window.location.reload();

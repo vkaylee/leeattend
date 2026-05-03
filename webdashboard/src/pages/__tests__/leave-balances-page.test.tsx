@@ -219,7 +219,7 @@ describe("LeaveBalancesPage", () => {
 
     it("shows loading state when data is pending", () => {
  
-        vi.mocked(api.fetchWorkspaceLeaveBalances).mockReturnValue(new Promise(() => { }));
+        vi.mocked(api.fetchWorkspaceLeaveBalances).mockReturnValue(new Promise(() => { /* empty */ }));
         renderPage();
         expect(screen.getAllByText("common.loading").length).toBeGreaterThan(0);
     });

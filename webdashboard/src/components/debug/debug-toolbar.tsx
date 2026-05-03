@@ -18,8 +18,8 @@ export const DebugToolbar: React.FC = () => {
   const { confirm, ConfirmationDialog } = useConfirm();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DebugTab>("identity");
-  const [temporaryId, setTemporaryId] = useState(impersonateId || "");
-  const [temporaryDate, setTemporaryDate] = useState(mockDate || "");
+  const [temporaryId, setTemporaryId] = useState(impersonateId ?? "");
+  const [temporaryDate, setTemporaryDate] = useState(mockDate ?? "");
  
   const [debugUsers, setDebugUsers] = useState<Record<string, unknown>[]>([]);
   const [isWiping, setIsWiping] = useState(false);
@@ -65,7 +65,7 @@ export const DebugToolbar: React.FC = () => {
     try {
       await debugApi.clearDb(currentWorkspaceId, group);
       // Invalidate all queries to refresh the UI
-      queryClient.invalidateQueries();
+      void queryClient.invalidateQueries();
       toast.success(`${group === "seed" ? "Demo data seeded" : group + " data wiped"} successfully.`);
     } catch (error) {
       toast.error("Operation failed: " + (error as Error).message);

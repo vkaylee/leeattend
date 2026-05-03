@@ -121,7 +121,7 @@ export default function ApprovalListLayout({
             ) : isEmpty ? (
               <tr>
                 <td className="px-10 py-32 text-center text-primary-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={tableHeaders.length}>
-                  {emptyMessage || t("common.no_data")}
+                  {emptyMessage ?? t("common.no_data")}
                 </td>
               </tr>
             ) : (

@@ -23,7 +23,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({ email: "", full_name: "", password: "", confirm_password: "" });
 
   if (userId) {
-    navigate({ to: ROUTES.HOME, replace: true });
+    void navigate({ to: ROUTES.HOME, replace: true });
     return null;
   }
 

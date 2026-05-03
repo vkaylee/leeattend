@@ -62,7 +62,7 @@ export function useLanguage() {
     };
   }, [i18n]);
 
-  const currentOption = SUPPORTED_LANGUAGES.find(l => l.code === currentLanguage) || SUPPORTED_LANGUAGES[0];
+  const currentOption = SUPPORTED_LANGUAGES.find(l => l.code === currentLanguage) ?? SUPPORTED_LANGUAGES[0];
 
   const changeLanguage = useCallback(async (langCode: SupportedLanguage) => {
     await i18n.changeLanguage(langCode);

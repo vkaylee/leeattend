@@ -132,9 +132,9 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
             {item.section ? (
               <div className="space-y-2">
                 {!isCollapsed && <button className="flex w-full items-center justify-between px-4 py-3 min-h-[44px] text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group" data-testid={item.testId} onClick={() => { toggleSection(item.section); }}><div className="flex items-center gap-2">{!!item.sectionIcon && <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />}<span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
-                {!!(openSections[item.section] || isCollapsed) && (
+                {(openSections[item.section] || isCollapsed) && (
                   <div className="space-y-1">
-                    {item.items?.map((subItem) => (
+                    {item.items.map((subItem) => (
                       <Link className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", location.pathname === subItem.to ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200")} data-testid={subItem.testId} key={subItem.to} to={subItem.to}>
                         <div className={cn("p-2 rounded-xl transition-colors", location.pathname === subItem.to ? "bg-white dark:bg-primary-900/30 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700")}>{!!subItem.icon && <subItem.icon className="h-4 w-4" />}</div>
                         {!isCollapsed && <span className="font-bold text-sm truncate">{subItem.label}</span>}

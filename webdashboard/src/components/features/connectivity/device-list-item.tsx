@@ -53,7 +53,7 @@ function DeviceTimeTicker({ deviceTime, lastSync }: { deviceTime?: string; lastS
       <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.device_time")}</span>
       <div className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400">
         <Clock size={12} />
-        <span className="text-[10px] font-mono font-black tracking-tighter">{tickingTime || "--:--:--"}</span>
+        <span className="text-[10px] font-mono font-black tracking-tighter">{tickingTime ?? "--:--:--"}</span>
       </div>
     </div>
   );
@@ -87,10 +87,10 @@ export default function DeviceListItem({
     if (!onRefresh) return;
     setIsRefreshing(true);
     try {
-      await onRefresh(device.id);
+       onRefresh(device.id);
       // Invalidate the query to trigger a refetch after the agent has time to respond
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: devicesKeys.info(device.id) });
+        void queryClient.invalidateQueries({ queryKey: devicesKeys.info(device.id) });
       }, 2000);
     } finally {
       setTimeout(() => { setIsRefreshing(false); }, 2000);
@@ -233,7 +233,7 @@ export default function DeviceListItem({
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.serial")}</span>
           <div className="flex items-center gap-1.5">
             <Terminal className="text-slate-300" size={12} />
-            <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.serial || "N/A"}</span>
+            <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.serial ?? "N/A"}</span>
           </div>
         </div>
 
@@ -242,7 +242,7 @@ export default function DeviceListItem({
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.mac")}</span>
           <div className="flex items-center gap-1.5">
             <Globe className="text-slate-300" size={12} />
-            <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.mac || "N/A"}</span>
+            <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.mac ?? "N/A"}</span>
           </div>
         </div>
 
@@ -250,8 +250,8 @@ export default function DeviceListItem({
         <div className="flex flex-col gap-1 min-w-[120px]">
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.hw_fw")}</span>
           <div className="flex flex-wrap gap-1">
-            <span className="text-[9px] font-black px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-slate-500 border border-slate-200/50 dark:border-slate-700/50">{displayInfo?.hw_name || "N/A"}</span>
-            <span className="text-[9px] font-black px-1.5 py-0.5 bg-primary-50 dark:bg-primary-950 text-primary-600 rounded border border-primary-100/50">v{displayInfo?.firmware || "?.?"}</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-slate-500 border border-slate-200/50 dark:border-slate-700/50">{displayInfo?.hw_name ?? "N/A"}</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 bg-primary-50 dark:bg-primary-950 text-primary-600 rounded border border-primary-100/50">v{displayInfo?.firmware ?? "?.?"}</span>
           </div>
         </div>
       </div>
@@ -261,7 +261,7 @@ export default function DeviceListItem({
         <div className="text-[10px] font-bold text-slate-400">
           {displayInfo ? (
             <span className="text-emerald-500 flex items-center gap-1.5">
-              <Activity size={10} /> {t("devices.info.last_synced", { time: displayInfo?.last_sync ? new Date(displayInfo.last_sync).toLocaleString() : "—" })}
+              <Activity size={10} /> {t("devices.info.last_synced", { time: displayInfo.last_sync ? new Date(displayInfo.last_sync).toLocaleString() : "—" })}
             </span>
           ) : (
             <span className="italic">{t("devices.info.loading")}</span>

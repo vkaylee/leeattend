@@ -70,7 +70,7 @@ export default function DashboardPage() {
   } = useDashboardLayout();
 
   const isLoading = agentsLoading || devicesLoading || hrLoading;
-  const error = agentsError || devicesError || hrError;
+  const error = (agentsError ?? devicesError) ?? hrError;
 
   const onlineAgents = agents.filter((a) => a.is_online).length;
   const activeDevices = devices.filter((d) => d.is_enabled).length;
@@ -216,7 +216,7 @@ export default function DashboardPage() {
             )}
 
             {/* ── Donut + Quick Stats (if visible) ─────────────── */}
-            {!!(visibleWidgets.donut_chart || visibleWidgets.quick_stats) && (
+            {(visibleWidgets.donut_chart || visibleWidgets.quick_stats) && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {!!visibleWidgets.donut_chart && (
                   <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
@@ -257,7 +257,7 @@ export default function DashboardPage() {
                     {[
                       { label: "avg_work_hours", value: isLoading ? "..." : `${(hrStats?.avg_work_hours_today ?? 0).toFixed(1)}h`, icon: Timer, color: "bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800", mono: true },
                       { label: "early_departures", value: isLoading ? "..." : hrStats?.early_departure_today ?? 0, icon: LogOut, color: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800", mono: false },
-                      { label: "estimated_payroll", value: isLoading ? "..." : formatCurrency(hrStats?.estimated_monthly_payroll || 0), icon: Banknote, color: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800", mono: true },
+                      { label: "estimated_payroll", value: isLoading ? "..." : formatCurrency(hrStats?.estimated_monthly_payroll ?? 0), icon: Banknote, color: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800", mono: true },
                     ].map((item, index) => (
                       <StatCard
                         colorClasses={item.color}

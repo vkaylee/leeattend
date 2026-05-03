@@ -41,7 +41,7 @@ import {
 
 export default function WorkingPatternsPage() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() || "";
+  const wsId = getCurrentWorkspaceId() ?? "";
   const queryClient = useQueryClient();
   const toast = useToast();
   const { confirm, ConfirmationDialog } = useConfirm();
@@ -91,7 +91,7 @@ export default function WorkingPatternsPage() {
       setNewPatternDesc("");
       setWeeklyGrid(Array.from({ length: 7 }, () => []));
  
-      queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
+      void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
     },
   });
 
@@ -102,7 +102,7 @@ export default function WorkingPatternsPage() {
         toast.success(t("patterns.messages.bulk_assign_success_count", { count: data.success_count }));
         setIsBulkModalOpen(false);
         setSelectedEmployeeIds([]);
-        queryClient.invalidateQueries({ queryKey: ["schedules"] });
+        void queryClient.invalidateQueries({ queryKey: ["schedules"] });
  
       } else if (data.failed_employees.length > 0) {
         toast.error(t("patterns.messages.bulk_assign_conflict", { count: data.failed_employees.length }));
@@ -114,7 +114,7 @@ export default function WorkingPatternsPage() {
     mutationFn: (patternId: string) => deleteWorkingPattern(wsId, patternId),
     onSuccess: () => {
       toast.success(t("patterns.messages.delete_success"));
-      queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
+      void queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
     },
   });
 
@@ -231,7 +231,7 @@ export default function WorkingPatternsPage() {
               </div>
             </div>
 
-            <p className="text-slate-500 dark:text-slate-400 text-xs mb-10 line-clamp-2 min-h-[3rem] font-bold uppercase tracking-tight opacity-60 leading-relaxed italic">{pattern.description || t("common.no_description")}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mb-10 line-clamp-2 min-h-[3rem] font-bold uppercase tracking-tight opacity-60 leading-relaxed italic">{pattern.description ?? t("common.no_description")}</p>
 
             <button
               className="mt-auto flex items-center justify-between w-full p-5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-white dark:hover:bg-slate-900 hover:border-primary-100 dark:border-primary-800 transition-all group/btn"
@@ -245,7 +245,7 @@ export default function WorkingPatternsPage() {
               <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-4 duration-500">
                 <div className="flex flex-col gap-2">
                   {daysOfWeekShort.map((day, index) => {
-                    const dayDetails = patternDetails?.filter(d => d.day_of_week === index) || [];
+                    const dayDetails = patternDetails?.filter(d => d.day_of_week === index) ?? [];
                     const hasShifts = dayDetails.some(d => d.shift_id);
                     return (
                       <div className={cn(
@@ -265,7 +265,7 @@ export default function WorkingPatternsPage() {
                               return (
                                 <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary-50 dark:bg-primary-950 border border-primary-100 dark:border-primary-800" key={index}>
                                   <Clock className="text-primary-500 dark:text-primary-400" size={8} />
-                                  <span className="text-[8px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-tight">{shiftName || '—'}</span>
+                                  <span className="text-[8px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-tight">{shiftName ?? '—'}</span>
                                 </div>
                               );
                             })
@@ -320,7 +320,7 @@ export default function WorkingPatternsPage() {
                     {/* Shift chips */}
                     <div className="flex-1 flex items-center gap-2 flex-wrap min-h-[2rem]">
                       {dayShifts.map(shiftId => {
-                        const shiftName = shifts?.find(s => s.id === shiftId)?.name || shiftId;
+                        const shiftName = shifts?.find(s => s.id === shiftId)?.name ?? shiftId;
                         return (
                           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800 rounded-xl shadow-sm animate-in zoom-in-95 duration-300" key={shiftId}>
                             <Clock className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={10} />
@@ -345,7 +345,7 @@ export default function WorkingPatternsPage() {
                     <Combobox
                       className="w-36 flex-shrink-0 !py-1 !px-2 rounded-xl text-[9px] font-bold uppercase tracking-tight outline-none border border-dashed border-primary-200 dark:border-primary-800 bg-transparent text-primary-500 dark:text-primary-400 cursor-pointer transition-all hover:bg-primary-50 dark:hover:bg-primary-950/50"
                       onChange={value => { if (value) addShiftToDay(index, value); }}
-                      options={shifts?.filter(s => !dayShifts.includes(s.id)).map(s => ({ value: s.id, label: s.name.toUpperCase() })) || []}
+                      options={shifts?.filter(s => !dayShifts.includes(s.id)).map(s => ({ value: s.id, label: s.name.toUpperCase() })) ?? []}
                       placeholder={`+ ${t("patterns.form.add_shift") || "ADD"}`}
                       value=""
                     />

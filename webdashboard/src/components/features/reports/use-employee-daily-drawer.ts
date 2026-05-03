@@ -118,7 +118,7 @@ export function useEmployeeDailyDrawer({
     }, [pendingAdjustments]);
 
     const reportData = useMemo(
-        () => (reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : [])) as DailyAttendanceReport[],
+        () => (reportResponse?.data ?? (Array.isArray(reportResponse) ? reportResponse : [])) as DailyAttendanceReport[],
         [reportResponse]
     );
 
@@ -144,7 +144,7 @@ export function useEmployeeDailyDrawer({
         mutationFn: ({ empId, date }: { empId: string; date: string }) =>
             reprocessAttendance(workspaceId, empId, date, date),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
             setReprocessingRow(null);
             setConfirmDialog(null);
             toast.success(t("common.success"));
@@ -163,8 +163,8 @@ export function useEmployeeDailyDrawer({
             reason?: string;
         }) => adminConfirmAttendance(workspaceId, row, existingRequestId, reason),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-            queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
+            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+            void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
             setConfirmingRow(null);
             setConfirmModalData(null);
             toast.success(t("reports.confirm.success"));
@@ -184,7 +184,7 @@ export function useEmployeeDailyDrawer({
                 status: action,
             }),
         onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
             const message =
                 variables.action === "approved"
                     ? t("reports.ot_approve.success_approved")
@@ -208,7 +208,7 @@ export function useEmployeeDailyDrawer({
             await reprocessAttendance(workspaceId, row.employee_id, row.date, row.date);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+            void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
             setResolveModalData(null);
             toast.success(t("reports.unscheduled.success"));
         },

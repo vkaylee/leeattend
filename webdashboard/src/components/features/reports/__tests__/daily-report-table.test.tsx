@@ -9,7 +9,7 @@ import DailyReportTable from "../daily-report-table";
 describe("DailyReportTable", () => {
     const mockT = (key: string) => key;
     const mockFormatDate = (date: string) => date;
-    const mockFormatTime = (time: string | null) => time || "---";
+    const mockFormatTime = (time: string | null) => time ?? "---";
 
     const mockData: DailyAttendanceReport[] = [
         {

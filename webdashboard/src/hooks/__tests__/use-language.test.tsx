@@ -104,7 +104,7 @@ describe('useLanguage', () => {
 
   it('changeLanguage handles API errors silently', async () => {
     mockUpdateProfile.mockRejectedValueOnce(new Error('API Error'));
-    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { /* empty */ });
 
     const { result } = renderHook(() => useLanguage(), { wrapper: createWrapper() });
 

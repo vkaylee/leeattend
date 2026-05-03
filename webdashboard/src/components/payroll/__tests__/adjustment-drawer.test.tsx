@@ -62,7 +62,7 @@ describe("AdjustmentDrawer", () => {
         employeeId="emp-1" 
         employeeName="John Doe" 
         isOpen={true} 
-        onClose={() => {}} 
+        onClose={() => { /* empty */ }} 
       />
     );
 
@@ -89,7 +89,7 @@ describe("AdjustmentDrawer", () => {
         employeeId="emp-1" 
         employeeName="John Doe" 
         isOpen={true} 
-        onClose={() => {}} 
+        onClose={() => { /* empty */ }} 
       />
     );
 

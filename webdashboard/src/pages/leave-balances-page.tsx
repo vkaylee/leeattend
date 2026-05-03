@@ -49,12 +49,12 @@ export default function LeaveBalancesPage() {
       try {
         const status = await fetchJobStatus(wsId!, jobId);
         if (status.status === 'completed') {
-          queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+          void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
           toast.success(t("leave_balances.accrual_completed"));
           return;
         }
         if (status.status === 'failed') {
-          toast.error(status.error_message || t("common.error"));
+          toast.error(status.error_message ?? t("common.error"));
           return;
         }
         // Still processing — continue polling
@@ -73,17 +73,17 @@ export default function LeaveBalancesPage() {
     onSuccess: (data) => {
       if (data.status === 'queued' && data.job_id) {
         toast.success(t("leave_balances.accrual_queued"));
-        pollJobStatus(data.job_id);
+        void pollJobStatus(data.job_id);
       } else {
-        queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+        void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
         toast.success(data.message || t("common.success"));
       }
     },
     onError: () => { toast.error(t("common.error")); }
   });
 
-  const balances = paginatedData?.data || [];
-  const totalItems = paginatedData?.total || 0;
+  const balances = paginatedData?.data ?? [];
+  const totalItems = paginatedData?.total ?? 0;
   const totalPages = Math.ceil(totalItems / limit);
 
   return (

@@ -73,7 +73,7 @@ async function tryRefreshToken(): Promise<boolean> {
       const data = await response.json();
       setAccessToken(data.access_token);
       setRefreshToken(data.refresh_token);
-      console.debug("[ReportStream] Token refreshed successfully");
+      
       return true;
     }
   } catch (e) {
@@ -136,9 +136,7 @@ export function useReportStream({
           setProgress(Math.min(newProgress, 100));
           setStatus("streaming");
 
-          console.debug(
-            `[ReportStream] Received chunk ${chunkMessage.batch_index + 1}/${chunkMessage.total_batches ?? ""}`
-          );
+          
           break;
         }
 
@@ -150,9 +148,7 @@ export function useReportStream({
           const finalChunks = [...chunksRef.current];
           chunksRef.current = [];
           setChunks(finalChunks);
-          console.debug(
-            `[ReportStream] Complete: ${message.total_records ?? ""} records`
-          );
+          
           onCompleteRef.current?.(finalChunks);
           break;
         }
@@ -161,7 +157,7 @@ export function useReportStream({
           setStatus("error");
           setError(message.message);
           shouldReconnectRef.current = false;
-          console.debug(`[ReportStream] Error: ${message.message ?? ""}`);
+          
           onErrorRef.current?.(message.message);
           break;
         }
@@ -204,7 +200,7 @@ export function useReportStream({
 
       socket.onopen = () => {
         clearTimeout(connectionTimeoutId);
-        console.debug("[ReportStream] Connected");
+        
         setStatus("streaming");
         retryCountRef.current = 0; // Reset retry count on success
 
@@ -218,15 +214,11 @@ export function useReportStream({
 
       socket.onmessage = handleMessage;
 
-      socket.onerror = (event) => {
-        console.debug("[ReportStream] WebSocket error:", event);
-      };
+      socket.onerror = (event) => { /* empty */ };
 
       socket.onclose = (event) => {
         clearTimeout(connectionTimeoutId);
-        console.debug(
-          `[ReportStream] Connection closed: code=${event.code ?? ""}, reason=${event.reason ?? ""}`
-        );
+        
 
         // Handle auth failure: code 1006 on first attempt = HTTP 401 (upgrade rejected)
         // Browser doesn't expose HTTP status on WS upgrade failure, but 1006 = abnormal close
@@ -235,11 +227,11 @@ export function useReportStream({
           retryCountRef.current === 0 &&
           statusRef.current === "connecting"
         ) {
-          console.debug("[ReportStream] Possible auth failure, attempting token refresh");
+          
           retryCountRef.current++;
-          tryRefreshToken().then((refreshed) => {
+          void tryRefreshToken().then((refreshed) => {
             if (refreshed && shouldReconnectRef.current) {
-              console.debug("[ReportStream] Token refreshed, reconnecting");
+              
               // eslint-disable-next-line react-hooks/immutability
               connect();
             } else {
@@ -262,9 +254,7 @@ export function useReportStream({
           statusRef.current !== "error"
         ) {
           const delay = getBackoffDelay(retryCountRef.current);
-          console.debug(
-            `[ReportStream] Reconnecting in ${delay ?? ""}ms (attempt ${retryCountRef.current + 1}/${maxRetries ?? ""})`
-          );
+          
 
           retryCountRef.current++;
           setTimeout(() => {

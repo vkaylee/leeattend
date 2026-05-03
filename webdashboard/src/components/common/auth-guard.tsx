@@ -17,17 +17,11 @@ export default function AuthGuard() {
   const userId = getCurrentUserId();
   const { user, isLoading, isError } = useProfile();
 
-  console.log("[AuthGuard] State:", {
-    userId,
-    hasUser: !!user,
-    isLoading,
-    isError,
-    path: location.pathname
-  });
+  
 
   useEffect(() => {
     if (isError) {
-      console.log("[AuthGuard] Error detected, cleaning session...");
+      
       clearAuthSession();
     }
   }, [isError]);

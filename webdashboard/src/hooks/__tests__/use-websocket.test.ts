@@ -14,7 +14,7 @@ describe("useWebSocket Hook", () => {
   class MockWebSocket {
     static OPEN = 1;
     readyState = 1; // WebSocket.OPEN
-    constructor() {}
+    constructor() { /* empty */ }
     send = vi.fn().mockImplementation((value: string) => {
       if (mockSend) (mockSend as (v: string) => void)(value);
     });
@@ -22,8 +22,8 @@ describe("useWebSocket Hook", () => {
       if (mockClose) (mockClose as () => void)();
     });
     set onopen(function_: ((event_?: Event) => void) | null) { mockOnOpen = function_; }
-    set onmessage(_: unknown) { }
-    set onclose(_: unknown) { }
+    set onmessage(_: unknown) { /* empty */ }
+    set onclose(_: unknown) { /* empty */ }
   }
 
   beforeEach(() => {

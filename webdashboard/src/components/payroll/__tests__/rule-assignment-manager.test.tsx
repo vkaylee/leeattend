@@ -40,7 +40,7 @@ vi.mock("@/components/ui/modal", () => {
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback || key,
+    t: (key: string, fallback?: string) => fallback ?? key,
   }),
 }));
 

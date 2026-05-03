@@ -116,9 +116,9 @@ vi.mock("@/components/debug/debug-toolbar", () => ({
 }));
 
 class MockIntersectionObserver {
-    observe() { }
-    unobserve() { }
-    disconnect() { }
+    observe() { /* empty */ }
+    unobserve() { /* empty */ }
+    disconnect() { /* empty */ }
 }
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
@@ -272,7 +272,7 @@ describe("Page-level code splitting", () => {
     });
 
     it("shows suspense fallback while page is loading", async () => {
-        let resolveImport: (value: unknown) => void = () => {};
+        let resolveImport: (value: unknown) => void = () => { /* empty */ };
         const slowImport = new Promise<unknown>((resolve) => {
  
             resolveImport = resolve;
@@ -350,7 +350,7 @@ describe("i18n lazy locale loading", () => {
         await waitFor(() => {
             const resources = i18n.getResourceBundle("en", "translation");
             expect(resources).toBeDefined();
-            expect(Object.keys(resources || {}).length).toBeGreaterThan(0);
+            expect(Object.keys(resources ?? {}).length).toBeGreaterThan(0);
         }, { timeout: 3000 });
     });
 });

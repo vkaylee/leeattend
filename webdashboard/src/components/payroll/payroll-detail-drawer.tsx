@@ -67,7 +67,7 @@ export default function PayrollDetailDrawer({
                   </span>
                   <div className="w-1.5 h-1.5 bg-primary-200 rounded-full" />
                   <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest">
-                    {employee.department_name || t("departments.not_assigned")}
+                    {employee.department_name ?? t("departments.not_assigned")}
                   </span>
                 </div>
               </div>
@@ -143,7 +143,7 @@ export default function PayrollDetailDrawer({
                     isLoading={isLoadingPayslips} 
                     onResolveAdjustments={onResolveAdjustments} 
                     payslips={payslips}
-                    workspace={workspace || null}
+                    workspace={workspace ?? null}
                   />
                 </div>
               </div>

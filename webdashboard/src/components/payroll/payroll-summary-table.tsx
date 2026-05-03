@@ -186,7 +186,7 @@ export default function PayrollSummaryTable({
                     {!canReadSensitive ? "***" : (slip && parseFloat(slip.overtime_pay_amount) > 0 ? `+${new Intl.NumberFormat('vi-VN').format(parseFloat(slip.overtime_pay_amount))}` : "—")}
                   </td>
                   <td className="px-4 py-6 text-right font-mono text-sm text-blue-600 dark:text-blue-300 font-bold">
-                    {!canReadSensitive ? "***" : (slip?.incentives && slip.incentives.length > 0 
+                    {!canReadSensitive ? "***" : (slip.incentives && slip.incentives.length > 0 
                       ? `+${new Intl.NumberFormat('vi-VN').format(slip.incentives.reduce((accumulator, index) => accumulator + parseFloat(index.amount), 0))}` 
                       : "—")}
                   </td>

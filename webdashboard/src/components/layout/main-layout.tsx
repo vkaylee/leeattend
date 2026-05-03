@@ -125,7 +125,7 @@ export default function MainLayout() {
         isCollapsed ? "lg:ml-20" : "lg:ml-72"
       )}>
         <Navbar
-          currentWorkspaceName={currentWorkspace?.name || "Workspace"}
+          currentWorkspaceName={currentWorkspace?.name ?? "Workspace"}
           isCollapsed={isCollapsed}
           onOpenSidebar={() => { setIsSidebarOpen(true); }}
           onToggleCollapsed={toggleCollapsed}

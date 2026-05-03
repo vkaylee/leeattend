@@ -11,8 +11,8 @@ import { useReportStream } from "../use-report-stream";
 
 describe("useReportStream Hook", () => {
   beforeEach(() => {
-    vi.spyOn(console, "debug").mockImplementation(() => { });
-    vi.spyOn(console, "error").mockImplementation(() => { });
+    vi.spyOn(console, "debug").mockImplementation(() => { /* empty */ });
+    vi.spyOn(console, "error").mockImplementation(() => { /* empty */ });
   });
 
   afterEach(() => {
@@ -211,8 +211,8 @@ describe("useReportStream Hook", () => {
       chunks.push(...chunkData3);
 
       expect(chunks).toHaveLength(6);
-      expect((chunks[0] as { id: number })?.id).toBe(1);
-      expect((chunks[5] as { id: number })?.id).toBe(6);
+      expect((chunks[0] as { id: number }).id).toBe(1);
+      expect((chunks[5] as { id: number }).id).toBe(6);
     });
 
     it("should handle array and object chunk data", () => {
@@ -336,10 +336,10 @@ describe("useReportStream Hook", () => {
       close = vi.fn();
       addEventListener = vi.fn();
       removeEventListener = vi.fn();
-      set onopen(_: unknown) { }
-      set onmessage(_: unknown) { }
-      set onerror(_: unknown) { }
-      set onclose(_: unknown) { }
+      set onopen(_: unknown) { /* empty */ }
+      set onmessage(_: unknown) { /* empty */ }
+      set onerror(_: unknown) { /* empty */ }
+      set onclose(_: unknown) { /* empty */ }
     }
 
     beforeEach(() => {
@@ -493,9 +493,9 @@ describe("useReportStream Hook", () => {
       _mockOnError = null;
       _mockOnMessage = null;
       vi.stubGlobal("WebSocket", MockWebSocket);
-      vi.spyOn(console, "debug").mockImplementation(() => { });
-      vi.spyOn(console, "error").mockImplementation(() => { });
-      vi.spyOn(console, "warn").mockImplementation(() => { });
+      vi.spyOn(console, "debug").mockImplementation(() => { /* empty */ });
+      vi.spyOn(console, "error").mockImplementation(() => { /* empty */ });
+      vi.spyOn(console, "warn").mockImplementation(() => { /* empty */ });
     });
 
     afterEach(() => {
@@ -682,7 +682,7 @@ describe("useReportStream Hook", () => {
     class MockWebSocket {
       static OPEN = 1;
       readyState = 1; // WebSocket.OPEN
-      constructor() {}
+      constructor() { /* empty */ }
       send = vi.fn().mockImplementation((value: string) => {
         if (mockSend) (mockSend as (v: string) => void)(value);
       });
@@ -690,9 +690,9 @@ describe("useReportStream Hook", () => {
       addEventListener = vi.fn();
       removeEventListener = vi.fn();
       set onopen(function_: ((event_?: Event) => void) | null) { mockOnOpen = function_; }
-      set onmessage(_: unknown) { }
-      set onerror(_: unknown) { }
-      set onclose(_: unknown) { }
+      set onmessage(_: unknown) { /* empty */ }
+      set onerror(_: unknown) { /* empty */ }
+      set onclose(_: unknown) { /* empty */ }
     }
 
     beforeEach(() => {

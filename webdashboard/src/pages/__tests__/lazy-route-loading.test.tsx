@@ -113,9 +113,9 @@ vi.mock("@/lib/api", async (importOriginal) => {
 
 // Mock IntersectionObserver for jsdom
 class MockIntersectionObserver {
-    observe() { }
-    unobserve() { }
-    disconnect() { }
+    observe() { /* empty */ }
+    unobserve() { /* empty */ }
+    disconnect() { /* empty */ }
 }
  
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
@@ -136,7 +136,7 @@ describe("Lazy Route Loading", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        i18n.changeLanguage("en");
+        void i18n.changeLanguage("en");
         queryClient = new QueryClient({
             defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
         });
@@ -207,7 +207,7 @@ describe("Lazy Route Loading", () => {
     it("should show fallback while page is loading", async () => {
         // Create a lazy component that simulates a slow import
  
-        let resolveImport: (value: unknown) => void = () => {};
+        let resolveImport: (value: unknown) => void = () => { /* empty */ };
  
         const slowImport = new Promise<unknown>((resolve) => {
             resolveImport = resolve;

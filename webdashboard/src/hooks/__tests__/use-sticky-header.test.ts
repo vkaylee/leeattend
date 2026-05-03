@@ -10,9 +10,9 @@ class MockResizeObserver {
     constructor(callback: ResizeObserverCallback) {
         this.callback = callback;
     }
-    observe() { }
-    unobserve() { }
-    disconnect() { }
+    observe() { /* empty */ }
+    unobserve() { /* empty */ }
+    disconnect() { /* empty */ }
 }
  
 window.ResizeObserver = MockResizeObserver;

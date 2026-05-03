@@ -74,7 +74,7 @@ export function PatternAssignmentForm({
                   {pattern.name}
                 </div>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1 line-clamp-1">
-                  {pattern.description || t("common.no_description")}
+                  {pattern.description ?? t("common.no_description")}
                 </p>
                 {selectedPatternId === pattern.id && (
                   <div className="absolute top-4 right-4 w-3 h-3 bg-primary-600 rounded-full animate-pulse" />

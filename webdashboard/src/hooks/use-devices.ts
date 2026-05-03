@@ -25,8 +25,8 @@ export function useDevices() {
   const createMutation = useMutation({
     mutationFn: createDevice,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: devicesKeys.all });
-      queryClient.invalidateQueries({ queryKey: ["agents-status"] });
+      void queryClient.invalidateQueries({ queryKey: devicesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["agents-status"] });
     },
   });
 
@@ -34,16 +34,16 @@ export function useDevices() {
     mutationFn: ({ id, data }: { id: string; data: Partial<Device> }) =>
       updateDevice(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: devicesKeys.all });
-      queryClient.invalidateQueries({ queryKey: ["agents-status"] });
+      void queryClient.invalidateQueries({ queryKey: devicesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["agents-status"] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteDevice,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: devicesKeys.all });
-      queryClient.invalidateQueries({ queryKey: ["agents-status"] });
+      void queryClient.invalidateQueries({ queryKey: devicesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["agents-status"] });
     },
   });
 

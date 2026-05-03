@@ -93,7 +93,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
     queryFn: () => fetchGenericJobStatus(wsId, pollingJobId!),
     enabled: !!pollingJobId,
     refetchInterval: (query: { state: { data?: { status: string } } }) => {
-      const data = query.state?.data;
+      const data = query.state.data;
       return data && (data.status === "completed" || data.status === "failed") ? false : 3000;
     },
   });
@@ -103,14 +103,14 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
       if (jobStatusQuery.data.status === "completed") {
         setTimeout(() => {
           toast.success(t("common.success") + " - Reprocessing finished");
-          queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-          queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
+          void queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+          void queryClient.invalidateQueries({ queryKey: ["attendance-logs"] });
           setShowReprocessConfirm(false);
           setPollingJobId(null);
         }, 0);
       } else if (jobStatusQuery.data.status === "failed") {
         setTimeout(() => {
-          toast.error("Process failed: " + (jobStatusQuery.data.error || "Unknown error"));
+          toast.error("Process failed: " + (jobStatusQuery.data.error ?? "Unknown error"));
           setShowReprocessConfirm(false);
           setPollingJobId(null);
         }, 0);
@@ -135,7 +135,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
   const _updateWsMutation = useMutation({
     mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
     },
   });
 
@@ -143,8 +143,8 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
     mutationFn: (data: UpdateAttendanceRulesRequest) => updateDefaultAttendanceRules(wsId, data),
     onSuccess: () => {
       toast.success(t("common.success"));
-      queryClient.invalidateQueries({ queryKey: ["attendance-rules", wsId] });
-      queryClient.invalidateQueries({ queryKey: ["attendance-policy-versions", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-rules", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-versions", wsId] });
       setShowCreateModal(false);
     },
   });
@@ -326,7 +326,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                 </div>
                 <div className="space-y-3 md:col-span-2 flex justify-end">
                   <Button className="text-orange-600 border-orange-200 hover:bg-orange-50 dark:border-orange-900/50 dark:hover:bg-orange-900/20" icon={<RefreshCw size={18} />} onClick={() => { setShowReprocessConfirm(true); }} variant="outline">
-                    {t("reports.reprocess.bulk_tooltip")?.toUpperCase() || "REPROCESS DATA"}
+                    {t("reports.reprocess.bulk_tooltip").toUpperCase() || "REPROCESS DATA"}
                   </Button>
                 </div>
               </div>
@@ -343,7 +343,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3 px-1">
                     <label className={LABEL_BASE}>{t("common.workspace_settings.work_unit")}</label>
-                    <Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" onChange={(v) => { setWorkUnit(parseInt(v)); }} options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnit?.toString() || "15"} />
+                    <Combobox className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 h-14" onChange={(v) => { setWorkUnit(parseInt(v)); }} options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnit.toString() || "15"} />
                   </div>
                   <div className="space-y-3 px-1">
                     <label className={LABEL_BASE}>{t("common.workspace_settings.rounding_policy")}</label>
@@ -444,7 +444,7 @@ function TimeSettingsContent({ workspace, rules, versions }: { workspace: Worksp
                 ) : (
                     <RefreshCw size={18} />
                 )}
-                {t("reports.reprocess.confirm")?.toUpperCase() || "CONFIRM"}
+                {t("reports.reprocess.confirm").toUpperCase() || "CONFIRM"}
               </button>
             </div>
           )}

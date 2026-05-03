@@ -40,7 +40,7 @@ class MockIntersectionObserver {
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
-  constructor() { }
+  constructor() { /* empty */ }
  
 }
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
@@ -68,7 +68,7 @@ describe("ReportsPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    i18n.changeLanguage("en");
+    void i18n.changeLanguage("en");
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -606,7 +606,7 @@ describe("ReportsPage", () => {
 
   it("sorts by OT hours when clicking OT column header", async () => {
     const user = userEvent.setup();
-    i18n.changeLanguage("en");
+    void i18n.changeLanguage("en");
     renderWithProviders(<ReportsPage />);
     await screen.findByText(/John Doe/i);
 
@@ -614,9 +614,9 @@ describe("ReportsPage", () => {
     // Find the OT Hours column header — text is "Overtime" (en) inside a flex div with SVG icon
  
     const otHeaderText = screen.getByText((content, element) => {
-      return element?.tagName?.toLowerCase() === "div" && /Overtime|Tăng ca/i.test(content);
+      return element?.tagName.toLowerCase() === "div" && /Overtime|Tăng ca/i.test(content);
     });
-    const otClickTarget = otHeaderText.closest("th") || otHeaderText;
+    const otClickTarget = otHeaderText.closest("th") ?? otHeaderText;
 
     // Clear mock calls so we only see calls triggered by the click
     vi.mocked(api.fetchAttendanceReport).mockClear();
@@ -645,7 +645,7 @@ describe("ReportsPage", () => {
  
   it("renders total hours column and sorts by total hours", async () => {
     const user = userEvent.setup();
-    i18n.changeLanguage("en");
+    void i18n.changeLanguage("en");
     renderWithProviders(<ReportsPage />);
     await screen.findByText(/John Doe/i);
 
@@ -656,9 +656,9 @@ describe("ReportsPage", () => {
  
     // Find the Total Hours column header
     const totalHeader = screen.getByText((content, element) => {
-      return element?.tagName?.toLowerCase() === "div" && /Total Hours|Tổng giờ công/i.test(content);
+      return element?.tagName.toLowerCase() === "div" && /Total Hours|Tổng giờ công/i.test(content);
     });
-    const totalClickTarget = totalHeader.closest("th") || totalHeader;
+    const totalClickTarget = totalHeader.closest("th") ?? totalHeader;
 
  
     vi.mocked(api.fetchAttendanceReport).mockClear();

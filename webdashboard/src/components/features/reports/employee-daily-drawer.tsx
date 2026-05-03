@@ -81,7 +81,7 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 setViewMode("daily");
             } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
                 e.preventDefault();
-                const scrollContainer = contentRef.current?.querySelector(".overflow-auto") || contentRef.current;
+                const scrollContainer = contentRef.current?.querySelector(".overflow-auto") ?? contentRef.current;
                 if (scrollContainer) {
                     scrollContainer.scrollBy({ top: e.key === "ArrowDown" ? 100 : -100, behavior: "smooth" });
                 }
@@ -191,7 +191,7 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 key={confirmModalData ? `confirm-${confirmModalData.row.date ?? ""}` : "confirm-empty"}
                 onClose={() => { setConfirmModalData(null); }}
                 onSubmit={handleConfirmSubmit}
-                row={confirmModalData?.row || null}
+                row={confirmModalData?.row ?? null}
             />
 
             <ResolveUnscheduledModal
@@ -200,7 +200,7 @@ export default function EmployeeDailyDrawer(props: EmployeeDailyDrawerProps) {
                 key={resolveModalData ? `resolve-${resolveModalData.row.date ?? ""}` : "resolve-empty"}
                 onClose={() => { setResolveModalData(null); }}
                 onSubmit={handleResolveSubmit}
-                row={resolveModalData?.row || null}
+                row={resolveModalData?.row ?? null}
                 shifts={shifts}
             />
         </>

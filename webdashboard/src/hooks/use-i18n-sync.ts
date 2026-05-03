@@ -31,10 +31,10 @@ export function useI18nSync() {
     }
 
     // No localStorage preference, use server preference or workspace default
-    const langToSet = user?.preferred_language || currentWorkspace?.default_language;
+    const langToSet = user?.preferred_language ?? currentWorkspace?.default_language;
 
     if (langToSet && i18n.language !== langToSet) {
-      i18n.changeLanguage(langToSet);
+      void i18n.changeLanguage(langToSet);
       localStorage.setItem('i18nextLng', langToSet);
     }
 

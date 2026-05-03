@@ -12,7 +12,7 @@ const localeLoaders: Record<string, () => Promise<{ default: Record<string, unkn
 
 export const lazyLoadBackend: BackendModule = {
   type: 'backend',
-  init: () => {},
+  init: () => { /* empty */ },
   read: (language, _namespace, callback) => {
     const lng = language.split('-')[0];
     if (localeLoaders[lng]) {
@@ -26,7 +26,7 @@ export const lazyLoadBackend: BackendModule = {
 };
 
 // eslint-disable-next-line import-x/no-named-as-default-member
-i18n
+void i18n
   .use(lazyLoadBackend)
   .use(LanguageDetector)
   .use(initReactI18next)

@@ -62,7 +62,7 @@ export function AssignmentHistory({ history, selectedEmployee }: AssignmentHisto
                     </span>
                   )}
                 </td>
-                <td className="p-4 font-bold text-slate-700 dark:text-slate-200 text-xs">{h.shift_name || t("shifts.off_day")}</td>
+                <td className="p-4 font-bold text-slate-700 dark:text-slate-200 text-xs">{h.shift_name ?? t("shifts.off_day")}</td>
                 <td className="p-4 font-mono text-xs text-slate-500 dark:text-slate-400">{h.date_range}</td>
               </tr>
             ))}

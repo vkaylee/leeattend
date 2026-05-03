@@ -24,7 +24,7 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<EmploymentPhaseDefinition>) => createEmploymentPhase(wsId, data),
-    onSuccess: () => { toast.success(t("common.success")); queryClient.invalidateQueries({ queryKey: ["employment-phases"] }); setIsModalOpen(false); setFormData({ name: "", description: "", phase_type: "probation", default_duration_days: 60, is_active: true, display_order: 1 }); },
+    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["employment-phases"] }); setIsModalOpen(false); setFormData({ name: "", description: "", phase_type: "probation", default_duration_days: 60, is_active: true, display_order: 1 }); },
   });
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); createMutation.mutate(formData); };
@@ -97,11 +97,11 @@ export default function EmploymentPhaseManager({ wsId }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="phase-duration">Default Duration (Days)</label>
-              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm" id="phase-duration" min="0" onChange={e => { setFormData({...formData, default_duration_days: parseInt(e.target.value) || 0}); }} placeholder="60" type="number" value={formData.default_duration_days || ""} />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm" id="phase-duration" min="0" onChange={e => { setFormData({...formData, default_duration_days: parseInt(e.target.value) || 0}); }} placeholder="60" type="number" value={formData.default_duration_days ?? ""} />
             </div>
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="phase-order">Display Order</label>
-              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm" id="phase-order" min="1" onChange={e => { setFormData({...formData, display_order: parseInt(e.target.value) || 1}); }} type="number" value={formData.display_order || 1} />
+              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm" id="phase-order" min="1" onChange={e => { setFormData({...formData, display_order: parseInt(e.target.value) || 1}); }} type="number" value={formData.display_order ?? 1} />
             </div>
           </div>
 

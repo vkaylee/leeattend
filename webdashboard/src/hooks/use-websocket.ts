@@ -26,7 +26,7 @@ export function useWebSocket() {
 
     socket.onopen = () => {
       setIsConnected(true);
-      console.log("Connected to API Server WebSocket");
+      
 
       // Handshake cho Dashboard (nếu cần phân biệt với Agent)
       const handshake: WsMessage = {
@@ -54,7 +54,7 @@ export function useWebSocket() {
 
     socket.onclose = () => {
       setIsConnected(false);
-      console.log("Disconnected from API Server WebSocket");
+      
     };
 
     return () => {

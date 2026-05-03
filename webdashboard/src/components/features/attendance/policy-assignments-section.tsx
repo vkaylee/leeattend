@@ -52,7 +52,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
     queryFn: () => fetchEmployees(wsId, 1, 1000),
   });
 
-  const employees = employeesResponse?.data || [];
+  const employees = employeesResponse?.data ?? [];
 
   const [activeFilter, setActiveFilter] = useState<"ALL" | "GROUP" | "USER">("ALL");
 
@@ -91,7 +91,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
     mutationFn: (id: string) => deletePolicyAssignment(wsId, id),
     onSuccess: () => {
       toast.success(t("attendance_policy_overrides.messages.delete_success"));
-      queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments", wsId] });
     }
   });
 
@@ -107,7 +107,7 @@ export function PolicyAssignmentsSection({ wsId }: { wsId: string }) {
     mutationFn: (data: UpsertPolicyAssignmentRequest) => upsertPolicyAssignment(wsId, data),
     onSuccess: () => {
       toast.success(t("attendance_policy_overrides.messages.save_success"));
-      queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments", wsId] });
+      void queryClient.invalidateQueries({ queryKey: ["attendance-policy-assignments", wsId] });
       setIsDrawerOpen(false);
       setTargetId("");
     }

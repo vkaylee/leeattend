@@ -10,7 +10,7 @@ import { DebugProvider } from "./context/debug-context";
 import { useVersionCheck } from "./hooks/use-version-check";
 import { createAppRouter } from "./router";
 
-console.log("🚀 [LeeAttend] Bundle initialized at:", new Date().toISOString());
+
 
 const queryClient = new QueryClient({
   defaultOptions: {

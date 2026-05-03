@@ -35,10 +35,10 @@ vi.mock("@tanstack/react-router", () => ({
 
 // Mock IntersectionObserver for jsdom
 class MockIntersectionObserver {
-  observe() { }
-  unobserve() { }
+  observe() { /* empty */ }
+  unobserve() { /* empty */ }
  
-  disconnect() { }
+  disconnect() { /* empty */ }
 }
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
@@ -136,7 +136,7 @@ describe("AttendanceLogsPage", () => {
  
   it("shows skeleton loading state when fetching data", () => {
     // Override the mock to simulate loading state (slow promise)
-    vi.mocked(api.fetchRawAttendanceLogs).mockImplementation(() => new Promise(() => { }));
+    vi.mocked(api.fetchRawAttendanceLogs).mockImplementation(() => new Promise(() => { /* empty */ }));
 
     renderWithProviders(<AttendanceLogsPage />);
 
@@ -219,7 +219,7 @@ describe("AttendanceLogsPage", () => {
  
   it("shows loading spinner when fetching next page", () => {
     // Simulate infinite loading
-    vi.mocked(api.fetchRawAttendanceLogs).mockImplementation(() => new Promise(() => { }));
+    vi.mocked(api.fetchRawAttendanceLogs).mockImplementation(() => new Promise(() => { /* empty */ }));
 
     renderWithProviders(<AttendanceLogsPage />);
 

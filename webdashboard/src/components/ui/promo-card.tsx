@@ -73,7 +73,7 @@ const PromoCard = memo(function PromoCard({
         >
           {description}
         </p>
-        {linkElement || (
+        {linkElement ?? (
           <span
             className={cn(
               "px-8 sm:px-10 py-3 sm:py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl active:scale-95",

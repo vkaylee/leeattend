@@ -8,7 +8,7 @@ import InfiniteScrollSentinel from "../infinite-scroll-sentinel";
 // Mock i18n
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
-        t: (key: string, fallback?: string) => fallback || key,
+        t: (key: string, fallback?: string) => fallback ?? key,
         i18n: { changeLanguage: () => Promise.resolve(), language: "en" },
     }),
 }));

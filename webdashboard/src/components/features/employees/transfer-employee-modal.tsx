@@ -41,7 +41,7 @@ export default function TransferEmployeeModal({
       return transferEmployee(wsId, employeeId, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
+      void queryClient.invalidateQueries({ queryKey: ["deptHistory", employeeId] });
       onClose();
       setSelectedDeptId("");
       toast.success(t("common.success"));
@@ -83,7 +83,7 @@ export default function TransferEmployeeModal({
                 value: d.id,
                 label: d.name.toUpperCase(),
                 icon: <Building2 size={14} />,
-              })) || []
+              })) ?? []
             }
             placeholder={t("employees.transfer.select_dept")}
             value={selectedDeptId}

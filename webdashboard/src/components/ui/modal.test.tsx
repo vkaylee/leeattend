@@ -13,7 +13,7 @@ describe("Modal Component", () => {
 
   it("should not render when isOpen is false", () => {
     render(
-      <Modal isOpen={false} onClose={() => {}}>
+      <Modal isOpen={false} onClose={() => { /* empty */ }}>
         <div>Modal Content</div>
       </Modal>
     );
@@ -23,7 +23,7 @@ describe("Modal Component", () => {
 
   it("should render content when isOpen is true", () => {
     render(
-      <Modal isOpen={true} onClose={() => {}}>
+      <Modal isOpen={true} onClose={() => { /* empty */ }}>
         <div>Modal Content</div>
       </Modal>
     );
@@ -35,7 +35,7 @@ describe("Modal Component", () => {
     render(
       <Modal 
         isOpen={true} 
-        onClose={() => {}} 
+        onClose={() => { /* empty */ }} 
         subtitle="Test Subtitle" 
         title="Test Title"
       >
@@ -94,7 +94,7 @@ describe("Modal Component", () => {
 
   it("should apply body overflow hidden when open", () => {
     render(
-      <Modal isOpen={true} onClose={() => {}}>
+      <Modal isOpen={true} onClose={() => { /* empty */ }}>
         <div>Content</div>
       </Modal>
     );
@@ -104,7 +104,7 @@ describe("Modal Component", () => {
 
   it("should reset body overflow when closed", () => {
     const { rerender } = render(
-      <Modal isOpen={true} onClose={() => {}}>
+      <Modal isOpen={true} onClose={() => { /* empty */ }}>
         <div>Content</div>
       </Modal>
     );
@@ -112,7 +112,7 @@ describe("Modal Component", () => {
     expect(document.body.style.overflow).toBe("hidden");
 
     rerender(
-      <Modal isOpen={false} onClose={() => {}}>
+      <Modal isOpen={false} onClose={() => { /* empty */ }}>
         <div>Content</div>
       </Modal>
     );
@@ -122,7 +122,7 @@ describe("Modal Component", () => {
 
   it("should apply correct max-width class", () => {
     render(
-      <Modal isOpen={true} maxWidth="xl" onClose={() => {}}>
+      <Modal isOpen={true} maxWidth="xl" onClose={() => { /* empty */ }}>
         <div>Content</div>
       </Modal>
     );

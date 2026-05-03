@@ -54,7 +54,7 @@ const FormField = memo(function FormField({
   className,
   disabled,
 }: FormFieldProps) {
-  const inputId = id || name;
+  const inputId = id ?? name;
 
   const sharedProps = {
     id: inputId,

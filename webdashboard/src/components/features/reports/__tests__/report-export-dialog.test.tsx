@@ -31,7 +31,7 @@ vi.mock("@/components/ui/modal", () => ({
  
   default: ({ isOpen, title, children, testId, ...props }: any) =>
     isOpen ? (
-      <div data-testid={testId || "modal"} {...props}>
+      <div data-testid={testId ?? "modal"} {...props}>
         <h2>{title}</h2>
         {children}
       </div>

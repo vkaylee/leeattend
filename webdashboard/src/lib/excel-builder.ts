@@ -140,7 +140,7 @@ export async function generateExcel(
             absent: "FFD32F2F",
             off: "FF757575",
           };
-          const color = statusColors[String(value).toLowerCase()];
+          const color = statusColors[value.toLowerCase()];
           if (color) {
             cell.font = { color: { argb: color } };
           }
@@ -182,7 +182,7 @@ export async function generateExcel(
 
   const timestamp = new Date().toISOString().slice(0, 10);
   const defaultFilename = `attendance-${reportType ?? ""}-${timestamp ?? ""}.xlsx`;
-  saveAs(blob, filename || defaultFilename);
+  saveAs(blob, filename ?? defaultFilename);
 
   onProgress?.(100);
 }

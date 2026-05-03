@@ -47,7 +47,7 @@ export default function ReportsPage() {
     enabled: !!wsId,
   });
 
-  const workUnitMinutes = workspace?.work_unit_minutes || 60;
+  const workUnitMinutes = workspace?.work_unit_minutes ?? 60;
 
   const getMonthRange = (offset = 0) => {
     const d = new Date(); d.setMonth(d.getMonth() + offset);
@@ -108,7 +108,7 @@ export default function ReportsPage() {
   // Derive employee IDs from search results for server-side filtering
   const employeeIdsFilter = useMemo(() => {
     if (!debouncedSearch.trim()) return undefined; // No filter — show all
-    if (!searchResults?.data?.length) return ["__none__"]; // Search returned nothing — show empty
+    if (!searchResults?.data.length) return ["__none__"]; // Search returned nothing — show empty
     return searchResults.data.map((emp) => emp.id);
   }, [debouncedSearch, searchResults]);
 
@@ -157,7 +157,7 @@ export default function ReportsPage() {
     queryFn: ({ pageParam }) =>
       fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, "summary", pageParam, PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId),
     getNextPageParam: (lastPage, allPages) => {
-      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
       const total = lastPage.total || 0;
       if (totalLoaded >= total) return undefined;
       return allPages.length + 1;
@@ -181,7 +181,7 @@ export default function ReportsPage() {
 
   // Compute quick stats from the FULL dataset (all employees, not just loaded pages)
   const quickStats = useMemo(() => {
-    const allData = allStatsResponse?.data || [];
+    const allData = allStatsResponse?.data ?? [];
     const stdHours = formatUnitsToHours(
  
       (allData as AttendanceSummary[]).reduce((accumulator: number, r: AttendanceSummary) => accumulator + (r.total_std_units || 0), 0),
@@ -228,7 +228,7 @@ export default function ReportsPage() {
       cell: (row) => (
         <div>
           <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{row.employee_name}</div>
-          <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">{row.employee_id_number || "—"}</div>
+          <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">{row.employee_id_number ?? "—"}</div>
         </div>
       ),
       headerClassName: "px-10",
@@ -391,10 +391,10 @@ export default function ReportsPage() {
       {/* Employee Daily Drill-down Drawer */}
       <EmployeeDailyDrawer
         dateRange={dateRange}
-        employeeId={selectedEmployee?.id || ""}
-        employeeName={selectedEmployee?.name || ""}
+        employeeId={selectedEmployee?.id ?? ""}
+        employeeName={selectedEmployee?.name ?? ""}
         isOpen={!!selectedEmployee}
-        key={selectedEmployee?.id || "closed"}
+        key={selectedEmployee?.id ?? "closed"}
         onClose={handleDrawerClose}
         workspaceId={wsId}
         workUnitMinutes={workUnitMinutes}

@@ -47,8 +47,8 @@ export default function AttendanceAdjustmentsPage() {
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: string }) => approveAttendanceAdjustment(wsId!, data.id, { status: data.status }),
     onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] }); 
-      queryClient.invalidateQueries({ queryKey: ["time-history"] }); 
+      void queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] }); 
+      void queryClient.invalidateQueries({ queryKey: ["time-history"] }); 
       toast.success(t("common.success")); 
     },
   });
@@ -123,7 +123,7 @@ export default function AttendanceAdjustmentsPage() {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed">{request.reason || t("common.no_notes")}</p>
+                    <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed">{request.reason ?? t("common.no_notes")}</p>
                   </td>
                   <td className="px-8 py-6 text-center">
                     <StatusBadge variant={request.status === "pending" ? "warning" : request.status === "approved" ? "success" : "danger"}>

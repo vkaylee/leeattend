@@ -62,13 +62,13 @@ describe("Combobox AutoFocus", () => {
 
   it("starts with popover open when autoFocus is true", () => {
     // eslint-disable-next-line jsx-a11y/no-autofocus
-    render(<Combobox autoFocus={true} onChange={() => { }} options={options} />);
+    render(<Combobox autoFocus={true} onChange={() => { /* empty */ }} options={options} />);
     const root = screen.getByTestId("popover-root");
     expect(root.getAttribute("data-open")).toBe("true");
   });
 
   it("always passes autoFocus=true to Command.Input", () => {
-    render(<Combobox onChange={() => { }} options={options} />);
+    render(<Combobox onChange={() => { /* empty */ }} options={options} />);
     expect(Command.Input).toHaveBeenCalledWith(
       expect.objectContaining({ autoFocus: true }),
       undefined
@@ -90,8 +90,8 @@ describe("Combobox Keyboard Shortcut", () => {
     render(
       <Combobox
         keyboardShortcut="/"
-        onChange={() => { }}
-        onSearchChange={() => { }}
+        onChange={() => { /* empty */ }}
+        onSearchChange={() => { /* empty */ }}
         options={options}
       />
     );
@@ -112,7 +112,7 @@ describe("Combobox Keyboard Shortcut", () => {
     render(
       <Combobox
         keyboardShortcut="/"
-        onChange={() => { }}
+        onChange={() => { /* empty */ }}
         onSearchChange={onSearchChange}
         options={options}
       />
@@ -129,7 +129,7 @@ describe("Combobox Keyboard Shortcut", () => {
         <input data-testid="other-input" />
         <Combobox
           keyboardShortcut="/"
-          onChange={() => { }}
+          onChange={() => { /* empty */ }}
           onSearchChange={onSearchChange}
           options={options}
         />
@@ -148,7 +148,7 @@ describe("Combobox Keyboard Shortcut", () => {
     const { unmount: unmount1 } = render(
       <Combobox
         keyboardShortcut={["/", "Enter"]}
-        onChange={() => { }}
+        onChange={() => { /* empty */ }}
         onSearchChange={onSearchChange1}
         options={options}
       />
@@ -163,7 +163,7 @@ describe("Combobox Keyboard Shortcut", () => {
     render(
       <Combobox
         keyboardShortcut={["/", "Enter"]}
-        onChange={() => { }}
+        onChange={() => { /* empty */ }}
         onSearchChange={onSearchChange2}
         options={options}
       />
@@ -182,7 +182,7 @@ describe("Combobox Keyboard Shortcut", () => {
         autoFocus={true} // Starts open
  
         keyboardShortcut="Enter"
-        onChange={() => { }}
+        onChange={() => { /* empty */ }}
         onSearchChange={onSearchChange}
         options={options}
       />
@@ -233,7 +233,7 @@ describe("Combobox First Item Highlight", () => {
       { value: "emp-2", label: "Bob", description: "1656" },
     ];
 
-    render(<Combobox onChange={() => { }} options={options} />);
+    render(<Combobox onChange={() => { /* empty */ }} options={options} />);
 
     const cmdkRoot = screen.getByTestId("cmdk-root");
     // The cmdk value should be constructed from the first option
@@ -248,13 +248,13 @@ describe("Combobox First Item Highlight", () => {
       { value: "emp-3", label: "Charlie", description: "9999" },
     ];
 
-    const { rerender } = render(<Combobox onChange={() => { }} options={options1} />);
+    const { rerender } = render(<Combobox onChange={() => { /* empty */ }} options={options1} />);
 
     let cmdkRoot = screen.getByTestId("cmdk-root");
     expect(cmdkRoot.getAttribute("data-value")).toBe("Alice 1541 emp-1");
 
     // Re-render with new options (simulating server-side search returning different results)
-    rerender(<Combobox onChange={() => { }} options={options2} />);
+    rerender(<Combobox onChange={() => { /* empty */ }} options={options2} />);
 
     cmdkRoot = screen.getByTestId("cmdk-root");
     expect(cmdkRoot.getAttribute("data-value")).toBe("Charlie 9999 emp-3");

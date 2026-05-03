@@ -47,7 +47,7 @@ export function AdjustmentRequestModal({
       ? formatTime24h(timeEntry.punch_out_time)
       : "17:00",
     reason: "",
-    isBreakOvertime: timeEntry?.is_break_overtime || false,
+    isBreakOvertime: timeEntry?.is_break_overtime ?? false,
     timeEntryId: timeEntry?.id
   });
 

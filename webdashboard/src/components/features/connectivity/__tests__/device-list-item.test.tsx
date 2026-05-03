@@ -62,8 +62,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
         />
       </ToastProvider>
     );
@@ -76,8 +76,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={mockStatus}
         />
       </ToastProvider>
@@ -92,8 +92,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={undefined}
         />
       </ToastProvider>
@@ -112,8 +112,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithNull}
         />
       </ToastProvider>
@@ -132,8 +132,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithZero}
         />
       </ToastProvider>
@@ -149,14 +149,14 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={mockStatus}
         />
       </ToastProvider>
     );
     const logsSection = screen.getByText(LOGS_LABEL).nextElementSibling;
-    const text = logsSection?.textContent || "";
+    const text = logsSection?.textContent ?? "";
     // Should show logs_count and capacity with separator
     expect(text).toContain("1,337");
     expect(text).toContain("50,000");
@@ -172,14 +172,14 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusNoCapacity}
         />
       </ToastProvider>
     );
     const logsSection = screen.getByText(LOGS_LABEL).nextElementSibling;
-    const text = logsSection?.textContent || "";
+    const text = logsSection?.textContent ?? "";
     expect(text).toContain("1,337");
     expect(text).not.toContain("/");
   });
@@ -193,14 +193,14 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusZeroCapacity}
         />
       </ToastProvider>
     );
     const logsSection = screen.getByText(LOGS_LABEL).nextElementSibling;
-    const text = logsSection?.textContent || "";
+    const text = logsSection?.textContent ?? "";
     expect(text).toContain("1,337");
     expect(text).not.toContain("/");
   });
@@ -216,8 +216,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithSync}
         />
       </ToastProvider>
@@ -237,8 +237,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusNoSync}
         />
       </ToastProvider>
@@ -258,8 +258,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithZ}
         />
       </ToastProvider>
@@ -278,8 +278,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithOffset}
         />
       </ToastProvider>
@@ -300,8 +300,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithSerial}
         />
       </ToastProvider>
@@ -318,8 +318,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithMac}
         />
       </ToastProvider>
@@ -336,8 +336,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithHw}
         />
       </ToastProvider>
@@ -354,8 +354,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusNoSerial}
         />
       </ToastProvider>
@@ -376,14 +376,14 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithCap}
         />
       </ToastProvider>
     );
     const usersSection = screen.getByText("devices.info.users_capacity").nextElementSibling;
-    const text = usersSection?.textContent || "";
+    const text = usersSection?.textContent ?? "";
     expect(text).toContain("120");
     expect(text).toContain("500");
     expect(text).toContain("/");
@@ -398,14 +398,14 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusNoCap}
         />
       </ToastProvider>
     );
     const usersSection = screen.getByText("devices.info.users_capacity").nextElementSibling;
-    const text = usersSection?.textContent || "";
+    const text = usersSection?.textContent ?? "";
     expect(text).toContain("42");
     expect(text).not.toContain("/");
   });
@@ -422,8 +422,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusWithTime}
         />
       </ToastProvider>
@@ -437,8 +437,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={undefined}
         />
       </ToastProvider>
@@ -457,8 +457,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={statusNoFw}
         />
       </ToastProvider>
@@ -474,8 +474,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={disabledDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           status={mockStatus}
         />
       </ToastProvider>
@@ -489,8 +489,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onDelete={async () => { }}
-          onUpdate={async () => { }}
+          onDelete={async () => { /* empty */ }}
+          onUpdate={async () => { /* empty */ }}
           parentAgentActive={false}
           status={mockStatus}
         />

@@ -61,12 +61,12 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
 
   const saveIndividualConfigMutation = useMutation({
     mutationFn: (data: { std_working_days: number; hours_per_day: number; effective_date: string }) => setEmployeePayrollConfig(wsId, employeeId, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["employee-payroll-configs", employeeId] }); toast.success(t("common.success")); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["employee-payroll-configs", employeeId] }); toast.success(t("common.success")); },
   });
 
   const assignMutation = useMutation({
     mutationFn: (data: Partial<EmployeeSalaryComponent>) => assignEmployeeSalaryComponent(wsId, employeeId, data),
-    onSuccess: () => { toast.success(t("common.success")); queryClient.invalidateQueries({ queryKey: ["employee-salary-components", employeeId] }); setIsAdding(false); setAmount(""); setSelectedCompId(""); },
+    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["employee-salary-components", employeeId] }); setIsAdding(false); setAmount(""); setSelectedCompId(""); },
   });
 
   const handleAssign = (e: React.FormEvent) => {

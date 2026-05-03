@@ -26,7 +26,7 @@ export default function AdjustmentDrawer({
   onAdjustmentResolved
 }: AdjustmentDrawerProps) {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId() || "";
+  const wsId = getCurrentWorkspaceId() ?? "";
   const queryClient = useQueryClient();
   const toast = useToast();
   const { formatDate, formatTime } = useDateTimeFormatter();
@@ -43,7 +43,7 @@ export default function AdjustmentDrawer({
     mutationFn: (data: { id: string; status: "approved" | "rejected" }) => 
       approveAttendanceAdjustment(wsId, data.id, { status: data.status }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["adjustments"] });
+      void queryClient.invalidateQueries({ queryKey: ["adjustments"] });
       toast.success(t("common.success"));
       if (onAdjustmentResolved) onAdjustmentResolved();
     },

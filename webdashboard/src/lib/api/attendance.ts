@@ -355,8 +355,8 @@ export async function adminConfirmAttendance(
     };
 
     // Use actual punch times if available; otherwise use scheduled times or midnight fallback
-    const punchIn = row.actual_punch_in || row.scheduled_start || "00:00:00";
-    const punchOut = row.actual_punch_out || row.scheduled_end || undefined;
+    const punchIn = (row.actual_punch_in ?? row.scheduled_start) ?? "00:00:00";
+    const punchOut = (row.actual_punch_out ?? row.scheduled_end) ?? undefined;
 
     const adjustment = await submitAttendanceAdjustment(wsId, {
       employee_id: row.employee_id,
@@ -364,7 +364,7 @@ export async function adminConfirmAttendance(
       requested_punch_out_time: punchOut
         ? toDatetime(row.date, punchOut)
         : undefined,
-      reason: reason || "Admin confirmation",
+      reason: reason ?? "Admin confirmation",
     });
     requestId = adjustment.id;
   }
