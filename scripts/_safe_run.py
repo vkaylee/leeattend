@@ -16,9 +16,12 @@ import signal
 import subprocess
 import sys
 import threading
+import time as _time
 from types import FrameType
 
 import psutil
+
+from _arg_sanitizer import sanitize, ArgSanitizeError
 
 
 def read_from_pty(master_fd: int, stop_event: threading.Event) -> None:
@@ -79,7 +82,7 @@ def kill_process_tree(pid: int) -> None:
 
 
 def validate_command(cmd_args: list[str] | str) -> None:
-    """Check if the command uses strictly banned inline patterns."""
+    """Check if the command contains PTY-hang risks: banned patterns, unsafe args."""
     banned_interpreters = ["python -c", "python3 -c", "node -e", "ruby -e", "perl -e", "php -r"]
     banned_patterns = ["<<EOF", "<<-EOF"]
 
@@ -97,9 +100,19 @@ def validate_command(cmd_args: list[str] | str) -> None:
                 file=sys.stderr,
             )
             print(
-                "💡 Solution: Please create a file in scripts/ai-tools/ and run that file.",
+                "💡 Solution: Use ./scripts/ai-tools/run-inline -l <lang> -c 'code'",
                 file=sys.stderr,
             )
+            print("!" * 80 + "\n", file=sys.stderr)
+            sys.exit(1)
+
+    # Validate args through the AI arg sanitizer
+    if isinstance(cmd_args, list) and len(cmd_args) > 0:
+        try:
+            sanitize(cmd_args)
+        except ArgSanitizeError as e:
+            print("\n" + "!" * 80, file=sys.stderr)
+            print(f"🚨 PTY SAFETY ERROR: {e}", file=sys.stderr)
             print("!" * 80 + "\n", file=sys.stderr)
             sys.exit(1)
 
@@ -162,7 +175,16 @@ def execute_command(cmd_args: list[str], timeout_sec: float) -> int:
         kill_process_tree(proc.pid)
         exit_code = 124  # standard timeout exit code
     finally:
-        # Cleanup
+        # ── CRITICAL: Kill remaining children to release PTY slave FD ──
+        # Normal exit: fast os.killpg to nuke leftover children (conmon).
+        # Timeout/signal: kill_process_tree already did full cleanup above.
+        if exit_code != 124:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+                _time.sleep(0.2)
+            except OSError:
+                pass  # Process group already gone
+
         stop_read_event.set()
         read_thread.join()
         with contextlib.suppress(OSError):

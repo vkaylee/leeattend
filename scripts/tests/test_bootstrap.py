@@ -1,0 +1,185 @@
+"""Tests for _bootstrap.py — env setup, engine detection, profile resolution."""
+
+import os
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PROJECT_ROOT / "scripts"))
+
+from _bootstrap import (  # noqa: E402
+    PROJECT_ROOT as BOOTSTRAP_ROOT,
+    SCRIPTS_DIR,
+    detect_engine,
+    detect_compose_cmd,
+    resolve_profiles,
+    resolve_lifecycle_profiles,
+    bootstrap_env,
+)
+
+
+class TestPaths:
+    def test_project_root_exists(self):
+        assert BOOTSTRAP_ROOT.is_dir()
+
+    def test_scripts_dir_exists(self):
+        assert SCRIPTS_DIR.is_dir()
+
+    def test_project_root_is_parent_of_scripts(self):
+        assert SCRIPTS_DIR.parent == BOOTSTRAP_ROOT
+
+
+class TestDetectEngine:
+    def test_podman_preferred(self):
+        with patch("shutil.which", side_effect=lambda cmd: cmd in ("podman",)):
+            assert detect_engine() == "podman"
+
+    def test_docker_fallback(self):
+        with patch("shutil.which", side_effect=lambda cmd: cmd in ("docker",)):
+            assert detect_engine() == "docker"
+
+    def test_default_podman_when_none(self):
+        with patch("shutil.which", return_value=None):
+            assert detect_engine() == "podman"
+
+    def test_podman_over_docker(self):
+        """podman should win even if docker is also available."""
+        with patch("shutil.which", return_value="/usr/bin/podman"):
+            assert detect_engine() == "podman"
+
+
+class TestDetectCompose:
+    def test_podman_compose_when_podman(self):
+        with patch("shutil.which", side_effect=lambda cmd: cmd in ("podman",)):
+            assert detect_compose_cmd() == ["podman-compose"]
+
+    def test_docker_compose_when_docker_only(self):
+        with patch("shutil.which", side_effect=lambda cmd: cmd in ("docker",)):
+            assert detect_compose_cmd() == ["docker", "compose"]
+
+    def test_default_podman_compose(self):
+        with patch("shutil.which", return_value=None):
+            assert detect_compose_cmd() == ["podman-compose"]
+
+
+class TestResolveProfiles:
+    @staticmethod
+    def _has_profile(profiles: list[str], name: str) -> bool:
+        """Check if a --profile flag with given name exists in the list."""
+        for i, item in enumerate(profiles):
+            if item == "--profile" and i + 1 < len(profiles) and profiles[i + 1] == name:
+                return True
+        return False
+
+    def test_api_mode(self):
+        profiles = resolve_profiles("api")
+        assert self._has_profile(profiles, "lint-api")
+        assert self._has_profile(profiles, "unit-api")
+        assert self._has_profile(profiles, "infra-db")
+        assert self._has_profile(profiles, "infra-db-init")
+        assert not self._has_profile(profiles, "lint-web")
+        assert not self._has_profile(profiles, "e2e-web")
+
+    def test_integration_mode(self):
+        profiles = resolve_profiles("integration")
+        assert self._has_profile(profiles, "int-api")
+        assert self._has_profile(profiles, "infra-redis")
+        assert not self._has_profile(profiles, "lint-web")
+
+    def test_web_mode(self):
+        profiles = resolve_profiles("web")
+        assert self._has_profile(profiles, "lint-web")
+        assert self._has_profile(profiles, "unit-web")
+        assert self._has_profile(profiles, "e2e-web")
+        assert not self._has_profile(profiles, "infra-db")
+        assert not self._has_profile(profiles, "int-api")
+
+    def test_all_mode(self):
+        profiles = resolve_profiles("all")
+        assert self._has_profile(profiles, "int-api")
+        assert self._has_profile(profiles, "e2e-web")
+        assert self._has_profile(profiles, "infra-redis")
+
+    def test_unknown_mode_defaults_to_all(self):
+        profiles = resolve_profiles("unknown")
+        assert profiles == resolve_profiles("all")
+
+    def test_custom_profiles_from_env(self):
+        with patch.dict(os.environ, {"PROFILES": "--profile custom1 --profile custom2"}):
+            profiles = resolve_profiles("api")
+            assert profiles == ["--profile", "custom1", "--profile", "custom2"]
+
+    def test_empty_custom_profiles(self):
+        with patch.dict(os.environ, {"PROFILES": ""}):
+            profiles = resolve_profiles("api")
+            assert len(profiles) > 0  # falls back to default
+
+
+class TestResolveLifecycleProfiles:
+    def test_api_mode_backend_only(self):
+        profiles = resolve_lifecycle_profiles("api")
+        assert profiles == ["--profile", "backend"]
+
+    def test_integration_mode_backend_only(self):
+        profiles = resolve_lifecycle_profiles("integration")
+        assert profiles == ["--profile", "backend"]
+
+    def test_web_mode_frontend_only(self):
+        profiles = resolve_lifecycle_profiles("web")
+        assert profiles == ["--profile", "frontend"]
+
+    def test_all_mode_both(self):
+        profiles = resolve_lifecycle_profiles("all")
+        assert "--profile" in profiles
+        assert "backend" in profiles
+        assert "frontend" in profiles
+
+    def test_unknown_defaults_to_all(self):
+        profiles = resolve_lifecycle_profiles("unknown")
+        assert profiles == resolve_lifecycle_profiles("all")
+
+
+class TestBootstrapEnv:
+    def test_default_mode_all(self):
+        env = bootstrap_env()
+        assert env["COMPOSE_PROJECT_NAME"] == "leeattend-test"
+        assert env["PODMAN_COMPOSE_PROJECT_NAME"] == "leeattend-test"
+        assert env["USE_DOCKER"] == "true"
+        assert env["MODE"] == "all"
+        assert "CONTAINER_ENGINE" in env
+        assert "DOCKER_COMPOSE_CMD" in env
+        assert "DOCKER_COMPOSE_BASE" in env
+        assert "DOCKER_COMPOSE_TOOL" in env
+        assert "PROJECT_ROOT" in env
+
+    def test_mode_injection(self):
+        env = bootstrap_env(mode="api")
+        assert env["MODE"] == "api"
+        assert "--profile lint-api" in env["DOCKER_COMPOSE_CMD"]
+        assert "--profile e2e-web" not in env["DOCKER_COMPOSE_CMD"]
+
+    def test_project_name_from_env(self):
+        with patch.dict(os.environ, {"COMPOSE_PROJECT_NAME": "my-custom-project"}):
+            env = bootstrap_env()
+            assert env["COMPOSE_PROJECT_NAME"] == "my-custom-project"
+            assert env["PODMAN_COMPOSE_PROJECT_NAME"] == "my-custom-project"
+
+    def test_compose_base_has_no_profiles(self):
+        env = bootstrap_env(mode="api")
+        base = env["DOCKER_COMPOSE_BASE"]
+        assert "--profile" not in base
+        assert "leeattend-test" in base
+        assert "docker-compose.test.yml" in base
+
+    def test_compose_too_is_space_separated(self):
+        env = bootstrap_env()
+        tool = env["DOCKER_COMPOSE_TOOL"]
+        assert isinstance(tool, str)
+        # Could be "podman-compose" or "docker compose"
+        assert len(tool) > 0
+
+    def test_env_contains_project_root(self):
+        env = bootstrap_env()
+        assert env["PROJECT_ROOT"] == str(BOOTSTRAP_ROOT)
+        assert (BOOTSTRAP_ROOT / "scripts").as_posix() == SCRIPTS_DIR.as_posix()

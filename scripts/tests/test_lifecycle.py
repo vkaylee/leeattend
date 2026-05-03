@@ -1,0 +1,195 @@
+"""Tests for _lifecycle.py — lifecycle_up, lifecycle_down, health checks."""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+from unittest.mock import patch, MagicMock
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PROJECT_ROOT / "scripts"))
+
+import _lifecycle  # noqa: E402
+from _lifecycle import (  # noqa: E402
+    _container_healthy,
+    lifecycle_up,
+    lifecycle_down,
+    start_watchdog,
+)
+
+
+class TestContainerHealthy:
+    def test_healthy_container(self):
+        with patch("_lifecycle._run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="healthy", returncode=0)
+            assert _container_healthy("test_apiserver_1") is True
+
+    def test_unhealthy_container(self):
+        with patch("_lifecycle._run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="unhealthy\n", returncode=0)
+            assert _container_healthy("test_apiserver_1") is False
+
+    def test_empty_output(self):
+        with patch("_lifecycle._run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="", returncode=1)
+            assert _container_healthy("test_apiserver_1") is False
+
+
+class TestLifecycleUp:
+    def test_api_mode_starts_backend(self):
+        with (
+            patch("_lifecycle._run") as mock_run,
+            patch("_lifecycle._container_healthy", return_value=True),
+            patch("_lifecycle.time.sleep"),
+        ):
+            result = lifecycle_up("api")
+            assert result is True
+            all_call_args = str(mock_run.call_args_list)
+            assert "up" in all_call_args
+
+    def test_web_mode_checks_bun_init(self):
+        with (
+            patch("_lifecycle._run") as mock_run,
+            patch("_lifecycle._container_healthy", return_value=True),
+            patch("_lifecycle.time.sleep"),
+        ):
+            result = lifecycle_up("web")
+            assert result is True
+
+    def test_health_check_timeout_returns_false(self):
+        with (
+            patch("_lifecycle._run") as mock_run,
+            patch("_lifecycle._container_healthy", return_value=False),
+            patch("_lifecycle.time.sleep"),
+        ):
+            result = lifecycle_up("api")
+            assert result is False
+
+    def test_no_pre_cleanup_on_up(self):
+        """lifecycle_up must NOT do a pre-down — concurrent agents share containers."""
+        with (
+            patch("_lifecycle._run") as mock_run,
+            patch("_lifecycle._container_healthy", return_value=True),
+            patch("_lifecycle.time.sleep"),
+        ):
+            lifecycle_up("api")
+            all_call_str = str(mock_run.call_args_list)
+            assert "down" not in all_call_str
+
+    def test_stops_containers(self):
+        with patch("_lifecycle._run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            lifecycle_down("all")
+            all_call_str = str(mock_run.call_args_list)
+            assert "down" in all_call_str
+
+    def test_no_remove_orphans(self):
+        """lifecycle_down must NOT use --remove-orphans (concurrent safety)."""
+        with patch("_lifecycle._run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            lifecycle_down("all")
+            all_call_str = str(mock_run.call_args_list)
+            assert "--remove-orphans" not in all_call_str
+
+    def test_no_force_kill(self):
+        """Force-kill is profile-specific — only frontend/backend containers."""
+        with patch("_lifecycle._run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            lifecycle_down("web")
+            all_call_str = str(mock_run.call_args_list)
+            # Must force-remove bun_init and webdashboard (profile-specific)
+            assert "bun_init" in all_call_str or "webdashboard" in all_call_str
+            # Must NOT force-remove containers from other profiles
+            assert "apiserver" not in all_call_str
+            assert "db" not in all_call_str or "db_init" in all_call_str  # db_init ok, db not
+
+    def test_no_volume_cleanup(self):
+        """lifecycle_down must NOT remove shared-data volume (used by other agents)."""
+        with patch("_lifecycle._run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            lifecycle_down("all")
+            all_call_str = str(mock_run.call_args_list)
+            assert "volume" not in all_call_str
+
+
+class TestStartWatchdog:
+    def test_spawns_detached_process(self):
+        with patch("subprocess.Popen") as mock_popen:
+            mock_proc = MagicMock()
+            mock_proc.pid = 99999
+            mock_popen.return_value = mock_proc
+            result = start_watchdog(60, 12345)
+            assert result == 99999
+            kwargs = mock_popen.call_args.kwargs
+            assert kwargs["start_new_session"] is True
+            assert kwargs["stdin"] == subprocess.DEVNULL
+            assert kwargs["stdout"] == subprocess.DEVNULL
+            assert kwargs["stderr"] == subprocess.DEVNULL
+
+    def test_uses_correct_parent_pid(self):
+        with patch("subprocess.Popen") as mock_popen:
+            mock_proc = MagicMock()
+            mock_proc.pid = 1
+            mock_popen.return_value = mock_proc
+            start_watchdog(60, 54321)
+            cmd_str = " ".join(mock_popen.call_args.args[0])
+            assert "54321" in cmd_str
+
+
+class TestLifecycleComposeCommand:
+    """Verify lifecycle_up/down always use correct compose base (bug: bun_init leak)."""
+
+    def test_lifecycle_down_uses_base_not_env_override(self):
+        """lifecycle_down must use DOCKER_COMPOSE_BASE with -p and -f."""
+        with patch("_lifecycle._run") as mock_run, \
+             patch.dict("os.environ", {"DOCKER_COMPOSE_CMD": "podman-compose"}):
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            lifecycle_down("web")
+            down_cmd = " ".join(mock_run.call_args_list[0][0][0])
+            # Must have project name and compose file (not just "podman-compose")
+            assert "-p" in down_cmd
+            assert "leeattend-test" in down_cmd
+            assert "-f" in down_cmd
+            assert "docker-compose.test.yml" in down_cmd
+
+    def test_lifecycle_down_web_uses_frontend_profile(self):
+        """web mode down must include --profile frontend to catch bun_init."""
+        with patch("_lifecycle._run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            lifecycle_down("web")
+            down_cmd = " ".join(mock_run.call_args_list[0][0][0])
+            assert "--profile" in down_cmd
+            assert "frontend" in down_cmd
+
+    def test_lifecycle_down_api_uses_backend_profile(self):
+        """api mode down must include --profile backend."""
+        with patch("_lifecycle._run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            lifecycle_down("api")
+            down_cmd = " ".join(mock_run.call_args_list[0][0][0])
+            assert "--profile" in down_cmd
+            assert "backend" in down_cmd
+
+    def test_lifecycle_up_web_uses_task_profiles_not_frontend(self):
+        """lifecycle_up(web) must use lint-web, unit-web, e2e-web (not frontend)."""
+        with patch("_lifecycle._run") as mock_run, \
+             patch("_lifecycle._container_healthy", return_value=True), \
+             patch("_lifecycle.time.sleep"):
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            lifecycle_up("web")
+            up_cmd = " ".join(mock_run.call_args_list[0][0][0])  # only up -d, no pre-down
+            assert "lint-web" in up_cmd
+            assert "e2e-web" in up_cmd
+
+    def test_lifecycle_up_has_correct_compose_base(self):
+        """lifecycle_up must use DOCKER_COMPOSE_BASE with -p and -f."""
+        with patch("_lifecycle._run") as mock_run, \
+             patch("_lifecycle._container_healthy", return_value=True), \
+             patch("_lifecycle.time.sleep"), \
+             patch.dict("os.environ", {"DOCKER_COMPOSE_CMD": "wrong-value-only"}):
+            mock_run.return_value = MagicMock(stdout="", returncode=0)
+            lifecycle_up("api")
+            up_cmd = " ".join(mock_run.call_args_list[0][0][0])
+            # Must use correct compose file, not env override
+            assert "docker-compose.test.yml" in up_cmd
+            assert "leeattend-test" in up_cmd

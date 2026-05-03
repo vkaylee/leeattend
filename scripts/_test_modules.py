@@ -1,0 +1,169 @@
+"""Test function modules — Python equivalents of _test-lint.sh, _test-unit.sh,
+_test-integration.sh, _test-coverage.sh.
+
+Provides leeattend_run_lint(), leeattend_run_unit(), leeattend_run_integration(),
+and leeattend_run_coverage() called directly by the orchestrator.
+
+All user-provided strings interpolated into shell commands are escaped via
+shlex.quote() to prevent shell injection through --pattern args.
+"""
+
+import os
+import shlex
+from pathlib import Path
+
+from _bootstrap import PROJECT_ROOT
+from _test_utils import (
+    build_compose_exec,
+    run_parallel_ordered,
+)
+
+
+def _safe_pattern(pattern: str) -> str:
+    """Shell-escape a test pattern for safe interpolation into bash -c."""
+    if pattern:
+        return shlex.quote(pattern)
+    return ""
+
+
+def _safe_pattern_quoted(pattern: str) -> str:
+    """Shell-escape a test pattern that goes inside double quotes (-g \"...\")."""
+    if pattern:
+        # shlex.quote adds outer quotes, but we need inner escaped value
+        return shlex.quote(pattern)
+    return ""
+
+
+def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
+    """Run linting (clippy, fmt, eslint, type-check)."""
+    tasks: list[tuple[str, str, list[str]]] = []
+
+    if mode in ("all", "api", "integration"):
+        pkg_flag = f"--package {component_filter}" if component_filter in ["apiserver", "agent-main"] else "--workspace"
+        backend_cmd = build_compose_exec(
+            "apiserver",
+            f"cargo clippy {pkg_flag} -- -D warnings && cargo fmt --all -- --check",
+            workdir="/workspace",
+        )
+        task_name = f"rust-backend-clippy-{component_filter}" if component_filter else "rust-backend-clippy"
+        tasks.append((task_name, "apiserver", backend_cmd))
+
+    if mode in ("all", "web"):
+        lint_cmd = build_compose_exec("webdashboard", "bun run lint")
+        tasks.append(("webdashboard-lint", "webdashboard", lint_cmd))
+
+        typecheck_cmd = build_compose_exec("webdashboard", "bun run type-check")
+        tasks.append(("webdashboard-typecheck", "webdashboard", typecheck_cmd))
+
+    if mode == "all":
+        sync_cmd = build_compose_exec(
+            "apiserver", "cargo run -- gen-openapi > /workspace/shared/openapi.json"
+        )
+        sync_cmd2 = build_compose_exec(
+            "webdashboard",
+            "npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts",
+        )
+        combined = sync_cmd[:-1] + ["&&"] + sync_cmd2[1:]
+        tasks.append(("api-sync", "webdashboard", combined))
+
+    return run_parallel_ordered("Linting", component_filter, tasks)
+
+
+def leeattend_run_unit(
+    component_filter: str = "",
+    mode: str = "all",
+    test_pattern: str = "",
+    shard_n: str = "",
+    shard_m: str = "",
+) -> bool:
+    """Run unit tests (cargo nextest, bun test)."""
+    tasks: list[tuple[str, str, list[str]]] = []
+
+    shard_flag = f"--shard={shard_n}/{shard_m}" if shard_n and shard_m else ""
+
+    if mode in ("all", "api", "integration"):
+        pkg_flag = f"--package {component_filter}" if component_filter in ["apiserver", "agent-main"] else "--workspace"
+        backend = f"cargo nextest run {pkg_flag} --lib {_safe_pattern(test_pattern)} {shard_flag} --no-tests=pass"
+        backend_cmd = build_compose_exec(
+            "apiserver",
+            backend,
+            workdir="/workspace",
+        )
+        task_name = f"rust-backend-{component_filter}" if component_filter else "rust-backend"
+        tasks.append((task_name, "apiserver", backend_cmd))
+
+    if mode in ("all", "web"):
+        web = f"bun run test -- {_safe_pattern(test_pattern)} {shard_flag} --passWithNoTests"
+        web_cmd = build_compose_exec("webdashboard", web)
+        tasks.append(("webdashboard", "webdashboard", web_cmd))
+
+    return run_parallel_ordered("Unit Tests", component_filter, tasks)
+
+
+def leeattend_run_integration(
+    component_filter: str = "", mode: str = "all", test_pattern: str = ""
+) -> bool:
+    """Run integration and E2E tests (cargo nextest --test, playwright)."""
+    tasks: list[tuple[str, str, list[str]]] = []
+
+    no_tests_flag = "pass"
+    workdir = "/workspace"
+
+    if mode in ("all", "api", "integration"):
+        if "web" not in component_filter:
+            # API server startup is handled by the lifecycle/container health check
+            # Integration tests use the already-running apiserver container
+            db_url = "postgres://test_user:test_password@db:5432/leeattend_test_template"
+            pkg_flag = f"--package {component_filter}" if component_filter in ["apiserver", "agent-main"] else "--workspace"
+            backend = (
+                f"DATABASE_URL={db_url} "
+                f"cargo nextest run {pkg_flag} --test '*' {_safe_pattern(test_pattern)} "
+                f"--no-tests={no_tests_flag}"
+            )
+            backend_cmd = build_compose_exec(
+                "apiserver",
+                backend,
+                workdir=workdir,
+            )
+            task_name = f"rust-backend-int-{component_filter}" if component_filter else "rust-backend-int"
+            tasks.append((task_name, "apiserver", backend_cmd))
+
+    if mode in ("all", "web"):
+        pw_args = f"-g {_safe_pattern(test_pattern)}" if test_pattern else ""
+        pw = f"npx playwright test {pw_args} --workers 1"
+        pw_cmd = build_compose_exec("webdashboard", pw)
+        tasks.append(("playwright-e2e", "webdashboard", pw_cmd))
+
+    return run_parallel_ordered("Integration & E2E", component_filter, tasks)
+
+
+def leeattend_run_coverage(component_filter: str = "", mode: str = "all") -> bool:
+    """Run test coverage (cargo llvm-cov, vitest coverage)."""
+    tasks: list[tuple[str, str, list[str]]] = []
+
+    coverage_env = "RUSTC_WRAPPER=''"
+
+    if mode in ("all", "api", "integration"):
+        pkg_flag = f"--package {component_filter}" if component_filter in ["apiserver", "agent-main"] else "--workspace"
+        apiserver_cov = (
+            f"mkdir -p /workspace/.test_logs && "
+            f"{coverage_env} cargo llvm-cov nextest --lib --test integration {pkg_flag} "
+            f"--lcov --output-path /workspace/.test_logs/coverage-apiserver.lcov "
+            f"--no-tests=pass 2>&1 && "
+            f"{coverage_env} cargo llvm-cov report --html "
+            f"--output-dir /workspace/.test_logs/coverage-apiserver-html 2>&1 && "
+            f"{coverage_env} cargo llvm-cov report --summary-only 2>&1"
+        )
+        task_name = f"rust-backend-coverage-{component_filter}" if component_filter else "rust-backend-coverage"
+        tasks.append((task_name, "apiserver", build_compose_exec("apiserver", apiserver_cov)))
+
+    if mode in ("all", "web"):
+        tasks.append(
+            (
+                "webdashboard",
+                "webdashboard",
+                build_compose_exec("webdashboard", "bun run test:coverage"),
+            )
+        )
+
+    return run_parallel_ordered("Coverage", component_filter, tasks)

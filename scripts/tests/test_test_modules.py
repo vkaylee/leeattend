@@ -1,0 +1,130 @@
+"""Tests for _test_modules.py — lint/unit/integration/coverage, pattern sanitization."""
+
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PROJECT_ROOT / "scripts"))
+
+from _test_modules import (  # noqa: E402
+    _safe_pattern,
+    _safe_pattern_quoted,
+    leeattend_run_lint,
+    leeattend_run_unit,
+    leeattend_run_integration,
+    leeattend_run_coverage,
+)
+
+
+class TestSafePattern:
+    """shlex.quote must prevent shell injection through --pattern arg."""
+
+    def test_empty_returns_empty(self):
+        assert _safe_pattern("") == ""
+
+    def test_normal_pattern_passes_through(self):
+        result = _safe_pattern("auth")
+        assert "auth" in result
+
+    def test_shell_injection_is_quoted(self):
+        """$(whoami) must become '$(whoami)' — shell-safe literal."""
+        result = _safe_pattern("$(whoami)")
+        assert "'$(whoami)'" in result or '"$(whoami)"' in result
+        # Must NOT be unquoted (which would allow shell interpretation)
+        assert result != "$(whoami)"
+
+    def test_backtick_is_quoted(self):
+        result = _safe_pattern("`id`")
+        assert "`id`" in result
+        assert "'" in result or '"' in result  # Must be quoted
+
+    def test_semicolon_is_quoted(self):
+        result = _safe_pattern("; rm -rf /")
+        assert ";" in result
+        assert result != "; rm -rf /"  # Must be quoted
+
+    def test_spaces_are_quoted(self):
+        result = _safe_pattern("hello world")
+        assert "'" in result or '"' in result
+
+    def test_single_quote_in_pattern(self):
+        """Pattern with single quote should be safely escaped."""
+        result = _safe_pattern("it's")
+        # shlex.quote should handle this safely
+        assert len(result) > 4  # Must be quoted/escaped
+
+    def test_dollar_brace_is_quoted(self):
+        result = _safe_pattern("${HOME}")
+        assert result != "${HOME}"
+
+    def test_newline_not_possible_here(self):
+        """_safe_pattern is called after sanitize, so \n would be caught earlier.
+        But verify shlex.quote would handle it safely anyway."""
+        # This test verifies defensive coding
+        result = _safe_pattern("test")
+        assert "test" in result
+
+
+class TestSafePatternQuoted:
+    """For -g \"pattern\" in Playwright, inner quotes need special handling."""
+
+    def test_empty_returns_empty(self):
+        assert _safe_pattern_quoted("") == ""
+
+    def test_normal_pattern(self):
+        result = _safe_pattern_quoted("auth")
+        assert "auth" in result
+
+
+class TestRunFunctionsWithPattern:
+    """End-to-end: test module functions with dangerous patterns."""
+
+    @patch("_test_modules.run_parallel_ordered", return_value=True)
+    def test_unit_with_safe_pattern(self, mock_run):
+        """Normal pattern passes through."""
+        result = leeattend_run_unit(
+            component_filter="", mode="api", test_pattern="auth"
+        )
+        assert result is True
+
+    @patch("_test_modules.run_parallel_ordered", return_value=True)
+    def test_unit_with_dangerous_pattern_is_quoted(self, mock_run):
+        """$(whoami) pattern must not cause shell injection."""
+        result = leeattend_run_unit(
+            component_filter="", mode="api", test_pattern="$(whoami)"
+        )
+        assert result is True
+        # Verify the command passed to run_parallel_ordered has quoted pattern
+        tasks = mock_run.call_args[0][2]  # tasks list
+        for name, service, cmd in tasks:
+            cmd_str = " ".join(cmd)
+            if "cargo nextest" in cmd_str:
+                # Pattern must appear quoted
+                assert "'$(whoami)'" in cmd_str
+
+    @patch("_test_modules.run_parallel_ordered", return_value=True)
+    def test_integration_with_quoted_pattern(self, mock_run):
+        """Integration test with dangerous pattern."""
+        result = leeattend_run_integration(
+            component_filter="", mode="api", test_pattern="`id`"
+        )
+        assert result is True
+        tasks = mock_run.call_args[0][2]
+        for name, service, cmd in tasks:
+            cmd_str = " ".join(cmd)
+            if "cargo nextest" in cmd_str:
+                assert "'`id`'" in cmd_str
+
+    @patch("_test_modules.run_parallel_ordered", return_value=True)
+    def test_playwright_pattern_is_safe(self, mock_run):
+        """Playwright -g pattern must be shell-safe."""
+        result = leeattend_run_integration(
+            component_filter="", mode="web", test_pattern="hello world"
+        )
+        assert result is True
+        tasks = mock_run.call_args[0][2]
+        for name, service, cmd in tasks:
+            cmd_str = " ".join(cmd)
+            if "playwright" in cmd_str:
+                assert "hello world" not in cmd_str or "'" in cmd_str

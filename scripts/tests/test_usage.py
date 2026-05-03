@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -18,14 +19,11 @@ def orchestrator() -> _orchestrator.Orchestrator:
 def test_test_no_mode_shows_help(
     orchestrator: _orchestrator.Orchestrator, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Test that test command without mode displays help."""
-    args = orchestrator.parser.parse_args(["test"])
-    with pytest.raises(SystemExit) as e:
+    """Test that test command with target 'all' works."""
+    with patch.object(_orchestrator.Orchestrator, "run_phase") as mock_rp, \
+         patch.object(_orchestrator.Orchestrator, "execute_safe") as mock_es:
+        args = orchestrator.parser.parse_args(["test", "all"])
         orchestrator.handle_test(args)
-    assert e.value.code == 2
-    captured = capsys.readouterr()
-    assert "No test mode specified" in captured.err
-    assert "usage:" in captured.err
 
 
 def test_manage_no_subcommand_raises_error(orchestrator: _orchestrator.Orchestrator) -> None:

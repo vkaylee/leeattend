@@ -344,3 +344,61 @@ def test_timeout_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
     called_cmd = mock_call.call_args[0][0]
     # In the command constructed: [sys.executable, safe_run_path, timeout, 'git']
     assert "300" in called_cmd
+
+
+class TestSanitizerFallbackSafety:
+    """Verify _git_wrapper.py never passes empty args to git (would hang)."""
+
+    def test_sanitize_failure_keeps_original_args(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When sanitize raises, args MUST be preserved — never replaced with [].
+        
+        Empty args → git interactive mode + stdin=DEVNULL → infinite hang.
+        """
+        monkeypatch.setattr(sys, "argv", ["_git_wrapper.py", "status"])
+
+        with (
+            mock.patch("subprocess.call", return_value=0) as mock_call,
+            mock.patch("sys.exit"),
+            mock.patch("_git_wrapper.sanitize", side_effect=_git_wrapper.ArgSanitizeError("test")),
+        ):
+            _git_wrapper.main()
+
+        called_cmd = mock_call.call_args[0][0]
+        # ["git", "status"] must be in the command (not just ["git"])
+        assert "status" in called_cmd
+        assert called_cmd.count("git") == 1  # "git" appears once, no empty fallback
+
+    def test_git_add_many_files_keeps_all_args(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Simulate 'git add 13 files' — all paths must survive sanitize."""
+        files = [
+            "webdashboard/src/components/features/leave/leave-request-row.tsx",
+            "webdashboard/src/components/features/reports/use-daily-drawer.ts",
+            "webdashboard/src/components/payroll/payslip-modal.tsx",
+            "webdashboard/src/hooks/use-report-stream.ts",
+            "webdashboard/src/hooks/use-report-stream-socket.ts",
+            "webdashboard/src/hooks/use-report-stream-utils.ts",
+        ]
+        monkeypatch.setattr(sys, "argv", ["_git_wrapper.py", "add"] + files)
+
+        with (
+            mock.patch("subprocess.call", return_value=0) as mock_call,
+            mock.patch("sys.exit"),
+        ):
+            _git_wrapper.main()
+
+        called_cmd = mock_call.call_args[0][0]
+        for f in files:
+            assert f in called_cmd
+
+    def test_non_commit_path_does_not_inject_gpg_flag(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """git add should NOT get --no-gpg-sign injected (only commit does)."""
+        monkeypatch.setattr(sys, "argv", ["_git_wrapper.py", "add", "file.tsx"])
+
+        with (
+            mock.patch("subprocess.call", return_value=0) as mock_call,
+            mock.patch("sys.exit"),
+        ):
+            _git_wrapper.main()
+
+        called_cmd = mock_call.call_args[0][0]
+        assert "--no-gpg-sign" not in called_cmd

@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Safe inline code runner for AI agents.
+
+Replaces dangerous python -c / node -e / bash -c patterns
+that cause PTY hangs through shell interpretation.
+
+Code is written to a temp file and executed via _safe_run.py
+in list form — zero shell interpretation, no PTY risk.
+
+Usage:
+    echo 'print(1)' | run-inline -l python
+    run-inline -l python -c 'print(1)'
+    run-inline -l bun -c 'console.log("hello")'
+    run-inline -l bash -c 'echo $HOME'
+
+Supported -l values:
+    python, python3 → python3
+    bun, node, js   → bun
+    bash, sh        → bash
+"""
+
+import argparse
+import atexit
+import contextlib
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+SAFE_RUN = SCRIPT_DIR.parent / "_safe_run.py"
+TIMEOUT = int(os.environ.get("AI_INLINE_TIMEOUT", "60"))
+
+LANG_MAP: dict[str, str] = {
+    "python": "python3",
+    "python3": "python3",
+    "bun": "bun",
+    "node": "bun",
+    "js": "bun",
+    "bash": "bash",
+    "sh": "bash",
+}
+
+EXT_MAP: dict[str, str] = {
+    "python3": ".py",
+    "bun": ".js",
+    "bash": ".sh",
+}
+
+_temp_files: list[str] = []
+
+
+def _cleanup() -> None:
+    for fp in _temp_files:
+        with contextlib.suppress(OSError):
+            Path(fp).unlink()
+
+
+atexit.register(_cleanup)
+
+
+def _die(msg: str, code: int = 1) -> None:
+    print(f"❌ {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        prog="run-inline",
+        description="Safe inline code runner for AI agents",
+    )
+    parser.add_argument(
+        "-l", "--lang",
+        required=True,
+        choices=list(LANG_MAP.keys()),
+        help="Language/interpreter to use",
+    )
+    parser.add_argument(
+        "-c",
+        dest="code",
+        help="Code to execute (reads from stdin if omitted)",
+    )
+    args = parser.parse_args()
+
+    interpreter = LANG_MAP[args.lang]
+    ext = EXT_MAP[interpreter]
+    code = args.code
+
+    if code is None:
+        # Read from stdin
+        if sys.stdin.isatty():
+            _die("No code provided. Use -c 'code' or pipe via stdin.")
+        code = sys.stdin.read()
+
+    if not code.strip():
+        _die("Empty code. Nothing to execute.")
+
+    # Write code to temp file — avoid all shell interpretation
+    fd, temp_path = tempfile.mkstemp(
+        prefix="ai_inline_", suffix=ext, dir="/tmp"
+    )
+    _temp_files.append(temp_path)
+
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(code)
+        if not code.endswith("\n"):
+            f.write("\n")
+
+    # Execute via _safe_run.py — list form, no shell, PTY-safe
+    # Use _python.sh wrapper for Python interpreters to ensure venv
+    python_wrapper = SCRIPT_DIR.parent / "_python.sh"
+    if interpreter == "python3" and python_wrapper.exists():
+        cmd = [
+            sys.executable,
+            str(SAFE_RUN),
+            str(TIMEOUT),
+            str(python_wrapper),
+            temp_path,
+        ]
+    else:
+        cmd = [
+            sys.executable,
+            str(SAFE_RUN),
+            str(TIMEOUT),
+            interpreter,
+            temp_path,
+        ]
+    sys.exit(subprocess.call(cmd))
+
+
+if __name__ == "__main__":
+    main()

@@ -8,16 +8,30 @@ import signal
 import socket
 import subprocess
 import sys
+import time
 import typing
 from datetime import datetime
 from pathlib import Path
 from types import FrameType
 
+from _arg_sanitizer import sanitize
+from _bootstrap import (
+    PROJECT_ROOT,
+    SCRIPTS_DIR,
+    bootstrap_env,
+    detect_engine,
+    detect_compose_cmd,
+)
+from _lifecycle import lifecycle_down, lifecycle_up as _lifecycle_up
+from _test_modules import (
+    leeattend_run_lint,
+    leeattend_run_unit,
+    leeattend_run_integration,
+    leeattend_run_coverage,
+)
+
 # LeeAttend Enterprise Orchestrator Core
 # ==============================================================================
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
 
 class Colors:
@@ -76,6 +90,7 @@ class Orchestrator:
         }
         self.needs_cleanup = False
         self.active_mode = "all"
+        self.start_time = time.time()
         self.register_traps()
 
     def register_traps(self) -> None:
@@ -96,57 +111,29 @@ class Orchestrator:
             return
 
         self.needs_cleanup = False
-        log_info("🧹 Orchestrator: Triggering final infrastructure cleanup...")
-        bootstrap = SCRIPTS_DIR / "_bootstrap.sh"
-        env = os.environ.copy()
-        env.update(self.env_vars)
-        env["MODE"] = self.active_mode
+        os.environ["MODE"] = self.active_mode
 
-        cleanup_timeout = 60
         try:
             cleanup_log = PROJECT_ROOT / ".test_logs" / "cleanup.log"
             cleanup_log.parent.mkdir(exist_ok=True)
             with cleanup_log.open("a") as f:
                 now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 f.write(f"\n--- Cleanup started at {now} ---\n")
-                cmd = [
-                    "/bin/bash",
-                    "-c",
-                    f'source "{bootstrap}" && leeattend_bootstrap_env && lifecycle_down',
-                ]
-                subprocess.run(
-                    cmd,
-                    env=env,
-                    cwd=PROJECT_ROOT,
-                    stdout=f,
-                    stderr=f,
-                    timeout=cleanup_timeout,
-                    check=False,
-                )
-        except subprocess.TimeoutExpired:
-            log_error("⏰ Cleanup timed out after 60s.")
+                lifecycle_down(self.active_mode)
+        except (OSError, ValueError):
+            pass  # stderr may be closed during test teardown
         except Exception as e:
             log_error(f"❌ Cleanup failed with error: {e}")
-
-        log_success("✨ Infrastructure cleanup completed.")
 
     @property
     def engine(self) -> str:
         """Detect container engine (podman or docker)."""
-        if shutil.which("podman"):
-            return "podman"
-        if shutil.which("docker"):
-            return "docker"
-        return "podman"
+        return detect_engine()
 
     @property
     def compose_engine(self) -> list[str]:
         """Detect compose tool."""
-        if shutil.which("podman"):
-            return ["podman-compose"]
-        if shutil.which("docker"):
-            return ["docker", "compose"]
-        return ["podman-compose"]
+        return detect_compose_cmd()
 
     @property
     def compose_engine_cmd(self) -> str:
@@ -169,24 +156,18 @@ class Orchestrator:
         parent_parser: argparse.ArgumentParser,
     ) -> None:
         test_parser = subparsers.add_parser("test", parents=[parent_parser])
-        test_parser.add_argument("--all", action="store_true")
-        test_parser.add_argument("--api", action="store_true")
-        test_parser.add_argument("--web", action="store_true")
-        test_parser.add_argument("--integration", action="store_true")
-        test_parser.add_argument("--pattern", dest="pattern", help="Regex pattern for tests")
         test_parser.add_argument(
-            "--component",
-            choices=["apiserver", "agent-main", "webdashboard"],
-            help="Specific component to test",
+            "target",
+            choices=["all", "api", "web", "apiserver", "agent-main", "webdashboard", "infra"],
+            help="Target domain or component to test",
         )
-        test_parser.add_argument("--test-only", action="store_true")
-        test_parser.add_argument("--coverage", action="store_true")
+        test_parser.add_argument("--lint-only", action="store_true", help="Run only linting")
+        test_parser.add_argument("--unit-only", action="store_true", help="Run only unit tests")
+        test_parser.add_argument("--e2e-only", action="store_true", help="Run only integration/e2e tests")
+        test_parser.add_argument("--skip-lint", action="store_true", help="Skip linting phase")
+        test_parser.add_argument("--pattern", dest="pattern", help="Regex pattern for tests")
+        test_parser.add_argument("--coverage", action="store_true", help="Run tests with coverage reporting")
         test_parser.add_argument("--timeout", type=int, default=1800)
-
-        # Allow 'test lint:web' style commands
-        test_sub = test_parser.add_subparsers(dest="test_subcommand")
-        for cmd in ["lint:api", "lint:web", "lint:all", "lint:infra"]:
-            test_sub.add_parser(cmd, parents=[parent_parser])
 
     def _setup_manage_parser(
         self,
@@ -251,50 +232,58 @@ class Orchestrator:
             self.handle_run(args)
 
     def handle_test(self, args: argparse.Namespace) -> None:
-        sub = getattr(args, "test_subcommand", None)
-        if sub:
-            if sub == "lint:infra":
+        target = getattr(args, "target", None)
+
+        if target == "infra":
+            if args.lint_only:
                 self.handle_lint_infra()
-            elif sub in ("lint:api", "lint:web", "lint:all"):
-                # Auto-start containers so standalone lint commands are self-contained
-                mode = sub.split(":")[1]
-                self.active_mode = mode
-                startup_mode = "integration" if mode == "api" else mode
-                self.run_phase("Startup", startup_mode, args)
-                self.needs_cleanup = True
-                self.run_phase("Linting", mode, args)
+            else:
+                self.handle_verify_infra()
             return
 
-        if not any([args.all, args.api, args.web, args.integration]):
-            self.parser.error("No test mode specified. Use --all, --api, --web, or --integration.")
+        mode_map = {
+            "all": "all",
+            "api": "api",
+            "web": "web",
+            "apiserver": "api",
+            "agent-main": "api",
+            "webdashboard": "web",
+        }
 
-        mode = "all" if args.all else ("api" if args.api else ("web" if args.web else "api"))
-        if args.integration:
-            mode = "integration"
+        mode = mode_map.get(target, "all")
+        component_filter = target if target in ["apiserver", "agent-main", "webdashboard"] else ""
+        args.component = component_filter
 
         self.active_mode = mode
-        log_info(f"🚀 Starting LeeAttend Test Suite in [{mode}] mode")
+        log_info(f"🚀 Starting LeeAttend Test Suite for [{target}] in mode [{mode}]")
 
-        if mode == "all" and not args.test_only:
+        if target == "all" and not (args.lint_only or args.unit_only or args.e2e_only):
             self.handle_verify_infra()
 
-        if not args.test_only:
-            startup_mode = mode
-            if mode == "api":
-                startup_mode = "integration"
-            self.run_phase("Startup", startup_mode, args)
-            self.needs_cleanup = True
+        startup_mode = "integration" if mode == "api" else mode
+        self.run_phase("Startup", startup_mode, args)
+        self.needs_cleanup = True
 
-        if not args.test_only:
+        run_lint = not args.skip_lint and not (args.unit_only or args.e2e_only)
+        run_unit = not (args.lint_only or args.e2e_only)
+        run_e2e = not (args.lint_only or args.unit_only)
+
+        if args.lint_only:
+            run_lint = True
+
+        if run_lint:
             self.run_phase("Linting", mode, args)
+
+        if run_unit:
             self.run_phase("Unit Tests", mode, args)
 
-        self.run_phase("Integration Tests", mode, args)
+        if run_e2e:
+            self.run_phase("Integration Tests", mode, args)
 
         if args.coverage:
             self.run_phase("Coverage", mode, args)
 
-        log_success(f"All tests for [{mode}] passed successfully!")
+        self.print_test_summary(target)
 
     def run_phase(self, phase_name: str, mode: str, args: argparse.Namespace) -> None:
         if self.dry_run:
@@ -302,38 +291,29 @@ class Orchestrator:
             return
 
         log_info(f"🔹 Running {phase_name}...")
-        func_map = {
-            "Startup": "lifecycle_up",
-            "Linting": "leeattend_run_lint",
-            "Unit Tests": "leeattend_run_unit",
-            "Integration Tests": "leeattend_run_integration",
-            "Coverage": "leeattend_run_coverage",
+        func_map: dict[str, typing.Callable[..., typing.Any]] = {
+            "Startup": lambda: _lifecycle_up(mode),
+            "Linting": lambda: leeattend_run_lint(getattr(args, "component", "") or "", mode),
+            "Unit Tests": lambda: leeattend_run_unit(
+                getattr(args, "component", "") or "",
+                mode,
+                test_pattern=getattr(args, "pattern", "") or "",
+            ),
+            "Integration Tests": lambda: leeattend_run_integration(
+                getattr(args, "component", "") or "",
+                mode,
+                test_pattern=getattr(args, "pattern", "") or "",
+            ),
+            "Coverage": lambda: leeattend_run_coverage(getattr(args, "component", "") or "", mode),
         }
 
-        bootstrap = SCRIPTS_DIR / "_bootstrap.sh"
-        component = getattr(args, "component", None)
-        if component is None:
-            component = ""
-        cmd = [
-            "/bin/bash",
-            "-c",
-            f'source "{bootstrap}" && leeattend_bootstrap_env && '
-            f'{func_map[phase_name]} "{component}"',
-        ]
-
-        env = os.environ.copy()
-        env.update(self.env_vars)
-        env["MODE"] = mode
-        env["PHASE"] = phase_name
-        pattern = getattr(args, "pattern", None)
-        if pattern:
-            env["PATTERN"] = pattern
-        component = getattr(args, "component", None)
-        if component:
-            env["COMPONENT"] = component
-
-        timeout = getattr(args, "timeout", 1800)
-        self.execute_safe(cmd, env=env, timeout=timeout)
+        func = func_map.get(phase_name)
+        if func is None:
+            log_error(f"Unknown phase: {phase_name}")
+            sys.exit(1)
+        res = func()
+        if res is False:
+            sys.exit(1)
 
     def handle_manage(self, args: argparse.Namespace) -> None:
         """Handle 'manage' commands using a dispatch map for simplicity."""
@@ -413,25 +393,41 @@ class Orchestrator:
         if tool_args and tool_args[0] == "--":
             tool_args = tool_args[1:]
 
+        # Sanitize AI-provided arguments BEFORE any processing
+        tool_args = sanitize(tool_args, die_on_error=True)
+
         log_info(f"🛠️ Running {tool} inside container environment...")
 
         compose_cmd = self.compose_engine + [
             "-p",
             self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
         ]
-        
+
         if tool in ["cargo", "sqlx"]:
-            compose_cmd.extend(["--profile", "int-api", "--profile", "infra-db", "--profile", "infra-db-init", "--profile", "infra-redis"])
+            compose_cmd.extend(
+                [
+                    "--profile",
+                    "int-api",
+                    "--profile",
+                    "infra-db",
+                    "--profile",
+                    "infra-db-init",
+                    "--profile",
+                    "infra-redis",
+                ]
+            )
         else:
             compose_cmd.extend(["--profile", "frontend"])
 
-        compose_cmd.extend([
-            "-f",
-            str(PROJECT_ROOT / ".compose" / "docker-compose.test.yml"),
-            "run",
-            "-T",
-            "--rm",
-        ])
+        compose_cmd.extend(
+            [
+                "-f",
+                str(PROJECT_ROOT / ".compose" / "docker-compose.test.yml"),
+                "run",
+                "-T",
+                "--rm",
+            ]
+        )
 
         if tool == "npm":
             self._handle_run_npm(compose_cmd, tool_args, service)
@@ -442,10 +438,14 @@ class Orchestrator:
             if tool_args:
                 compose_cmd.extend(tool_args)
 
-        self.needs_cleanup = True
         self.execute_safe(compose_cmd)
 
     def _handle_run_npm(self, compose_cmd: list[str], tool_args: list[str], service: str) -> None:
+        """Build npm command safely — no bash -c for bun targets.
+
+        Uses --entrypoint for direct execution (list form, no shell interpretation).
+        Only falls back to bash -c for explicit shell commands (bash/sh).
+        """
         npm_min_args = 2
         is_typecheck = (
             len(tool_args) >= npm_min_args and tool_args[0] == "run" and tool_args[1] == "typecheck"
@@ -454,12 +454,17 @@ class Orchestrator:
             tool_args[1] = "type-check"
 
         first_arg = tool_args[0] if tool_args else ""
-        if first_arg in ["bun", "npm", "bash", "sh"]:
-            npm_cmd = " ".join(tool_args)
-        else:
-            npm_cmd = f"bun {' '.join(tool_args)}"
 
-        compose_cmd.extend(["--entrypoint", "bash", service, "-c", npm_cmd])
+        # Safe paths: use --entrypoint for direct execution (no shell)
+        if first_arg in ("bun", "npm", "bash", "sh"):
+            compose_cmd.extend(["--entrypoint", first_arg, service])
+            if len(tool_args) > 1:
+                compose_cmd.extend(tool_args[1:])
+        else:
+            # Default: execute via bun directly (no bash -c)
+            compose_cmd.extend(["--entrypoint", "bun", service])
+            if tool_args:
+                compose_cmd.extend(tool_args)
 
     def _handle_run_cargo(self, compose_cmd: list[str], tool_args: list[str]) -> None:
         caller_dir = Path.cwd()
@@ -624,6 +629,58 @@ class Orchestrator:
         if result.returncode != 0:
             log_error(f"❌ Command failed: {' '.join(cmd)}")
             sys.exit(result.returncode)
+
+    def print_test_summary(self, target: str) -> None:
+        import re
+        total_tests = 0
+        passed_tests = 0
+
+        nextest_pattern = re.compile(r"Summary \[.*?\] (\d+) tests? run: (\d+) passed")
+        vitest_pattern = re.compile(r"Tests\s+(\d+)\s+passed\s+\((\d+)\)")
+        pw_pattern = re.compile(r"^\s*(\d+)\s+passed\s+\(.*?\)", re.MULTILINE)
+
+        log_dir = PROJECT_ROOT / ".test_logs"
+        if log_dir.exists():
+            for log_file in log_dir.glob("*.log"):
+                try:
+                    if log_file.stat().st_mtime < self.start_time:
+                        continue
+
+                    content = log_file.read_text(errors="replace")
+                    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+                    clean_content = ansi_escape.sub('', content)
+
+                    # nextest
+                    matches = list(nextest_pattern.finditer(clean_content))
+                    if matches:
+                        last_match = matches[-1]
+                        total_tests += int(last_match.group(1))
+                        passed_tests += int(last_match.group(2))
+                        continue
+
+                    # vitest
+                    matches = list(vitest_pattern.finditer(clean_content))
+                    if matches:
+                        last_match = matches[-1]
+                        passed_tests += int(last_match.group(1))
+                        total_tests += int(last_match.group(2))
+                        continue
+
+                    # playwright
+                    if "playwright" in log_file.name.lower():
+                        matches = list(pw_pattern.finditer(clean_content))
+                        if matches:
+                            last_match = matches[-1]
+                            passed = int(last_match.group(1))
+                            passed_tests += passed
+                            total_tests += passed
+                except Exception:
+                    pass
+
+        if total_tests > 0:
+            log_success(f"All selected tests for [{target}] passed successfully! ({passed_tests}/{total_tests} tests)")
+        else:
+            log_success(f"All selected tests for [{target}] passed successfully!")
 
 
 if __name__ == "__main__":  # pragma: no cover

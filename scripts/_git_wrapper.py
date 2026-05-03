@@ -7,6 +7,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from _arg_sanitizer import sanitize, ArgSanitizeError
+
 
 def main() -> None:
     script_dir = Path(__file__).parent.resolve()
@@ -72,6 +74,16 @@ def main() -> None:
             processed_args.append("--no-gpg-sign")
     else:
         processed_args = args
+
+    # Sanitize remaining args (messages already extracted to temp files)
+    try:
+        processed_args = sanitize(processed_args)
+    except ArgSanitizeError:
+        # Safety: if sanitize fails, keep original args — never pass empty
+        # to avoid git interactive mode + stdin=DEVNULL = infinite hang
+        print("⚠️ Arg sanitizer warning: some args may be unsafe", file=sys.stderr)
+        # Don't change processed_args — let _safe_run.py's validate_command
+        # catch any real danger before Popen
 
     cmd = [sys.executable, str(safe_run_path), timeout, "git"] + processed_args
     sys.exit(subprocess.call(cmd))
