@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { fetchPayrollRules, createPayrollRule, fetchSalaryBaseGroups } from "@/lib/api/payroll";
-import { PayrollRuleDefinition } from "@/lib/api/types";
+import { PayrollRuleDefinition, SalaryBaseGroup } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 import RuleAssignmentManager from "./rule-assignment-manager";
@@ -14,6 +14,154 @@ import RuleTierManager from "./rule-tier-manager";
 
 interface Props {
   wsId: string;
+}
+
+// eslint-disable-next-line complexity -- Form component has many fields
+function PayrollRuleForm({ 
+  wsId, 
+  bases, 
+  onCancel, 
+  onSuccess 
+}: { 
+  bases: SalaryBaseGroup[]; 
+  onCancel: () => void; 
+  onSuccess: () => void; 
+  wsId: string; 
+}) {
+  const { t } = useTranslation();
+  const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } });
+
+  const createMutation = useMutation({
+    mutationFn: (data: Partial<PayrollRuleDefinition>) => createPayrollRule(wsId, data),
+    onSuccess,
+  });
+
+  const handleSubmit = (e: React.SyntheticEvent) => { e.preventDefault(); createMutation.mutate(formData); };
+
+  return (
+    <form className="space-y-10 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-3 px-1">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-name">{t("common.name")}</label>
+          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-name" onChange={e => { setFormData({...formData, name: e.target.value}); }} placeholder="Social Insurance" required type="text" value={formData.name} />
+        </div>
+        <div className="space-y-3 px-1">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-code">Code</label>
+          <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-code" onChange={e => { setFormData({...formData, code: e.target.value.toUpperCase()}); }} placeholder="BHXH" required type="text" value={formData.code} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-3 px-1">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-category">Category</label>
+          <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-category" onChange={e => { setFormData({...formData, category: e.target.value as "statutory_deduction" | "allowance" | "bonus" | "deduction"}); }} required value={formData.category}>
+            <option value="statutory_deduction">Statutory Deduction</option>
+            <option value="allowance">Allowance</option>
+            <option value="bonus">Bonus</option>
+            <option value="deduction">Deduction</option>
+          </select>
+        </div>
+        <div className="space-y-3 px-1">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc">Calculation Method</label>
+          <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-calc" onChange={e => {
+            const method = e.target.value as "percentage" | "fixed" | "tiered";
+            let newConfig = {};
+            if (method === "percentage") newConfig = { rate: 0, base: "gross" };
+            else if (method === "fixed") newConfig = { amount: 0, frequency: "monthly" };
+            else newConfig = { base: "taxable_income" };
+            setFormData({...formData, calculation_method: method, rule_config: newConfig});
+          }} required value={formData.calculation_method}>
+            <option value="percentage">Percentage</option>
+            <option value="fixed">Fixed</option>
+            <option value="tiered">Tiered (e.g. Tax Brackets)</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-6">
+        <div className="flex items-center gap-3 mb-2">
+          <Calculator className="text-primary-600 dark:text-primary-400" size={18} />
+          <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest">Logic Configuration</h3>
+        </div>
+        
+        {formData.calculation_method === "percentage" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> Rate (%)</label>
+              <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={(formData.rule_config?.rate as number) || ""} />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">Calculation Base</label>
+              <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "gross"}>
+                {bases.map(b => (
+                  <option key={b.slug} value={b.slug}>{b.name}</option>
+                ))}
+                {bases.length === 0 ? (
+                  <>
+                    <option value="gross">Gross Salary (Total)</option>
+                    <option value="taxable_income">Taxable Income</option>
+                  </>
+                ) : null}
+              </select>
+            </div>
+          </div>
+        ) : null}
+
+        {formData.calculation_method === "fixed" ? (
+          <div className="grid grid-cols-1 gap-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-fixed">Fixed Amount (₫)</label>
+              <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-fixed" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}}); }} required type="number" value={(formData.rule_config?.amount as number) || ""} />
+            </div>
+          </div>
+        ) : null}
+
+        {formData.calculation_method === "tiered" ? (
+          <div className="grid grid-cols-1 gap-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-tier-base">Tier Base Amount</label>
+              <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-tier-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "taxable_income"}>
+                {bases.map(b => (
+                  <option key={b.slug} value={b.slug}>{b.name}</option>
+                ))}
+                {bases.length === 0 ? (
+                  <>
+                    <option value="taxable_income">Taxable Income</option>
+                    <option value="gross">Gross Salary (Total)</option>
+                  </>
+                ) : null}
+              </select>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic">Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.</p>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="space-y-5">
+        {[
+          { key: "is_mandatory", label: "Mandatory Rule", desc: "Cannot be bypassed by default", icon: CheckCircle2 }
+        ].map(field => (
+          <React.Fragment key={field.key}>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- dynamic id */}
+            <label className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
+              (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
+            )} htmlFor={`rule-${field.key}`}>
+              <input checked={(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`rule-${field.key}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
+              <div>
+                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon className="opacity-50" size={14} /> {field.label}</p>
+                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{field.desc}</p>
+              </div>
+            </label>
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="flex gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
+        <button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={onCancel} type="button">{t("common.cancel").toUpperCase()}</button>
+        <button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={createMutation.isPending} type="submit">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
+      </div>
+    </form>
+  );
 }
 
 export default function PayrollRulesManager({ wsId }: Props) {
@@ -26,15 +174,6 @@ export default function PayrollRulesManager({ wsId }: Props) {
   const { data: rules, isLoading } = useQuery({ queryKey: ["payroll-rules", wsId], queryFn: () => fetchPayrollRules(wsId), enabled: !!wsId });
   const { data: basesResponse } = useQuery({ queryKey: ["salary-base-groups", wsId], queryFn: () => fetchSalaryBaseGroups(wsId), enabled: !!wsId });
   const bases = basesResponse?.groups;
-  
-  const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } });
-
-  const createMutation = useMutation({
-    mutationFn: (data: Partial<PayrollRuleDefinition>) => createPayrollRule(wsId, data),
-    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["payroll-rules"] }); setIsModalOpen(false); setFormData({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } }); },
-  });
-
-  const handleSubmit = (e: React.SyntheticEvent) => { e.preventDefault(); createMutation.mutate(formData); };
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-700">
@@ -80,8 +219,8 @@ export default function PayrollRulesManager({ wsId }: Props) {
                     <p className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">{rule.name}</p>
                     <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 opacity-70">
                       {rule.category} • {rule.calculation_method} 
-                      {rule.calculation_method === "percentage" && ` (${rule.rule_config.rate}%)`}
-                      {rule.calculation_method === "fixed" && ` (Fixed Amount)`}
+                      {rule.calculation_method === "percentage" && 'rate' in rule.rule_config ? ` (${String(rule.rule_config.rate)}%)` : null}
+                      {rule.calculation_method === "fixed" ? ` (Fixed Amount)` : null}
                     </p>
                   </div>
                 </div>
@@ -98,148 +237,30 @@ export default function PayrollRulesManager({ wsId }: Props) {
               </div>
 
               {/* Expanded details section */}
-              {expandedRuleId === rule.id && (
+              {expandedRuleId === rule.id ? (
                 <div className="px-12 pb-8 pt-2 animate-in slide-in-from-top-4 duration-300 space-y-6">
-                  {rule.calculation_method === "tiered" && (
+                  {rule.calculation_method === "tiered" ? (
                     <RuleTierManager ruleId={rule.id} wsId={wsId} />
-                  )}
+                  ) : null}
                   <RuleAssignmentManager calculationMethod={rule.calculation_method} ruleId={rule.id} wsId={wsId} />
                 </div>
-              )}
+              ) : null}
             </div>
           ))
         )}
       </div>
 
       <Modal icon={<FileText size={24} />} isOpen={isModalOpen} maxWidth="lg" onClose={() => { setIsModalOpen(false); }} subtitle="Create a new payroll rule" title="Add Rule">
-        <form className="space-y-10 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-name">{t("common.name")}</label>
-              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-name" onChange={e => { setFormData({...formData, name: e.target.value}); }} placeholder="Social Insurance" required type="text" value={formData.name} />
-            </div>
-            <div className="space-y-3 px-1">
-              { }
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-code">Code</label>
-              <input className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all tracking-tight shadow-sm" id="rule-code" onChange={e => { setFormData({...formData, code: e.target.value.toUpperCase()}); }} placeholder="BHXH" required type="text" value={formData.code} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-category">Category</label>
-              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-category" onChange={e => { setFormData({...formData, category: e.target.value as "statutory_deduction" | "allowance" | "bonus" | "deduction"}); }} required value={formData.category}>
-                <option value="statutory_deduction">Statutory Deduction</option>
-                { }
-                <option value="allowance">Allowance</option>
-                <option value="bonus">Bonus</option>
-                <option value="deduction">Deduction</option>
-              </select>
-            </div>
-            <div className="space-y-3 px-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc">Calculation Method</label>
-              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all uppercase tracking-tight shadow-sm" id="rule-calc" onChange={e => {
-                const method = e.target.value as "percentage" | "fixed" | "tiered";
-                let newConfig = {};
-                if (method === "percentage") newConfig = { rate: 0, base: "gross" };
-                else if (method === "fixed") newConfig = { amount: 0, frequency: "monthly" };
-                else newConfig = { base: "taxable_income" };
-                setFormData({...formData, calculation_method: method, rule_config: newConfig});
-              }} required value={formData.calculation_method}>
-                <option value="percentage">Percentage</option>
-                <option value="fixed">Fixed</option>
-                <option value="tiered">Tiered (e.g. Tax Brackets)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Calculator className="text-primary-600 dark:text-primary-400" size={18} />
-              <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest">Logic Configuration</h3>
-            </div>
-            { }
-            
-            {formData.calculation_method === "percentage" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> Rate (%)</label>
-                  <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={(formData.rule_config?.rate as number) || ""} />
-                </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">Calculation Base</label>
-                  <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "gross"}>
-                    {bases?.map(b => (
-                      <option key={b.slug} value={b.slug}>{b.name}</option>
-                    ))}
-                    {(!bases || bases.length === 0) && (
-                      <>
-                        <option value="gross">Gross Salary (Total)</option>
-                        <option value="taxable_income">Taxable Income</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {formData.calculation_method === "fixed" && (
-              <div className="grid grid-cols-1 gap-8">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-fixed">Fixed Amount (₫)</label>
-                  <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-fixed" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}}); }} required type="number" value={(formData.rule_config?.amount as number) || ""} />
-                </div>
-              </div>
-            )}
-
-            {formData.calculation_method === "tiered" && (
-              <div className="grid grid-cols-1 gap-8">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-tier-base">Tier Base Amount</label>
-                  <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-tier-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "taxable_income"}>
-                    {bases?.map(b => (
-                      <option key={b.slug} value={b.slug}>{b.name}</option>
-                    ))}
-                    {(!bases || bases.length === 0) && (
-                      <>
-                        <option value="taxable_income">Taxable Income</option>
-                        <option value="gross">Gross Salary (Total)</option>
-                      </>
-                    )}
-                  </select>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic">Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.</p>
-                </div>
-              { }
-              </div>
- 
-            )}
-          </div>
-          { }
-
-          <div className="space-y-5">
-            {[
-              { key: "is_mandatory", label: "Mandatory Rule", desc: "Cannot be bypassed by default", icon: CheckCircle2 }
-            ].map(field => (
-              <React.Fragment key={field.key}>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- Label associated via htmlFor; rule false-positive on dynamic IDs */}
-                <label className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
-                  (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
-                )} htmlFor={`rule-${field.key}`}>
-                  <input checked={(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`rule-${field.key}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
-                  <div>
-                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon className="opacity-50" size={14} /> {field.label}</p>
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{field.desc}</p>
-                  </div>
-                </label>
-              </React.Fragment>
-            ))}
-          </div>
-
-          <div className="flex gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
-            <button className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" onClick={() => { setIsModalOpen(false); }} type="button">{t("common.cancel").toUpperCase()}</button>
-            <button className="flex-[1.5] bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95 disabled:opacity-50" disabled={createMutation.isPending} type="submit">{createMutation.isPending ? t("common.saving").toUpperCase() : t("common.save").toUpperCase()}</button>
-          </div>
-        </form>
+        <PayrollRuleForm 
+          bases={bases ?? []} 
+          onCancel={() => { setIsModalOpen(false); }} 
+          onSuccess={() => {
+            toast.success(t("common.success"));
+            void queryClient.invalidateQueries({ queryKey: ["payroll-rules"] });
+            setIsModalOpen(false);
+          }} 
+          wsId={wsId} 
+        />
       </Modal>
     </div>
   );
