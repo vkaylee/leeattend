@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Database, Info, Plus, X } from "lucide-react";
 import React from "react";
 
+import type { SalaryBaseGroup, SalaryBaseGroupMember, SalaryComponentDefinition } from "@/lib/api";
+
 import { useToast } from "@/components/ui/toast";
 import { 
   fetchSalaryBaseGroups, 
@@ -11,7 +13,6 @@ import {
   assignComponentToSalaryBase,
   unassignComponentFromSalaryBase
 } from "@/lib/api/payroll";
-import type { SalaryBaseGroup, SalaryBaseGroupMember, SalaryComponentDefinition } from "@/lib/api";
 
 function BaseGroupCard({
   group,

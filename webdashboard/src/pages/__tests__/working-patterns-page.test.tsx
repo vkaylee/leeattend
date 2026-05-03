@@ -48,7 +48,7 @@ vi.mock("@/components/common/employee-search", () => ({
         >
           Select Employees Mock
         </button>
-        {multiple && Array.isArray(value) && value.includes("emp-1") && <span>Selected: John Doe</span>}
+        {!!multiple && Array.isArray(value) && value.includes("emp-1") && <span>Selected: John Doe</span>}
       </div>
     );
   }
@@ -70,8 +70,8 @@ vi.mock('react-i18next', () => ({
  
   useTranslation: () => ({
     t: (key: string, options?: Record<string, unknown>) => {
-        if (key === "patterns.messages.bulk_assign_success_count") return `Success: ${String(options?.count ?? "")}`;
-        if (key === "patterns.messages.bulk_assign_conflict") return `Conflict: ${String(options?.count ?? "")}`;
+        if (key === "patterns.messages.bulk_assign_success_count") return `Success: ${String((options?.count as string | number) ?? "")}`;
+        if (key === "patterns.messages.bulk_assign_conflict") return `Conflict: ${String((options?.count as string | number) ?? "")}`;
         return key;
     },
     i18n: {

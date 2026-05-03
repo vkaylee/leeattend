@@ -138,7 +138,7 @@ export default function ProfilePage() {
                   <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-70">{t("profile.personalization.subtitle")}</p>
                 </div>
               </div>
-              {isOverridden && <button className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all bg-slate-50 dark:bg-slate-800 px-6 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm active:scale-95" onClick={() => { setUserTheme(null); }}><Undo2 size={14} /> {t("profile.personalization.use_workspace_default").toUpperCase()}</button>}
+              {Boolean(isOverridden) && <button className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 transition-all bg-slate-50 dark:bg-slate-800 px-6 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm active:scale-95" onClick={() => { setUserTheme(null); }}><Undo2 size={14} /> {t("profile.personalization.use_workspace_default").toUpperCase()}</button>}
             </div>
 
             <div className="space-y-10">
@@ -190,7 +190,7 @@ function ChangePasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ old_password: "", new_password: "", confirm_password: "" });
 
-  async function handlePasswordSubmit(e: React.FormEvent) {
+  async function handlePasswordSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (formData.new_password !== formData.confirm_password) {
       toast.warning(t("profile.security.messages.confirm_mismatch")); return;

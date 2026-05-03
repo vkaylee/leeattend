@@ -2,6 +2,12 @@
 name = "agent"
 version = "0.1.0"
 edition = "2024"
+description = "Multi-brand Attendance Agent Orchestrator"
+license = "MIT"
+repository = "https://github.com/anomalyco/leeattend"
+readme = "README.md"
+keywords = ["hrm", "attendance", "agent", "zkteco"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -26,10 +32,8 @@ async-trait = "0.1"
 redb = "3"
 bincode = "1"
 
-[lints.clippy]
-panic = "deny"
-todo = "deny"
-unimplemented = "deny"
+[lints]
+workspace = true
 
 [dev-dependencies]
 tempfile = "3.10"

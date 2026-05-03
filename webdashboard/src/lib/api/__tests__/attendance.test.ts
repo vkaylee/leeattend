@@ -23,7 +23,12 @@ describe("fetchAttendanceReport", () => {
             json: () => Promise.resolve({ data: [], total: 0 }),
         } as Response);
 
-        await fetchAttendanceReport("test-ws-id", "2026-03-01", "2026-03-31", "summary");
+        await fetchAttendanceReport({
+            wsId: "test-ws-id",
+            start: "2026-03-01",
+            end: "2026-03-31",
+            type: "summary"
+        });
 
         expect(apiFetch).toHaveBeenCalledTimes(1);
  
@@ -45,18 +50,16 @@ describe("fetchAttendanceReport", () => {
 
         const departmentId = "dept-uuid-123";
 
-        // type signature: wsId, start, end, type, page, limit, sort, employeeIds, departmentId
-        await fetchAttendanceReport(
-            "test-ws-id",
-            "2026-03-01",
-            "2026-03-31",
-            "summary",
-            1,
-            20,
-            undefined,
-            undefined,
+        // type signature: params object
+        await fetchAttendanceReport({
+            wsId: "test-ws-id",
+            start: "2026-03-01",
+            end: "2026-03-31",
+            type: "summary",
+            page: 1,
+            limit: 20,
             departmentId
-        );
+        });
 
         expect(apiFetch).toHaveBeenCalledTimes(1);
  
@@ -79,16 +82,15 @@ describe("fetchAttendanceReport", () => {
 
         const employeeIds = ["emp-1", "emp-2"];
 
-        await fetchAttendanceReport(
-            "test-ws-id",
-            "2026-03-01",
-            "2026-03-31",
-            "summary",
-            1,
-            20,
-            undefined,
+        await fetchAttendanceReport({
+            wsId: "test-ws-id",
+            start: "2026-03-01",
+            end: "2026-03-31",
+            type: "summary",
+            page: 1,
+            limit: 20,
             employeeIds
-        );
+        });
 
         expect(apiFetch).toHaveBeenCalledTimes(1);
  

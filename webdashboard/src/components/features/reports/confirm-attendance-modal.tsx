@@ -147,7 +147,7 @@ export default function ConfirmAttendanceModal({
                     punchOut={punchOut}
                     setPunchIn={setPunchIn}
                     setPunchOut={setPunchOut}
-                    t={t as any}
+                    t={t}
                 />
 
                 {/* Reason */}

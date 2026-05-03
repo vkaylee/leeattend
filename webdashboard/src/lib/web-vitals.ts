@@ -20,9 +20,9 @@ function getRating(name: string, value: number): VitalMetric["rating"] {
   return "poor";
 }
 
-function reportMetric(_metric: VitalMetric) {
+function reportMetric(metric: VitalMetric) {
   if (import.meta.env.DEV) {
-    
+    console.debug(`[Web Vitals] ${metric.name}: ${metric.value} (${metric.rating})`);
   }
 }
 

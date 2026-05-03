@@ -102,7 +102,7 @@ export function PatternAssignmentForm({
           patterns={patterns}
           selectedPatternId={selectedPatternId}
           setSelectedPatternId={setSelectedPatternId}
-          t={t as any}
+          t={t}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-3">

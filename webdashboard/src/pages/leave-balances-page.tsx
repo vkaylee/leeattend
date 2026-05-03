@@ -35,7 +35,10 @@ export default function LeaveBalancesPage() {
 
   const { data: paginatedData, isLoading } = useQuery({
     queryKey: ["workspace-leave-balances", wsId, page, debouncedSearch, selectedYear],
-    queryFn: () => fetchWorkspaceLeaveBalances(wsId!, { page, limit, q: debouncedSearch, year: selectedYear }),
+    queryFn: () => {
+      if (!wsId) throw new Error("Workspace ID is required");
+      return fetchWorkspaceLeaveBalances(wsId, { page, limit, q: debouncedSearch, year: selectedYear });
+    },
     enabled: !!wsId,
     placeholderData: (previousData) => previousData
   });
@@ -47,7 +50,8 @@ export default function LeaveBalancesPage() {
     for (let index = 0; index < MAX_POLLS; index++) {
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
       try {
-        const status = await fetchJobStatus(wsId!, jobId);
+        if (!wsId) return;
+        const status = await fetchJobStatus(wsId, jobId);
         if (status.status === 'completed') {
           void queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
           toast.success(t("leave_balances.accrual_completed"));
@@ -69,7 +73,10 @@ export default function LeaveBalancesPage() {
   }, [wsId, queryClient, toast, t]);
 
   const accrualMutation = useMutation({
-    mutationFn: () => triggerAccrualRun(wsId!, { date: new Date().toISOString().split('T')[0] }),
+    mutationFn: () => {
+      if (!wsId) throw new Error("Workspace ID is required");
+      return triggerAccrualRun(wsId, { date: new Date().toISOString().split('T')[0] });
+    },
     onSuccess: (data) => {
       if (data.status === 'queued' && data.job_id) {
         toast.success(t("leave_balances.accrual_queued"));
@@ -247,7 +254,17 @@ export default function LeaveBalancesPage() {
         )}
       </div>
 
-      {!!selectedEmployee && <LeaveHistoryModal employeeId={selectedEmployee.id} employeeName={selectedEmployee.name} isOpen={!!selectedEmployee} leaveTypeId={selectedEmployee.leaveTypeId} leaveTypeName={selectedEmployee.leaveTypeName} onClose={() => { setSelectedEmployee(null); }} wsId={wsId!} />}
+      {Boolean(selectedEmployee && wsId) && (
+        <LeaveHistoryModal
+          employeeId={selectedEmployee?.id ?? ""}
+          employeeName={selectedEmployee?.name ?? ""}
+          isOpen={Boolean(selectedEmployee)}
+          leaveTypeId={selectedEmployee?.leaveTypeId}
+          leaveTypeName={selectedEmployee?.leaveTypeName}
+          onClose={() => { setSelectedEmployee(null); }}
+          wsId={wsId ?? ""}
+        />
+      )}
 
       {!!selectedBalance && <LeaveBalanceDetailModal balance={selectedBalance} isOpen={!!selectedBalance} onClose={() => { setSelectedBalance(null); }} />}
 

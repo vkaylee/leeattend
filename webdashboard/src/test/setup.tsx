@@ -16,7 +16,13 @@ const resolveKey = (key: string, object: Record<string, unknown>, variables?: Re
   }
   // Handle i18next-style {{variable}} interpolation
   if (variables && typeof result === 'string') {
-    return result.replace(/\{\{(\w+)\}\}/g, (_, variableName) => String(variables[variableName as keyof typeof variables] ?? `{{${variableName}}}`));
+    return result.replace(/\{\{(\w+)\}\}/g, (_, variableName) => {
+      const val = variables[variableName as keyof typeof variables];
+      if (typeof val === 'string' || typeof val === 'number') {
+        return String(val);
+      }
+      return `{{${variableName}}}`;
+    });
   }
   return result;
 };
@@ -71,7 +77,7 @@ class MockEventSource {
 global.EventSource = MockEventSource as unknown as typeof EventSource;
 
 // Mock window.confirm which is missing in happy-dom
-if (typeof window !== "undefined" && !window.confirm) {
+if (typeof window !== "undefined") {
   window.confirm = vi.fn();
 }
 

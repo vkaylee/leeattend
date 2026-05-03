@@ -60,9 +60,9 @@ function ProgressHeader({ importJob, isProcessing, t }: { importJob: LeaveImport
 }
 
 interface ErrorInfo {
-  success_count?: number;
   error_count?: number;
   error_file_path?: string;
+  success_count?: number;
 }
 
 function PartialSuccessDetails({ info, importJob, t, wsId }: { info: ErrorInfo | null; importJob: LeaveImportJob; t: TFunction; wsId: string | null }) {

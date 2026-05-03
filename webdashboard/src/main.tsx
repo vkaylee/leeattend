@@ -26,11 +26,13 @@ window.addEventListener("unhandledrejection", (event) => {
   }
 });
 
-// eslint-disable-next-line import-x/no-named-as-default-member
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <ToastProvider>
-      <App />
-    </ToastProvider>
-  </React.StrictMode>,
-);
+const rootElement = document.getElementById("root");
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </React.StrictMode>,
+  );
+}

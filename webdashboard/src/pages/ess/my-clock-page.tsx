@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { TFunction } from "i18next";
+
 import {
   AdjustmentData,
   AdjustmentRequestModal,
@@ -131,7 +133,7 @@ function LoadingState() {
   );
 }
 
-function EmptyState({ t }: { t: any }) {
+function EmptyState({ t }: { t: TFunction }) {
   return (
     <div className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold italic">
       {t("common.no_profile")}
@@ -139,7 +141,7 @@ function EmptyState({ t }: { t: any }) {
   );
 }
 
-function Header({ t }: { t: any }) {
+function Header({ t }: { t: TFunction }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
       <div>

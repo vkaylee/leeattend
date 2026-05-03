@@ -16,7 +16,9 @@ import {
   fetchDevices, 
   fetchStagingLogs, 
   resolveStagingLog, 
-  dismissStagingLog 
+  dismissStagingLog,
+  StagingLog,
+  StagingLogsResponse
 } from "@/lib/api";
 
 const PAGE_SIZE = 20;
@@ -97,7 +99,7 @@ export function useAttendanceLogsPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery({
+  } = useInfiniteQuery<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>({
     queryKey: ["attendance-raw-logs", wsId, employeeId, dateRange],
     queryFn: ({ pageParam }) => {
       const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
@@ -106,7 +108,7 @@ export function useAttendanceLogsPage() {
         employee_id: employeeId === "all" ? undefined : employeeId, 
         from, 
         to, 
-        page: pageParam, 
+        page: pageParam as number, 
         limit: PAGE_SIZE 
       });
     },
@@ -132,11 +134,11 @@ export function useAttendanceLogsPage() {
     fetchNextPage: fetchNextStagingPage,
     hasNextPage: hasNextStagingPage,
     isFetchingNextPage: isFetchingNextStagingPage,
-  } = useInfiniteQuery({
+  } = useInfiniteQuery<StagingLogsResponse>({
     queryKey: ["staging-logs", wsId],
     queryFn: ({ pageParam }) => {
       if (!wsId) return Promise.reject(new Error("No workspace ID"));
-      return fetchStagingLogs(wsId, pageParam, PAGE_SIZE);
+      return fetchStagingLogs(wsId, pageParam as number, PAGE_SIZE);
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
@@ -148,7 +150,7 @@ export function useAttendanceLogsPage() {
   });
 
   const allStagingLogs = useMemo(() => {
-    if (!stagingPages) return [] as any[]; // Using any temporarily if StagingLog is problematic, but let's try to be specific
+    if (!stagingPages) return [] as StagingLog[];
     return stagingPages.pages.flatMap((p) => p.data);
   }, [stagingPages]);
 

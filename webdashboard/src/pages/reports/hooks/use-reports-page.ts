@@ -134,7 +134,7 @@ export function useReportsPage(): UseReportsPageReturn {
     queryKey: ["employees", wsId, "search", debouncedSearch],
     queryFn: () => {
       if (!wsId) return Promise.reject(new Error("No workspace ID"));
-      return searchEmployees(wsId, debouncedSearch);
+      return searchEmployees({ wsId, query: debouncedSearch });
     },
     enabled: !!wsId && debouncedSearch.trim().length > 0,
   });
@@ -193,7 +193,17 @@ export function useReportsPage(): UseReportsPageReturn {
     queryKey: ["attendance-report", wsId, dateRange, "summary", PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId],
     queryFn: ({ pageParam }) => {
       if (!wsId) return Promise.reject(new Error("No workspace ID"));
-      return fetchAttendanceReport(wsId, dateRange.start, dateRange.end, "summary", pageParam as number, PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId) as Promise<PaginatedResponse<AttendanceSummary>>;
+      return fetchAttendanceReport({
+        wsId,
+        start: dateRange.start,
+        end: dateRange.end,
+        type: "summary",
+        page: pageParam as number,
+        limit: PAGE_SIZE,
+        sort: sortBy,
+        employeeIds: employeeIdsFilter,
+        departmentId: selectedDepartmentId,
+      }) as Promise<PaginatedResponse<AttendanceSummary>>;
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);
@@ -214,7 +224,17 @@ export function useReportsPage(): UseReportsPageReturn {
     queryKey: ["attendance-report-stats", wsId, dateRange, "summary", sortBy, employeeIdsFilter, selectedDepartmentId],
     queryFn: () => {
       if (!wsId) return Promise.reject(new Error("No workspace ID"));
-      return fetchAttendanceReport(wsId, dateRange.start, dateRange.end, "summary", 1, 99999, sortBy, employeeIdsFilter, selectedDepartmentId) as Promise<PaginatedResponse<AttendanceSummary>>;
+      return fetchAttendanceReport({
+        wsId,
+        start: dateRange.start,
+        end: dateRange.end,
+        type: "summary",
+        page: 1,
+        limit: 99999,
+        sort: sortBy,
+        employeeIds: employeeIdsFilter,
+        departmentId: selectedDepartmentId,
+      }) as Promise<PaginatedResponse<AttendanceSummary>>;
     },
     enabled: !!wsId,
   });

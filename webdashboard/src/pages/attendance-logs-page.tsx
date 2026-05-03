@@ -11,46 +11,89 @@ import { AttendanceLogsHeader } from "./attendance/components/attendance-logs-he
 import { AttendanceLogsTabs } from "./attendance/components/attendance-logs-tabs";
 import { useAttendanceLogsPage } from "./attendance/hooks/use-attendance-logs-page";
 
-export default function AttendanceLogsPage() {
-  const { t } = useTranslation();
+type AttendanceLogsState = ReturnType<typeof useAttendanceLogsPage>;
+
+function TabContent({ state }: { state: AttendanceLogsState }) {
   const {
+    activeTab, 
+    dateRange, 
+    employeeId, 
+    filterMode, 
+    handleFilterModeChange, 
+    handleSpecificMonthChange, 
+    setDateRange, 
+    setEmployeeId, 
+    specificMonth, 
     wsId,
     formatDate,
     formatTime,
-    activeTab,
-    setActiveTab,
-    employeeId,
-    setEmployeeId,
-    filterMode,
-    dateRange,
-    setDateRange,
-    specificMonth,
-    isImportDialogOpen,
-    setIsImportDialogOpen,
-    handleFilterModeChange,
-    handleSpecificMonthChange,
-    allRecordedLogs,
-    recordedTotal,
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    allStagingLogs,
-    stagingTotal,
-    stagingLoading,
-    stagingCount,
-    isFetchingNextStagingPage,
-    hasNextStagingPage,
-    fetchNextStagingPage,
-    getEmployeeName,
-    getEmployeeID,
     getDeviceName,
+    getEmployeeID,
+    getEmployeeName,
+    isFetchingNextPage,
+    isLoading,
     loadMoreRef,
+    allRecordedLogs,
+    allStagingLogs,
+    stagingLoading,
+    isFetchingNextStagingPage,
     loadMoreStagingRef,
     handleCreateEmployee,
     dismissMutation,
-    resolveMutation,
-  } = useAttendanceLogsPage();
+    resolveMutation
+  } = state;
+
+  if (activeTab === "recorded") {
+    return (
+      <>
+        <AttendanceLogsFilters
+          dateRange={dateRange}
+          employeeId={employeeId}
+          filterMode={filterMode}
+          handleFilterModeChange={handleFilterModeChange}
+          handleSpecificMonthChange={handleSpecificMonthChange}
+          setDateRange={setDateRange}
+          setEmployeeId={setEmployeeId}
+          specificMonth={specificMonth}
+          wsId={wsId}
+        />
+        <RecordedLogsTable
+          formatDate={formatDate}
+          formatTime={formatTime}
+          getDeviceName={getDeviceName}
+          getEmployeeID={getEmployeeID}
+          getEmployeeName={getEmployeeName}
+          isFetchingNextPage={isFetchingNextPage}
+          isLoading={isLoading}
+          loadMoreRef={loadMoreRef}
+          logs={allRecordedLogs}
+        />
+      </>
+    );
+  }
+
+  return (
+    <StagingLogsTable
+      formatDate={formatDate}
+      formatTime={formatTime}
+      getDeviceName={getDeviceName}
+      isDismissing={dismissMutation.isPending}
+      isFetchingNextPage={isFetchingNextStagingPage}
+      isLoading={stagingLoading}
+      loadMoreRef={loadMoreStagingRef}
+      logs={allStagingLogs}
+      onCreateEmployee={handleCreateEmployee}
+      onDismiss={(logId: string) => { dismissMutation.mutate(logId); }}
+      onResolve={(logId: string, empId: string) => { resolveMutation.mutate({ logId, employeeId: empId }); }}
+      wsId={wsId}
+    />
+  );
+}
+
+export default function AttendanceLogsPage() {
+  const { t } = useTranslation();
+  const state = useAttendanceLogsPage();
+  const { wsId, activeTab, stagingCount, allRecordedLogs, recordedTotal, allStagingLogs, stagingTotal, isImportDialogOpen, setIsImportDialogOpen } = state;
 
   if (!wsId) {
     return (
@@ -62,69 +105,15 @@ export default function AttendanceLogsPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-      <AttendanceLogsHeader
-        dateRange={dateRange}
-        setIsImportDialogOpen={setIsImportDialogOpen}
+      <AttendanceLogsHeader dateRange={state.dateRange} setIsImportDialogOpen={setIsImportDialogOpen} />
+      <AttendanceLogsTabs activeTab={activeTab} setActiveTab={state.setActiveTab} stagingCount={stagingCount} />
+      <TabContent state={state} />
+      <FloatingRecordBadge 
+        label={t("common.pagination.records")} 
+        loaded={activeTab === "recorded" ? allRecordedLogs.length : allStagingLogs.length} 
+        total={activeTab === "recorded" ? recordedTotal : stagingTotal} 
+        variant={activeTab === "recorded" ? undefined : "amber"} 
       />
-
-      <AttendanceLogsTabs
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        stagingCount={stagingCount}
-      />
-
-      {activeTab === "recorded" && (
-        <>
-          <AttendanceLogsFilters
-            dateRange={dateRange}
-            employeeId={employeeId}
-            filterMode={filterMode}
-            handleFilterModeChange={handleFilterModeChange}
-            handleSpecificMonthChange={handleSpecificMonthChange}
-            setDateRange={setDateRange}
-            setEmployeeId={setEmployeeId}
-            specificMonth={specificMonth}
-            wsId={wsId}
-          />
-          
-          <RecordedLogsTable
-            formatDate={formatDate}
-            formatTime={formatTime}
-            getDeviceName={getDeviceName}
-            getEmployeeID={getEmployeeID}
-            getEmployeeName={getEmployeeName}
-            isFetchingNextPage={isFetchingNextPage}
-            isLoading={isLoading}
-            loadMoreRef={loadMoreRef}
-            logs={allRecordedLogs}
-          />
-        </>
-      )}
-
-      {activeTab === "unknown" && (
-        <StagingLogsTable
-          formatDate={formatDate}
-          formatTime={formatTime}
-          getDeviceName={getDeviceName}
-          isDismissing={dismissMutation.isPending}
-          isFetchingNextPage={isFetchingNextStagingPage}
-          isLoading={stagingLoading}
-          loadMoreRef={loadMoreStagingRef}
-          logs={allStagingLogs}
-          onCreateEmployee={handleCreateEmployee}
-          onDismiss={(logId) => { dismissMutation.mutate(logId); }}
-          onResolve={(logId, empId) => { resolveMutation.mutate({ logId, employeeId: empId }); }}
-          wsId={wsId}
-        />
-      )}
-
-      {/* Floating record count badge */}
-      {activeTab === "recorded" ? (
-        <FloatingRecordBadge label={t("common.pagination.records")} loaded={allRecordedLogs.length} total={recordedTotal} />
-      ) : (
-        <FloatingRecordBadge label={t("common.pagination.records")} loaded={allStagingLogs.length} total={stagingTotal} variant="amber" />
-      )}
-
       <AttendanceImportDialog
         endpoint="/attendance/logs/upload"
         isOpen={isImportDialogOpen}

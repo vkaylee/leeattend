@@ -1,8 +1,8 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface YearNavigationProps {
-    year: number;
     setYear: (year: number | ((y: number) => number)) => void;
+    year: number;
 }
 
 export function YearNavigation({ year, setYear }: YearNavigationProps) {

@@ -149,7 +149,7 @@ export function DailyReportTableRow({
                 </span>
               </div>
               <ReportOtStatusBadge status={row.ot_claim_status} t={t} />
-              {row.ot_claim_status === "pending_manager" && onApproveOt && (
+              {row.ot_claim_status === "pending_manager" && !!onApproveOt && (
                 <div className="flex gap-1 mt-1">
                   <button
                     className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm active:scale-95"
@@ -179,7 +179,7 @@ export function DailyReportTableRow({
           <ReportStatusBadge onResolveUnscheduled={onResolveUnscheduled} row={row} status={row.status} t={t} />
         </td>
 
-        {isDebugMode && (
+        {!!isDebugMode && (
           <td className="px-4 py-2.5 text-center">
             <button
               className={cn(
@@ -227,7 +227,7 @@ export function DailyReportTableRow({
         </td>
       </tr>
 
-      {isDebugMode && isExpanded && <DailyReportTableRowExpanded row={row} />}
+      {!!isDebugMode && !!isExpanded && <DailyReportTableRowExpanded row={row} />}
     </React.Fragment>
   );
 }

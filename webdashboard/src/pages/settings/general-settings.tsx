@@ -21,7 +21,10 @@ export default function GeneralSettings() {
 
   const { data: workspace, isLoading: isLoadingWs } = useQuery({
     queryKey: ["workspace", wsId],
-    queryFn: () => fetchWorkspace(wsId!),
+    queryFn: () => {
+      if (!wsId) throw new Error("Workspace ID is required");
+      return fetchWorkspace(wsId);
+    },
     enabled: !!wsId,
   });
 

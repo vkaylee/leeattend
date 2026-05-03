@@ -2,6 +2,12 @@
 name = "apiserver"
 version = "0.1.0"
 edition = "2021"
+description = "HRM Attendance API Server"
+license = "MIT"
+repository = "https://github.com/anomalyco/leeattend"
+readme = "README.md"
+keywords = ["hrm", "attendance", "api", "rest"]
+categories = ["web-programming"]
 
 [dependencies]
 axum = { version = "0.7", features = ["macros", "multipart", "ws"] }

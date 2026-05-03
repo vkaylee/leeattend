@@ -1,14 +1,15 @@
 import { CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
 import type { Holiday, LeaveType } from "@/lib/api/types";
 
 interface HolidayTableProps {
-    isLoading: boolean;
     holidays: Holiday[];
-    year: number;
+    isLoading: boolean;
     leaveTypes: LeaveType[];
-    onEdit: (h: Holiday) => void;
     onDelete: (id: string) => Promise<void>;
+    onEdit: (h: Holiday) => void;
+    year: number;
 }
 
 export function HolidayTable({ isLoading, holidays, year, leaveTypes, onEdit, onDelete }: HolidayTableProps) {

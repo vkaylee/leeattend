@@ -10,15 +10,38 @@ warnings = "deny"
 missing_docs = "warn"
 
 [workspace.lints.clippy]
+# ── Enterprise-grade premium linter ──
+# All groups are denied at workspace level so every crate inherits the
+# strictest possible rules.  Individual crates may blanket-allow groups
+# with an explicit TECH_DEBT marker until each lint is paid down.
+#
+# DO NOT weaken these settings.  Pay down technical debt instead by
+# removing per-crate #![allow(...)] entries one lint at a time.
+#
+# NOTE: `restriction` group is intentionally excluded — clippy itself
+# warns against blanket-enabling it (blanket_clippy_restriction_lints).
+# Enable specific restriction lints individually when needed.
+
+# Guardrail lints — MUST never be used in production code
 unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"
 todo = "deny"
 unimplemented = "deny"
-pedantic = { level = "deny", priority = -1 }
-nursery = { level = "warn", priority = -1 }
-suspicious = { level = "deny", priority = -1 }
-perf = { level = "deny", priority = -1 }
-complexity = { level = "deny", priority = -1 }
+
+# Lint groups (priority = -1 so per-lint overrides take precedence)
+pedantic     = { level = "deny", priority = -1 }
+nursery      = { level = "deny", priority = -1 }
+suspicious   = { level = "deny", priority = -1 }
+perf         = { level = "deny", priority = -1 }
+complexity   = { level = "deny", priority = -1 }
+style        = { level = "deny", priority = -1 }
+correctness  = { level = "deny", priority = -1 }
+cargo        = { level = "deny", priority = -1 }   # Cargo.toml metadata
+
+# ── Individual overrides (higher priority than groups) ──
 clone_on_ref_ptr = "warn"
 format_push_string = "warn"
+
+# TECH_DEBT: allow until dependency versions are unified
+multiple_crate_versions = { level = "allow", priority = 1 }

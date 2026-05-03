@@ -74,7 +74,7 @@ export default function DailyReportTable({
             <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">
               {t("common.status")}
             </th>
-            {isDebugMode && (
+            {!!isDebugMode && (
               <th className="px-4 py-2.5 text-[10px] font-bold text-amber-600 dark:text-amber-300 uppercase tracking-widest text-center">
                 DEBUG
               </th>

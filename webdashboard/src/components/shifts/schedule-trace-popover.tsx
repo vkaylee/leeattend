@@ -69,7 +69,7 @@ function OverriddenRulesSection({ overriddenRules, showOverridden, setShowOverri
         {showOverridden ? <ChevronDown className="text-slate-500 dark:text-slate-400" size={14} /> : <ChevronRight className="text-slate-500 dark:text-slate-400" size={14} />}
       </button>
 
-      {showOverridden && (
+      {!!showOverridden && (
         <div className="space-y-2 animate-in slide-in-from-top-1 duration-200">
           {overriddenRules.map((rule, index) => (
             <div className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1 opacity-70" key={index}>

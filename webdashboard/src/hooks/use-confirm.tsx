@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 
 import ConfirmDialog, { ConfirmDialogProps } from '@/components/ui/confirm-dialog';
 
-type ConfirmOptions = Omit<ConfirmDialogProps, 'isOpen' | 'onClose' | 'onConfirm'>;
+export type ConfirmOptions = Omit<ConfirmDialogProps, 'isOpen' | 'onClose' | 'onConfirm'>;
 
 export function useConfirm() {
   const [isOpen, setIsOpen] = useState(false);

@@ -110,7 +110,7 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
         </button>
       </div>
 
-      {isAdding && (
+      {!!isAdding && (
         <form className="bg-white dark:bg-slate-900 border-2 border-primary-100 dark:border-primary-800 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500 space-y-8" onSubmit={handleAdd}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
@@ -136,7 +136,7 @@ export default function WorkingConditionConfig({ wsId, employeeId }: Props) {
           </div>
           <button className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 group cursor-pointer text-left w-full" onClick={() => { setIsPaid(!isPaid); }} type="button">
             <div className={cn("w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all", isPaid ? "bg-primary-600 border-primary-600 text-white" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700")}>
-              {isPaid && <CheckCircle2 size={16} />}
+              {!!isPaid && <CheckCircle2 size={16} />}
             </div>
             <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest">{t("employees.policies.is_paid")}</span>
           </button>

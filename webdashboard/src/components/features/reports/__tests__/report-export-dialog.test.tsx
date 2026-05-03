@@ -225,7 +225,7 @@ describe("ReportExportDialog - Integration Tests", () => {
       // Mock WebSocket status changes
  
  
-      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: { jobId?: string }) => {
         // Simulate connecting -> streaming transition
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
@@ -278,7 +278,7 @@ describe("ReportExportDialog - Integration Tests", () => {
     it("should display progress bar during streaming", async () => {
  
  
-      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: { jobId?: string }) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
           progress: 50,
@@ -301,7 +301,7 @@ describe("ReportExportDialog - Integration Tests", () => {
     it("should update progress fill width based on stream progress", async () => {
  
  
-      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: { jobId?: string }) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
           progress: 65,
@@ -471,7 +471,7 @@ describe("ReportExportDialog - Integration Tests", () => {
 
  
  
-      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: { jobId?: string }) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
           progress: 20,
@@ -532,7 +532,7 @@ describe("ReportExportDialog - Integration Tests", () => {
     it("should have accessible progress bar structure", async () => {
  
  
-      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: any) => {
+      (useReportStream as import("vitest").Mock).mockImplementation(({ jobId }: { jobId?: string }) => {
         return mockStreamHook({
           status: jobId ? "streaming" : "idle",
           progress: 50,

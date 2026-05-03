@@ -153,7 +153,7 @@ function ProfileTab({
     deptHistory?: DeptHistoryEntry[];
     employee: Employee;
     formatDate: (date: string) => string;
-    linkedUser: any;
+    linkedUser: WorkspaceMember | undefined;
     onEdit: (e: Employee) => void;
     onRehire: (e: Employee) => void;
     onTerminate: (e: Employee) => void;
@@ -286,7 +286,7 @@ export default function EmployeeDetailDrawer({
                 employee={employee}
                 onClose={onClose}
                 setActiveDetailTab={setActiveDetailTab}
-                t={t as any}
+                t={t}
             />
 
             <div className="p-10 pb-20 space-y-10" ref={scrollRef}>
@@ -301,7 +301,7 @@ export default function EmployeeDetailDrawer({
                         onRehire={onRehire}
                         onTerminate={onTerminate}
                         onTransfer={onTransfer}
-                        t={t as any}
+                        t={t}
                     />
                 )}
 
@@ -321,7 +321,7 @@ export default function EmployeeDetailDrawer({
                     <HistoryTab
                         employmentHistory={employmentHistory}
                         formatDate={formatDate}
-                        t={t as any}
+                        t={t}
                     />
                 )}
             </div>

@@ -22,7 +22,7 @@ vi.mock("@tanstack/react-router", () => ({
       const params = new URLSearchParams();
       Object.entries(search).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          params.append(key, typeof value === "string" ? value : String(value));
+          params.append(key, String(value as string | number | boolean));
         }
       });
       const qs = params.toString();
@@ -150,14 +150,14 @@ describe("ReportsPage", () => {
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      // arg index 5 = limit = PAGE_SIZE = 50
-      expect(calls[0][5]).toBe(50);
+      // first argument is the params object, check limit property
+      expect(calls[0][0].limit).toBe(50);
     });
   });
 
   it("fetches full dataset with limit=99999 for stats and renders inline stats badges", async () => {
     vi.mocked(api.fetchAttendanceReport).mockImplementation((...args) => {
-      const limit = args[5];
+      const limit = args[0].limit;
       if (limit === 99999) {
         // Full stats query — return all employees
         return Promise.resolve({
@@ -186,7 +186,7 @@ describe("ReportsPage", () => {
     // Verify a call with limit=99999 was made for stats
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
-      const statsCall = calls.find((c) => c[5] === 99999);
+      const statsCall = calls.find((c) => c[0].limit === 99999);
       expect(statsCall).toBeDefined();
     });
 
@@ -240,7 +240,7 @@ describe("ReportsPage", () => {
     };
 
     vi.mocked(api.fetchAttendanceReport).mockImplementation(
-      (_wsId, _start, _end, type) => {
+      ({ type }) => {
         if (type === "daily") {
           return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
         }
@@ -267,7 +267,7 @@ describe("ReportsPage", () => {
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      expect(calls[0][3]).toBe("summary");
+      expect(calls[0][0].type).toBe("summary");
     });
 
     const dailyTab = screen.queryByText(/Daily Details|Chi tiết hàng ngày/i);
@@ -295,7 +295,7 @@ describe("ReportsPage", () => {
 
     // searchEmployees should be called after debounce (400ms)
     await waitFor(() => {
-      expect(api.searchEmployees).toHaveBeenCalledWith("test-ws-id", "John");
+      expect(api.searchEmployees).toHaveBeenCalledWith({ wsId: "test-ws-id", query: "John" });
     }, { timeout: 2000 });
   });
  
@@ -319,7 +319,7 @@ describe("ReportsPage", () => {
       status: "present",
       generation_metadata: null,
     };
-    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, type) => {
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(({ type }) => {
       if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
       return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
@@ -381,7 +381,7 @@ describe("ReportsPage", () => {
       status: "present",
       generation_metadata: null,
     };
-    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, type) => {
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(({ type }) => {
       if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
       return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
@@ -426,7 +426,7 @@ describe("ReportsPage", () => {
       status: "present",
       generation_metadata: null,
     };
-    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, type) => {
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(({ type }) => {
       if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
       return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<AttendanceSummary>);
     });
@@ -483,7 +483,7 @@ describe("ReportsPage", () => {
       generation_metadata: null,
  
     };
-    vi.mocked(api.fetchAttendanceReport).mockImplementation((_wsId, _start, _end, type) => {
+    vi.mocked(api.fetchAttendanceReport).mockImplementation(({ type }) => {
       if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1, page: 1, limit: 50 } as unknown as PaginatedResponse<DailyAttendanceReport>);
       return Promise.resolve({
         data: [
@@ -492,7 +492,6 @@ describe("ReportsPage", () => {
         ],
         total: 2,
         page: 1,
- 
         limit: 50
       } as unknown as PaginatedResponse<AttendanceSummary>);
     });
@@ -587,7 +586,7 @@ describe("ReportsPage", () => {
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
       const latestCall = calls[calls.length - 1];
-      expect(latestCall[8]).toBe("dept-1");
+      expect(latestCall[0].departmentId).toBe("dept-1");
     });
 
     // Verify that clicking "All" clears the department filter (null is passed)
@@ -598,8 +597,7 @@ describe("ReportsPage", () => {
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
       const latestCall = calls[calls.length - 1];
-      expect(latestCall[8]).toBeNull();
- 
+      expect(latestCall[0].departmentId).toBeNull();
     });
  
   });
@@ -626,7 +624,7 @@ describe("ReportsPage", () => {
 
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
-      const sortedCall = calls.find((c) => c[6] === "ot_hours_desc");
+      const sortedCall = calls.find((c) => c[0].sort === "ot_hours_desc");
       expect(sortedCall).toBeDefined();
     });
 
@@ -636,7 +634,7 @@ describe("ReportsPage", () => {
  
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
-      const sortedCall = calls.find((c) => c[6] === "ot_hours_asc");
+      const sortedCall = calls.find((c) => c[0].sort === "ot_hours_asc");
       expect(sortedCall).toBeDefined();
     });
   });
@@ -668,7 +666,7 @@ describe("ReportsPage", () => {
 
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
-      const sortedCall = calls.find((c) => c[6] === "total_hours_desc");
+      const sortedCall = calls.find((c) => c[0].sort === "total_hours_desc");
       expect(sortedCall).toBeDefined();
     });
 
@@ -677,7 +675,7 @@ describe("ReportsPage", () => {
 
     await waitFor(() => {
       const calls = vi.mocked(api.fetchAttendanceReport).mock.calls;
-      const sortedCall = calls.find((c) => c[6] === "total_hours_asc");
+      const sortedCall = calls.find((c) => c[0].sort === "total_hours_asc");
       expect(sortedCall).toBeDefined();
     });
   });

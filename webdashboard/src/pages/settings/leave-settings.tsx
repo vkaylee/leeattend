@@ -1,111 +1,38 @@
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ShieldCheck, UserPlus, Info } from "lucide-react";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
-
-import { format } from "date-fns";
 
 import { AssignPolicyModal } from "@/components/leave/assign-policy-modal";
 import { LeavePolicyManager } from "@/components/leave/leave-policy-manager";
 import { LeaveTypeManager } from "@/components/leave/leave-type-manager";
-import { fetchLeavePolicyAssignments } from "@/lib/api";
-import { getCurrentWorkspaceId } from "@/lib/api/helpers";
-import { cn } from "@/lib/utils";
 
-
-
-
-
-type TabType = "types" | "policies" | "assignments";
-
-interface LeaveAssignment {
-  assignee_type: string;
-  created_at: string;
-  effective_from: string;
-  effective_to: string | null;
-  id: string;
-  leave_type_name: string;
-  policy_name: string;
-}
+import { LeaveAssignmentsTab } from "./components/leave/LeaveAssignmentsTab";
+import { LeaveSettingsHeader } from "./components/leave/LeaveSettingsHeader";
+import { LeaveSettingsTabs } from "./components/leave/LeaveSettingsTabs";
+import { useLeaveSettings } from "./hooks/use-leave-settings";
 
 export default function LeaveSettings() {
   const { t } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
-  const [activeTab, setActiveTab] = useState<TabType>("types");
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-
-  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<LeaveAssignment[]>({
-    queryKey: ["leave-assignments", wsId],
-    queryFn: () => fetchLeavePolicyAssignments(wsId!),
-    enabled: !!wsId && activeTab === "assignments"
-  });
-
+  const {
+    wsId,
+    activeTab,
+    setActiveTab,
+    isAssignModalOpen,
+    setIsAssignModalOpen,
+    assignments,
+    assignmentsLoading,
+  } = useLeaveSettings();
 
   if (!wsId) return null;
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-4">
-          <div className="bg-primary-600 p-3 rounded-2xl shadow-xl shadow-primary-100 dark:shadow-black/30 rotate-3">
-            <CalendarDays className="text-white w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tighter text-slate-800 dark:text-slate-100 uppercase leading-none">
-              {t("settings.leave.title")}
-            </h2>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mt-1 opacity-60">
-              {t("settings.leave.desc")}
-            </p>
-          </div>
-        </div>
-      </header>
+      <LeaveSettingsHeader />
 
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 shadow-sm">
-        <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner mb-8">
-          <button
-            className={cn(
-              "flex items-center gap-3 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-300",
-              activeTab === "types"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-100"
-            )}
-            data-testid="leave-tab-types"
-            onClick={() => { setActiveTab("types"); }}
-          >
-            <CalendarDays className="w-4 h-4" />
-            {t("settings.leave.tabs.types")}
-          </button>
-          <button
-            className={cn(
-              "flex items-center gap-3 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-300",
-              activeTab === "policies"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-100"
-            )}
-            data-testid="leave-tab-policies"
-            onClick={() => { setActiveTab("policies"); }}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            {t("settings.leave.tabs.policies")}
-          </button>
-          <button
-            className={cn(
-              "flex items-center gap-3 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-300",
-              activeTab === "assignments"
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-100"
-            )}
-            data-testid="leave-tab-assignments"
-            onClick={() => { setActiveTab("assignments"); }}
-          >
-            <UserPlus className="w-4 h-4" />
-            {t("settings.leave.tabs.assignments")}
-          </button>
-        </div>
+        <LeaveSettingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-          {activeTab === "types" ? (
+          {activeTab === "types" && (
             <div>
               <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6">
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
@@ -117,9 +44,9 @@ export default function LeaveSettings() {
               </div>
               <LeaveTypeManager wsId={wsId} />
             </div>
-          ) : null}
+          )}
 
-          {activeTab === "policies" ? (
+          {activeTab === "policies" && (
             <div>
               <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6">
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
@@ -131,82 +58,15 @@ export default function LeaveSettings() {
               </div>
               <LeavePolicyManager wsId={wsId} />
             </div>
-          ) : null}
+          )}
 
-          {activeTab === "assignments" ? (
-            <div>
-              <div className="mb-8 border-b border-slate-50 dark:border-slate-800 pb-6 flex justify-between items-end">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
-                    {t("settings.leave.tabs.assignments")}
-                  </h3>
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tight">
-                    {t("settings.leave.tabs.assignments_desc")}
-                  </p>
-                </div>
-                <button
-                  className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 shadow-lg shadow-primary-100"
-                  data-testid="assign-policy-btn" onClick={() => { setIsAssignModalOpen(true); }}
-                >
-                  <UserPlus className="w-4 h-4" />
-                  {t("settings.leave.actions.assign")}
-                </button>
-              </div>
-              <div className="bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:border-amber-800 p-8 rounded-[2.5rem] flex items-start gap-6">
-                <Info className="text-amber-600 dark:text-amber-300 w-6 h-6 mt-1 shrink-0" />
-                <div className="space-y-2">
-                  <p className="font-bold text-amber-900 uppercase tracking-widest text-xs">{t("common.important_note")}</p>
-                  <p className="text-sm text-amber-800 leading-relaxed">
-                    {t("settings.leave.messages.assignment_note")}
-                  </p>
-                </div>
-              </div>
-              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm mt-8 animate-in slide-in-from-bottom-4 duration-700">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
-                    <tr>
-                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("settings.leave.table.policy")}</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("settings.leave.table.type")}</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("settings.leave.table.assignee")}</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("settings.leave.table.effective_date")}</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("settings.leave.table.created_at")}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                    {assignmentsLoading ? (
-                      <tr><td className="p-8 text-center text-slate-400 dark:text-slate-500 italic font-bold text-xs uppercase tracking-widest" colSpan={5}>{t("settings.leave.messages.loading")}</td></tr>
-                    ) : assignments.length === 0 ? (
-                      <tr><td className="p-12 text-center text-slate-400 dark:text-slate-500 italic font-bold text-xs uppercase tracking-widest opacity-50" colSpan={5}>{t("settings.leave.messages.no_assignments")}</td></tr>
-                    ) : (
-                      assignments.map((a) => (
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group" key={a.id}>
-                          <td className="px-6 py-5 font-bold text-slate-700 dark:text-slate-200 text-xs tracking-tight">{a.policy_name}</td>
-                          <td className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{a.leave_type_name}</td>
-                          <td className="px-6 py-5">
-                            <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border shadow-sm", 
-                              a.assignee_type === "workspace" ? "bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-300 border-teal-100" :
-                              a.assignee_type === "department" ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800" :
-                              "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
-                            )}>
-                              {a.assignee_type}
-                            </span>
-                          </td>
-                          <td className="px-6 py-5 text-xs font-mono text-slate-600 dark:text-slate-300 font-bold">
-                             {format(new Date(a.effective_from), "MMM dd, yyyy")} 
-                             <span className="text-slate-300 dark:text-slate-600 mx-2">→</span>
-                             {a.effective_to ? format(new Date(a.effective_to), "MMM dd, yyyy") : <span className="text-slate-400 dark:text-slate-500 italic">{t("common.forever")}</span>}
-                          </td>
-                          <td className="px-6 py-5 text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right uppercase">
-                            {format(new Date(a.created_at), "MMM dd HH:mm")}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : null}
+          {activeTab === "assignments" && (
+            <LeaveAssignmentsTab
+              assignments={assignments}
+              isLoading={assignmentsLoading}
+              onAssignClick={() => { setIsAssignModalOpen(true); }}
+            />
+          )}
         </div>
       </div>
 

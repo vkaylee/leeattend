@@ -4,9 +4,11 @@ import { format } from "date-fns";
 
 import type { Employee } from "@/lib/api";
 
+import { ConfirmOptions } from "@/hooks/use-confirm";
+
 interface UseEmployeeActionsProps {
-  confirm: (options: any) => Promise<boolean>;
-  updateMutation: any;
+  confirm: (options: ConfirmOptions) => Promise<boolean>;
+  updateMutation: { mutate: (data: { id: string; employee: Partial<Employee> }) => void };
 }
 
 export function useEmployeeActions({ confirm, updateMutation }: UseEmployeeActionsProps) {

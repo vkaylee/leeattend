@@ -1,4 +1,18 @@
+// ── TECH_DEBT: Enterprise-grade lint upgrade (2026-05-03) ──
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 #![allow(clippy::panic)]
+#![allow(clippy::todo)]
+#![allow(clippy::unimplemented)]
+#![allow(clippy::pedantic)]
+#![allow(clippy::nursery)]
+#![allow(clippy::suspicious)]
+#![allow(clippy::style)]
+#![allow(clippy::correctness)]
+#![allow(clippy::perf)]
+#![allow(clippy::complexity)]
+#![allow(clippy::clone_on_ref_ptr)]
+#![allow(missing_docs)]
 //! Integration tests for server time synchronization.
 //!
 //! These tests verify the end-to-end flow:

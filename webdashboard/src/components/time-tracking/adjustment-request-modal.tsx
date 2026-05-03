@@ -1,6 +1,7 @@
 import { History } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { TFunction } from "i18next";
 
 import { format } from "date-fns";
 
@@ -25,7 +26,7 @@ export interface AdjustmentData {
   timeEntryId?: string;
 }
 
-function AdjustmentFormFields({ formData, setFormData, t }: { formData: AdjustmentData; setFormData: (data: AdjustmentData) => void; t: any }) {
+function AdjustmentFormFields({ formData, setFormData, t }: { formData: AdjustmentData; setFormData: (data: AdjustmentData) => void; t: TFunction }) {
   return (
     <>
       <div className="space-y-2">

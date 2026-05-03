@@ -256,11 +256,13 @@ function SourceChart({
 
     const total = useMemo(() => chartData.reduce((accumulator, d) => accumulator + d.value, 0), [chartData]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tooltipFormatter = (value: any) => [
-        `${value ?? 0} (${(((value ?? 0) / (total || 1)) * 100).toFixed(1)}%)`,
-        t("dashboard.hr.people"),
-    ];
+    const tooltipFormatter = (value: number | string | readonly (number | string)[] | undefined) => {
+        const numValue = typeof value === 'number' ? value : 0;
+        return [
+            `${numValue} (${((numValue / (total || 1)) * 100).toFixed(1)}%)`,
+            t("dashboard.hr.people"),
+        ];
+    };
 
     return (
         <div className="flex flex-col lg:flex-row items-center gap-4 h-full">

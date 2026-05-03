@@ -172,35 +172,50 @@ export async function fetchRawAttendanceLogs(params: {
   return response.json() as Promise<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }>;
 }
 
+export interface FetchAttendanceReportParams {
+  departmentId?: string | null;
+  employeeIds?: string[];
+  end: string;
+  limit?: number;
+  page?: number;
+  sort?: AttendanceReportSort;
+  start: string;
+  type?: "summary" | "daily";
+  wsId: string;
+}
+
 export async function fetchAttendanceReport(
-  wsId: string,
-  start: string,
-  end: string,
-  type: "summary" | "daily" = "summary",
-  page?: number,
-  limit?: number,
-  sort?: AttendanceReportSort,
-  employeeIds?: string[],
-  departmentId?: string | null
- 
+  params: FetchAttendanceReportParams
 ): Promise<PaginatedResponse<AttendanceSummary | DailyAttendanceReport>> {
-  const params = new URLSearchParams({
+  const {
+    wsId,
+    start,
+    end,
+    type = "summary",
+    page,
+    limit,
+    sort,
+    employeeIds,
+    departmentId,
+  } = params;
+  
+  const searchParams = new URLSearchParams({
     start_date: start,
     end_date: end,
     type,
   });
-  if (page) params.append("page", page.toString());
-  if (limit) params.append("limit", limit.toString());
-  if (sort) params.append("sort", sort);
+  if (page) searchParams.append("page", page.toString());
+  if (limit) searchParams.append("limit", limit.toString());
+  if (sort) searchParams.append("sort", sort);
   if (employeeIds && employeeIds.length > 0) {
-    params.append("employee_ids", employeeIds.join(","));
+    searchParams.append("employee_ids", employeeIds.join(","));
   }
   if (departmentId) {
-    params.append("department_id", departmentId);
+    searchParams.append("department_id", departmentId);
   }
 
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/reports/attendance?${params.toString()}`,
+    `${API_BASE_URL}/workspaces/${wsId}/reports/attendance?${searchParams.toString()}`,
   );
   if (!response.ok) throw new Error("Failed to fetch attendance report");
   return response.json() as Promise<PaginatedResponse<AttendanceSummary | DailyAttendanceReport>>;

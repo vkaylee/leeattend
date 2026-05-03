@@ -90,10 +90,10 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         ))}
       </div>
 
-      {isAddingType && <AddLeaveTypeModal isSaving={createTypeMutation.isPending} onClose={() => { setIsAddingType(false); }} onSave={(data) => { createTypeMutation.mutate(data); }} />}
-      {editingType && <EditLeaveTypeModal isSaving={updateTypeMutation.isPending} leaveType={editingType} onClose={() => { setEditingType(null); }} onSave={(config: LeaveTypeConfig) => { updateTypeMutation.mutate({ typeId: editingType.id, config }); }} />}
+      {!!isAddingType && <AddLeaveTypeModal isSaving={createTypeMutation.isPending} onClose={() => { setIsAddingType(false); }} onSave={(data) => { createTypeMutation.mutate(data); }} />}
+      {!!editingType && <EditLeaveTypeModal isSaving={updateTypeMutation.isPending} leaveType={editingType} onClose={() => { setEditingType(null); }} onSave={(config: LeaveTypeConfig) => { updateTypeMutation.mutate({ typeId: editingType.id, config }); }} />}
       { }
-      {deletingType && (
+      {!!deletingType && (
         <Modal isOpen={true} onClose={() => { setDeletingType(null); }} title="Confirm Delete">
           <div className="p-8">
             <p className="text-sm">Are you sure you want to delete "{deletingType.name}"?</p>

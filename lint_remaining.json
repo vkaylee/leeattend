@@ -1,0 +1,8 @@
+[0;34m[1mℹ️ 🛠️ Running npm inside container environment...[0m
+WARNING:__main__:unknown PODMAN_COMPOSE_ key [project_name] in environment, supported keys: docker_compose_compat, default_net_name_compat, default_net_behavior_compat, name_separator_compat, in_pod, pod_args
+99117f39330b74c4af1989284b77dd434ff47d1e99e571edb1b5aa735729c259
+bfd8518ab15e5864741eb288dfea6866b949f2b9f753aa3857cf91b7c1557274
+leeattend-test_bun_init_1
+error: Script not found "webdashboard"
+[0;34m[1mℹ️ 🧹 Orchestrator: Triggering final infrastructure cleanup...[0m
+[0;32m[1m✅ ✨ Infrastructure cleanup completed.[0m

@@ -54,7 +54,15 @@ export const useEmployeesData = ({
     queryFn: ({ pageParam }) => {
       const apiSortKeyMapping = { name: "name", id: "employee_id_number", department: "department", status: "status" } as const;
       const apiSortKey = sortKey ? apiSortKeyMapping[sortKey] : undefined;
-      return searchEmployees(wsId, debouncedSearch, pageParam, PAGE_SIZE, apiSortKey, sortDir, filterDeptIds.length > 0 ? filterDeptIds : undefined);
+      return searchEmployees({
+        wsId,
+        query: debouncedSearch,
+        page: pageParam,
+        limit: PAGE_SIZE,
+        sortBy: apiSortKey,
+        sortDir,
+        departmentIds: filterDeptIds.length > 0 ? filterDeptIds : undefined
+      });
     },
     getNextPageParam: (lastPage, allPages) => {
       const totalLoaded = allPages.reduce((sum, p) => sum + (p.data.length || 0), 0);

@@ -107,7 +107,6 @@ export function useReportStream({
   const totalBatchesRef = useRef(0);
   const statusRef = useRef<StreamStatus>("idle");
 
-  // Store callbacks in refs to avoid dependency issues
   const onCompleteRef = useRef(onComplete);
   const onErrorRef = useRef(onError);
   
@@ -117,46 +116,31 @@ export function useReportStream({
     statusRef.current = status;
   });
 
-  /**
-   * Handle incoming WebSocket message
-   */
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
       const message = JSON.parse(event.data as string) as StreamMessage;
-
       switch (message.type) {
         case "CHUNK": {
-          const chunkMessage = message;
-
-          // Update progress (data is no longer sent in CHUNK messages)
-          totalBatchesRef.current = chunkMessage.total_batches;
-          const newProgress =
-            ((chunkMessage.batch_index + 1) / chunkMessage.total_batches) * 100;
+          totalBatchesRef.current = message.total_batches;
+          const newProgress = ((message.batch_index + 1) / message.total_batches) * 100;
           setProgress(Math.min(newProgress, 100));
           setStatus("streaming");
-
-          
           break;
         }
-
         case "DONE": {
           setStatus("completed");
           setProgress(100);
           shouldReconnectRef.current = false;
-          // Update chunks state for consumers, then clear ref to avoid double-buffering
           const finalChunks = [...chunksRef.current];
           chunksRef.current = [];
           setChunks(finalChunks);
-          
           onCompleteRef.current?.(finalChunks);
           break;
         }
-
         case "ERROR": {
           setStatus("error");
           setError(message.message);
           shouldReconnectRef.current = false;
-          
           onErrorRef.current?.(message.message);
           break;
         }
@@ -169,113 +153,55 @@ export function useReportStream({
   /**
    * Connect to WebSocket
    */
+  const connectRef = useRef<() => void>(() => {});
+
   const connect = useCallback(() => {
     if (!jobId) return;
-
-    // Clean up existing connection
-    if (socketRef.current) {
-      socketRef.current.close();
-      socketRef.current = null;
-    }
-
+    if (socketRef.current) { socketRef.current.close(); socketRef.current = null; }
     const url = buildWebSocketUrl(jobId);
-    console.error(`[ReportStream] Connecting to ${url}`);
-
     setStatus("connecting");
     setError(null);
-
     try {
       const socket = new WebSocket(url);
       socketRef.current = socket;
-
-      // Add a connection timeout (3 seconds) to prevent infinite hanging
-      // if a firewall or proxy swallows the connection attempt silently.
       const connectionTimeoutId = setTimeout(() => {
-        if (socket.readyState === WebSocket.CONNECTING) {
-          console.warn("[ReportStream] Connection timeout, closing socket manually");
-          socket.close();
-        }
+        if (socket.readyState === WebSocket.CONNECTING) socket.close();
       }, 3000);
-
       socket.onopen = () => {
         clearTimeout(connectionTimeoutId);
-        
         setStatus("streaming");
-        retryCountRef.current = 0; // Reset retry count on success
-
-        // Start heartbeat ping to keep connection alive through proxies (e.g., Cloudflare 100s limit)
+        retryCountRef.current = 0;
         pingIntervalRef.current = setInterval(() => {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: "ping" }));
-          }
-        }, 30000); // 30 seconds
+          if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "ping" }));
+        }, 30000);
       };
-
       socket.onmessage = handleMessage;
-
-      socket.onerror = (_event) => { /* empty */ };
-
       socket.onclose = (event) => {
         clearTimeout(connectionTimeoutId);
-        
-
-        // Handle auth failure: code 1006 on first attempt = HTTP 401 (upgrade rejected)
-        // Browser doesn't expose HTTP status on WS upgrade failure, but 1006 = abnormal close
-        if (
-          event.code === 1006 &&
-          retryCountRef.current === 0 &&
-          statusRef.current === "connecting"
-        ) {
-          
+        if (event.code === 1006 && retryCountRef.current === 0 && statusRef.current === "connecting") {
           retryCountRef.current++;
-          void tryRefreshToken().then((refreshed) => {
-            if (refreshed && shouldReconnectRef.current) {
-              
-              // eslint-disable-next-line react-hooks/immutability
-              connect();
-            } else {
-              // Refresh failed — session expired, redirect to login
-              console.warn("[ReportStream] Session expired, redirecting to login");
-              clearAuthSession();
-              if (window.location.pathname !== ROUTES.LOGIN) {
-                window.location.href = ROUTES.LOGIN;
-              }
-            }
+          void tryRefreshToken().then((ref) => {
+            if (ref && shouldReconnectRef.current) connectRef.current();
+            else { clearAuthSession(); if (window.location.pathname !== ROUTES.LOGIN) window.location.href = ROUTES.LOGIN; }
           });
           return;
         }
-
-        // Only reconnect if not intentionally closed and not completed/errored
-        if (
-          shouldReconnectRef.current &&
-          retryCountRef.current < maxRetries &&
-          statusRef.current !== "completed" &&
-          statusRef.current !== "error"
-        ) {
+        if (shouldReconnectRef.current && retryCountRef.current < maxRetries && statusRef.current !== "completed" && statusRef.current !== "error") {
           const delay = getBackoffDelay(retryCountRef.current);
-          
-
           retryCountRef.current++;
-          setTimeout(() => {
-            if (shouldReconnectRef.current) {
-              connect();
-            }
-          }, delay);
-        } else if (
-          retryCountRef.current >= maxRetries &&
-          statusRef.current !== "completed"
-        ) {
+          setTimeout(() => { if (shouldReconnectRef.current) connectRef.current(); }, delay);
+        } else if (retryCountRef.current >= maxRetries && statusRef.current !== "completed") {
           setStatus("error");
           setError("Connection lost. Max retries exceeded.");
           onErrorRef.current?.("Connection lost. Max retries exceeded.");
         }
       };
-    } catch (error_) {
-      console.error("[ReportStream] Failed to create WebSocket:", error_);
-      setStatus("error");
-      setError("Failed to establish connection");
-    }
+    } catch (err) { setStatus("error"); setError("Failed to establish connection"); }
   }, [jobId, handleMessage, maxRetries]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   /**
    * Manual reconnect function exposed to consumers

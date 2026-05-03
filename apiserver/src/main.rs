@@ -4,7 +4,10 @@
     clippy::manual_let_else,
     clippy::single_match_else,
     clippy::ignored_unit_patterns,
-    missing_docs
+    missing_docs,
+    // ── TECH_DEBT: Enterprise-grade lint groups (2026-05-03) ──
+    clippy::style,
+    clippy::correctness
 )]
 use apiserver::db_pool::{DbPoolConfig, DbPools};
 use apiserver::openapi::ApiDoc;

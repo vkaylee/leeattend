@@ -94,7 +94,10 @@ export default function PayrollPage() {
 
   const { data: employeePayslips = [], isLoading: employeePayslipsLoading } = useQuery({
     queryKey: ["payslips", selectedEmployee?.id],
-    queryFn: () => fetchEmployeePayslips(wsId, selectedEmployee!.id),
+    queryFn: () => {
+      if (!selectedEmployee) throw new Error("Employee is required");
+      return fetchEmployeePayslips(wsId, selectedEmployee.id);
+    },
     enabled: !!selectedEmployee && isDetailDrawerOpen,
   });
 

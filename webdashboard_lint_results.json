@@ -1,0 +1,9 @@
+[0;34m[1mℹ️ 🛠️ Running npm inside container environment...[0m
+WARNING:__main__:unknown PODMAN_COMPOSE_ key [project_name] in environment, supported keys: docker_compose_compat, default_net_name_compat, default_net_behavior_compat, name_separator_compat, in_pod, pod_args
+40be8e2713ef925e2fbd2337a176c0942b14073a358e456b943afc8695747e2b
+728d1c39320c0d23f84e27e4bdfce53b21e97a48e4518979fa74130e2e838fc5
+leeattend-test_bun_init_1
+$ eslint --cache --max-warnings 0 --format json
+error: script "lint" was terminated by signal SIGTERM (Polite quit request)
+[0;34m[1mℹ️ 🧹 Orchestrator: Triggering final infrastructure cleanup...[0m
+[0;32m[1m✅ ✨ Infrastructure cleanup completed.[0m

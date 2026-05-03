@@ -63,7 +63,15 @@ export function useEmployeeDailyDrawer({
     const { data: reportResponse, isLoading } = useQuery({
         queryKey: ["attendance-report", workspaceId, dateRange, "daily", 1, 100, undefined, [employeeId]],
         queryFn: () =>
-            fetchAttendanceReport(workspaceId, dateRange.start, dateRange.end, "daily", 1, 100, undefined, [employeeId]),
+            fetchAttendanceReport({
+                wsId: workspaceId,
+                start: dateRange.start,
+                end: dateRange.end,
+                type: "daily",
+                page: 1,
+                limit: 100,
+                employeeIds: [employeeId],
+            }),
         enabled: isOpen && !!workspaceId && !!employeeId,
     });
 

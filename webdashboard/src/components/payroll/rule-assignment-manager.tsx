@@ -65,7 +65,7 @@ export default function RuleAssignmentManager({
       </div>
 
       {/* Loading state */}
-      {isLoading && (
+      {!!isLoading && (
         <div className="p-12 flex justify-center">
           <div className="w-8 h-8 border-[3px] border-teal-600 border-t-transparent rounded-full animate-spin" />
         </div>

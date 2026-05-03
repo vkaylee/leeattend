@@ -270,7 +270,7 @@ function PayslipCard({ slip, isExpanded, setExpandedId, slipAdjustments, onResol
     <div className={cn("group bg-white dark:bg-slate-900 border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 dark:border-primary-800 rounded-[2.5rem] shadow-2xl shadow-primary-100/20 dark:shadow-black/20" : "border-slate-100 dark:border-slate-800 hover:border-primary-100 dark:border-primary-800 rounded-[2rem] shadow-sm dark:shadow-black/10 hover:shadow-lg hover:shadow-primary-100/10")} data-testid={`payslip-card-${slip.id}`}>
       <PayslipCardHeader canReadSensitive={canReadSensitive} formatMonthYear={formatMonthYear} isExpanded={isExpanded} setExpandedId={setExpandedId} setIsModalOpen={setIsModalOpen} setSelectedPayslip={setSelectedPayslip} slip={slip} t={t} />
 
-      {isExpanded && <PayslipCardBody canReadSensitive={canReadSensitive} onResolveAdjustments={onResolveAdjustments} slip={slip} slipAdjustments={slipAdjustments} t={t} />}
+      {!!isExpanded && <PayslipCardBody canReadSensitive={canReadSensitive} onResolveAdjustments={onResolveAdjustments} slip={slip} slipAdjustments={slipAdjustments} t={t} />}
     </div>
   );
 }

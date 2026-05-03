@@ -1,21 +1,12 @@
 import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Combobox } from "@/components/ui/combobox";
+
 import type { Holiday, LeaveType } from "@/lib/api/types";
+
+import { Combobox } from "@/components/ui/combobox";
 
 interface HolidayFormProps {
     editingHoliday: Holiday | null;
-    formState: {
-        name: string;
-        date: string;
-        type: string;
-        isPaid: boolean;
-        leaveTypeId: string;
-        otMultiplier: string;
-        description: string;
-        isCreditOnWork: boolean;
-        thresholdPercent: string;
-    };
     formActions: {
         setName: (v: string) => void;
         setDate: (v: string) => void;
@@ -28,6 +19,17 @@ interface HolidayFormProps {
         setThresholdPercent: (v: string) => void;
         resetForm: () => void;
         handleSubmit: (e: React.SyntheticEvent) => Promise<void>;
+    };
+    formState: {
+        name: string;
+        date: string;
+        type: string;
+        isPaid: boolean;
+        leaveTypeId: string;
+        otMultiplier: string;
+        description: string;
+        isCreditOnWork: boolean;
+        thresholdPercent: string;
     };
     leaveTypes: LeaveType[];
 }

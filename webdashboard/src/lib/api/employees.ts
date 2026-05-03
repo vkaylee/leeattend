@@ -60,15 +60,28 @@ export async function deleteWorkingCondition(wsId: string, employeeId: string, c
   if (!response.ok) throw new Error("Failed to delete working condition");
 }
 
+export interface SearchEmployeesParams {
+  departmentIds?: string[];
+  limit?: number;
+  page?: number;
+  query: string;
+  sortBy?: string;
+  sortDir?: string;
+  wsId: string;
+}
+
 export async function searchEmployees(
-  wsId: string, 
-  query: string,
-  page = 1,
-  limit = 50,
-  sortBy?: string,
-  sortDir?: string,
-  departmentIds?: string[],
+  params: SearchEmployeesParams
 ): Promise<PaginatedResponse<Employee>> {
+  const {
+    wsId,
+    query,
+    page = 1,
+    limit = 50,
+    sortBy,
+    sortDir,
+    departmentIds,
+  } = params;
   const queryParams = new URLSearchParams();
   if (query) {
     queryParams.append("q", query);
