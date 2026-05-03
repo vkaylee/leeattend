@@ -11,6 +11,142 @@ import { getCurrentWorkspaceId } from "../../lib/api/helpers";
 
 type DebugTab = "identity" | "time" | "database";
 
+function DebugIdentityTab({ debugUsers, temporaryId, setTemporaryId, setImpersonateId }: any) {
+  return (
+    <div className="space-y-3 animate-in fade-in duration-300">
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1" htmlFor="debug-user-select">
+          Select User
+        </label>
+        <select 
+          className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] mb-2 focus:outline-none focus:border-blue-500"
+          id="debug-user-select"
+          onChange={(e) => { setTemporaryId(e.target.value); }}
+          value={temporaryId}
+        >
+          <option value="">-- All Workspace Users --</option>
+          {Array.isArray(debugUsers) && debugUsers.map((u: any) => (
+            <option key={String(u.id)} value={String(u.id)}>{String(u.name)} ({String(u.role)})</option>
+          ))}
+        </select>
+        <div className="flex gap-2">
+          <input
+            className="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] font-mono focus:outline-none focus:border-blue-500"
+            onChange={(e) => { setTemporaryId(e.target.value); }}
+            placeholder="Paste UUID..."
+            type="text"
+            value={temporaryId}
+          />
+          <button
+            className="bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 px-3 py-1.5 rounded text-[10px] font-bold"
+            onClick={() => { setImpersonateId(temporaryId); }}
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DebugTimeTab({ temporaryDate, setTemporaryDate, setMockDate }: any) {
+  return (
+    <div className="space-y-3 animate-in fade-in duration-300">
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1" htmlFor="debug-date-input">
+          Travel to Date
+        </label>
+        <div className="flex gap-2">
+          <input
+            className="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-teal-500 [color-scheme:dark]"
+            id="debug-date-input"
+            onChange={(e) => { setTemporaryDate(e.target.value); }}
+            type="date"
+            value={temporaryDate}
+          />
+          <button
+            className="bg-teal-600 hover:bg-teal-50 dark:bg-teal-950 px-3 py-1.5 rounded text-[10px] font-bold"
+            onClick={() => { setMockDate(temporaryDate); }}
+          >
+            Apply
+          </button>
+        </div>
+        <p className="text-[9px] text-slate-500 dark:text-slate-400 italic mt-2">
+          Note: Mock date affects payroll segments and policy resolution.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DebugDatabaseTab({ isWiping, handleClearDatabase }: any) {
+  return (
+    <div className="space-y-3 animate-in fade-in duration-300">
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
+          disabled={isWiping}
+          onClick={() => handleClearDatabase("attendance")}
+          title="Clear attendance logs and time entries"
+        >
+          <Trash2 className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" size={12} />
+          <span className="text-[8px] font-bold uppercase">Logs</span>
+        </button>
+        <button
+          className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
+          disabled={isWiping}
+          onClick={() => handleClearDatabase("payroll")}
+          title="Clear payroll history"
+        >
+          <Trash2 className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" size={12} />
+          <span className="text-[8px] font-bold uppercase">Payroll</span>
+        </button>
+        <button
+          className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
+          disabled={isWiping}
+          onClick={() => handleClearDatabase("rosters")}
+          title="Clear schedules and rosters"
+        >
+          <Trash2 className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" size={12} />
+          <span className="text-[8px] font-bold uppercase">Rosters</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+        <button
+          className="flex flex-col items-center gap-1 bg-red-900/10 hover:bg-red-900/30 border border-red-900/30 p-2 rounded transition-colors group"
+          disabled={isWiping}
+          onClick={() => handleClearDatabase("employees")}
+          title="Delete all employees and their data (keeps settings)"
+        >
+          <UserMinus className="text-red-400" size={14} />
+          <span className="text-[9px] font-bold uppercase text-red-200">Wipe Staff</span>
+        </button>
+        <button
+          className="flex flex-col items-center gap-1 bg-red-900/20 hover:bg-red-900/40 border border-red-900/50 p-2 rounded transition-colors group"
+          disabled={isWiping}
+          onClick={() => handleClearDatabase("full_reset")}
+          title="Delete EVERYTHING (Factory Reset)"
+        >
+          <Trash2 className="text-red-400" size={14} />
+          <span className="text-[9px] font-bold uppercase text-red-200">Factory Reset</span>
+        </button>
+      </div>
+      
+      <div className="pt-2 border-t border-slate-800">
+        <button
+          className="w-full flex items-center justify-center gap-2 bg-green-900/20 hover:bg-green-900/40 border border-green-900/50 p-2 rounded text-[10px] font-bold text-green-200 transition-colors"
+          disabled={isWiping}
+          onClick={() => handleClearDatabase("seed")}
+          title="Create default departments, shifts, and employees"
+        >
+          <UserPlus size={14} /> Quick Seed Demo Team
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export const DebugToolbar: React.FC = () => {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -24,7 +160,6 @@ export const DebugToolbar: React.FC = () => {
   const [debugUsers, setDebugUsers] = useState<Record<string, unknown>[]>([]);
   const [isWiping, setIsWiping] = useState(false);
 
- 
   useEffect(() => {
     if (isOpen && isEnabled && activeTab === "identity") {
       debugApi.getUsers()
@@ -43,7 +178,6 @@ export const DebugToolbar: React.FC = () => {
     }
   }, [isOpen, isEnabled, activeTab]);
 
-  // Only show in DEV
   if (!import.meta.env.DEV) return null;
 
   const currentWorkspaceId = getCurrentWorkspaceId();
@@ -64,7 +198,6 @@ export const DebugToolbar: React.FC = () => {
     setIsWiping(true);
     try {
       await debugApi.clearDb(currentWorkspaceId, group);
-      // Invalidate all queries to refresh the UI
       void queryClient.invalidateQueries();
       toast.success(`${group === "seed" ? "Demo data seeded" : group + " data wiped"} successfully.`);
     } catch (error) {
@@ -98,7 +231,6 @@ export const DebugToolbar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mode Toggle */}
       <div className="px-4 pt-4">
         <div className="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg">
           <div className="flex items-center gap-2">
@@ -118,7 +250,6 @@ export const DebugToolbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs Header */}
       <div className="flex border-b border-slate-800 mt-2">
         <button 
           className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
@@ -148,138 +279,15 @@ export const DebugToolbar: React.FC = () => {
 
       <div className={`p-4 min-h-[160px] ${!isEnabled ? "opacity-40 pointer-events-none" : ""}`}>
         {activeTab === "identity" && (
-          <div className="space-y-3 animate-in fade-in duration-300">
-            <div className="space-y-1.5">
-              { }
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1" htmlFor="debug-user-select">
-                Select User
-              </label>
-              <select 
-                className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] mb-2 focus:outline-none focus:border-blue-500"
-                id="debug-user-select"
-                onChange={(e) => { setTemporaryId(e.target.value); }}
-                value={temporaryId}
-              >
-                <option value="">-- All Workspace Users --</option>
-                {Array.isArray(debugUsers) && debugUsers.map(u => (
-                  <option key={String(u.id)} value={String(u.id)}>{String(u.name)} ({String(u.role)})</option>
-                ))}
-              </select>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] font-mono focus:outline-none focus:border-blue-500"
-                  onChange={(e) => { setTemporaryId(e.target.value); }}
-                  placeholder="Paste UUID..."
-                  type="text"
-                  value={temporaryId}
-                />
-                <button
-                  className="bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 px-3 py-1.5 rounded text-[10px] font-bold"
-                  onClick={() => { setImpersonateId(temporaryId); }}
-                >
-                  Apply
-                </button>
-              </div>
-            </div>
-          </div>
+          <DebugIdentityTab debugUsers={debugUsers} setImpersonateId={setImpersonateId} setTemporaryId={setTemporaryId} temporaryId={temporaryId} />
         )}
 
         {activeTab === "time" && (
-          <div className="space-y-3 animate-in fade-in duration-300">
-            { }
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1" htmlFor="debug-date-input">
-                Travel to Date
-              </label>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-[11px] focus:outline-none focus:border-teal-500 [color-scheme:dark]"
-                  id="debug-date-input"
-                  onChange={(e) => { setTemporaryDate(e.target.value); }}
-                  type="date"
-                  value={temporaryDate}
-                />
-                <button
-                  className="bg-teal-600 hover:bg-teal-50 dark:bg-teal-950 px-3 py-1.5 rounded text-[10px] font-bold"
-                  onClick={() => { setMockDate(temporaryDate); }}
-                >
-                  Apply
-                </button>
-              </div>
-              <p className="text-[9px] text-slate-500 dark:text-slate-400 italic mt-2">
-                Note: Mock date affects payroll segments and policy resolution.
-              </p>
-            </div>
-          </div>
+          <DebugTimeTab setMockDate={setMockDate} setTemporaryDate={setTemporaryDate} temporaryDate={temporaryDate} />
         )}
 
         {activeTab === "database" && (
-          <div className="space-y-3 animate-in fade-in duration-300">
-             {/* Data Operations */}
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
-                disabled={isWiping}
-                onClick={() => handleClearDatabase("attendance")}
-                title="Clear attendance logs and time entries"
-              >
-                <Trash2 className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" size={12} />
-                <span className="text-[8px] font-bold uppercase">Logs</span>
-              </button>
-              <button
-                className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
-                disabled={isWiping}
-                onClick={() => handleClearDatabase("payroll")}
-                title="Clear payroll history"
-              >
-                <Trash2 className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" size={12} />
-                <span className="text-[8px] font-bold uppercase">Payroll</span>
-              </button>
-              <button
-                className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
-                disabled={isWiping}
-                onClick={() => handleClearDatabase("rosters")}
-                title="Clear schedules and rosters"
-              >
-                <Trash2 className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" size={12} />
-                <span className="text-[8px] font-bold uppercase">Rosters</span>
-              </button>
-            </div>
-
-            {/* Destructive Zone */}
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                <button
-                className="flex flex-col items-center gap-1 bg-red-900/10 hover:bg-red-900/30 border border-red-900/30 p-2 rounded transition-colors group"
-                disabled={isWiping}
-                onClick={() => handleClearDatabase("employees")}
-                title="Delete all employees and their data (keeps settings)"
-              >
-                <UserMinus className="text-red-400" size={14} />
-                <span className="text-[9px] font-bold uppercase text-red-200">Wipe Staff</span>
-              </button>
-              <button
-                className="flex flex-col items-center gap-1 bg-red-900/20 hover:bg-red-900/40 border border-red-900/50 p-2 rounded transition-colors group"
-                disabled={isWiping}
-                onClick={() => handleClearDatabase("full_reset")}
-                title="Delete EVERYTHING (Factory Reset)"
-              >
-                <Trash2 className="text-red-400" size={14} />
-                <span className="text-[9px] font-bold uppercase text-red-200">Factory Reset</span>
-              </button>
-            </div>
-            
-            {/* Seeding */}
-            <div className="pt-2 border-t border-slate-800">
-               <button
-                className="w-full flex items-center justify-center gap-2 bg-green-900/20 hover:bg-green-900/40 border border-green-900/50 p-2 rounded text-[10px] font-bold text-green-200 transition-colors"
-                disabled={isWiping}
-                onClick={() => handleClearDatabase("seed")}
-                title="Create default departments, shifts, and employees"
-              >
-                <UserPlus size={14} /> Quick Seed Demo Team
-              </button>
-            </div>
-          </div>
+          <DebugDatabaseTab handleClearDatabase={handleClearDatabase} isWiping={isWiping} />
         )}
       </div>
 
@@ -308,4 +316,3 @@ export const DebugToolbar: React.FC = () => {
     </div>
   );
 };
-
