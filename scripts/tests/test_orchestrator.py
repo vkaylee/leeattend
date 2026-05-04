@@ -113,13 +113,16 @@ def test_engine_properties(orchestrator) -> None:
 @patch("subprocess.run")
 @patch("shutil.which")
 def test_run_npm_typecheck(mock_which, mock_run, orchestrator) -> None:
-    """Test logic for fixing npm typecheck errors."""
+    """Test typecheck → type-check mapping for bun."""
     mock_which.return_value = "podman"
     mock_run.return_value.returncode = 0
     args = orchestrator.parser.parse_args(["run", "npm", "run", "typecheck"])
     orchestrator.handle_run(args)
-    called_cmd = " ".join(mock_run.call_args[0][0])
-    assert "type-check" in called_cmd
+    cmd_list = mock_run.call_args[0][0]
+    # "type-check" must be in the args list
+    assert "type-check" in cmd_list
+    # Should use compose exec
+    assert "exec" in cmd_list
 
 
 @patch("subprocess.run")
@@ -222,7 +225,9 @@ def test_full_run_npm(mock_run, orchestrator) -> None:
     """Test full run loop for run npm command."""
     mock_run.return_value.returncode = 0
     orchestrator.run()
-    assert "webdashboard" in str(mock_run.call_args_list)
+    cmd_str = str(mock_run.call_args_list)
+    assert "webdashboard" in cmd_str
+    assert "exec" in cmd_str
 
 
 @patch("_orchestrator.leeattend_run_unit")
@@ -364,9 +369,9 @@ def test_handle_run_npm_no_args(mock_which, mock_run, orchestrator) -> None:
     mock_run.return_value.returncode = 0
     args = orchestrator.parser.parse_args(["run", "npm"])
     orchestrator.handle_run(args)
-    cmd_str = str(mock_run.call_args[0][0])
-    assert "--entrypoint" in cmd_str
-    assert "bun" in cmd_str
+    cmd_list = mock_run.call_args[0][0]
+    assert "exec" in cmd_list
+    assert "bun" in cmd_list
 
 
 @patch.object(_orchestrator.Orchestrator, "run_phase")
@@ -455,12 +460,11 @@ def test_handle_run_remainder_args(mock_run, orchestrator) -> None:
     mock_run.return_value.returncode = 0
     args = orchestrator.parser.parse_args(["run", "npm", "--", "run", "dev"])
     orchestrator.handle_run(args)
-    called_args = mock_run.call_args[0][0]
-    cmd_str = str(called_args)
-    assert "--entrypoint" in cmd_str
-    assert "bun" in cmd_str
-    assert "run" in called_args
-    assert "dev" in called_args
+    cmd_list = mock_run.call_args[0][0]
+    assert "exec" in cmd_list
+    assert "bun" in cmd_list
+    assert "run" in cmd_list
+    assert "dev" in cmd_list
 
 
 @patch("socket.socket")
@@ -543,10 +547,10 @@ def test_handle_run_remainder_explicit(mock_run, orchestrator) -> None:
     mock_run.return_value.returncode = 0
     args = orchestrator.parser.parse_args(["run", "npm", "--", "test"])
     orchestrator.handle_run(args)
-    called_args = str(mock_run.call_args[0][0])
-    assert "--entrypoint" in called_args
-    assert "bun" in called_args
-    assert "test" in mock_run.call_args[0][0]
+    cmd_list = mock_run.call_args[0][0]
+    assert "exec" in cmd_list
+    assert "bun" in cmd_list
+    assert "test" in cmd_list
 
 
 @patch("subprocess.run")
@@ -677,19 +681,19 @@ def test_main_entry_point() -> None:
 
 @patch("subprocess.run")
 def test_handle_run_npm_first_arg_npm(mock_run, orchestrator) -> None:
-    """Test handle_run when first arg is npm — should use npm as entrypoint."""
+    """Test handle_run when first arg is npm — uses compose exec."""
     mock_run.return_value.returncode = 0
     args = orchestrator.parser.parse_args(["run", "npm", "--", "npm", "install"])
     orchestrator.handle_run(args)
-    called_args = str(mock_run.call_args[0][0])
-    assert "--entrypoint" in called_args
-    assert "npm" in called_args
-    assert "install" in mock_run.call_args[0][0]
+    cmd_list = mock_run.call_args[0][0]
+    assert "exec" in cmd_list
+    assert "npm" in cmd_list
+    assert "install" in cmd_list
 
 
 @patch("subprocess.run")
 def test_handle_run_with_many_file_args(mock_run, orchestrator) -> None:
-    """Test handle_run npm with 24+ file paths (simulates AI linting many files)."""
+    """Test handle_run npm with 24+ file paths — uses compose exec."""
     mock_run.return_value.returncode = 0
     files = [
         f"/workspace/webdashboard/src/test_{i:03d}.tsx"
@@ -699,12 +703,9 @@ def test_handle_run_with_many_file_args(mock_run, orchestrator) -> None:
     args = orchestrator.parser.parse_args(base_args + files)
     orchestrator.handle_run(args)
     cmd_list = mock_run.call_args[0][0]
-    # All 24 files must be in the command list (no truncation)
     for f in files:
         assert f in cmd_list
-    # Must use --entrypoint bun (no bash -c)
-    cmd_str = str(cmd_list)
-    assert "--entrypoint" in cmd_str
+    assert "exec" in cmd_list
 
 
 @patch("subprocess.run")
@@ -714,3 +715,40 @@ def test_handle_run_rejects_python_inline(mock_run, orchestrator) -> None:
     args = orchestrator.parser.parse_args(["run", "npm", "--", "python", "-c", "print(1)"])
     with pytest.raises(SystemExit):
         orchestrator.handle_run(args)
+
+
+class TestNoDepsConditional:
+    """Verify --no-deps for standalone (run), exec for normal commands."""
+
+    @patch("subprocess.run")
+    def test_version_uses_run_no_deps(self, mock_run, orchestrator) -> None:
+        mock_run.return_value.returncode = 0
+        args = orchestrator.parser.parse_args(["run", "npm", "--", "--version"])
+        orchestrator.handle_run(args)
+        called = str(mock_run.call_args[0][0])
+        assert "--no-deps" in called
+        assert "run" in called  # compose run, not exec
+
+    @patch("subprocess.run")
+    def test_run_lint_uses_exec(self, mock_run, orchestrator) -> None:
+        mock_run.return_value.returncode = 0
+        args = orchestrator.parser.parse_args(["run", "npm", "--", "run", "lint"])
+        orchestrator.handle_run(args)
+        called = str(mock_run.call_args[0][0])
+        assert "exec" in called  # compose exec into running container
+
+    @patch("subprocess.run")
+    def test_install_uses_exec(self, mock_run, orchestrator) -> None:
+        mock_run.return_value.returncode = 0
+        args = orchestrator.parser.parse_args(["run", "npm", "--", "install"])
+        orchestrator.handle_run(args)
+        called = str(mock_run.call_args[0][0])
+        assert "exec" in called
+
+    @patch("subprocess.run")
+    def test_empty_args_uses_exec(self, mock_run, orchestrator) -> None:
+        mock_run.return_value.returncode = 0
+        args = orchestrator.parser.parse_args(["run", "npm"])
+        orchestrator.handle_run(args)
+        called = str(mock_run.call_args[0][0])
+        assert "exec" in called

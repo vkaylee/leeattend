@@ -1,7 +1,13 @@
 import React from "react";
+
 import Modal from "@/components/ui/modal";
 import { LeavePolicy } from "@/lib/api/types";
-import { PolicyIdentitySection, AccrualLogicSection, SeniorityBonusSection } from "./leave-policy-components/policy-modal-fields";
+
+import {
+  AccrualLogicSection,
+  PolicyIdentitySection,
+  SeniorityBonusSection,
+} from "./leave-policy-components/policy-modal-fields";
 import { usePolicyModal } from "./leave-policy-components/use-policy-modal";
 
 export interface PolicyModalProps {

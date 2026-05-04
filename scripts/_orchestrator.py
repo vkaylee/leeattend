@@ -423,28 +423,36 @@ class Orchestrator:
             [
                 "-f",
                 str(PROJECT_ROOT / ".compose" / "docker-compose.test.yml"),
-                "run",
-                "-T",
-                "--rm",
             ]
         )
 
         if tool == "npm":
-            self._handle_run_npm(compose_cmd, tool_args, service)
+            first = tool_args[0] if tool_args else ""
+            is_standalone = tool_args and first in ("--version", "--help", "-v", "-h")
+            if is_standalone:
+                # standalone: compose run --no-deps --entrypoint bun (no prefix needed)
+                compose_cmd.extend(["run", "-T", "--rm", "--no-deps", "--entrypoint", "bun", service])
+                if tool_args:
+                    compose_cmd.extend(tool_args)
+            else:
+                # compose exec into running container, prefix with bun
+                compose_cmd.extend(["exec", "-T", service])
+                self._handle_run_npm(compose_cmd, tool_args, service)
         elif tool == "cargo":
+            compose_cmd.extend(["run", "-T", "--rm"])
             self._handle_run_cargo(compose_cmd, tool_args)
-        else:
-            compose_cmd.extend(["--entrypoint", tool, service])
+        else:  # sqlx
+            compose_cmd.extend(["run", "-T", "--rm", "--entrypoint", tool, service])
             if tool_args:
                 compose_cmd.extend(tool_args)
 
         self.execute_safe(compose_cmd)
 
     def _handle_run_npm(self, compose_cmd: list[str], tool_args: list[str], service: str) -> None:
-        """Build npm command safely — no bash -c for bun targets.
+        """Run npm/bun commands via compose exec into running container.
 
-        Uses --entrypoint for direct execution (list form, no shell interpretation).
-        Only falls back to bash -c for explicit shell commands (bash/sh).
+        Requires webdashboard container to be running (started by lifecycle_up
+        or compose up -d). Uses direct entrypoint — no bash -c, no shell.
         """
         npm_min_args = 2
         is_typecheck = (
@@ -455,14 +463,12 @@ class Orchestrator:
 
         first_arg = tool_args[0] if tool_args else ""
 
-        # Safe paths: use --entrypoint for direct execution (no shell)
         if first_arg in ("bun", "npm", "bash", "sh"):
-            compose_cmd.extend(["--entrypoint", first_arg, service])
+            compose_cmd.extend([first_arg])
             if len(tool_args) > 1:
                 compose_cmd.extend(tool_args[1:])
         else:
-            # Default: execute via bun directly (no bash -c)
-            compose_cmd.extend(["--entrypoint", "bun", service])
+            compose_cmd.extend(["bun"])
             if tool_args:
                 compose_cmd.extend(tool_args)
 
@@ -543,6 +549,7 @@ class Orchestrator:
                 [engine, "ps", "--format", "{{.Names}}"],
                 capture_output=True,
                 text=True,
+                stdin=subprocess.DEVNULL,
                 check=False,
             )
             names = res.stdout.splitlines()

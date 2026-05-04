@@ -4,13 +4,13 @@ import { useTranslation } from 'react-i18next';
 
 import Modal from '@/components/ui/modal';
 
-import { useAssignOvertimePolicy } from './assign-overtime-policy-components/use-assign-overtime-policy';
 import { 
   AssigneeTypeSelector,
   AssigneePicker,
   PolicySelector,
   EffectiveFromInput
 } from './assign-overtime-policy-components/assign-overtime-policy-fields';
+import { useAssignOvertimePolicy } from './assign-overtime-policy-components/use-assign-overtime-policy';
 
 interface AssignOvertimePolicyModalProps {
   initialId?: string;
@@ -42,7 +42,7 @@ export default function AssignOvertimePolicyModal({
     departments,
     assignMutation,
     handleSubmit
-  } = useAssignOvertimePolicy(wsId, isOpen, onClose, initialType, initialId);
+  } = useAssignOvertimePolicy({ wsId, isOpen, onClose, initialType, initialId });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('payroll.assign_overtime_policy')}>
@@ -52,14 +52,14 @@ export default function AssignOvertimePolicyModal({
             selectedType={selectedType}
             setSelectedType={setSelectedType}
             setTargetId={setTargetId}
-            t={t as (key: string) => string}
+            t={t}
           />
 
           <AssigneePicker 
             departments={departments}
             selectedType={selectedType}
             setTargetId={setTargetId}
-            t={t as (key: string) => string}
+            t={t}
             targetId={targetId}
             wsId={wsId}
           />
@@ -68,13 +68,13 @@ export default function AssignOvertimePolicyModal({
             policies={policies}
             policyId={policyId}
             setPolicyId={setPolicyId}
-            t={t as (key: string) => string}
+            t={t}
           />
 
           <EffectiveFromInput 
             effectiveFrom={effectiveFrom}
             setEffectiveFrom={setEffectiveFrom}
-            t={t as (key: string) => string}
+            t={t}
           />
         </div>
 

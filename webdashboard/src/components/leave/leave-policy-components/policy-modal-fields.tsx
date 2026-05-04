@@ -75,7 +75,7 @@ export function AccrualLogicSection({
           <input className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center h-[54px]" id="annual-entitlement" onChange={(e) => { setFormData({...formData, accrual_amount: parseFloat(e.target.value)}); }} required step="0.1" type="number" value={formData.accrual_amount} />
         </FormRow>
         <FormRow label="Frequency">
-          <select className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold uppercase h-[54px]" onChange={(e) => { setFormData({...formData, frequency: e.target.value as "monthly" | "quarterly" | "yearly"}); }} value={formData.frequency}>
+          <select className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold uppercase h-[54px]" onChange={(e) => { setFormData({...formData, frequency: e.target.value}); }} value={formData.frequency}>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
             <option value="yearly">Yearly</option>

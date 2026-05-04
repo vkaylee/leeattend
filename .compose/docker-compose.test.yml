@@ -140,6 +140,7 @@ services:
       - test_net
     working_dir: /workspace/webdashboard
     environment:
+      - NODE_ENV=test
       - BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
     entrypoint: ["sh", "-c", "bun install && touch /tmp/bun_install_done && tail -f /dev/null"]
     healthcheck:
@@ -171,6 +172,7 @@ services:
     entrypoint: tail -f /dev/null
     working_dir: /workspace/webdashboard
     environment:
+      - NODE_ENV=test
       - CI=true
       - BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
     tmpfs:

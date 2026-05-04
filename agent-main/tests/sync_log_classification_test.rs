@@ -1,6 +1,6 @@
 // ── TECH_DEBT: Enterprise-grade lint upgrade (2026-05-03) ──
 #![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]  
+#![allow(clippy::expect_used)]
 #![allow(clippy::panic)]
 #![allow(clippy::todo)]
 #![allow(clippy::unimplemented)]

@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import { LeavePolicy } from "@/lib/api/types";
 
 interface PolicyFormData {
@@ -12,17 +13,27 @@ interface PolicyFormData {
 }
 
 const getInitialFormData = (policy: LeavePolicy | null, leaveTypes: { id: string; name: string }[]): PolicyFormData => {
-  const config = policy?.rule_config;
-  const defaultTypeId = leaveTypes.length > 0 ? leaveTypes[0].id : "";
-  
+  if (!policy) {
+    return {
+      name: "",
+      description: "",
+      leave_type_id: leaveTypes.length > 0 ? leaveTypes[0].id : "",
+      accrual_amount: 1.0,
+      frequency: "monthly",
+      carry_over_limit: 5,
+      min_work_days_threshold: 14
+    };
+  }
+
+  const { rule_config } = policy;
   return {
-    name: policy?.name ?? "",
-    description: policy?.description ?? "",
-    leave_type_id: policy?.leave_type_id ?? defaultTypeId,
-    accrual_amount: config?.accrual_amount ?? 1.0,
-    frequency: config?.frequency ?? "monthly",
-    carry_over_limit: config?.carry_over_limit ?? 5,
-    min_work_days_threshold: config?.min_work_days_threshold ?? 14
+    name: policy.name,
+    description: policy.description ?? "",
+    leave_type_id: policy.leave_type_id,
+    accrual_amount: rule_config.accrual_amount,
+    frequency: rule_config.frequency,
+    carry_over_limit: rule_config.carry_over_limit ?? 5,
+    min_work_days_threshold: rule_config.min_work_days_threshold ?? 14
   };
 };
 

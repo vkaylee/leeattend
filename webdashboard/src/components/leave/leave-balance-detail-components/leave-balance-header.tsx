@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import { WorkspaceLeaveBalance } from "@/lib/api";
 
 export function LeaveBalanceHeader({ balance, onClose }: { balance: WorkspaceLeaveBalance; onClose: () => void }) {

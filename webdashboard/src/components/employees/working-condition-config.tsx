@@ -22,7 +22,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkingConditions } from "@/hooks/use-employees";
 import { cn } from "@/lib/utils";
 
-export enum EmployeeWorkingConditionType {
+enum EmployeeWorkingConditionType {
   Regular = "REGULAR",
   Maternity = "MATERNITY",
   Sick = "SICK",

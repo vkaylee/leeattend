@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserCircle } from "lucide-react";
 import React, { useState, useEffect } from "react";
@@ -50,6 +52,83 @@ function useEmployeeMutations(wsId: string, onClose: () => void, onSuccess?: () 
   return { createMutation, updateMutation };
 }
 
+
+function EmployeeFormInputs({
+  editingEmployee,
+  prefillEnrollmentId,
+  members,
+  selectedUserId,
+  setSelectedUserId,
+  t,
+}: {
+  editingEmployee: Employee | null;
+  prefillEnrollmentId: string;
+  members: WorkspaceMember[];
+  selectedUserId: string;
+  setSelectedUserId: (val: string) => void;
+  t: TFunction;
+}) {
+  return (
+    <>
+      <FormField
+        data-testid="employees-form-name-input"
+        defaultValue={editingEmployee?.full_name}
+        label={t("employees.form.full_name")}
+        name="full_name"
+        required
+      />
+      <FormField
+        data-testid="employees-form-id-input"
+        defaultValue={editingEmployee?.employee_id_number ?? prefillEnrollmentId}
+        inputClassName="font-mono tracking-widest"
+        label={t("employees.form.employee_id")}
+        name="employee_id_number"
+        required
+      />
+      <FormField
+        data-testid="employees-form-hire-date-input"
+        defaultValue={editingEmployee?.hire_date}
+        label={t("employees.form.hire_date")}
+        name="hire_date"
+        required
+        type="date"
+      />
+      <div className="space-y-3 px-1">
+        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+          {t("employees.form.link_user")}
+        </label>
+        <Combobox
+          clearOnEscape
+          data-testid="employees-form-user-combobox"
+          onChange={setSelectedUserId}
+          options={members.map((m) => ({
+            value: m.user_id,
+            label: m.full_name ?? m.email,
+            description: m.email,
+          }))}
+          placeholder={t("employees.form.select_user")}
+          value={selectedUserId}
+        />
+      </div>
+      <div className="flex items-center gap-4 py-2 px-2 group cursor-pointer">
+        <input
+          className="w-7 h-7 text-primary-600 dark:text-primary-400 rounded-xl border-slate-200 dark:border-slate-700 focus:ring-primary-500 transition-all cursor-pointer shadow-inner"
+          data-testid="employees-form-active-checkbox"
+          defaultChecked={editingEmployee ? editingEmployee.is_active : true}
+          id="is_active"
+          name="is_active"
+          type="checkbox"
+        />
+        <label
+          className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest cursor-pointer group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors"
+          htmlFor="is_active"
+        >
+          {t("employees.form.is_active")}
+        </label>
+      </div>
+    </>
+  );
+}
 
 export default function EmployeeFormModal({
   isOpen,
@@ -105,62 +184,14 @@ export default function EmployeeFormModal({
       title={editingEmployee ? t("employees.form.edit_title") : t("employees.form.add_title")}
     >
       <form className="space-y-8 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
-        <FormField
-          data-testid="employees-form-name-input"
-          defaultValue={editingEmployee?.full_name}
-          label={t("employees.form.full_name")}
-          name="full_name"
-          required
+        <EmployeeFormInputs
+          editingEmployee={editingEmployee}
+          members={members}
+          prefillEnrollmentId={prefillEnrollmentId}
+          selectedUserId={selectedUserId}
+          setSelectedUserId={setSelectedUserId}
+          t={t}
         />
-        <FormField
-          data-testid="employees-form-id-input"
-          defaultValue={editingEmployee?.employee_id_number ?? prefillEnrollmentId}
-          inputClassName="font-mono tracking-widest"
-          label={t("employees.form.employee_id")}
-          name="employee_id_number"
-          required
-        />
-        <FormField
-          data-testid="employees-form-hire-date-input"
-          defaultValue={editingEmployee?.hire_date}
-          label={t("employees.form.hire_date")}
-          name="hire_date"
-          required
-          type="date"
-        />
-        <div className="space-y-3 px-1">
-          <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
-            {t("employees.form.link_user")}
-          </label>
-          <Combobox
-            clearOnEscape
-            data-testid="employees-form-user-combobox"
-            onChange={setSelectedUserId}
-            options={members.map(m => ({
-              value: m.user_id,
-              label: m.full_name ?? m.email,
-              description: m.email,
-            }))}
-            placeholder={t("employees.form.select_user")}
-            value={selectedUserId}
-          />
-        </div>
-        <div className="flex items-center gap-4 py-2 px-2 group cursor-pointer">
-          <input
-            className="w-7 h-7 text-primary-600 dark:text-primary-400 rounded-xl border-slate-200 dark:border-slate-700 focus:ring-primary-500 transition-all cursor-pointer shadow-inner"
-            data-testid="employees-form-active-checkbox"
-            defaultChecked={editingEmployee ? editingEmployee.is_active : true}
-            id="is_active"
-            name="is_active"
-            type="checkbox"
-          />
-          <label
-            className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest cursor-pointer group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors"
-            htmlFor="is_active"
-          >
-            {t("employees.form.is_active")}
-          </label>
-        </div>
         <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
           <Button onClick={onClose} size="lg" type="button" variant="outline">
             {t("employees.form.cancel").toUpperCase()}

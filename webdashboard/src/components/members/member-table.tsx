@@ -15,7 +15,7 @@ import PermissionManagementModal from "@/components/features/settings/permission
 import RoleManagementModal from "@/components/features/settings/role-management-modal";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceMembers, useWorkspaceRoles } from "@/hooks/use-workspace";
-import { WorkspaceRole } from "@/lib/api";
+import { WorkspaceRole, WorkspaceMember } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const roleColorMap: Record<string, string> = {
@@ -26,6 +26,57 @@ const roleColorMap: Record<string, string> = {
   primary: "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 border-primary-100",
   emerald: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100",
 };
+
+function MemberRoleCell({ member, roles }: { member: WorkspaceMember; roles: WorkspaceRole[] }) {
+  const primaryRole = roles.find((r) => r.id === member.role_id);
+  if (!primaryRole) return <span className="text-xs text-slate-400">Loading...</span>;
+
+  const extraRoles = (member.extra_role_ids ?? [])
+    .map((id) => roles.find((r) => r.id === id))
+    .filter(Boolean) as WorkspaceRole[];
+
+  return (
+    <>
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm",
+          roleColorMap[primaryRole.color] || roleColorMap.slate
+        )}
+      >
+        {primaryRole.is_system && primaryRole.name.toLowerCase() === "owner" ? <Shield size={10} /> : null}
+        {primaryRole.name}
+      </span>
+
+      {extraRoles.length > 0 && (
+        <div className="relative group/badge">
+          <span className="inline-flex items-center justify-center min-w-[28px] h-[26px] px-1.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-help transition-colors group-hover/badge:bg-primary-50 group-hover/badge:text-primary-600 group-hover/badge:border-primary-200 dark:group-hover/badge:bg-primary-900/50 dark:group-hover/badge:border-primary-800">
+            +{extraRoles.length}
+          </span>
+
+          {/* Premium Popover for extra roles */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[200px] opacity-0 invisible group-hover/badge:opacity-100 group-hover/badge:visible transition-all duration-300 ease-out translate-y-2 group-hover/badge:translate-y-0 z-10">
+            <div className="p-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 border border-slate-100 dark:border-slate-800 flex flex-col gap-2">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-100 dark:border-slate-800">
+                Extra Roles
+              </span>
+              {extraRoles.map((er) => (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
+                    roleColorMap[er.color] || roleColorMap.slate
+                  )}
+                  key={er.id}
+                >
+                  {er.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 export default function MemberTable() {
   const { t } = useTranslation();
@@ -82,49 +133,7 @@ export default function MemberTable() {
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex flex-wrap items-center gap-2">
-                      {(() => {
-                        const primaryRole = roles.find(r => r.id === member.role_id);
-                        if (!primaryRole) return <span className="text-xs text-slate-400">Loading...</span>;
-                        
-                        const extraRoles = (member.extra_role_ids ?? [])
-                          .map(id => roles.find(r => r.id === id))
-                          .filter(Boolean) as WorkspaceRole[];
-
-                        return (
-                          <>
-                            <span className={cn(
-                              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm",
-                              roleColorMap[primaryRole.color] || roleColorMap.slate
-                            )}>
-                              {primaryRole.is_system && primaryRole.name.toLowerCase() === "owner" ? <Shield size={10} /> : null}
-                              {primaryRole.name}
-                            </span>
-                            
-                            {extraRoles.length > 0 && (
-                              <div className="relative group/badge">
-                                <span className="inline-flex items-center justify-center min-w-[28px] h-[26px] px-1.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-help transition-colors group-hover/badge:bg-primary-50 group-hover/badge:text-primary-600 group-hover/badge:border-primary-200 dark:group-hover/badge:bg-primary-900/50 dark:group-hover/badge:border-primary-800">
-                                  +{extraRoles.length}
-                                </span>
-                                
-                                {/* Premium Popover for extra roles */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[200px] opacity-0 invisible group-hover/badge:opacity-100 group-hover/badge:visible transition-all duration-300 ease-out translate-y-2 group-hover/badge:translate-y-0 z-10">
-                                  <div className="p-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/40 border border-slate-100 dark:border-slate-800 flex flex-col gap-2">
-                                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-100 dark:border-slate-800">Extra Roles</span>
-                                    {extraRoles.map(er => (
-                                      <span className={cn(
-                                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
-                                        roleColorMap[er.color] || roleColorMap.slate
-                                      )} key={er.id}>
-                                        {er.name}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
+                      <MemberRoleCell member={member} roles={roles} />
                     </div>
                   </td>
                   <td className="px-10 py-6 text-right">

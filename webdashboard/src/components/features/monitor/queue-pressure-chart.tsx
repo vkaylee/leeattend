@@ -113,9 +113,10 @@ export default function QueuePressureChart({ data, isLoading }: Props) {
               }}
             />
             <Bar barSize={20} dataKey="value" radius={[0, 8, 8, 0]}>
-              {chartData.map((entry, index) => (
-                <Cell fill={entry.fill} key={index} />
-              ))}
+              {chartData.map((entry, index) => {
+                // eslint-disable-next-line @typescript-eslint/no-deprecated
+                return <Cell fill={entry.fill} key={index} />;
+              })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>

@@ -21,11 +21,13 @@ export interface DepartmentConfigModalProps {
 
 // Internal type matching what the component expects
 interface TemporalConfigRecord {
-  [key: string]: unknown;
   effective_date: string;
-  hours_per_day?: number;
+  hours_per_day: number;
   id: string;
-  std_working_days?: number;
+  is_virtual?: boolean;
+  max_ot_hours_per_day?: number | null;
+  max_ot_hours_per_month?: number | null;
+  std_working_days: number;
 }
 
 export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }: DepartmentConfigModalProps) {
@@ -49,12 +51,12 @@ export function DepartmentConfigModal({ editingDept, isOpen, onClose, wsId, t }:
   });
 
   return (
-    <Modal icon={<Calculator size={24} />} isOpen={isOpen && !!editingDept} maxWidth="3xl" onClose={onClose} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
+    <Modal icon={<Calculator size={24} />} isOpen={Boolean(isOpen && editingDept)} maxWidth="3xl" onClose={onClose} subtitle={editingDept?.name.toUpperCase()} title={t("payroll.settings.dept_title")}>
       <div className="space-y-10 pt-4 animate-in fade-in duration-500">
         <TemporalConfigTable 
           isLoading={isConfigsLoading} 
           onSave={async (data) => { await saveConfigMutation.mutateAsync(data); }} 
-          records={deptConfigs as any} 
+          records={deptConfigs as TemporalConfigRecord[]} 
           title={t("payroll.settings.std_days_history")} 
         />
         <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end"><Button onClick={onClose} size="lg" variant="secondary">{t("common.close").toUpperCase()}</Button></div>

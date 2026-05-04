@@ -7,6 +7,7 @@ and force-kill fallbacks for stuck containers.
 
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Optional
@@ -20,8 +21,10 @@ from _bootstrap import (
     bootstrap_env,
 )
 
-ENGINE = detect_engine()
-CLEANUP_DEADLINE = int(os.environ.get("CLEANUP_DEADLINE", "120"))
+
+def _get_engine() -> str:
+    """Return the container engine (podman or docker) at call time."""
+    return os.environ.get("CONTAINER_ENGINE") or detect_engine()
 
 
 def _run(
@@ -58,7 +61,7 @@ def _run(
 def _container_healthy(container_name: str) -> bool:
     """Check if a container reports healthy status."""
     result = _run(
-        [ENGINE, "inspect", "--format={{.State.Health.Status}}", container_name],
+        [_get_engine(), "inspect", "--format={{.State.Health.Status}}", container_name],
         silent=False,
         capture=True,
     )
@@ -87,7 +90,7 @@ def lifecycle_up(mode: str = "all") -> bool:
                 return True
             time.sleep(1)
         # Diagnostic
-        _run([ENGINE, "ps", "-a", "--filter", f"name={project_name}"], capture=False)
+        _run([_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False)
         return False
     else:
         container = f"{project_name}_bun_init_1"
@@ -95,7 +98,7 @@ def lifecycle_up(mode: str = "all") -> bool:
             if _container_healthy(container):
                 return True
             time.sleep(1)
-        _run([ENGINE, "ps", "-a", "--filter", f"name={project_name}"], capture=False)
+        _run([_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False)
         return False
 
 
@@ -134,7 +137,7 @@ def lifecycle_down(mode: str = "all") -> None:
     for pname in profile_names:
         for svc in _PROFILE_CONTAINERS.get(pname, []):
             cname = f"{project_name}_{svc}_1"
-            _run([ENGINE, "rm", "-f", cname], silent=True)
+            _run([_get_engine(), "rm", "-f", cname], silent=True)
 
 
 def start_watchdog(timeout_sec: int, parent_pid: int) -> int:
@@ -143,17 +146,13 @@ def start_watchdog(timeout_sec: int, parent_pid: int) -> int:
     Returns the watchdog's own PID so it can be cancelled later.
     All FDs severed from PTY so the watchdog itself never causes a PTY hang.
     """
+    watchdog_script = SCRIPTS_DIR / "_watchdog.py"
     proc = subprocess.Popen(
         [
-            "python3",
-            "-c",
-            f"import time, os, signal; "
-            f"time.sleep({timeout_sec}); "
-            f"try: os.kill({parent_pid}, signal.SIGKILL); "
-            f"except ProcessLookupError: pass; "
-            f"time.sleep(2); "
-            f"try: os.kill({parent_pid}, signal.SIGKILL); "
-            f"except ProcessLookupError: pass",
+            sys.executable,
+            str(watchdog_script),
+            str(timeout_sec),
+            str(parent_pid),
         ],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,

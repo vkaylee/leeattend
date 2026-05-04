@@ -16,16 +16,7 @@ interface LeaveImportDialogProps {
   onImportComplete?: () => void;
 }
 
-export default function LeaveImportDialog({
-  isOpen,
-  onClose,
-  onImportComplete,
-}: LeaveImportDialogProps) {
-  const { t, i18n } = useTranslation();
-  const wsId = getCurrentWorkspaceId();
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+function useLeaveImportStatus(wsId: string | null, isOpen: boolean, onImportComplete?: () => void) {
   const [importJob, setImportJob] = useState<LeaveImportJob | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -74,12 +65,33 @@ export default function LeaveImportDialog({
     };
   }, [importJob?.status, wsId, startPolling]);
 
-  // Reset state when dialog closes
-  const [previousIsOpen, setPreviousIsOpen] = useState(isOpen);
-  if (isOpen !== previousIsOpen) {
-    setPreviousIsOpen(isOpen);
-    if (!isOpen) setFile(null);
-  }
+  const isProcessing = Boolean(importJob && (importJob.status === "processing" || importJob.status === "pending"));
+  const isFinished = Boolean(importJob && (importJob.status === "completed" || importJob.status === "failed"));
+
+  return { importJob, setImportJob, startPolling, isProcessing, isFinished };
+}
+
+function getErrorInfo(job: LeaveImportJob) {
+  if (!job.error_log) return null;
+  try {
+    return JSON.parse(job.error_log) as { success_count?: number; error_count?: number; error_file_path?: string };
+  } catch { return null; }
+}
+
+function useLeaveImportUpload({
+  wsId,
+  file,
+  setFile,
+  startPolling,
+  setImportJob
+}: {
+  file: File | null;
+  setFile: (file: File | null) => void;
+  setImportJob: (job: LeaveImportJob) => void;
+  startPolling: (wsId: string) => void;
+  wsId: string | null;
+}) {
+  const [uploading, setUploading] = useState(false);
 
   const handleUpload = async () => {
     if (!file || !wsId) return;
@@ -104,15 +116,27 @@ export default function LeaveImportDialog({
     }
   };
 
-  const getErrorInfo = (job: LeaveImportJob) => {
-    if (!job.error_log) return null;
-    try {
-      return JSON.parse(job.error_log) as { success_count?: number; error_count?: number; error_file_path?: string };
-    } catch { return null; }
-  };
+  return { uploading, handleUpload };
+}
 
-  const isProcessing = importJob?.status === "processing" || importJob?.status === "pending";
-  const isFinished = importJob?.status === "completed" || importJob?.status === "failed";
+export default function LeaveImportDialog({
+  isOpen,
+  onClose,
+  onImportComplete,
+}: LeaveImportDialogProps) {
+  const { t, i18n } = useTranslation();
+  const wsId = getCurrentWorkspaceId();
+  const [file, setFile] = useState<File | null>(null);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const { importJob, setImportJob, startPolling, isProcessing, isFinished } = useLeaveImportStatus(wsId, isOpen, onImportComplete);
+  const { uploading, handleUpload } = useLeaveImportUpload({ wsId, file, setFile, startPolling, setImportJob });
+
+  // Reset state when dialog closes
+  const [previousIsOpen, setPreviousIsOpen] = useState(isOpen);
+  if (isOpen !== previousIsOpen) {
+    setPreviousIsOpen(isOpen);
+    if (!isOpen) setFile(null);
+  }
 
   return (
     <Modal

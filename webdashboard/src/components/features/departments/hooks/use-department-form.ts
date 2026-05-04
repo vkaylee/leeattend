@@ -12,14 +12,18 @@ export function useDepartmentForm(wsId: string, editingDept: Department | null, 
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const [selectedManagerId, setSelectedManagerId] = useState<string>(editingDept?.manager_id ?? "");
-  const [selectedPatternId, setSelectedPatternId] = useState<string>(editingDept?.default_working_pattern_id ?? "");
-  const [prevDeptId, setPrevDeptId] = useState<string | null>(editingDept?.id ?? null);
+  const deptId = editingDept?.id ?? null;
+  const managerId = editingDept?.manager_id ?? "";
+  const patternId = editingDept?.default_working_pattern_id ?? "";
+  
+  const [selectedManagerId, setSelectedManagerId] = useState<string>(managerId);
+  const [selectedPatternId, setSelectedPatternId] = useState<string>(patternId);
+  const [prevDeptId, setPrevDeptId] = useState<string | null>(deptId);
 
-  if (editingDept?.id !== prevDeptId) {
-    setSelectedManagerId(editingDept?.manager_id ?? "");
-    setSelectedPatternId(editingDept?.default_working_pattern_id ?? "");
-    setPrevDeptId(editingDept?.id ?? null);
+  if (deptId !== prevDeptId) {
+    setSelectedManagerId(managerId);
+    setSelectedPatternId(patternId);
+    setPrevDeptId(deptId);
   }
 
   const createMutation = useMutation({

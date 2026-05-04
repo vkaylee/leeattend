@@ -44,8 +44,8 @@ leeattend_bootstrap_env() {
         export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD $PROFILES"
     fi
 
-    # Source all modules (using underscore prefix)
-    for module in test-utils test-lint test-unit test-integration test-coverage db-ops docker-ops lifecycle test-runner cli-parser; do
+    # Source infrastructure modules (test modules migrated to Python: _test_modules.py)
+    for module in db-ops docker-ops lifecycle; do
         if [[ -f "$SCRIPT_DIR/_${module}.sh" ]]; then
             source "$SCRIPT_DIR/_${module}.sh"
         fi

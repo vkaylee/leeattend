@@ -78,7 +78,7 @@ When a feature spans multiple domains (e.g., API + UI):
 ### 4.3 Testing Standards
 - **Testing Pyramid:** Prioritize Unit > Integration > E2E. Use AAA Pattern (Arrange-Act-Assert).
 - **Code Coverage:** Minimum **80%** coverage for all new business logic.
-- **Mandatory Pass:** Task is NOT complete until `./test.sh` passes successfully.
+- **Mandatory Pass:** Task is NOT complete until `./test.sh <target>` passes successfully.
 
 ### 4.4 Error Handling & Observability
 - **Structured Errors:** Use domain-specific error types (e.g., `AppError`). Never throw generic `Error`.
@@ -118,7 +118,7 @@ All standard development tools run inside isolated Podman containers. You MUST e
 | Rust/Cargo | `cargo build` | `./scripts/_cargo.sh build` | `apiserver_test` |
 | Node/NPM | `npm install` | `./scripts/_npm.sh install` | `web_test` |
 | SQLx/DB | `sqlx migrate run` | `./scripts/_sqlx.sh migrate run` | `apiserver_test` |
-| Testing | `npm run test` | `./test.sh` | Multiple |
+| Testing | `npm run test` | `./test.sh <target>` | Multiple |
 
 - **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./git.sh` wrapper (e.g., `./git.sh commit -m "msg"`) to prevent PTY hangs during multi-line commits.
 *❌ Failure Condition:* Running tools natively on the host bypasses container isolation. Proposing inline strings for tasks that the toolbox can handle is a P0 protocol violation.
@@ -186,7 +186,7 @@ When executing any background command (`&`) or long-running pipe (`tail -f`), yo
 1. `./scripts/_cargo.sh check` / `./scripts/_npm.sh run typecheck` (Type Safety)
 2. `./scripts/_cargo.sh clippy` / `./scripts/_npm.sh run lint` (Linting)
 3. `./scripts/_sqlx.sh migrate run` (Schema)
-4. `./test.sh` (Tests)
+4. `./test.sh <target>` (Tests)
 
 *❌ Failure Condition:* Running `cargo` or `npm` directly instead of the wrapper scripts breaks container isolation.
 
@@ -213,6 +213,6 @@ All commands run **inside Podman containers**, never on the host. Internal utili
 | `./scripts/_sqlx.sh <cmd>` | `sqlx` | `apiserver_test` | DB migrations, schema validation |
 | `./git.sh <cmd>` | `git` | Host | Safe Git operations (prevents PTY hangs) |
 | `./scripts/_sync-api.sh` | (manual) | Multiple | Generate TS types from OpenAPI |
-| `./test.sh --all` | (orchestrator) | Multiple | Full test suite |
+| `./test.sh all` | (orchestrator) | Multiple | Full test suite |
 
 ---

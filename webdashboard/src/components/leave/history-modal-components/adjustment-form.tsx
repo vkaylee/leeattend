@@ -1,20 +1,23 @@
-import React from "react";
 import { Plus, Minus, Calendar, MessageSquare, Loader2 } from "lucide-react";
+import React from "react";
+
 import { cn } from "@/lib/utils";
 
+interface AdjustmentFormState {
+  amount: string;
+  date: string;
+  leave_type_id: string;
+  reason: string;
+  type: string;
+}
+
 interface AdjustmentFormProps {
-  adjustForm: {
-    amount: string;
-    date: string;
-    leave_type_id: string;
-    reason: string;
-    type: string;
-  };
+  adjustForm: AdjustmentFormState;
   isPending: boolean;
   leaveTypes: { id: string; name: string }[];
   onCancel: () => void;
   onSubmit: (e: React.SyntheticEvent) => void;
-  setAdjustForm: (data: any) => void;
+  setAdjustForm: (data: AdjustmentFormState) => void;
   t: (key: string) => string;
 }
 

@@ -22,35 +22,64 @@ const ORG_PATHS: string[] = [ROUTES.PEOPLE, ROUTES.EMPLOYEES, ROUTES.DEPARTMENTS
 const TIME_PATHS: string[] = [ROUTES.ATTENDANCE_LOGS, ROUTES.LEAVE_REQUESTS, ROUTES.ATTENDANCE_ADJUSTMENTS, ROUTES.REPORTS, ROUTES.LEAVE_BALANCES, ROUTES.SHIFT_SWAPS];
 const PAYROLL_PATHS: string[] = [ROUTES.SHIFTS, ROUTES.PAYROLL];
 
-export default function MainLayout() {
+function SidebarOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+  return (
+    <div
+      className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') onClose();
+      }}
+      role="presentation"
+    />
+  );
+}
+
+function WorkspaceSwitcherModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  useTheme();
-  useI18nSync();
-  const location = useLocation();
+  return (
+    <Modal
+      icon={<Building2 className="w-6 h-6" />}
+      isOpen={isOpen}
+      maxWidth="lg"
+      onClose={onClose}
+      subtitle={t("common.office_branch")}
+      title={t("common.switch_workspace")}
+    >
+      <div className="space-y-8">
+        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium px-1">{t("common.select_workspace_desc")}</p>
+        <WorkspaceSwitcher />
+        <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-end">
+          <button
+            className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-foreground/70 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+            onClick={onClose}
+          >
+            {t("common.close")}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [showSwitcher, setShowSwitcher] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    const saved = localStorage.getItem("sidebar-collapsed");
-    return saved === "true";
-  });
-
+function useSidebarState(locationPathname: string) {
   const getInitialOpenSections = () => {
-    const path = location.pathname;
     return {
-      org: ORG_PATHS.includes(path),
-      time: TIME_PATHS.includes(path) || path === ROUTES.HOME,
-      payroll: PAYROLL_PATHS.includes(path),
-      system: path.startsWith(ROUTES.SETTINGS.ROOT),
-      ess: path.startsWith("/ess/"),
+      org: ORG_PATHS.includes(locationPathname),
+      time: TIME_PATHS.includes(locationPathname) || locationPathname === ROUTES.HOME,
+      payroll: PAYROLL_PATHS.includes(locationPathname),
+      system: locationPathname.startsWith(ROUTES.SETTINGS.ROOT),
+      ess: locationPathname.startsWith("/ess/"),
     };
   };
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(getInitialOpenSections());
-
-  const { workspaces } = useWorkspaces();
-  const currentWsId = getCurrentWorkspaceId();
-  const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    return saved === "true";
+  });
 
   const toggleSection = (section: string) => {
     setOpenSections(previous => ({
@@ -72,44 +101,65 @@ export default function MainLayout() {
   };
 
   useEffect(() => {
-    const path = location.pathname;
-    const isOrg = ORG_PATHS.includes(path);
-    const isTime = TIME_PATHS.includes(path);
-    const isPayroll = PAYROLL_PATHS.includes(path);
-    const isSystem = path.startsWith(ROUTES.SETTINGS.ROOT);
-    const isEss = path.startsWith("/ess/");
+    const isOrg = ORG_PATHS.includes(locationPathname);
+    const isTime = TIME_PATHS.includes(locationPathname);
+    const isPayroll = PAYROLL_PATHS.includes(locationPathname);
+    const isSystem = locationPathname.startsWith(ROUTES.SETTINGS.ROOT);
+    const isEss = locationPathname.startsWith("/ess/");
 
     const timer = setTimeout(() => {
       setOpenSections(previous => {
         const next = { ...previous };
-        let changed = false;
-        if (isOrg && !previous.org) { next.org = true; changed = true; }
-        if (isTime && !previous.time) { next.time = true; changed = true; }
-        if (isPayroll && !previous.payroll) { next.payroll = true; changed = true; }
-        if (isSystem && !previous.system) { next.system = true; changed = true; }
-        if (isEss && !previous.ess) { next.ess = true; changed = true; }
-        return changed ? next : previous;
+        let hasChanged = false;
+        
+        const update = (key: string, val: boolean) => {
+          if (val && !previous[key]) {
+            next[key] = true;
+          }
+        };
+        
+        update('org', isOrg);
+        update('time', isTime);
+        update('payroll', isPayroll);
+        update('system', isSystem);
+        update('ess', isEss);
+        
+        hasChanged = Object.keys(next).some(key => next[key] !== previous[key]);
+        return hasChanged ? next : previous;
       });
       setIsSidebarOpen(false);
     }, 0);
 
     return () => { clearTimeout(timer); };
-  }, [location.pathname]);
+  }, [locationPathname]);
+
+  return {
+    isSidebarOpen, setIsSidebarOpen,
+    isCollapsed, toggleCollapsed,
+    openSections, toggleSection
+  };
+}
+
+export default function MainLayout() {
+  useTheme();
+  useI18nSync();
+  const location = useLocation();
+
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  
+  const {
+    isSidebarOpen, setIsSidebarOpen,
+    isCollapsed, toggleCollapsed,
+    openSections, toggleSection
+  } = useSidebarState(location.pathname);
+
+  const { workspaces } = useWorkspaces();
+  const currentWsId = getCurrentWorkspaceId();
+  const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
 
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden">
-      {isSidebarOpen ? (
-        <div
-          className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
-          onClick={() => { setIsSidebarOpen(false); }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-              setIsSidebarOpen(false);
-            }
-          }}
-          role="presentation"
-        />
-      ) : null}
+      <SidebarOverlay isOpen={isSidebarOpen} onClose={() => { setIsSidebarOpen(false); }} />
 
       <Sidebar
         isCollapsed={isCollapsed}
@@ -138,27 +188,7 @@ export default function MainLayout() {
         </main>
       </div>
 
-      <Modal
-        icon={<Building2 className="w-6 h-6" />}
-        isOpen={showSwitcher}
-        maxWidth="lg"
-        onClose={() => { setShowSwitcher(false); }}
-        subtitle={t("common.office_branch")}
-        title={t("common.switch_workspace")}
-      >
-        <div className="space-y-8">
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium px-1">{t("common.select_workspace_desc")}</p>
-          <WorkspaceSwitcher />
-          <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-end">
-            <button
-              className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-foreground/70 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-              onClick={() => { setShowSwitcher(false); }}
-            >
-              {t("common.close")}
-            </button>
-          </div>
-        </div>
-      </Modal>
+      <WorkspaceSwitcherModal isOpen={showSwitcher} onClose={() => { setShowSwitcher(false); }} />
     </div>
   );
 }

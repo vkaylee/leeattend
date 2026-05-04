@@ -71,7 +71,6 @@ describe('LeaveBalanceDetailModal', () => {
   it('renders balance breakdown and history', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
         <LeaveBalanceDetailModal balance={mockBalance as unknown as never} isOpen={true} onClose={vi.fn()} />
       </QueryClientProvider>
     );
@@ -99,7 +98,6 @@ describe('LeaveBalanceDetailModal', () => {
   it('filters history by tabs', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
         <LeaveBalanceDetailModal balance={mockBalance as unknown as never} isOpen={true} onClose={vi.fn()} />
       </QueryClientProvider>
     );

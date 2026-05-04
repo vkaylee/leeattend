@@ -145,26 +145,32 @@ function EmployeeDailyDrawerModals({
     );
 }
 
+function shouldIgnoreKeyboardEvent(e: KeyboardEvent) {
+    return e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+}
+
+function handleTabSwitch(e: KeyboardEvent, viewMode: "daily" | "raw", setViewMode: (mode: "daily" | "raw") => void) {
+    if (e.key === "ArrowRight" && viewMode === "daily") setViewMode("raw");
+    if (e.key === "ArrowLeft" && viewMode === "raw") setViewMode("daily");
+}
+
+function handleScroll(e: KeyboardEvent, contentRef: React.RefObject<HTMLDivElement | null>) {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    const scrollContainer = contentRef.current?.querySelector(".overflow-auto") ?? contentRef.current;
+    if (scrollContainer) {
+        scrollContainer.scrollBy({ top: e.key === "ArrowDown" ? 100 : -100, behavior: "smooth" });
+    }
+}
+
 function useDrawerKeyboardNavigation(isOpen: boolean, viewMode: "daily" | "raw", setViewMode: (mode: "daily" | "raw") => void, contentRef: React.RefObject<HTMLDivElement | null>) {
     useEffect(() => {
         if (!isOpen) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-                return;
-            }
-
-            if (e.key === "ArrowRight" && viewMode === "daily") {
-                setViewMode("raw");
-            } else if (e.key === "ArrowLeft" && viewMode === "raw") {
-                setViewMode("daily");
-            } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                e.preventDefault();
-                const scrollContainer = contentRef.current?.querySelector(".overflow-auto") ?? contentRef.current;
-                if (scrollContainer) {
-                    scrollContainer.scrollBy({ top: e.key === "ArrowDown" ? 100 : -100, behavior: "smooth" });
-                }
-            }
+            if (shouldIgnoreKeyboardEvent(e)) return;
+            handleTabSwitch(e, viewMode, setViewMode);
+            handleScroll(e, contentRef);
         };
 
         window.addEventListener("keydown", handleKeyDown);

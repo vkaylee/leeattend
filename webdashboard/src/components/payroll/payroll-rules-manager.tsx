@@ -16,30 +16,17 @@ interface Props {
   wsId: string;
 }
 
-// eslint-disable-next-line complexity -- Form component has many fields
-function PayrollRuleForm({ 
-  wsId, 
-  bases, 
-  onCancel, 
-  onSuccess 
-}: { 
-  bases: SalaryBaseGroup[]; 
-  onCancel: () => void; 
-  onSuccess: () => void; 
-  wsId: string; 
+
+function RuleBasicFields({
+  formData,
+  setFormData,
+}: {
+  formData: Partial<PayrollRuleDefinition>;
+  setFormData: (data: Partial<PayrollRuleDefinition>) => void;
 }) {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } });
-
-  const createMutation = useMutation({
-    mutationFn: (data: Partial<PayrollRuleDefinition>) => createPayrollRule(wsId, data),
-    onSuccess,
-  });
-
-  const handleSubmit = (e: React.SyntheticEvent) => { e.preventDefault(); createMutation.mutate(formData); };
-
   return (
-    <form className="space-y-10 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
+    <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-3 px-1">
           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-name">{t("common.name")}</label>
@@ -77,65 +64,124 @@ function PayrollRuleForm({
           </select>
         </div>
       </div>
+    </>
+  );
+}
 
-      <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-6">
-        <div className="flex items-center gap-3 mb-2">
-          <Calculator className="text-primary-600 dark:text-primary-400" size={18} />
-          <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest">Logic Configuration</h3>
-        </div>
-        
-        {formData.calculation_method === "percentage" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> Rate (%)</label>
-              <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={(formData.rule_config?.rate as number) || ""} />
-            </div>
-            <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">Calculation Base</label>
-              <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "gross"}>
-                {bases.map(b => (
-                  <option key={b.slug} value={b.slug}>{b.name}</option>
-                ))}
-                {bases.length === 0 ? (
-                  <>
-                    <option value="gross">Gross Salary (Total)</option>
-                    <option value="taxable_income">Taxable Income</option>
-                  </>
-                ) : null}
-              </select>
-            </div>
-          </div>
-        ) : null}
-
-        {formData.calculation_method === "fixed" ? (
-          <div className="grid grid-cols-1 gap-8">
-            <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-fixed">Fixed Amount (₫)</label>
-              <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-fixed" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}}); }} required type="number" value={(formData.rule_config?.amount as number) || ""} />
-            </div>
-          </div>
-        ) : null}
-
-        {formData.calculation_method === "tiered" ? (
-          <div className="grid grid-cols-1 gap-8">
-            <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-tier-base">Tier Base Amount</label>
-              <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-tier-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "taxable_income"}>
-                {bases.map(b => (
-                  <option key={b.slug} value={b.slug}>{b.name}</option>
-                ))}
-                {bases.length === 0 ? (
-                  <>
-                    <option value="taxable_income">Taxable Income</option>
-                    <option value="gross">Gross Salary (Total)</option>
-                  </>
-                ) : null}
-              </select>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic">Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.</p>
-            </div>
-          </div>
-        ) : null}
+function PercentageConfig({ formData, setFormData, bases }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; bases: SalaryBaseGroup[]; }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="space-y-3">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1" htmlFor="rule-rate"><Percent size={12}/> Rate (%)</label>
+        <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-rate" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, rate: parseFloat(e.target.value)}}); }} required step="0.01" type="number" value={(formData.rule_config?.rate as number) || ""} />
       </div>
+      <div className="space-y-3">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-calc-base">Calculation Base</label>
+        <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-calc-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "gross"}>
+          {bases.map(b => (
+            <option key={b.slug} value={b.slug}>{b.name}</option>
+          ))}
+          {bases.length === 0 ? (
+            <>
+              <option value="gross">Gross Salary (Total)</option>
+              <option value="taxable_income">Taxable Income</option>
+            </>
+          ) : null}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function FixedConfig({ formData, setFormData }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; }) {
+  return (
+    <div className="grid grid-cols-1 gap-8">
+      <div className="space-y-3">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-fixed">Fixed Amount (₫)</label>
+        <input className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm" id="rule-fixed" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, amount: parseFloat(e.target.value)}}); }} required type="number" value={(formData.rule_config?.amount as number) || ""} />
+      </div>
+    </div>
+  );
+}
+
+function TieredConfig({ formData, setFormData, bases }: { formData: Partial<PayrollRuleDefinition>; setFormData: (data: Partial<PayrollRuleDefinition>) => void; bases: SalaryBaseGroup[]; }) {
+  return (
+    <div className="grid grid-cols-1 gap-8">
+      <div className="space-y-3">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1" htmlFor="rule-tier-base">Tier Base Amount</label>
+        <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-sm uppercase tracking-tight" id="rule-tier-base" onChange={e => { setFormData({...formData, rule_config: {...formData.rule_config, base: e.target.value}}); }} required value={(formData.rule_config?.base as string) || "taxable_income"}>
+          {bases.map(b => (
+            <option key={b.slug} value={b.slug}>{b.name}</option>
+          ))}
+          {bases.length === 0 ? (
+            <>
+              <option value="taxable_income">Taxable Income</option>
+              <option value="gross">Gross Salary (Total)</option>
+            </>
+          ) : null}
+        </select>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 italic">Note: Tier brackets (e.g. 0-5M, 5-10M) will be configured after creating the rule.</p>
+      </div>
+    </div>
+  );
+}
+
+function RuleLogicConfig({
+  formData,
+  setFormData,
+  bases
+}: {
+  formData: Partial<PayrollRuleDefinition>;
+  setFormData: (data: Partial<PayrollRuleDefinition>) => void;
+  bases: SalaryBaseGroup[];
+}) {
+  return (
+    <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-6">
+      <div className="flex items-center gap-3 mb-2">
+        <Calculator className="text-primary-600 dark:text-primary-400" size={18} />
+        <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-widest">Logic Configuration</h3>
+      </div>
+      
+      {formData.calculation_method === "percentage" ? (
+        <PercentageConfig bases={bases} formData={formData} setFormData={setFormData} />
+      ) : null}
+
+      {formData.calculation_method === "fixed" ? (
+        <FixedConfig formData={formData} setFormData={setFormData} />
+      ) : null}
+
+      {formData.calculation_method === "tiered" ? (
+        <TieredConfig bases={bases} formData={formData} setFormData={setFormData} />
+      ) : null}
+    </div>
+  );
+}
+
+function PayrollRuleForm({ 
+  wsId, 
+  bases, 
+  onCancel, 
+  onSuccess 
+}: { 
+  bases: SalaryBaseGroup[]; 
+  onCancel: () => void; 
+  onSuccess: () => void; 
+  wsId: string; 
+}) {
+  const { t } = useTranslation();
+  const [formData, setFormData] = useState<Partial<PayrollRuleDefinition>>({ name: "", description: "", code: "", category: "statutory_deduction", applies_to: "employee", calculation_method: "percentage", is_mandatory: true, display_order: 1, rule_config: { rate: 0, base: "gross" } });
+
+  const createMutation = useMutation({
+    mutationFn: (data: Partial<PayrollRuleDefinition>) => createPayrollRule(wsId, data),
+    onSuccess,
+  });
+
+  const handleSubmit = (e: React.SyntheticEvent) => { e.preventDefault(); createMutation.mutate(formData); };
+
+  return (
+    <form className="space-y-10 pt-4 animate-in fade-in duration-500" onSubmit={handleSubmit}>
+      <RuleBasicFields formData={formData} setFormData={setFormData} />
+      <RuleLogicConfig bases={bases} formData={formData} setFormData={setFormData} />
 
       <div className="space-y-5">
         {[

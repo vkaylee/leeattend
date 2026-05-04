@@ -1,17 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import { useToast } from '@/components/ui/toast';
 import { fetchDepartments } from '@/lib/api/departments';
 import { fetchOvertimePolicies, assignOvertimePolicy } from '@/lib/api/payroll';
 
-export function useAssignOvertimePolicy(
-  wsId: string,
-  isOpen: boolean,
-  onClose: () => void,
-  initialType: 'employee' | 'department' | 'workspace' = 'employee',
-  initialId: string = ''
-) {
+interface UseAssignOvertimePolicyConfig {
+  initialId?: string;
+  initialType?: 'employee' | 'department' | 'workspace';
+  isOpen: boolean;
+  onClose: () => void;
+  wsId: string;
+}
+
+export function useAssignOvertimePolicy({
+  wsId,
+  isOpen,
+  onClose,
+  initialType = 'employee',
+  initialId = ''
+}: UseAssignOvertimePolicyConfig) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();

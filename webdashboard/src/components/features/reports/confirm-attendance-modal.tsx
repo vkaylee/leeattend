@@ -1,10 +1,12 @@
-import { CheckCircle, RefreshCw } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
+
+import { ActionButtons, ExistingRequestBanner, ReasonInput } from "./confirm-attendance-modal-sections";
 
 export interface ConfirmAttendanceModalProps {
     existingRequest?: AttendanceAdjustmentRequest;
@@ -92,6 +94,20 @@ function EmployeeInfo({ row, t, formatDate }: { row: DailyAttendanceReport; t: (
     );
 }
 
+function getInitialPunchIn(existingRequest?: AttendanceAdjustmentRequest, row?: DailyAttendanceReport | null) {
+    if (existingRequest?.requested_punch_in_time) return utcToLocalHHmm(existingRequest.requested_punch_in_time);
+    if (row?.actual_punch_in) return utcToLocalHHmm(row.actual_punch_in);
+    if (row?.scheduled_start) return row.scheduled_start.substring(0, 5);
+    return "";
+}
+
+function getInitialPunchOut(existingRequest?: AttendanceAdjustmentRequest, row?: DailyAttendanceReport | null) {
+    if (existingRequest?.requested_punch_out_time) return utcToLocalHHmm(existingRequest.requested_punch_out_time);
+    if (row?.actual_punch_out) return utcToLocalHHmm(row.actual_punch_out);
+    if (row?.scheduled_end) return row.scheduled_end.substring(0, 5);
+    return "";
+}
+
 export default function ConfirmAttendanceModal({
     existingRequest,
     isOpen,
@@ -103,44 +119,27 @@ export default function ConfirmAttendanceModal({
     const { t } = useTranslation();
     const { formatDate } = useDateTimeFormatter();
 
-    const [punchIn, setPunchIn] = useState(
-        utcToLocalHHmm(existingRequest?.requested_punch_in_time) ||
-        utcToLocalHHmm(row?.actual_punch_in) ||
-        (row?.scheduled_start ?? "").substring(0, 5)
-    );
-    const [punchOut, setPunchOut] = useState(
-        utcToLocalHHmm(existingRequest?.requested_punch_out_time) ||
-        utcToLocalHHmm(row?.actual_punch_out) ||
-        (row?.scheduled_end ?? "").substring(0, 5)
-    );
+    const [punchIn, setPunchIn] = useState(getInitialPunchIn(existingRequest, row));
+    const [punchOut, setPunchOut] = useState(getInitialPunchOut(existingRequest, row));
     const [reason, setReason] = useState(existingRequest?.reason ?? "");
 
     if (!row) { return null; }
+
+    const handleClose = () => { if (!isPending) { onClose(); } };
 
     return (
         <Modal
             icon={<CheckCircle size={24} />}
             isOpen={isOpen}
             maxWidth="md"
-            onClose={() => { if (!isPending) { onClose(); } }}
+            onClose={handleClose}
             subtitle={t("reports.confirm.modal_subtitle")}
             title={t("reports.confirm.modal_title")}
         >
             <div className="space-y-6 pt-2 animate-in fade-in duration-500">
                 <EmployeeInfo formatDate={formatDate} row={row} t={t} />
 
-                {existingRequest ? (
-                    <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-2xl border border-orange-200 dark:border-orange-800">
-                        <p className="text-xs font-bold text-orange-600 dark:text-orange-300 uppercase tracking-wider">
-                            {t("reports.confirm.existing_request")}
-                        </p>
-                        {existingRequest.reason ? (
-                            <p className="text-sm text-orange-700 dark:text-orange-200 mt-2 italic">
-                                &ldquo;{existingRequest.reason}&rdquo;
-                            </p>
-                        ) : null}
-                    </div>
-                ) : null}
+                {!!existingRequest && <ExistingRequestBanner existingRequest={existingRequest} t={t} />}
 
                 <PunchInputs
                     existingRequest={existingRequest}
@@ -151,42 +150,16 @@ export default function ConfirmAttendanceModal({
                     t={t}
                 />
 
-                {!existingRequest ? (
-                    <div>
-                        <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">
-                            {t("reports.confirm.reason")}
-                        </label>
-                        <input
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            onChange={(e) => { setReason(e.target.value); }}
-                            placeholder={t("reports.confirm.reason_placeholder")}
-                            type="text"
-                            value={reason}
-                        />
-                    </div>
-                ) : null}
+                {!existingRequest && <ReasonInput reason={reason} setReason={setReason} t={t} />}
 
-                <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
-                    <button
-                        className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
-                        disabled={isPending}
-                        onClick={onClose}
-                    >
-                        {t("common.cancel")}
-                    </button>
-                    <button
-                        className="flex-[1.5] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
-                        disabled={isPending || (!existingRequest && !punchIn)}
-                        onClick={() => { onSubmit({ punchIn, punchOut, reason }); }}
-                    >
-                        {isPending ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <CheckCircle size={18} />
-                        )}
-                        {existingRequest ? t("reports.confirm.approve") : t("reports.confirm.submit")}
-                    </button>
-                </div>
+                <ActionButtons 
+                    canSubmit={!!existingRequest || !!punchIn}
+                    isEdit={!!existingRequest}
+                    isPending={isPending}
+                    onClose={onClose}
+                    onSubmit={() => { onSubmit({ punchIn, punchOut, reason }); }}
+                    t={t}
+                />
             </div>
         </Modal>
     );

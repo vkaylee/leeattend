@@ -1,5 +1,6 @@
-import React from "react";
 import { Clock, Milestone, Pencil, Trash2 } from "lucide-react";
+import React from "react";
+
 import { LeavePolicy } from "@/lib/api/types";
 
 interface PolicyCardProps {
@@ -29,7 +30,7 @@ export function PolicyCard({ policy, typeName, bonusCount, onEdit, onDelete }: P
             <button 
               className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800" 
               data-testid="delete-policy-btn" 
-              onClick={() => onDelete(policy.id)}
+              onClick={() => { onDelete(policy.id); }}
             >
               <Trash2 size={16} />
             </button>

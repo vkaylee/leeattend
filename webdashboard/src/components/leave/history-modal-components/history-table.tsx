@@ -1,13 +1,14 @@
-import React from "react";
 import { Loader2, Info } from "lucide-react";
+import React from "react";
+
 import { cn } from "@/lib/utils";
 
 interface HistoryItem {
-  id: string;
-  date: string;
-  transaction_type: string;
   amount: number;
-  reason: string | null;
+  date: string;
+  id: string;
+  reason?: string | null;
+  transaction_type: string;
 }
 
 interface HistoryTableProps {

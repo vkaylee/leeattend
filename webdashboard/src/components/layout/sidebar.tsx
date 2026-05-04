@@ -155,15 +155,9 @@ function SidebarSection({
   );
 }
 
-export default function Sidebar({ isOpen, onClose, openSections, toggleSection, isCollapsed }: SidebarProps) {
+function useSidebarMenuItems(): MenuItem[] {
   const { t } = useTranslation();
-  const location = useLocation();
-  const { hasAnyPermission } = useMyPermissions();
-  const { user } = useProfile();
-
-  const handleLogout = () => { localStorage.clear(); window.location.href = ROUTES.LOGIN; };
-
-  const menuItems: MenuItem[] = [
+  return [
     { to: ROUTES.HOME, icon: LayoutDashboard, label: t("common.dashboard"), exact: true, testId: "sidebar-link-dashboard" },
     {
       section: "org", sectionIcon: Folder, label: t("common.sections.organization"), testId: "sidebar-section-org", items: [
@@ -204,12 +198,23 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       ]
     }
   ];
+}
+
+export default function Sidebar({ isOpen, onClose, openSections, toggleSection, isCollapsed }: SidebarProps) {
+  const { t } = useTranslation();
+  const location = useLocation();
+  const { hasAnyPermission } = useMyPermissions();
+  const { user } = useProfile();
+
+  const handleLogout = () => { localStorage.clear(); window.location.href = ROUTES.LOGIN; };
+
+  const menuItems = useSidebarMenuItems();
 
   const filteredMenuItems = menuItems
-    .map((item) => {
+    .map((item: MenuItem) => {
       if ("section" in item) {
         const filteredItems = item.items.filter(
-          (subItem) => {
+          (subItem: MenuLinkType) => {
             if (subItem.systemRoles && subItem.systemRoles.length > 0) {
               return subItem.systemRoles.some((role: string) => user?.system_roles?.includes(role));
             }
@@ -221,7 +226,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       }
       return item;
     })
-    .filter((item) => {
+    .filter((item: MenuItem) => {
       if ("section" in item) {
         return item.items.length > 0;
       }
@@ -235,7 +240,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
         <button className="lg:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors" onClick={onClose}><X className="h-5 w-5" /></button>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6 space-y-8">
-        {filteredMenuItems.map((item) => (
+        {filteredMenuItems.map((item: MenuItem) => (
           <div key={item.label}>
             {"section" in item ? (
               <SidebarSection

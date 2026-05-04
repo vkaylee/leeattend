@@ -112,6 +112,41 @@ function OtCell({
   );
 }
 
+function RowActions({
+  existingAdjustment,
+  isConfirming,
+  isReprocessing,
+  onConfirmClick,
+  onReprocessClick,
+  row,
+  t
+}: {
+  existingAdjustment: AttendanceAdjustmentRequest | undefined;
+  isConfirming: boolean;
+  isReprocessing: boolean;
+  onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
+  onReprocessClick: (row: DailyAttendanceReport) => void;
+  row: DailyAttendanceReport;
+  t: (key: string) => string;
+}) {
+  return (
+    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+      <button
+        className={cn("flex items-center justify-center p-1.5 rounded-lg transition-all shadow-sm border active:scale-95", existingAdjustment !== undefined ? "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900" : "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900", isConfirming && "opacity-70 cursor-wait")}
+        disabled={isConfirming}
+        onClick={() => { onConfirmClick(row, existingAdjustment); }}
+        title={existingAdjustment !== undefined ? t("reports.confirm.pending_badge") : t("common.attendance_confirm")}
+      >{isConfirming ? <RefreshCw className="animate-spin" size={14} /> : <CheckCircle size={14} />}</button>
+      <button
+        className="p-1.5 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 transition-all active:scale-95 disabled:opacity-50"
+        disabled={isReprocessing}
+        onClick={() => { onReprocessClick(row); }}
+        title={t("reports.reprocess.tooltip")}
+      ><RefreshCw className={cn(isReprocessing && "animate-spin")} size={18} /></button>
+    </div>
+  );
+}
+
 export interface DailyReportTableRowProps {
   adjustmentMap: Partial<Record<string, AttendanceAdjustmentRequest>>;
   confirmingRow: string | null;
@@ -187,20 +222,15 @@ export function DailyReportTableRow({
           </td>
         ) : null}
         <td className="px-4 py-2.5 text-right">
-          <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
-            <button
-              className={cn("flex items-center justify-center p-1.5 rounded-lg transition-all shadow-sm border active:scale-95", existingAdjustment !== undefined ? "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900" : "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900", isConfirming && "opacity-70 cursor-wait")}
-              disabled={isConfirming}
-              onClick={() => { onConfirmClick(row, existingAdjustment); }}
-              title={existingAdjustment !== undefined ? t("reports.confirm.pending_badge") : t("common.attendance_confirm")}
-            >{isConfirming ? <RefreshCw className="animate-spin" size={14} /> : <CheckCircle size={14} />}</button>
-            <button
-              className="p-1.5 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 transition-all active:scale-95 disabled:opacity-50"
-              disabled={isReprocessing}
-              onClick={() => { onReprocessClick(row); }}
-              title={t("reports.reprocess.tooltip")}
-            ><RefreshCw className={cn(isReprocessing && "animate-spin")} size={18} /></button>
-          </div>
+          <RowActions
+            existingAdjustment={existingAdjustment}
+            isConfirming={isConfirming}
+            isReprocessing={isReprocessing}
+            onConfirmClick={onConfirmClick}
+            onReprocessClick={onReprocessClick}
+            row={row}
+            t={t}
+          />
         </td>
       </tr>
       {isDebugMode && isExpanded ? <DailyReportTableRowExpanded row={row} /> : null}

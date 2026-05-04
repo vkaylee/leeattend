@@ -52,9 +52,10 @@ export default function JobStatusDistributionChart({ data, isLoading }: Props) {
             paddingAngle={3}
             strokeWidth={0}
           >
-            {data.map((entry, index) => (
-              <Cell fill={entry.color} key={index} />
-            ))}
+            {data.map((entry, index) => {
+              // eslint-disable-next-line @typescript-eslint/no-deprecated
+              return <Cell fill={entry.color} key={index} />;
+            })}
           </Pie>
           <Tooltip
             contentStyle={{

@@ -1,6 +1,7 @@
 import { TrendingUp } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+
 import { WorkspaceLeaveBalance } from "@/lib/api";
 
 export function LeaveBalanceBreakdown({ balance }: { balance: WorkspaceLeaveBalance }) {

@@ -31,8 +31,6 @@ test.describe("Connectivity Buttons Visibility Tests", () => {
             const agentAddButton = page.getByTestId(`add-device-btn-${agentId}`);
             await expect(agentAddButton).toBeVisible();
             await expect(agentAddButton).toHaveText(/add device|thêm thiết bị/i);
-        } else {
-            
         }
     });
 

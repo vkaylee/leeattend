@@ -25,11 +25,11 @@ export function useLeaveRequests(wsId: string | null) {
   const [activeTab, setActiveTab] = useState<TabType>("pending");
 
   const { employees } = useAllEmployees(wsId);
-  const { data: requests = [], isLoading: requestsLoading } = useQuery({ queryKey: ["leave-requests", wsId, activeTab], queryFn: () => fetchWorkspaceLeaveRequests(wsId!, activeTab), enabled: !!wsId });
-  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId!), enabled: !!wsId });
+  const { data: requests = [], isLoading: requestsLoading } = useQuery({ queryKey: ["leave-requests", wsId, activeTab], queryFn: () => fetchWorkspaceLeaveRequests(wsId ?? "", activeTab), enabled: !!wsId });
+  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId ?? ""), enabled: !!wsId });
 
   const approveMutation = useMutation({
-    mutationFn: (data: { id: string; status: string }) => approveLeaveRequest(wsId!, data.id, { status: data.status }),
+    mutationFn: (data: { id: string; status: string }) => approveLeaveRequest(wsId ?? "", data.id, { status: data.status }),
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); toast.success(t("common.success")); },
   });
 
