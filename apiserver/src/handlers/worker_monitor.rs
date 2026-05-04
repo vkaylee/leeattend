@@ -100,14 +100,14 @@ async fn fetch_overview_data(state: &Arc<AppState>) -> AppResult<MonitorOverview
     let now = Utc::now();
     let stale_cutoff = now - TimeDelta::seconds(STALE_THRESHOLD_SECS);
 
-    let (active_workers, idle_workers, workers) = if !worker_keys.is_empty() {
+    let (active_workers, idle_workers, workers) = if worker_keys.is_empty() {
+        (0, 0, Vec::new())
+    } else {
         let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_else(|e| {
             tracing::warn!(error = %e, "Redis MGET failed for worker heartbeats");
             vec![]
         });
         filter_stale_workers(values, stale_cutoff)
-    } else {
-        (0, 0, Vec::new())
     };
 
     let total_workers = workers.len() as u64;

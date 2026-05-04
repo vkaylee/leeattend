@@ -65,22 +65,18 @@ impl ShiftAwareStrategy {
 
         // Tier 1: If shift config available, use shift-window-based pairing
         if let Some(shift) = config {
-            return self.pair_by_shift_window(logs, shift);
+            return Self::pair_by_shift_window(logs, shift);
         }
 
         // Tier 2: Fallback to anchor-first (original behavior)
-        self.pair_anchor_first(logs)
+        Self::pair_anchor_first(logs)
     }
 
     /// Tier 1: "First In near shift start, Last Out of day" (industry standard).
     /// Earliest log near shift start = IN, last log of the day = OUT.
     /// Check-in uses a buffer window to avoid picking up logs from previous day.
     /// Check-out has no buffer — captures any amount of overtime.
-    fn pair_by_shift_window(
-        &self,
-        logs: &[LogEvent],
-        shift: &PairingShiftConfig,
-    ) -> Vec<PairedSession> {
+    fn pair_by_shift_window(logs: &[LogEvent], shift: &PairingShiftConfig) -> Vec<PairedSession> {
         let check_in_window_start = shift.start_minutes - SHIFT_WINDOW_BUFFER;
         let check_in_window_end = shift.start_minutes + SHIFT_WINDOW_BUFFER;
 
@@ -92,7 +88,7 @@ impl ShiftAwareStrategy {
         // If we can't find logs in shift windows, fall back to anchor-first
         let (start, start_id) = match first_in {
             Some(log) => (log.minutes, log.id),
-            None => return self.pair_anchor_first(logs),
+            None => return Self::pair_anchor_first(logs),
         };
 
         // Last Out: take the last log of the day (after check-in)
@@ -172,7 +168,7 @@ impl ShiftAwareStrategy {
 
     /// Tier 2: Anchor-first fallback (original behavior).
     /// First log = IN, furthest log within 16h = OUT.
-    fn pair_anchor_first(&self, logs: &[LogEvent]) -> Vec<PairedSession> {
+    fn pair_anchor_first(logs: &[LogEvent]) -> Vec<PairedSession> {
         let first = &logs[0];
         let mut last_idx = 0;
 

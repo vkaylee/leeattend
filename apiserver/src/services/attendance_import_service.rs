@@ -334,7 +334,9 @@ impl AttendanceImportService {
             ));
         }
 
-        let status = if processed_rows > 0 || errors.is_empty() {
+        let status = if errors.is_empty() {
+            ImportJobStatus::Completed
+        } else if processed_rows > 0 {
             ImportJobStatus::Completed
         } else {
             ImportJobStatus::Failed
@@ -585,10 +587,10 @@ impl AttendanceImportService {
             }
         }
 
-        let status = if !errors.is_empty() {
-            ImportJobStatus::Failed
-        } else {
+        let status = if errors.is_empty() {
             ImportJobStatus::Completed
+        } else {
+            ImportJobStatus::Failed
         };
 
         let mut final_log = if errors.is_empty() {

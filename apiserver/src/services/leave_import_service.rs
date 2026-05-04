@@ -89,7 +89,7 @@ impl LeaveImportService {
         let msgs = LeaveImportMessages::for_lang(&lang);
 
         // Parse rows from Excel or CSV
-        let (pending_rows, mut errors) = self.parse_file(&file_bytes, &msgs);
+        let (pending_rows, mut errors) = Self::parse_file(&file_bytes, &msgs);
 
         if pending_rows.is_empty() && errors.is_empty() {
             return Err(AppError::Validation(msgs.file_empty.to_string()));
@@ -191,7 +191,9 @@ impl LeaveImportService {
         }
 
         // Generate error Excel if there are errors
-        let error_file_path = if !errors.is_empty() {
+        let error_file_path = if errors.is_empty() {
+            None
+        } else {
             let error_dir = format!(
                 "{}/storage/imports/errors",
                 std::env::current_dir()
@@ -215,8 +217,6 @@ impl LeaveImportService {
                     None
                 }
             }
-        } else {
-            None
         };
 
         Ok(LeaveImportResult {
@@ -228,7 +228,6 @@ impl LeaveImportService {
 
     /// Parse file bytes into pending rows and parse-time errors.
     fn parse_file(
-        &self,
         file_bytes: &[u8],
         msgs: &LeaveImportMessages,
     ) -> (Vec<PendingLeaveRow>, Vec<ErrorRow>) {
