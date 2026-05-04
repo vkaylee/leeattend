@@ -435,9 +435,12 @@ class Orchestrator:
                 if tool_args:
                     compose_cmd.extend(tool_args)
             else:
-                # compose exec into running container, prefix with bun
-                compose_cmd.extend(["exec", "-T", service])
-                self._handle_run_npm(compose_cmd, tool_args, service)
+                is_running = self._is_service_running(service)
+                if is_running:
+                    compose_cmd.extend(["exec", "-T", service])
+                else:
+                    compose_cmd.extend(["run", "-T", "--rm"])
+                self._handle_run_npm(compose_cmd, tool_args, service, is_running)
         elif tool == "cargo":
             compose_cmd.extend(["run", "-T", "--rm"])
             self._handle_run_cargo(compose_cmd, tool_args)
@@ -448,11 +451,21 @@ class Orchestrator:
 
         self.execute_safe(compose_cmd)
 
-    def _handle_run_npm(self, compose_cmd: list[str], tool_args: list[str], service: str) -> None:
-        """Run npm/bun commands via compose exec into running container.
+    def _is_service_running(self, service: str) -> bool:
+        res = subprocess.run(
+            [self.engine, "ps", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            check=False,
+        )
+        project_name = self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test")
+        return any(project_name in n and service in n for n in res.stdout.splitlines())
 
-        Requires webdashboard container to be running (started by lifecycle_up
-        or compose up -d). Uses direct entrypoint — no bash -c, no shell.
+    def _handle_run_npm(self, compose_cmd: list[str], tool_args: list[str], service: str, is_running: bool = True) -> None:
+        """Run npm/bun commands via compose exec/run into container.
+
+        Auto-detects if container is running. If not, uses compose run with custom entrypoint.
         """
         npm_min_args = 2
         is_typecheck = (
@@ -463,14 +476,18 @@ class Orchestrator:
 
         first_arg = tool_args[0] if tool_args else ""
 
+        executable = "bun"
         if first_arg in ("bun", "npm", "bash", "sh"):
-            compose_cmd.extend([first_arg])
-            if len(tool_args) > 1:
-                compose_cmd.extend(tool_args[1:])
+            executable = first_arg
+            tool_args = tool_args[1:]
+            
+        if is_running:
+            compose_cmd.extend([executable])
         else:
-            compose_cmd.extend(["bun"])
-            if tool_args:
-                compose_cmd.extend(tool_args)
+            compose_cmd.extend(["--entrypoint", executable, service])
+            
+        if tool_args:
+            compose_cmd.extend(tool_args)
 
     def _handle_run_cargo(self, compose_cmd: list[str], tool_args: list[str]) -> None:
         caller_dir = Path.cwd()
