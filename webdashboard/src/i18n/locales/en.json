@@ -1484,6 +1484,7 @@
     "subtitle": "Track employee leave entitlements and usage",
     "summary_table": "Balance Summary",
     "run_accrual": "Update Balances",
+    "select_year": "Select Year",
     "confirm_accrual": "Are you sure you want to run accrual calculation for today? System will automatically add leave based on assigned policies.",
     "accrual_current_year_only": "Accrual can only be run for the current year",
     "accrual_queued": "Leave accrual is processing in the background...",

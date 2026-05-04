@@ -1484,6 +1484,7 @@
     "subtitle": "Theo dõi định mức và sử dụng phép của nhân sự",
     "summary_table": "Bảng tổng hợp số dư",
     "run_accrual": "Cập nhật số dư",
+    "select_year": "Chọn năm",
     "confirm_accrual": "Bạn có chắc chắn muốn chạy tính toán tích lũy cho hôm nay? Hệ thống sẽ tự động cộng thêm phép dựa trên chính sách đã gán.",
     "accrual_current_year_only": "Chỉ có thể cập nhật số dư cho năm hiện tại",
     "accrual_queued": "Đang xử lý tích lũy phép trong nền...",

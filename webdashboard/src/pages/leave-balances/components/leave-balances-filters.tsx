@@ -36,14 +36,14 @@ export const LeaveBalancesFilters: React.FC<LeaveBalancesFiltersProps> = ({
         <div className="flex items-center gap-2 ml-2">
           <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
           <Combobox
-            className="w-24 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider focus:ring-2 focus:ring-primary-500/20 py-[5px]"
+            className="w-36 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider focus:ring-2 focus:ring-primary-500/20 py-[5px]"
             onChange={(value) => {
               if (value) {
                 setSelectedYear(Number(value));
               }
             }}
             options={yearOptions.map(y => ({ value: y.toString(), label: y.toString() }))}
-            placeholder="Select Year"
+            placeholder={t("leave_balances.select_year", "Select Year")}
             value={selectedYear.toString()}
           />
         </div>
