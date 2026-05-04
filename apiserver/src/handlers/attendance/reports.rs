@@ -28,7 +28,7 @@ pub async fn get_attendance_report(
     let limit = params.get("limit").and_then(|s| s.parse::<i64>().ok());
     let sort = params.get("sort").and_then(|s| {
         serde_json::from_value::<crate::models::AttendanceReportSort>(serde_json::Value::String(
-            s.to_string(),
+            s.clone(),
         ))
         .ok()
     });

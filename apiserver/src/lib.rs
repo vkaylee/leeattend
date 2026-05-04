@@ -34,7 +34,6 @@
     clippy::wildcard_imports,
     clippy::struct_field_names,
     clippy::type_complexity,
-    clippy::inefficient_to_string,
     clippy::option_if_let_else,
     clippy::redundant_closure_for_method_calls,
     clippy::map_unwrap_or,
@@ -46,7 +45,6 @@
     clippy::used_underscore_binding,
     clippy::cast_lossless,
     clippy::needless_pass_by_value,
-    clippy::implicit_clone,
     clippy::format_push_string,
     clippy::items_after_statements,
     clippy::unnecessary_struct_initialization,
@@ -67,6 +65,8 @@
 #![deny(clippy::match_same_arms)]
 #![deny(clippy::branches_sharing_code)]
 #![deny(clippy::if_same_then_else)]
+#![deny(clippy::implicit_clone)]
+#![deny(clippy::inefficient_to_string)]
 
 pub mod agent_manager;
 pub mod app_builder;

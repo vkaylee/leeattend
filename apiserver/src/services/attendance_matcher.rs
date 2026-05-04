@@ -179,7 +179,7 @@ impl AttendanceMatcher {
                                         rounding_policy: args
                                             .attendance_rules
                                             .rounding_policy
-                                            .to_string(),
+                                            .clone(),
                                         rules: rules.clone(),
                                         ot_ceiling,
                                     },

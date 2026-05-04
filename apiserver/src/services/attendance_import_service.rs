@@ -578,7 +578,7 @@ impl AttendanceImportService {
                         &[
                             ("line", &emp.line_number.to_string()),
                             ("emp", &emp.id_number),
-                            ("error", &e.to_string()),
+                            ("error", &e.clone()),
                         ],
                     ));
                 }
