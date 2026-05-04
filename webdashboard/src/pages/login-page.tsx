@@ -57,9 +57,9 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-12 p-12 bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-premium-2xl relative z-10 animate-in zoom-in-95 duration-1000 border border-white/60">
         <div className="text-center">
           <div className="bg-slate-900 w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-slate-400 dark:shadow-black/40 transform hover:rotate-6 hover:scale-110 transition-all duration-700 group/logo">
-             <span className="text-white text-5xl font-bold italic tracking-tighter group-hover:text-primary-400 transition-colors">L</span>
+             <span className="text-white text-5xl font-bold italic tracking-tighter group-hover:text-primary-400 transition-colors pl-3">L</span>
           </div>
-          <h2 className="text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none">Attend</h2>
+          <h2 className="text-5xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter uppercase leading-none px-4">Attend</h2>
           <p className="mt-4 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] opacity-60 leading-relaxed">
             {t("auth.slogan").toUpperCase()}
           </p>

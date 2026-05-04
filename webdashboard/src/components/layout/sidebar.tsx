@@ -258,11 +258,11 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-tr from-primary-600 to-primary-400 shadow-lg shadow-primary-200 dark:shadow-primary-900/20 flex items-center justify-center text-white font-black text-xl tracking-tighter italic">
+                <div className="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-tr from-primary-600 to-primary-400 shadow-lg shadow-primary-200 dark:shadow-primary-900/20 flex items-center justify-center text-white font-black text-xl tracking-tighter italic pl-1">
                   {workspace?.name.charAt(0).toUpperCase() ?? "L"}
                 </div>
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase italic truncate">
+                <div className="flex flex-col overflow-visible pr-4">
+                  <span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase italic truncate pl-1 pr-4">
                     {workspace?.name ?? <React.Fragment>Lee<span className="text-primary-600 dark:text-primary-400">Attend</span></React.Fragment>}
                   </span>
                   {workspace?.tagline ? (
