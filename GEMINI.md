@@ -121,6 +121,7 @@ All standard development tools run inside isolated Podman containers. You MUST e
 | Testing | `npm run test` | `./test.sh <target>` | Multiple |
 
 - **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper (e.g., `./scripts/git.sh commit -m "msg"`) to prevent PTY hangs during multi-line commits.
+- **Multiline Strings:** NEVER pass strings containing literal newlines (physical line breaks) into terminal commands (e.g., `-m "line1\nline2"`). This breaks the AI PTY parser and causes an infinite hang. ALWAYS write multi-line content to a temp file using the `write_to_file` tool, then execute the command reading from that file (e.g., `./scripts/git.sh commit -F /tmp/msg.txt`).
 *❌ Failure Condition:* Running tools natively on the host bypasses container isolation. Proposing inline strings for tasks that the toolbox can handle is a P0 protocol violation.
 </priority_1_hermetic_toolbox>
 

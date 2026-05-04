@@ -40,16 +40,20 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 **🚨 STRICTLY BANNED INLINE COMMANDS & PATTERNS (Deadlock Triggers):**
 > **Do NOT use these via AI terminal tools.** They cause infinite PTY hangs due to unclosed quotes or waiting for stdin.
 - **Banned Patterns**: Heredocs (`cat <<EOF` or `cat >> file <<EOF`)
+- **Banned Patterns**: Multiline strings with literal newlines (`git commit -m "line1\nline2"`)
 
 ```bash
 # ✅ Correct — Use the git wrapper to avoid PTY hangs with multi-line messages
-AGENT_MODE=1 ./scripts/git.sh commit -m "message"
+# AND ALWAYS use a temporary file for multi-line commit messages instead of literal newlines!
+echo -e "line1\nline2" > /tmp/msg.txt && AGENT_MODE=1 ./scripts/git.sh commit -F /tmp/msg.txt
 podman-compose down </dev/null
 ./test.sh api </dev/null
 git --no-pager log -n 5
 ./scripts/_python.sh my_script.py </dev/null
 
 # ❌ Wrong — will hang
+AGENT_MODE=1 ./scripts/git.sh commit -m "line1
+line2"
 git commit -m "message"
 podman-compose down
 git log
