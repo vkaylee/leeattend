@@ -55,6 +55,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
   const [timezone, setTimezone] = useState(workspace.timezone);
   const [themePrimaryColor, setThemePrimaryColor] = useState(workspace.theme_primary_color);
   const [defaultLanguage, setDefaultLanguage] = useState(workspace.default_language);
+  const [wsName, setWsName] = useState(workspace.name);
   const [logoUrl, setLogoUrl] = useState(workspace.logo_url ?? "");
   const [tagline, setTagline] = useState(workspace.tagline ?? "");
 
@@ -74,6 +75,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
 
   function handleSaveConfig() {
     updateWsMutation.mutate({ 
+      name: wsName,
       date_format: dateFormat, 
       time_format: timeFormat, 
       timezone: timezone, 
@@ -138,6 +140,45 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              {/* Workspace Name */}
+              <div className="space-y-3">
+                <label className={LABEL_BASE}>{t("common.workspace_settings.workspace_name", { defaultValue: "Workspace Name" })}</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Building2 size={18} />
+                  </div>
+                  <input
+                    className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all text-slate-700 dark:text-slate-200 outline-none"
+                    data-testid="workspace-name-input"
+                    onChange={(e) => { setWsName(e.target.value); }}
+                    placeholder={t("common.workspace_settings.workspace_name_placeholder", { defaultValue: "e.g., LeeAttend Corp" })}
+                    type="text"
+                    value={wsName}
+                  />
+                </div>
+              </div>
+
+              {/* Tagline */}
+              <div className="space-y-3">
+                <label className={LABEL_BASE}>{t("common.workspace_settings.tagline", { defaultValue: "Tagline" })}</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Type size={18} />
+                  </div>
+                  <input
+                    className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all text-slate-700 dark:text-slate-200 outline-none"
+                    data-testid="workspace-tagline-input"
+                    onChange={(e) => { setTagline(e.target.value); }}
+                    placeholder={t("common.workspace_settings.tagline_placeholder", { defaultValue: "e.g., Human Resources Management" })}
+                    type="text"
+                    value={tagline}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              {/* Logo Section */}
               <div className="space-y-3">
                 <label className={LABEL_BASE}>{t("common.workspace_settings.workspace_logo", { defaultValue: "Workspace Logo" })}</label>
                 {logoUrl ? (
@@ -188,24 +229,6 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                     </div>
                   </button>
                 )}
-              </div>
-
-              <div className="space-y-3">
-                <label className={LABEL_BASE}>{t("common.workspace_settings.tagline", { defaultValue: "Tagline" })}</label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                    <Type size={18} />
-                  </div>
-                  <input
-                    className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all text-slate-700 dark:text-slate-200 outline-none"
-                    data-testid="workspace-tagline-input"
-                    onChange={(e) => { setTagline(e.target.value); }}
-                    placeholder={t("common.workspace_settings.tagline_placeholder", { defaultValue: "e.g., Human Resources Management" })}
-                    type="text"
-                    value={tagline}
-                  />
-                </div>
-                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide ml-1">{t("common.workspace_settings.tagline_desc", { defaultValue: "Displayed under the logo in the sidebar." })}</p>
               </div>
             </div>
 
