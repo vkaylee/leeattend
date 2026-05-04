@@ -83,13 +83,11 @@ impl From<(StatusCode, String)> for AppError {
 impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
-            Self::Sqlx(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Sqlx(_) | Self::Redis(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Auth(_) => StatusCode::UNAUTHORIZED,
             Self::Forbidden(_) => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Validation(_) => StatusCode::BAD_REQUEST,
-            Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Conflict(_) => StatusCode::CONFLICT,
             Self::ServiceUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
         }

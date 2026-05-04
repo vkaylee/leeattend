@@ -57,8 +57,9 @@ pub fn local_to_utc(
         .and_hms_opt(h, m, s)
         .ok_or_else(|| format!("Invalid time: {h}:{m}:{s}"))?;
     match tz.from_local_datetime(&naive) {
-        chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
-        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt.with_timezone(&Utc)),
+        chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => {
+            Ok(dt.with_timezone(&Utc))
+        }
         chrono::LocalResult::None => {
             // DST gap — shift forward by 1 hour
             let shifted = naive + Duration::hours(1);
@@ -102,8 +103,7 @@ pub fn local_to_tz(
         .and_hms_opt(h, m, s)
         .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {h}:{m}:{s}")))?;
     match tz.from_local_datetime(&naive) {
-        chrono::LocalResult::Single(dt) => Ok(dt),
-        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt),
+        chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => Ok(dt),
         chrono::LocalResult::None => {
             // DST gap — shift forward by 1 hour
             let shifted = naive + Duration::hours(1);

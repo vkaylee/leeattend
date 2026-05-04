@@ -157,8 +157,7 @@ impl OvertimeEngine {
             // 23:59:59 is always valid; DST can make from_local ambiguous but we pick first
             let day_end =
                 match tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).unwrap_or_default()) {
-                    chrono::LocalResult::Single(dt) => dt,
-                    chrono::LocalResult::Ambiguous(dt, _) => dt,
+                    chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => dt,
                     chrono::LocalResult::None => {
                         // Rare: DST gap at 23:59:59 - use 22:59:59 + 1 hour
                         let shifted = date.and_hms_opt(22, 59, 59).unwrap_or_default()
@@ -200,8 +199,7 @@ impl OvertimeEngine {
             };
             current =
                 match tz.from_local_datetime(&next_date.and_hms_opt(0, 0, 0).unwrap_or_default()) {
-                    chrono::LocalResult::Single(dt) => dt,
-                    chrono::LocalResult::Ambiguous(dt, _) => dt,
+                    chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => dt,
                     chrono::LocalResult::None => {
                         // DST gap at midnight - advance by 1 hour
                         let shifted = next_date.and_hms_opt(1, 0, 0).unwrap_or_default();

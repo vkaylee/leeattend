@@ -238,10 +238,10 @@ impl LeaveAccrualService {
 
         match frequency {
             AccrualFrequency::Monthly => {
+                let mut y = from.year();
+                let mut m = from.month();
                 if is_start {
                     // First day of each month
-                    let mut y = from.year();
-                    let mut m = from.month();
                     // If from is after the 1st, start from 1st of from's month only if it's >= from
                     while let Some(d) = NaiveDate::from_ymd_opt(y, m, 1) {
                         if d > to {
@@ -260,8 +260,6 @@ impl LeaveAccrualService {
                     }
                 } else {
                     // Last day of each month
-                    let mut y = from.year();
-                    let mut m = from.month();
                     loop {
                         let next_m = if m == 12 { 1 } else { m + 1 };
                         let next_y = if m == 12 { y + 1 } else { y };

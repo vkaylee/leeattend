@@ -273,9 +273,6 @@ async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::que
                 info!(job_id = %job_id, "Client sent close frame");
                 break;
             }
-            Ok(Message::Ping(_)) => {
-                // Pong is handled automatically by axum
-            }
             Err(e) => {
                 warn!(job_id = %job_id, error = %e, "WebSocket receive error");
                 break;

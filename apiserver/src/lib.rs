@@ -39,7 +39,6 @@
     clippy::redundant_closure_for_method_calls,
     clippy::map_unwrap_or,
     clippy::derive_partial_eq_without_eq,
-    clippy::match_same_arms,
     clippy::significant_drop_tightening,
     clippy::future_not_send,
     clippy::manual_clamp,
@@ -50,7 +49,6 @@
     clippy::implicit_clone,
     clippy::format_push_string,
     clippy::items_after_statements,
-    clippy::branches_sharing_code,
     clippy::unnecessary_struct_initialization,
     clippy::ref_option,
     clippy::assigning_clones,
@@ -66,6 +64,9 @@
 #![deny(clippy::map_err_ignore)]
 #![deny(clippy::match_like_matches_macro)]
 #![deny(clippy::type_complexity)]
+#![deny(clippy::match_same_arms)]
+#![deny(clippy::branches_sharing_code)]
+#![deny(clippy::if_same_then_else)]
 
 pub mod agent_manager;
 pub mod app_builder;
