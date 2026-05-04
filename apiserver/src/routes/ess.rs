@@ -25,8 +25,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/ess/documents", get(handlers::ess::get_my_documents))
         .route("/ess/payslips", get(handlers::ess::get_my_payslips))
         .route("/ess/attendance", get(handlers::ess::get_my_attendance))
-        .route("/ess/punch-in", post(handlers::ess::ess_punch_in))
-        .route("/ess/punch-out", post(handlers::ess::ess_punch_out))
+        .route("/ess/punch", post(handlers::ess::ess_punch))
         .route("/ess/time-entries", get(handlers::ess::get_my_time_entries))
         .route(
             "/ess/leave/balances",

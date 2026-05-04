@@ -398,7 +398,7 @@ async fn test_ess_time_tracking_endpoints() {
         .clone()
         .oneshot(req(
             "POST",
-            "/api/ess/punch-in",
+            "/api/ess/punch",
             ws_id,
             user_id,
             Some(punch_in_body.to_string()),
@@ -417,14 +417,14 @@ async fn test_ess_time_tracking_endpoints() {
         .clone()
         .oneshot(req(
             "POST",
-            "/api/ess/punch-out",
+            "/api/ess/punch",
             ws_id,
             user_id,
             Some(punch_out_body.to_string()),
         ))
         .await
         .unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.status(), StatusCode::CREATED);
 
     // 4. Get time entries again (should have 1)
     let resp = app
@@ -441,5 +441,76 @@ async fn test_ess_time_tracking_endpoints() {
     assert_eq!(resp.status(), StatusCode::OK);
     let entries = body_json(resp).await;
     assert_eq!(entries.as_array().unwrap().len(), 1);
-    assert_eq!(entries[0]["id"].as_str().unwrap(), entry_id);
+}
+
+#[tokio::test]
+async fn test_ess_punch_out_without_punch_in() {
+    let (test_db, factory, _state, app) = setup_app_tower().await;
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+    let email = "no_punch_in@leeattend.com";
+    let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, email).await;
+
+    let punch_out_body = serde_json::json!({
+        "note": "Ending shift"
+    });
+
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            "/api/ess/punch",
+            ws_id,
+            user_id,
+            Some(punch_out_body.to_string()),
+        ))
+        .await
+        .unwrap();
+
+    // With the generic punch API, punching without an active session just creates a new log
+    assert_eq!(resp.status(), StatusCode::CREATED);
+}
+
+#[tokio::test]
+async fn test_ess_punch_in_already_active() {
+    let (test_db, factory, _state, app) = setup_app_tower().await;
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+    let email = "double_punch@leeattend.com";
+    let (user_id, _) = create_employee_user(&factory, &test_db, ws_id, email).await;
+
+    let punch_in_body = serde_json::json!({
+        "entry_type": "work",
+        "note": "Starting shift"
+    });
+
+    // 1. First Punch In
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            "/api/ess/punch",
+            ws_id,
+            user_id,
+            Some(punch_in_body.to_string()),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    // 2. Second Punch In (should fail)
+    let resp2 = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            "/api/ess/punch",
+            ws_id,
+            user_id,
+            Some(punch_in_body.to_string()),
+        ))
+        .await
+        .unwrap();
+
+    // With the generic punch API, the second punch should also succeed (and log as punch OUT)
+    assert_eq!(resp2.status(), StatusCode::CREATED);
 }

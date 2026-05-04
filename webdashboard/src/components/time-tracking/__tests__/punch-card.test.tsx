@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { TimeEntry } from "@/lib/api";
 
 import { PunchCard } from "../punch-card";
 
@@ -11,10 +13,7 @@ const mockTranslation = {
   "time_tracking.status.off_duty": "Off Duty",
   "time_tracking.status.break_start_at": "Break Started At",
   "time_tracking.status.shift_start_at": "Shift Started At",
-  "time_tracking.actions.return_to_work": "Return to Work",
-  "time_tracking.actions.start_break": "Start Break",
-  "time_tracking.actions.punch_out": "Punch Out",
-  "time_tracking.actions.start_work": "Start Work",
+  "time_tracking.actions.hold_to_punch": "Hold to Punch",
   "time_tracking.forgot_punch": "Forgot to punch?",
 };
 
@@ -33,17 +32,23 @@ vi.mock("@/hooks/use-datetime", () => ({
   }),
 }));
 
+// Mock the HoldToPunchButton since we test it separately and we just want to test if it calls the right props here
+vi.mock("../hold-to-punch-button", () => ({
+  HoldToPunchButton: ({ onPunch, isPunching, label }: { isPunching: boolean; label: string; onPunch: () => void; }) => (
+    <button disabled={isPunching} onClick={onPunch}>
+      {label}
+    </button>
+  ),
+}));
+
 describe("PunchCard", () => {
-  const mockOnPunchIn = vi.fn();
-  const mockOnPunchOut = vi.fn();
+  const mockOnPunch = vi.fn();
   const mockOnRequestAdjustment = vi.fn();
 
   const defaultProps = {
     activeEntry: undefined,
-    isOnBreak: false,
     userName: "John Doe",
-    onPunchIn: mockOnPunchIn,
-    onPunchOut: mockOnPunchOut,
+    onPunch: mockOnPunch,
     onRequestAdjustment: mockOnRequestAdjustment,
     isPunching: false,
   };
@@ -57,18 +62,18 @@ describe("PunchCard", () => {
 
     expect(screen.getByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("Off Duty")).toBeInTheDocument();
-    expect(screen.getByText("Start Work")).toBeInTheDocument();
+    expect(screen.getByText("Hold to Punch")).toBeInTheDocument();
   });
 
-  it("calls onPunchIn with 'work' when start work button clicked", async () => {
+  it("calls onPunchIn with 'work' when hold to punch button is triggered while off-duty", async () => {
     const user = userEvent.setup();
     render(<PunchCard {...defaultProps} />);
 
-    const startWorkButton = screen.getByText("Start Work");
-    await user.click(startWorkButton);
+    const punchButton = screen.getByText("Hold to Punch");
+    await user.click(punchButton);
 
     await waitFor(() => {
-      expect(mockOnPunchIn).toHaveBeenCalledWith("work");
+      expect(mockOnPunch).toHaveBeenCalled();
     });
   });
 
@@ -82,17 +87,16 @@ describe("PunchCard", () => {
       is_break_overtime: false,
       created_at: "2024-01-21T08:00:00Z",
       updated_at: "2024-01-21T08:00:00Z"
-    };
+    } as TimeEntry;
 
     render(<PunchCard {...defaultProps} activeEntry={activeEntry} />);
 
     expect(screen.getByText("Working")).toBeInTheDocument();
     expect(screen.getByText("Shift Started At")).toBeInTheDocument();
-    expect(screen.getByText("Start Break")).toBeInTheDocument();
-    expect(screen.getByText("Punch Out")).toBeInTheDocument();
+    expect(screen.getByText("Hold to Punch")).toBeInTheDocument();
   });
 
-  it("calls onPunchIn with 'break' when start break button clicked", async () => {
+  it("calls onPunchOut when hold to punch button is triggered while working", async () => {
     const user = userEvent.setup();
     const activeEntry = {
       id: "1",
@@ -103,88 +107,23 @@ describe("PunchCard", () => {
       is_break_overtime: false,
       created_at: "2024-01-21T08:00:00Z",
       updated_at: "2024-01-21T08:00:00Z"
-    };
+    } as TimeEntry;
 
     render(<PunchCard {...defaultProps} activeEntry={activeEntry} />);
 
-    const startBreakButton = screen.getByText("Start Break");
-    await user.click(startBreakButton);
+    const punchButton = screen.getByText("Hold to Punch");
+    await user.click(punchButton);
 
     await waitFor(() => {
-      expect(mockOnPunchIn).toHaveBeenCalledWith("break");
-    });
-  });
-
-  it("calls onPunchOut when punch out button clicked", async () => {
-    const user = userEvent.setup();
-    const activeEntry = {
-      id: "1",
-      employee_id: "emp-1",
-      punch_in_time: "2024-01-21T08:00:00Z",
-      punch_out_time: undefined,
-      entry_type: "work",
-      is_break_overtime: false,
-      created_at: "2024-01-21T08:00:00Z",
-      updated_at: "2024-01-21T08:00:00Z"
-    };
-
-    render(<PunchCard {...defaultProps} activeEntry={activeEntry} />);
-
-    const punchOutButton = screen.getByText("Punch Out");
-    await user.click(punchOutButton);
-
-    await waitFor(() => {
-      expect(mockOnPunchOut).toHaveBeenCalled();
-    });
-  });
-
-  it("renders on-break status", () => {
-    const activeEntry = {
-      id: "1",
-      employee_id: "emp-1",
-      punch_in_time: "2024-01-21T08:00:00Z",
-      punch_out_time: undefined,
-      entry_type: "break",
-      is_break_overtime: false,
-      created_at: "2024-01-21T08:00:00Z",
-      updated_at: "2024-01-21T08:00:00Z"
-    };
-
-    render(<PunchCard {...defaultProps} activeEntry={activeEntry} isOnBreak={true} />);
-
-    expect(screen.getByText("On Break")).toBeInTheDocument();
-    expect(screen.getByText("Break Started At")).toBeInTheDocument();
-    expect(screen.getByText("Return to Work")).toBeInTheDocument();
-  });
-
-  it("calls onPunchOut when return to work button clicked", async () => {
-    const user = userEvent.setup();
-    const activeEntry = {
-      id: "1",
-      employee_id: "emp-1",
-      punch_in_time: "2024-01-21T08:00:00Z",
-      punch_out_time: undefined,
-      entry_type: "break",
-      is_break_overtime: false,
-      created_at: "2024-01-21T08:00:00Z",
-      updated_at: "2024-01-21T08:00:00Z"
-    };
-
-    render(<PunchCard {...defaultProps} activeEntry={activeEntry} isOnBreak={true} />);
-
-    const returnButton = screen.getByText("Return to Work");
-    await user.click(returnButton);
-
-    await waitFor(() => {
-      expect(mockOnPunchOut).toHaveBeenCalled();
+      expect(mockOnPunch).toHaveBeenCalled();
     });
   });
 
   it("disables buttons when isPunching is true", () => {
     render(<PunchCard {...defaultProps} isPunching={true} />);
 
-    const startWorkButton = screen.getByText("Start Work");
-    expect(startWorkButton).toBeDisabled();
+    const punchButton = screen.getByText("Hold to Punch");
+    expect(punchButton).toBeDisabled();
   });
 
   it("calls onRequestAdjustment when forgot punch button clicked", async () => {

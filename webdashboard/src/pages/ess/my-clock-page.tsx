@@ -26,10 +26,8 @@ export default function MyClockPage() {
     activeEntry,
     entries,
     isLoading: isLoadingClock,
-    isOnBreak,
     isPunching,
-    punchIn,
-    punchOut,
+    punch,
   } = useMyClock();
 
   const { data: workspace } = useQuery({
@@ -43,23 +41,13 @@ export default function MyClockPage() {
 
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
 
-  const handlePunchIn = async (type: "work" | "break") => {
+  const handlePunch = async () => {
     try {
-      await punchIn({ entry_type: type });
-      toast.success(
-        type === "work" ? t("ess.clock.punch_in_success") : t("ess.clock.break_start_success")
-      );
-    } catch {
-      toast.error(t("common.error"));
-    }
-  };
-
-  const handlePunchOut = async () => {
-    try {
-      await punchOut({});
-      toast.success(t("ess.clock.punch_out_success"));
-    } catch {
-      toast.error(t("common.error"));
+      await punch({});
+      toast.success(t("ess.clock.punch_success", "Chấm công thành công"));
+    } catch (e) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      toast.error(err.response?.data?.error ?? err.message ?? t("common.error"));
     }
   };
 
@@ -82,8 +70,9 @@ export default function MyClockPage() {
         time_entry_id: data.timeEntryId,
       });
       toast.success(t("ess.clock.adjustment_requested"));
-    } catch {
-      toast.error(t("common.error"));
+    } catch (e) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      toast.error(err.response?.data?.error ?? err.message ?? t("common.error"));
     }
   };
 
@@ -99,10 +88,8 @@ export default function MyClockPage() {
         <div className="lg:col-span-5">
           <PunchCard
             activeEntry={activeEntry}
-            isOnBreak={isOnBreak}
             isPunching={isPunching}
-            onPunchIn={handlePunchIn}
-            onPunchOut={handlePunchOut}
+            onPunch={handlePunch}
             onRequestAdjustment={() => {
               setIsAdjustmentModalOpen(true);
             }}

@@ -22,6 +22,7 @@ fn log(minutes: i32) -> LogEvent {
     LogEvent {
         id: Uuid::new_v4(),
         minutes,
+        raw_data: None,
     }
 }
 

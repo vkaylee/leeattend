@@ -179,7 +179,7 @@ impl PairingService {
         let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
 
         let logs: Vec<_> = sqlx::query!(
-            "SELECT id, punch_time FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
+            "SELECT id, punch_time, raw_data FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
             employee_id,
             window_start_utc,
             window_end_utc
@@ -204,6 +204,7 @@ impl PairingService {
                 filtered_log_events.push(pairing_algo::LogEvent {
                     id: log.id,
                     minutes: duration_since_start.num_minutes() as i32,
+                    raw_data: log.raw_data,
                 });
 
                 last_minute = Some(current_minute);
@@ -276,8 +277,8 @@ impl PairingService {
             sqlx::query!(
                 r#"
                 INSERT INTO time_entries 
-                (id, employee_id, workspace_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, generation_metadata, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+                (id, employee_id, workspace_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, is_break_overtime, generation_metadata, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
                 "#,
                 Uuid::new_v4(),
                 employee_id,
@@ -288,6 +289,7 @@ impl PairingService {
                 duration,
                 session.entry_type,
                 session.note,
+                session.is_break_overtime,
                 Some(final_metadata)
             )
             .execute(&mut *tx)

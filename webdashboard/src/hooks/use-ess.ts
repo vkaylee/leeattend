@@ -32,8 +32,7 @@ import {
   fetchMyPayslips,
   fetchMyProfile,
   fetchMyTimeEntries,
-  punchInMySelf,
-  punchOutMySelf,
+  punchMySelf,
   submitMyOtClaim,
   updateMyProfile,
 } from "@/lib/api";
@@ -268,10 +267,8 @@ export interface UseMyClockReturn {
   error: Error | null;
   isError: boolean;
   isLoading: boolean;
-  isOnBreak: boolean;
   isPunching: boolean;
-  punchIn: (data: { entry_type: "work" | "break"; note?: string }) => Promise<TimeEntry>;
-  punchOut: (data?: { note?: string }) => Promise<TimeEntry>;
+  punch: (data?: { note?: string }) => Promise<TimeEntry>;
   refetch: () => Promise<unknown>;
 }
 
@@ -281,7 +278,10 @@ export function useMyClock(): UseMyClockReturn {
   // Fetch current user's time entries (today + 7 days)
   const { startDate, endDate } = useMemo(() => {
     const now = new Date();
-    const endDate = now.toISOString();
+    // Set endDate to 24 hours in the future so that any punches made
+    // while the page is open are not clipped by the API.
+    const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const endDate = futureDate.toISOString();
     const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
     return { startDate, endDate };
   }, []);
@@ -293,44 +293,32 @@ export function useMyClock(): UseMyClockReturn {
   });
 
   const activeEntry = entriesQuery.data?.find((e) => !e.punch_out_time);
-  const isOnBreak = activeEntry?.entry_type === "break";
 
-  const punchInMutation = useMutation<TimeEntry, Error, { entry_type: "work" | "break"; note?: string }>({
-    mutationFn: (data: { entry_type: "work" | "break"; note?: string }) =>
-      punchInMySelf(data),
+  const punchMutation = useMutation<TimeEntry, Error, { note?: string } | undefined>({
+    mutationFn: (data?: { note?: string }) =>
+      punchMySelf(data ?? {}),
     onSuccess: (newEntry) => {
-      queryClient.setQueryData<TimeEntry[]>(essKeys.clockEntries(), (old) => {
-        return old ? [newEntry, ...old] : [newEntry];
+      queryClient.setQueryData<TimeEntry[]>(essKeys.clockEntries(), (oldData) => {
+        if (!oldData) return [newEntry];
+        const exists = oldData.some((e) => e.id === newEntry.id);
+        if (exists) {
+          return oldData.map((e) => (e.id === newEntry.id ? newEntry : e));
+        }
+        return [newEntry, ...oldData];
       });
-      void queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
-      void queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
-    },
-  });
-
-  const punchOutMutation = useMutation<TimeEntry, Error, { note?: string } | undefined>({
-    mutationFn: (data?: { note?: string }) => punchOutMySelf(data),
-    onSuccess: (updatedEntry) => {
-      queryClient.setQueryData<TimeEntry[]>(essKeys.clockEntries(), (old) => {
-        if (!old) return [updatedEntry];
-        return old.map(entry => entry.id === updatedEntry.id ? updatedEntry : entry);
-      });
-      void queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
-      void queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
+      void queryClient.invalidateQueries({ queryKey: essKeys.all });
     },
   });
 
   return {
     entries: entriesQuery.data ?? [],
-    activeEntry,
-    isOnBreak,
     isLoading: entriesQuery.isLoading,
     isError: entriesQuery.isError,
     error: entriesQuery.error,
     refetch: entriesQuery.refetch,
-
-    punchIn: punchInMutation.mutateAsync,
-    punchOut: punchOutMutation.mutateAsync,
-    isPunching: punchInMutation.isPending || punchOutMutation.isPending,
+    activeEntry,
+    punch: punchMutation.mutateAsync,
+    isPunching: punchMutation.isPending,
   };
 }
 

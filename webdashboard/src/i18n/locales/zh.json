@@ -1420,7 +1420,8 @@
       "break_start_success": "开始休息",
       "adjustment_requested": "调整请求已提交",
       "no_entries": "没有最近的打卡记录",
-      "recent_history": "最近活动（最近7天）"
+      "recent_history": "最近活动（最近7天）",
+      "punch_success": "打卡成功"
     },
     "attendance": {
       "title": "我的考勤",
@@ -1462,7 +1463,8 @@
       "punch_out": "签退",
       "return_to_work": "结束休息",
       "start_break": "开始休息",
-      "start_work": "签到"
+      "start_work": "签到",
+      "hold_to_punch": "按住打卡"
     },
     "forgot_punch": "忘记打卡？",
     "status": {

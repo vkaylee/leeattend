@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "@/lib/api";
 
@@ -10,8 +11,7 @@ import { useMyClock, essKeys } from "../use-ess";
 // Mock the API
 vi.mock("@/lib/api", () => ({
   fetchMyTimeEntries: vi.fn(),
-  punchInMySelf: vi.fn(),
-  punchOutMySelf: vi.fn(),
+  punchMySelf: vi.fn(),
 }));
 
 const createWrapper = () => {
@@ -50,10 +50,10 @@ describe("useMyClock optimistic updates", () => {
       punch_out_time: null,
     };
     vi.mocked(api.fetchMyTimeEntries)
-      .mockResolvedValueOnce(mockEntries as any)
-      .mockResolvedValueOnce([newEntry, ...mockEntries] as any);
+      .mockResolvedValueOnce(mockEntries as unknown as api.TimeEntry[])
+      .mockResolvedValueOnce([newEntry, ...mockEntries] as unknown as api.TimeEntry[]);
 
-    vi.mocked(api.punchInMySelf).mockResolvedValue(newEntry as any);
+    vi.mocked(api.punchMySelf).mockResolvedValue(newEntry as unknown as api.TimeEntry);
 
     const { Wrapper, queryClient } = createWrapper();
     const { result } = renderHook(() => useMyClock(), {
@@ -66,8 +66,8 @@ describe("useMyClock optimistic updates", () => {
     });
     expect(result.current.entries).toEqual(mockEntries);
 
-    // Call punchIn
-    await result.current.punchIn({ entry_type: "work" });
+    // Call punch
+    await result.current.punch({});
 
     // Expect the optimistic update to be present in the cache immediately
     const cachedData = queryClient.getQueryData(essKeys.clockEntries());
@@ -90,10 +90,10 @@ describe("useMyClock optimistic updates", () => {
       punch_out_time: "2026-05-04T08:00:00Z",
     };
     vi.mocked(api.fetchMyTimeEntries)
-      .mockResolvedValueOnce(mockEntries as any)
-      .mockResolvedValueOnce([updatedEntry] as any);
+      .mockResolvedValueOnce(mockEntries as unknown as api.TimeEntry[])
+      .mockResolvedValueOnce([updatedEntry] as unknown as api.TimeEntry[]);
 
-    vi.mocked(api.punchOutMySelf).mockResolvedValue(updatedEntry as any);
+    vi.mocked(api.punchMySelf).mockResolvedValue(updatedEntry as unknown as api.TimeEntry);
 
     const { Wrapper, queryClient } = createWrapper();
     const { result } = renderHook(() => useMyClock(), {
@@ -106,8 +106,8 @@ describe("useMyClock optimistic updates", () => {
     });
     expect(result.current.entries).toEqual(mockEntries);
 
-    // Call punchOut
-    await result.current.punchOut({});
+    // Call punch
+    await result.current.punch({});
 
     // Expect the optimistic update to replace the old entry
     const cachedData = queryClient.getQueryData(essKeys.clockEntries());

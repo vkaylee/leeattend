@@ -1420,7 +1420,8 @@
       "break_start_success": "Break started",
       "adjustment_requested": "Adjustment request submitted",
       "no_entries": "No recent time entries",
-      "recent_history": "Recent Activity (Last 7 Days)"
+      "recent_history": "Recent Activity (Last 7 Days)",
+      "punch_success": "Punched successfully"
     },
     "attendance": {
       "title": "My Attendance",
@@ -1462,7 +1463,8 @@
       "punch_out": "Clock Out",
       "return_to_work": "End Break",
       "start_break": "Start Break",
-      "start_work": "Clock In"
+      "start_work": "Clock In",
+      "hold_to_punch": "Hold to Punch"
     },
     "forgot_punch": "Forgot to clock in/out?",
     "status": {

@@ -135,30 +135,16 @@ export async function fetchMyTimeEntries(
   return response.json() as Promise<TimeEntry[]>;
 }
 
-export async function punchInMySelf(
-  data: { entry_type: "work" | "break"; note?: string }
-): Promise<TimeEntry> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/punch-in`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to punch in");
-  }
-  return response.json() as Promise<TimeEntry>;
-}
-
-export async function punchOutMySelf(
+export async function punchMySelf(
   data?: { note?: string }
 ): Promise<TimeEntry> {
-  const response = await apiFetch(`${API_BASE_URL}/ess/punch-out`, {
+  const response = await apiFetch(`${API_BASE_URL}/ess/punch`, {
     method: "POST",
     body: JSON.stringify(data ?? {}),
   });
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(error || "Failed to punch out");
+    throw new Error(error || "Failed to punch");
   }
   return response.json() as Promise<TimeEntry>;
 }

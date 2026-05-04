@@ -16,8 +16,9 @@ pub struct PairedSession {
     // Can be > 1440 (representing next day).
     pub start_minutes: i32,
     pub end_minutes: Option<i32>,
-    pub entry_type: String, // "work"
+    pub entry_type: String,
     pub note: Option<String>,
+    pub is_break_overtime: bool,
     pub metadata: Option<serde_json::Value>,
 }
 
@@ -25,6 +26,7 @@ pub struct PairedSession {
 pub struct LogEvent {
     pub id: uuid::Uuid,
     pub minutes: i32,
+    pub raw_data: Option<serde_json::Value>,
 }
 
 const ALGORITHM_NAME: &str = "shift_aware";
@@ -99,9 +101,17 @@ impl ShiftAwareStrategy {
             .rev()
             .find(|l| l.id != start_id && l.minutes > start);
 
-        let (end, end_id) = match last_out {
-            Some(log) => (Some(log.minutes), Some(log.id)),
-            _ => (None, None),
+        let (end, end_id, end_note) = match last_out {
+            Some(log) => {
+                let note = log
+                    .raw_data
+                    .as_ref()
+                    .and_then(|r| r.get("note"))
+                    .and_then(|n| n.as_str())
+                    .map(|s| s.to_string());
+                (Some(log.minutes), Some(log.id), note)
+            }
+            _ => (None, None, None),
         };
 
         let mut log_ids = vec![start_id];
@@ -109,15 +119,47 @@ impl ShiftAwareStrategy {
             log_ids.push(eid);
         }
 
+        let start_note = first_in
+            .and_then(|l| l.raw_data.as_ref())
+            .and_then(|r| r.get("note"))
+            .and_then(|n| n.as_str())
+            .map(|s| s.to_string());
+
+        let combined_note = match (start_note, end_note) {
+            (Some(n1), Some(n2)) => Some(format!("{}\n{}", n1, n2)),
+            (Some(n1), None) => Some(n1),
+            (None, Some(n2)) => Some(n2),
+            (None, None) => None,
+        };
+
+        let entry_type = first_in
+            .and_then(|l| l.raw_data.as_ref())
+            .and_then(|r| r.get("entry_type"))
+            .and_then(|e| e.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "work".to_string());
+
+        let final_note = if end.is_none() {
+            match combined_note {
+                Some(n) => Some(format!("{}\nMissing Punch Out", n)),
+                None => Some("Missing Punch Out".to_string()),
+            }
+        } else {
+            combined_note
+        };
+
+        let is_break_overtime = first_in
+            .and_then(|l| l.raw_data.as_ref())
+            .and_then(|r| r.get("is_break_overtime"))
+            .and_then(|e| e.as_bool())
+            .unwrap_or(false);
+
         vec![PairedSession {
             start_minutes: start,
             end_minutes: end,
-            entry_type: "work".to_string(),
-            note: if end.is_none() {
-                Some("Missing Punch Out".to_string())
-            } else {
-                None
-            },
+            entry_type,
+            note: final_note,
+            is_break_overtime,
             metadata: Some(serde_json::json!({
                 "algorithm": ALGORITHM_NAME,
                 "tier": "shift_window",
@@ -143,10 +185,48 @@ impl ShiftAwareStrategy {
         }
 
         let start = first.minutes;
-        let end = if last_idx > 0 {
-            Some(logs[last_idx].minutes)
+        let start_note = first
+            .raw_data
+            .as_ref()
+            .and_then(|r| r.get("note"))
+            .and_then(|n| n.as_str())
+            .map(|s| s.to_string());
+
+        let (end, end_note) = if last_idx > 0 {
+            let log = &logs[last_idx];
+            let note = log
+                .raw_data
+                .as_ref()
+                .and_then(|r| r.get("note"))
+                .and_then(|n| n.as_str())
+                .map(|s| s.to_string());
+            (Some(log.minutes), note)
         } else {
-            None
+            (None, None)
+        };
+
+        let combined_note = match (start_note, end_note) {
+            (Some(n1), Some(n2)) => Some(format!("{}\n{}", n1, n2)),
+            (Some(n1), None) => Some(n1),
+            (None, Some(n2)) => Some(n2),
+            (None, None) => None,
+        };
+
+        let entry_type = first
+            .raw_data
+            .as_ref()
+            .and_then(|r| r.get("entry_type"))
+            .and_then(|e| e.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "work".to_string());
+
+        let final_note = if end.is_none() {
+            match combined_note {
+                Some(n) => Some(format!("{}\nMissing Punch Out", n)),
+                None => Some("Missing Punch Out".to_string()),
+            }
+        } else {
+            combined_note
         };
 
         let mut log_ids = vec![first.id];
@@ -154,15 +234,19 @@ impl ShiftAwareStrategy {
             log_ids.push(logs[last_idx].id);
         }
 
+        let is_break_overtime = first
+            .raw_data
+            .as_ref()
+            .and_then(|r| r.get("is_break_overtime"))
+            .and_then(|e| e.as_bool())
+            .unwrap_or(false);
+
         vec![PairedSession {
             start_minutes: start,
             end_minutes: end,
-            entry_type: "work".to_string(),
-            note: if end.is_none() {
-                Some("Missing Punch Out".to_string())
-            } else {
-                None
-            },
+            entry_type,
+            note: final_note,
+            is_break_overtime,
             metadata: Some(serde_json::json!({
                 "algorithm": ALGORITHM_NAME,
                 "tier": "anchor_first",
@@ -181,6 +265,7 @@ mod tests {
         LogEvent {
             id: Uuid::new_v4(),
             minutes,
+            raw_data: None,
         }
     }
 
@@ -411,6 +496,7 @@ mod tests {
             end_minutes: Some(1020),
             entry_type: "work".to_string(),
             note: None,
+            is_break_overtime: false,
             metadata: Some(serde_json::json!({"tier": "test"})),
         };
         let json = serde_json::to_string(&session).unwrap();

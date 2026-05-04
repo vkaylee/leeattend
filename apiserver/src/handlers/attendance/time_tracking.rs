@@ -27,7 +27,12 @@ pub async fn punch_in(
     let entry = state
         .attendance
         .time_tracking_service
-        .punch_in(workspace_id, req)
+        .punch(
+            state.attendance.log_service.as_ref(),
+            workspace_id,
+            req.employee_id,
+            req.note,
+        )
         .await?;
 
     Ok((StatusCode::CREATED, Json(entry)))
@@ -42,7 +47,12 @@ pub async fn punch_out(
     let entry = state
         .attendance
         .time_tracking_service
-        .punch_out(workspace_id, employee_id, req)
+        .punch(
+            state.attendance.log_service.as_ref(),
+            workspace_id,
+            employee_id,
+            req.note,
+        )
         .await?;
 
     Ok(Json(entry))

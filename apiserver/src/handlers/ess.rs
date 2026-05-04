@@ -268,45 +268,27 @@ pub async fn get_my_attendance(
 // --- Time Clock Endpoints ---
 
 #[derive(serde::Deserialize)]
-pub struct EssPunchInRequest {
-    pub entry_type: Option<String>,
-    pub is_break_overtime: Option<bool>,
+pub struct EssPunchRequest {
     pub note: Option<String>,
 }
 
-pub async fn ess_punch_in(
+pub async fn ess_punch(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
-    Json(req): Json<EssPunchInRequest>,
+    Json(req): Json<EssPunchRequest>,
 ) -> AppResult<(StatusCode, Json<TimeEntry>)> {
-    let punch_req = crate::models::PunchInRequest {
-        employee_id: employee.employee_id,
-        entry_type: req.entry_type,
-        is_break_overtime: req.is_break_overtime,
-        note: req.note,
-    };
-
     let entry = state
         .attendance
         .time_tracking_service
-        .punch_in(employee.workspace_id, punch_req)
+        .punch(
+            state.attendance.log_service.as_ref(),
+            employee.workspace_id,
+            employee.employee_id,
+            req.note,
+        )
         .await?;
 
     Ok((StatusCode::CREATED, Json(entry)))
-}
-
-pub async fn ess_punch_out(
-    State(state): State<Arc<AppState>>,
-    employee: EmployeeContext,
-    Json(req): Json<PunchOutRequest>,
-) -> AppResult<Json<TimeEntry>> {
-    let entry = state
-        .attendance
-        .time_tracking_service
-        .punch_out(employee.workspace_id, employee.employee_id, req)
-        .await?;
-
-    Ok(Json(entry))
 }
 
 #[derive(serde::Deserialize)]

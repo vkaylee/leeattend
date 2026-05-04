@@ -1420,7 +1420,8 @@
       "break_start_success": "Bắt đầu giải lao",
       "adjustment_requested": "Yêu cầu điều chỉnh đã gửi",
       "no_entries": "Không có bản ghi chấm công gần đây",
-      "recent_history": "Hoạt Động Gần Đây (7 Ngày)"
+      "recent_history": "Hoạt Động Gần Đây (7 Ngày)",
+      "punch_success": "Chấm công thành công"
     },
     "attendance": {
       "title": "Chấm công của tôi",
@@ -1462,7 +1463,8 @@
       "punch_out": "Giờ ra",
       "return_to_work": "Kết thúc nghỉ",
       "start_break": "Bắt đầu nghỉ",
-      "start_work": "Giờ vào"
+      "start_work": "Giờ vào",
+      "hold_to_punch": "Chạm & Giữ để Chấm Công"
     },
     "forgot_punch": "Quên quẹt thẻ?",
     "status": {
