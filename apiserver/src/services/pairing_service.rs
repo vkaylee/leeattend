@@ -222,8 +222,8 @@ impl PairingService {
             .await?;
 
             let summary_svc = crate::services::AttendanceSummaryService::new(
-                self.time_entry_repo.clone(),
-                self.roster_repo.clone(),
+                Arc::clone(&self.time_entry_repo),
+                Arc::clone(&self.roster_repo),
                 self.pool.clone(),
             );
             let _ = summary_svc
@@ -300,8 +300,8 @@ impl PairingService {
 
         // Recalculate daily summary for OT workflow
         let summary_svc = crate::services::AttendanceSummaryService::new(
-            self.time_entry_repo.clone(),
-            self.roster_repo.clone(),
+            Arc::clone(&self.time_entry_repo),
+            Arc::clone(&self.roster_repo),
             self.pool.clone(),
         );
         if let Err(e) = summary_svc

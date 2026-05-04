@@ -545,12 +545,12 @@ impl PayrollService {
         let results: Vec<_> = stream::iter(employee_ids)
             .map(|emp_id| {
                 let svc = Self {
-                    payroll_repo: self.payroll_repo.clone(),
-                    department_repo: self.department_repo.clone(),
-                    time_entry_repo: self.time_entry_repo.clone(),
-                    workspace_repo: self.workspace_repo.clone(),
-                    holiday_repo: self.holiday_repo.clone(),
-                    roster_repo: self.roster_repo.clone(),
+                    payroll_repo: Arc::clone(&self.payroll_repo),
+                    department_repo: Arc::clone(&self.department_repo),
+                    time_entry_repo: Arc::clone(&self.time_entry_repo),
+                    workspace_repo: Arc::clone(&self.workspace_repo),
+                    holiday_repo: Arc::clone(&self.holiday_repo),
+                    roster_repo: Arc::clone(&self.roster_repo),
                     pool: self.pool.clone(),
                 };
                 async move {

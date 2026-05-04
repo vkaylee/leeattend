@@ -32,43 +32,51 @@ impl AppState {
                 .clone()
                 .map(|p| Arc::new(p) as Arc<dyn crate::agent_manager::PresenceStore>),
         );
-        let agent_repo = Arc::new(crate::repositories::SqlxAgentRepository::new(pool.clone()));
-        let workspace_repo = Arc::new(crate::repositories::SqlxWorkspaceRepository::new(
+        let agent_repo: Arc<dyn crate::repositories::agent_repository::AgentRepository> =
+            Arc::new(crate::repositories::SqlxAgentRepository::new(pool.clone()));
+        let workspace_repo: Arc<
+            dyn crate::repositories::workspace_repository::WorkspaceRepository,
+        > = Arc::new(crate::repositories::SqlxWorkspaceRepository::new(
             pool.clone(),
         ));
-        let audit_repo = Arc::new(
-            crate::repositories::audit_log_repository::SqlxAuditLogRepository::new(pool.clone()),
-        );
+        let audit_repo: Arc<dyn crate::repositories::audit_log_repository::AuditLogRepository> =
+            Arc::new(
+                crate::repositories::audit_log_repository::SqlxAuditLogRepository::new(
+                    pool.clone(),
+                ),
+            );
         let agent_service = Arc::new(crate::services::AgentService::new(
-            agent_repo.clone(),
+            Arc::clone(&agent_repo),
             agent_manager.clone(),
         ));
-        let employee_repo = Arc::new(crate::repositories::SqlxEmployeeRepository::new(
-            pool.clone(),
-        ));
+        let employee_repo: Arc<dyn crate::repositories::employee::EmployeeRepository> = Arc::new(
+            crate::repositories::SqlxEmployeeRepository::new(pool.clone()),
+        );
         let employee_service = Arc::new(crate::services::EmployeeService::new(
-            employee_repo.clone(),
+            Arc::clone(&employee_repo),
             pool.clone(),
         ));
-        let time_entry_repo = Arc::new(crate::repositories::SqlxTimeEntryRepository::new(
+        let time_entry_repo: Arc<
+            dyn crate::repositories::time_entry_repository::TimeEntryRepository,
+        > = Arc::new(crate::repositories::SqlxTimeEntryRepository::new(
             pool.clone(),
         ));
         let roster_repo: Arc<dyn crate::repositories::roster::RosterRepository> = Arc::new(
             crate::repositories::roster::SqlxRosterRepository::new(pool.clone()),
         );
         let time_tracking_service = Arc::new(crate::services::TimeTrackingService::new(
-            time_entry_repo.clone(),
-            roster_repo.clone(),
+            Arc::clone(&time_entry_repo),
+            Arc::clone(&roster_repo),
             pool.clone(),
         ));
         let attendance_summary_service = Arc::new(crate::services::AttendanceSummaryService::new(
-            time_entry_repo.clone(),
-            roster_repo.clone(),
+            Arc::clone(&time_entry_repo),
+            Arc::clone(&roster_repo),
             pool.clone(),
         ));
         let report_service = Arc::new(crate::services::ReportService::new(
-            time_entry_repo.clone(),
-            roster_repo.clone(),
+            Arc::clone(&time_entry_repo),
+            Arc::clone(&roster_repo),
             pool.clone(),
         ));
         let stats_repo: Arc<
@@ -79,30 +87,33 @@ impl AppState {
             ),
         );
         let pairing_service = Arc::new(crate::services::pairing_service::PairingService::new(
-            time_entry_repo.clone(),
-            roster_repo.clone(),
+            Arc::clone(&time_entry_repo),
+            Arc::clone(&roster_repo),
             pool.clone(),
         ));
-        let adj_repo = Arc::new(
+        let adj_repo: Arc<dyn crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository> = Arc::new(
             crate::repositories::attendance_adjustment_repository::SqlxAttendanceAdjustmentRepository::new(pool.clone()),
         );
         let adjustment_service = Arc::new(
             crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
-                adj_repo.clone(),
-                time_entry_repo.clone(),
+                Arc::clone(&adj_repo),
+                Arc::clone(&time_entry_repo),
                 pool.clone(),
             ),
         );
-        let import_repo = Arc::new(
-            crate::repositories::import_job_repository::SqlxImportJobRepository::new(pool.clone()),
-        );
+        let import_repo: Arc<dyn crate::repositories::import_job_repository::ImportJobRepository> =
+            Arc::new(
+                crate::repositories::import_job_repository::SqlxImportJobRepository::new(
+                    pool.clone(),
+                ),
+            );
         let import_service = Arc::new(
             crate::services::attendance_import_service::AttendanceImportService::new(
-                import_repo.clone(),
-                adj_repo.clone(),
-                employee_repo.clone(),
-                time_entry_repo.clone(),
-                workspace_repo.clone(),
+                Arc::clone(&import_repo),
+                Arc::clone(&adj_repo),
+                Arc::clone(&employee_repo),
+                Arc::clone(&time_entry_repo),
+                Arc::clone(&workspace_repo),
                 worker_pool.clone(),
             ),
         );
@@ -117,38 +128,44 @@ impl AppState {
         let workspace_service = Arc::new(
             crate::services::workspace_service::WorkspaceService::new(pool.clone()),
         );
-        let leave_balance_repo = Arc::new(
+        let leave_balance_repo: Arc<
+            dyn crate::repositories::leave_balance_repository::LeaveBalanceRepository,
+        > = Arc::new(
             crate::repositories::leave_balance_repository::SqlxLeaveBalanceRepository::new(
                 pool.clone(),
             ),
         );
-        let leave_request_repo = Arc::new(
+        let leave_request_repo: Arc<
+            dyn crate::repositories::leave_request_repository::LeaveRequestRepository,
+        > = Arc::new(
             crate::repositories::leave_request_repository::SqlxLeaveRequestRepository::new(
                 pool.clone(),
             ),
         );
         let leave_service = Arc::new(crate::services::leave_service::LeaveService::new(
-            leave_balance_repo.clone(),
-            leave_request_repo.clone(),
-            employee_repo.clone(),
-            roster_repo.clone(),
+            Arc::clone(&leave_balance_repo),
+            Arc::clone(&leave_request_repo),
+            Arc::clone(&employee_repo),
+            Arc::clone(&roster_repo),
             pool.clone(),
         ));
-        let shift_swap_repo = Arc::new(
+        let shift_swap_repo: Arc<
+            dyn crate::repositories::shift_swap_repository::ShiftSwapRepository,
+        > = Arc::new(
             crate::repositories::shift_swap_repository::SqlxShiftSwapRepository::new(pool.clone()),
         );
         let shift_swap_service =
             Arc::new(crate::services::shift_swap_service::ShiftSwapService::new(
-                shift_swap_repo.clone(),
-                roster_repo.clone(),
+                Arc::clone(&shift_swap_repo),
+                Arc::clone(&roster_repo),
                 pool.clone(),
             ));
         let holiday_leave_service = Arc::new(
             crate::services::holiday_leave_service::HolidayLeaveService::new(
-                employee_repo.clone(),
+                Arc::clone(&employee_repo),
                 leave_balance_repo,
-                leave_request_repo.clone(),
-                roster_repo.clone(),
+                Arc::clone(&leave_request_repo),
+                Arc::clone(&roster_repo),
                 pool.clone(),
             ),
         );
@@ -173,9 +190,9 @@ impl AppState {
         );
         let leave_accrual_service = Arc::new(
             crate::services::leave_accrual_service::LeaveAccrualService::new(
-                employee_repo.clone(),
-                department_repo.clone(),
-                leave_policy_repo.clone(),
+                Arc::clone(&employee_repo),
+                Arc::clone(&department_repo),
+                Arc::clone(&leave_policy_repo),
                 leave_accrual_log_repo,
                 worker_pool.clone(),
             ),
@@ -190,12 +207,12 @@ impl AppState {
             );
         let payroll_service = Arc::new(crate::services::payroll_service::PayrollService::new(
             crate::services::payroll_service::PayrollServiceArgs {
-                payroll_repo: payroll_repo.clone(),
-                department_repo: department_repo.clone(),
-                time_entry_repo: time_entry_repo.clone(),
-                workspace_repo: workspace_repo.clone(),
-                holiday_repo: holiday_repo.clone(),
-                roster_repo: roster_repo.clone(),
+                payroll_repo: Arc::clone(&payroll_repo),
+                department_repo: Arc::clone(&department_repo),
+                time_entry_repo: Arc::clone(&time_entry_repo),
+                workspace_repo: Arc::clone(&workspace_repo),
+                holiday_repo: Arc::clone(&holiday_repo),
+                roster_repo: Arc::clone(&roster_repo),
                 pool: pool.clone(),
             },
         ));
@@ -240,17 +257,17 @@ impl AppState {
 
         let (attendance_service, log_worker_handle) = AttendanceLogService::new(
             worker_pool.clone(),
-            pairing_service.clone(),
+            Arc::clone(&pairing_service),
             crate::services::attendance_log_service::AttendanceLogServiceConfig {
                 buffer_capacity,
                 batch_size,
                 flush_interval_ms,
             },
             crate::services::attendance_log_service::AttendanceLogServiceDeps {
-                employee_repo: employee_repo.clone(),
-                raw_log_repo: raw_log_repo.clone(),
-                staging_repo: staging_repo.clone(),
-                error_repo: error_repo.clone(),
+                employee_repo: Arc::clone(&employee_repo),
+                raw_log_repo: Arc::clone(&raw_log_repo),
+                staging_repo: Arc::clone(&staging_repo),
+                error_repo: Arc::clone(&error_repo),
             },
         );
         let attendance_service = Arc::new(attendance_service);
@@ -278,7 +295,7 @@ impl AppState {
                     redis.clone(),
                     db_pools.worker().clone(),
                     worker_config,
-                    coordinator.clone(),
+                    Arc::clone(&coordinator),
                     roster_cache.clone(),
                 );
                 (

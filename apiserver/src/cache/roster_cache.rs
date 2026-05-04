@@ -495,13 +495,13 @@ impl RosterCache {
 
             // Notify all followers (ignore error if no receivers remain).
             if let Some(sender) = sender {
-                let _ = sender.send(Some(result.clone()));
+                let _ = sender.send(Some(result.as_ref().map(Arc::clone).map_err(Clone::clone)));
             }
 
             // On success, insert into moka.
             if let Ok(ref data) = result {
                 self.cache
-                    .insert(workspace_id, (data.clone(), version))
+                    .insert(workspace_id, (Arc::clone(data), version))
                     .await;
             }
 
@@ -523,7 +523,7 @@ impl RosterCache {
                 // Leader finished — extract the result via shared borrow.
                 let value = rx.borrow();
                 match value.as_ref() {
-                    Some(Ok(data)) => Ok(data.clone()),
+                    Some(Ok(data)) => Ok(Arc::clone(data)),
                     Some(Err(e)) => Err(e.clone()),
                     None => unreachable!("wait_for ensures Some"),
                 }
@@ -703,7 +703,7 @@ mod tests {
         assert!(data.active_rules.is_empty());
 
         // Clone round-trip
-        let cloned = data.clone();
+        let cloned = data;
         assert!(cloned.shifts.is_empty());
     }
 
@@ -730,7 +730,7 @@ mod tests {
         let cache: Cache<Uuid, (Arc<RosterData>, i64)> = Cache::builder().max_capacity(100).build();
         let ws = Uuid::new_v4();
         let data = Arc::new(make_empty_roster_data());
-        cache.insert(ws, (data.clone(), 1000)).await;
+        cache.insert(ws, (Arc::clone(&data), 1000)).await;
 
         // Mirror the fast-path check from get_roster_data
         let remote_version: i64 = 1000;
@@ -827,7 +827,7 @@ mod tests {
                 .expect("watch channel failed");
             let value = rx.borrow();
             match value.as_ref() {
-                Some(Ok(d)) => Ok(d.clone()),
+                Some(Ok(d)) => Ok(Arc::clone(d)),
                 Some(Err(e)) => Err(e.clone()),
                 None => unreachable!(),
             }
@@ -835,7 +835,7 @@ mod tests {
 
         // Brief delay so follower is blocked, then leader publishes
         tokio::time::sleep(Duration::from_millis(10)).await;
-        tx.send(Some(Ok(data.clone()))).expect("send failed");
+        tx.send(Some(Ok(Arc::clone(&data)))).expect("send failed");
 
         let result = follower
             .await
@@ -855,7 +855,7 @@ mod tests {
                 .expect("watch channel failed");
             let value = rx.borrow();
             match value.as_ref() {
-                Some(Ok(d)) => Ok(d.clone()),
+                Some(Ok(d)) => Ok(Arc::clone(d)),
                 Some(Err(e)) => Err(e.clone()),
                 None => unreachable!(),
             }
@@ -887,7 +887,7 @@ mod tests {
         {
             let map = inflight.lock().expect("mutex poisoned");
             assert!(map.contains_key(&ws_id));
-            let _sender = map.get(&ws_id).expect("should exist").clone();
+            let _sender = Arc::clone(map.get(&ws_id).expect("should exist"));
             // Follower subscribes...
         }
 

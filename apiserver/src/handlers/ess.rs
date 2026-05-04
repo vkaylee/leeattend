@@ -305,7 +305,7 @@ pub async fn get_my_time_entries(
     let start = query
         .start_date
         .unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
-    let end = query.end_date.unwrap_or_else(|| chrono::Utc::now());
+    let end = query.end_date.unwrap_or_else(chrono::Utc::now);
 
     let entries = state
         .attendance

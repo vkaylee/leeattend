@@ -493,8 +493,7 @@ mod tests {
             let bound_val = variant.to_string();
             assert!(
                 valid_db_values.contains(&bound_val.as_str()),
-                "scope_type.to_string() = '{}' is not a valid DB CHECK value",
-                bound_val
+                "scope_type.to_string() = '{bound_val}' is not a valid DB CHECK value"
             );
         }
     }
@@ -581,8 +580,7 @@ mod tests {
             assert_eq!(
                 result,
                 RoleScopeType::Scoped,
-                "Garbage input '{}' must fall back to Scoped, never become Global",
-                bad
+                "Garbage input '{bad}' must fall back to Scoped, never become Global"
             );
         }
     }

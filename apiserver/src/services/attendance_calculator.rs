@@ -238,7 +238,7 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -254,7 +254,7 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
-            rules: rules.clone(),
+            rules,
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -309,7 +309,7 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: rules.clone(),
+            rules,
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -348,7 +348,7 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: rules.clone(),
+            rules,
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -380,7 +380,7 @@ mod tests {
         // Floor(535, 30) = 17 units.
         assert_eq!(std, 17);
 
-        let mut r2 = rules.clone();
+        let mut r2 = rules;
         r2.is_break_auto_deduct = true;
         let (std2, _) = AttendanceCalculator::calculate_daily_units(&DailyCalcInput {
             punch_in: dt(8, 0),
@@ -391,7 +391,7 @@ mod tests {
             actual_break_minutes: 0,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
-            rules: r2.clone(),
+            rules: r2,
             ot_ceiling: None,
         });
         // Net = 535 - 60 = 475. Floor(475, 30) = 15 units.
@@ -413,7 +413,7 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: ceiling,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -435,7 +435,7 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -459,7 +459,7 @@ mod tests {
             shift_end: end,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: ceiling,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -571,7 +571,7 @@ mod tests {
             ot_ceiling: None,
         };
         // Verify Debug trait works without panic
-        let debug_str = format!("{:?}", input);
+        let debug_str = format!("{input:?}");
         assert!(debug_str.contains("DailyCalcInput"));
     }
 
@@ -588,7 +588,7 @@ mod tests {
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 60,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -607,7 +607,7 @@ mod tests {
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -630,7 +630,7 @@ mod tests {
             shift_end: None,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -650,7 +650,7 @@ mod tests {
             shift_end: None,
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -680,7 +680,7 @@ actual_break_minutes: 0,
 work_unit: // no break
             30,
 rounding_policy: "floor".to_string(),
-rules: rules.clone(),
+rules,
 ot_ceiling: None
 });
 
@@ -711,7 +711,7 @@ ot_ceiling: None
             actual_break_minutes: 0,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
-            rules: rules.clone(),
+            rules,
             ot_ceiling: None,
         });
 
@@ -737,7 +737,7 @@ ot_ceiling: None
             actual_break_minutes: 0,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
-            rules: rules.clone(), // 5 / 30 = 0.17 → floor = 0
+            rules, // 5 / 30 = 0.17 → floor = 0
             ot_ceiling: None,
         });
 
@@ -857,7 +857,7 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: rules.clone(),
+            rules,
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -881,7 +881,7 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -904,7 +904,7 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: mock_rules().clone(),
+            rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -931,7 +931,7 @@ ot_ceiling: None
             shift_end: Some(dt(17, 0)),
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
-            rules: rules.clone(),
+            rules,
             ot_ceiling: None,
             work_unit: 0,
             rounding_policy: "".to_string(),
@@ -962,7 +962,7 @@ ot_ceiling: None
             actual_break_minutes: 0,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
-            rules: rules.clone(),
+            rules,
             ot_ceiling: None,
         });
         // Standard: 540 min - 0 break = 540 min; floor(540/30) = 18 units
@@ -986,7 +986,7 @@ ot_ceiling: None
             actual_break_minutes: 0,
             work_unit: 30,
             rounding_policy: "floor".to_string(),
-            rules: rules.clone(),
+            rules,
             ot_ceiling: None,
         });
         // Standard: 540 - 60 break = 480 min; floor(480/30) = 16

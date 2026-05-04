@@ -99,7 +99,7 @@ mod tests {
             .into_iter()
             .map(|i| format!("batch_{i:05}"))
             .collect();
-        let mut sorted = fields.clone();
+        let mut sorted = fields;
         sorted.sort();
 
         assert_eq!(sorted[0], "batch_00000");

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO leave_balances (employee_id, leave_type_id, year, entitlement) VALUES ($1, $2, 2026, 12)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a477edc53c7ea86a6452632d6bf371bb879bf4541c3b3744ba315814b1805e25"
+}

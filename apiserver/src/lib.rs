@@ -5,7 +5,6 @@
     missing_docs,
     clippy::needless_raw_string_hashes,
     clippy::needless_raw_strings,
-    clippy::clone_on_ref_ptr,
     clippy::too_many_lines,
     clippy::manual_let_else,
     clippy::single_match_else,
@@ -61,13 +60,9 @@
     clippy::unnecessary_semicolon,
     clippy::manual_midpoint,
     clippy::needless_for_each,
-    clippy::redundant_pub_crate,
-    // ── TECH_DEBT: Enterprise-grade lint groups (2026-05-03) ──
-    // Blanket-allowed to keep CI green after workspace-level upgrade.
-    // Pay down debt: remove group-level allows and fix lints incrementally.
-    clippy::style,
-    clippy::correctness
+    clippy::redundant_pub_crate
 )]
+#![deny(clippy::clone_on_ref_ptr)]
 #![deny(clippy::map_err_ignore)]
 #![deny(clippy::match_like_matches_macro)]
 #![deny(clippy::type_complexity)]

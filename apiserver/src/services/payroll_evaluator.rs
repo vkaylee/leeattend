@@ -560,7 +560,7 @@ mod tests {
         // Also test invalid tier payout_amount
         let policy2 = PayrollIncentivePolicy {
             base_amount: 100_000.0,
-            ..policy.clone()
+            ..policy
         };
 
         let tiers_invalid = vec![IncentiveTier {

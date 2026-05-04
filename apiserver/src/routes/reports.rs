@@ -33,7 +33,7 @@ pub fn router(state: &Arc<AppState>) -> Router<Arc<AppState>> {
             "/ws/reports/:job_id",
             get(handlers::report_websocket::report_stream_ws).layer(
                 middleware::from_fn_with_state(
-                    state.clone(),
+                    Arc::clone(state),
                     handlers::report_websocket::ws_auth_middleware,
                 ),
             ),

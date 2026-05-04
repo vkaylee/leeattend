@@ -186,7 +186,7 @@ impl JobWorker {
         let worker = Arc::new(self);
 
         // Start heartbeat background task
-        let heartbeat_worker = worker.clone();
+        let heartbeat_worker = Arc::clone(&worker);
         let heartbeat_cancel = cancel_token.clone();
         let heartbeat_task = tokio::spawn(async move {
             heartbeat_worker.heartbeat_loop(heartbeat_cancel).await;
@@ -200,7 +200,7 @@ impl JobWorker {
             }
 
             // Acquire semaphore permit (blocks if at capacity)
-            let permit = match semaphore.clone().acquire_owned().await {
+            let permit = match Arc::clone(&semaphore).acquire_owned().await {
                 Ok(p) => p,
                 Err(_) => {
                     error!("Semaphore closed unexpectedly");
@@ -220,7 +220,7 @@ impl JobWorker {
 
             match job_result {
                 Ok(Some(job)) => {
-                    let worker_clone = worker.clone();
+                    let worker_clone = Arc::clone(&worker);
                     let job_id = job.job_id;
                     let timeout_secs = worker.config.job_timeout_secs;
                     let task_type_str = format!("{:?}", job.task_type);

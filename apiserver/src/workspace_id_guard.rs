@@ -274,15 +274,15 @@ mod tests {
             let table_upper = table.to_uppercase();
             // Check for table reference in FROM, INTO, UPDATE, JOIN
             let patterns = [
-                format!("FROM {}", table_upper),
-                format!("FROM {} ", table_upper),
-                format!("JOIN {}", table_upper),
-                format!("JOIN {} ", table_upper),
-                format!("INTO {}", table_upper),
-                format!("INTO {} ", table_upper),
-                format!("UPDATE {}", table_upper),
-                format!("UPDATE {} ", table_upper),
-                format!("DELETE FROM {}", table_upper),
+                format!("FROM {table_upper}"),
+                format!("FROM {table_upper} "),
+                format!("JOIN {table_upper}"),
+                format!("JOIN {table_upper} "),
+                format!("INTO {table_upper}"),
+                format!("INTO {table_upper} "),
+                format!("UPDATE {table_upper}"),
+                format!("UPDATE {table_upper} "),
+                format!("DELETE FROM {table_upper}"),
             ];
 
             for pat in &patterns {
@@ -325,14 +325,10 @@ mod tests {
     fn all_tenant_queries_must_include_workspace_id() {
         // Resolve the source directory relative to the test binary
         let src_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
-        assert!(
-            src_dir.exists(),
-            "Source directory not found: {:?}",
-            src_dir
-        );
+        assert!(src_dir.exists(), "Source directory not found: {src_dir:?}");
 
         let rs_files = get_rs_files(&src_dir);
-        assert!(!rs_files.is_empty(), "No .rs files found in {:?}", src_dir);
+        assert!(!rs_files.is_empty(), "No .rs files found in {src_dir:?}");
 
         let mut violations: Vec<String> = Vec::new();
         let mut scanned_queries = 0u32;
@@ -358,8 +354,7 @@ mod tests {
 
                     if !has_workspace_id(sql) && !is_allowlisted(file_name, table) {
                         violations.push(format!(
-                            "  {}:{} — table `{}` queried without workspace_id",
-                            file_name, line_no, table
+                            "  {file_name}:{line_no} — table `{table}` queried without workspace_id"
                         ));
                     }
                 }
@@ -381,8 +376,7 @@ mod tests {
         // Sanity check: ensure we actually scanned a meaningful number of queries
         assert!(
             scanned_queries > 20,
-            "Only scanned {} queries — SQL extraction may be broken",
-            scanned_queries
+            "Only scanned {scanned_queries} queries — SQL extraction may be broken"
         );
 
         eprintln!(
@@ -412,10 +406,7 @@ mod tests {
                         "overtime_rules",
                     ]
                     .contains(table),
-                "ALLOWLIST entry ({}, {}) references unknown table. Reason: {}",
-                file,
-                table,
-                reason
+                "ALLOWLIST entry ({file}, {table}) references unknown table. Reason: {reason}"
             );
         }
     }
@@ -465,8 +456,7 @@ mod tests {
             .join("handlers");
         assert!(
             handlers_dir.exists(),
-            "Handlers directory not found: {:?}",
-            handlers_dir
+            "Handlers directory not found: {handlers_dir:?}"
         );
 
         let rs_files = get_rs_files(&handlers_dir);
@@ -548,13 +538,11 @@ mod tests {
 
         assert!(
             scanned_handlers > 5,
-            "Only scanned {} handler files — directory structure may have changed",
-            scanned_handlers
+            "Only scanned {scanned_handlers} handler files — directory structure may have changed"
         );
 
         eprintln!(
-            "✅ context source guard: scanned {} handler files, all use MemberContext",
-            scanned_handlers
+            "✅ context source guard: scanned {scanned_handlers} handler files, all use MemberContext"
         );
     }
 

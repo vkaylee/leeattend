@@ -63,7 +63,7 @@ impl AttendanceLogService {
         let log_buffer = Arc::new(log_buffer);
 
         let pool_clone = pool.clone();
-        let pairing_clone = pairing_service.clone();
+        let pairing_clone = Arc::clone(&pairing_service);
         let worker_handle = tokio::spawn(async move {
             agent_log_buffer::run_log_worker(
                 pool_clone,

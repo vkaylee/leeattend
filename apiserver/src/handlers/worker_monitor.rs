@@ -158,19 +158,21 @@ pub async fn monitor_stream_sse(
     let interval = tokio::time::interval(Duration::from_secs(SSE_INTERVAL_SECS));
     let stream = tokio_stream::wrappers::IntervalStream::new(interval);
 
-    let event_stream = stream.map(move |_| state.clone()).then(|state| async move {
-        match fetch_overview_data(&state).await {
-            Ok(data) => {
-                let json = serde_json::to_string(&data).unwrap_or_default();
-                Ok(Event::default().event("monitor-update").data(json))
+    let event_stream = stream
+        .map(move |_| Arc::clone(&state))
+        .then(|state| async move {
+            match fetch_overview_data(&state).await {
+                Ok(data) => {
+                    let json = serde_json::to_string(&data).unwrap_or_default();
+                    Ok(Event::default().event("monitor-update").data(json))
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "SSE: failed to fetch monitor data");
+                    let msg = format!("{{\"error\":\"{e}\"}}");
+                    Ok(Event::default().event("monitor-error").data(msg))
+                }
             }
-            Err(e) => {
-                tracing::warn!(error = %e, "SSE: failed to fetch monitor data");
-                let msg = format!("{{\"error\":\"{e}\"}}");
-                Ok(Event::default().event("monitor-error").data(msg))
-            }
-        }
-    });
+        });
 
     Ok(Sse::new(event_stream).keep_alive(KeepAlive::default()))
 }

@@ -490,13 +490,11 @@ mod tests {
         // Since the timeout is 500ms, it should finish around that time
         assert!(
             elapsed >= Duration::from_millis(500),
-            "Should have waited for the timeout, got {:?}",
-            elapsed
+            "Should have waited for the timeout, got {elapsed:?}"
         );
         assert!(
             elapsed < Duration::from_millis(1000),
-            "Timeout logic failed to cap duration, got {:?}",
-            elapsed
+            "Timeout logic failed to cap duration, got {elapsed:?}"
         );
     }
 
@@ -521,8 +519,7 @@ mod tests {
         // With no delay, heartbeat should complete in well under 100ms
         assert!(
             elapsed < Duration::from_millis(100),
-            "record_heartbeat took too long ({:?}), possible ConnectionManager hang",
-            elapsed
+            "record_heartbeat took too long ({elapsed:?}), possible ConnectionManager hang"
         );
     }
 
@@ -550,8 +547,7 @@ mod tests {
         // Should complete reasonably fast (mock delay is fire-and-forget)
         assert!(
             elapsed < Duration::from_millis(1500),
-            "Heartbeat with slow store took too long: {:?}",
-            elapsed
+            "Heartbeat with slow store took too long: {elapsed:?}"
         );
     }
 

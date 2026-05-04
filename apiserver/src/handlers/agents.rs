@@ -51,7 +51,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     let mut ws_tz = "UTC".to_string();
     let mut ws_date_fmt = "DD/MM/YYYY".to_string();
     let mut ws_time_fmt = "24h".to_string();
-    let state_clone = state.clone();
+    let state_clone = Arc::clone(&state);
 
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(message)) = receiver.next().await {

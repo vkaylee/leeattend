@@ -870,8 +870,7 @@ mod tests {
         for val in values {
             assert!(
                 val.to_f64().is_some(),
-                "Normal Decimal {:?} should convert to f64",
-                val
+                "Normal Decimal {val:?} should convert to f64"
             );
         }
     }
@@ -963,10 +962,7 @@ mod tests {
         let diff = (original - back).abs();
         assert!(
             diff < Decimal::new(1, 2),
-            "Roundtrip precision loss too large: original={}, back={}, diff={}",
-            original,
-            back,
-            diff
+            "Roundtrip precision loss too large: original={original}, back={back}, diff={diff}"
         );
     }
 }

@@ -104,7 +104,7 @@ impl LeaveImportService {
         let leave_service = LeaveService::new(
             leave_balance_repo,
             leave_request_repo,
-            employee_repo.clone(),
+            Arc::clone(&employee_repo),
             roster_repo,
             self.pool.clone(),
         );

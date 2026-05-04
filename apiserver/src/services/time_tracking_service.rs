@@ -138,7 +138,7 @@ impl TimeTrackingService {
                 Some(raw_data),
             )
             .await
-            .map_err(|e| AppError::Internal(e))?;
+            .map_err(AppError::Internal)?;
 
         let entry = sqlx::query_as::<_, TimeEntry>(
             "SELECT * FROM time_entries WHERE employee_id = $1 AND workspace_id = $2 ORDER BY punch_in_time DESC LIMIT 1"
@@ -225,8 +225,8 @@ impl TimeTrackingService {
             let tz: Tz = crate::utils::tz::parse_workspace_tz(&ws.timezone);
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
             let summary_svc = crate::services::AttendanceSummaryService::new(
-                self.repo.clone(),
-                self.roster_repo.clone(),
+                Arc::clone(&self.repo),
+                Arc::clone(&self.roster_repo),
                 self.pool.clone(),
             );
             let _ = summary_svc

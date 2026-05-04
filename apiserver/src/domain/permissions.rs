@@ -606,8 +606,7 @@ mod tests {
             let s = variant.to_str_permission();
             assert!(
                 all_set.contains(s),
-                "Enum variant {:?} ('{s}') is missing from all_permission_strings()",
-                variant
+                "Enum variant {variant:?} ('{s}') is missing from all_permission_strings()"
             );
         }
     }

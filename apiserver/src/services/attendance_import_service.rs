@@ -334,9 +334,7 @@ impl AttendanceImportService {
             ));
         }
 
-        let status = if errors.is_empty() {
-            ImportJobStatus::Completed
-        } else if processed_rows > 0 {
+        let status = if errors.is_empty() || processed_rows > 0 {
             ImportJobStatus::Completed
         } else {
             ImportJobStatus::Failed
@@ -677,7 +675,7 @@ impl AttendanceImportService {
         };
 
         if job.target_type == "log" {
-            let te_repo = self.time_entry_repo.clone();
+            let te_repo = Arc::clone(&self.time_entry_repo);
             let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(
                 te_repo,
                 std::sync::Arc::new(crate::repositories::roster::SqlxRosterRepository::new(
@@ -742,8 +740,8 @@ impl AttendanceImportService {
             };
 
             let adj_svc = {
-                let adj_repo = self.adj_repo.clone();
-                let te_repo = self.time_entry_repo.clone();
+                let adj_repo = Arc::clone(&self.adj_repo);
+                let te_repo = Arc::clone(&self.time_entry_repo);
                 crate::services::attendance_adjustment_service::AttendanceAdjustmentService::new(
                     adj_repo,
                     te_repo,
