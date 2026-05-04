@@ -181,7 +181,7 @@ const NotificationsList = memo(({
 
 NotificationsList.displayName = "NotificationsList";
 
-function NotificationsPage() {
+export function NotificationsPage() {
   const { t, i18n } = useTranslation();
   const { 
     notifications, 
