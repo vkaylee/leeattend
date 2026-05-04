@@ -298,7 +298,10 @@ export function useMyClock(): UseMyClockReturn {
   const punchInMutation = useMutation<TimeEntry, Error, { entry_type: "work" | "break"; note?: string }>({
     mutationFn: (data: { entry_type: "work" | "break"; note?: string }) =>
       punchInMySelf(data),
-    onSuccess: () => {
+    onSuccess: (newEntry) => {
+      queryClient.setQueryData<TimeEntry[]>(essKeys.clockEntries(), (old) => {
+        return old ? [newEntry, ...old] : [newEntry];
+      });
       void queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
       void queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
     },
@@ -306,7 +309,11 @@ export function useMyClock(): UseMyClockReturn {
 
   const punchOutMutation = useMutation<TimeEntry, Error, { note?: string } | undefined>({
     mutationFn: (data?: { note?: string }) => punchOutMySelf(data),
-    onSuccess: () => {
+    onSuccess: (updatedEntry) => {
+      queryClient.setQueryData<TimeEntry[]>(essKeys.clockEntries(), (old) => {
+        if (!old) return [updatedEntry];
+        return old.map(entry => entry.id === updatedEntry.id ? updatedEntry : entry);
+      });
       void queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
       void queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
     },
