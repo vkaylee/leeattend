@@ -1,17 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, complexity, max-lines-per-function */
 import { Page } from '@playwright/test';
 
-import { Device } from '../../src/lib/api/types';
+import { Device, Workspace } from '../../src/lib/api/types';
 import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS, MOCK_AGENTS, MOCK_DEVICES_INITIAL } from './mock-data';
 
 // --- Stateful mock stores (reset per page via setupApiMocks) ---
 let devices: Device[];
 let nextDeviceId = 100;
+let activeWorkspace: Workspace;
 
 export async function setupApiMocks(page: Page) {
   // Reset stateful stores for each test
   devices = structuredClone(MOCK_DEVICES_INITIAL);
   nextDeviceId = 100;
+  activeWorkspace = structuredClone(MOCK_WORKSPACE);
 
   // Chặn các request gọi đến Backend API (/api/...)
   // Loại trừ các file tĩnh (.ts, .js, .css, .jsx, .tsx) của Vite
@@ -66,15 +68,20 @@ export async function setupApiMocks(page: Page) {
 
     // 3. Workspaces
     if (pathname === '/api/workspaces' || pathname === '/api/workspaces/') {
-      if (method === 'GET') return fulfill([MOCK_WORKSPACE]);
-      if (method === 'POST') return fulfill(MOCK_WORKSPACE, 201);
-      return fulfill([MOCK_WORKSPACE]);
+      if (method === 'GET') return fulfill([activeWorkspace]);
+      if (method === 'POST') return fulfill(activeWorkspace, 201);
+      return fulfill([activeWorkspace]);
     }
     
-    // Explicitly handle GET /api/workspaces/{id} (without sub-resources)
+    // Explicitly handle GET/PATCH /api/workspaces/{id} (without sub-resources)
     if (/^\/api\/workspaces\/[^/]+$/.exec(pathname)) {
-      if (method === 'GET') return fulfill(MOCK_WORKSPACE);
-      return fulfill(MOCK_WORKSPACE);
+      if (method === 'GET') return fulfill(activeWorkspace);
+      if (method === 'PATCH' || method === 'PUT') {
+        const body = JSON.parse(route.request().postData() ?? '{}');
+        activeWorkspace = { ...activeWorkspace, ...body };
+        return fulfill(activeWorkspace);
+      }
+      return fulfill(activeWorkspace);
     }
 
     if (/^\/api\/workspaces\/[^/]+\/preferences$/.exec(pathname)) {

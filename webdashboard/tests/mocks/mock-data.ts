@@ -7,6 +7,11 @@ export const MOCK_WORKSPACE = {
   rounding_policy: "nearest",
   work_unit_minutes: 30,
   early_arrival_strategy: "block" as const,
+  created_at: "2026-01-01T00:00:00Z",
+  date_format: "DD/MM/YYYY",
+  default_language: "vi",
+  theme_primary_color: "#7c3aed",
+  time_format: "24h",
 };
 
 export const MOCK_USER = {

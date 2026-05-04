@@ -46,6 +46,8 @@ pub struct Workspace {
     pub timezone: String,
     pub theme_primary_color: String,
     pub default_language: String,
+    pub logo_url: Option<String>,
+    pub tagline: Option<String>,
     pub holiday_overnight_strategy: String,
     pub default_holiday_ot_multiplier: Decimal,
     pub created_at: DateTime<Utc>,
@@ -64,6 +66,8 @@ pub struct UpdateWorkspaceRequest {
     pub timezone: Option<String>,
     pub theme_primary_color: Option<String>,
     pub default_language: Option<String>,
+    pub logo_url: Option<String>,
+    pub tagline: Option<String>,
     pub holiday_overnight_strategy: Option<String>,
     pub default_holiday_ot_multiplier: Option<Decimal>,
 }

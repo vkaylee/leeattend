@@ -102,13 +102,13 @@ describe('Navigation Layout Consistency', () => {
         />
       );
 
-      expect(screen.getByTestId('user-profile-trigger')).toBeInTheDocument();
+      expect(screen.getByTestId('navbar-user-menu-trigger')).toBeInTheDocument();
       expect(screen.getByText(/John Doe/i)).toBeInTheDocument();
     });
 
     it('should show user menu with logout when clicking the trigger', async () => {
       renderWithProviders(
-        <Navbar
+        <Navbar 
           currentWorkspaceName="Test Workspace"
           isCollapsed={false}
           onOpenSidebar={vi.fn()}
@@ -116,14 +116,14 @@ describe('Navigation Layout Consistency', () => {
         />
       );
 
-      const trigger = screen.getByTestId('user-profile-trigger');
+      const trigger = screen.getByTestId('navbar-user-menu-trigger');
       fireEvent.click(trigger);
 
       // Radix UI DropdownMenu uses Portals, but RTL screen.getBy should find it
       // Note: "common.logout" is what t("common.logout") returns in our mock
-      expect(await screen.findByTestId('user-menu-logout')).toBeInTheDocument();
-      expect(screen.getByTestId('user-menu-profile')).toBeInTheDocument();
-      expect(screen.getByTestId('user-menu-settings')).toBeInTheDocument();
+      expect(await screen.findByTestId('user-menu-logout-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('user-menu-profile-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('user-menu-settings-btn')).toBeInTheDocument();
     });
   });
 });

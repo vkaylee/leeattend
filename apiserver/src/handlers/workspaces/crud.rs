@@ -436,6 +436,8 @@ pub async fn update_workspace(
             timezone: req.timezone,
             theme_primary_color: req.theme_primary_color,
             default_language: req.default_language,
+            logo_url: req.logo_url,
+            tagline: req.tagline,
             holiday_overnight_strategy: req.holiday_overnight_strategy,
             default_holiday_ot_multiplier: req.default_holiday_ot_multiplier,
         })

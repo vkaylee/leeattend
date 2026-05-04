@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings2, Save, Clock, Palette, Globe, Calendar, Languages, Sun, Moon, Monitor } from "lucide-react";
+import { Settings2, Save, Clock, Palette, Globe, Calendar, Languages, Sun, Moon, Monitor, ImagePlus, Trash2, Type, Building2, UploadCloud } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -41,6 +41,7 @@ export default function GeneralSettings() {
   return <GeneralSettingsContent key={workspace.id} workspace={workspace} />;
 }
 
+// eslint-disable-next-line max-lines-per-function
 function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation();
   const wsId = workspace.id;
@@ -54,6 +55,8 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
   const [timezone, setTimezone] = useState(workspace.timezone);
   const [themePrimaryColor, setThemePrimaryColor] = useState(workspace.theme_primary_color);
   const [defaultLanguage, setDefaultLanguage] = useState(workspace.default_language);
+  const [logoUrl, setLogoUrl] = useState(workspace.logo_url ?? "");
+  const [tagline, setTagline] = useState(workspace.tagline ?? "");
 
   useEffect(() => {
     setPreviewTheme(themePrimaryColor);
@@ -70,7 +73,15 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
   });
 
   function handleSaveConfig() {
-    updateWsMutation.mutate({ date_format: dateFormat, time_format: timeFormat, timezone: timezone, theme_primary_color: themePrimaryColor, default_language: defaultLanguage });
+    updateWsMutation.mutate({ 
+      date_format: dateFormat, 
+      time_format: timeFormat, 
+      timezone: timezone, 
+      theme_primary_color: themePrimaryColor, 
+      default_language: defaultLanguage,
+      logo_url: logoUrl || undefined,
+      tagline: tagline || undefined,
+    });
   }
 
   return (
@@ -83,12 +94,12 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
             <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("common.workspace_settings.description")}</p>
           </div>
         </div>
-        <Button icon={<Save size={18} />} loading={updateWsMutation.isPending} onClick={handleSaveConfig}>{t("common.workspace_settings.save_config").toUpperCase()}</Button>
+        <Button data-testid="save-workspace-config-btn" icon={<Save size={18} />} loading={updateWsMutation.isPending} onClick={handleSaveConfig}>{t("common.workspace_settings.save_config").toUpperCase()}</Button>
       </div>
 
       <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'localization' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} onClick={() => { setActiveTab("localization"); }}><Globe size={14} /> {t("common.settings.tabs.localization")}</button>
-        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'appearance' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} onClick={() => { setActiveTab("appearance"); }}><Palette size={14} /> {t("common.settings.tabs.appearance")}</button>
+        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'localization' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="tab-localization" onClick={() => { setActiveTab("localization"); }}><Globe size={14} /> {t("common.settings.tabs.localization")}</button>
+        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'appearance' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="tab-appearance" onClick={() => { setActiveTab("appearance"); }}><Palette size={14} /> {t("common.settings.tabs.appearance")}</button>
       </div>
 
       <div className="animate-in slide-in-from-bottom-4 duration-500">
@@ -118,6 +129,88 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
 
         {activeTab === "appearance" ? (
           <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-10">
+            {/* Branding Section */}
+            <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6">
+              <Building2 className="w-6 h-6 text-indigo-500" />
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
+                {t("common.workspace_settings.branding", { defaultValue: "Branding" })}
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-3">
+                <label className={LABEL_BASE}>{t("common.workspace_settings.workspace_logo", { defaultValue: "Workspace Logo" })}</label>
+                {logoUrl ? (
+                  <div className="relative group rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center p-6 h-40">
+                    <div 
+                      aria-label="Workspace Logo"
+                      className="h-20 w-full bg-contain bg-no-repeat bg-center drop-shadow-sm"
+                      role="img"
+                      style={{ backgroundImage: `url(${logoUrl})` }}
+                    />
+                    <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 rounded-2xl">
+                      <button 
+                        className="p-3 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl shadow-sm hover:text-primary-600 hover:border-primary-100 border border-slate-200 dark:border-slate-700 transition-colors"
+                        data-testid="edit-logo-btn"
+                        onClick={() => {
+                          const url = prompt(t("common.workspace_settings.enter_logo_url", { defaultValue: "Enter image URL:" }), logoUrl);
+                          if (url !== null) setLogoUrl(url);
+                        }}
+                        title={t("common.edit", { defaultValue: "Edit" })}
+                      >
+                        <ImagePlus size={18} />
+                      </button>
+                      <button 
+                        className="p-3 bg-white dark:bg-slate-800 text-rose-500 rounded-xl shadow-sm hover:bg-rose-50 border border-slate-200 dark:border-slate-700 hover:border-rose-100 transition-colors"
+                        data-testid="delete-logo-btn"
+                        onClick={() => { setLogoUrl(""); }}
+                        title={t("common.delete", { defaultValue: "Delete" })}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button 
+                    className="w-full h-40 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 bg-slate-50 dark:bg-slate-800/30 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-all flex flex-col items-center justify-center gap-3 group"
+                    data-testid="upload-logo-btn"
+                    onClick={() => {
+                      const url = prompt(t("common.workspace_settings.enter_logo_url", { defaultValue: "Enter image URL:" }));
+                      if (url) setLogoUrl(url);
+                    }}
+                  >
+                    <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-primary-500 group-hover:scale-110 transition-all">
+                      <UploadCloud size={24} />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400">{t("common.workspace_settings.upload_logo", { defaultValue: "Click to set logo URL" })}</p>
+                      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1">{t("common.workspace_settings.logo_reqs", { defaultValue: "SVG, PNG, JPG. Max 2MB." })}</p>
+                    </div>
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <label className={LABEL_BASE}>{t("common.workspace_settings.tagline", { defaultValue: "Tagline" })}</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Type size={18} />
+                  </div>
+                  <input
+                    className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all text-slate-700 dark:text-slate-200 outline-none"
+                    data-testid="workspace-tagline-input"
+                    onChange={(e) => { setTagline(e.target.value); }}
+                    placeholder={t("common.workspace_settings.tagline_placeholder", { defaultValue: "e.g., Human Resources Management" })}
+                    type="text"
+                    value={tagline}
+                  />
+                </div>
+                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide ml-1">{t("common.workspace_settings.tagline_desc", { defaultValue: "Displayed under the logo in the sidebar." })}</p>
+              </div>
+            </div>
+
+            <div className="w-full h-px bg-slate-100 dark:bg-slate-800 my-10" />
+
             <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-800 pb-6"><Palette className="w-6 h-6 text-pink-500" /><h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("common.workspace_settings.theme_config")}</h2></div>
             <div className="space-y-10">
               <div className="space-y-6">

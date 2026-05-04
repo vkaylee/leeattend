@@ -22,6 +22,7 @@ export function NavGroup({ title, items, isActive }: NavGroupProps) {
                 ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm shadow-primary-100/50 border border-primary-100 dark:border-primary-800/50"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent"
             }`}
+            data-testid={`settings-nav-${item.path}`}
             key={item.path}
             to={item.path}
           >

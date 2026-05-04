@@ -21,6 +21,8 @@ pub struct UpdateWorkspaceArgs {
     pub timezone: Option<String>,
     pub theme_primary_color: Option<String>,
     pub default_language: Option<String>,
+    pub logo_url: Option<String>,
+    pub tagline: Option<String>,
     pub holiday_overnight_strategy: Option<String>,
     pub default_holiday_ot_multiplier: Option<rust_decimal::Decimal>,
 }
@@ -158,6 +160,22 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
+        if args.logo_url.is_some() {
+            if has_fields {
+                query.push_str(", ");
+            }
+            query.push_str(&format!("logo_url = ${arg_idx}"));
+            arg_idx += 1;
+            has_fields = true;
+        }
+        if args.tagline.is_some() {
+            if has_fields {
+                query.push_str(", ");
+            }
+            query.push_str(&format!("tagline = ${arg_idx}"));
+            arg_idx += 1;
+            has_fields = true;
+        }
 
         if args.holiday_overnight_strategy.is_some() {
             if has_fields {
@@ -201,6 +219,12 @@ impl WorkspaceService {
         }
         if let Some(dl) = args.default_language {
             q = q.bind(dl);
+        }
+        if let Some(lu) = args.logo_url {
+            q = q.bind(lu);
+        }
+        if let Some(tl) = args.tagline {
+            q = q.bind(tl);
         }
 
         if let Some(hos) = args.holiday_overnight_strategy {

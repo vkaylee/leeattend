@@ -1,11 +1,6 @@
-import { Page } from '@playwright/test';
 import { BasePage } from './base-page';
 
 export class Navbar extends BasePage {
-  constructor(page: Page) {
-    super(page);
-  }
-
   async logout() {
     // Click User Profile Menu Trigger
     await this.page.getByTestId('navbar-user-menu-trigger').click();

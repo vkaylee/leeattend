@@ -9,7 +9,7 @@ test.describe('Navigation SaaS Refactor', () => {
     await expect(page.getByTestId('sidebar-btn-logout')).not.toBeVisible();
   });
 
-  test('should have user profile menu in navbar', async ({ navbar, page }) => {
+  test('should have user profile menu in navbar', async ({ page }) => {
     await expect(page.getByTestId('navbar-user-menu-trigger')).toBeVisible();
     
     // Open menu

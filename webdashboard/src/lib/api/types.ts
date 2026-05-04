@@ -63,8 +63,10 @@ export interface Workspace {
   date_format: string;
   default_language: string;
   id: string;
+  logo_url?: string;
   name: string;
   rounding_policy: string;
+  tagline?: string;
   theme_primary_color: string;
   time_format: string;
   timezone: string;
