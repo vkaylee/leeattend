@@ -40,6 +40,19 @@ vi.mock('@/context/use-dark-mode-context', () => ({
   }),
 }));
 
+vi.mock('@/hooks/use-notifications', () => ({
+  useNotifications: () => ({
+    notifications: [],
+    unreadCount: 0,
+    isLoading: false,
+    markAsRead: vi.fn(),
+    markAllAsRead: vi.fn(),
+    fetchNextPage: vi.fn(),
+    hasNextPage: false,
+    isFetchingNextPage: false,
+  }),
+}));
+
 // Mock DropdownMenu to avoid Radix UI + Portals issues in JSDOM
 vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -55,6 +68,10 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
 // Mock components that might cause issues
 vi.mock('@/components/ui/language-switcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher-mock" />,
+}));
+
+vi.mock('../notifications-popover', () => ({
+  NotificationsPopover: () => <div data-testid="notifications-popover-mock" />,
 }));
 
 import Navbar from '../navbar';

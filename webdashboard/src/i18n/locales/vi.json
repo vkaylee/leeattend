@@ -1159,7 +1159,8 @@
     },
     "delete_confirm": "common.delete_confirm",
     "present": "common.present",
-    "notifications": "Thông báo"
+    "notifications": "Thông báo",
+    "load_more": "Tải thêm"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -3213,6 +3214,10 @@
   "status_off": "NGHỈ",
   "status_expired": "HẾT HẠN",
   "notifications": {
-    "description": "Quản lý tất cả thông báo của bạn tại đây."
+    "description": "Quản lý tất cả thông báo của bạn tại đây.",
+    "mark_all_as_read": "Đánh dấu tất cả đã đọc",
+    "no_notifications": "Không có thông báo nào",
+    "empty_state": "Bạn chưa có thông báo nào. Các cập nhật quan trọng sẽ xuất hiện ở đây.",
+    "mark_as_read": "Đánh dấu đã đọc"
   }
 }

@@ -1159,7 +1159,8 @@
     "assign": "分配",
     "delete_confirm": "common.delete_confirm",
     "present": "common.present",
-    "notifications": "通知"
+    "notifications": "通知",
+    "load_more": "加载更多"
   },
   "dashboard": {
     "title": "仪表板",
@@ -2559,7 +2560,7 @@
       "create_success": "工作模式创建成功。",
       "create_error": "创建工作模式时出错。",
       "delete_success": "工作模式删除成功。",
-      "delete_error": "删除工作模式时出错。",
+      "delete_error": "工作模式删除时出错。",
       "bulk_assign_success_count": "已为 {{count}} 名员工分配模式。",
       "bulk_assign_conflict": "部分员工已有日程，系统将覆盖。",
       "bulk_assign_error": "批量分配时出错。"
@@ -3213,6 +3214,10 @@
   "status_off": "休息",
   "status_expired": "已过期",
   "notifications": {
-    "description": "在这里管理您的所有通知。"
+    "description": "在这里管理您的所有通知。",
+    "mark_all_as_read": "全部标记为已读",
+    "no_notifications": "没有通知",
+    "empty_state": "您目前没有任何通知。重要的更新将显示在这里。",
+    "mark_as_read": "标记为已读"
   }
 }

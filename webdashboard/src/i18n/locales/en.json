@@ -1159,7 +1159,8 @@
     "assign": "Assign",
     "delete_confirm": "common.delete_confirm",
     "present": "common.present",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "load_more": "Load More"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1901,7 +1902,7 @@
       "queue_pressure": "Queue Pressure",
       "queue_pressure_desc": "Pending jobs by priority",
       "queue_empty": "Queue empty",
-      "job_distribution": "Job Distribution",
+      "job_distribution": "Job Status Distribution",
       "job_distribution_desc": "Status of recent jobs",
       "total_jobs": "jobs",
       "active_label": "active",
@@ -3213,6 +3214,10 @@
     }
   },
   "notifications": {
-    "description": "Manage all your notifications here."
+    "description": "Manage all your notifications here.",
+    "mark_all_as_read": "Mark all as read",
+    "no_notifications": "No notifications",
+    "empty_state": "You don't have any notifications yet. Important updates will appear here.",
+    "mark_as_read": "Mark as read"
   }
 }
