@@ -1,11 +1,12 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import { profileKeys } from "@/hooks/use-profile";
 import { fetchMe, clearAuthSession } from "@/lib/api";
 
 function AuthPendingComponent() {
-  const { t } = (window as unknown as { __i18n_t__?: { t: (k: string) => string } }).__i18n_t__ ?? { t: (k: string) => k };
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
       <div className="flex flex-col items-center gap-4">
