@@ -125,19 +125,20 @@ impl AttendanceImportService {
         let Ok(Some(workspace)) = self
             .workspace_repo
             .get_workspace_by_id(job.workspace_id)
-            .await else {
-                error!("WORKSPACE_NOT_FOUND for job {}", job_id);
-                let _ = self
-                    .import_repo
-                    .update_job_progress(
-                        job_id,
-                        job.processed_rows,
-                        ImportJobStatus::Failed,
-                        Some("Workspace not found".to_string()),
-                    )
-                    .await;
-                return Err(());
-            };
+            .await
+        else {
+            error!("WORKSPACE_NOT_FOUND for job {}", job_id);
+            let _ = self
+                .import_repo
+                .update_job_progress(
+                    job_id,
+                    job.processed_rows,
+                    ImportJobStatus::Failed,
+                    Some("Workspace not found".to_string()),
+                )
+                .await;
+            return Err(());
+        };
 
         let date_format = workspace.date_format.clone();
         let time_format = workspace.time_format.clone();
@@ -655,13 +656,14 @@ impl AttendanceImportService {
         let Ok(Some(employee)) = self
             .employee_repo
             .get_employee_by_id_number(emp_id_number, job.workspace_id)
-            .await else {
-                error!(
-                    "EMPLOYEE_NOT_FOUND: {} in WS {}",
-                    emp_id_number, job.workspace_id
-                );
-                return Ok(0);
-            };
+            .await
+        else {
+            error!(
+                "EMPLOYEE_NOT_FOUND: {} in WS {}",
+                emp_id_number, job.workspace_id
+            );
+            return Ok(0);
+        };
 
         if job.target_type == "log" {
             let te_repo = Arc::clone(&self.time_entry_repo);
