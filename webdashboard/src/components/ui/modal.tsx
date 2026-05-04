@@ -76,7 +76,7 @@ export default function Modal({
               )}
               <div className="min-w-0">
                 {Boolean(title) && (
-                  <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight truncate leading-snug mb-1.5 uppercase">
+                  <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight truncate leading-normal pt-1 uppercase">
                     {title}
                   </h2>
                 )}
