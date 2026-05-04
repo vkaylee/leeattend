@@ -3,12 +3,15 @@ pub mod assignment_rules;
 pub mod attendance;
 pub mod auth;
 pub mod common;
+
 pub mod debug;
 pub mod employees;
 pub mod employment_phases;
 pub mod ess;
+
 pub mod jobs;
 pub mod leaves;
+pub mod notifications;
 pub mod payroll;
 pub mod payroll_rules;
 pub mod report_export;
@@ -28,6 +31,7 @@ pub use employees::*;
 pub use ess::*;
 pub use jobs::*;
 pub use leaves::*;
+pub use notifications::*;
 pub use payroll::*;
 pub use shifts::*;
 pub use system_auth::SystemContext;

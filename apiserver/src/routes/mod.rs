@@ -5,6 +5,7 @@ pub mod employees;
 pub mod ess;
 pub mod feature_flags;
 pub mod leaves;
+pub mod notifications;
 pub mod payroll;
 pub mod reports;
 pub mod shifts;

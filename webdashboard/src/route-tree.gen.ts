@@ -13,6 +13,7 @@ import { Route as RegisterRouteImport } from "./routes/register"
 import { Route as LoginRouteImport } from "./routes/login"
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated"
 import { Route as AuthenticatedOnboardingRouteImport } from "./routes/_authenticated/onboarding"
+import { Route as AuthenticatedNotificationsRouteImport } from "./routes/_authenticated/notifications"
 import { Route as AuthenticatedWorkspaceRouteImport } from "./routes/_authenticated/_workspace"
 import { Route as AuthenticatedInfraRouteImport } from "./routes/_authenticated/_infra"
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from "./routes/_authenticated/_workspace/index"
@@ -74,6 +75,12 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
 } as any).lazy(() =>
   import("./routes/_authenticated/onboarding.lazy").then((d) => d.Route),
 )
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: "/notifications",
+    path: "/notifications",
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
   id: "/_workspace",
   getParentRoute: () => AuthenticatedRoute,
@@ -449,6 +456,7 @@ export interface FileRoutesByFullPath {
   "/": typeof AuthenticatedWorkspaceIndexRoute
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
+  "/notifications": typeof AuthenticatedNotificationsRoute
   "/onboarding": typeof AuthenticatedOnboardingRoute
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRoute
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
@@ -491,6 +499,7 @@ export interface FileRoutesByTo {
   "/": typeof AuthenticatedWorkspaceIndexRoute
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
+  "/notifications": typeof AuthenticatedNotificationsRoute
   "/onboarding": typeof AuthenticatedOnboardingRoute
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRoute
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
@@ -535,6 +544,7 @@ export interface FileRoutesById {
   "/register": typeof RegisterRoute
   "/_authenticated/_infra": typeof AuthenticatedInfraRouteWithChildren
   "/_authenticated/_workspace": typeof AuthenticatedWorkspaceRouteWithChildren
+  "/_authenticated/notifications": typeof AuthenticatedNotificationsRoute
   "/_authenticated/onboarding": typeof AuthenticatedOnboardingRoute
   "/_authenticated/_workspace/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRoute
   "/_authenticated/_workspace/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
@@ -580,6 +590,7 @@ export interface FileRouteTypes {
     | "/"
     | "/login"
     | "/register"
+    | "/notifications"
     | "/onboarding"
     | "/assignment-rules"
     | "/attendance-adjustments"
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | "/"
     | "/login"
     | "/register"
+    | "/notifications"
     | "/onboarding"
     | "/assignment-rules"
     | "/attendance-adjustments"
@@ -665,6 +677,7 @@ export interface FileRouteTypes {
     | "/register"
     | "/_authenticated/_infra"
     | "/_authenticated/_workspace"
+    | "/_authenticated/notifications"
     | "/_authenticated/onboarding"
     | "/_authenticated/_workspace/assignment-rules"
     | "/_authenticated/_workspace/attendance-adjustments"
@@ -739,6 +752,13 @@ declare module "@tanstack/react-router" {
       path: "/onboarding"
       fullPath: "/onboarding"
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    "/_authenticated/notifications": {
+      id: "/_authenticated/notifications"
+      path: "/notifications"
+      fullPath: "/notifications"
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     "/_authenticated/_workspace": {
@@ -1154,12 +1174,14 @@ const AuthenticatedWorkspaceRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedInfraRoute: typeof AuthenticatedInfraRouteWithChildren
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRouteWithChildren
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedInfraRoute: AuthenticatedInfraRouteWithChildren,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRouteWithChildren,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 

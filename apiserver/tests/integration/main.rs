@@ -32,4 +32,5 @@ pub mod ess;
 pub mod feature_flags;
 pub mod misc;
 pub mod monitor;
+pub mod notifications;
 pub mod shift;
