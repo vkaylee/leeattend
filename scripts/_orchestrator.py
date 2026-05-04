@@ -388,7 +388,20 @@ class Orchestrator:
     def handle_run(self, args: argparse.Namespace) -> None:
         tool = args.tool
         tool_args = args.args
-        service = self.tool_map[tool]
+        
+        # Resolve target service dynamically based on context
+        caller_dir = Path.cwd()
+        rel_dir = ""
+        with contextlib.suppress(ValueError):
+            rel_dir = str(caller_dir.relative_to(PROJECT_ROOT))
+            
+        service = self.tool_map.get(tool, "apiserver")
+        if "webdashboard" in rel_dir or any("webdashboard" in arg for arg in tool_args):
+            service = "webdashboard"
+        elif "agent-main" in rel_dir or any("agent-main" in arg for arg in tool_args):
+            service = "agent-main"
+        elif "apiserver" in rel_dir or any("apiserver" in arg for arg in tool_args):
+            service = "apiserver"
 
         if tool_args and tool_args[0] == "--":
             tool_args = tool_args[1:]
@@ -443,7 +456,7 @@ class Orchestrator:
                 self._handle_run_npm(compose_cmd, tool_args, service, is_running)
         elif tool == "cargo":
             compose_cmd.extend(["run", "-T", "--rm"])
-            self._handle_run_cargo(compose_cmd, tool_args)
+            self._handle_run_cargo(compose_cmd, tool_args, service)
         else:  # sqlx
             compose_cmd.extend(["run", "-T", "--rm", "--entrypoint", tool, service])
             if tool_args:
@@ -489,17 +502,13 @@ class Orchestrator:
         if tool_args:
             compose_cmd.extend(tool_args)
 
-    def _handle_run_cargo(self, compose_cmd: list[str], tool_args: list[str]) -> None:
+    def _handle_run_cargo(self, compose_cmd: list[str], tool_args: list[str], service: str) -> None:
         caller_dir = Path.cwd()
         rel_dir = ""
         with contextlib.suppress(ValueError):
             rel_dir = str(caller_dir.relative_to(PROJECT_ROOT))
             if rel_dir == ".":
                 rel_dir = ""
-
-        target_service = "apiserver"
-        if "agent-main" in rel_dir or any("agent-main" in arg for arg in tool_args):
-            target_service = "agent-main"
 
         workdir = f"/workspace/{rel_dir}" if rel_dir else "/workspace"
         compose_cmd.extend(
@@ -510,7 +519,7 @@ class Orchestrator:
                 workdir,
                 "--entrypoint",
                 "cargo",
-                target_service,
+                service,
             ]
         )
         if tool_args:

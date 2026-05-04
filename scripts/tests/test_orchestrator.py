@@ -18,6 +18,12 @@ def orchestrator():
     return _orchestrator.Orchestrator()
 
 
+@pytest.fixture(autouse=True)
+def mock_is_service_running():
+    with patch.object(_orchestrator.Orchestrator, "_is_service_running", return_value=True) as mock:
+        yield mock
+
+
 def test_help_message(orchestrator, capsys) -> None:
     """Test help message does not cause errors."""
     with pytest.raises(SystemExit) as e:
