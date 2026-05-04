@@ -1158,7 +1158,8 @@
     "set": "设置",
     "assign": "分配",
     "delete_confirm": "common.delete_confirm",
-    "present": "common.present"
+    "present": "common.present",
+    "notifications": "通知"
   },
   "dashboard": {
     "title": "仪表板",
@@ -3210,5 +3211,8 @@
   },
   "status_active_caps": "活动",
   "status_off": "休息",
-  "status_expired": "已过期"
+  "status_expired": "已过期",
+  "notifications": {
+    "description": "在这里管理您的所有通知。"
+  }
 }

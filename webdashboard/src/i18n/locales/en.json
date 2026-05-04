@@ -1158,7 +1158,8 @@
     "set": "Set",
     "assign": "Assign",
     "delete_confirm": "common.delete_confirm",
-    "present": "common.present"
+    "present": "common.present",
+    "notifications": "Notifications"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -3210,5 +3211,8 @@
       "revoke_success": "system_roles.messages.revoke_success",
       "assign_success": "system_roles.messages.assign_success"
     }
+  },
+  "notifications": {
+    "description": "Manage all your notifications here."
   }
 }

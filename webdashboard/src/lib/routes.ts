@@ -21,6 +21,7 @@ export const ROUTES = {
   DEPARTMENTS: "/departments",
   PEOPLE: "/workspace/people",
   MEMBERS: "/members",
+  NOTIFICATIONS: "/notifications",
 
   // Attendance & Leave
   ATTENDANCE_LOGS: "/attendance-logs",

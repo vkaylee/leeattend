@@ -1158,7 +1158,8 @@
       }
     },
     "delete_confirm": "common.delete_confirm",
-    "present": "common.present"
+    "present": "common.present",
+    "notifications": "Thông báo"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -3210,5 +3211,8 @@
   },
   "status_active_caps": "ĐANG HOẠT ĐỘNG",
   "status_off": "NGHỈ",
-  "status_expired": "HẾT HẠN"
+  "status_expired": "HẾT HẠN",
+  "notifications": {
+    "description": "Quản lý tất cả thông báo của bạn tại đây."
+  }
 }

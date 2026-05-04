@@ -1,5 +1,5 @@
 import { useLocation, Link } from "@tanstack/react-router";
-import { Menu, ChevronRight as BreadcrumbSeparator, Bell, ChevronLeft, ChevronRight, Sun, Moon, Monitor, LogOut, Settings as SettingsIcon, UserCircle } from "lucide-react";
+import { Menu, ChevronRight as BreadcrumbSeparator, ChevronLeft, ChevronRight, Sun, Moon, Monitor, LogOut, Settings as SettingsIcon, UserCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -12,6 +12,8 @@ import { useMyPermissions } from "@/hooks/use-permissions";
 import { useProfile } from "@/hooks/use-profile";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
+
+import { NotificationsPopover } from "./notifications-popover";
 
 interface NavbarProps {
   currentWorkspaceName: string;
@@ -70,10 +72,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
         {/* Language Switcher */}
         <LanguageSwitcher />
 
-        <button className="p-3 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-white dark:hover:bg-slate-800 rounded-[1.25rem] transition-all relative group border border-transparent hover:border-slate-100 dark:hover:border-slate-700 hover:shadow-xl hover:shadow-primary-900/5">
-          <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 shadow-sm group-hover:scale-125 transition-transform animate-pulse"></div>
-          <Bell size={20} strokeWidth={2.5} />
-        </button>
+        <NotificationsPopover />
 
         <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 mx-1 hidden sm:block opacity-50"></div>
 
