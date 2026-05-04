@@ -87,7 +87,8 @@ function SidebarLink({
   return (
     <Link
       className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group",
+        "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group relative",
+        isCollapsed ? "justify-center px-0" : "px-4",
         isActive
           ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50"
           : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
