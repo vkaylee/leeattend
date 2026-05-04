@@ -53,7 +53,7 @@ where
             })?;
 
         let workspace_id = Uuid::parse_str(workspace_id_str)
-            .map_err(|_| AppError::Validation("Invalid Workspace ID format".to_string()))?;
+            .map_err(|_e| AppError::Validation("Invalid Workspace ID format".to_string()))?;
 
         Ok(WorkspaceId(workspace_id))
     }

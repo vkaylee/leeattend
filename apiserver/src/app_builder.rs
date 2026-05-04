@@ -205,7 +205,7 @@ impl AppState {
                 "dev_secret_key_leeattend_2026".to_string()
             })
         } else {
-            std::env::var("JWT_SECRET").map_err(|_| "JWT_SECRET must be set in production")?
+            std::env::var("JWT_SECRET").map_err(|_e| "JWT_SECRET must be set in production")?
         };
 
         let buffer_capacity: usize = std::env::var("AGENT_LOG_BUFFER_CAPACITY")

@@ -224,7 +224,7 @@ pub async fn update_default_attendance_rules(
                             .ok_or_else(|| "Invalid time".to_string())
                     })
             })
-            .map_err(|_| {
+            .map_err(|_e| {
                 AppError::Validation(
                     "Invalid valid_from date format. Use ISO 8601 or YYYY-MM-DD.".into(),
                 )

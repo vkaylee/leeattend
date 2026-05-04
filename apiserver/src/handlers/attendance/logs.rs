@@ -136,7 +136,7 @@ pub async fn force_reprocess_attendance(
     let tz: chrono_tz::Tz = workspace
         .timezone
         .parse()
-        .map_err(|_| AppError::from("Invalid timezone configuration"))?;
+        .map_err(|_e| AppError::from("Invalid timezone configuration"))?;
 
     let mut curr_date = query.start_date;
     while curr_date <= query.end_date {

@@ -327,7 +327,7 @@ pub async fn trigger_accrual_run(
     ctx.require_permission(Permission::LeaveAccrualRun)?;
 
     let date = NaiveDate::parse_from_str(&payload.date, "%Y-%m-%d")
-        .map_err(|_| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
+        .map_err(|_e| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
 
     // Require Redis for background processing
     let redis = state.infra.redis.as_ref().ok_or_else(|| {

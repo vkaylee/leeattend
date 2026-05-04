@@ -42,9 +42,9 @@ pub async fn get_attendance_report(
         .and_then(|s| Uuid::parse_str(s).ok());
 
     let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d")
-        .map_err(|_| AppError::Validation("Invalid start_date format".to_string()))?;
+        .map_err(|_e| AppError::Validation("Invalid start_date format".to_string()))?;
     let end_date = NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d")
-        .map_err(|_| AppError::Validation("Invalid end_date format".to_string()))?;
+        .map_err(|_e| AppError::Validation("Invalid end_date format".to_string()))?;
 
     if report_type == "daily" {
         let report = state

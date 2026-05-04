@@ -112,7 +112,7 @@ pub async fn get_employee(
         .service
         .get_employee_by_id(id, workspace_id)
         .await
-        .map_err(|_| AppError::NotFound("Employee not found".to_string()))?;
+        .map_err(|_e| AppError::NotFound("Employee not found".to_string()))?;
     Ok(Json(employee))
 }
 
@@ -160,7 +160,7 @@ pub async fn delete_employee(
         .service
         .delete_employee(id, workspace_id)
         .await
-        .map_err(|_| AppError::NotFound("Employee not found".to_string()))?;
+        .map_err(|_e| AppError::NotFound("Employee not found".to_string()))?;
     Ok(StatusCode::NO_CONTENT)
 }
 

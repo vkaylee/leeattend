@@ -68,6 +68,9 @@
     clippy::style,
     clippy::correctness
 )]
+#![deny(clippy::map_err_ignore)]
+#![deny(clippy::match_like_matches_macro)]
+#![deny(clippy::type_complexity)]
 
 pub mod agent_manager;
 pub mod app_builder;

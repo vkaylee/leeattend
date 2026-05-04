@@ -101,7 +101,7 @@ pub async fn upsert_policy_assignment(
                             .ok_or_else(|| "Invalid time".to_string())
                     })
             })
-            .map_err(|_| AppError::Validation("Invalid valid_from date format.".into()))?,
+            .map_err(|_e| AppError::Validation("Invalid valid_from date format.".into()))?,
         None => Utc::now(),
     };
 

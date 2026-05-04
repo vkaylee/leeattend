@@ -186,7 +186,7 @@ pub async fn revoke_system_role(
     // Safety: verify the role_name is a known system role
     use std::str::FromStr;
     let role_type = SystemRoleType::from_str(&role_name)
-        .map_err(|_| AppError::Validation(format!("Unknown system role: '{role_name}'")))?;
+        .map_err(|_e| AppError::Validation(format!("Unknown system role: '{role_name}'")))?;
 
     // Prevent revoking the last platform_admin — regardless of who performs it.
     // Without this guard, admin A could revoke admin B (the sole remaining admin),
