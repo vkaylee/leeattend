@@ -164,7 +164,7 @@ describe("WorkspacePermissionsPage", () => {
 
         it("renders checkboxes for every permission × role combination", () => {
             renderPage();
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             // Count all permissions across groups
             // Total = 4+4+7+5+8+4+10+13+8+2+4+2+3+7+2+6 = 89 permissions × 2 roles = 178
             expect(checkboxes.length).toBe(89 * 2);
@@ -231,7 +231,7 @@ describe("WorkspacePermissionsPage", () => {
             });
 
             renderPage();
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             const allDisabled = checkboxes.every((callback) => (callback as HTMLInputElement).disabled);
             expect(allDisabled).toBe(true);
         });
@@ -254,7 +254,7 @@ describe("WorkspacePermissionsPage", () => {
 
         it("disables system role checkboxes even with manage permission", () => {
             renderPage();
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             // System role is the first column → odd-indexed checkboxes in pair
             // For each permission row: [system, custom] — system should be disabled
             const systemCheckboxes = checkboxes.filter((_, index) => index % 2 === 0);
@@ -265,7 +265,7 @@ describe("WorkspacePermissionsPage", () => {
 
         it("enables custom role checkboxes when user has manage permission", () => {
             renderPage();
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             const customCheckboxes = checkboxes.filter((_, index) => index % 2 === 1);
             customCheckboxes.forEach((callback) => {
                 expect((callback as HTMLInputElement).disabled).toBe(false);
@@ -279,7 +279,7 @@ describe("WorkspacePermissionsPage", () => {
         it("checks employees:read for both system and custom roles", () => {
             renderPage();
             // Both roles have employees:read in the mock matrix
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             const checkedCount = checkboxes.filter((callback) => (callback as HTMLInputElement).checked).length;
             // System: 5 checked + Custom: 2 checked = 7
             expect(checkedCount).toBe(7);
@@ -289,7 +289,7 @@ describe("WorkspacePermissionsPage", () => {
             const { rerender } = renderPage();
             
             // First check initial state (7 checked)
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             expect(checkboxes.filter(callback => (callback as HTMLInputElement).checked).length).toBe(7);
 
             // Change mock return value to a different matrix (e.g., only 1 permission)
@@ -312,7 +312,7 @@ describe("WorkspacePermissionsPage", () => {
 
             // Now check if UI updated to only 1 checked checkbox (wait for async update)
             await waitFor(() => {
-                const checkedCheckboxes = (screen.getAllByRole("checkbox"))
+                const checkedCheckboxes = (screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT"))
                     .filter(callback => (callback as HTMLInputElement).checked);
                 expect(checkedCheckboxes.length).toBe(1);
             });
@@ -329,7 +329,7 @@ describe("WorkspacePermissionsPage", () => {
             renderPage();
 
             // Find an enabled, unchecked checkbox (custom role)
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             const customUnchecked = checkboxes.find((callback) => !(callback as HTMLInputElement).disabled && !(callback as HTMLInputElement).checked);
             expect(customUnchecked).toBeDefined();
 
@@ -341,7 +341,7 @@ describe("WorkspacePermissionsPage", () => {
             const user = userEvent.setup();
             renderPage();
 
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             const customUnchecked = checkboxes.find((callback) => !(callback as HTMLInputElement).disabled && !(callback as HTMLInputElement).checked);
             await user.click(customUnchecked!);
 
@@ -360,7 +360,7 @@ describe("WorkspacePermissionsPage", () => {
             renderPage();
 
             // Toggle a custom role checkbox
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             const customUnchecked = checkboxes.find((callback) => !(callback as HTMLInputElement).disabled && !(callback as HTMLInputElement).checked);
             await user.click(customUnchecked!);
 
@@ -383,7 +383,7 @@ describe("WorkspacePermissionsPage", () => {
             const user = userEvent.setup();
             renderPage();
 
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             const customUnchecked = checkboxes.find((callback) => !(callback as HTMLInputElement).disabled && !(callback as HTMLInputElement).checked);
             await user.click(customUnchecked!);
 
@@ -399,7 +399,7 @@ describe("WorkspacePermissionsPage", () => {
             const user = userEvent.setup();
             renderPage();
 
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             const customUnchecked = checkboxes.find((callback) => !(callback as HTMLInputElement).disabled && !(callback as HTMLInputElement).checked);
             await user.click(customUnchecked!);
             expect(screen.getByText("Unsaved changes")).toBeDefined();
@@ -417,7 +417,7 @@ describe("WorkspacePermissionsPage", () => {
             renderPage();
 
             // Custom role has employees:read checked — find it and uncheck
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             const customChecked = checkboxes.find((callback) => !(callback as HTMLInputElement).disabled && (callback as HTMLInputElement).checked);
             expect(customChecked).toBeDefined();
 
@@ -433,7 +433,7 @@ describe("WorkspacePermissionsPage", () => {
             const user = userEvent.setup();
             renderPage();
 
-            const checkboxes = screen.getAllByRole("checkbox");
+            const checkboxes = screen.getAllByRole("checkbox").filter(c => c.tagName === "INPUT");
             // Get a system checkbox (disabled)
             const systemCallback = checkboxes.find((callback) => (callback as HTMLInputElement).disabled);
             expect(systemCallback).toBeDefined();

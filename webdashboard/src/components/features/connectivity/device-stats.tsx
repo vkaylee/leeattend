@@ -49,8 +49,8 @@ function StatBlock({ icon, label, value }: StatBlockProps) {
   );
 }
 
-function CapacityBlock({ capacity, count, icon, label, valueColorClass }: { capacity?: number; count?: number; icon: React.ReactNode; label: string; valueColorClass?: string }) {
-  const value = count !== undefined ? (
+function CapacityBlock({ capacity, count, icon, label, valueColorClass }: { capacity?: number | null; count?: number | null; icon: React.ReactNode; label: string; valueColorClass?: string }) {
+  const value = count != null ? (
     <>
       <span className={valueColorClass}>{count.toLocaleString()}</span>
       {typeof capacity === 'number' && capacity > 0 && (

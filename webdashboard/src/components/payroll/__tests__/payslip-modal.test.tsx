@@ -191,10 +191,15 @@ describe("PayslipModal", () => {
 
   it("opens print window when print button clicked", () => {
     // Mock window.open to return a mock window object
+    const mockStyleElement: { textContent?: string } = {};
     const mockPrintWindow = {
       document: {
         write: vi.fn(),
         close: vi.fn(),
+        createElement: vi.fn().mockReturnValue(mockStyleElement),
+        head: { appendChild: vi.fn() },
+        body: { innerHTML: "" },
+        title: "",
       },
       focus: vi.fn(),
       print: vi.fn(),
@@ -222,11 +227,13 @@ describe("PayslipModal", () => {
 
     // window.open IS called when print button clicked
     expect(openMock).toHaveBeenCalledWith('', '_blank', 'width=600,height=800');
-    // Document should be written to with A5 page size styling
-    expect(mockPrintWindow.document.write).toHaveBeenCalled();
-    const writeCall = mockPrintWindow.document.write.mock.calls[0][0] as string;
-    expect(writeCall).toContain('size: A5 portrait');
-    expect(writeCall).toContain('Payslip - Nguyen Van A');
+    // Document title should be set
+    expect(mockPrintWindow.document.title).toBe('Payslip - Nguyen Van A');
+    // Style element should be created and contain A5 page size styling
+    expect(mockPrintWindow.document.createElement).toHaveBeenCalledWith('style');
+    expect(mockStyleElement.textContent).toContain('size: A5 portrait');
+    // Content should be appended to body
+    expect(mockPrintWindow.document.body.innerHTML).toContain('Tech Company Ltd');
   });
 
   it("calls onClose callback when close button clicked", () => {

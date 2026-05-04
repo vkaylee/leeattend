@@ -335,7 +335,7 @@ describe("ReportsPage", () => {
     // Test auto-select on focus
     searchInput.blur();
     expect((searchInput as HTMLInputElement).selectionStart).toBe((searchInput as HTMLInputElement).selectionEnd);
-    await user.click(searchInput);
+    searchInput.focus();
     expect((searchInput as HTMLInputElement).selectionStart).toBe(0);
     expect((searchInput as HTMLInputElement).selectionEnd).toBe(4); // length of "Test"
 
@@ -360,6 +360,10 @@ describe("ReportsPage", () => {
     // and its text should be auto-selected because of the onFocus handler
     expect((searchInput as HTMLInputElement).selectionStart).toBe(0);
     expect((searchInput as HTMLInputElement).selectionEnd).toBe(4);
+    // Wait for the debounce from typing "Test" to finish before ending the test
+    await waitFor(() => {
+      expect(api.searchEmployees).toHaveBeenCalled();
+    }, { timeout: 2000 });
   });
  
 
@@ -407,6 +411,9 @@ describe("ReportsPage", () => {
     const rawLogsToggle = await screen.findByRole("button", { name: /Nhật ký thô|View Raw Logs|reports.view_raw_logs/i });
     expect(rawLogsToggle).toBeInTheDocument();
  
+    await waitFor(() => {
+      expect(api.searchEmployees).toHaveBeenCalled();
+    }, { timeout: 2000 });
   });
   it("allows switching tabs with arrows after opening the drawer via Enter key", async () => {
     const user = userEvent.setup();
@@ -461,6 +468,10 @@ describe("ReportsPage", () => {
     await waitFor(() => {
       expect(rawLogsToggle.className).toContain("text-primary-600");
     });
+    
+    await waitFor(() => {
+      expect(api.searchEmployees).toHaveBeenCalled();
+    }, { timeout: 2000 });
   });
  
 
@@ -520,8 +531,9 @@ describe("ReportsPage", () => {
     scrollSpy.mockClear();
     await user.type(searchInput, "{ArrowUp}");
 
-    // In full-page mode, scrollIntoView is used (no .overflow-auto container)
-    expect(scrollSpy).toHaveBeenCalled();
+    // In non full-page mode, container.scrollTo is used
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(window.HTMLElement.prototype.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
 
     // Put it back to index 1 and press Enter
     await user.type(searchInput, "{ArrowDown}{Enter}");

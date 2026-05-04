@@ -148,11 +148,13 @@ function useWorkingConditionActions({
   queryClient,
   confirm,
   setIsAdding,
+  t,
 }: {
   confirm: (args: { message: string; title: string; variant?: "danger" | "warning" | "info" }) => Promise<boolean>;
   employeeId: string;
   queryClient: ReturnType<typeof useQueryClient>;
   setIsAdding: (val: boolean) => void;
+  t: TFunction;
 }) {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -180,8 +182,8 @@ function useWorkingConditionActions({
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
-      title: "common.delete_confirm",
-      message: "employees.policies.delete_warning",
+      title: t("common.delete_confirm"),
+      message: t("employees.policies.delete_warning"),
       variant: "danger",
     });
     if (ok) deleteMutation.mutate(id);
@@ -193,7 +195,7 @@ function useWorkingConditionActions({
 export default function WorkingConditionConfig({ employeeId }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { confirm } = useConfirm();
+  const { confirm, ConfirmationDialog } = useConfirm();
   const [isAdding, setIsAdding] = useState(false);
   const [type, setType] = useState<EmployeeWorkingConditionType>(EmployeeWorkingConditionType.Regular);
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
@@ -201,7 +203,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
   const [isPaid, setIsPaid] = useState(true);
 
   const { data: conditions = [], isLoading } = useWorkingConditions(employeeId);
-  const { createMutation, handleDelete } = useWorkingConditionActions({ employeeId, queryClient, confirm, setIsAdding });
+  const { createMutation, handleDelete } = useWorkingConditionActions({ employeeId, queryClient, confirm, setIsAdding, t });
 
   if (isLoading) return <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>;
 
@@ -261,6 +263,7 @@ export default function WorkingConditionConfig({ employeeId }: Props) {
           ))
         )}
       </div>
+      <ConfirmationDialog />
     </div>
   );
 }

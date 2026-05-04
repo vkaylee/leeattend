@@ -730,7 +730,6 @@
     },
     "primary_color": "Màu chủ đạo",
     "colors": {
-      "primary": "Tím",
       "primary": "Chàm",
       "blue": "Xanh dương",
       "emerald": "Ngọc lục bảo",
@@ -1148,7 +1147,9 @@
         "billing_admin": "Quản lý thanh toán nền tảng, đăng ký và hạn ngạch trên tất cả workspace.",
         "default": "Vai trò cấp hệ thống."
       }
-    }
+    },
+    "delete_confirm": "common.delete_confirm",
+    "present": "common.present"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -1693,7 +1694,13 @@
         "early_leave": "Về sớm",
         "late_in": "Đi muộn",
         "breastfeeding": "Chế độ nuôi con nhỏ"
-      }
+      },
+      "add_condition": "employees.policies.add_condition",
+      "type_label": "employees.policies.type_label",
+      "conditions_title": "employees.policies.conditions_title",
+      "conditions_desc": "employees.policies.conditions_desc",
+      "delete_warning": "employees.policies.delete_warning",
+      "no_conditions": "employees.policies.no_conditions"
     },
     "salary": {
       "title": "Cập nhật lương",
@@ -2592,7 +2599,8 @@
     },
     "validation": {
       "required_fields": "Tên và Mẫu lịch là bắt buộc"
-    }
+    },
+    "confirm_delete_msg": "rules.confirm_delete_msg"
   },
   "shifts": {
     "title": "Hệ thống Lịch trình",
@@ -2793,7 +2801,8 @@
       "payroll_desc": "Quản lý ngày công chuẩn và công thức tính lương.",
       "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
       "leave": "Quản lý nghỉ phép",
-      "billing_desc": "Quản lý thanh toán và gói đăng ký."
+      "billing_desc": "Quản lý thanh toán và gói đăng ký.",
+      "leave_desc": "settings.categories.leave_desc"
     },
     "navigation": "Điều hướng",
     "admin_only": "Chỉ dành cho quản trị viên",
@@ -3184,7 +3193,8 @@
     "messages": {
       "assign_error": "Không thể gán vai trò",
       "revoke_error": "Không thể thu hồi vai trò",
-      "revoke_success": "system_roles.messages.revoke_success"
+      "revoke_success": "system_roles.messages.revoke_success",
+      "assign_success": "system_roles.messages.assign_success"
     }
   },
   "status_active_caps": "ĐANG HOẠT ĐỘNG",

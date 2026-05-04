@@ -111,6 +111,7 @@ interface TableContentProps<T> {
   showChevron: boolean;
   skeletonRows: number;
   t: TFunction;
+  testIdPrefix?: string;
   visibleColumns: NavigableListColumn<T>[];
 }
 
@@ -134,6 +135,7 @@ function renderTableRow<T>({
   selectedKey,
   showActiveBar,
   showChevron,
+  testIdPrefix,
   visibleColumns,
 }: {
   index: number;
@@ -145,6 +147,7 @@ function renderTableRow<T>({
   selectedKey?: string | null;
   showActiveBar: boolean;
   showChevron: boolean;
+  testIdPrefix?: string;
   visibleColumns: NavigableListColumn<T>[];
 }) {
   const key = itemKey(item);
@@ -154,8 +157,9 @@ function renderTableRow<T>({
   return (
     <tr
       className={rowClass}
-      id={rowIdPrefix ? `${rowIdPrefix}-${key}` : undefined}
+      id={rowIdPrefix ? `${rowIdPrefix}-${index}` : undefined}
       key={key}
+      {...(testIdPrefix ? { "data-testid": `${testIdPrefix}-${index}` } : {})}
       onClick={() => { listNav.setFocusedIndex(index); onSelect(item); }}
       onMouseEnter={() => { listNav.setFocusedIndex(index); }}
       tabIndex={-1}
@@ -191,24 +195,31 @@ function NavigableListTableContent<T>({
   fetchNextPage,
   isFetchingNextPage,
   loadMoreRef,
+  testIdPrefix,
 }: TableContentProps<T>) {
   if (isLoading && items.length === 0) {
-    return <NavigableListSkeleton colSpan={colSpan} skeletonRows={skeletonRows} />;
+    return (
+      <tbody>
+        <NavigableListSkeleton colSpan={colSpan} skeletonRows={skeletonRows} />
+      </tbody>
+    );
   }
 
   if (items.length === 0) {
     return (
-      <tr>
-        <td className="px-8 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]" colSpan={colSpan}>
-          {emptyMessage ?? t("common.no_data")}
-        </td>
-      </tr>
+      <tbody>
+        <tr>
+          <td className="px-8 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]" colSpan={colSpan}>
+            {emptyMessage ?? t("common.no_data")}
+          </td>
+        </tr>
+      </tbody>
     );
   }
 
   return (
     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-      {items.map((item, index) => renderTableRow({ item, index, itemKey, listNav, onSelect, rowIdPrefix, selectedKey, showActiveBar, showChevron, visibleColumns }))}
+      {items.map((item, index) => renderTableRow({ item, index, itemKey, listNav, onSelect, rowIdPrefix, selectedKey, showActiveBar, showChevron, testIdPrefix, visibleColumns }))}
       {fetchNextPage ? (
         <InfiniteScrollSentinel
           colSpan={colSpan}
@@ -240,6 +251,7 @@ function NavigableListTable<T>({
   skeletonRows,
   stickyOffset,
   t,
+  testIdPrefix,
   visibleColumns,
 }: {
   colSpan: number;
@@ -265,6 +277,7 @@ function NavigableListTable<T>({
   skeletonRows: number;
   stickyOffset: number;
   t: TFunction;
+  testIdPrefix?: string;
   visibleColumns: NavigableListColumn<T>[];
 }) {
   return (
@@ -310,6 +323,7 @@ function NavigableListTable<T>({
             showChevron={showChevron}
             skeletonRows={skeletonRows}
             t={t}
+            testIdPrefix={testIdPrefix}
             visibleColumns={visibleColumns}
           />
         </table>
@@ -449,6 +463,7 @@ function NavigableListSearchContent({
       <input
         className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] pl-16 pr-8 py-5 text-sm font-bold shadow-sm focus:ring-4 focus:ring-primary-500/10 focus:border-primary-200 dark:focus:border-primary-800 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700"
         onChange={(e) => onSearchChange?.(e.target.value)}
+        onFocus={(e) => { e.target.select(); }}
         onKeyDown={listNav.onKeyDown}
         placeholder={searchPlaceholder}
         ref={searchInputRef}
@@ -543,6 +558,7 @@ export default function NavigableList<T>({
   headerSlot,
   onKeyDownRef,
   smartHeader = false,
+  testIdPrefix,
 }: NavigableListProps<T>) {
   const { t } = useTranslation();
   const { listNav, loadMoreRef } = useNavigableListInitialization({
@@ -581,7 +597,14 @@ export default function NavigableList<T>({
         stickySearchRef={stickySearchRef}
       />
 
-      {!isFullPage ? <NavigableListSearchContent {...searchProps} /> : null}
+      {!isFullPage ? (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex-1 max-w-2xl">
+            <NavigableListSearchContent {...searchProps} />
+          </div>
+          {headerSlot}
+        </div>
+      ) : null}
 
       <NavigableListTable
         colSpan={colSpan}
@@ -603,6 +626,7 @@ export default function NavigableList<T>({
         skeletonRows={skeletonRows}
         stickyOffset={stickyOffset}
         t={t}
+        testIdPrefix={testIdPrefix}
         visibleColumns={visibleColumns}
       />
     </div>

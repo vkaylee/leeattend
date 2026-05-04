@@ -120,7 +120,7 @@ All standard development tools run inside isolated Podman containers. You MUST e
 | SQLx/DB | `sqlx migrate run` | `./scripts/_sqlx.sh migrate run` | `apiserver_test` |
 | Testing | `npm run test` | `./test.sh <target>` | Multiple |
 
-- **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./git.sh` wrapper (e.g., `./git.sh commit -m "msg"`) to prevent PTY hangs during multi-line commits.
+- **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper (e.g., `./scripts/git.sh commit -m "msg"`) to prevent PTY hangs during multi-line commits.
 *❌ Failure Condition:* Running tools natively on the host bypasses container isolation. Proposing inline strings for tasks that the toolbox can handle is a P0 protocol violation.
 </priority_1_hermetic_toolbox>
 
@@ -211,7 +211,7 @@ All commands run **inside Podman containers**, never on the host. Internal utili
 | `./scripts/_cargo.sh <cmd>` | `cargo` | `apiserver_test` | Rust compilation, checks, clippy |
 | `./scripts/_npm.sh <cmd>` | `npm` | `web_test` | Node.js installs, builds, type checks |
 | `./scripts/_sqlx.sh <cmd>` | `sqlx` | `apiserver_test` | DB migrations, schema validation |
-| `./git.sh <cmd>` | `git` | Host | Safe Git operations (prevents PTY hangs) |
+| `./scripts/git.sh <cmd>` | `git` | Host | Safe Git operations (prevents PTY hangs) |
 | `./scripts/_sync-api.sh` | (manual) | Multiple | Generate TS types from OpenAPI |
 | `./test.sh all` | (orchestrator) | Multiple | Full test suite |
 

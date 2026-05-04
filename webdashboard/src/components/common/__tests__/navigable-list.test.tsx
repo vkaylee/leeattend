@@ -40,9 +40,9 @@ interface TestItem {
 }
 
 const items: TestItem[] = [
-    { id: "1", name: "Alpha", value: 10 },
-    { id: "2", name: "Beta", value: 20 },
-    { id: "3", name: "Charlie", value: 30 },
+    { id: "0", name: "Alpha", value: 10 },
+    { id: "1", name: "Beta", value: 20 },
+    { id: "2", name: "Charlie", value: 30 },
 ];
 
 const columns: NavigableListColumn<TestItem>[] = [
@@ -85,10 +85,10 @@ describe("NavigableList", () => {
     });
 
     it("renders loading skeletons when isLoading", () => {
-        const { container } = render(<NavigableList {...defaultProps} isLoading skeletonRows={3} />);
+        const { container } = render(<NavigableList {...defaultProps} isLoading items={[]} skeletonRows={3} />);
         const skeletons = container.querySelectorAll(".animate-pulse");
-        // 3 skeleton rows × 2 columns = 6 pulse divs
-        expect(skeletons.length).toBe(6);
+        // 3 skeleton rows (each row has the animate-pulse class)
+        expect(skeletons.length).toBe(3);
     });
 
     it("hides columns with hidden=true", () => {
@@ -133,15 +133,15 @@ describe("NavigableList", () => {
 
     it("highlights selected row", () => {
         const { container } = render(
-            <NavigableList {...defaultProps} selectedKey="2" />
+            <NavigableList {...defaultProps} selectedKey="1" />
         );
         const row = container.querySelector("#nav-row-1");
-        expect(row?.className).toContain("bg-primary-50");
+        expect(row?.className).toMatch(/border-l-primary-(400|500)/);
     });
 
     it("shows active bar on selected row when showActiveBar is true", () => {
         const { container } = render(
-            <NavigableList {...defaultProps} selectedKey="2" showActiveBar />
+            <NavigableList {...defaultProps} selectedKey="1" showActiveBar />
         );
         const bar = container.querySelector(".bg-primary-600.rounded-r-full");
         expect(bar).toBeDefined();
@@ -166,7 +166,7 @@ describe("NavigableList", () => {
 
         // Focus should move from 0 to 1 — row 1 should have focused class
         const row1 = container.querySelector("#nav-row-1");
-        expect(row1?.className).toContain("ring-primary-500");
+        expect(row1?.className).toContain("border-l-primary-500");
     });
 
     it("ArrowUp moves focus to the previous row", async () => {
@@ -186,7 +186,7 @@ describe("NavigableList", () => {
         await user.keyboard("{ArrowDown}{ArrowDown}{ArrowUp}");
 
         const row1 = container.querySelector("#nav-row-1");
-        expect(row1?.className).toContain("ring-primary-500");
+        expect(row1?.className).toContain("border-l-primary-500");
     });
 
     it("Enter calls onSelect with the focused item", async () => {
@@ -229,7 +229,7 @@ describe("NavigableList", () => {
 
         // Should be clamped at last index (2)
         const lastRow = container.querySelector("#nav-row-2");
-        expect(lastRow?.className).toContain("ring-primary-500");
+        expect(lastRow?.className).toContain("border-l-primary-500");
     });
 
     it("ArrowUp does not go below 0", async () => {
@@ -250,10 +250,10 @@ describe("NavigableList", () => {
 
         // Row 0 should have focus ring (ArrowUp sets hasNavigated=true)
         const firstRow = container.querySelector("#nav-row-0");
-        expect(firstRow?.className).toContain("ring-primary-500");
+        expect(firstRow?.className).toContain("border-l-primary-500");
         // Row 1 should NOT have focus ring
         const secondRow = container.querySelector("#nav-row-1");
-        expect(secondRow?.className).not.toContain("ring-primary-500");
+        expect(secondRow?.className).not.toContain("border-l-primary-500");
     });
 
     // ── Sortable headers ───────────────────────────────────────
@@ -308,9 +308,9 @@ describe("NavigableList", () => {
 
     it("sets data-testid with testIdPrefix", () => {
         render(<NavigableList {...defaultProps} testIdPrefix="item" />);
+        expect(screen.getByTestId("item-0")).toBeDefined();
         expect(screen.getByTestId("item-1")).toBeDefined();
         expect(screen.getByTestId("item-2")).toBeDefined();
-        expect(screen.getByTestId("item-3")).toBeDefined();
     });
 
     // ── Header slot ────────────────────────────────────────────

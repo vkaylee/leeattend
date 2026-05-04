@@ -123,7 +123,7 @@ function AgentHeader({
         onKeyDown={e => { e.stopPropagation(); }}
         role="none"
       >
-        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={() => { onEdit(agent); }}>
+        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-edit-${agent.id}`} onClick={() => { onEdit(agent); }}>
           <Pencil size={18} />
         </button>
         <button
@@ -133,11 +133,12 @@ function AgentHeader({
               ? "text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 bg-white dark:bg-slate-900"
               : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
           )}
+          data-testid={`agent-trust-toggle-${agent.id}`}
           onClick={onToggleTrust}
         >
           {agent.is_trusted ? t("common.revoke") : t("common.approve")}
         </button>
-        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" onClick={onDelete}>
+        <button className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" data-testid={`agent-delete-${agent.id}`} onClick={onDelete}>
           <Trash2 size={18} />
         </button>
       </div>

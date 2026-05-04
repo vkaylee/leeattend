@@ -18,7 +18,7 @@ vi.mock("@/lib/api/leaves", () => ({
       id: "policy-1",
       name: "Annual Leave",
       leave_type_id: "type-1",
-      rule_config: { accrual_amount: 1, frequency: "monthly" }
+      rule_config: { accrual_amount: 1, frequency: "monthly", seniority_bonus: [] }
     }
   ]),
   fetchLeaveTypes: vi.fn().mockResolvedValue([

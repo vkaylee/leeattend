@@ -763,7 +763,6 @@
     "primary_color": "Primary Color",
     "colors": {
       "primary": "Primary",
-      "primary": "Primary",
       "blue": "Blue",
       "emerald": "Emerald",
       "amber": "Amber",
@@ -1148,7 +1147,9 @@
     "public_holidays": "Public Holidays",
     "security_events": "Security Events",
     "set": "Set",
-    "assign": "Assign"
+    "assign": "Assign",
+    "delete_confirm": "common.delete_confirm",
+    "present": "common.present"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1693,7 +1694,13 @@
         "early_leave": "Early Leave",
         "late_in": "Late In",
         "breastfeeding": "Breastfeeding Break"
-      }
+      },
+      "add_condition": "employees.policies.add_condition",
+      "type_label": "employees.policies.type_label",
+      "conditions_title": "employees.policies.conditions_title",
+      "conditions_desc": "employees.policies.conditions_desc",
+      "delete_warning": "employees.policies.delete_warning",
+      "no_conditions": "employees.policies.no_conditions"
     },
     "salary": {
       "title": "Update Salary",
@@ -2596,7 +2603,8 @@
     },
     "validation": {
       "required_fields": "Name and Pattern are required"
-    }
+    },
+    "confirm_delete_msg": "rules.confirm_delete_msg"
   },
   "shifts": {
     "title": "Scheduling System",
@@ -2797,7 +2805,8 @@
       "payroll_desc": "Manage standard work days and formulas.",
       "connectivity_desc": "Manage device connections and network.",
       "leave": "Leave Management",
-      "billing_desc": "Manage billing and subscriptions."
+      "billing_desc": "Manage billing and subscriptions.",
+      "leave_desc": "settings.categories.leave_desc"
     },
     "navigation": "Navigation",
     "admin_only": "Administrators only",
@@ -3187,7 +3196,8 @@
     "messages": {
       "assign_error": "Failed to assign role",
       "revoke_error": "Failed to revoke role",
-      "revoke_success": "system_roles.messages.revoke_success"
+      "revoke_success": "system_roles.messages.revoke_success",
+      "assign_success": "system_roles.messages.assign_success"
     }
   }
 }

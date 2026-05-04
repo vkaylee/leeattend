@@ -147,7 +147,8 @@ export const PermissionTableRow = ({
       </td>
 
       {visibleRoles.map((role) => {
-        const isChecked = permissions[role.id].includes(perm.id);
+        const rolePermissions = (permissions[role.id] as string[] | undefined) ?? [];
+        const isChecked = rolePermissions.includes(perm.id);
         const isSystem = role.is_system;
 
         return (

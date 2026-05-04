@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { ToastProvider } from "@/components/ui/toast";
 
@@ -13,27 +13,35 @@ import WorkingConditionConfig from "../working-condition-config";
 
 // Mock API
 const mockDelete = vi.fn().mockResolvedValue(undefined);
-vi.mock("@/lib/api/employees", () => ({
-  fetchWorkingConditions: vi.fn().mockResolvedValue([
-    {
-      id: "cond-1",
-      type: "EARLY_LEAVE",
-      minute_allowance: 60,
-      is_paid: true,
-      start_date: "2026-01-01"
-    }
-  ]),
-  createWorkingCondition: vi.fn(),
- 
-  deleteWorkingCondition: (wsId: string, employeeId: string, id: string) => mockDelete(wsId, employeeId, id) as Promise<void>
+vi.stubGlobal("fetch", vi.fn((url: string, options?: RequestInit) => {
+  if (options?.method === "DELETE") {
+    mockDelete("ws-1", "emp-1", "cond-1");
+    return Promise.resolve({ ok: true });
+  }
+  if (options?.method === "POST") {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: "cond-2", type: "EARLY_LEAVE", start_date: "2026-01-01", is_paid: true }) });
+  }
+  // GET
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve([
+      {
+        id: "cond-1",
+        type: "EARLY_LEAVE",
+        minute_allowance: 60,
+        is_paid: true,
+        start_date: "2026-01-01"
+      }
+    ])
+  });
 }));
 
 // Mock translation
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => {
-      if (key === "common.confirm_delete") return "Delete policy?";
-      if (key === "common.warning") return "Warning";
+      if (key === "common.delete_confirm") return "Warning";
+      if (key === "employees.policies.delete_warning") return "Delete policy?";
       if (key === "common.confirm") return "Confirm";
       if (key === "employees.policies.types.early_leave") return "Early Leave";
       return key;
@@ -58,6 +66,10 @@ const renderComponent = (props: { wsId: string; employeeId: string }) => {
 describe("WorkingConditionConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("should show useConfirm dialog when deleting a condition", async () => {

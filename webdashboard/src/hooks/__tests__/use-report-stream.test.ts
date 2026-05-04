@@ -56,14 +56,16 @@ describe("useReportStream Hook", () => {
   });
 
   describe("State Transitions with jobId Changes", () => {
-    it("should reset state when jobId becomes null", () => {
+    it("should reset state when jobId becomes null", async () => {
       const { result, rerender } = renderHook<UseReportStreamResult, { jobId: string | null }>(
         ({ jobId }) => useReportStream({ jobId }),
         { initialProps: { jobId: "test-job" } }
       );
 
       // When jobId is set, it will try to connect
-      expect(result.current.status).toMatch(/connecting|error/);
+      await waitFor(() => {
+        expect(result.current.status).toMatch(/connecting|error/);
+      });
 
       // Change to null
       rerender({ jobId: null });
@@ -75,15 +77,16 @@ describe("useReportStream Hook", () => {
       expect(result.current.error).toBeNull();
     });
 
-    it("should reset chunks and progress on new jobId", () => {
+    it("should reset chunks and progress on new jobId", async () => {
       // Manually set up the state transition without relying on actual WebSocket
       const { result, rerender } = renderHook<UseReportStreamResult, { jobId: string | null }>(
         ({ jobId }) => useReportStream({ jobId }),
         { initialProps: { jobId: "job-1" } }
       );
 
-      const initialStatus = result.current.status;
-      expect(initialStatus).toMatch(/connecting|streaming|error/);
+      await waitFor(() => {
+        expect(result.current.status).toMatch(/connecting|streaming|error/);
+      });
 
       // Change to different job
       rerender({ jobId: "job-2" });
@@ -268,7 +271,7 @@ describe("useReportStream Hook", () => {
       }).not.toThrow();
     });
 
-    it("should allow remounting after unmount", () => {
+    it("should allow remounting after unmount", async () => {
       const { unmount } = renderHook(() =>
         useReportStream({ jobId: "test-job" })
       );
@@ -280,7 +283,9 @@ describe("useReportStream Hook", () => {
         useReportStream({ jobId: "new-job" })
       );
 
-      expect(result.current.status).toMatch(/connecting|error/);
+      await waitFor(() => {
+        expect(result.current.status).toMatch(/connecting|error/);
+      });
     });
   });
 
@@ -354,28 +359,40 @@ describe("useReportStream Hook", () => {
       localStorage.clear();
     });
 
-    it("should include auth token in WebSocket URL when available", () => {
+    it("should include auth token in WebSocket URL when available", async () => {
       localStorage.setItem("access_token", "test-jwt-token-123");
 
       renderHook(() => useReportStream({ jobId: "job-abc" }));
+
+      await waitFor(() => {
+        expect(capturedUrl).toBeDefined();
+      });
 
       expect(capturedUrl).toContain("?token=test-jwt-token-123");
       expect(capturedUrl).toContain("/api/ws/reports/job-abc");
     });
 
-    it("should not include token param when no auth token exists", () => {
+    it("should not include token param when no auth token exists", async () => {
       localStorage.removeItem("access_token");
 
       renderHook(() => useReportStream({ jobId: "job-xyz" }));
+
+      await waitFor(() => {
+        expect(capturedUrl).toBeDefined();
+      });
 
       expect(capturedUrl).toContain("/api/ws/reports/job-xyz");
       expect(capturedUrl).not.toContain("?token=");
     });
 
-    it("should URL-encode special characters in token", () => {
+    it("should URL-encode special characters in token", async () => {
       localStorage.setItem("access_token", "token+with spaces&special=chars");
 
       renderHook(() => useReportStream({ jobId: "job-enc" }));
+
+      await waitFor(() => {
+        expect(capturedUrl).toBeDefined();
+      });
 
       expect(capturedUrl).toContain("?token=");
       // encodeURIComponent encodes + as %2B and spaces as %20
@@ -385,7 +402,7 @@ describe("useReportStream Hook", () => {
   });
 
   describe("StatusRef Stale Closure Fix", () => {
-    it("should not attempt reconnect when status is completed", () => {
+    it("should not attempt reconnect when status is completed", async () => {
       // The fix uses statusRef.current instead of captured status.
       // When status is "completed", onclose should NOT retry.
       const { result } = renderHook<UseReportStreamResult, { jobId: string | null }>(
@@ -396,7 +413,9 @@ describe("useReportStream Hook", () => {
 
       // After completion, reconnect should not change status back to connecting
       // (This test validates the ref-based check prevents stale closure issues)
-      expect(result.current.status).toMatch(/connecting|streaming|error/);
+      await waitFor(() => {
+        expect(result.current.status).toMatch(/connecting|streaming|error/);
+      });
     });
 
     it("should preserve reconnect function stability across renders", () => {
@@ -449,7 +468,7 @@ describe("useReportStream Hook", () => {
       expect(result.current.chunks).toEqual([]);
     });
 
-    it("should handle maxRetries=0 without infinite loops", () => {
+    it("should handle maxRetries=0 without infinite loops", async () => {
       const onError = vi.fn();
 
       const { result } = renderHook(() =>
@@ -462,7 +481,9 @@ describe("useReportStream Hook", () => {
 
       // With 0 retries, should immediately error on connection failure
       // (not loop infinitely due to stale status check)
-      expect(result.current.status).toMatch(/connecting|error/);
+      await waitFor(() => {
+        expect(result.current.status).toMatch(/connecting|error/);
+      });
     });
   });
 
@@ -522,8 +543,11 @@ describe("useReportStream Hook", () => {
 
       renderHook(() => useReportStream({ jobId: "test-job" }));
 
+      await waitFor(() => {
+        expect(mockOnClose).not.toBeNull();
+      });
+
       // Simulate auth failure: WS close with code 1006 while still connecting
-      expect(mockOnClose).not.toBeNull();
       act(() => {
         mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
       });
@@ -550,6 +574,10 @@ describe("useReportStream Hook", () => {
 
       renderHook(() => useReportStream({ jobId: "test-job" }));
 
+      await waitFor(() => {
+        expect(mockOnClose).not.toBeNull();
+      });
+
       act(() => {
         mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
       });
@@ -571,6 +599,10 @@ describe("useReportStream Hook", () => {
 
       renderHook(() => useReportStream({ jobId: "test-job" }));
 
+      await waitFor(() => {
+        expect(mockOnClose).not.toBeNull();
+      });
+
       act(() => {
         mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
       });
@@ -582,7 +614,7 @@ describe("useReportStream Hook", () => {
       });
     });
 
-    it("should NOT attempt token refresh on normal close codes (1000, 1001)", () => {
+    it("should NOT attempt token refresh on normal close codes (1000, 1001)", async () => {
       localStorage.setItem("access_token", "valid-jwt");
       localStorage.setItem("refresh_token", "valid-refresh-token");
 
@@ -590,6 +622,10 @@ describe("useReportStream Hook", () => {
       vi.stubGlobal("fetch", mockFetch);
 
       renderHook(() => useReportStream({ jobId: "test-job", maxRetries: 0 }));
+
+      await waitFor(() => {
+        expect(mockOnClose).not.toBeNull();
+      });
 
       // Simulate normal close (1000 = normal closure)
       act(() => {
@@ -600,7 +636,7 @@ describe("useReportStream Hook", () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it("should NOT attempt refresh on 1006 if already past connecting state", () => {
+    it("should NOT attempt refresh on 1006 if already past connecting state", async () => {
       localStorage.setItem("access_token", "valid-jwt");
       localStorage.setItem("refresh_token", "valid-refresh-token");
 
@@ -608,6 +644,10 @@ describe("useReportStream Hook", () => {
       vi.stubGlobal("fetch", mockFetch);
 
       renderHook(() => useReportStream({ jobId: "test-job", maxRetries: 1 }));
+
+      await waitFor(() => {
+        expect(mockOnOpen).not.toBeNull();
+      });
 
       // First: simulate successful open (transitions from connecting → streaming)
       act(() => {
@@ -638,6 +678,10 @@ describe("useReportStream Hook", () => {
 
       renderHook(() => useReportStream({ jobId: "test-job" }));
 
+      await waitFor(() => {
+        expect(capturedUrl).toBeDefined();
+      });
+
       const firstUrl = capturedUrl;
       expect(firstUrl).toContain("token=expired-jwt");
 
@@ -661,6 +705,10 @@ describe("useReportStream Hook", () => {
       vi.stubGlobal("fetch", mockFetch);
 
       renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      await waitFor(() => {
+        expect(mockOnClose).not.toBeNull();
+      });
 
       act(() => {
         mockOnClose!({ code: 1006, reason: "" } as CloseEvent);
@@ -708,8 +756,12 @@ describe("useReportStream Hook", () => {
       vi.unstubAllGlobals();
     });
 
-    it("should start a 30s ping interval on open", () => {
+    it("should start a 30s ping interval on open", async () => {
       renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      await act(async () => {
+        await Promise.resolve();
+      });
 
       act(() => {
         if (mockOnOpen) mockOnOpen();
@@ -730,8 +782,12 @@ describe("useReportStream Hook", () => {
       expect(mockSend).toHaveBeenCalledTimes(2);
     });
 
-    it("should clear ping interval on unmount", () => {
+    it("should clear ping interval on unmount", async () => {
       const { unmount } = renderHook(() => useReportStream({ jobId: "test-job" }));
+
+      await act(async () => {
+        await Promise.resolve();
+      });
 
       act(() => {
         if (mockOnOpen) mockOnOpen();

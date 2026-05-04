@@ -102,8 +102,7 @@ describe("DeviceListItem", () => {
     expect(logsValue).toContain("--");
   });
 
-  it("renders 'N/A' when logs_count is null or invalid", () => {
- 
+  it("renders '--' when logs_count is null or invalid", () => {
     const statusWithNull: DeviceStatus = {
       ...mockStatus,
       info: { ...mockStatus.info!, logs_count: null as unknown as number }
@@ -119,7 +118,7 @@ describe("DeviceListItem", () => {
       </ToastProvider>
     );
     const logsValue = screen.getByText(LOGS_LABEL).nextElementSibling?.textContent;
-    expect(logsValue).toContain("N/A");
+    expect(logsValue).toContain("--");
   });
 
   it("renders '0' when logs_count is exactly 0", () => {

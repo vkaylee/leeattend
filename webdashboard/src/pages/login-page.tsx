@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const from = (location.state as { from?: string }).from ?? ROUTES.HOME;
+  const from = (location.state as { from?: string } | null)?.from ?? ROUTES.HOME;
 
   const userId = getCurrentUserId();
  

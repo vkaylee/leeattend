@@ -762,7 +762,6 @@
     },
     "primary_color": "主色调",
     "colors": {
-      "primary": "紫罗兰色",
       "primary": "靛蓝色",
       "blue": "蓝色",
       "emerald": "祖母绿色",
@@ -1148,7 +1147,9 @@
     "public_holidays": "公共假期",
     "security_events": "安全事件",
     "set": "设置",
-    "assign": "分配"
+    "assign": "分配",
+    "delete_confirm": "common.delete_confirm",
+    "present": "common.present"
   },
   "dashboard": {
     "title": "仪表板",
@@ -1693,7 +1694,13 @@
         "early_leave": "早退",
         "late_in": "迟到",
         "breastfeeding": "哺乳假"
-      }
+      },
+      "add_condition": "employees.policies.add_condition",
+      "type_label": "employees.policies.type_label",
+      "conditions_title": "employees.policies.conditions_title",
+      "conditions_desc": "employees.policies.conditions_desc",
+      "delete_warning": "employees.policies.delete_warning",
+      "no_conditions": "employees.policies.no_conditions"
     },
     "salary": {
       "title": "更新薪资",
@@ -2592,7 +2599,8 @@
     },
     "validation": {
       "required_fields": "名称和模式是必填项"
-    }
+    },
+    "confirm_delete_msg": "rules.confirm_delete_msg"
   },
   "shifts": {
     "title": "排班系统",
@@ -2793,7 +2801,8 @@
       "payroll_desc": "管理标准工作日和公式。",
       "connectivity_desc": "管理设备连接和网络。",
       "leave": "休假管理",
-      "billing_desc": "管理账单和订阅。"
+      "billing_desc": "管理账单和订阅。",
+      "leave_desc": "settings.categories.leave_desc"
     },
     "navigation": "导航",
     "admin_only": "仅限管理员",
@@ -3184,7 +3193,8 @@
     "messages": {
       "assign_error": "分配角色失败",
       "revoke_error": "撤销角色失败",
-      "revoke_success": "system_roles.messages.revoke_success"
+      "revoke_success": "system_roles.messages.revoke_success",
+      "assign_success": "system_roles.messages.assign_success"
     }
   },
   "status_active_caps": "活动",

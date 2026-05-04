@@ -457,13 +457,7 @@ describe("EmployeesPage", () => {
 
         await waitFor(() => {
             expect(api.searchEmployees).toHaveBeenCalledWith(
-                expect.anything(),
-                expect.anything(),
-                expect.anything(),
-                expect.anything(),
-                expect.anything(),
-                expect.anything(),
-                expect.arrayContaining(["dept-1"])
+                expect.objectContaining({ departmentIds: ["dept-1"] })
             );
         });
     });
@@ -486,13 +480,7 @@ describe("EmployeesPage", () => {
 
         await waitFor(() => {
             expect(api.searchEmployees).toHaveBeenCalledWith(
-                expect.anything(),
-                expect.anything(),
-                expect.anything(),
-                expect.anything(),
-                expect.anything(),
-                expect.anything(),
-                expect.arrayContaining(["dept-1", "dept-2"])
+                expect.objectContaining({ departmentIds: ["dept-1", "dept-2"] })
             );
         });
     });

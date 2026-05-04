@@ -15,7 +15,7 @@ export function useWorkspacePermissionsPage() {
   const { hasPermission } = useMyPermissions();
   const hasManagePermission = hasPermission("members:roles:manage");
 
-  const [permissions, setPermissions] = useState<Record<string, string[]>>({});
+  const [permissions, setPermissions] = useState<Record<string, string[]>>(matrix);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hiddenRoleIds, setHiddenRoleIds] = useState<string[]>([]);
@@ -61,7 +61,7 @@ export function useWorkspacePermissionsPage() {
     if (role.is_system || !hasManagePermission) return;
 
     setPermissions((previous) => {
-      const rolePerms = previous[role.id];
+      const rolePerms = (previous[role.id] as string[] | undefined) ?? [];
       const newPerms = rolePerms.includes(permId) 
         ? rolePerms.filter((p) => p !== permId) 
         : [...rolePerms, permId];
@@ -76,13 +76,13 @@ export function useWorkspacePermissionsPage() {
     setIsSaving(true);
     try {
       const modifiedRoles = roles.filter((role) => {
-        const initial = matrix[role.id];
-        const current = permissions[role.id];
+        const initial = (matrix[role.id] as string[] | undefined) ?? [];
+        const current = (permissions[role.id] as string[] | undefined) ?? [];
         return initial.length !== current.length || !initial.every((p) => current.includes(p));
       });
 
       await Promise.all(
-        modifiedRoles.map((role) => updateRolePermissions(wsId, role.id, permissions[role.id]))
+        modifiedRoles.map((role) => updateRolePermissions(wsId, role.id, (permissions[role.id] as string[] | undefined) ?? []))
       );
 
       setHasChanges(false);

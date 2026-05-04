@@ -109,6 +109,12 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
+  const handleClose = () => {
+    setSelectedEmpId(""); setDurationType("full_day");
+    setStartTime(""); setEndTime(""); setStartDate(""); setEndDate("");
+    onClose();
+  };
+
   const { data: balances = [] } = useQuery({ 
     queryKey: ["leave-balances", wsId, selectedEmpId], 
     queryFn: () => fetchEmployeeLeaveBalances(wsId, selectedEmpId), 
@@ -123,13 +129,7 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
     mutationFn: (data: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string; duration_type?: LeaveDurationType; start_time?: string; end_time?: string }) => submitLeaveRequest(wsId, data),
     onSuccess: () => { 
       void queryClient.invalidateQueries({ queryKey: ["leave-requests"] }); 
-      onClose(); 
-      setSelectedEmpId("");
-      setDurationType("full_day"); 
-      setStartTime(""); 
-      setEndTime(""); 
-      setStartDate(""); 
-      setEndDate(""); 
+      handleClose();
       toast.success(t("common.success")); 
     },
   });
@@ -155,7 +155,7 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
   };
 
   return (
-    <Modal icon={<CalendarDays size={24} />} isOpen={isOpen} maxWidth="md" onClose={onClose} subtitle={t("leave_requests.modal.submit_subtitle")} title={t("leave_requests.modal.submit_title")}>
+    <Modal icon={<CalendarDays size={24} />} isOpen={isOpen} maxWidth="md" onClose={handleClose} subtitle={t("leave_requests.modal.submit_subtitle")} title={t("leave_requests.modal.submit_title")}>
       <form className="space-y-8 pt-4" onSubmit={handleSubmit}>
         <div className="space-y-3 px-1">
           <label className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1" htmlFor="leave-emp">{t("common.employee")}</label>
@@ -196,7 +196,7 @@ export function CreateLeaveRequestModal({ isOpen, onClose, wsId, leaveTypes, t }
 
         <FormField id="leave-reason" inputClassName="text-primary-700 dark:text-primary-300 border-primary-100 dark:border-primary-800/50" label={t("common.reason")} name="reason" placeholder={t("leave_requests.modal.reason_placeholder")} rows={3} type="textarea" />
         <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50 dark:border-slate-800">
-          <Button onClick={onClose} size="lg" type="button" variant="outline">{t("common.cancel").toUpperCase()}</Button>
+          <Button onClick={handleClose} size="lg" type="button" variant="outline">{t("common.cancel").toUpperCase()}</Button>
           <Button size="lg" type="submit" variant="primary">{t("leave_requests.modal.submit_btn").toUpperCase()}</Button>
         </div>
       </form>

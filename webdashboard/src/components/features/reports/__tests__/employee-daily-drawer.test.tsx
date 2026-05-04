@@ -169,16 +169,15 @@ describe("EmployeeDailyDrawer", () => {
 
         // Check if API was called
         await waitFor(() => {
-            expect(api.fetchAttendanceReport).toHaveBeenCalledWith(
-                "ws-1",
-                "2026-01-01",
-                "2026-01-31",
-                "daily",
-                1,
-                100,
-                undefined,
-                ["emp-1"]
-            );
+            expect(api.fetchAttendanceReport).toHaveBeenCalledWith({
+                wsId: "ws-1",
+                start: "2026-01-01",
+                end: "2026-01-31",
+                type: "daily",
+                page: 1,
+                limit: 100,
+                employeeIds: ["emp-1"]
+            });
         });
 
         // Wait for the table row to render

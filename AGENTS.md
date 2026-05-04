@@ -30,7 +30,7 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 
 | Command | Why |
 |---------|-----|
-| `./git.sh commit`, `./git.sh push` | Replaces `git` directly. GPG agent and multi-line strings hold PTY |
+| `./scripts/git.sh commit`, `./scripts/git.sh push` | Replaces `git` directly. GPG agent and multi-line strings hold PTY |
 | `podman-compose up/down/exec/build` | Podman CLI spawns children |
 | Any script with `&` (background jobs) | Background process inherits PTY |
 | Any `tail -f` in background | Pipe buffer + `grep` keeps PTY fd open |
@@ -43,7 +43,7 @@ PTY FDs open, the PTY master never sees EOF → infinite hang.
 
 ```bash
 # ✅ Correct — Use the git wrapper to avoid PTY hangs with multi-line messages
-AGENT_MODE=1 ./git.sh commit -m "message"
+AGENT_MODE=1 ./scripts/git.sh commit -m "message"
 podman-compose down </dev/null
 ./test.sh api </dev/null
 git --no-pager log -n 5

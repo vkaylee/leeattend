@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import React from "react";
 
 import { describe, it, expect, vi } from "vitest";
@@ -52,7 +52,7 @@ const TestComponent = ({ onResult }: { onResult: (res: boolean) => void }) => {
 };
 
 describe("useConfirm Hook", () => {
-  it("resolves to true when confirm is clicked", () => {
+  it("resolves to true when confirm is clicked", async () => {
     const onResult = vi.fn();
     render(<TestComponent onResult={onResult} />, { wrapper: createWrapper() });
 
@@ -71,10 +71,10 @@ describe("useConfirm Hook", () => {
       fireEvent.click(screen.getByText("Yes"));
     });
 
-    expect(onResult).toHaveBeenCalledWith(true);
+    await waitFor(() => { expect(onResult).toHaveBeenCalledWith(true); });
   });
 
-  it("resolves to false when cancel is clicked", () => {
+  it("resolves to false when cancel is clicked", async () => {
     const onResult = vi.fn();
     render(<TestComponent onResult={onResult} />, { wrapper: createWrapper() });
 
@@ -88,6 +88,6 @@ describe("useConfirm Hook", () => {
       fireEvent.click(screen.getByText("No"));
     });
 
-    expect(onResult).toHaveBeenCalledWith(false);
+    await waitFor(() => { expect(onResult).toHaveBeenCalledWith(false); });
   });
 });
