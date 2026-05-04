@@ -96,9 +96,8 @@ impl MemberContext {
         self.require_permission(perm)?;
 
         // Global scope
-        let allowed_depts = match &self.managed_department_ids {
-            None => return Ok(()),
-            Some(depts) => depts,
+        let Some(allowed_depts) = &self.managed_department_ids else {
+            return Ok(());
         };
 
         // Scoped check
@@ -127,9 +126,8 @@ impl MemberContext {
         }
 
         // Global scope
-        let allowed_depts = match &self.managed_department_ids {
-            None => return Ok(()),
-            Some(depts) => depts,
+        let Some(allowed_depts) = &self.managed_department_ids else {
+            return Ok(());
         };
 
         // Scoped check

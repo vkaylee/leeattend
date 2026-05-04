@@ -200,12 +200,9 @@ impl JobWorker {
             }
 
             // Acquire semaphore permit (blocks if at capacity)
-            let permit = match Arc::clone(&semaphore).acquire_owned().await {
-                Ok(p) => p,
-                Err(_) => {
-                    error!("Semaphore closed unexpectedly");
-                    break;
-                }
+            let Ok(permit) = Arc::clone(&semaphore).acquire_owned().await else {
+                error!("Semaphore closed unexpectedly");
+                break;
             };
 
             // Poll for job (with cancellation check)

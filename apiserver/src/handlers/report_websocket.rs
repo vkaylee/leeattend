@@ -53,11 +53,8 @@ pub async fn ws_auth_middleware(
         }
     }
 
-    let token = match token_opt.as_deref() {
-        Some(t) => t,
-        None => {
-            return (StatusCode::UNAUTHORIZED, "Missing authentication token").into_response();
-        }
+    let Some(token) = token_opt.as_deref() else {
+        return (StatusCode::UNAUTHORIZED, "Missing authentication token").into_response();
     };
 
     match crate::services::auth_service::AuthService::verify_token(token, &state.core.jwt_secret) {
@@ -235,7 +232,7 @@ async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::que
                                     let _ = sender.close().await;
                                     break;
                                 }
-                                _ => {}
+                                StreamMessage::Chunk { .. } => {}
                             }
                         }
                         None => {

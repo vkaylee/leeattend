@@ -154,16 +154,13 @@ pub async fn bulk_upload_paper_ot(
         }
 
         // Parse date
-        let date = match NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
-            Ok(d) => d,
-            Err(_) => {
-                errors.push(BulkOtEntryError {
-                    line_number,
-                    employee_id: employee_id_str,
-                    error_message: format!("Invalid date format: {date_str}. Expected YYYY-MM-DD"),
-                });
-                continue;
-            }
+        let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") else {
+            errors.push(BulkOtEntryError {
+                line_number,
+                employee_id: employee_id_str,
+                error_message: format!("Invalid date format: {date_str}. Expected YYYY-MM-DD"),
+            });
+            continue;
         };
 
         // Check future date
@@ -178,16 +175,13 @@ pub async fn bulk_upload_paper_ot(
         }
 
         // Parse minutes
-        let minutes: i32 = match minutes_str.parse() {
-            Ok(m) => m,
-            Err(_) => {
-                errors.push(BulkOtEntryError {
-                    line_number,
-                    employee_id: employee_id_str,
-                    error_message: format!("Invalid minutes value: {minutes_str}"),
-                });
-                continue;
-            }
+        let Ok(minutes) = minutes_str.parse::<i32>() else {
+            errors.push(BulkOtEntryError {
+                line_number,
+                employee_id: employee_id_str,
+                error_message: format!("Invalid minutes value: {minutes_str}"),
+            });
+            continue;
         };
 
         // Validate minutes
@@ -223,29 +217,31 @@ pub async fn bulk_upload_paper_ot(
         seen_keys.insert(key);
 
         // Find employee by employee_id_number
-        let employee = match state
+        let Some(employee) = (match state
             .employees
             .repo
             .get_employee_by_id_number(&employee_id_str, ctx.workspace_id)
             .await
         {
-            Ok(Some(emp)) => emp,
+            Ok(Some(emp)) => Some(emp),
             Ok(None) => {
                 errors.push(BulkOtEntryError {
                     line_number,
-                    employee_id: employee_id_str,
+                    employee_id: employee_id_str.clone(),
                     error_message: "Employee not found in workspace".to_string(),
                 });
-                continue;
+                None
             }
             Err(e) => {
                 errors.push(BulkOtEntryError {
                     line_number,
-                    employee_id: employee_id_str,
+                    employee_id: employee_id_str.clone(),
                     error_message: format!("Database error: {e}"),
                 });
-                continue;
+                None
             }
+        }) else {
+            continue;
         };
 
         // Validate against system_detected_ot_minutes

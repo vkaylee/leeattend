@@ -118,18 +118,14 @@ impl AttendanceImportService {
     }
 
     async fn process_job(&self, job_id: Uuid) -> Result<(), ()> {
-        let job = match self.import_repo.get_job_by_id(job_id).await {
-            Ok(Some(j)) => j,
-            _ => return Err(()),
+        let Ok(Some(job)) = self.import_repo.get_job_by_id(job_id).await else {
+            return Err(());
         };
 
-        let workspace = match self
+        let Ok(Some(workspace)) = self
             .workspace_repo
             .get_workspace_by_id(job.workspace_id)
-            .await
-        {
-            Ok(Some(ws)) => ws,
-            _ => {
+            .await else {
                 error!("WORKSPACE_NOT_FOUND for job {}", job_id);
                 let _ = self
                     .import_repo
@@ -141,8 +137,7 @@ impl AttendanceImportService {
                     )
                     .await;
                 return Err(());
-            }
-        };
+            };
 
         let date_format = workspace.date_format.clone();
         let time_format = workspace.time_format.clone();
@@ -154,9 +149,8 @@ impl AttendanceImportService {
             return self.process_employee_job(job_id, &job, &msgs).await;
         }
 
-        let file_path = match &job.file_path {
-            Some(p) => p,
-            None => return Err(()),
+        let Some(file_path) = &job.file_path else {
+            return Err(());
         };
 
         let file_bytes = match tokio::fs::read(file_path).await {
@@ -371,9 +365,8 @@ impl AttendanceImportService {
             _ => Tz::UTC,
         };
 
-        let file_path = match &job.file_path {
-            Some(p) => p,
-            None => return Err(()),
+        let Some(file_path) = &job.file_path else {
+            return Err(());
         };
 
         let file_bytes = match tokio::fs::read(file_path).await {
@@ -659,20 +652,16 @@ impl AttendanceImportService {
         punch_time_utc: DateTime<Utc>,
     ) -> Result<usize, AppError> {
         let pool = self.pool.clone();
-        let employee = match self
+        let Ok(Some(employee)) = self
             .employee_repo
             .get_employee_by_id_number(emp_id_number, job.workspace_id)
-            .await
-        {
-            Ok(Some(emp)) => emp,
-            _ => {
+            .await else {
                 error!(
                     "EMPLOYEE_NOT_FOUND: {} in WS {}",
                     emp_id_number, job.workspace_id
                 );
                 return Ok(0);
-            }
-        };
+            };
 
         if job.target_type == "log" {
             let te_repo = Arc::clone(&self.time_entry_repo);

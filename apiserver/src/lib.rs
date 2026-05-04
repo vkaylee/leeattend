@@ -6,7 +6,6 @@
     clippy::needless_raw_string_hashes,
     clippy::needless_raw_strings,
     clippy::too_many_lines,
-    clippy::manual_let_else,
     clippy::single_match_else,
     clippy::ignored_unit_patterns,
     clippy::cast_possible_truncation,
@@ -26,7 +25,6 @@
     clippy::unreadable_literal,
     clippy::implicit_hasher,
     clippy::trivially_copy_pass_by_ref,
-    clippy::match_wildcard_for_single_variants,
     clippy::let_underscore_untyped,
     clippy::default_trait_access,
     clippy::semicolon_if_nothing_returned,
@@ -67,6 +65,8 @@
 #![deny(clippy::if_same_then_else)]
 #![deny(clippy::implicit_clone)]
 #![deny(clippy::inefficient_to_string)]
+#![deny(clippy::manual_let_else)]
+#![deny(clippy::match_wildcard_for_single_variants)]
 
 pub mod agent_manager;
 pub mod app_builder;

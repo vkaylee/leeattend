@@ -49,15 +49,12 @@ pub async fn get_default_attendance_rules(
     .fetch_optional(state.infra.db.reader())
     .await?;
 
-    let policy_id = match policy_id {
-        Some(id) => id,
-        None => {
-            return Ok(Json(AttendanceRules {
-                work_unit_minutes: 15,
-                rounding_policy: "none".to_string(),
-                early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
-            }));
-        }
+    let Some(policy_id) = policy_id else {
+        return Ok(Json(AttendanceRules {
+            work_unit_minutes: 15,
+            rounding_policy: "none".to_string(),
+            early_arrival_strategy: crate::models::enums::EarlyArrivalStrategy::Block,
+        }));
     };
 
     let rules: Option<sqlx::types::Json<AttendanceRules>> = sqlx::query_scalar(
@@ -95,9 +92,8 @@ pub async fn list_default_attendance_policy_versions(
     .fetch_optional(state.infra.db.reader())
     .await?;
 
-    let policy_id = match policy_id {
-        Some(id) => id,
-        None => return Ok(Json(vec![])),
+    let Some(policy_id) = policy_id else {
+        return Ok(Json(vec![]));
     };
 
     let rows = sqlx::query_as::<

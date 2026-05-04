@@ -276,38 +276,32 @@ impl LeaveImportService {
                         continue;
                     }
 
-                    let start_date = match parse_date(&start_str) {
-                        Some(d) => d,
-                        None => {
-                            errors.push(ErrorRow {
-                                line_number,
-                                employee_id_number: emp_id.clone(),
-                                leave_type_code: leave_code.clone(),
-                                start_date_raw: start_str.clone(),
-                                end_date_raw: end_str.clone(),
-                                reason: reason.clone(),
-                                duration_type_raw: duration_str.clone(),
-                                error_message: msgs.invalid_start_date.to_string(),
-                            });
-                            continue;
-                        }
+                    let Some(start_date) = parse_date(&start_str) else {
+                        errors.push(ErrorRow {
+                            line_number,
+                            employee_id_number: emp_id.clone(),
+                            leave_type_code: leave_code.clone(),
+                            start_date_raw: start_str.clone(),
+                            end_date_raw: end_str.clone(),
+                            reason: reason.clone(),
+                            duration_type_raw: duration_str.clone(),
+                            error_message: msgs.invalid_start_date.to_string(),
+                        });
+                        continue;
                     };
 
-                    let end_date = match parse_date(&end_str) {
-                        Some(d) => d,
-                        None => {
-                            errors.push(ErrorRow {
-                                line_number,
-                                employee_id_number: emp_id.clone(),
-                                leave_type_code: leave_code.clone(),
-                                start_date_raw: start_str.clone(),
-                                end_date_raw: end_str.clone(),
-                                reason: reason.clone(),
-                                duration_type_raw: duration_str.clone(),
-                                error_message: msgs.invalid_end_date.to_string(),
-                            });
-                            continue;
-                        }
+                    let Some(end_date) = parse_date(&end_str) else {
+                        errors.push(ErrorRow {
+                            line_number,
+                            employee_id_number: emp_id.clone(),
+                            leave_type_code: leave_code.clone(),
+                            start_date_raw: start_str.clone(),
+                            end_date_raw: end_str.clone(),
+                            reason: reason.clone(),
+                            duration_type_raw: duration_str.clone(),
+                            error_message: msgs.invalid_end_date.to_string(),
+                        });
+                        continue;
                     };
 
                     if end_date < start_date {

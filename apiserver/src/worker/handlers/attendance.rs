@@ -34,14 +34,11 @@ impl AttendanceHandler {
         redis: &RedisPool,
         roster_cache: Option<&RosterCache>,
     ) -> Result<(), String> {
-        let payload = match &job.payload {
-            JobPayload::AttendanceReport(p) => p,
-            _ => {
-                return Err(format!(
-                    "Expected AttendanceReport payload, got {:?}",
-                    job.task_type
-                ))
-            }
+        let JobPayload::AttendanceReport(payload) = &job.payload else {
+            return Err(format!(
+                "Expected AttendanceReport payload, got {:?}",
+                job.task_type
+            ));
         };
         let employee_ids = &payload.employee_ids;
         let start_date = payload.date_range.start;
