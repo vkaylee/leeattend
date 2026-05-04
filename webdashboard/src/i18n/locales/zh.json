@@ -22,6 +22,8 @@
       "time_format": "时间格式",
       "timezone": "系统时区",
       "default_language": "默认语言",
+      "workspace_name": "工作空间名称",
+      "workspace_name_placeholder": "例如：LeeAttend Corp",
       "branding": "品牌标识",
       "workspace_logo": "工作区标志",
       "enter_logo_url": "输入图片网址:",

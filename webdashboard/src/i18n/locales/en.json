@@ -22,6 +22,8 @@
       "time_format": "Time Format",
       "timezone": "System Timezone",
       "default_language": "Default Language",
+      "workspace_name": "Workspace Name",
+      "workspace_name_placeholder": "e.g., LeeAttend Corp",
       "branding": "Branding",
       "workspace_logo": "Workspace Logo",
       "enter_logo_url": "Enter image URL:",

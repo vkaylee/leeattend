@@ -22,6 +22,8 @@
       "time_format": "Định dạng giờ",
       "timezone": "Múi giờ hệ thống",
       "default_language": "Ngôn ngữ mặc định",
+      "workspace_name": "Tên Workspace",
+      "workspace_name_placeholder": "VD: LeeAttend Corp",
       "branding": "Nhận diện thương hiệu",
       "workspace_logo": "Logo Không gian làm việc",
       "enter_logo_url": "Nhập địa chỉ (URL) của ảnh logo:",
