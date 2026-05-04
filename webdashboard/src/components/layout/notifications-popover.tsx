@@ -7,7 +7,8 @@ import { formatDistanceToNow } from "date-fns";
 import { vi, enUS } from "date-fns/locale";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { NotificationType, useNotifications } from "@/hooks/use-notifications";
+import { useNotifications } from "@/hooks/use-notifications";
+import { NotificationType } from "@/lib/api";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -85,15 +86,15 @@ export function NotificationsPopover() {
                 <button 
                   className={cn(
                     "flex gap-3 p-4 border-b border-slate-100 dark:border-slate-800/50 transition-colors cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 relative group text-left w-full",
-                    !notification.isRead ? "bg-primary-50/30 dark:bg-primary-900/10" : ""
+                    !notification.is_read ? "bg-primary-50/30 dark:bg-primary-900/10" : ""
                   )}
                   key={notification.id}
                   onClick={() => {
-                    markAsRead(notification.id);
+                    void markAsRead(notification.id);
                     // Could add routing logic if notification.link exists
                   }}
                 >
-                  {!notification.isRead && (
+                  {!notification.is_read && (
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-r-full"></div>
                   )}
                   
@@ -104,7 +105,7 @@ export function NotificationsPopover() {
                   <div className="flex-1 min-w-0">
                     <p className={cn(
                       "text-sm font-medium leading-tight mb-1",
-                      !notification.isRead ? "text-slate-900 dark:text-slate-100" : "text-slate-700 dark:text-slate-300"
+                      !notification.is_read ? "text-slate-900 dark:text-slate-100" : "text-slate-700 dark:text-slate-300"
                     )}>
                       {notification.title}
                     </p>
@@ -112,7 +113,7 @@ export function NotificationsPopover() {
                       {notification.content}
                     </p>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: currentLocale })}
+                      {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: currentLocale })}
                     </p>
                   </div>
                 </button>
@@ -126,7 +127,6 @@ export function NotificationsPopover() {
           <Link 
             className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 py-2 px-4 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors inline-block w-full"
             onClick={() => { setIsOpen(false); }}
-            // @ts-expect-error - Route generated dynamically
             to={ROUTES.NOTIFICATIONS}
           >
             Xem tất cả thông báo

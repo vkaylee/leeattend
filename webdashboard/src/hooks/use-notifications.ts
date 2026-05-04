@@ -1,78 +1,99 @@
-import { useState, useEffect } from 'react';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 
-export type NotificationType = 'leave_approved' | 'leave_rejected' | 'attendance_missing' | 'system' | 'message';
+import {
+  AppNotification,
+  fetchNotifications,
+  fetchUnreadCount,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from "@/lib/api";
 
-export interface AppNotification {
-  content: string;
-  createdAt: string;
-  id: string;
-  isRead: boolean;
-  link?: string;
-  title: string;
-  type: NotificationType;
+// Query Keys
+export const notificationKeys = {
+  all: ["notifications"] as const,
+  list: () => [...notificationKeys.all, "list"] as const,
+  unreadCount: () => [...notificationKeys.all, "unread-count"] as const,
+};
+
+export interface UseNotificationsReturn {
+  error: Error | null;
+  fetchNextPage: () => void;
+  hasNextPage: boolean;
+  isError: boolean;
+  isFetchingNextPage: boolean;
+  isLoading: boolean;
+  isMarkingAllAsRead: boolean;
+  isMarkingAsRead: boolean;
+  markAllAsRead: () => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
+  notifications: AppNotification[];
+  unreadCount: number;
 }
 
-export const MOCK_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'n1',
-    type: 'leave_approved',
-    title: 'Nghỉ phép được phê duyệt',
-    content: 'Đơn xin nghỉ phép ngày 05/05/2026 của bạn đã được Admin phê duyệt.',
-    isRead: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    link: '/leave-requests'
-  },
-  {
-    id: 'n2',
-    type: 'attendance_missing',
-    title: 'Quên chấm công',
-    content: 'Bạn chưa chấm công chiều ngày hôm qua. Vui lòng gửi yêu cầu bổ sung.',
-    isRead: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    link: '/attendance-adjustments'
-  },
-  {
-    id: 'n3',
-    type: 'system',
-    title: 'Bảo trì hệ thống',
-    content: 'Hệ thống sẽ bảo trì từ 22:00 đến 23:00 tối nay. Vui lòng lưu lại công việc.',
-    isRead: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-  },
-];
+export function useNotifications(limit = 20): UseNotificationsReturn {
+  const queryClient = useQueryClient();
 
-export function useNotifications() {
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // 1. Fetch Unread Count (polling every 30s)
+  const unreadCountQuery = useQuery({
+    queryKey: notificationKeys.unreadCount(),
+    queryFn: fetchUnreadCount,
+    refetchInterval: 30000,
+  });
 
-  // Simulate API fetch
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setNotifications(MOCK_NOTIFICATIONS);
-      setIsLoading(false);
-    }, 800);
-    return () => { clearTimeout(timer); };
-  }, []);
+  // 2. Fetch Infinite List of Notifications
+  const infiniteQuery = useInfiniteQuery({
+    queryKey: [...notificationKeys.list(), { limit }],
+    queryFn: ({ pageParam }) => fetchNotifications(limit, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
+  });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  // Flatten the pages into a single array
+  const notifications = useMemo(() => {
+    return infiniteQuery.data?.pages.flatMap((page) => page.notifications) ?? [];
+  }, [infiniteQuery.data]);
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-    );
-  };
+  // Derived unread count: prioritize the first page's unread_count if available,
+  // otherwise fallback to the separate unreadCountQuery
+  const unreadCount = useMemo(() => {
+    if (infiniteQuery.data?.pages[0]?.unread_count !== undefined) {
+      return infiniteQuery.data.pages[0].unread_count;
+    }
+    return unreadCountQuery.data?.count ?? 0;
+  }, [infiniteQuery.data, unreadCountQuery.data]);
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(n => ({ ...n, isRead: true }))
-    );
-  };
+  // 3. Mutations
+  const markAsReadMutation = useMutation({
+    mutationFn: (id: string) => markNotificationAsRead(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
+
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => markAllNotificationsAsRead(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
 
   return {
     notifications,
     unreadCount,
-    isLoading,
-    markAsRead,
-    markAllAsRead
+    isLoading: infiniteQuery.isLoading,
+    isError: infiniteQuery.isError,
+    error: infiniteQuery.error,
+    
+    // Pagination
+    hasNextPage: infiniteQuery.hasNextPage,
+    fetchNextPage: () => { void infiniteQuery.fetchNextPage(); },
+    isFetchingNextPage: infiniteQuery.isFetchingNextPage,
+
+    // Actions
+    markAsRead: markAsReadMutation.mutateAsync,
+    isMarkingAsRead: markAsReadMutation.isPending,
+    markAllAsRead: markAllAsReadMutation.mutateAsync,
+    isMarkingAllAsRead: markAllAsReadMutation.isPending,
   };
 }

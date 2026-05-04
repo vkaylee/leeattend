@@ -34,16 +34,16 @@ vi.mock('@/hooks/use-notifications', () => ({
         title: 'Test Notification 1',
         content: 'Content 1',
         type: 'system',
-        isRead: false,
-        createdAt: new Date().toISOString(),
+        is_read: false,
+        created_at: new Date().toISOString(),
       },
       {
         id: '2',
         title: 'Test Notification 2',
         content: 'Content 2',
         type: 'leave_approved',
-        isRead: true,
-        createdAt: new Date().toISOString(),
+        is_read: true,
+        created_at: new Date().toISOString(),
       },
     ],
     unreadCount: 1,
@@ -51,6 +51,9 @@ vi.mock('@/hooks/use-notifications', () => ({
     markAsRead: mockMarkAsRead,
     markAllAsRead: mockMarkAllAsRead,
   }),
+}));
+
+vi.mock('@/lib/api', () => ({
   NotificationType: {
     SYSTEM: 'system',
     LEAVE_APPROVED: 'leave_approved',

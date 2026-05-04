@@ -16,3 +16,4 @@ export * from "./shift-swaps";
 export * from "./audit";
 export * from "./system";
 export * from "./shifts";
+export * from "./notifications";
