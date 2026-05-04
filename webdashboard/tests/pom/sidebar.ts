@@ -15,8 +15,4 @@ export class Sidebar {
   async expandSection(sectionTestId: string) {
     await this.page.getByTestId(sectionTestId).click();
   }
-
-  async logout() {
-    await this.page.getByTestId('sidebar-btn-logout').click();
-  }
 }

@@ -40,7 +40,7 @@ export function AgentsList({
   if (agents.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-1 gap-6">
+    <div className="grid grid-cols-1 gap-6" data-testid="agents-list">
       {agents.map(agent => (
         <AgentAccordionCard
           agent={agent}

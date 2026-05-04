@@ -7,6 +7,7 @@ import { ConnectivityPage } from './pom/connectivity-page';
 import { DevicesPage } from './pom/devices-page';
 import { EmployeesPage } from './pom/employees-page';
 import { LoginPage } from './pom/login-page';
+import { Navbar } from './pom/navbar';
 import { Sidebar } from './pom/sidebar';
 
 export { expect };
@@ -18,6 +19,7 @@ interface TestFixtures {
   devicesPage: DevicesPage;
   employeesPage: EmployeesPage;
   loginPage: LoginPage;
+  navbar: Navbar;
   sidebar: Sidebar; 
   workerWebUrl: string; // Giữ lại property này để không gãy các test cũ đang import nó
 }
@@ -33,6 +35,9 @@ export const test = base.extend<TestFixtures>({
   },
   sidebar: async ({ page }, use) => {
     await use(new Sidebar(page));
+  },
+  navbar: async ({ page }, use) => {
+    await use(new Navbar(page));
   },
   employeesPage: async ({ page }, use) => {
     await use(new EmployeesPage(page));

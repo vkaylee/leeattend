@@ -11,7 +11,6 @@ import {
   CalendarRange,
   Building2,
   X,
-  LogOut,
   ChevronDown,
   ChevronRight,
   ShieldCheck,
@@ -201,12 +200,9 @@ function useSidebarMenuItems(): MenuItem[] {
 }
 
 export default function Sidebar({ isOpen, onClose, openSections, toggleSection, isCollapsed }: SidebarProps) {
-  const { t } = useTranslation();
   const location = useLocation();
   const { hasAnyPermission } = useMyPermissions();
   const { user } = useProfile();
-
-  const handleLogout = () => { localStorage.clear(); window.location.href = ROUTES.LOGIN; };
 
   const menuItems = useSidebarMenuItems();
 
@@ -262,9 +258,6 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
             )}
           </div>
         ))}
-      </div>
-      <div className="p-4 border-t border-slate-50 dark:border-slate-800">
-        <button className="flex w-full items-center gap-3 px-4 py-4 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-2xl transition-all duration-300 group" onClick={handleLogout}><div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700 transition-colors"><LogOut className="h-4 w-4" /></div>{!isCollapsed && <span className="font-bold text-sm uppercase tracking-widest">{t("common.logout")}</span>}</button>
       </div>
     </div>
   );

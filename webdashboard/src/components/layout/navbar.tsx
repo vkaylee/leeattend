@@ -1,13 +1,15 @@
-import { useLocation } from "@tanstack/react-router";
-import { Menu, ChevronRight as BreadcrumbSeparator, Bell, ChevronLeft, ChevronRight, Sun, Moon, Monitor } from "lucide-react";
+import { useLocation, Link } from "@tanstack/react-router";
+import { Menu, ChevronRight as BreadcrumbSeparator, Bell, ChevronLeft, ChevronRight, Sun, Moon, Monitor, LogOut, Settings as SettingsIcon, UserCircle } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ThemeMode } from "@/hooks/use-dark-mode";
 
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useDarkModeContext } from "@/context/use-dark-mode-context";
 import { useMyPermissions } from "@/hooks/use-permissions";
+import { useProfile } from "@/hooks/use-profile";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +23,6 @@ interface NavbarProps {
 export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapsed, onToggleCollapsed }: NavbarProps) {
   const { t } = useTranslation();
   const location = useLocation();
-  const { roles, managedDepartmentIds } = useMyPermissions();
 
   const getPageName = (path: string) => {
     const map: Partial<Record<string, string>> = {
@@ -76,24 +77,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
 
         <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 mx-1 hidden sm:block opacity-50"></div>
 
-        <div className="flex items-center gap-4 pl-2 group cursor-pointer active:scale-95 transition-all">
-          <div className="hidden sm:block text-right">
-            <div className="flex items-center justify-end gap-2">
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-none group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors uppercase tracking-tight">
-                {roles[0] ?? t("common.admin")}
-              </p>
-              {roles.includes('TeamLead') && managedDepartmentIds !== null && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800 uppercase tracking-wider">
-                  Department-scoped
-                </span>
-              )}
-            </div>
-            <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-[0.2em] opacity-60 leading-none">{t("common.workspace_owner")}</p>
-          </div>
-          <div className="w-12 h-12 rounded-[1.25rem] bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-2xl shadow-slate-400 dark:shadow-black border border-slate-800 group-hover:bg-primary-600 group-hover:border-primary-500 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
-            {roles[0]?.substring(0, 2).toUpperCase() ?? "AD"}
-          </div>
-        </div>
+        <UserProfileMenu />
       </div>
     </header>
   );
@@ -129,5 +113,59 @@ function ThemeToggle() {
         </button>
       ))}
     </div>
+  );
+}
+
+function UserProfileMenu() {
+  const { t } = useTranslation();
+  const { roles, managedDepartmentIds } = useMyPermissions();
+  const { user } = useProfile();
+
+  const handleLogout = () => { localStorage.clear(); window.location.href = ROUTES.LOGIN; };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <div className="flex items-center gap-4 pl-2 group cursor-pointer active:scale-95 transition-all outline-none" data-testid="navbar-user-menu-trigger">
+          <div className="hidden sm:block text-right">
+            <div className="flex items-center justify-end gap-2">
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-none group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors uppercase tracking-tight">
+                {user?.full_name ?? (roles[0] ?? t("common.admin"))}
+              </p>
+              {roles.includes('TeamLead') && managedDepartmentIds !== null && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800 uppercase tracking-wider">
+                  Department-scoped
+                </span>
+              )}
+            </div>
+            <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-[0.2em] opacity-60 leading-none">{t("common.workspace_owner")}</p>
+          </div>
+          <div className="w-12 h-12 rounded-[1.25rem] bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-2xl shadow-slate-400 dark:shadow-black border border-slate-800 group-hover:bg-primary-600 group-hover:border-primary-500 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
+            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : (roles[0]?.substring(0, 2).toUpperCase() ?? "AD")}
+          </div>
+        </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 mt-2" data-testid="user-profile-content">
+        <DropdownMenuLabel>{t("common.my_account", { defaultValue: "My Account" })}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild data-testid="user-menu-profile-btn">
+          <Link className="cursor-pointer flex items-center w-full" to={ROUTES.ESS_PROFILE}>
+            <UserCircle className="mr-2 h-4 w-4" />
+            <span>{t("common.profile")}</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild data-testid="user-menu-settings-btn">
+          <Link className="cursor-pointer flex items-center w-full" to={ROUTES.SETTINGS.ROOT}>
+            <SettingsIcon className="mr-2 h-4 w-4" />
+            <span>{t("settings.title")}</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-rose-600 dark:text-rose-400 focus:bg-rose-50 dark:focus:bg-rose-950/30 focus:text-rose-600 dark:focus:text-rose-400 cursor-pointer" data-testid="user-menu-logout-btn" onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>{t("common.logout")}</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
