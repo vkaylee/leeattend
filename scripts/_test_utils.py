@@ -5,13 +5,9 @@ and result reporting for lint/unit/integration/coverage phases.
 """
 
 import os
-import shlex
-import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path
-from typing import Optional
 
 from _bootstrap import PROJECT_ROOT, bootstrap_env
 
@@ -102,7 +98,7 @@ def run_parallel_ordered(
     phase_name: str,
     component_filter: str,
     tasks: list[tuple[str, str, list[str]]],
-    num_workers: Optional[int] = None,
+    num_workers: int | None = None,
 ) -> bool:
     """Run tasks in parallel (or serial if num_workers <= 1).
 
@@ -113,8 +109,7 @@ def run_parallel_ordered(
 
     if num_workers is None:
         num_workers = min(4, (os.cpu_count() or 4) // 2)
-        if num_workers < 1:
-            num_workers = 1
+        num_workers = max(num_workers, 1)
 
     # Filter tasks by component filter
     filtered = []
@@ -147,7 +142,7 @@ def _run_tasks_serial(
     import sys as _sys
 
     all_passed = True
-    for name, service, cmd in tasks:
+    for name, _service, cmd in tasks:
         log_file = LOG_DIR / _safe_log_name(phase_name, name)
         _sys.stdout.write(f"\n  [{name}] Running...\n")
         _sys.stdout.flush()
@@ -193,7 +188,7 @@ def _run_tasks_parallel(
     lock = threading.Lock()
     all_done = threading.Event()
 
-    def worker():
+    def worker() -> None:
         while True:
             with lock:
                 if not task_queue:
@@ -223,9 +218,8 @@ def _run_tasks_parallel(
             log_file = LOG_DIR / _safe_log_name(phase_name, name)
             _print_failure(name, log_file, exit_code)
             return False
-        else:
-            log_file = LOG_DIR / _safe_log_name(phase_name, name)
-            _print_success(name, log_file)
+        log_file = LOG_DIR / _safe_log_name(phase_name, name)
+        _print_success(name, log_file)
 
     return all(v == 0 for v in results.values())
 

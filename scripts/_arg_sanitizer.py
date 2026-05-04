@@ -18,18 +18,19 @@ class ArgSanitizeError(Exception):
 
 # Control characters that can cause PTY hangs (block outright)
 # Excludes tab (0x09) as it's commonly legit in code/strings
-_FORBIDDEN_CHARS: set[str] = {chr(c) for c in range(32) if c != 9}
+TAB_CHAR_CODE = 9
+_FORBIDDEN_CHARS: set[str] = {chr(c) for c in range(32) if c != TAB_CHAR_CODE}
 
 # Shell injection / code execution patterns — block always
 _INJECTION_PATTERNS: tuple[str, ...] = (
-    "$(",   # command substitution
-    "`",    # backtick substitution
-    "${",   # variable expansion with braces
-    "#{",   # Ruby-style interpolation
-    "<(",   # process substitution
-    ")>",   # process substitution close
+    "$(",  # command substitution
+    "`",  # backtick substitution
+    "${",  # variable expansion with braces
+    "#{",  # Ruby-style interpolation
+    "<(",  # process substitution
+    ")>",  # process substitution close
     "\\x",  # hex escape (potential bypass)
-    "<<<",   # here-string
+    "<<<",  # here-string
 )
 
 # Multi-line / heredoc triggers — block in single args
@@ -74,35 +75,29 @@ def _validate_single_arg(arg: str) -> None:
     """Validate a single argument. Raises ArgSanitizeError on danger."""
     for ch in arg:
         if ch in _FORBIDDEN_CHARS:
-            raise ArgSanitizeError(
-                f"Control character U+{ord(ch):04X} in argument: {arg!r}"
-            )
+            raise ArgSanitizeError(f"Control character U+{ord(ch):04X} in argument: {arg!r}")
 
     # Unmatched quotes → shell hang
     for quote in ('"', "'"):
         if arg.count(quote) % 2 != 0:
-            raise ArgSanitizeError(
-                f"Unmatched {quote} quote in argument (causes shell hang): {arg!r}"
-            )
+            msg = f"Unmatched {quote} quote in argument (causes shell hang): {arg!r}"
+            raise ArgSanitizeError(msg)
 
     # Shell injection patterns
     for pattern in _INJECTION_PATTERNS:
         if pattern in arg:
-            raise ArgSanitizeError(
-                f"Shell injection pattern '{pattern}' in argument: {arg!r}"
-            )
+            raise ArgSanitizeError(f"Shell injection pattern '{pattern}' in argument: {arg!r}")
 
     # Forbidden content in single args
     for pattern in _FORBIDDEN_IN_ARG:
         if pattern in arg:
-            raise ArgSanitizeError(
-                f"Forbidden pattern '{pattern!r}' in argument: {arg!r}"
-            )
+            raise ArgSanitizeError(f"Forbidden pattern '{pattern!r}' in argument: {arg!r}")
 
 
 def _check_banned_interpreter(args: list[str]) -> None:
     """Block inline code execution (python -c, node -e) but allow script files."""
-    if not args or len(args) < 2:
+    MIN_INTERPRETER_ARGS = 2
+    if not args or len(args) < MIN_INTERPRETER_ARGS:
         return
     first = args[0].lower()
     if first in _BANNED_FULL_ARGS:

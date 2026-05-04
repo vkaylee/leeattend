@@ -1,7 +1,8 @@
 import re
 from pathlib import Path
 
-def parse_logs():
+
+def parse_logs() -> None:
     total_tests = 0
     passed_tests = 0
 
@@ -13,8 +14,8 @@ def parse_logs():
     for log_file in log_dir.glob("*.log"):
         # print(f"Checking {log_file}")
         content = log_file.read_text(errors="replace")
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-        clean_content = ansi_escape.sub('', content)
+        ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+        clean_content = ansi_escape.sub("", content)
 
         file_total = 0
         file_passed = 0
@@ -49,5 +50,6 @@ def parse_logs():
 
     print(f"Total: {passed_tests}/{total_tests}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     parse_logs()

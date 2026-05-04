@@ -1,17 +1,18 @@
 """Tests for _arg_sanitizer.py — validate AI-provided arguments."""
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PROJECT_ROOT / "scripts"))
 
 from _arg_sanitizer import (  # noqa: E402
     ArgSanitizeError,
+    is_safe_for_list_form,
     sanitize,
     sanitize_shell_string,
-    is_safe_for_list_form,
 )
 
 

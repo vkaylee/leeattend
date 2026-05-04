@@ -9,16 +9,14 @@ import os
 import subprocess
 import sys
 import time
-from pathlib import Path
-from typing import Optional
 
 from _bootstrap import (
     PROJECT_ROOT,
     SCRIPTS_DIR,
-    detect_engine,
-    resolve_profiles,
-    resolve_lifecycle_profiles,
     bootstrap_env,
+    detect_engine,
+    resolve_lifecycle_profiles,
+    resolve_profiles,
 )
 
 
@@ -29,7 +27,7 @@ def _get_engine() -> str:
 
 def _run(
     cmd: list[str],
-    timeout: Optional[int] = None,
+    timeout: int | None = None,
     capture: bool = True,
     check: bool = False,
     silent: bool = False,
@@ -55,7 +53,8 @@ def _run(
     if timeout is not None:
         kwargs["timeout"] = timeout
 
-    return subprocess.run(cmd, **kwargs)
+    check_val = kwargs.pop("check", False)
+    return subprocess.run(cmd, check=check_val, **kwargs)
 
 
 def _container_healthy(container_name: str) -> bool:
@@ -92,14 +91,13 @@ def lifecycle_up(mode: str = "all") -> bool:
         # Diagnostic
         _run([_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False)
         return False
-    else:
-        container = f"{project_name}_bun_init_1"
-        for _ in range(120):
-            if _container_healthy(container):
-                return True
-            time.sleep(1)
-        _run([_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False)
-        return False
+    container = f"{project_name}_bun_init_1"
+    for _ in range(120):
+        if _container_healthy(container):
+            return True
+        time.sleep(1)
+    _run([_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False)
+    return False
 
 
 # Containers per lifecycle profile — used for force-kill fallback
@@ -123,6 +121,7 @@ def lifecycle_down(mode: str = "all") -> None:
     env = bootstrap_env(mode)
     compose_base = env["DOCKER_COMPOSE_BASE"].split()
     project_name = os.environ.get("COMPOSE_PROJECT_NAME", "leeattend-test")
+    engine = _get_engine()
 
     # Graceful compose down first
     _run(
@@ -132,12 +131,26 @@ def lifecycle_down(mode: str = "all") -> None:
 
     # Force-kill profile-specific containers that compose couldn't stop
     # PID 1 in containers ignores SIGTERM by default (Linux kernel behavior)
-    # — only SIGKILL works reliably on processes like tail -f /dev/null
     profile_names = profiles[1::2]  # extract names from ["--profile", "frontend", ...]
+
+    # If mode is 'all', we can be more aggressive and use labels
+    if mode == "all":
+        _run(
+            [engine, "ps", "-aq", "--filter", f"label=com.docker.compose.project={project_name}"],
+            capture=True,
+        )
+        # We don't use the output directly to avoid xargs complexity in Python,
+        # instead we stick to the svc list but add a final pod cleanup.
+
     for pname in profile_names:
         for svc in _PROFILE_CONTAINERS.get(pname, []):
             cname = f"{project_name}_{svc}_1"
-            _run([_get_engine(), "rm", "-f", cname], silent=True)
+            _run([engine, "rm", "-f", cname], silent=True)
+
+    # Podman specific: remove the pod if it's empty or leftover
+    if engine == "podman":
+        pod_name = f"pod_{project_name}"
+        _run([engine, "pod", "rm", "-f", pod_name], silent=True)
 
 
 def start_watchdog(timeout_sec: int, parent_pid: int) -> int:

@@ -1,6 +1,5 @@
 # mypy: ignore-errors
 import signal
-import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -153,10 +152,7 @@ def test_test_coverage_all(mock_exec, mock_run_phase, orchestrator) -> None:
     mock_exec.return_value = None
     args = orchestrator.parser.parse_args(["test", "all", "--coverage"])
     orchestrator.handle_test(args)
-    coverage_calls = [
-        c for c in mock_run_phase.call_args_list
-        if c[0][0] == "Coverage"
-    ]
+    coverage_calls = [c for c in mock_run_phase.call_args_list if c[0][0] == "Coverage"]
     assert len(coverage_calls) == 1
 
 
@@ -386,7 +382,11 @@ def test_handle_test_lint_subcommands(mock_exec, mock_run_phase, orchestrator) -
     """Test test lint-only mode for infra, api, web targets."""
     mock_run_phase.return_value = None
     mock_exec.return_value = None
-    for cmd in [["test", "infra", "--lint-only"], ["test", "api", "--lint-only"], ["test", "web", "--lint-only"]]:
+    for cmd in [
+        ["test", "infra", "--lint-only"],
+        ["test", "api", "--lint-only"],
+        ["test", "web", "--lint-only"],
+    ]:
         args = orchestrator.parser.parse_args(cmd)
         orchestrator.handle_test(args)
     assert mock_run_phase.call_count >= 2
@@ -701,10 +701,7 @@ def test_handle_run_npm_first_arg_npm(mock_run, orchestrator) -> None:
 def test_handle_run_with_many_file_args(mock_run, orchestrator) -> None:
     """Test handle_run npm with 24+ file paths — uses compose exec."""
     mock_run.return_value.returncode = 0
-    files = [
-        f"/workspace/webdashboard/src/test_{i:03d}.tsx"
-        for i in range(24)
-    ]
+    files = [f"/workspace/webdashboard/src/test_{i:03d}.tsx" for i in range(24)]
     base_args = ["run", "npm", "run", "lint", "--"]
     args = orchestrator.parser.parse_args(base_args + files)
     orchestrator.handle_run(args)

@@ -10,10 +10,8 @@ sys.path.append(str(PROJECT_ROOT / "scripts"))
 from _test_modules import (  # noqa: E402
     _safe_pattern,
     _safe_pattern_quoted,
-    leeattend_run_lint,
-    leeattend_run_unit,
     leeattend_run_integration,
-    leeattend_run_coverage,
+    leeattend_run_unit,
 )
 
 
@@ -83,21 +81,17 @@ class TestRunFunctionsWithPattern:
     @patch("_test_modules.run_parallel_ordered", return_value=True)
     def test_unit_with_safe_pattern(self, mock_run):
         """Normal pattern passes through."""
-        result = leeattend_run_unit(
-            component_filter="", mode="api", test_pattern="auth"
-        )
+        result = leeattend_run_unit(component_filter="", mode="api", test_pattern="auth")
         assert result is True
 
     @patch("_test_modules.run_parallel_ordered", return_value=True)
     def test_unit_with_dangerous_pattern_is_quoted(self, mock_run):
         """$(whoami) pattern must not cause shell injection."""
-        result = leeattend_run_unit(
-            component_filter="", mode="api", test_pattern="$(whoami)"
-        )
+        result = leeattend_run_unit(component_filter="", mode="api", test_pattern="$(whoami)")
         assert result is True
         # Verify the command passed to run_parallel_ordered has quoted pattern
         tasks = mock_run.call_args[0][2]  # tasks list
-        for name, service, cmd in tasks:
+        for _name, _service, cmd in tasks:
             cmd_str = " ".join(cmd)
             if "cargo nextest" in cmd_str:
                 # Pattern must appear quoted
@@ -106,12 +100,10 @@ class TestRunFunctionsWithPattern:
     @patch("_test_modules.run_parallel_ordered", return_value=True)
     def test_integration_with_quoted_pattern(self, mock_run):
         """Integration test with dangerous pattern."""
-        result = leeattend_run_integration(
-            component_filter="", mode="api", test_pattern="`id`"
-        )
+        result = leeattend_run_integration(component_filter="", mode="api", test_pattern="`id`")
         assert result is True
         tasks = mock_run.call_args[0][2]
-        for name, service, cmd in tasks:
+        for _name, _service, cmd in tasks:
             cmd_str = " ".join(cmd)
             if "cargo nextest" in cmd_str:
                 assert "'`id`'" in cmd_str
@@ -124,7 +116,7 @@ class TestRunFunctionsWithPattern:
         )
         assert result is True
         tasks = mock_run.call_args[0][2]
-        for name, service, cmd in tasks:
+        for _name, _service, cmd in tasks:
             cmd_str = " ".join(cmd)
             if "playwright" in cmd_str:
                 assert "hello world" not in cmd_str or "'" in cmd_str

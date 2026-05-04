@@ -8,11 +8,8 @@ All user-provided strings interpolated into shell commands are escaped via
 shlex.quote() to prevent shell injection through --pattern args.
 """
 
-import os
 import shlex
-from pathlib import Path
 
-from _bootstrap import PROJECT_ROOT
 from _test_utils import (
     build_compose_exec,
     run_parallel_ordered,
@@ -39,13 +36,19 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
     tasks: list[tuple[str, str, list[str]]] = []
 
     if mode in ("all", "api", "integration"):
-        pkg_flag = f"--package {component_filter}" if component_filter in ["apiserver", "agent-main"] else "--workspace"
+        pkg_flag = (
+            f"--package {component_filter}"
+            if component_filter in ["apiserver", "agent-main"]
+            else "--workspace"
+        )
         backend_cmd = build_compose_exec(
             "apiserver",
             f"cargo clippy {pkg_flag} -- -D warnings && cargo fmt --all -- --check",
             workdir="/workspace",
         )
-        task_name = f"rust-backend-clippy-{component_filter}" if component_filter else "rust-backend-clippy"
+        task_name = (
+            f"rust-backend-clippy-{component_filter}" if component_filter else "rust-backend-clippy"
+        )
         tasks.append((task_name, "apiserver", backend_cmd))
 
     if mode in ("all", "web"):
@@ -82,7 +85,11 @@ def leeattend_run_unit(
     shard_flag = f"--shard={shard_n}/{shard_m}" if shard_n and shard_m else ""
 
     if mode in ("all", "api", "integration"):
-        pkg_flag = f"--package {component_filter}" if component_filter in ["apiserver", "agent-main"] else "--workspace"
+        pkg_flag = (
+            f"--package {component_filter}"
+            if component_filter in ["apiserver", "agent-main"]
+            else "--workspace"
+        )
         backend = f"cargo nextest run {pkg_flag} --lib {_safe_pattern(test_pattern)} {shard_flag} --no-tests=pass"
         backend_cmd = build_compose_exec(
             "apiserver",
@@ -109,24 +116,29 @@ def leeattend_run_integration(
     no_tests_flag = "pass"
     workdir = "/workspace"
 
-    if mode in ("all", "api", "integration"):
-        if "web" not in component_filter:
-            # API server startup is handled by the lifecycle/container health check
-            # Integration tests use the already-running apiserver container
-            db_url = "postgres://test_user:test_password@db:5432/leeattend_test_template"
-            pkg_flag = f"--package {component_filter}" if component_filter in ["apiserver", "agent-main"] else "--workspace"
-            backend = (
-                f"DATABASE_URL={db_url} "
-                f"cargo nextest run {pkg_flag} --test '*' {_safe_pattern(test_pattern)} "
-                f"--no-tests={no_tests_flag}"
-            )
-            backend_cmd = build_compose_exec(
-                "apiserver",
-                backend,
-                workdir=workdir,
-            )
-            task_name = f"rust-backend-int-{component_filter}" if component_filter else "rust-backend-int"
-            tasks.append((task_name, "apiserver", backend_cmd))
+    if mode in ("all", "api", "integration") and "web" not in component_filter:
+        # API server startup is handled by the lifecycle/container health check
+        # Integration tests use the already-running apiserver container
+        db_url = "postgres://test_user:test_password@db:5432/leeattend_test_template"
+        pkg_flag = (
+            f"--package {component_filter}"
+            if component_filter in ["apiserver", "agent-main"]
+            else "--workspace"
+        )
+        backend = (
+            f"DATABASE_URL={db_url} "
+            f"cargo nextest run {pkg_flag} --test '*' {_safe_pattern(test_pattern)} "
+            f"--no-tests={no_tests_flag}"
+        )
+        backend_cmd = build_compose_exec(
+            "apiserver",
+            backend,
+            workdir=workdir,
+        )
+        task_name = (
+            f"rust-backend-int-{component_filter}" if component_filter else "rust-backend-int"
+        )
+        tasks.append((task_name, "apiserver", backend_cmd))
 
     if mode in ("all", "web"):
         pw_args = f"-g {_safe_pattern(test_pattern)}" if test_pattern else ""
@@ -144,7 +156,11 @@ def leeattend_run_coverage(component_filter: str = "", mode: str = "all") -> boo
     coverage_env = "RUSTC_WRAPPER=''"
 
     if mode in ("all", "api", "integration"):
-        pkg_flag = f"--package {component_filter}" if component_filter in ["apiserver", "agent-main"] else "--workspace"
+        pkg_flag = (
+            f"--package {component_filter}"
+            if component_filter in ["apiserver", "agent-main"]
+            else "--workspace"
+        )
         apiserver_cov = (
             f"mkdir -p /workspace/.test_logs && "
             f"{coverage_env} cargo llvm-cov nextest --lib --test integration {pkg_flag} "
@@ -154,7 +170,11 @@ def leeattend_run_coverage(component_filter: str = "", mode: str = "all") -> boo
             f"--output-dir /workspace/.test_logs/coverage-apiserver-html 2>&1 && "
             f"{coverage_env} cargo llvm-cov report --summary-only 2>&1"
         )
-        task_name = f"rust-backend-coverage-{component_filter}" if component_filter else "rust-backend-coverage"
+        task_name = (
+            f"rust-backend-coverage-{component_filter}"
+            if component_filter
+            else "rust-backend-coverage"
+        )
         tasks.append((task_name, "apiserver", build_compose_exec("apiserver", apiserver_cov)))
 
     if mode in ("all", "web"):

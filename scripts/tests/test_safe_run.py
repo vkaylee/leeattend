@@ -5,7 +5,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import psutil
 import pytest
@@ -207,21 +207,14 @@ class TestLongArgList:
 
     def test_long_arg_list_passes_sanitizer(self) -> None:
         """24 valid file paths should pass sanitizer without issues."""
-        files = [
-            f"/workspace/webdashboard/src/test_{i:03d}.tsx"
-            for i in range(30)
-        ]
+        files = [f"/workspace/webdashboard/src/test_{i:03d}.tsx" for i in range(30)]
         args = ["run", "lint", "--"] + files
         _safe_run.validate_command(["bun"] + args)
 
     def test_long_arg_list_with_dangerous_injection_blocked(self) -> None:
         """24 files + 1 shell injection should be caught."""
-        files = [
-            f"/workspace/webdashboard/src/test_{i:03d}.tsx"
-            for i in range(29)
-        ]
+        files = [f"/workspace/webdashboard/src/test_{i:03d}.tsx" for i in range(29)]
         files.append("$(whoami)")
         args = ["run", "lint", "--"] + files
         with pytest.raises(SystemExit):
             _safe_run.validate_command(["bun"] + args)
-

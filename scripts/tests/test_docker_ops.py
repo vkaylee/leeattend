@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PROJECT_ROOT / "scripts"))
@@ -13,7 +13,6 @@ from _docker_ops import (  # noqa: E402
     _build_compose_cmd,
     dc,
     dc_detached,
-    DEFAULT_TIMEOUT,
 )
 
 
@@ -127,6 +126,7 @@ class TestDcDetached:
     def test_default_timeout_from_env(self):
         with patch.dict(os.environ, {"DOCKER_COMPOSE_TIMEOUT": "30"}):
             from importlib import reload
+
             import _docker_ops
 
             reload(_docker_ops)

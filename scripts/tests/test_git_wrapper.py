@@ -351,7 +351,7 @@ class TestSanitizerFallbackSafety:
 
     def test_sanitize_failure_keeps_original_args(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """When sanitize raises, args MUST be preserved — never replaced with [].
-        
+
         Empty args → git interactive mode + stdin=DEVNULL → infinite hang.
         """
         monkeypatch.setattr(sys, "argv", ["_git_wrapper.py", "status"])
@@ -390,7 +390,9 @@ class TestSanitizerFallbackSafety:
         for f in files:
             assert f in called_cmd
 
-    def test_non_commit_path_does_not_inject_gpg_flag(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_non_commit_path_does_not_inject_gpg_flag(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """git add should NOT get --no-gpg-sign injected (only commit does)."""
         monkeypatch.setattr(sys, "argv", ["_git_wrapper.py", "add", "file.tsx"])
 

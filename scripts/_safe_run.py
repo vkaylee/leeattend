@@ -20,8 +20,7 @@ import time as _time
 from types import FrameType
 
 import psutil
-
-from _arg_sanitizer import sanitize, ArgSanitizeError
+from _arg_sanitizer import ArgSanitizeError, sanitize
 
 
 def read_from_pty(master_fd: int, stop_event: threading.Event) -> None:

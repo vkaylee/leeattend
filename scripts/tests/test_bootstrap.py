@@ -10,12 +10,14 @@ sys.path.append(str(PROJECT_ROOT / "scripts"))
 
 from _bootstrap import (  # noqa: E402
     PROJECT_ROOT as BOOTSTRAP_ROOT,
+)
+from _bootstrap import (
     SCRIPTS_DIR,
-    detect_engine,
-    detect_compose_cmd,
-    resolve_profiles,
-    resolve_lifecycle_profiles,
     bootstrap_env,
+    detect_compose_cmd,
+    detect_engine,
+    resolve_lifecycle_profiles,
+    resolve_profiles,
 )
 
 

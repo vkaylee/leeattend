@@ -1,19 +1,17 @@
 """Tests for _lifecycle.py — lifecycle_up, lifecycle_down, health checks."""
 
-import os
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PROJECT_ROOT / "scripts"))
 
-import _lifecycle  # noqa: E402
 from _lifecycle import (  # noqa: E402
     _container_healthy,
-    lifecycle_up,
     lifecycle_down,
+    lifecycle_up,
     start_watchdog,
 )
 
@@ -49,7 +47,7 @@ class TestLifecycleUp:
 
     def test_web_mode_checks_bun_init(self):
         with (
-            patch("_lifecycle._run") as mock_run,
+            patch("_lifecycle._run"),
             patch("_lifecycle._container_healthy", return_value=True),
             patch("_lifecycle.time.sleep"),
         ):
@@ -58,7 +56,7 @@ class TestLifecycleUp:
 
     def test_health_check_timeout_returns_false(self):
         with (
-            patch("_lifecycle._run") as mock_run,
+            patch("_lifecycle._run"),
             patch("_lifecycle._container_healthy", return_value=False),
             patch("_lifecycle.time.sleep"),
         ):
@@ -141,8 +139,10 @@ class TestLifecycleComposeCommand:
 
     def test_lifecycle_down_uses_base_not_env_override(self):
         """lifecycle_down must use DOCKER_COMPOSE_BASE with -p and -f."""
-        with patch("_lifecycle._run") as mock_run, \
-             patch.dict("os.environ", {"DOCKER_COMPOSE_CMD": "podman-compose"}):
+        with (
+            patch("_lifecycle._run") as mock_run,
+            patch.dict("os.environ", {"DOCKER_COMPOSE_CMD": "podman-compose"}),
+        ):
             mock_run.return_value = MagicMock(stdout="", returncode=0)
             lifecycle_down("web")
             down_cmd = " ".join(mock_run.call_args_list[0][0][0])
@@ -172,9 +172,11 @@ class TestLifecycleComposeCommand:
 
     def test_lifecycle_up_web_uses_task_profiles_not_frontend(self):
         """lifecycle_up(web) must use lint-web, unit-web, e2e-web (not frontend)."""
-        with patch("_lifecycle._run") as mock_run, \
-             patch("_lifecycle._container_healthy", return_value=True), \
-             patch("_lifecycle.time.sleep"):
+        with (
+            patch("_lifecycle._run") as mock_run,
+            patch("_lifecycle._container_healthy", return_value=True),
+            patch("_lifecycle.time.sleep"),
+        ):
             mock_run.return_value = MagicMock(stdout="", returncode=0)
             lifecycle_up("web")
             up_cmd = " ".join(mock_run.call_args_list[0][0][0])  # only up -d, no pre-down
@@ -183,10 +185,12 @@ class TestLifecycleComposeCommand:
 
     def test_lifecycle_up_has_correct_compose_base(self):
         """lifecycle_up must use DOCKER_COMPOSE_BASE with -p and -f."""
-        with patch("_lifecycle._run") as mock_run, \
-             patch("_lifecycle._container_healthy", return_value=True), \
-             patch("_lifecycle.time.sleep"), \
-             patch.dict("os.environ", {"DOCKER_COMPOSE_CMD": "wrong-value-only"}):
+        with (
+            patch("_lifecycle._run") as mock_run,
+            patch("_lifecycle._container_healthy", return_value=True),
+            patch("_lifecycle.time.sleep"),
+            patch.dict("os.environ", {"DOCKER_COMPOSE_CMD": "wrong-value-only"}),
+        ):
             mock_run.return_value = MagicMock(stdout="", returncode=0)
             lifecycle_up("api")
             up_cmd = " ".join(mock_run.call_args_list[0][0][0])

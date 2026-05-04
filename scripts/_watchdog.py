@@ -4,6 +4,7 @@ Kills a given parent PID after a timeout. All FDs severed
 so the watchdog itself never causes a PTY hang.
 """
 
+import contextlib
 import os
 import signal
 import sys
@@ -19,10 +20,8 @@ def main() -> None:
     time.sleep(timeout_sec)
 
     for sig in (signal.SIGKILL, signal.SIGKILL):
-        try:
+        with contextlib.suppress(ProcessLookupError):
             os.kill(parent_pid, sig)
-        except ProcessLookupError:
-            pass
         time.sleep(2)
 
 

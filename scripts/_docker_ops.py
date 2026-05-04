@@ -4,14 +4,12 @@ Provides subprocess wrappers for docker-compose commands with PTY safety
 (</dev/null redirection) and detached execution with timeout protection.
 """
 
+import contextlib
 import os
 import subprocess
-import sys
-import time
 from pathlib import Path
-from typing import Optional
 
-from _bootstrap import PROJECT_ROOT, detect_engine, detect_compose_cmd, bootstrap_env
+from _bootstrap import PROJECT_ROOT, bootstrap_env, detect_compose_cmd, detect_engine
 
 ENGINE = detect_engine()
 COMPOSE_CMD = detect_compose_cmd()
@@ -20,8 +18,8 @@ DEFAULT_TIMEOUT = int(os.environ.get("DOCKER_COMPOSE_TIMEOUT", "60"))
 
 def _build_compose_cmd(
     extra_args: list[str],
-    compose_file: Optional[Path] = None,
-    project_name: Optional[str] = None,
+    compose_file: Path | None = None,
+    project_name: str | None = None,
 ) -> list[str]:
     """Build a full compose command list."""
     if project_name is None:
@@ -79,10 +77,8 @@ def dc_detached(
         proc.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         # Kill the process group (equivalent to bash watchdog kill)
-        try:
+        with contextlib.suppress(OSError):
             os.killpg(proc.pid, 9)
-        except OSError:
-            pass
         proc.wait()
         return 1
 

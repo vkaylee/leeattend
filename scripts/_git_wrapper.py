@@ -7,10 +7,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-from _arg_sanitizer import sanitize, ArgSanitizeError
+from _arg_sanitizer import ArgSanitizeError, sanitize
 
 
-def main() -> None:
+def main() -> None:  # noqa: PLR0912
     script_dir = Path(__file__).parent.resolve()
     safe_run_path = script_dir / "_safe_run.py"
 

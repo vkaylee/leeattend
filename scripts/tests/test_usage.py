@@ -20,8 +20,10 @@ def test_test_no_mode_shows_help(
     orchestrator: _orchestrator.Orchestrator, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test that test command with target 'all' works."""
-    with patch.object(_orchestrator.Orchestrator, "run_phase") as mock_rp, \
-         patch.object(_orchestrator.Orchestrator, "execute_safe") as mock_es:
+    with (
+        patch.object(_orchestrator.Orchestrator, "run_phase"),
+        patch.object(_orchestrator.Orchestrator, "execute_safe"),
+    ):
         args = orchestrator.parser.parse_args(["test", "all"])
         orchestrator.handle_test(args)
 

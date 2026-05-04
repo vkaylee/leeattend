@@ -1,10 +1,8 @@
 """Tests for scripts/ai-tools/run-inline — safe inline code runner."""
 
-import os
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -20,7 +18,9 @@ class TestRunInline:
         """Basic python inline execution."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "python", "-c", "print(42)"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         assert result.returncode == 0
         assert "42" in result.stdout
@@ -30,7 +30,8 @@ class TestRunInline:
         code = "x = 1\ny = 2\nprint(x + y)"
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "python", "-c", code],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         assert result.returncode == 0
         assert "3" in result.stdout
@@ -39,7 +40,8 @@ class TestRunInline:
         """Bun inline execution."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "bun", "-c", "console.log('hello')"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         # bun might not be available in test env
         if result.returncode != 0:
@@ -50,7 +52,8 @@ class TestRunInline:
         """Bash inline execution."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "bash", "-c", "echo hello"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         assert result.returncode == 0
         assert "hello" in result.stdout
@@ -59,7 +62,8 @@ class TestRunInline:
         """Shell special chars must NOT be interpreted — they're in a temp file."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "bash", "-c", "echo '$HOME'"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         assert result.returncode == 0
         # $HOME in single quotes inside temp file → literal $HOME, not expanded
@@ -70,7 +74,9 @@ class TestRunInline:
         """Read code from stdin."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "python"],
-            input="print(99)", capture_output=True, text=True,
+            input="print(99)",
+            capture_output=True,
+            text=True,
         )
         assert result.returncode == 0
         assert "99" in result.stdout
@@ -79,7 +85,9 @@ class TestRunInline:
         """Empty stdin should fail."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "python"],
-            input="", capture_output=True, text=True,
+            input="",
+            capture_output=True,
+            text=True,
         )
         assert result.returncode != 0
 
@@ -87,7 +95,8 @@ class TestRunInline:
         """Missing -l should show error."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-c", "print(1)"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         assert result.returncode != 0
 
@@ -95,7 +104,8 @@ class TestRunInline:
         """Invalid language choice should fail."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "ruby", "-c", "puts 1"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         assert result.returncode != 0
 
@@ -103,7 +113,8 @@ class TestRunInline:
         """python3 alias should work same as python."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "python3", "-c", "print(1)"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         assert result.returncode == 0
 
@@ -111,7 +122,8 @@ class TestRunInline:
         """node should map to bun."""
         result = subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "node", "-c", "console.log('test')"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         # Skip if bun not available
         if result.returncode != 0:
@@ -119,11 +131,12 @@ class TestRunInline:
 
     def test_temp_file_cleaned_up(self):
         """Temp file must be removed after execution."""
-        import tempfile
+
         before = set(Path("/tmp").glob("ai_inline_*"))
-        result = subprocess.run(
+        subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "python", "-c", "print(1)"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         after = set(Path("/tmp").glob("ai_inline_*"))
         # No new temp files should remain
@@ -132,8 +145,16 @@ class TestRunInline:
     def test_stderr_preserved(self):
         """Stderr from script should be captured."""
         result = subprocess.run(
-            [sys.executable, str(RUN_INLINE), "-l", "python", "-c", "import sys; sys.stderr.write('err')"],
-            capture_output=True, text=True,
+            [
+                sys.executable,
+                str(RUN_INLINE),
+                "-l",
+                "python",
+                "-c",
+                "import sys; sys.stderr.write('err')",
+            ],
+            capture_output=True,
+            text=True,
         )
         assert result.returncode == 0
         # stderr might go to PTY, not captured separately — depends on _safe_run
@@ -145,7 +166,8 @@ class TestSanitizerErrorGuidesToRunInline:
 
     def test_banned_interpreter_message(self):
         """Blocking python -c should mention run-inline."""
-        from _arg_sanitizer import sanitize, ArgSanitizeError
+        from _arg_sanitizer import ArgSanitizeError, sanitize
+
         try:
             sanitize(["python", "-c", "print(1)"])
         except ArgSanitizeError as e:
@@ -155,6 +177,7 @@ class TestSanitizerErrorGuidesToRunInline:
     def test_die_function_mentions_run_inline(self, capsys):
         """_die() must print run-inline usage."""
         from _arg_sanitizer import _die
+
         with pytest.raises(SystemExit):
             _die("test error")
         captured = capsys.readouterr()

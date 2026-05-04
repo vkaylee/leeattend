@@ -3,6 +3,7 @@ import argparse
 import atexit
 import contextlib
 import os
+import re
 import shutil
 import signal
 import socket
@@ -18,16 +19,16 @@ from _arg_sanitizer import sanitize
 from _bootstrap import (
     PROJECT_ROOT,
     SCRIPTS_DIR,
-    bootstrap_env,
-    detect_engine,
     detect_compose_cmd,
+    detect_engine,
 )
-from _lifecycle import lifecycle_down, lifecycle_up as _lifecycle_up
+from _lifecycle import lifecycle_down
+from _lifecycle import lifecycle_up as _lifecycle_up
 from _test_modules import (
+    leeattend_run_coverage,
+    leeattend_run_integration,
     leeattend_run_lint,
     leeattend_run_unit,
-    leeattend_run_integration,
-    leeattend_run_coverage,
 )
 
 # LeeAttend Enterprise Orchestrator Core
@@ -163,10 +164,14 @@ class Orchestrator:
         )
         test_parser.add_argument("--lint-only", action="store_true", help="Run only linting")
         test_parser.add_argument("--unit-only", action="store_true", help="Run only unit tests")
-        test_parser.add_argument("--e2e-only", action="store_true", help="Run only integration/e2e tests")
+        test_parser.add_argument(
+            "--e2e-only", action="store_true", help="Run only integration/e2e tests"
+        )
         test_parser.add_argument("--skip-lint", action="store_true", help="Skip linting phase")
         test_parser.add_argument("--pattern", dest="pattern", help="Regex pattern for tests")
-        test_parser.add_argument("--coverage", action="store_true", help="Run tests with coverage reporting")
+        test_parser.add_argument(
+            "--coverage", action="store_true", help="Run tests with coverage reporting"
+        )
         test_parser.add_argument("--timeout", type=int, default=1800)
 
     def _setup_manage_parser(
@@ -373,8 +378,12 @@ class Orchestrator:
             str(SCRIPTS_DIR / "tests" / "test_safe_run.py"),
             str(SCRIPTS_DIR / "tests" / "test_usage.py"),
             str(SCRIPTS_DIR / "tests" / "test_git_wrapper.py"),
-            str(SCRIPTS_DIR / "tests" / "test_apply_guards.py"),
-            str(SCRIPTS_DIR / "tests" / "test_kill_hung_processes.py"),
+            str(SCRIPTS_DIR / "tests" / "test_bootstrap.py"),
+            str(SCRIPTS_DIR / "tests" / "test_arg_sanitizer.py"),
+            str(SCRIPTS_DIR / "tests" / "test_lifecycle.py"),
+            str(SCRIPTS_DIR / "tests" / "test_docker_ops.py"),
+            str(SCRIPTS_DIR / "tests" / "test_test_modules.py"),
+            str(SCRIPTS_DIR / "tests" / "test_run_inline.py"),
         ]
         venv_pytest = PROJECT_ROOT / ".venv" / "bin" / "pytest"
         cmd = [
@@ -388,13 +397,13 @@ class Orchestrator:
     def handle_run(self, args: argparse.Namespace) -> None:
         tool = args.tool
         tool_args = args.args
-        
+
         # Resolve target service dynamically based on context
         caller_dir = Path.cwd()
         rel_dir = ""
         with contextlib.suppress(ValueError):
             rel_dir = str(caller_dir.relative_to(PROJECT_ROOT))
-            
+
         service = self.tool_map.get(tool, "apiserver")
         if "webdashboard" in rel_dir or any("webdashboard" in arg for arg in tool_args):
             service = "webdashboard"
@@ -444,7 +453,9 @@ class Orchestrator:
             is_standalone = tool_args and first in ("--version", "--help", "-v", "-h")
             if is_standalone:
                 # standalone: compose run --no-deps --entrypoint bun (no prefix needed)
-                compose_cmd.extend(["run", "-T", "--rm", "--no-deps", "--entrypoint", "bun", service])
+                compose_cmd.extend(
+                    ["run", "-T", "--rm", "--no-deps", "--entrypoint", "bun", service]
+                )
                 if tool_args:
                     compose_cmd.extend(tool_args)
             else:
@@ -475,7 +486,9 @@ class Orchestrator:
         project_name = self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test")
         return any(project_name in n and service in n for n in res.stdout.splitlines())
 
-    def _handle_run_npm(self, compose_cmd: list[str], tool_args: list[str], service: str, is_running: bool = True) -> None:
+    def _handle_run_npm(
+        self, compose_cmd: list[str], tool_args: list[str], service: str, is_running: bool = True
+    ) -> None:
         """Run npm/bun commands via compose exec/run into container.
 
         Auto-detects if container is running. If not, uses compose run with custom entrypoint.
@@ -493,12 +506,12 @@ class Orchestrator:
         if first_arg in ("bun", "npm", "bash", "sh"):
             executable = first_arg
             tool_args = tool_args[1:]
-            
+
         if is_running:
             compose_cmd.extend([executable])
         else:
             compose_cmd.extend(["--entrypoint", executable, service])
-            
+
         if tool_args:
             compose_cmd.extend(tool_args)
 
@@ -664,7 +677,6 @@ class Orchestrator:
             sys.exit(result.returncode)
 
     def print_test_summary(self, target: str) -> None:
-        import re
         total_tests = 0
         passed_tests = 0
 
@@ -680,8 +692,8 @@ class Orchestrator:
                         continue
 
                     content = log_file.read_text(errors="replace")
-                    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-                    clean_content = ansi_escape.sub('', content)
+                    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+                    clean_content = ansi_escape.sub("", content)
 
                     # nextest
                     matches = list(nextest_pattern.finditer(clean_content))
@@ -708,10 +720,11 @@ class Orchestrator:
                             passed_tests += passed
                             total_tests += passed
                 except Exception:
-                    pass
+                    pass  # Ignore log parsing errors
 
         if total_tests > 0:
-            log_success(f"All selected tests for [{target}] passed successfully! ({passed_tests}/{total_tests} tests)")
+            msg = f"All selected tests for [{target}] passed successfully! ({passed_tests}/{total_tests} tests)"
+            log_success(msg)
         else:
             log_success(f"All selected tests for [{target}] passed successfully!")
 
