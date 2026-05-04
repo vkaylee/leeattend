@@ -19,9 +19,9 @@ const VARIANT_STYLES = {
 } as const;
 
 const SIZE_STYLES = {
-  sm: "px-4 py-2 text-[10px] rounded-xl gap-2",
-  md: "px-8 py-3 text-xs rounded-2xl gap-3",
-  lg: "px-10 py-4 text-xs rounded-2xl gap-4",
+  sm: "h-[var(--ui-height-sm)] px-4 text-[10px] rounded-xl gap-2",
+  md: "h-[var(--ui-height-md)] px-8 text-xs rounded-2xl gap-3",
+  lg: "h-[var(--ui-height-lg)] px-10 text-xs rounded-2xl gap-4",
 } as const;
 
 // ── Component ──────────────────────────────────────────────────────

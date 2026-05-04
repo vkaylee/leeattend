@@ -3,7 +3,7 @@ import React from 'react';
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-import { NotificationsPage } from '../notifications';
+import { NotificationsPage } from '../_workspace/notifications';
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({

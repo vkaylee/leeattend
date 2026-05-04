@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 // ── Shared input class ─────────────────────────────────────────────
 
 const INPUT_BASE =
-  "w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm";
+  "w-full px-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all shadow-sm";
 
 const LABEL_BASE =
   "text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1";
@@ -78,7 +78,7 @@ const FormField = memo(function FormField({
           {...sharedProps}
           className={cn(
             INPUT_BASE,
-            "font-medium text-sm resize-none",
+            "py-4 font-medium text-sm resize-none",
             inputClassName,
           )}
           onChange={onChange}
@@ -89,7 +89,7 @@ const FormField = memo(function FormField({
           {...sharedProps}
           className={cn(
             INPUT_BASE,
-            "font-medium text-sm",
+            "h-[var(--ui-height-md)] font-medium text-sm",
             inputClassName,
           )}
           onChange={onChange}

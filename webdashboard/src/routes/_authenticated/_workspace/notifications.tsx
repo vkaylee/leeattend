@@ -12,7 +12,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { AppNotification, NotificationType } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/notifications")({
+export const Route = createFileRoute("/_authenticated/_workspace/notifications")({
   component: NotificationsPage,
 });
 
@@ -197,7 +197,7 @@ export function NotificationsPage() {
   const currentLocale = i18n.language === "vi" ? vi : enUS;
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] flex-col bg-slate-50 dark:bg-slate-900/50 overflow-hidden">
+    <div className="animate-in fade-in duration-700 space-y-6 pb-20">
       <PageHeader
         actions={
           notifications.length > 0 ? (
@@ -218,19 +218,17 @@ export function NotificationsPage() {
         title={t("common.notifications", "Thông báo")}
       />
       
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <NotificationsList 
-            currentLocale={currentLocale}
-            fetchNextPage={fetchNextPage}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            isLoading={isLoading}
-            markAsRead={markAsRead}
-            notifications={notifications}
-            t={t}
-          />
-        </div>
+      <div className="max-w-4xl mx-auto space-y-4">
+        <NotificationsList 
+          currentLocale={currentLocale}
+          fetchNextPage={fetchNextPage}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          isLoading={isLoading}
+          markAsRead={markAsRead}
+          notifications={notifications}
+          t={t}
+        />
       </div>
     </div>
   );

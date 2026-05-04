@@ -13,7 +13,6 @@ import { Route as RegisterRouteImport } from "./routes/register"
 import { Route as LoginRouteImport } from "./routes/login"
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated"
 import { Route as AuthenticatedOnboardingRouteImport } from "./routes/_authenticated/onboarding"
-import { Route as AuthenticatedNotificationsRouteImport } from "./routes/_authenticated/notifications"
 import { Route as AuthenticatedWorkspaceRouteImport } from "./routes/_authenticated/_workspace"
 import { Route as AuthenticatedInfraRouteImport } from "./routes/_authenticated/_infra"
 import { Route as AuthenticatedWorkspaceIndexRouteImport } from "./routes/_authenticated/_workspace/index"
@@ -23,6 +22,7 @@ import { Route as AuthenticatedWorkspaceShiftSwapsRouteImport } from "./routes/_
 import { Route as AuthenticatedWorkspaceReportsRouteImport } from "./routes/_authenticated/_workspace/reports"
 import { Route as AuthenticatedWorkspaceProfileRouteImport } from "./routes/_authenticated/_workspace/profile"
 import { Route as AuthenticatedWorkspacePayrollRouteImport } from "./routes/_authenticated/_workspace/payroll"
+import { Route as AuthenticatedWorkspaceNotificationsRouteImport } from "./routes/_authenticated/_workspace/notifications"
 import { Route as AuthenticatedWorkspaceMembersRouteImport } from "./routes/_authenticated/_workspace/members"
 import { Route as AuthenticatedWorkspaceLeaveRequestsRouteImport } from "./routes/_authenticated/_workspace/leave-requests"
 import { Route as AuthenticatedWorkspaceLeaveBalancesRouteImport } from "./routes/_authenticated/_workspace/leave-balances"
@@ -75,12 +75,6 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
 } as any).lazy(() =>
   import("./routes/_authenticated/onboarding.lazy").then((d) => d.Route),
 )
-const AuthenticatedNotificationsRoute =
-  AuthenticatedNotificationsRouteImport.update({
-    id: "/notifications",
-    path: "/notifications",
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
   id: "/_workspace",
   getParentRoute: () => AuthenticatedRoute,
@@ -159,6 +153,12 @@ const AuthenticatedWorkspacePayrollRoute =
       (d) => d.Route,
     ),
   )
+const AuthenticatedWorkspaceNotificationsRoute =
+  AuthenticatedWorkspaceNotificationsRouteImport.update({
+    id: "/notifications",
+    path: "/notifications",
+    getParentRoute: () => AuthenticatedWorkspaceRoute,
+  } as any)
 const AuthenticatedWorkspaceMembersRoute =
   AuthenticatedWorkspaceMembersRouteImport.update({
     id: "/members",
@@ -456,7 +456,6 @@ export interface FileRoutesByFullPath {
   "/": typeof AuthenticatedWorkspaceIndexRoute
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
-  "/notifications": typeof AuthenticatedNotificationsRoute
   "/onboarding": typeof AuthenticatedOnboardingRoute
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRoute
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
@@ -466,6 +465,7 @@ export interface FileRoutesByFullPath {
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/members": typeof AuthenticatedWorkspaceMembersRoute
+  "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
   "/payroll": typeof AuthenticatedWorkspacePayrollRoute
   "/profile": typeof AuthenticatedWorkspaceProfileRoute
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
@@ -499,7 +499,6 @@ export interface FileRoutesByTo {
   "/": typeof AuthenticatedWorkspaceIndexRoute
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
-  "/notifications": typeof AuthenticatedNotificationsRoute
   "/onboarding": typeof AuthenticatedOnboardingRoute
   "/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRoute
   "/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
@@ -509,6 +508,7 @@ export interface FileRoutesByTo {
   "/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/members": typeof AuthenticatedWorkspaceMembersRoute
+  "/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
   "/payroll": typeof AuthenticatedWorkspacePayrollRoute
   "/profile": typeof AuthenticatedWorkspaceProfileRoute
   "/reports": typeof AuthenticatedWorkspaceReportsRoute
@@ -544,7 +544,6 @@ export interface FileRoutesById {
   "/register": typeof RegisterRoute
   "/_authenticated/_infra": typeof AuthenticatedInfraRouteWithChildren
   "/_authenticated/_workspace": typeof AuthenticatedWorkspaceRouteWithChildren
-  "/_authenticated/notifications": typeof AuthenticatedNotificationsRoute
   "/_authenticated/onboarding": typeof AuthenticatedOnboardingRoute
   "/_authenticated/_workspace/assignment-rules": typeof AuthenticatedWorkspaceAssignmentRulesRoute
   "/_authenticated/_workspace/attendance-adjustments": typeof AuthenticatedWorkspaceAttendanceAdjustmentsRoute
@@ -554,6 +553,7 @@ export interface FileRoutesById {
   "/_authenticated/_workspace/leave-balances": typeof AuthenticatedWorkspaceLeaveBalancesRoute
   "/_authenticated/_workspace/leave-requests": typeof AuthenticatedWorkspaceLeaveRequestsRoute
   "/_authenticated/_workspace/members": typeof AuthenticatedWorkspaceMembersRoute
+  "/_authenticated/_workspace/notifications": typeof AuthenticatedWorkspaceNotificationsRoute
   "/_authenticated/_workspace/payroll": typeof AuthenticatedWorkspacePayrollRoute
   "/_authenticated/_workspace/profile": typeof AuthenticatedWorkspaceProfileRoute
   "/_authenticated/_workspace/reports": typeof AuthenticatedWorkspaceReportsRoute
@@ -590,7 +590,6 @@ export interface FileRouteTypes {
     | "/"
     | "/login"
     | "/register"
-    | "/notifications"
     | "/onboarding"
     | "/assignment-rules"
     | "/attendance-adjustments"
@@ -600,6 +599,7 @@ export interface FileRouteTypes {
     | "/leave-balances"
     | "/leave-requests"
     | "/members"
+    | "/notifications"
     | "/payroll"
     | "/profile"
     | "/reports"
@@ -633,7 +633,6 @@ export interface FileRouteTypes {
     | "/"
     | "/login"
     | "/register"
-    | "/notifications"
     | "/onboarding"
     | "/assignment-rules"
     | "/attendance-adjustments"
@@ -643,6 +642,7 @@ export interface FileRouteTypes {
     | "/leave-balances"
     | "/leave-requests"
     | "/members"
+    | "/notifications"
     | "/payroll"
     | "/profile"
     | "/reports"
@@ -677,7 +677,6 @@ export interface FileRouteTypes {
     | "/register"
     | "/_authenticated/_infra"
     | "/_authenticated/_workspace"
-    | "/_authenticated/notifications"
     | "/_authenticated/onboarding"
     | "/_authenticated/_workspace/assignment-rules"
     | "/_authenticated/_workspace/attendance-adjustments"
@@ -687,6 +686,7 @@ export interface FileRouteTypes {
     | "/_authenticated/_workspace/leave-balances"
     | "/_authenticated/_workspace/leave-requests"
     | "/_authenticated/_workspace/members"
+    | "/_authenticated/_workspace/notifications"
     | "/_authenticated/_workspace/payroll"
     | "/_authenticated/_workspace/profile"
     | "/_authenticated/_workspace/reports"
@@ -754,13 +754,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    "/_authenticated/notifications": {
-      id: "/_authenticated/notifications"
-      path: "/notifications"
-      fullPath: "/notifications"
-      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     "/_authenticated/_workspace": {
       id: "/_authenticated/_workspace"
       path: ""
@@ -822,6 +815,13 @@ declare module "@tanstack/react-router" {
       path: "/payroll"
       fullPath: "/payroll"
       preLoaderRoute: typeof AuthenticatedWorkspacePayrollRouteImport
+      parentRoute: typeof AuthenticatedWorkspaceRoute
+    }
+    "/_authenticated/_workspace/notifications": {
+      id: "/_authenticated/_workspace/notifications"
+      path: "/notifications"
+      fullPath: "/notifications"
+      preLoaderRoute: typeof AuthenticatedWorkspaceNotificationsRouteImport
       parentRoute: typeof AuthenticatedWorkspaceRoute
     }
     "/_authenticated/_workspace/members": {
@@ -1113,6 +1113,7 @@ interface AuthenticatedWorkspaceRouteChildren {
   AuthenticatedWorkspaceLeaveBalancesRoute: typeof AuthenticatedWorkspaceLeaveBalancesRoute
   AuthenticatedWorkspaceLeaveRequestsRoute: typeof AuthenticatedWorkspaceLeaveRequestsRoute
   AuthenticatedWorkspaceMembersRoute: typeof AuthenticatedWorkspaceMembersRoute
+  AuthenticatedWorkspaceNotificationsRoute: typeof AuthenticatedWorkspaceNotificationsRoute
   AuthenticatedWorkspacePayrollRoute: typeof AuthenticatedWorkspacePayrollRoute
   AuthenticatedWorkspaceProfileRoute: typeof AuthenticatedWorkspaceProfileRoute
   AuthenticatedWorkspaceReportsRoute: typeof AuthenticatedWorkspaceReportsRoute
@@ -1144,6 +1145,8 @@ const AuthenticatedWorkspaceRouteChildren: AuthenticatedWorkspaceRouteChildren =
     AuthenticatedWorkspaceLeaveRequestsRoute:
       AuthenticatedWorkspaceLeaveRequestsRoute,
     AuthenticatedWorkspaceMembersRoute: AuthenticatedWorkspaceMembersRoute,
+    AuthenticatedWorkspaceNotificationsRoute:
+      AuthenticatedWorkspaceNotificationsRoute,
     AuthenticatedWorkspacePayrollRoute: AuthenticatedWorkspacePayrollRoute,
     AuthenticatedWorkspaceProfileRoute: AuthenticatedWorkspaceProfileRoute,
     AuthenticatedWorkspaceReportsRoute: AuthenticatedWorkspaceReportsRoute,
@@ -1174,14 +1177,12 @@ const AuthenticatedWorkspaceRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedInfraRoute: typeof AuthenticatedInfraRouteWithChildren
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRouteWithChildren
-  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedInfraRoute: AuthenticatedInfraRouteWithChildren,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRouteWithChildren,
-  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 
