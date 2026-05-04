@@ -82,6 +82,8 @@ async fn test_update_workspace_time_format() {
                 default_language: None,
                 holiday_overnight_strategy: None,
                 default_holiday_ot_multiplier: None,
+                logo_url: None,
+                tagline: None,
             },
         )
         .await

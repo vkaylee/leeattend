@@ -653,6 +653,8 @@ mod tests {
                 default_language: "en".into(),
                 holiday_overnight_strategy: "split".into(),
                 default_holiday_ot_multiplier: Decimal::from(2),
+                logo_url: None,
+                tagline: None,
                 created_at: Utc::now(),
             },
             tz: chrono_tz::UTC,

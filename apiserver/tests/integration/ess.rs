@@ -354,3 +354,92 @@ async fn test_ess_no_employee_record_returns_forbidden() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn test_ess_time_tracking_endpoints() {
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let admin_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(admin_id).await;
+    let (user_id, _emp_id) =
+        create_employee_user(&factory, &test_db, ws_id, "time@example.com").await;
+
+    factory
+        .add_member(
+            ws_id,
+            user_id,
+            uuid::Uuid::parse_str("a0000000-0000-0000-0000-000000000006").unwrap(),
+        )
+        .await;
+
+    // 1. Get time entries (should be empty initially)
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            "/api/ess/time-entries?start_date=2026-01-01T00:00:00Z&end_date=2026-12-31T23:59:59Z",
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let entries = body_json(resp).await;
+    assert!(entries.as_array().unwrap().is_empty());
+
+    // 2. Punch in
+    let punch_in_body = serde_json::json!({
+        "entry_type": "work",
+        "note": "Starting shift"
+    });
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            "/api/ess/punch-in",
+            ws_id,
+            user_id,
+            Some(punch_in_body.to_string()),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let entry = body_json(resp).await;
+    let entry_id = entry["id"].as_str().unwrap();
+
+    // 3. Punch out
+    let punch_out_body = serde_json::json!({
+        "note": "Ending shift"
+    });
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "POST",
+            "/api/ess/punch-out",
+            ws_id,
+            user_id,
+            Some(punch_out_body.to_string()),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    // 4. Get time entries again (should have 1)
+    let resp = app
+        .clone()
+        .oneshot(req(
+            "GET",
+            "/api/ess/time-entries?start_date=2000-01-01T00:00:00Z&end_date=2100-12-31T23:59:59Z",
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let entries = body_json(resp).await;
+    assert_eq!(entries.as_array().unwrap().len(), 1);
+    assert_eq!(entries[0]["id"].as_str().unwrap(), entry_id);
+}

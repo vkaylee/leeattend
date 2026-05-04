@@ -11,7 +11,7 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::EmployeeContext;
 use crate::models::{
     CreateEmergencyContactRequest, Employee, EmployeeDocument, EmployeeEmergencyContact,
-    EmployeeProfile, MyProfileResponse, TimeEntry, UpdateEmployeeProfileRequest,
+    EmployeeProfile, MyProfileResponse, PunchOutRequest, TimeEntry, UpdateEmployeeProfileRequest,
 };
 use crate::AppState;
 
@@ -261,6 +261,75 @@ pub async fn get_my_attendance(
     .bind(end)
     .fetch_all(state.infra.db.reader())
     .await?;
+
+    Ok(Json(entries))
+}
+
+// --- Time Clock Endpoints ---
+
+#[derive(serde::Deserialize)]
+pub struct EssPunchInRequest {
+    pub entry_type: Option<String>,
+    pub is_break_overtime: Option<bool>,
+    pub note: Option<String>,
+}
+
+pub async fn ess_punch_in(
+    State(state): State<Arc<AppState>>,
+    employee: EmployeeContext,
+    Json(req): Json<EssPunchInRequest>,
+) -> AppResult<(StatusCode, Json<TimeEntry>)> {
+    let punch_req = crate::models::PunchInRequest {
+        employee_id: employee.employee_id,
+        entry_type: req.entry_type,
+        is_break_overtime: req.is_break_overtime,
+        note: req.note,
+    };
+
+    let entry = state
+        .attendance
+        .time_tracking_service
+        .punch_in(employee.workspace_id, punch_req)
+        .await?;
+
+    Ok((StatusCode::CREATED, Json(entry)))
+}
+
+pub async fn ess_punch_out(
+    State(state): State<Arc<AppState>>,
+    employee: EmployeeContext,
+    Json(req): Json<PunchOutRequest>,
+) -> AppResult<Json<TimeEntry>> {
+    let entry = state
+        .attendance
+        .time_tracking_service
+        .punch_out(employee.workspace_id, employee.employee_id, req)
+        .await?;
+
+    Ok(Json(entry))
+}
+
+#[derive(serde::Deserialize)]
+pub struct EssTimeEntriesQuery {
+    pub start_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub end_date: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+pub async fn get_my_time_entries(
+    State(state): State<Arc<AppState>>,
+    employee: EmployeeContext,
+    axum::extract::Query(query): axum::extract::Query<EssTimeEntriesQuery>,
+) -> AppResult<Json<Vec<TimeEntry>>> {
+    let start = query
+        .start_date
+        .unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
+    let end = query.end_date.unwrap_or_else(|| chrono::Utc::now());
+
+    let entries = state
+        .attendance
+        .time_tracking_service
+        .get_employee_history(employee.workspace_id, employee.employee_id, start, end)
+        .await?;
 
     Ok(Json(entries))
 }
