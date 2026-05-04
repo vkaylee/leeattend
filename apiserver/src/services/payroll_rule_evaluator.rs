@@ -66,7 +66,7 @@ impl PayrollRuleEvaluator {
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to resolve rules: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to resolve rules: {e}")))?;
 
         let mut results = Vec::new();
 
@@ -111,7 +111,7 @@ impl PayrollRuleEvaluator {
                     )
                     .fetch_all(pool)
                     .await
-                    .map_err(|e| AppError::Internal(format!("Failed to fetch tiers: {}", e)))?;
+                    .map_err(|e| AppError::Internal(format!("Failed to fetch tiers: {e}")))?;
 
                     let base_type = config
                         .get("base")

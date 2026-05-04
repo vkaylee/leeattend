@@ -43,7 +43,6 @@ impl AgentService {
         self.manager
             .push_message(agent_id, CentralMessage::ConfigPush { data: config_data })
             .await
-            .map_err(|e| e.to_string())
     }
 
     #[tracing::instrument(skip_all, err)]

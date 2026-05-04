@@ -75,7 +75,7 @@ impl PayrollRuleRepository {
                     );
                 }
             }
-            AppError::Internal(format!("Failed to create payroll rule definition: {}", e))
+            AppError::Internal(format!("Failed to create payroll rule definition: {e}"))
         })?;
 
         Ok(row)
@@ -103,7 +103,7 @@ impl PayrollRuleRepository {
         .fetch_all(pool)
         .await
         .map_err(|e| {
-            AppError::Internal(format!("Failed to fetch payroll rule definitions: {}", e))
+            AppError::Internal(format!("Failed to fetch payroll rule definitions: {e}"))
         })?;
 
         Ok(rows)
@@ -146,7 +146,7 @@ impl PayrollRuleRepository {
                     );
                 }
             }
-            AppError::Internal(format!("Failed to create payroll rule tier: {}", e))
+            AppError::Internal(format!("Failed to create payroll rule tier: {e}"))
         })?;
 
         Ok(row)
@@ -167,7 +167,7 @@ impl PayrollRuleRepository {
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to fetch payroll rule tiers: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to fetch payroll rule tiers: {e}")))?;
 
         Ok(rows)
     }
@@ -184,7 +184,7 @@ impl PayrollRuleRepository {
         )
         .execute(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to delete tier: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to delete tier: {e}")))?;
 
         Ok(())
     }
@@ -224,7 +224,7 @@ impl PayrollRuleRepository {
                     );
                 }
             }
-            AppError::Internal(format!("Failed to assign payroll rule: {}", e))
+            AppError::Internal(format!("Failed to assign payroll rule: {e}"))
         })?;
 
         Ok(row)
@@ -252,7 +252,7 @@ impl PayrollRuleRepository {
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to fetch assignments: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to fetch assignments: {e}")))?;
 
         Ok(rows)
     }
@@ -271,7 +271,7 @@ impl PayrollRuleRepository {
         )
         .execute(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to delete assignment: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to delete assignment: {e}")))?;
 
         Ok(())
     }

@@ -229,7 +229,7 @@ impl AgentManager {
             let agent_id = db_agent.id;
 
             // Check Redis first
-            let presence_ts = redis_presence.get(&agent_id).cloned();
+            let presence_ts = redis_presence.get(&agent_id).copied();
 
             // is_online is true if Redis key exists (within 60s TTL) OR locally connected
             let is_online = presence_ts.is_some() || active_local_agents.contains_key(&agent_id);

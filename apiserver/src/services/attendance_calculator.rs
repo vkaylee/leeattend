@@ -110,7 +110,7 @@ impl AttendanceCalculator {
 
                 // 2. Early OT: Time before ShiftStart
                 if rules.allow_early_ot && punch_in < &start {
-                    let early_out = DateTime::min(punch_out.clone(), start.clone());
+                    let early_out = DateTime::min(punch_out.clone(), start);
                     if early_out > effective_ot_start {
                         buckets.early_ot_minutes = early_out
                             .signed_duration_since(effective_ot_start)

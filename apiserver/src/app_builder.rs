@@ -146,7 +146,7 @@ impl AppState {
         let holiday_leave_service = Arc::new(
             crate::services::holiday_leave_service::HolidayLeaveService::new(
                 employee_repo.clone(),
-                leave_balance_repo.clone(),
+                leave_balance_repo,
                 leave_request_repo.clone(),
                 roster_repo.clone(),
                 pool.clone(),

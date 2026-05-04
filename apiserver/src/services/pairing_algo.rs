@@ -126,7 +126,7 @@ impl ShiftAwareStrategy {
             .map(|s| s.to_string());
 
         let combined_note = match (start_note, end_note) {
-            (Some(n1), Some(n2)) => Some(format!("{}\n{}", n1, n2)),
+            (Some(n1), Some(n2)) => Some(format!("{n1}\n{n2}")),
             (Some(n1), None) => Some(n1),
             (None, Some(n2)) => Some(n2),
             (None, None) => None,
@@ -141,7 +141,7 @@ impl ShiftAwareStrategy {
 
         let final_note = if end.is_none() {
             match combined_note {
-                Some(n) => Some(format!("{}\nMissing Punch Out", n)),
+                Some(n) => Some(format!("{n}\nMissing Punch Out")),
                 None => Some("Missing Punch Out".to_string()),
             }
         } else {
@@ -206,7 +206,7 @@ impl ShiftAwareStrategy {
         };
 
         let combined_note = match (start_note, end_note) {
-            (Some(n1), Some(n2)) => Some(format!("{}\n{}", n1, n2)),
+            (Some(n1), Some(n2)) => Some(format!("{n1}\n{n2}")),
             (Some(n1), None) => Some(n1),
             (None, Some(n2)) => Some(n2),
             (None, None) => None,
@@ -222,7 +222,7 @@ impl ShiftAwareStrategy {
 
         let final_note = if end.is_none() {
             match combined_note {
-                Some(n) => Some(format!("{}\nMissing Punch Out", n)),
+                Some(n) => Some(format!("{n}\nMissing Punch Out")),
                 None => Some("Missing Punch Out".to_string()),
             }
         } else {

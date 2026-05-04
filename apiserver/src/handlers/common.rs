@@ -122,8 +122,7 @@ impl MemberContext {
         let has_perm = perms.iter().any(|&p| self.has_permission(p));
         if !has_perm {
             return Err(AppError::Forbidden(format!(
-                "Missing any of permissions: {:?}",
-                perms
+                "Missing any of permissions: {perms:?}"
             )));
         }
 
@@ -172,7 +171,7 @@ where
                     .await
                     .map_err(|e| {
                         if e == "Not a member of this workspace" {
-                            AppError::Forbidden(e.to_string())
+                            AppError::Forbidden(e)
                         } else {
                             tracing::error!("DB error fetching member context: {e}");
                             AppError::Internal("Database error".to_string())
@@ -186,7 +185,7 @@ where
                 .await
                 .map_err(|e| {
                     if e == "Not a member of this workspace" {
-                        AppError::Forbidden(e.to_string())
+                        AppError::Forbidden(e)
                     } else {
                         tracing::error!("DB error fetching member context: {e}");
                         AppError::Internal("Database error".to_string())
@@ -229,8 +228,7 @@ impl MemberContext {
             .core
             .workspace_repo
             .find_primary_role(workspace_id, user_id)
-            .await
-            .map_err(|e| e.to_string())?
+            .await?
             .ok_or_else(|| "Not a member of this workspace".to_string())?;
 
         // 2. Fetch Active Extra Roles
@@ -238,8 +236,7 @@ impl MemberContext {
             .core
             .workspace_repo
             .find_extra_roles(workspace_id, user_id)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         let mut roles: Vec<Uuid> = all_extra_roles
             .into_iter()

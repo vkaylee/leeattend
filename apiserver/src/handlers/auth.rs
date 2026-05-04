@@ -89,13 +89,11 @@ fn create_auth_cookies(access_token: &str, refresh_token: &str) -> HeaderMap {
 
     // access_token cookie
     let access_cookie = format!(
-        "access_token={}; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=3600",
-        access_token, domain_attr
+        "access_token={access_token}; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=3600"
     );
     // refresh_token cookie
     let refresh_cookie = format!(
-        "refresh_token={}; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=2592000",
-        refresh_token, domain_attr
+        "refresh_token={refresh_token}; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=2592000"
     );
 
     if let Ok(val) = HeaderValue::from_str(&access_cookie) {
@@ -115,14 +113,10 @@ fn clear_auth_cookies() -> HeaderMap {
         _ => "".to_string(),
     };
 
-    let access_cookie = format!(
-        "access_token=; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0",
-        domain_attr
-    );
-    let refresh_cookie = format!(
-        "refresh_token=; {}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0",
-        domain_attr
-    );
+    let access_cookie =
+        format!("access_token=; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0");
+    let refresh_cookie =
+        format!("refresh_token=; {domain_attr}HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0");
 
     if let Ok(val) = HeaderValue::from_str(&access_cookie) {
         headers.append(SET_COOKIE, val);
@@ -289,7 +283,7 @@ pub async fn refresh_token(
     let mut token_to_refresh = None;
 
     if let Some(Json(req)) = req_opt {
-        token_to_refresh = Some(req.refresh_token.clone());
+        token_to_refresh = Some(req.refresh_token);
     }
 
     if token_to_refresh.is_none() {
@@ -377,7 +371,7 @@ pub async fn logout(
     let mut token_to_revoke = None;
 
     if let Some(Json(req)) = req_opt {
-        token_to_revoke = Some(req.refresh_token.clone());
+        token_to_revoke = Some(req.refresh_token);
     }
 
     if token_to_revoke.is_none() {

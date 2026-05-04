@@ -22,7 +22,7 @@ impl SalaryBaseRepository {
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to fetch salary bases: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to fetch salary bases: {e}")))?;
 
         Ok(groups)
     }
@@ -43,7 +43,7 @@ impl SalaryBaseRepository {
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to fetch salary base members: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to fetch salary base members: {e}")))?;
 
         Ok(members)
     }
@@ -64,7 +64,7 @@ impl SalaryBaseRepository {
         )
         .execute(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to assign component to base: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to assign component to base: {e}")))?;
 
         Ok(())
     }
@@ -84,9 +84,7 @@ impl SalaryBaseRepository {
         )
         .execute(pool)
         .await
-        .map_err(|e| {
-            AppError::Internal(format!("Failed to unassign component from base: {}", e))
-        })?;
+        .map_err(|e| AppError::Internal(format!("Failed to unassign component from base: {e}")))?;
 
         Ok(())
     }

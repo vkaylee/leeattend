@@ -61,8 +61,7 @@ impl AttendanceSummaryService {
         };
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
-            .await
-            .map_err(|e| e.to_string())?
+            .await?
             .ok_or("Workspace not found")?;
 
         let tz: Tz = crate::utils::tz::parse_workspace_tz(&workspace.timezone);
@@ -174,7 +173,7 @@ impl AttendanceSummaryService {
                             actual_break_minutes,
                             work_unit: 0,
                             rounding_policy: "".to_string(),
-                            rules: policy_rules.clone(),
+                            rules: policy_rules,
                             ot_ceiling: None,
                         },
                     );

@@ -133,7 +133,7 @@ impl ReportService {
                     actual_break_minutes,
                     work_unit: args.work_unit_minutes,
                     rounding_policy: args.rounding_policy.to_string(),
-                    rules: rules.clone(),
+                    rules,
                     ot_ceiling: None,
                 },
             )

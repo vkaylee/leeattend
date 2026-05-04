@@ -14,7 +14,6 @@
     clippy::must_use_candidate,
     clippy::missing_const_for_fn,
     clippy::missing_errors_doc,
-    clippy::redundant_clone,
     clippy::use_self,
     clippy::manual_string_new,
     clippy::module_name_repetitions,
@@ -44,7 +43,6 @@
     clippy::derive_partial_eq_without_eq,
     clippy::match_same_arms,
     clippy::significant_drop_tightening,
-    clippy::cloned_instead_of_copied,
     clippy::future_not_send,
     clippy::manual_clamp,
     clippy::or_fun_call,
@@ -65,7 +63,6 @@
     clippy::useless_let_if_seq,
     clippy::unnecessary_semicolon,
     clippy::manual_midpoint,
-    clippy::uninlined_format_args,
     clippy::needless_for_each,
     clippy::redundant_pub_crate,
     // ── TECH_DEBT: Enterprise-grade lint groups (2026-05-03) ──

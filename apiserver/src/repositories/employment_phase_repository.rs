@@ -44,10 +44,7 @@ impl EmploymentPhaseRepository {
                     );
                 }
             }
-            AppError::Internal(format!(
-                "Failed to create employment phase definition: {}",
-                e
-            ))
+            AppError::Internal(format!("Failed to create employment phase definition: {e}"))
         })?;
 
         Ok(row)
@@ -69,10 +66,7 @@ impl EmploymentPhaseRepository {
         .fetch_all(pool)
         .await
         .map_err(|e| {
-            AppError::Internal(format!(
-                "Failed to fetch employment phase definitions: {}",
-                e
-            ))
+            AppError::Internal(format!("Failed to fetch employment phase definitions: {e}"))
         })?;
 
         Ok(rows)
@@ -105,7 +99,7 @@ impl EmploymentPhaseRepository {
         )
         .fetch_one(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to assign employment phase: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to assign employment phase: {e}")))?;
 
         Ok(row)
     }
@@ -136,7 +130,7 @@ impl EmploymentPhaseRepository {
         )
         .fetch_optional(pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to update employment phase status: {}", e)))?;
+        .map_err(|e| AppError::Internal(format!("Failed to update employment phase status: {e}")))?;
 
         row.ok_or_else(|| AppError::NotFound("Employee phase not found".to_string()))
     }
