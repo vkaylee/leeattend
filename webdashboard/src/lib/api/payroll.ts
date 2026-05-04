@@ -32,6 +32,13 @@ export async function createIncentivePolicy(wsId: string, data: Partial<PayrollI
   if (!response.ok) throw new Error("Failed to create incentive policy");
 }
 
+export async function cloneIncentivePolicy(wsId: string, policyId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll/incentive-policies/${policyId}/clone`, {
+    method: "POST",
+  });
+  if (!response.ok) throw new Error("Failed to clone incentive policy");
+}
+
 export async function deleteIncentivePolicy(wsId: string, policyId: string): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll/incentive-policies/${policyId}`, {
     method: "DELETE",

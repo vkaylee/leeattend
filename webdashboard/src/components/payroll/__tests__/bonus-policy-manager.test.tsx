@@ -92,4 +92,21 @@ describe("BonusPolicyManager", () => {
       }));
     });
   });
+
+  it("allows adding and removing rules in a tier", () => {
+    renderWithProviders(<BonusPolicyManager wsId={mockWsId} />);
+    fireEvent.click(screen.getByText(/payroll.incentives.add_btn/i));
+    
+    // Default tier 1 has 1 rule (Late <= 2)
+    const tierContainers = screen.getAllByText(/Conditions \(AND\)/i).map(el => el.parentElement);
+    expect(tierContainers).toHaveLength(2);
+    
+    // Add rule to Tier 2
+    const addRuleButtons = screen.getAllByText(/Add Rule/i);
+    fireEvent.click(addRuleButtons[1]); // add to second tier
+    
+    // Now there should be an extra select for metric
+    const metricSelects = screen.getAllByRole("combobox").filter(el => (el as HTMLSelectElement).value === "kpi_score" || (el as HTMLSelectElement).value === "late_early_count");
+    expect(metricSelects.length).toBeGreaterThan(1);
+  });
 });

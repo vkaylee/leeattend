@@ -10,6 +10,7 @@ pub struct IncentiveContext {
     pub unpaid_leave_days: f64,
     pub sick_leave_days: f64,
     pub late_early_count: i32,
+    pub kpi_score: f64,
 }
 
 impl PayrollEvaluator {
@@ -65,31 +66,68 @@ impl PayrollEvaluator {
     }
 
     fn matches_tier(tier: &IncentiveTier, ctx: &IncentiveContext) -> bool {
-        // Check late/early count
-        if let Some(max) = tier.max_late_early_count {
-            if ctx.late_early_count > max {
-                return false;
+        let config = &tier.rule_config;
+
+        // Option A: Legacy flat object support
+        if config.is_object() {
+            if let Some(max) = config.get("max_late_early_count").and_then(|v| v.as_i64()) {
+                if ctx.late_early_count > max as i32 {
+                    return false;
+                }
+            }
+
+            if let Some(max) = config.get("max_unpaid_leave_days").and_then(|v| v.as_f64()) {
+                if ctx.unpaid_leave_days > max {
+                    return false;
+                }
+            }
+
+            if let Some(max) = config.get("max_sick_leave_days").and_then(|v| v.as_f64()) {
+                if ctx.sick_leave_days > max {
+                    return false;
+                }
+            }
+
+            if let Some(max) = config.get("max_total_leave_days").and_then(|v| v.as_f64()) {
+                if ctx.total_leave_days > max {
+                    return false;
+                }
             }
         }
 
-        // Check unpaid leave
-        if let Some(max) = tier.max_unpaid_leave_days {
-            if ctx.unpaid_leave_days > max {
-                return false;
-            }
-        }
+        // Option B: Dynamic Rules Array
+        if let Some(rules) = config.as_array() {
+            for rule in rules {
+                let metric = rule.get("metric").and_then(|v| v.as_str()).unwrap_or("");
+                let operator = rule
+                    .get("operator")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("==");
+                let value = rule.get("value").and_then(|v| v.as_f64()).unwrap_or(0.0);
 
-        // Check sick leave
-        if let Some(max) = tier.max_sick_leave_days {
-            if ctx.sick_leave_days > max {
-                return false;
-            }
-        }
+                let ctx_val = match metric {
+                    "total_work_units" => ctx.total_work_units as f64,
+                    "total_leave_days" => ctx.total_leave_days,
+                    "unpaid_leave_days" => ctx.unpaid_leave_days,
+                    "sick_leave_days" => ctx.sick_leave_days,
+                    "late_early_count" => ctx.late_early_count as f64,
+                    "kpi_score" => ctx.kpi_score,
+                    _ => continue, // Ignore unknown metrics
+                };
 
-        // Check total leave days
-        if let Some(max) = tier.max_total_leave_days {
-            if ctx.total_leave_days > max {
-                return false;
+                let matched = match operator {
+                    ">" => ctx_val > value,
+                    "<" => ctx_val < value,
+                    ">=" => ctx_val >= value,
+                    "<=" => ctx_val <= value,
+                    "==" => (ctx_val - value).abs() < f64::EPSILON,
+                    "!=" => (ctx_val - value).abs() >= f64::EPSILON,
+                    _ => false,
+                };
+
+                if !matched {
+                    return false;
+                }
             }
         }
 
@@ -118,6 +156,8 @@ mod tests {
             payout_type: "fixed".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
         };
 
         let tiers = vec![
@@ -125,20 +165,18 @@ mod tests {
                 id: t1_id,
                 policy_id: p_id,
                 priority: 1,
-                max_late_early_count: Some(0),
-                max_unpaid_leave_days: None,
-                max_sick_leave_days: None,
-                max_total_leave_days: None,
+                rule_config: serde_json::json!({
+                    "max_late_early_count": 0
+                }),
                 payout_amount: 150000.0, // Actual
             },
             IncentiveTier {
                 id: t2_id,
                 policy_id: p_id,
                 priority: 2,
-                max_late_early_count: Some(2),
-                max_unpaid_leave_days: None,
-                max_sick_leave_days: None,
-                max_total_leave_days: None,
+                rule_config: serde_json::json!({
+                    "max_late_early_count": 2
+                }),
                 payout_amount: 50000.0,
             },
         ];
@@ -150,6 +188,7 @@ mod tests {
             unpaid_leave_days: 0.0,
             sick_leave_days: 0.0,
             late_early_count: 0,
+            kpi_score: 0.0,
         };
         let res1 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx1).unwrap();
         assert_eq!(res1.amount, Decimal::from(150000));
@@ -162,6 +201,7 @@ mod tests {
             unpaid_leave_days: 0.0,
             sick_leave_days: 0.0,
             late_early_count: 1,
+            kpi_score: 0.0,
         };
         let res2 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx2).unwrap();
         assert_eq!(res2.amount, Decimal::from(50000));
@@ -174,6 +214,7 @@ mod tests {
             unpaid_leave_days: 0.0,
             sick_leave_days: 0.0,
             late_early_count: 3,
+            kpi_score: 0.0,
         };
         let res3 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx3).unwrap();
         assert_eq!(res3.amount, Decimal::ZERO);
@@ -197,6 +238,8 @@ mod tests {
             payout_type: "fixed".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
         };
 
         let tiers = vec![
@@ -204,20 +247,18 @@ mod tests {
                 id: Uuid::new_v4(),
                 policy_id: p_id,
                 priority: 1,
-                max_late_early_count: Some(0), // Perfect attendance
-                max_unpaid_leave_days: None,
-                max_sick_leave_days: None,
-                max_total_leave_days: None,
+                rule_config: serde_json::json!({
+                    "max_late_early_count": 0
+                }),
                 payout_amount: 150000.0,
             },
             IncentiveTier {
                 id: Uuid::new_v4(),
                 policy_id: p_id,
                 priority: 2,
-                max_late_early_count: Some(2),
-                max_unpaid_leave_days: None,
-                max_sick_leave_days: None,
-                max_total_leave_days: None,
+                rule_config: serde_json::json!({
+                    "max_late_early_count": 2
+                }),
                 payout_amount: 50000.0,
             },
         ];
@@ -229,7 +270,8 @@ mod tests {
             total_leave_days: 0.0,
             unpaid_leave_days: 0.0,
             sick_leave_days: 0.0,
-            late_early_count: 1, // Holiday late NOT excluded
+            late_early_count: 1, // Holiday late NOT excluded,
+            kpi_score: 0.0,
         };
         let result_old =
             PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_without_exclusion).unwrap();
@@ -245,7 +287,8 @@ mod tests {
             total_leave_days: 0.0,
             unpaid_leave_days: 0.0,
             sick_leave_days: 0.0,
-            late_early_count: 0, // Holiday late excluded by payroll_service.rs
+            late_early_count: 0, // Holiday late excluded by payroll_service.rs,
+            kpi_score: 0.0,
         };
         let result_new =
             PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_with_exclusion).unwrap();
@@ -276,15 +319,14 @@ mod tests {
             payout_type: "percentage".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
         };
         let tiers = vec![IncentiveTier {
             id: Uuid::new_v4(),
             policy_id: p_id,
             priority: 1,
-            max_late_early_count: None,
-            max_unpaid_leave_days: None,
-            max_sick_leave_days: None,
-            max_total_leave_days: None,
+            rule_config: serde_json::json!({}),
             payout_amount: 0.1, // 10%
         }];
         let ctx = IncentiveContext {
@@ -293,6 +335,7 @@ mod tests {
             unpaid_leave_days: 0.0,
             sick_leave_days: 0.0,
             late_early_count: 0,
+            kpi_score: 0.0,
         };
         let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx).unwrap();
         // percentage: base_amount * payout_amount = 1_000_000 * 0.1 = 100_000
@@ -310,15 +353,16 @@ mod tests {
             payout_type: "fixed".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
         };
         let tiers = vec![IncentiveTier {
             id: Uuid::new_v4(),
             policy_id: p_id,
             priority: 1,
-            max_late_early_count: None,
-            max_unpaid_leave_days: Some(1.0), // Max 1 unpaid leave day
-            max_sick_leave_days: None,
-            max_total_leave_days: None,
+            rule_config: serde_json::json!({
+                "max_unpaid_leave_days": 1.0
+            }),
             payout_amount: 200_000.0,
         }];
         // Employee has 2 unpaid leave days → exceeds threshold
@@ -328,6 +372,7 @@ mod tests {
             unpaid_leave_days: 2.0,
             sick_leave_days: 0.0,
             late_early_count: 0,
+            kpi_score: 0.0,
         };
         let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx).unwrap();
         assert_eq!(res.amount, Decimal::ZERO);
@@ -344,15 +389,16 @@ mod tests {
             payout_type: "fixed".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
         };
         let tiers = vec![IncentiveTier {
             id: Uuid::new_v4(),
             policy_id: p_id,
             priority: 1,
-            max_late_early_count: None,
-            max_unpaid_leave_days: None,
-            max_sick_leave_days: Some(0.0), // No sick days allowed
-            max_total_leave_days: None,
+            rule_config: serde_json::json!({
+                "max_sick_leave_days": 0.0
+            }),
             payout_amount: 100_000.0,
         }];
         // Employee has 1 sick day
@@ -362,6 +408,7 @@ mod tests {
             unpaid_leave_days: 0.0,
             sick_leave_days: 1.0,
             late_early_count: 0,
+            kpi_score: 0.0,
         };
         let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx).unwrap();
         assert_eq!(res.amount, Decimal::ZERO);
@@ -378,15 +425,16 @@ mod tests {
             payout_type: "fixed".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
         };
         let tiers = vec![IncentiveTier {
             id: Uuid::new_v4(),
             policy_id: p_id,
             priority: 1,
-            max_late_early_count: None,
-            max_unpaid_leave_days: None,
-            max_sick_leave_days: None,
-            max_total_leave_days: Some(3.0), // Max 3 total leave days
+            rule_config: serde_json::json!({
+                "max_total_leave_days": 3.0
+            }),
             payout_amount: 500_000.0,
         }];
         // Exactly at limit → should pass
@@ -396,6 +444,7 @@ mod tests {
             unpaid_leave_days: 1.0,
             sick_leave_days: 2.0,
             late_early_count: 0,
+            kpi_score: 0.0,
         };
         let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_pass).unwrap();
         assert_eq!(res.amount, Decimal::from(500_000));
@@ -407,6 +456,7 @@ mod tests {
             unpaid_leave_days: 2.0,
             sick_leave_days: 2.0,
             late_early_count: 0,
+            kpi_score: 0.0,
         };
         let res2 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_fail).unwrap();
         assert_eq!(res2.amount, Decimal::ZERO);
@@ -423,6 +473,8 @@ mod tests {
             payout_type: "fixed".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
         };
         let t2_id = Uuid::new_v4();
         let tiers = vec![
@@ -431,10 +483,9 @@ mod tests {
                 id: Uuid::new_v4(),
                 policy_id: p_id,
                 priority: 1,
-                max_late_early_count: Some(0),
-                max_unpaid_leave_days: None,
-                max_sick_leave_days: None,
-                max_total_leave_days: None,
+                rule_config: serde_json::json!({
+                    "max_late_early_count": 0
+                }),
                 payout_amount: 300_000.0,
             },
             // Tier 2: lenient (priority 2) — allows up to 5 late
@@ -442,10 +493,9 @@ mod tests {
                 id: t2_id,
                 policy_id: p_id,
                 priority: 2,
-                max_late_early_count: Some(5),
-                max_unpaid_leave_days: None,
-                max_sick_leave_days: None,
-                max_total_leave_days: None,
+                rule_config: serde_json::json!({
+                    "max_late_early_count": 5
+                }),
                 payout_amount: 100_000.0,
             },
         ];
@@ -456,6 +506,7 @@ mod tests {
             unpaid_leave_days: 0.0,
             sick_leave_days: 0.0,
             late_early_count: 2,
+            kpi_score: 0.0,
         };
         let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx).unwrap();
         assert_eq!(res.amount, Decimal::from(100_000));
@@ -474,16 +525,17 @@ mod tests {
             payout_type: "fixed".into(),
             is_active: true,
             created_at: chrono::Utc::now(),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
         };
 
         let tiers = vec![IncentiveTier {
             id: Uuid::new_v4(),
             policy_id: p_id,
             priority: 1,
-            max_late_early_count: Some(0),
-            max_unpaid_leave_days: None,
-            max_sick_leave_days: None,
-            max_total_leave_days: None,
+            rule_config: serde_json::json!({
+                "max_late_early_count": 0
+            }),
             payout_amount: 100_000.0,
         }];
 
@@ -493,6 +545,7 @@ mod tests {
             unpaid_leave_days: 0.0,
             sick_leave_days: 0.0,
             late_early_count: 0,
+            kpi_score: 0.0,
         };
 
         // Should return an Err because base_amount is NaN
@@ -511,14 +564,71 @@ mod tests {
         };
 
         let tiers_invalid = vec![IncentiveTier {
-            payout_amount: f64::INFINITY,
+            payout_amount: f64::NAN,
             ..tiers[0].clone()
         }];
 
         let res2 = PayrollEvaluator::evaluate_policy(&policy2, &tiers_invalid, &ctx);
         assert!(
             res2.is_err(),
-            "Evaluating an invalid tier float should return an error"
+            "Evaluating an invalid float should return an error"
         );
+    }
+
+    #[test]
+    fn test_evaluate_policy_dynamic_rules_option_b() {
+        let p_id = Uuid::new_v4();
+        let policy = PayrollIncentivePolicy {
+            id: p_id,
+            workspace_id: Uuid::new_v4(),
+            name: "KPI Bonus".into(),
+            base_amount: 1_000_000.0,
+            payout_type: "fixed".into(),
+            is_active: true,
+            created_at: chrono::Utc::now(),
+            effective_from: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_to: None,
+        };
+
+        // Tier 1: KPI >= 90 AND Late <= 2 => 1,000,000
+        let tiers = vec![IncentiveTier {
+            id: Uuid::new_v4(),
+            policy_id: p_id,
+            priority: 1,
+            rule_config: serde_json::json!([
+                { "metric": "kpi_score", "operator": ">=", "value": 90.0 },
+                { "metric": "late_early_count", "operator": "<=", "value": 2.0 }
+            ]),
+            payout_amount: 1_000_000.0,
+        }];
+
+        // Case 1: Meets both
+        let ctx_pass = IncentiveContext {
+            total_work_units: 160,
+            total_leave_days: 0.0,
+            unpaid_leave_days: 0.0,
+            sick_leave_days: 0.0,
+            late_early_count: 2,
+            kpi_score: 95.0,
+        };
+        let res_pass = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_pass).unwrap();
+        assert_eq!(res_pass.amount, Decimal::from(1_000_000));
+
+        // Case 2: KPI too low
+        let ctx_fail_kpi = IncentiveContext {
+            kpi_score: 85.0,
+            ..ctx_pass
+        };
+        let res_fail1 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_fail_kpi).unwrap();
+        assert_eq!(res_fail1.amount, Decimal::ZERO);
+
+        // Case 3: Too many late counts
+        let ctx_fail_late = IncentiveContext {
+            late_early_count: 3,
+            kpi_score: 95.0,
+            ..ctx_pass
+        };
+        let res_fail2 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx_fail_late).unwrap();
+        assert_eq!(res_fail2.amount, Decimal::ZERO);
     }
 }

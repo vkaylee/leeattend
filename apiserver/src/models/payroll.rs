@@ -73,6 +73,8 @@ pub struct PayrollIncentivePolicy {
     pub payout_type: String, // String to match DB, can be parsed to PayoutType
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
+    pub effective_from: chrono::NaiveDate,
+    pub effective_to: Option<chrono::NaiveDate>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
@@ -80,10 +82,7 @@ pub struct IncentiveTier {
     pub id: Uuid,
     pub policy_id: Uuid,
     pub priority: i32,
-    pub max_late_early_count: Option<i32>,
-    pub max_unpaid_leave_days: Option<f64>,
-    pub max_sick_leave_days: Option<f64>,
-    pub max_total_leave_days: Option<f64>,
+    pub rule_config: serde_json::Value,
     pub payout_amount: f64,
 }
 
@@ -104,14 +103,28 @@ pub struct PayslipRuleEvaluation {
     pub created_at: DateTime<Utc>,
 }
 
+fn default_rule_config() -> serde_json::Value {
+    serde_json::json!({})
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateIncentiveTierRequest {
     pub priority: i32,
-    pub max_late_early_count: Option<i32>,
-    pub max_unpaid_leave_days: Option<f64>,
-    pub max_sick_leave_days: Option<f64>,
-    pub max_total_leave_days: Option<f64>,
+    #[serde(default = "default_rule_config")]
+    pub rule_config: serde_json::Value,
     pub payout_amount: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct PayrollIncentiveAssignment {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub policy_id: Uuid,
+    pub assignee_type: String,
+    pub assignee_id: Option<Uuid>,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -119,6 +132,7 @@ pub struct CreatePayrollIncentivePolicyRequest {
     pub name: String,
     pub base_amount: f64,
     pub payout_type: String,
+    pub effective_from: chrono::NaiveDate,
     pub tiers: Vec<CreateIncentiveTierRequest>,
 }
 
@@ -396,17 +410,15 @@ mod tests {
     fn test_create_incentive_tier_request_serde() {
         let json = r#"{
             "priority": 1,
-            "max_late_early_count": 3,
-            "max_unpaid_leave_days": 2.0,
+            "rule_config": {
+                "max_late_early_count": 3
+            },
             "payout_amount": 500.0
         }"#;
         let req: CreateIncentiveTierRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.priority, 1);
-        assert_eq!(req.max_late_early_count, Some(3));
-        assert_eq!(req.max_unpaid_leave_days, Some(2.0));
+        assert_eq!(req.rule_config["max_late_early_count"], 3);
         assert_eq!(req.payout_amount, 500.0);
-        assert!(req.max_sick_leave_days.is_none());
-        assert!(req.max_total_leave_days.is_none());
     }
 
     #[test]
@@ -415,9 +427,10 @@ mod tests {
             "name": "Attendance Bonus",
             "base_amount": 1000.0,
             "payout_type": "fixed",
+            "effective_from": "2026-01-01",
             "tiers": [
                 {"priority": 1, "payout_amount": 1000.0},
-                {"priority": 2, "max_late_early_count": 2, "payout_amount": 800.0}
+                {"priority": 2, "rule_config": {"max_late_early_count": 2}, "payout_amount": 800.0}
             ]
         }"#;
         let req: CreatePayrollIncentivePolicyRequest = serde_json::from_str(json).unwrap();

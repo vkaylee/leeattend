@@ -51,6 +51,10 @@ pub fn router() -> Router<Arc<AppState>> {
             delete(handlers::delete_incentive_policy),
         )
         .route(
+            "/workspaces/:ws_id/payroll/incentive-policies/:policy_id/clone",
+            post(handlers::clone_incentive_policy),
+        )
+        .route(
             "/workspaces/:ws_id/employees/:id/payroll-config",
             post(handlers::set_employee_payroll_config).get(handlers::get_employee_payroll_configs),
         )

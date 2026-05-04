@@ -123,10 +123,14 @@ impl FinancialCalculator {
         pool: &PgPool,
         args: CalculateIncentivesArgs,
     ) -> Result<IncentivesResult, AppError> {
-        let active_policies =
-            payroll_repository::get_active_incentive_policies(pool, args.workspace_id)
-                .await
-                .map_err(AppError::Sqlx)?;
+        let active_policies = payroll_repository::get_active_incentive_policies_for_period(
+            pool,
+            args.workspace_id,
+            args.start_date,
+            args.end_date,
+        )
+        .await
+        .map_err(AppError::Sqlx)?;
         let mut incentive_results = Vec::new();
         let mut total_incentive_amount = Decimal::ZERO;
 
@@ -154,6 +158,7 @@ impl FinancialCalculator {
                 unpaid_leave_days: leave_breakdown.unpaid_days,
                 sick_leave_days: leave_breakdown.sick_days,
                 late_early_count: args.total_late_early_count,
+                kpi_score: 0.0,
             };
 
             for policy in active_policies {

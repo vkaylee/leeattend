@@ -466,20 +466,25 @@ export interface Payslip {
   updated_at: string;
 }
 
+export interface RuleCondition {
+  metric: string;
+  operator: string;
+  value: number;
+}
+
 export interface IncentiveTier {
   id: string;
-  max_late_early_count?: number;
-  max_sick_leave_days?: number;
-  max_total_leave_days?: number;
-  max_unpaid_leave_days?: number;
   payout_amount: number;
   policy_id: string;
   priority: number;
+  rule_config?: Record<string, unknown> | RuleCondition[];
 }
 
 export interface PayrollIncentivePolicy {
   base_amount: number;
   created_at: string;
+  effective_from: string;
+  effective_to?: string;
   id: string;
   is_active: boolean;
   max_concurrent_workers: number;

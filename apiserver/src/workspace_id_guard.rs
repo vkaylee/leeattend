@@ -48,6 +48,7 @@ mod tests {
         "workspace_members",
         "department_payroll_configs",
         "employee_payroll_configs",
+        "payroll_incentive_assignments",
     ];
 
     /// Queries that are legitimately exempt from workspace_id filtering.

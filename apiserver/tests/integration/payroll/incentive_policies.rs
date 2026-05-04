@@ -72,10 +72,12 @@ async fn test_incentive_policy_create_and_list() {
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
+    println!("Starting test_incentive_policy_create_and_list");
     let create_payload = serde_json::json!({
         "name": "Test Incentive",
         "base_amount": 5000.0,
         "payout_type": "fixed",
+        "effective_from": "2026-01-01",
         "tiers": [
             {
                 "priority": 1,
@@ -84,6 +86,7 @@ async fn test_incentive_policy_create_and_list() {
         ]
     });
 
+    println!("Creating policy...");
     // Create policy
     let resp = app
         .clone()
@@ -97,10 +100,12 @@ async fn test_incentive_policy_create_and_list() {
         .await
         .unwrap();
 
+    println!("Create response status: {}", resp.status());
     assert_eq!(resp.status(), StatusCode::CREATED);
     let created = body_json(resp).await;
     assert_eq!(created["name"], "Test Incentive");
 
+    println!("Listing policies...");
     // List policies
     let resp = app
         .clone()
@@ -114,11 +119,13 @@ async fn test_incentive_policy_create_and_list() {
         .await
         .unwrap();
 
+    println!("List response status: {}", resp.status());
     assert_eq!(resp.status(), StatusCode::OK);
     let list = body_json(resp).await;
     assert_eq!(list.as_array().unwrap().len(), 1);
     assert_eq!(list[0]["name"], "Test Incentive");
     assert_eq!(list[0]["tiers"].as_array().unwrap().len(), 1);
+    println!("Test finished");
 }
 #[tokio::test]
 async fn test_incentive_policy_delete() {

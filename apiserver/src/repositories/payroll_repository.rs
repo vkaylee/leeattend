@@ -20,6 +20,13 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
     ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error>;
 
+    async fn get_active_incentive_policies_for_period(
+        &self,
+        workspace_id: Uuid,
+        period_start: NaiveDate,
+        period_end: NaiveDate,
+    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error>;
+
     async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, sqlx::Error>;
 
     async fn create_payslip_incentive(
@@ -146,6 +153,15 @@ impl PayrollRepository for SqlxPayrollRepository {
         workspace_id: Uuid,
     ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
         get_active_incentive_policies(&self.pool, workspace_id).await
+    }
+    async fn get_active_incentive_policies_for_period(
+        &self,
+        workspace_id: Uuid,
+        period_start: NaiveDate,
+        period_end: NaiveDate,
+    ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
+        get_active_incentive_policies_for_period(&self.pool, workspace_id, period_start, period_end)
+            .await
     }
     async fn get_policy_tiers(&self, policy_id: Uuid) -> Result<Vec<IncentiveTier>, sqlx::Error> {
         get_policy_tiers(&self.pool, policy_id).await
@@ -293,7 +309,7 @@ pub async fn get_active_incentive_policies(
     workspace_id: Uuid,
 ) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
     let rows = sqlx::query(
-        r#"SELECT id, workspace_id, name, base_amount, payout_type, is_active, created_at
+        r#"SELECT id, workspace_id, name, base_amount, payout_type, is_active, created_at, effective_from, effective_to
            FROM payroll_incentive_policies 
            WHERE workspace_id = $1 AND is_active = TRUE"#,
     )
@@ -311,6 +327,44 @@ pub async fn get_active_incentive_policies(
             payout_type: row.get("payout_type"),
             is_active: row.get("is_active"),
             created_at: row.get("created_at"),
+            effective_from: row.get("effective_from"),
+            effective_to: row.get("effective_to"),
+        })
+        .collect())
+}
+
+pub async fn get_active_incentive_policies_for_period(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    period_start: NaiveDate,
+    period_end: NaiveDate,
+) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
+    let rows = sqlx::query(
+        r#"SELECT id, workspace_id, name, base_amount, payout_type, is_active, created_at, effective_from, effective_to
+           FROM payroll_incentive_policies 
+           WHERE workspace_id = $1 
+             AND is_active = TRUE
+             AND effective_from <= $3
+             AND (effective_to IS NULL OR effective_to >= $2)"#,
+    )
+    .bind(workspace_id)
+    .bind(period_start)
+    .bind(period_end)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| PayrollIncentivePolicy {
+            id: row.get("id"),
+            workspace_id: row.get("workspace_id"),
+            name: row.get("name"),
+            base_amount: row.get("base_amount"),
+            payout_type: row.get("payout_type"),
+            is_active: row.get("is_active"),
+            created_at: row.get("created_at"),
+            effective_from: row.get("effective_from"),
+            effective_to: row.get("effective_to"),
         })
         .collect())
 }
@@ -320,7 +374,7 @@ pub async fn get_policy_tiers(
     policy_id: Uuid,
 ) -> Result<Vec<IncentiveTier>, sqlx::Error> {
     let rows = sqlx::query(
-        r#"SELECT id, policy_id, priority, max_late_early_count, max_unpaid_leave_days, max_sick_leave_days, max_total_leave_days, payout_amount
+        r#"SELECT id, policy_id, priority, rule_config, payout_amount
            FROM payroll_incentive_tiers 
            WHERE policy_id = $1
            ORDER BY priority ASC"#,
@@ -335,10 +389,9 @@ pub async fn get_policy_tiers(
             id: row.get("id"),
             policy_id: row.get("policy_id"),
             priority: row.get("priority"),
-            max_late_early_count: row.get("max_late_early_count"),
-            max_unpaid_leave_days: row.get::<Option<f64>, _>("max_unpaid_leave_days"),
-            max_sick_leave_days: row.get::<Option<f64>, _>("max_sick_leave_days"),
-            max_total_leave_days: row.get::<Option<f64>, _>("max_total_leave_days"),
+            rule_config: row
+                .get::<sqlx::types::Json<serde_json::Value>, _>("rule_config")
+                .0,
             payout_amount: row.get::<f64, _>("payout_amount"),
         })
         .collect())
