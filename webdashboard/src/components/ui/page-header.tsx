@@ -39,7 +39,7 @@ const PageHeader = memo(function PageHeader({
           </div>
         )}
         <div>
-          <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none mb-2 uppercase" data-testid={testId}>
+          <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-snug mb-2 uppercase" data-testid={testId}>
             {title}
           </h1>
           {!!subtitle && (
