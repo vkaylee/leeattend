@@ -103,7 +103,7 @@ pub async fn clear_workspace_data(
                 .await?;
         }
         _ => return Err(AppError::Validation("Invalid group".to_string())),
-    };
+    }
 
     tx.commit().await?;
     Ok(StatusCode::OK)

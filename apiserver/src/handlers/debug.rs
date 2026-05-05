@@ -205,7 +205,7 @@ pub async fn clear_debug_db(
                 }
             }
             _ => return Err(AppError::Validation("Invalid group".to_string())),
-        };
+        }
 
         tx.commit().await?;
         Ok((StatusCode::OK, "Cleared"))

@@ -28,7 +28,6 @@
     clippy::enum_glob_use,
     clippy::wildcard_imports,
     clippy::struct_field_names,
-    clippy::type_complexity,
     clippy::option_if_let_else,
     clippy::map_unwrap_or,
     clippy::derive_partial_eq_without_eq,
@@ -41,13 +40,10 @@
     clippy::needless_pass_by_value,
     clippy::format_push_string,
     clippy::items_after_statements,
-    clippy::unnecessary_struct_initialization,
     clippy::ref_option,
     clippy::assigning_clones,
     clippy::fn_params_excessive_bools,
     clippy::too_long_first_doc_paragraph,
-    clippy::useless_let_if_seq,
-    clippy::unnecessary_semicolon,
     clippy::manual_midpoint,
     clippy::needless_for_each,
     clippy::redundant_pub_crate
@@ -59,6 +55,9 @@
 #![deny(clippy::match_same_arms)]
 #![deny(clippy::branches_sharing_code)]
 #![deny(unused_imports)]
+#![deny(clippy::unnecessary_struct_initialization)]
+#![deny(clippy::useless_let_if_seq)]
+#![deny(clippy::unnecessary_semicolon)]
 #![deny(clippy::if_same_then_else)]
 #![deny(clippy::implicit_clone)]
 #![deny(clippy::inefficient_to_string)]

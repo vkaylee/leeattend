@@ -421,9 +421,7 @@ impl ReportCoordinator {
         .await
         .map_err(|e: sqlx::Error| ReportError::DatabaseError(e.to_string()))?;
 
-        Ok(WorkspaceConfig {
-            timezone: row.timezone,
-        })
+        Ok(row)
     }
 }
 

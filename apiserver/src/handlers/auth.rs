@@ -280,11 +280,7 @@ pub async fn refresh_token(
     req_opt: Option<Json<RefreshRequest>>,
 ) -> AppResult<impl IntoResponse> {
     // Try to get refresh_token from body, fallback to cookie
-    let mut token_to_refresh = None;
-
-    if let Some(Json(req)) = req_opt {
-        token_to_refresh = Some(req.refresh_token);
-    }
+    let mut token_to_refresh = req_opt.map(|Json(req)| req.refresh_token);
 
     if token_to_refresh.is_none() {
         if let Some(cookie_header) = headers.get("cookie") {
@@ -368,11 +364,7 @@ pub async fn logout(
     req_opt: Option<Json<RefreshRequest>>,
 ) -> AppResult<impl IntoResponse> {
     // Try to get refresh_token from body, fallback to cookie
-    let mut token_to_revoke = None;
-
-    if let Some(Json(req)) = req_opt {
-        token_to_revoke = Some(req.refresh_token);
-    }
+    let mut token_to_revoke = req_opt.map(|Json(req)| req.refresh_token);
 
     if token_to_revoke.is_none() {
         if let Some(cookie_header) = headers.get("cookie") {

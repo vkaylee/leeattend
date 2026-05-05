@@ -219,7 +219,7 @@ impl AttendanceImportService {
                                 )
                             ));
                         }
-                    };
+                    }
                 }
             }
             Err(e) => {

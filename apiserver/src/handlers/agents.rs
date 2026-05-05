@@ -574,13 +574,13 @@ pub async fn update_authorized_agent(
 ) -> AppResult<Json<AuthorizedAgent>> {
     let mut query_builder: sqlx::query_builder::QueryBuilder<sqlx::Postgres> =
         sqlx::query_builder::QueryBuilder::new("UPDATE authorized_agents SET ");
-    let mut has_fields_to_update = false;
-
-    if let Some(name) = req.name {
+    let mut has_fields_to_update = if let Some(name) = req.name {
         query_builder.push("name = ");
         query_builder.push_bind(name);
-        has_fields_to_update = true;
-    }
+        true
+    } else {
+        false
+    };
     if let Some(token) = req.token {
         if has_fields_to_update {
             query_builder.push(", ");

@@ -136,11 +136,10 @@ impl AttendanceAdjustmentService {
                     .await
                     .map_err(AppError::Sqlx)?;
             } else {
-                let mut duration_minutes = None;
-                if let Some(punch_out) = request.requested_punch_out_time {
+                let duration_minutes = request.requested_punch_out_time.map(|punch_out| {
                     let duration = punch_out.signed_duration_since(request.requested_punch_in_time);
-                    duration_minutes = Some(duration.num_minutes() as i32);
-                }
+                    duration.num_minutes() as i32
+                });
 
                 let workspace_id: Uuid = sqlx::query_scalar!(
                     "SELECT workspace_id FROM employees WHERE id = $1",
