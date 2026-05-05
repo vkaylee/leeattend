@@ -148,7 +148,7 @@ pub async fn resolve_staging_log(
         .unwrap_or(-1);
 
     let raw_log = RawAttendanceLog {
-        id: Uuid::new_v4(),
+        id: crate::utils::id::new_id(),
         workspace_id: ctx.workspace_id,
         employee_id: req.employee_id,
         punch_time: staged.punch_time,

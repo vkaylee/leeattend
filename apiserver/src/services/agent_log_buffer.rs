@@ -13,6 +13,8 @@ use tokio::time::{interval, timeout};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
+use crate::utils::id::new_id;
+
 use crate::models::{LogSource, RawAttendanceLog};
 use crate::repositories::{employee, raw_attendance_log_repository};
 use crate::services::pairing_service::PairingService;
@@ -268,7 +270,7 @@ async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedL
         crate::services::attendance_utils::extract_punch_status(entry.raw_data.as_ref());
 
     let raw_log = RawAttendanceLog {
-        id: Uuid::new_v4(),
+        id: new_id(),
         workspace_id: entry.workspace_id,
         employee_id: employee.id,
         punch_time,

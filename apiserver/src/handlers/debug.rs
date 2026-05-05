@@ -176,7 +176,7 @@ pub async fn clear_debug_db(
                 ];
 
                 for (name, email, code, dept_id) in employees {
-                    let emp_id = Uuid::new_v4();
+                    let emp_id = crate::utils::id::new_id();
                     sqlx::query(
                          "INSERT INTO employees (id, workspace_id, full_name, email, employee_id_number, is_active) VALUES ($1, $2, $3, $4, $5, true)"
                      )

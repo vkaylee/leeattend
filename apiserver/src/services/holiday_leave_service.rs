@@ -118,7 +118,7 @@ impl HolidayLeaveService {
             if remaining >= 1.0 {
                 // Has sufficient leave → create auto-approved leave request
                 let leave_request = LeaveRequest {
-                    id: Uuid::new_v4(),
+                    id: crate::utils::id::new_id(),
                     employee_id: emp.id,
                     leave_type_id,
                     start_date: holiday.date,
@@ -141,7 +141,7 @@ impl HolidayLeaveService {
 
                 // Update roster to reflect leave
                 let roster = ShiftRoster {
-                    id: Uuid::new_v4(),
+                    id: crate::utils::id::new_id(),
                     employee_id: emp.id,
                     shift_id: None,
                     date: holiday.date,

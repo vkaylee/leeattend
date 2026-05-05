@@ -245,7 +245,7 @@ pub async fn claim_staged_logs_direct(
             ON CONFLICT DO NOTHING
             "#,
         )
-        .bind(Uuid::new_v4())
+        .bind(crate::utils::id::new_id())
         .bind(workspace_id)
         .bind(employee_id)
         .bind(staged.punch_time)

@@ -6,6 +6,8 @@ use sqlx::PgPool;
 use tracing::error;
 use uuid::Uuid;
 
+use crate::utils::id::new_id;
+
 use crate::models::{
     AdjustmentStatus, AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, TimeEntry,
 };
@@ -68,7 +70,7 @@ impl AttendanceAdjustmentService {
         req: CreateAttendanceAdjustmentRequest,
     ) -> Result<AttendanceAdjustmentRequest, AppError> {
         let adjustment = AttendanceAdjustmentRequest {
-            id: Uuid::new_v4(),
+            id: new_id(),
             employee_id: req.employee_id,
             time_entry_id: req.time_entry_id,
             requested_punch_in_time: req.requested_punch_in_time,
@@ -149,7 +151,7 @@ impl AttendanceAdjustmentService {
                 .await
                 .map_err(AppError::Sqlx)?;
                 let entry = TimeEntry {
-                    id: Uuid::new_v4(),
+                    id: new_id(),
                     employee_id: request.employee_id,
                     workspace_id,
                     shift_id: None,

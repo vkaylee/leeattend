@@ -208,7 +208,7 @@ pub async fn force_reprocess_all_attendance(
         ));
     }
 
-    let parent_job_id = uuid::Uuid::new_v4();
+    let parent_job_id = crate::utils::id::new_id();
     let total_batches = employees.len() as u32;
 
     tracing::info!(

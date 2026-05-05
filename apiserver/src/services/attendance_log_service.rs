@@ -5,6 +5,8 @@ use std::sync::Arc;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
+use crate::utils::id::new_id;
+
 use crate::models::{LogSource, RawAttendanceLog};
 use crate::repositories::attendance_log_error_repository::AttendanceLogErrorRepository;
 use crate::repositories::raw_attendance_log_repository::RawAttendanceLogRepository;
@@ -248,7 +250,7 @@ impl AttendanceLogService {
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
 
         let raw_log = RawAttendanceLog {
-            id: Uuid::new_v4(),
+            id: new_id(),
             workspace_id: args.workspace_id,
             employee_id: employee.id,
             punch_time,
@@ -306,7 +308,7 @@ impl AttendanceLogService {
         let (punch, status) = Self::extract_punch_status(raw_data.as_ref());
 
         let raw_log = RawAttendanceLog {
-            id: Uuid::new_v4(),
+            id: new_id(),
             workspace_id,
             employee_id,
             punch_time,
@@ -366,7 +368,7 @@ impl AttendanceLogService {
             let (punch, status) = Self::extract_punch_status(staged.raw_data.as_ref());
 
             let raw_log = RawAttendanceLog {
-                id: Uuid::new_v4(),
+                id: new_id(),
                 workspace_id,
                 employee_id,
                 punch_time: staged.punch_time,

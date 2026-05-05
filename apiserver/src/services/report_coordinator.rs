@@ -137,7 +137,7 @@ impl ReportCoordinator {
         }
 
         // 2. Generate parent job ID
-        let parent_job_id = Uuid::new_v4();
+        let parent_job_id = crate::utils::id::new_id();
 
         // 3. Fetch workspace config for jobs
         let workspace = self.fetch_workspace_config(workspace_id).await?;

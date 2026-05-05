@@ -5,7 +5,7 @@ use axum::{
 };
 use chrono::Utc;
 use std::sync::Arc;
-use uuid::Uuid;
+
 
 use crate::errors::{AppError, AppResult};
 use crate::models::{
@@ -155,7 +155,7 @@ pub async fn register(
     let mut tx = state.infra.db.api().begin().await?;
 
     // 4. Create User within transaction
-    let user_id = Uuid::new_v4();
+    let user_id = crate::utils::id::new_id();
     let created_at = Utc::now();
     let user = User {
         id: user_id,

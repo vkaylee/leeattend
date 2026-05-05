@@ -289,7 +289,7 @@ pub async fn assign_leave_policy(
     ctx.require_permission(Permission::LeavePoliciesManage)?;
 
     let assignment = LeavePolicyAssignment {
-        id: Uuid::new_v4(),
+        id: crate::utils::id::new_id(),
         workspace_id: ctx.workspace_id,
         assignee_type: req.assignee_type,
         assignee_id: req.assignee_id,
@@ -340,7 +340,7 @@ pub async fn trigger_accrual_run(
     use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType};
 
     let queue = JobQueue::new(redis.clone());
-    let parent_id = Uuid::new_v4();
+    let parent_id = crate::utils::id::new_id();
     let job = Job::new(
         parent_id,
         0,
@@ -472,7 +472,7 @@ pub async fn upload_leave_excel(
 
             let dir = "storage/imports";
             tokio::fs::create_dir_all(dir).await?;
-            let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
+            let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
             tokio::fs::write(&path, data).await?;
             file_path = Some(path);
         }
@@ -486,7 +486,7 @@ pub async fn upload_leave_excel(
         || ctx.has_permission(Permission::LeaveApproveL2);
 
     // Create import job record in DB
-    let import_job_id = Uuid::new_v4();
+    let import_job_id = crate::utils::id::new_id();
     let import_job = crate::models::AttendanceImportJob {
         id: import_job_id,
         workspace_id: ctx.workspace_id,

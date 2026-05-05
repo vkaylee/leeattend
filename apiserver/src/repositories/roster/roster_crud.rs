@@ -59,7 +59,7 @@ pub async fn bulk_upsert_roster(
              ON CONFLICT (employee_id, date) 
              DO UPDATE SET shift_id = EXCLUDED.shift_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = NOW()",
         )
-        .bind(Uuid::new_v4())
+        .bind(crate::utils::id::new_id())
         .bind(employee_id)
         .bind(item.shift_id)
         .bind(item.date)

@@ -81,7 +81,7 @@ pub async fn add_rule(
 ) -> AppResult<Json<OvertimeRule>> {
     ctx.require_permission(Permission::OvertimePoliciesManage)?;
     let rule = OvertimeRule {
-        id: Uuid::new_v4(),
+        id: crate::utils::id::new_id(),
         policy_id,
         priority: req.priority,
         multiplier: req.multiplier,

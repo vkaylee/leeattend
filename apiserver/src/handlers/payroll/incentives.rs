@@ -37,7 +37,7 @@ pub async fn create_incentive_policy(
     ctx: MemberContext,
     Json(req): Json<CreatePayrollIncentivePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<PayrollIncentivePolicy>)> {
-    let policy_id = Uuid::new_v4();
+    let policy_id = crate::utils::id::new_id();
     let row: sqlx::postgres::PgRow = sqlx::query(
         r#"INSERT INTO payroll_incentive_policies (id, workspace_id, name, base_amount, payout_type, is_active, effective_from)
            VALUES ($1, $2, $3, $4, $5, TRUE, $6)
@@ -53,7 +53,7 @@ pub async fn create_incentive_policy(
     .await?;
 
     for tier in &req.tiers {
-        let tier_id = Uuid::new_v4();
+        let tier_id = crate::utils::id::new_id();
         sqlx::query(
             r#"INSERT INTO payroll_incentive_tiers (id, policy_id, priority, rule_config, payout_amount)
                VALUES ($1, $2, $3, $4, $5)"#,
@@ -110,7 +110,7 @@ pub async fn clone_incentive_policy(
     .fetch_one(state.infra.db.api())
     .await?;
 
-    let new_policy_id = Uuid::new_v4();
+    let new_policy_id = crate::utils::id::new_id();
     let new_name = format!("{} (Copy)", original_policy.get::<String, _>("name"));
 
     // 2. Insert new policy

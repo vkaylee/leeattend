@@ -207,7 +207,7 @@ pub async fn upsert_roster(
 ) -> AppResult<Json<ShiftRoster>> {
     ctx.require_permission(Permission::RostersManage)?;
     let roster = ShiftRoster {
-        id: Uuid::new_v4(),
+        id: crate::utils::id::new_id(),
         employee_id,
         shift_id: req.shift_id,
         date: req.date,

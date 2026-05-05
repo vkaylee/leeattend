@@ -280,7 +280,7 @@ impl PairingService {
                 (id, employee_id, workspace_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, is_break_overtime, generation_metadata, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
                 "#,
-                Uuid::new_v4(),
+                crate::utils::id::new_id(),
                 employee_id,
                 workspace_id,
                 shift_id_opt,

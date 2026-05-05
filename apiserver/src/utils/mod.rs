@@ -3,6 +3,7 @@ pub mod datetime;
 pub mod debug;
 pub mod excel_format_utils;
 pub mod file_parser;
+pub mod id;
 pub mod serde_helpers;
 pub mod tz;
 

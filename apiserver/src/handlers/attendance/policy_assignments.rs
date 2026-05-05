@@ -131,7 +131,7 @@ pub async fn upsert_policy_assignment(
         .await?;
     } else {
         // Create new policy
-        policy_id = Uuid::new_v4();
+        policy_id = crate::utils::id::new_id();
         sqlx::query(
             "INSERT INTO attendance_policies (id, workspace_id, name, is_default, created_at, updated_at) VALUES ($1, $2, $3, false, $4, $4)"
         )
@@ -142,7 +142,7 @@ pub async fn upsert_policy_assignment(
         .execute(&mut *tx)
         .await?;
 
-        assignment_id = Uuid::new_v4();
+        assignment_id = crate::utils::id::new_id();
         sqlx::query(
             "INSERT INTO attendance_policy_assignments (id, policy_id, target_type, target_id, valid_from, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $6)"
         )
@@ -157,7 +157,7 @@ pub async fn upsert_policy_assignment(
     }
 
     // Insert new version
-    let version_id = Uuid::new_v4();
+    let version_id = crate::utils::id::new_id();
     let rules = AttendanceRules {
         work_unit_minutes: req.work_unit_minutes,
         rounding_policy: req.rounding_policy.clone(),

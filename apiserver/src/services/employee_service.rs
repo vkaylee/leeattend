@@ -4,6 +4,8 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::utils::id::new_id;
+
 use crate::errors::AppError;
 use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmploymentPeriod,
@@ -55,7 +57,7 @@ impl EmployeeService {
             .ok_or(AppError::NotFound("Employee not found".into()))?;
 
         let condition = WorkingCondition {
-            id: Uuid::new_v4(),
+            id: new_id(),
             employee_id: emp.id,
             type_: req.type_,
             minute_allowance: req.minute_allowance,
@@ -111,7 +113,7 @@ impl EmployeeService {
         }
 
         let employee = Employee {
-            id: Uuid::new_v4(),
+            id: new_id(),
             workspace_id,
             user_id: req.user_id,
             full_name: req.full_name,
@@ -204,7 +206,7 @@ impl EmployeeService {
             .map_err(AppError::Sqlx)?;
 
         let period = EmploymentPeriod {
-            id: Uuid::new_v4(),
+            id: new_id(),
             employee_id,
             hire_date: req.hire_date,
             termination_date: None,
@@ -327,7 +329,7 @@ impl EmployeeService {
         req: crate::models::CreateRecruitmentSourceRequest,
     ) -> Result<crate::models::RecruitmentSource, AppError> {
         let source = crate::models::RecruitmentSource {
-            id: Uuid::new_v4(),
+            id: new_id(),
             workspace_id,
             source_type: req.source_type,
             name: req.name,

@@ -72,7 +72,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
              VALUES ($1, $2, NOW())
              RETURNING id, name, date_format, time_format, timezone, theme_primary_color, default_language, holiday_overnight_strategy, default_holiday_ot_multiplier, logo_url, tagline, created_at",
         )
-        .bind(Uuid::new_v4())
+        .bind(crate::utils::id::new_id())
         .bind(name)
         .fetch_one(&self.pool)
         .await

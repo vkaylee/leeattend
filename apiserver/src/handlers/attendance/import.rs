@@ -43,7 +43,7 @@ pub async fn upload_attendance_excel(
 
             let dir = "storage/imports";
             tokio::fs::create_dir_all(dir).await?;
-            let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
+            let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
             tokio::fs::write(&path, data).await?;
             file_path = Some(path);
         }
@@ -97,7 +97,7 @@ pub async fn upload_attendance_logs(
 
             let dir = "storage/imports";
             tokio::fs::create_dir_all(dir).await?;
-            let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
+            let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
             tokio::fs::write(&path, data).await?;
             file_path = Some(path);
         }
@@ -146,7 +146,7 @@ pub async fn upload_employee_excel(
 
             let dir = "storage/imports";
             tokio::fs::create_dir_all(dir).await?;
-            let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
+            let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
             tokio::fs::write(&path, data).await?;
             file_path = Some(path);
         }

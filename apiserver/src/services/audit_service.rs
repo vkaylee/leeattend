@@ -38,7 +38,7 @@ impl AuditHelper {
             });
 
         let log = AuditLog {
-            id: Uuid::new_v4(),
+            id: crate::utils::id::new_id(),
             workspace_id: args.workspace_id,
             actor_id: args.actor_id,
             target_user_id: args.target_user_id,

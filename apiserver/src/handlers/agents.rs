@@ -84,7 +84,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                     time_fmt: ws_time_fmt.clone(),
                                                 };
                                                 let job = Job::with_priority(
-                                                    uuid::Uuid::new_v4(),
+                                                    crate::utils::id::new_id(),
                                                     0,
                                                     TaskType::LogIngestion,
                                                     workspace_id,
@@ -329,7 +329,7 @@ pub async fn send_command(
     }
 
     let command = AgentCommand {
-        id: Uuid::new_v4().to_string(),
+        id: crate::utils::id::new_id().to_string(),
         r#type: "command".to_string(),
         method: command_request["method"]
             .as_str()
@@ -381,7 +381,7 @@ pub async fn create_device(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<CreateDeviceRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let id = Uuid::new_v4();
+    let id = crate::utils::id::new_id();
     let port = req.port.unwrap_or(4370);
 
     state
