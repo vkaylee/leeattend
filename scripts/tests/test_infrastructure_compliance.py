@@ -22,7 +22,7 @@ class BaseComplianceChecker(ABC):
         """
         pass
 
-    def execute_compliance_check(self):
+    def execute_compliance_check(self) -> None:
         """Core template method to read the file and assert all mandatory rules with structured AI guidance."""
         project_root = Path(__file__).parent.parent.parent
         file_path = project_root / self.target_file
@@ -94,7 +94,7 @@ class TestDockerIgnoreCompliance(BaseComplianceChecker):
             "docker-compose*.yml",
         ]
 
-    def test_dockerignore_rules(self):
+    def test_dockerignore_rules(self) -> None:
         """Pytest entrypoint to trigger the compliance check."""
         self.execute_compliance_check()
 
@@ -123,7 +123,7 @@ class TestGitIgnoreCompliance(BaseComplianceChecker):
             "logs/",
         ]
 
-    def test_gitignore_rules(self):
+    def test_gitignore_rules(self) -> None:
         """Pytest entrypoint to trigger the compliance check."""
         self.execute_compliance_check()
 
@@ -143,6 +143,6 @@ class TestEnvExampleCompliance(BaseComplianceChecker):
             "JWT_SECRET=your_jwt_secret_here",
         ]
 
-    def test_envexample_rules(self):
+    def test_envexample_rules(self) -> None:
         """Pytest entrypoint to trigger the compliance check."""
         self.execute_compliance_check()

@@ -266,7 +266,7 @@ class Orchestrator:
             "webdashboard": "web",
         }
 
-        mode = mode_map.get(target, "all")
+        mode = mode_map.get(target or "all", "all")
         component_filter = target if target in ["apiserver", "agent-main", "webdashboard"] else ""
         args.component = component_filter
 
@@ -299,7 +299,7 @@ class Orchestrator:
         if args.coverage:
             self.run_phase("Coverage", mode, args)
 
-        self.print_test_summary(target)
+        self.print_test_summary(target or "all")
 
     def run_phase(self, phase_name: str, mode: str, args: argparse.Namespace) -> None:
         if self.dry_run:

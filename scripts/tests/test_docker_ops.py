@@ -17,7 +17,7 @@ from _docker_ops import (  # noqa: E402
 
 
 class TestBuildComposeCmd:
-    def test_basic_command(self):
+    def test_basic_command(self) -> None:
         cmd = _build_compose_cmd(["up", "-d"])
         cmd_str = " ".join(cmd)
         assert cmd[0] in ("podman-compose", "docker")
@@ -28,25 +28,25 @@ class TestBuildComposeCmd:
         assert "up" in cmd
         assert "-d" in cmd
 
-    def test_custom_project_name(self):
+    def test_custom_project_name(self) -> None:
         cmd = _build_compose_cmd(["ps"], project_name="my-project")
         assert "my-project" in cmd
 
-    def test_custom_compose_file(self):
+    def test_custom_compose_file(self) -> None:
         custom_file = Path("/tmp/test.yml")
         cmd = _build_compose_cmd(["down"], compose_file=custom_file)
         assert "/tmp/test.yml" in cmd
 
 
 class TestDc:
-    def test_strips_stdin(self):
+    def test_strips_stdin(self) -> None:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
             dc("up", "-d")
             call_kwargs = mock_run.call_args.kwargs
             assert call_kwargs["stdin"] == subprocess.DEVNULL
 
-    def test_passes_all_args(self):
+    def test_passes_all_args(self) -> None:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
             dc("exec", "apiserver", "cargo", "check")
@@ -57,7 +57,7 @@ class TestDc:
             assert "cargo" in cmd
             assert "check" in cmd
 
-    def test_raises_on_failure(self):
+    def test_raises_on_failure(self) -> None:
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.CalledProcessError(1, "cmd")
             import pytest
@@ -65,13 +65,13 @@ class TestDc:
             with pytest.raises(subprocess.CalledProcessError):
                 dc("invalid-command")
 
-    def test_no_raise_when_check_false(self):
+    def test_no_raise_when_check_false(self) -> None:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=1)
             result = dc("down", check=False)
             assert result.returncode == 1
 
-    def test_uses_project_root_as_cwd(self):
+    def test_uses_project_root_as_cwd(self) -> None:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
             dc("ps")
@@ -80,7 +80,7 @@ class TestDc:
 
 
 class TestDcDetached:
-    def test_starts_new_session(self):
+    def test_starts_new_session(self) -> None:
         with patch("subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
             mock_proc.returncode = 0
@@ -89,7 +89,7 @@ class TestDcDetached:
             call_kwargs = mock_popen.call_args.kwargs
             assert call_kwargs["start_new_session"] is True
 
-    def test_null_fds(self):
+    def test_null_fds(self) -> None:
         with patch("subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
             mock_proc.returncode = 0
@@ -100,7 +100,7 @@ class TestDcDetached:
             assert call_kwargs["stdout"] == subprocess.DEVNULL
             assert call_kwargs["stderr"] == subprocess.DEVNULL
 
-    def test_returns_exit_code(self):
+    def test_returns_exit_code(self) -> None:
         with patch("subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
             mock_proc.returncode = 7
@@ -108,7 +108,7 @@ class TestDcDetached:
             result = dc_detached("down")
             assert result == 7
 
-    def test_timeout_kills_process_group(self):
+    def test_timeout_kills_process_group(self) -> None:
         with patch("subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
             # First call to wait() raises Timeout, second call succeeds
@@ -123,7 +123,7 @@ class TestDcDetached:
                 mock_killpg.assert_called_once_with(mock_proc.pid, 9)
                 assert result == 1
 
-    def test_default_timeout_from_env(self):
+    def test_default_timeout_from_env(self) -> None:
         with patch.dict(os.environ, {"DOCKER_COMPOSE_TIMEOUT": "30"}):
             from importlib import reload
 

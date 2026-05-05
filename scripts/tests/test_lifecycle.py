@@ -17,24 +17,24 @@ from _lifecycle import (  # noqa: E402
 
 
 class TestContainerHealthy:
-    def test_healthy_container(self):
+    def test_healthy_container(self) -> None:
         with patch("_lifecycle._run") as mock_run:
             mock_run.return_value = MagicMock(stdout="healthy", returncode=0)
             assert _container_healthy("test_apiserver_1") is True
 
-    def test_unhealthy_container(self):
+    def test_unhealthy_container(self) -> None:
         with patch("_lifecycle._run") as mock_run:
             mock_run.return_value = MagicMock(stdout="unhealthy\n", returncode=0)
             assert _container_healthy("test_apiserver_1") is False
 
-    def test_empty_output(self):
+    def test_empty_output(self) -> None:
         with patch("_lifecycle._run") as mock_run:
             mock_run.return_value = MagicMock(stdout="", returncode=1)
             assert _container_healthy("test_apiserver_1") is False
 
 
 class TestLifecycleUp:
-    def test_api_mode_starts_backend(self):
+    def test_api_mode_starts_backend(self) -> None:
         with (
             patch("_lifecycle._run") as mock_run,
             patch("_lifecycle._container_healthy", return_value=True),
@@ -45,7 +45,7 @@ class TestLifecycleUp:
             all_call_args = str(mock_run.call_args_list)
             assert "up" in all_call_args
 
-    def test_web_mode_checks_bun_init(self):
+    def test_web_mode_checks_bun_init(self) -> None:
         with (
             patch("_lifecycle._run"),
             patch("_lifecycle._container_healthy", return_value=True),
@@ -54,7 +54,7 @@ class TestLifecycleUp:
             result = lifecycle_up("web")
             assert result is True
 
-    def test_health_check_timeout_returns_false(self):
+    def test_health_check_timeout_returns_false(self) -> None:
         with (
             patch("_lifecycle._run"),
             patch("_lifecycle._container_healthy", return_value=False),
@@ -63,7 +63,7 @@ class TestLifecycleUp:
             result = lifecycle_up("api")
             assert result is False
 
-    def test_no_pre_cleanup_on_up(self):
+    def test_no_pre_cleanup_on_up(self) -> None:
         """lifecycle_up must NOT do a pre-down — concurrent agents share containers."""
         with (
             patch("_lifecycle._run") as mock_run,
@@ -74,14 +74,14 @@ class TestLifecycleUp:
             all_call_str = str(mock_run.call_args_list)
             assert "down" not in all_call_str
 
-    def test_stops_containers(self):
+    def test_stops_containers(self) -> None:
         with patch("_lifecycle._run") as mock_run:
             mock_run.return_value = MagicMock(stdout="", returncode=0)
             lifecycle_down("all")
             all_call_str = str(mock_run.call_args_list)
             assert "down" in all_call_str
 
-    def test_uses_remove_orphans(self):
+    def test_uses_remove_orphans(self) -> None:
         """With per-run isolation, lifecycle_down MUST use --remove-orphans to completely clean up."""
         with patch("_lifecycle._run") as mock_run:
             mock_run.return_value = MagicMock(stdout="", returncode=0)
@@ -89,7 +89,7 @@ class TestLifecycleUp:
             all_call_str = str(mock_run.call_args_list)
             assert "--remove-orphans" in all_call_str
 
-    def test_force_kill_pod(self):
+    def test_force_kill_pod(self) -> None:
         """Force-kill aggressively removes the pod since it is isolated per run."""
         with patch("_lifecycle._run") as mock_run:
             mock_run.return_value = MagicMock(stdout="", returncode=0)
@@ -98,7 +98,7 @@ class TestLifecycleUp:
             # Must remove the pod
             assert "pod" in all_call_str and "rm" in all_call_str
 
-    def test_no_volume_cleanup(self):
+    def test_no_volume_cleanup(self) -> None:
         """lifecycle_down must NOT remove shared cache volumes (used by other agents).
         Specifically ensures -v and --volumes flags are NOT passed to compose down.
         """
@@ -112,7 +112,7 @@ class TestLifecycleUp:
 
 
 class TestStartWatchdog:
-    def test_spawns_detached_process(self):
+    def test_spawns_detached_process(self) -> None:
         with patch("subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
             mock_proc.pid = 99999
@@ -125,7 +125,7 @@ class TestStartWatchdog:
             assert kwargs["stdout"] == subprocess.DEVNULL
             assert kwargs["stderr"] == subprocess.DEVNULL
 
-    def test_uses_correct_parent_pid(self):
+    def test_uses_correct_parent_pid(self) -> None:
         with patch("subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
             mock_proc.pid = 1
@@ -138,7 +138,7 @@ class TestStartWatchdog:
 class TestLifecycleComposeCommand:
     """Verify lifecycle_up/down always use correct compose base (bug: bun_init leak)."""
 
-    def test_lifecycle_down_uses_base_not_env_override(self):
+    def test_lifecycle_down_uses_base_not_env_override(self) -> None:
         """lifecycle_down must use DOCKER_COMPOSE_BASE with -p and -f in its down command."""
         with (
             patch("_lifecycle._run") as mock_run,
@@ -158,7 +158,7 @@ class TestLifecycleComposeCommand:
             assert "-f" in down_cmd
             assert "docker-compose.test.yml" in down_cmd
 
-    def test_lifecycle_up_web_uses_task_profiles_not_frontend(self):
+    def test_lifecycle_up_web_uses_task_profiles_not_frontend(self) -> None:
         """lifecycle_up(web) must use lint-web, unit-web, e2e-web (not frontend)."""
         with (
             patch("_lifecycle._run") as mock_run,
@@ -171,7 +171,7 @@ class TestLifecycleComposeCommand:
             assert "lint-web" in up_cmd
             assert "e2e-web" in up_cmd
 
-    def test_lifecycle_up_has_correct_compose_base(self):
+    def test_lifecycle_up_has_correct_compose_base(self) -> None:
         """lifecycle_up must use DOCKER_COMPOSE_BASE with -p and -f."""
         with (
             patch("_lifecycle._run") as mock_run,

@@ -8,6 +8,7 @@ from unittest import mock
 # Import the wrapper module
 import _git_wrapper
 import pytest
+from _arg_sanitizer import ArgSanitizeError
 
 
 def test_non_commit_command(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -359,7 +360,7 @@ class TestSanitizerFallbackSafety:
         with (
             mock.patch("subprocess.call", return_value=0) as mock_call,
             mock.patch("sys.exit"),
-            mock.patch("_git_wrapper.sanitize", side_effect=_git_wrapper.ArgSanitizeError("test")),
+            mock.patch("_git_wrapper.sanitize", side_effect=ArgSanitizeError("test")),
         ):
             _git_wrapper.main()
 

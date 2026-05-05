@@ -9,7 +9,7 @@ import os
 import subprocess
 import sys
 import time
-from pathlib import Path
+import typing
 
 from _bootstrap import (
     PROJECT_ROOT,
@@ -37,7 +37,7 @@ def _run(
     env = os.environ.copy()
     env.update(bootstrap_env())
 
-    kwargs: dict = {
+    kwargs: dict[str, typing.Any] = {
         "cwd": PROJECT_ROOT,
         "env": env,
         "stdin": subprocess.DEVNULL,
