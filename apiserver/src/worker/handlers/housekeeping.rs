@@ -56,6 +56,35 @@ impl NightlyHousekeepingHandler {
             target_date = NaiveDate::from_ymd_opt(next_year, next_month, 1).unwrap();
         }
 
+        // Retention Policy: Drop partitions older than 2 years (24 months).
+        // We drop partitions for the 25th, 26th, and 27th months ago to provide a safety buffer.
+        for i in 25..=27 {
+            let mut total_months = ref_date.year() * 12 + (ref_date.month() as i32) - 1;
+            total_months -= i;
+            let drop_year = total_months / 12;
+            let drop_month = (total_months % 12) as u32 + 1;
+
+            let audit_table = format!("audit_logs_y{:04}m{:02}", drop_year, drop_month);
+            let staging_table = format!(
+                "attendance_staging_logs_y{:04}m{:02}",
+                drop_year, drop_month
+            );
+
+            let query = format!(
+                r#"
+                DROP TABLE IF EXISTS {audit_table};
+                DROP TABLE IF EXISTS {staging_table};
+                "#
+            );
+
+            if let Err(e) = db.execute(query.as_str()).await {
+                error!(error = %e, drop_year, drop_month, "Failed to drop old partition");
+                // Don't fail the job, just log it so other maintenance can continue
+            } else {
+                info!(drop_year, drop_month, "Ensured old partitions are dropped");
+            }
+        }
+
         info!(
             job_id = %job.job_id,
             "Nightly housekeeping job completed successfully"
@@ -84,7 +113,10 @@ mod tests {
         );
 
         let payload = job.housekeeping_payload().expect("should extract");
-        assert_eq!(payload.reference_date, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap());
+        assert_eq!(
+            payload.reference_date,
+            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
+        );
         assert_eq!(job.priority, JobPriority::Low);
     }
 }
