@@ -115,6 +115,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
         routesDirectory: './src/routes',
         generatedRouteTree: './src/route-tree.gen.ts',
         quoteStyle: 'double',
+        routeFileIgnorePattern: '.test.tsx',
       }),
       react({
         babel: mode === 'production' ? {
