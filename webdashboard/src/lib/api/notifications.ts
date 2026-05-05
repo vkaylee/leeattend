@@ -27,13 +27,10 @@ export async function fetchNotifications(
   limit = 20,
   cursor?: string
 ): Promise<NotificationResponse> {
-  const url = new URL("/api/v1/notifications", window.location.origin);
-  url.searchParams.append("limit", limit.toString());
-  if (cursor) {
-    url.searchParams.append("cursor", cursor);
-  }
+  const params = new URLSearchParams({ limit: limit.toString() });
+  if (cursor) params.append("cursor", cursor);
 
-  const response = await apiFetch(url.pathname + url.search);
+  const response = await apiFetch(`/v1/notifications?${params.toString()}`);
   if (!response.ok) {
     throw new Error("Failed to fetch notifications");
   }
@@ -41,7 +38,7 @@ export async function fetchNotifications(
 }
 
 export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
-  const response = await apiFetch("/api/v1/notifications/unread-count");
+  const response = await apiFetch("/v1/notifications/unread-count");
   if (!response.ok) {
     throw new Error("Failed to fetch unread count");
   }
@@ -49,7 +46,7 @@ export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {
-  const response = await apiFetch(`/api/v1/notifications/${id}/read`, {
+  const response = await apiFetch(`/v1/notifications/${id}/read`, {
     method: "PATCH",
   });
   if (!response.ok) {
@@ -58,7 +55,7 @@ export async function markNotificationAsRead(id: string): Promise<void> {
 }
 
 export async function markAllNotificationsAsRead(): Promise<void> {
-  const response = await apiFetch("/api/v1/notifications/read-all", {
+  const response = await apiFetch("/v1/notifications/read-all", {
     method: "POST",
   });
   if (!response.ok) {
