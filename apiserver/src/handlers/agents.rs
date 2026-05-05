@@ -22,7 +22,6 @@ use crate::models::{
     AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device,
     TrustAgentRequest, UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
 };
-use crate::services::{AgentLogEntry, AgentLogEntryArgs};
 use crate::AppState;
 
 // --- WebSocket Handlers ---

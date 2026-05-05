@@ -1,7 +1,6 @@
 // Allow .unwrap() and .expect() in test code — only production code is denied
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
 #![allow(
-    unused_imports,
     missing_docs,
     clippy::needless_raw_string_hashes,
     clippy::needless_raw_strings,
@@ -59,6 +58,7 @@
 #![deny(clippy::type_complexity)]
 #![deny(clippy::match_same_arms)]
 #![deny(clippy::branches_sharing_code)]
+#![deny(unused_imports)]
 #![deny(clippy::if_same_then_else)]
 #![deny(clippy::implicit_clone)]
 #![deny(clippy::inefficient_to_string)]

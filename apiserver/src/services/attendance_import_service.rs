@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use crate::errors::AppError;
 
-use chrono::{DateTime, NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use std::collections::HashSet;
-use std::io::Cursor;
 use tracing::{error, info};
 use uuid::Uuid;
 

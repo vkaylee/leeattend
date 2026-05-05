@@ -1,4 +1,4 @@
-use chrono::{Local, NaiveDate, NaiveTime};
+use chrono::{Local, NaiveDate};
 use sqlx::PgPool;
 use uuid::Uuid;
 

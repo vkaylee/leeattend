@@ -3,11 +3,9 @@
 //! Parses Excel files containing leave requests, validates rows, submits valid ones,
 //! and generates an error Excel file for failed rows.
 
-use calamine::{Data, Reader, Xls, Xlsx};
 use chrono::NaiveDate;
-use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
+use rust_xlsxwriter::Workbook;
 use sqlx::PgPool;
-use std::io::Cursor;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -568,7 +566,10 @@ mod tests {
     use super::*;
     use crate::services::import_messages::LeaveImportMessages;
     use crate::utils::file_parser::cell_to_string;
+    use calamine::Reader;
+    use calamine::Xlsx;
     use chrono::NaiveDate;
+    use std::io::Cursor;
 
     /// Vietnamese messages (matches the original hardcoded strings for test backwards-compat).
     fn msgs_vi() -> LeaveImportMessages {

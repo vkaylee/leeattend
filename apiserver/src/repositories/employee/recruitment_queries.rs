@@ -3,7 +3,6 @@
 //! Contains: create/get/update/delete recruitment sources,
 //! get_recruitment_source_breakdown, set_employee_recruitment_source.
 
-use rust_decimal::Decimal;
 use sqlx::PgPool;
 use uuid::Uuid;
 

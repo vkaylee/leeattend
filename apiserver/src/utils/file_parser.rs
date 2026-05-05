@@ -1,4 +1,4 @@
-use calamine::{Data, DataType, Reader, Xls, Xlsx};
+use calamine::{Data, Reader, Xls, Xlsx};
 use std::io::Cursor;
 use tracing::warn;
 
@@ -92,8 +92,6 @@ pub fn extract_file_rows(file_bytes: &[u8]) -> Result<Vec<(usize, Vec<String>)>,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use calamine::DataType;
-    use chrono::NaiveDate;
 
     #[test]
     fn test_cell_to_string() {

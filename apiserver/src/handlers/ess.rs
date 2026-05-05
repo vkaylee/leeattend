@@ -11,7 +11,7 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::EmployeeContext;
 use crate::models::{
     CreateEmergencyContactRequest, Employee, EmployeeDocument, EmployeeEmergencyContact,
-    EmployeeProfile, MyProfileResponse, PunchOutRequest, TimeEntry, UpdateEmployeeProfileRequest,
+    EmployeeProfile, MyProfileResponse, TimeEntry, UpdateEmployeeProfileRequest,
 };
 use crate::AppState;
 

@@ -6,11 +6,10 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::errors::AppError;
-use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
+use crate::models::{TimeEntry, UpdateTimeEntryRequest};
 use crate::repositories::employee;
 
 use crate::repositories::roster::RosterRepository;
-use crate::repositories::shift_repository;
 use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 use crate::repositories::TimeEntryRepository;
 
