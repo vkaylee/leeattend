@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH inputs AS (\n                SELECT unnest($2::uuid[]) AS employee_id\n            ),\n            dept_history AS (\n                SELECT i.employee_id, \n                    (\n                        SELECT department_id\n                        FROM employee_department_history\n                        WHERE employee_id = i.employee_id\n                          AND effective_date <= ($3::timestamptz)::date\n                        ORDER BY effective_date DESC\n                        LIMIT 1\n                    ) as department_id\n                FROM inputs i\n            ),\n            user_policy AS (\n                SELECT i.employee_id,\n                    (\n                        SELECT ap.id\n                        FROM attendance_policy_assignments apa\n                        JOIN attendance_policies ap ON ap.id = apa.policy_id\n                        WHERE apa.target_id = i.employee_id\n                          AND apa.target_type = 'USER'\n                          AND apa.valid_from <= $3\n                          AND (apa.valid_to IS NULL OR apa.valid_to >= $3)\n                          AND ap.workspace_id = $1\n                        ORDER BY apa.valid_from DESC\n                        LIMIT 1\n                    ) as policy_id\n                FROM inputs i\n            ),\n            group_policy AS (\n                SELECT dh.employee_id,\n                    (\n                        SELECT ap.id\n                        FROM attendance_policy_assignments apa\n                        JOIN attendance_policies ap ON ap.id = apa.policy_id\n                        WHERE apa.target_id = dh.department_id\n                          AND apa.target_type = 'GROUP'\n                          AND apa.valid_from <= $3\n                          AND (apa.valid_to IS NULL OR apa.valid_to >= $3)\n                          AND ap.workspace_id = $1\n                        ORDER BY apa.valid_from DESC\n                        LIMIT 1\n                    ) as policy_id\n                FROM dept_history dh\n            ),\n            default_policy AS (\n                SELECT id as policy_id\n                FROM attendance_policies\n                WHERE workspace_id = $1 AND is_default = true\n                LIMIT 1\n            ),\n            selected_policy AS (\n                SELECT i.employee_id,\n                    COALESCE(\n                        up.policy_id,\n                        gp.policy_id,\n                        (SELECT policy_id FROM default_policy)\n                    ) as policy_id\n                FROM inputs i\n                LEFT JOIN user_policy up ON up.employee_id = i.employee_id\n                LEFT JOIN group_policy gp ON gp.employee_id = i.employee_id\n            )\n            SELECT \n                sp.employee_id,\n                apv.id,\n                apv.policy_id,\n                apv.rules as \"rules: sqlx::types::Json<AttendanceRules>\",\n                apv.valid_from,\n                apv.valid_to,\n                apv.created_by,\n                apv.created_at\n            FROM selected_policy sp\n            INNER JOIN LATERAL (\n                SELECT id, policy_id, rules, valid_from, valid_to, created_by, created_at\n                FROM attendance_policy_versions v\n                WHERE v.policy_id = sp.policy_id\n                  AND v.valid_from <= $3\n                  AND (v.valid_to IS NULL OR v.valid_to >= $3)\n                ORDER BY v.valid_from DESC\n                LIMIT 1\n            ) apv ON true\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "policy_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "rules: sqlx::types::Json<AttendanceRules>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "valid_from",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "valid_to",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "29d31f1c8e6882d9cf5265f099b322a85bd21734e6248827ff7b8bcf5085dfa6"
+}

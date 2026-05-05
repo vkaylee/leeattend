@@ -97,7 +97,9 @@ def lifecycle_up(mode: str = "all") -> bool:
         if _container_healthy(container):
             return True
         time.sleep(1)  # pragma: no cover
-    _run([_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False)  # pragma: no cover
+    _run(
+        [_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False
+    )  # pragma: no cover
     return False  # pragma: no cover
 
 
@@ -113,23 +115,43 @@ def sweep_stale_environments() -> None:
     try:
         if engine == "podman":
             # Sweep stale pods
-            res = _run([engine, "pod", "ps", "-q", "--filter", f"name=pod_{prefix}", "--filter", age_filter], capture=True)
+            res = _run(
+                [
+                    engine,
+                    "pod",
+                    "ps",
+                    "-q",
+                    "--filter",
+                    f"name=pod_{prefix}",
+                    "--filter",
+                    age_filter,
+                ],
+                capture=True,
+            )
             pods = res.stdout.strip().split()
             if pods:
                 print(f"🧹 Sweeping {len(pods)} stale test pods older than {max_age_mins}m...")
                 _run([engine, "pod", "rm", "-f"] + pods, silent=True)
-                
+
             # Sweep stray containers
-            res_c = _run([engine, "ps", "-aq", "--filter", f"name={prefix}", "--filter", age_filter], capture=True)
+            res_c = _run(
+                [engine, "ps", "-aq", "--filter", f"name={prefix}", "--filter", age_filter],
+                capture=True,
+            )
             containers = res_c.stdout.strip().split()
             if containers:
                 _run([engine, "rm", "-f"] + containers, silent=True)
         else:
             # Docker: sweep stale containers
-            res_c = _run([engine, "ps", "-aq", "--filter", f"name={prefix}", "--filter", age_filter], capture=True)
+            res_c = _run(
+                [engine, "ps", "-aq", "--filter", f"name={prefix}", "--filter", age_filter],
+                capture=True,
+            )
             containers = res_c.stdout.strip().split()
             if containers:
-                print(f"🧹 Sweeping {len(containers)} stale test containers older than {max_age_mins}m...")
+                print(
+                    f"🧹 Sweeping {len(containers)} stale test containers older than {max_age_mins}m..."
+                )
                 _run([engine, "rm", "-f"] + containers, silent=True)
     except Exception as e:
         print(f"⚠️ Warning: Stale environment sweep failed: {e}")
@@ -163,13 +185,19 @@ def lifecycle_down(mode: str = "all") -> None:
     if engine == "podman":
         pod_name = f"pod_{project_name}"
         _run([engine, "pod", "rm", "-f", pod_name], silent=True)
-        
+
         # Also catch any stray containers not in the pod but labeled with the project
-        res = _run([engine, "ps", "-aq", "--filter", f"label=com.docker.compose.project={project_name}"], capture=True)
+        res = _run(
+            [engine, "ps", "-aq", "--filter", f"label=com.docker.compose.project={project_name}"],
+            capture=True,
+        )
         if res.stdout.strip():  # pragma: no cover
             _run([engine, "rm", "-f"] + res.stdout.strip().split(), silent=True)
     else:
-        res = _run([engine, "ps", "-aq", "--filter", f"label=com.docker.compose.project={project_name}"], capture=True)  # pragma: no cover
+        res = _run(
+            [engine, "ps", "-aq", "--filter", f"label=com.docker.compose.project={project_name}"],
+            capture=True,
+        )  # pragma: no cover
         if res.stdout.strip():  # pragma: no cover
             _run([engine, "rm", "-f"] + res.stdout.strip().split(), silent=True)
 

@@ -145,8 +145,8 @@ class TestResolveLifecycleProfiles:
 class TestBootstrapEnv:
     def test_default_mode_all(self):
         env = bootstrap_env()
-        assert env["COMPOSE_PROJECT_NAME"] == "leeattend-test"
-        assert env["PODMAN_COMPOSE_PROJECT_NAME"] == "leeattend-test"
+        assert env["COMPOSE_PROJECT_NAME"].startswith("leeattend-test")
+        assert env["PODMAN_COMPOSE_PROJECT_NAME"].startswith("leeattend-test")
         assert env["USE_DOCKER"] == "true"
         assert env["MODE"] == "all"
         assert "CONTAINER_ENGINE" in env

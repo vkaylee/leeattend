@@ -22,7 +22,7 @@ class TestBuildComposeCmd:
         cmd_str = " ".join(cmd)
         assert cmd[0] in ("podman-compose", "docker")
         assert "-p" in cmd
-        assert "leeattend-test" in cmd
+        assert any(c.startswith("leeattend-test") for c in cmd)
         assert "-f" in cmd
         assert "docker-compose.test.yml" in cmd_str
         assert "up" in cmd

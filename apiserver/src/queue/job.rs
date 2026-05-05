@@ -24,6 +24,7 @@ pub enum TaskType {
     ReprocessAttendance,
     ClaimStagedLogs,
     LeaveImport,
+    NightlyHousekeeping,
 }
 
 /// Job priority level. Controls which Redis queue the job is routed to.
@@ -128,6 +129,13 @@ pub struct LeaveImportPayload {
     pub import_job_id: Uuid,
 }
 
+/// Payload for nightly system maintenance.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HousekeepingPayload {
+    /// Target date for calculating upcoming partitions (usually Utc::now().date_naive())
+    pub reference_date: NaiveDate,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -140,6 +148,7 @@ pub enum JobPayload {
     ReprocessAttendance(ReprocessPayload),
     ClaimStagedLogs(ClaimStagedLogsPayload),
     LeaveImport(LeaveImportPayload),
+    NightlyHousekeeping(HousekeepingPayload),
 }
 
 /// A single worker job.
@@ -264,6 +273,14 @@ impl Job {
     pub fn leave_import_payload(&self) -> Option<&LeaveImportPayload> {
         match &self.payload {
             JobPayload::LeaveImport(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Helper: extract housekeeping payload.
+    pub fn housekeeping_payload(&self) -> Option<&HousekeepingPayload> {
+        match &self.payload {
+            JobPayload::NightlyHousekeeping(p) => Some(p),
             _ => None,
         }
     }

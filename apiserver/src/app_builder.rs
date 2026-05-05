@@ -7,11 +7,12 @@ use crate::db_pool::DbPools;
 use crate::queue::RedisPool;
 use crate::services::{AttendanceLogService, ReportCoordinator};
 use crate::state::AppState;
-use crate::worker::{JobWorker, WorkerConfig};
+use crate::worker::{HousekeepingScheduler, JobWorker, WorkerConfig};
 
 pub struct AppWorkers {
     pub log_worker_handle: JoinHandle<()>,
     pub job_worker_handle: Option<JoinHandle<()>>,
+    pub scheduler_handle: Option<JoinHandle<()>>,
     pub job_worker_token: CancellationToken,
 }
 
@@ -279,8 +280,8 @@ impl AppState {
 
         // Initialize job worker if Redis is available
         let worker_cancel_token = CancellationToken::new();
-        let (coordinator, worker_handle) = redis_pool.as_ref().map_or_else(
-            || (None, None),
+        let (coordinator, worker_handle, scheduler_handle) = redis_pool.as_ref().map_or_else(
+            || (None, None, None),
             |redis| {
                 let worker_config = WorkerConfig::from_env();
                 tracing::info!(
@@ -298,9 +299,13 @@ impl AppState {
                     Arc::clone(&coordinator),
                     roster_cache.clone(),
                 );
+                
+                let scheduler = HousekeepingScheduler::new(redis.clone());
+
                 (
                     Some(coordinator),
                     Some(worker.start(worker_cancel_token.clone())),
+                    Some(scheduler.start(worker_cancel_token.clone())),
                 )
             },
         );
@@ -372,6 +377,7 @@ impl AppState {
         let workers = AppWorkers {
             log_worker_handle,
             job_worker_handle: worker_handle,
+            scheduler_handle,
             job_worker_token: worker_cancel_token,
         };
 
