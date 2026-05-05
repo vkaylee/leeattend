@@ -113,7 +113,7 @@ echo "📦 [1/3] Installing dependencies..."
 # Step 2: Build the project
 echo "🏗️ [2/3] Building webdashboard..."
 # Vite will automatically pick up VITE_* variables from the environment injected by --env-file
-"${COMPOSE_CMD[@]}" bash webdashboard -c "npm install -g bun && bun run build" </dev/null
+"${COMPOSE_CMD[@]}" bash webdashboard -c "npm install -g bun && NODE_ENV=production bun run build" </dev/null
 
 # Step 3: Deploy to Cloudflare Pages
 echo "☁️ [3/3] Deploying to Cloudflare Pages..."
