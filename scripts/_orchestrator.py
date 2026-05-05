@@ -229,15 +229,18 @@ class Orchestrator:
         if not args.command:
             self.parser.print_help()
             return
-        if args.command == "test":
+        if args.command in ("test", "run"):
             import uuid
 
-            # Use dynamic project name for perfect test run isolation
-            project_name = f"leeattend-test-{uuid.uuid4().hex[:8]}"
+            # Use dynamic project name for perfect run isolation
+            suffix = uuid.uuid4().hex[:8]
+            project_name = f"leeattend-test-{suffix}"
             self.env_vars["COMPOSE_PROJECT_NAME"] = project_name
             self.env_vars["PODMAN_COMPOSE_PROJECT_NAME"] = project_name
             os.environ["COMPOSE_PROJECT_NAME"] = project_name
             os.environ["PODMAN_COMPOSE_PROJECT_NAME"] = project_name
+
+        if args.command == "test":
             self.handle_test(args)
         elif args.command == "manage":
             self.handle_manage(args)
@@ -403,6 +406,7 @@ class Orchestrator:
         self.execute_safe(cmd, env=env)
 
     def handle_run(self, args: argparse.Namespace) -> None:
+        self.needs_cleanup = True
         tool = args.tool
         tool_args = args.args
 

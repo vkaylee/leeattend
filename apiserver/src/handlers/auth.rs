@@ -6,7 +6,6 @@ use axum::{
 use chrono::Utc;
 use std::sync::Arc;
 
-
 use crate::errors::{AppError, AppResult};
 use crate::models::{
     AuthResponse, ChangePasswordRequest, LoginRequest, RefreshRequest, RegisterRequest,

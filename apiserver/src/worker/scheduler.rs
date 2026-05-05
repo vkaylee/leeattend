@@ -3,7 +3,9 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use uuid::Uuid;
 
-use crate::queue::{HousekeepingPayload, Job, JobPayload, JobPriority, JobQueue, RedisPool, TaskType};
+use crate::queue::{
+    HousekeepingPayload, Job, JobPayload, JobPriority, JobQueue, RedisPool, TaskType,
+};
 
 pub struct HousekeepingScheduler {
     queue: JobQueue,

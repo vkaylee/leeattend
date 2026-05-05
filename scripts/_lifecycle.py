@@ -79,7 +79,7 @@ def lifecycle_up(mode: str = "all") -> bool:
     compose_base = env["DOCKER_COMPOSE_BASE"].split()
 
     # Bring services up (idempotent — no pre-cleanup needed)
-    _run(compose_base + profiles + ["up", "-d"], silent=False, capture=False)
+    _run(compose_base + profiles + ["up", "-d"], silent=True, capture=False)
 
     # Health check
     project_name = os.environ.get("COMPOSE_PROJECT_NAME", "leeattend-test")

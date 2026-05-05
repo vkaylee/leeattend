@@ -19,7 +19,7 @@ use crate::queue::{Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
 use crate::worker::handlers::{
     AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, LeaveImportHandler,
-    LogIngestionHandler, MergeHandler, ReprocessAttendanceHandler, NightlyHousekeepingHandler,
+    LogIngestionHandler, MergeHandler, NightlyHousekeepingHandler, ReprocessAttendanceHandler,
 };
 
 // Redis key patterns for monitoring
@@ -404,7 +404,9 @@ impl JobWorker {
             }
             TaskType::ClaimStagedLogs => ClaimStagedLogsHandler::handle(&self.db, &job).await,
             TaskType::LeaveImport => LeaveImportHandler::handle(&self.db, &job, &self.redis).await,
-            TaskType::NightlyHousekeeping => NightlyHousekeepingHandler::handle(&self.db, &job).await,
+            TaskType::NightlyHousekeeping => {
+                NightlyHousekeepingHandler::handle(&self.db, &job).await
+            }
         };
 
         let elapsed = start.elapsed();
@@ -424,7 +426,10 @@ impl JobWorker {
         // LogIngestion jobs are standalone and don't participate in batch coordination
         if !matches!(
             job.task_type,
-            TaskType::LogIngestion | TaskType::ClaimStagedLogs | TaskType::LeaveImport | TaskType::NightlyHousekeeping
+            TaskType::LogIngestion
+                | TaskType::ClaimStagedLogs
+                | TaskType::LeaveImport
+                | TaskType::NightlyHousekeeping
         ) {
             let success = result.is_ok();
             if let Err(e) = self

@@ -299,7 +299,7 @@ impl AppState {
                     Arc::clone(&coordinator),
                     roster_cache.clone(),
                 );
-                
+
                 let scheduler = HousekeepingScheduler::new(redis.clone());
 
                 (
