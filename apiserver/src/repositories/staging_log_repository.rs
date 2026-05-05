@@ -116,8 +116,11 @@ pub async fn create_staging_log(
         r#"
         INSERT INTO attendance_staging_logs
         (workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (workspace_id, fingerprint) DO NOTHING
+        SELECT $1, $2, $3, $4, $5, $6
+        WHERE NOT EXISTS (
+            SELECT 1 FROM attendance_staging_logs 
+            WHERE workspace_id = $1 AND fingerprint = $6
+        )
         "#,
     )
     .bind(workspace_id)

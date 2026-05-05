@@ -30,11 +30,11 @@ impl NightlyHousekeepingHandler {
             let next_month = if month == 12 { 1 } else { month + 1 };
             let next_year = if month == 12 { year + 1 } else { year };
 
-            let from_date_str = format!("{:04}-{:02}-01", year, month);
-            let to_date_str = format!("{:04}-{:02}-01", next_year, next_month);
+            let from_date_str = format!("{year:04}-{month:02}-01");
+            let to_date_str = format!("{next_year:04}-{next_month:02}-01");
 
-            let audit_table = format!("audit_logs_y{:04}m{:02}", year, month);
-            let staging_table = format!("attendance_staging_logs_y{:04}m{:02}", year, month);
+            let audit_table = format!("audit_logs_y{year:04}m{month:02}");
+            let staging_table = format!("attendance_staging_logs_y{year:04}m{month:02}");
 
             let query = format!(
                 r#"
@@ -46,14 +46,13 @@ impl NightlyHousekeepingHandler {
             if let Err(e) = db.execute(query.as_str()).await {
                 error!(error = %e, year, month, "Failed to create partition");
                 return Err(format!(
-                    "Failed to create partition for {}-{}: {}",
-                    year, month, e
+                    "Failed to create partition for {year}-{month}: {e}"
                 ));
-            } else {
-                info!(year, month, "Ensured partitions exist");
             }
+            info!(year, month, "Ensured partitions exist");
 
-            target_date = NaiveDate::from_ymd_opt(next_year, next_month, 1).unwrap();
+            target_date = NaiveDate::from_ymd_opt(next_year, next_month, 1)
+                .ok_or("Invalid next target date")?;
         }
 
         // Retention Policy: Drop partitions older than 2 years (24 months).
@@ -64,11 +63,8 @@ impl NightlyHousekeepingHandler {
             let drop_year = total_months / 12;
             let drop_month = (total_months % 12) as u32 + 1;
 
-            let audit_table = format!("audit_logs_y{:04}m{:02}", drop_year, drop_month);
-            let staging_table = format!(
-                "attendance_staging_logs_y{:04}m{:02}",
-                drop_year, drop_month
-            );
+            let audit_table = format!("audit_logs_y{drop_year:04}m{drop_month:02}");
+            let staging_table = format!("attendance_staging_logs_y{drop_year:04}m{drop_month:02}");
 
             let query = format!(
                 r#"
@@ -140,14 +136,13 @@ mod tests {
         let expected_months = [5, 6, 7, 8];
         for month in expected_months {
             let audit_table = format!("audit_logs_y2026m{:02}", month);
-            let exists: (bool,) = sqlx::query_as(
-                "SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)"
-            )
-            .bind(&audit_table)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
-            
+            let exists: (bool,) =
+                sqlx::query_as("SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)")
+                    .bind(&audit_table)
+                    .fetch_one(&pool)
+                    .await
+                    .unwrap();
+
             assert!(exists.0, "Partition {} should exist", audit_table);
         }
     }

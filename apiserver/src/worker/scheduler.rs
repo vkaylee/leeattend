@@ -31,7 +31,7 @@ impl HousekeepingScheduler {
                     _ = cancel_token.cancelled() => break,
                     _ = tick.tick() => {
                         let today = chrono::Utc::now().date_naive();
-                        let lock_key = format!("lock:housekeeping:{}", today);
+                        let lock_key = format!("lock:housekeeping:{today}");
 
                         let mut conn = self.redis.conn();
 

@@ -223,18 +223,20 @@ impl AttendancePolicyRepository for SqlxAttendancePolicyRepository {
         .await?;
 
         for row in rows {
-            result.insert(
-                row.employee_id.unwrap(),
-                AttendancePolicyVersion {
-                    id: row.id,
-                    policy_id: row.policy_id,
-                    rules: row.rules,
-                    valid_from: row.valid_from,
-                    valid_to: row.valid_to,
-                    created_by: row.created_by,
-                    created_at: row.created_at,
-                },
-            );
+            if let Some(employee_id) = row.employee_id {
+                result.insert(
+                    employee_id,
+                    AttendancePolicyVersion {
+                        id: row.id,
+                        policy_id: row.policy_id,
+                        rules: row.rules,
+                        valid_from: row.valid_from,
+                        valid_to: row.valid_to,
+                        created_by: row.created_by,
+                        created_at: row.created_at,
+                    },
+                );
+            }
         }
 
         Ok(result)
