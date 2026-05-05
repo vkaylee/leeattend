@@ -288,7 +288,7 @@ impl ReportService {
             // Get entries from HashMap (O(1) lookup instead of DB query)
             let entries = entries_map
                 .get(&emp_sched.employee_id)
-                .map(|v| v.as_slice())
+                .map(std::vec::Vec::as_slice)
                 .unwrap_or(&[]);
             // Pre-group entries by date for O(1) per-date lookup
             let entries_by_date =
@@ -300,7 +300,7 @@ impl ReportService {
                 // O(1) lookup instead of O(entries) filter per day
                 let day_entries = entries_by_date
                     .get(&date)
-                    .map(|v| v.as_slice())
+                    .map(std::vec::Vec::as_slice)
                     .unwrap_or(&[]);
 
                 let actual_punch_in = day_entries
@@ -560,7 +560,7 @@ impl ReportService {
         for emp_sched in schedules {
             let entries = entries_map
                 .get(&emp_sched.employee_id)
-                .map(|v| v.as_slice())
+                .map(std::vec::Vec::as_slice)
                 .unwrap_or(&[]);
 
             let emp_attendance_rules = attendance_rules_map
@@ -585,7 +585,7 @@ impl ReportService {
                 // O(1) lookup instead of O(entries) filter per day
                 let day_entries = entries_by_date
                     .get(&date)
-                    .map(|v| v.as_slice())
+                    .map(std::vec::Vec::as_slice)
                     .unwrap_or(&[]);
 
                 let (std_units, ot_units) = self

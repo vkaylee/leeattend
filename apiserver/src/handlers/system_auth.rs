@@ -72,7 +72,7 @@ impl SystemContext {
         if roles.iter().any(|r| self.has_role(*r)) {
             Ok(())
         } else {
-            let names: Vec<String> = roles.iter().map(|r| r.to_string()).collect();
+            let names: Vec<String> = roles.iter().map(std::string::ToString::to_string).collect();
             Err(AppError::Forbidden(format!(
                 "Requires one of system roles: [{}]",
                 names.join(", ")
@@ -162,7 +162,7 @@ where
                 // Cache miss: hit DB and populate cache
                 let fresh = Self::fetch_system_roles_from_db(user_id, &app_state).await?;
                 let payload = CachedSystemRoles {
-                    roles: fresh.iter().map(|r| r.to_string()).collect(),
+                    roles: fresh.iter().map(std::string::ToString::to_string).collect(),
                 };
                 let _ = cache.set(&cache_key, &payload, SYSTEM_ROLE_CACHE_TTL).await;
                 fresh

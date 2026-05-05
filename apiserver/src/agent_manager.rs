@@ -343,17 +343,16 @@ impl AgentManager {
 
     async fn fetch_redis_presence(&self, agent_ids: &[String]) -> HashMap<String, DateTime<Utc>> {
         if let Some(ref redis) = self.inner.redis {
-            match tokio::time::timeout(
+            if let Ok(res) = tokio::time::timeout(
                 std::time::Duration::from_millis(500),
                 redis.fetch_presence(agent_ids),
             )
             .await
             {
-                Ok(res) => res,
-                Err(_) => {
-                    tracing::warn!("Presence check timed out (500ms)");
-                    HashMap::new()
-                }
+                res
+            } else {
+                tracing::warn!("Presence check timed out (500ms)");
+                HashMap::new()
             }
         } else {
             HashMap::new()

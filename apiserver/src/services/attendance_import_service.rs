@@ -178,9 +178,17 @@ impl AttendanceImportService {
         match crate::utils::file_parser::extract_file_rows(&file_bytes) {
             Ok(rows) => {
                 for (current_line, cols) in rows {
-                    let raw_emp_id = cols.first().map(|s| s.as_str()).unwrap_or("").trim();
+                    let raw_emp_id = cols
+                        .first()
+                        .map(std::string::String::as_str)
+                        .unwrap_or("")
+                        .trim();
                     let emp_id_number = normalize_employee_id(raw_emp_id);
-                    let emp_dt_str = cols.get(2).map(|s| s.as_str()).unwrap_or("").trim();
+                    let emp_dt_str = cols
+                        .get(2)
+                        .map(std::string::String::as_str)
+                        .unwrap_or("")
+                        .trim();
 
                     if emp_id_number.is_empty() || emp_dt_str.is_empty() {
                         errors.push(fmt_msg(
@@ -393,15 +401,23 @@ impl AttendanceImportService {
         match crate::utils::file_parser::extract_file_rows(&file_bytes) {
             Ok(rows) => {
                 for (current_line, cols) in rows {
-                    let raw_id = cols.first().map(|s| s.as_str()).unwrap_or("").trim();
+                    let raw_id = cols
+                        .first()
+                        .map(std::string::String::as_str)
+                        .unwrap_or("")
+                        .trim();
                     let id_number = normalize_employee_id(raw_id);
                     let full_name = cols
                         .get(1)
-                        .map(|s| s.as_str())
+                        .map(std::string::String::as_str)
                         .unwrap_or("")
                         .trim()
                         .to_string();
-                    let hire_date_raw = cols.get(2).map(|s| s.as_str()).unwrap_or("").trim();
+                    let hire_date_raw = cols
+                        .get(2)
+                        .map(std::string::String::as_str)
+                        .unwrap_or("")
+                        .trim();
 
                     if id_number.is_empty() || full_name.is_empty() {
                         errors.push(fmt_msg(

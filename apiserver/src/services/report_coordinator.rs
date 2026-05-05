@@ -145,7 +145,7 @@ impl ReportCoordinator {
         // 4. Split into batches
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
-            .map(|chunk| chunk.to_vec())
+            .map(<[uuid::Uuid]>::to_vec)
             .collect();
 
         let total_batches = batches.len() as u32;
@@ -438,7 +438,7 @@ mod tests {
 
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
-            .map(|chunk| chunk.to_vec())
+            .map(<[uuid::Uuid]>::to_vec)
             .collect();
 
         // 550 employees / 50 = 11 full batches
@@ -453,7 +453,7 @@ mod tests {
         let employees: Vec<Uuid> = (0..50).map(|_| Uuid::new_v4()).collect();
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
-            .map(|chunk| chunk.to_vec())
+            .map(<[uuid::Uuid]>::to_vec)
             .collect();
         assert_eq!(batches.len(), 1);
         assert_eq!(batches[0].len(), 50);
@@ -462,7 +462,7 @@ mod tests {
         let employees: Vec<Uuid> = (0..51).map(|_| Uuid::new_v4()).collect();
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
-            .map(|chunk| chunk.to_vec())
+            .map(<[uuid::Uuid]>::to_vec)
             .collect();
         assert_eq!(batches.len(), 2);
         assert_eq!(batches[0].len(), 50);
@@ -472,7 +472,7 @@ mod tests {
         let employees: Vec<Uuid> = vec![Uuid::new_v4()];
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
-            .map(|chunk| chunk.to_vec())
+            .map(<[uuid::Uuid]>::to_vec)
             .collect();
         assert_eq!(batches.len(), 1);
         assert_eq!(batches[0].len(), 1);
@@ -511,7 +511,7 @@ mod tests {
         let employees: Vec<Uuid> = (0..1000).map(|_| Uuid::new_v4()).collect();
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
-            .map(|chunk| chunk.to_vec())
+            .map(<[uuid::Uuid]>::to_vec)
             .collect();
         assert_eq!(batches.len(), 20);
         assert!(batches.iter().all(|b| b.len() == 50));
@@ -522,7 +522,7 @@ mod tests {
         let employees: Vec<Uuid> = (0..73).map(|_| Uuid::new_v4()).collect();
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
-            .map(|chunk| chunk.to_vec())
+            .map(<[uuid::Uuid]>::to_vec)
             .collect();
         assert_eq!(batches.len(), 2);
         assert_eq!(batches[0].len(), 50);

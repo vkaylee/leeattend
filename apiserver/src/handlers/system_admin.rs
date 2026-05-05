@@ -248,7 +248,7 @@ pub async fn system_health(ctx: SystemContext) -> AppResult<Json<serde_json::Val
     Ok(Json(serde_json::json!({
         "status": "ok",
         "viewer_user_id": ctx.user_id,
-        "viewer_roles": ctx.roles.iter().map(|r| r.to_string()).collect::<Vec<_>>()
+        "viewer_roles": ctx.roles.iter().map(std::string::ToString::to_string).collect::<Vec<_>>()
     })))
 }
 

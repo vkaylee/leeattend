@@ -513,10 +513,12 @@ impl RosterCache {
 
             // wait_for borrows rx mutably; we only need to know whether it
             // succeeded so we can drop the borrow before calling rx.borrow().
-            let leader_finished =
-                tokio::time::timeout(Duration::from_secs(30), rx.wait_for(|v| v.is_some()))
-                    .await
-                    .is_ok();
+            let leader_finished = tokio::time::timeout(
+                Duration::from_secs(30),
+                rx.wait_for(std::option::Option::is_some),
+            )
+            .await
+            .is_ok();
             // Mutable borrow from wait_for is now fully dropped.
 
             if leader_finished {
@@ -822,7 +824,7 @@ mod tests {
         let data = Arc::new(make_empty_roster_data());
 
         let follower = tokio::spawn(async move {
-            rx.wait_for(|v| v.is_some())
+            rx.wait_for(std::option::Option::is_some)
                 .await
                 .expect("watch channel failed");
             let value = rx.borrow();
@@ -850,7 +852,7 @@ mod tests {
         let (tx, mut rx) = watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
 
         let follower = tokio::spawn(async move {
-            rx.wait_for(|v| v.is_some())
+            rx.wait_for(std::option::Option::is_some)
                 .await
                 .expect("watch channel failed");
             let value = rx.borrow();
@@ -913,10 +915,12 @@ mod tests {
     async fn test_singleflight_follower_timeout_does_not_panic() {
         let (_tx, mut rx) = watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
 
-        let timed_out =
-            tokio::time::timeout(Duration::from_millis(50), rx.wait_for(|v| v.is_some()))
-                .await
-                .is_err();
+        let timed_out = tokio::time::timeout(
+            Duration::from_millis(50),
+            rx.wait_for(std::option::Option::is_some),
+        )
+        .await
+        .is_err();
 
         assert!(
             timed_out,

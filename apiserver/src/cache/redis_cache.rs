@@ -35,8 +35,8 @@ impl RedisCache {
             }
         };
 
-        match json {
-            Some(s) => match serde_json::from_str(&s) {
+        if let Some(s) = json {
+            match serde_json::from_str(&s) {
                 Ok(val) => {
                     debug!(key = key, "Cache hit");
                     Some(val)
@@ -45,11 +45,10 @@ impl RedisCache {
                     warn!(key = key, error = %e, "Cache deserialization failed");
                     None
                 }
-            },
-            None => {
-                debug!(key = key, "Cache miss");
-                None
             }
+        } else {
+            debug!(key = key, "Cache miss");
+            None
         }
     }
 

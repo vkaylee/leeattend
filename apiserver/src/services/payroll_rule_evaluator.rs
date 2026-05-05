@@ -85,12 +85,14 @@ impl PayrollRuleEvaluator {
                         .unwrap_or("gross");
                     let current_base = base_values.get(base_type).copied().unwrap_or(Decimal::ZERO);
 
-                    if let Some(rate_val) = config.get("rate").and_then(|r| r.as_f64()) {
+                    if let Some(rate_val) = config.get("rate").and_then(serde_json::Value::as_f64) {
                         let rate = Decimal::from_f64(rate_val).unwrap_or(Decimal::ZERO)
                             / Decimal::from(100);
                         amount = current_base * rate;
 
-                        if let Some(cap_val) = config.get("cap_amount").and_then(|c| c.as_f64()) {
+                        if let Some(cap_val) =
+                            config.get("cap_amount").and_then(serde_json::Value::as_f64)
+                        {
                             let cap = Decimal::from_f64(cap_val).unwrap_or(Decimal::ZERO);
                             if amount > cap {
                                 amount = cap;
@@ -99,7 +101,9 @@ impl PayrollRuleEvaluator {
                     }
                 }
                 PayrollCalculationMethod::Fixed => {
-                    if let Some(fixed_val) = config.get("amount").and_then(|a| a.as_f64()) {
+                    if let Some(fixed_val) =
+                        config.get("amount").and_then(serde_json::Value::as_f64)
+                    {
                         amount = Decimal::from_f64(fixed_val).unwrap_or(Decimal::ZERO);
                     }
                 }

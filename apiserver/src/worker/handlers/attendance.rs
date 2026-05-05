@@ -247,7 +247,7 @@ impl AttendanceHandler {
             let entries = args
                 .entries_map
                 .get(&emp_sched.employee_id)
-                .map(|v| v.as_slice())
+                .map(std::vec::Vec::as_slice)
                 .unwrap_or(&[]);
             let mut total_std_units = 0i32;
             let mut total_ot_units = 0i32;
@@ -255,7 +255,7 @@ impl AttendanceHandler {
             // Get this employee's conditions once
             let emp_conditions = conditions_map
                 .get(&emp_sched.employee_id)
-                .map(|v| v.as_slice())
+                .map(std::vec::Vec::as_slice)
                 .unwrap_or(&[]);
 
             let emp_attendance_rules = attendance_rules_map
@@ -276,7 +276,7 @@ impl AttendanceHandler {
 
                 let day_entries = entries_by_date
                     .get(&date)
-                    .map(|v| v.as_slice())
+                    .map(std::vec::Vec::as_slice)
                     .unwrap_or(&[]);
 
                 let actual_punch_in = day_entries
@@ -391,13 +391,13 @@ impl AttendanceHandler {
             let entries = args
                 .entries_map
                 .get(&emp_sched.employee_id)
-                .map(|v| v.as_slice())
+                .map(std::vec::Vec::as_slice)
                 .unwrap_or(&[]);
 
             // Get this employee's conditions once
             let emp_conditions = conditions_map
                 .get(&emp_sched.employee_id)
-                .map(|v| v.as_slice())
+                .map(std::vec::Vec::as_slice)
                 .unwrap_or(&[]);
 
             let emp_attendance_rules = attendance_rules_map
@@ -418,7 +418,7 @@ impl AttendanceHandler {
 
                 let day_entries = entries_by_date
                     .get(&date)
-                    .map(|v| v.as_slice())
+                    .map(std::vec::Vec::as_slice)
                     .unwrap_or(&[]);
 
                 let actual_punch_in = day_entries
@@ -819,9 +819,21 @@ mod tests {
         let jan16 = NaiveDate::from_ymd_opt(2026, 1, 16).unwrap();
 
         // 2 entries on Jan 15 (in Ho_Chi_Minh timezone)
-        assert_eq!(entries_by_date.get(&jan15).map(|v| v.len()).unwrap_or(0), 2);
+        assert_eq!(
+            entries_by_date
+                .get(&jan15)
+                .map(std::vec::Vec::len)
+                .unwrap_or(0),
+            2
+        );
         // 1 entry on Jan 16 (UTC 18:00 → local 01:00 next day)
-        assert_eq!(entries_by_date.get(&jan16).map(|v| v.len()).unwrap_or(0), 1);
+        assert_eq!(
+            entries_by_date
+                .get(&jan16)
+                .map(std::vec::Vec::len)
+                .unwrap_or(0),
+            1
+        );
     }
 
     /// Test that pre-grouping produces the same results as the old filter-per-day approach.
@@ -862,7 +874,10 @@ mod tests {
                 .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == target)
                 .collect();
 
-            let grouped = entries_by_date.get(&target).map(|v| v.len()).unwrap_or(0);
+            let grouped = entries_by_date
+                .get(&target)
+                .map(std::vec::Vec::len)
+                .unwrap_or(0);
             assert_eq!(filtered.len(), grouped, "Mismatch on day {day}");
         }
     }
@@ -882,7 +897,7 @@ mod tests {
         let jan1 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let day_entries = entries_by_date
             .get(&jan1)
-            .map(|v| v.as_slice())
+            .map(std::vec::Vec::as_slice)
             .unwrap_or(&[]);
         assert!(day_entries.is_empty());
     }

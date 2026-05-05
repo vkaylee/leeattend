@@ -22,7 +22,10 @@ pub async fn get_attendance_report(
     let end_date_str = params
         .get("end_date")
         .ok_or_else(|| AppError::Validation("Missing end_date".to_string()))?;
-    let report_type = params.get("type").map(|s| s.as_str()).unwrap_or("summary");
+    let report_type = params
+        .get("type")
+        .map(std::string::String::as_str)
+        .unwrap_or("summary");
 
     let page = params.get("page").and_then(|s| s.parse::<i64>().ok());
     let limit = params.get("limit").and_then(|s| s.parse::<i64>().ok());

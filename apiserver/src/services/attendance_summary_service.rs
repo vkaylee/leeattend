@@ -172,7 +172,7 @@ impl AttendanceSummaryService {
                                 .unwrap_or(0),
                             actual_break_minutes,
                             work_unit: 0,
-                            rounding_policy: "".to_string(),
+                            rounding_policy: String::new(),
                             rules: policy_rules,
                             ot_ceiling: None,
                         },

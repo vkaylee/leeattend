@@ -118,7 +118,10 @@ mod tests {
         EmployeeMatchContext {
             department_id: dept,
             employee_id_number: id_number.to_string(),
-            tags: tags.into_iter().map(|s| s.to_string()).collect(),
+            tags: tags
+                .into_iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
         }
     }
 

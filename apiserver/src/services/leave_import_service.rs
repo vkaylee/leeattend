@@ -117,9 +117,10 @@ impl LeaveImportService {
 
         for row in &pending_rows {
             // Lookup employee
-            let employee_id = match employees.get(&row.employee_id_number.to_uppercase()) {
-                Some(id) => *id,
-                None => {
+            let employee_id =
+                if let Some(id) = employees.get(&row.employee_id_number.to_uppercase()) {
+                    *id
+                } else {
                     errors.push(ErrorRow {
                         line_number: row.line_number,
                         employee_id_number: row.employee_id_number.clone(),
@@ -133,13 +134,13 @@ impl LeaveImportService {
                             .replace("{}", &row.employee_id_number),
                     });
                     continue;
-                }
-            };
+                };
 
             // Lookup leave type
-            let leave_type_id = match leave_types.get(&row.leave_type_code.to_uppercase()) {
-                Some(id) => *id,
-                None => {
+            let leave_type_id =
+                if let Some(id) = leave_types.get(&row.leave_type_code.to_uppercase()) {
+                    *id
+                } else {
                     errors.push(ErrorRow {
                         line_number: row.line_number,
                         employee_id_number: row.employee_id_number.clone(),
@@ -153,8 +154,7 @@ impl LeaveImportService {
                             .replace("{}", &row.leave_type_code),
                     });
                     continue;
-                }
-            };
+                };
 
             // Submit leave request
             let submit = SubmitLeaveRequest {
@@ -686,7 +686,7 @@ mod tests {
                 leave_type_code: "XYZ".to_string(),
                 start_date_raw: "2026-03-28".to_string(),
                 end_date_raw: "2026-03-29".to_string(),
-                reason: "".to_string(),
+                reason: String::new(),
                 duration_type_raw: "first_half".to_string(),
                 error_message: "Loại nghỉ không tồn tại".to_string(),
             },

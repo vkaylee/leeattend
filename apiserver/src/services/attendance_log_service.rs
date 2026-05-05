@@ -111,11 +111,11 @@ impl AttendanceLogService {
         hasher.update("|");
         // Extract punch and status from raw_data if available
         if let Some(data) = raw_data {
-            if let Some(punch) = data.get("punch").and_then(|p| p.as_i64()) {
+            if let Some(punch) = data.get("punch").and_then(serde_json::Value::as_i64) {
                 hasher.update(punch.to_string());
             }
             hasher.update("|");
-            if let Some(status) = data.get("status").and_then(|s| s.as_i64()) {
+            if let Some(status) = data.get("status").and_then(serde_json::Value::as_i64) {
                 hasher.update(status.to_string());
             }
         } else {

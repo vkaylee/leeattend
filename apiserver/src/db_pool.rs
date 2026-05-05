@@ -300,7 +300,7 @@ mod tests {
     #[test]
     fn test_empty_reader_url_treated_as_none() {
         // Simulate DATABASE_READER_URL="" (set but empty)
-        let reader_url = Some("".to_string()).filter(|s| !s.trim().is_empty());
+        let reader_url = Some(String::new()).filter(|s| !s.trim().is_empty());
         assert!(
             reader_url.is_none(),
             "Empty reader URL should be treated as None"

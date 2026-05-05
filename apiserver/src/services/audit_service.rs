@@ -23,7 +23,7 @@ impl AuditHelper {
             .headers
             .get(axum::http::header::USER_AGENT)
             .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
+            .map(std::string::ToString::to_string);
 
         let ip_address = args
             .headers
@@ -34,7 +34,7 @@ impl AuditHelper {
                 args.headers
                     .get("X-Real-IP")
                     .and_then(|h| h.to_str().ok())
-                    .map(|s| s.to_string())
+                    .map(std::string::ToString::to_string)
             });
 
         let log = AuditLog {

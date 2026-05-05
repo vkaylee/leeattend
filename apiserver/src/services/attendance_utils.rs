@@ -650,8 +650,8 @@ mod tests {
         let jan15 = NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid date");
         let jan16 = NaiveDate::from_ymd_opt(2026, 1, 16).expect("valid date");
 
-        assert_eq!(grouped.get(&jan15).map(|v| v.len()).unwrap_or(0), 2);
-        assert_eq!(grouped.get(&jan16).map(|v| v.len()).unwrap_or(0), 1);
+        assert_eq!(grouped.get(&jan15).map(std::vec::Vec::len).unwrap_or(0), 2);
+        assert_eq!(grouped.get(&jan16).map(std::vec::Vec::len).unwrap_or(0), 1);
     }
 
     #[test]
@@ -676,7 +676,7 @@ mod tests {
 
         let mar1 = NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date");
         assert_eq!(grouped.len(), 1);
-        assert_eq!(grouped.get(&mar1).map(|v| v.len()).unwrap_or(0), 3);
+        assert_eq!(grouped.get(&mar1).map(std::vec::Vec::len).unwrap_or(0), 3);
     }
 
     // -----------------------------------------------------------------------

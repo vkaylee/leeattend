@@ -46,101 +46,97 @@ impl AttendanceCalculator {
             return buckets;
         }
 
-        match (shift_start_dt, shift_end_dt) {
-            (Some(start), Some(mut end)) => {
-                // Handle Overnight Shift linearization
-                if end < start {
-                    end += Duration::days(1);
-                }
-
-                // Apply Grace Period to Shift Start for Early OT calculation
-                let mut effective_ot_start = punch_in.clone();
-                if rules.grace_period_minutes > 0 {
-                    let grace_threshold =
-                        start.clone() - Duration::minutes(rules.grace_period_minutes as i64);
-
-                    match rules.early_arrival_strategy {
-                        EarlyArrivalStrategy::Block | EarlyArrivalStrategy::Allow => {
-                            if punch_in >= &grace_threshold && punch_in < &start {
-                                effective_ot_start = start.clone();
-                            } else if punch_in < &grace_threshold {
-                                effective_ot_start = punch_in.clone();
-                            }
-                        }
-                        EarlyArrivalStrategy::Clamp => {
-                            effective_ot_start = DateTime::max(punch_in.clone(), grace_threshold);
-                        }
-                    }
-                } else {
-                    effective_ot_start = punch_in.clone();
-                }
-
-                // 1. Standard Bucket: Intersection of [In, Out] and [Start, End]
-                let standard_in = DateTime::max(punch_in.clone(), start.clone());
-                let mut standard_out = DateTime::min(punch_out.clone(), end.clone());
-
-                // Apply Authorized Early Leave (Paid)
-                if rules.is_early_leave_paid && rules.authorized_early_leave_minutes > 0 {
-                    let missing_minutes = end
-                        .clone()
-                        .signed_duration_since(standard_out.clone())
-                        .num_minutes();
-                    if missing_minutes > 0
-                        && missing_minutes <= rules.authorized_early_leave_minutes as i64
-                    {
-                        standard_out = end.clone();
-                    }
-                }
-
-                if standard_out > standard_in {
-                    let mut standard_raw = standard_out
-                        .signed_duration_since(standard_in)
-                        .num_minutes() as i32;
-
-                    // Deduct break from standard time
-                    let break_to_deduct = Self::calculate_break_deduction(
-                        actual_break_minutes,
-                        scheduled_break_minutes,
-                        rules.is_break_auto_deduct,
-                        rules.is_break_overtime,
-                    );
-                    standard_raw = i32::max(0, standard_raw - break_to_deduct);
-                    buckets.standard_minutes = standard_raw;
-                }
-
-                // 2. Early OT: Time before ShiftStart
-                if rules.allow_early_ot && punch_in < &start {
-                    let early_out = DateTime::min(punch_out.clone(), start);
-                    if early_out > effective_ot_start {
-                        buckets.early_ot_minutes = early_out
-                            .signed_duration_since(effective_ot_start)
-                            .num_minutes()
-                            as i32;
-                    }
-                }
-
-                // 3. Late OT: Time after ShiftEnd, capped at ot_ceiling
-                if punch_out > &end {
-                    let effective_punch_out = match ot_ceiling {
-                        Some(ceil) => DateTime::min(punch_out.clone(), ceil.clone()),
-                        None => punch_out.clone(),
-                    };
-                    let late_in = DateTime::max(punch_in.clone(), end.clone());
-                    if effective_punch_out > late_in {
-                        buckets.late_ot_minutes = effective_punch_out
-                            .signed_duration_since(late_in)
-                            .num_minutes() as i32;
-                    }
-                }
+        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
+            // Handle Overnight Shift linearization
+            if end < start {
+                end += Duration::days(1);
             }
-            _ => {
-                // No shift: everything is standard
-                let raw_duration = punch_out
+
+            // Apply Grace Period to Shift Start for Early OT calculation
+            let mut effective_ot_start = punch_in.clone();
+            if rules.grace_period_minutes > 0 {
+                let grace_threshold =
+                    start.clone() - Duration::minutes(rules.grace_period_minutes as i64);
+
+                match rules.early_arrival_strategy {
+                    EarlyArrivalStrategy::Block | EarlyArrivalStrategy::Allow => {
+                        if punch_in >= &grace_threshold && punch_in < &start {
+                            effective_ot_start = start.clone();
+                        } else if punch_in < &grace_threshold {
+                            effective_ot_start = punch_in.clone();
+                        }
+                    }
+                    EarlyArrivalStrategy::Clamp => {
+                        effective_ot_start = DateTime::max(punch_in.clone(), grace_threshold);
+                    }
+                }
+            } else {
+                effective_ot_start = punch_in.clone();
+            }
+
+            // 1. Standard Bucket: Intersection of [In, Out] and [Start, End]
+            let standard_in = DateTime::max(punch_in.clone(), start.clone());
+            let mut standard_out = DateTime::min(punch_out.clone(), end.clone());
+
+            // Apply Authorized Early Leave (Paid)
+            if rules.is_early_leave_paid && rules.authorized_early_leave_minutes > 0 {
+                let missing_minutes = end
                     .clone()
-                    .signed_duration_since(punch_in.clone())
-                    .num_minutes() as i32;
-                buckets.standard_minutes = i32::max(0, raw_duration);
+                    .signed_duration_since(standard_out.clone())
+                    .num_minutes();
+                if missing_minutes > 0
+                    && missing_minutes <= rules.authorized_early_leave_minutes as i64
+                {
+                    standard_out = end.clone();
+                }
             }
+
+            if standard_out > standard_in {
+                let mut standard_raw = standard_out
+                    .signed_duration_since(standard_in)
+                    .num_minutes() as i32;
+
+                // Deduct break from standard time
+                let break_to_deduct = Self::calculate_break_deduction(
+                    actual_break_minutes,
+                    scheduled_break_minutes,
+                    rules.is_break_auto_deduct,
+                    rules.is_break_overtime,
+                );
+                standard_raw = i32::max(0, standard_raw - break_to_deduct);
+                buckets.standard_minutes = standard_raw;
+            }
+
+            // 2. Early OT: Time before ShiftStart
+            if rules.allow_early_ot && punch_in < &start {
+                let early_out = DateTime::min(punch_out.clone(), start);
+                if early_out > effective_ot_start {
+                    buckets.early_ot_minutes = early_out
+                        .signed_duration_since(effective_ot_start)
+                        .num_minutes() as i32;
+                }
+            }
+
+            // 3. Late OT: Time after ShiftEnd, capped at ot_ceiling
+            if punch_out > &end {
+                let effective_punch_out = match ot_ceiling {
+                    Some(ceil) => DateTime::min(punch_out.clone(), ceil.clone()),
+                    None => punch_out.clone(),
+                };
+                let late_in = DateTime::max(punch_in.clone(), end.clone());
+                if effective_punch_out > late_in {
+                    buckets.late_ot_minutes = effective_punch_out
+                        .signed_duration_since(late_in)
+                        .num_minutes() as i32;
+                }
+            }
+        } else {
+            // No shift: everything is standard
+            let raw_duration = punch_out
+                .clone()
+                .signed_duration_since(punch_in.clone())
+                .num_minutes() as i32;
+            buckets.standard_minutes = i32::max(0, raw_duration);
         }
 
         buckets
@@ -241,7 +237,7 @@ mod tests {
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b1.standard_minutes, 570); // 9.5 hours (no break deducted)
 
@@ -257,7 +253,7 @@ mod tests {
             rules,
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b2.standard_minutes, 510); // 8.5 hours
     }
@@ -281,7 +277,7 @@ mod tests {
             rules: rules.clone(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b1.early_ot_minutes, 0);
 
@@ -296,7 +292,7 @@ mod tests {
             rules: rules.clone(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b2.early_ot_minutes, 45);
 
@@ -312,7 +308,7 @@ mod tests {
             rules,
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b3.early_ot_minutes, 30);
     }
@@ -336,7 +332,7 @@ mod tests {
             rules: rules.clone(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b1.standard_minutes, 540);
 
@@ -351,7 +347,7 @@ mod tests {
             rules,
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b2.standard_minutes, 450);
     }
@@ -416,7 +412,7 @@ mod tests {
             rules: mock_rules(),
             ot_ceiling: ceiling,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b.standard_minutes, 240); // 08:00-12:00 = 4h
         assert_eq!(b.late_ot_minutes, 60); // 12:00-13:00 (capped, not 90)
@@ -438,7 +434,7 @@ mod tests {
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b.standard_minutes, 240);
         assert_eq!(b.late_ot_minutes, 90); // 12:00-13:30 = 90min (no cap)
@@ -462,7 +458,7 @@ mod tests {
             rules: mock_rules(),
             ot_ceiling: ceiling,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b.standard_minutes, 240);
         assert_eq!(b.late_ot_minutes, 60); // 12:00-13:00 = full gap
@@ -591,7 +587,7 @@ mod tests {
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -610,7 +606,7 @@ mod tests {
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -633,7 +629,7 @@ mod tests {
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         // 12 hours = 720 minutes, all standard
         assert_eq!(b.standard_minutes, 720);
@@ -653,7 +649,7 @@ mod tests {
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         assert_eq!(b.standard_minutes, 15);
     }
@@ -770,7 +766,7 @@ ot_ceiling: None
             scheduled_break_minutes: 0,
             actual_break_minutes: 0,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
             rules: mock_rules(),
             ot_ceiling: None,
         });
@@ -860,7 +856,7 @@ ot_ceiling: None
             rules,
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         // Punch in 2h early, but allow_early_ot = false → no early OT
         assert_eq!(b.early_ot_minutes, 0);
@@ -884,7 +880,7 @@ ot_ceiling: None
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         // Standard: 08→17 = 540, Late OT: 17→20 = 180
         assert_eq!(b.standard_minutes, 540);
@@ -907,7 +903,7 @@ ot_ceiling: None
             rules: mock_rules(),
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         // Standard: intersection [9:30, 15:00] ∩ [8:00, 17:00] = 330 min
         assert_eq!(b.standard_minutes, 330);
@@ -934,7 +930,7 @@ ot_ceiling: None
             rules,
             ot_ceiling: None,
             work_unit: 0,
-            rounding_policy: "".to_string(),
+            rounding_policy: String::new(),
         });
         // Early OT: 06:00→08:00 = 120 min
         assert_eq!(b.early_ot_minutes, 120);

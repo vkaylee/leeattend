@@ -534,13 +534,12 @@ mod tests {
         // serde_json by default treats null as "missing" for #[serde(default)] fields.
         // If the field is Option<T> with default this passes; for non-Option with default
         // serde_json rejects null. We document the actual behavior here.
-        match result {
-            Ok(req) => assert_eq!(req.scope_type, RoleScopeType::Scoped),
-            Err(_) => {
-                // serde_json rejects null for non-Option<RoleScopeType>. This is also correct
-                // behavior — the client should send the key absent, not null.
-                // Test documents this boundary; either outcome is acceptable.
-            }
+        if let Ok(req) = result {
+            assert_eq!(req.scope_type, RoleScopeType::Scoped)
+        } else {
+            // serde_json rejects null for non-Option<RoleScopeType>. This is also correct
+            // behavior — the client should send the key absent, not null.
+            // Test documents this boundary; either outcome is acceptable.
         }
     }
 

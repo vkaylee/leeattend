@@ -84,7 +84,7 @@ fn create_auth_cookies(access_token: &str, refresh_token: &str) -> HeaderMap {
     let mut headers = HeaderMap::new();
     let domain_attr = match std::env::var("COOKIE_DOMAIN") {
         Ok(d) if !d.is_empty() => format!("Domain={d}; "),
-        _ => "".to_string(),
+        _ => String::new(),
     };
 
     // access_token cookie
@@ -110,7 +110,7 @@ fn clear_auth_cookies() -> HeaderMap {
     let mut headers = HeaderMap::new();
     let domain_attr = match std::env::var("COOKIE_DOMAIN") {
         Ok(d) if !d.is_empty() => format!("Domain={d}; "),
-        _ => "".to_string(),
+        _ => String::new(),
     };
 
     let access_cookie =
@@ -433,7 +433,7 @@ pub async fn get_my_permissions(
     let permissions: Vec<&str> = ctx
         .permissions
         .iter()
-        .map(|p| p.to_str_permission())
+        .map(super::super::domain::permissions::Permission::to_str_permission)
         .collect();
 
     let roles: Vec<String> = ctx.roles.iter().map(|r| format!("{r:?}")).collect();

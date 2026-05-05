@@ -205,40 +205,37 @@ async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::que
             tokio::select! {
                 // Receive from Redis
                 msg = subscriber.next_message() => {
-                    match msg {
-                        Some(stream_msg) => {
-                            let json = match serde_json::to_string(&stream_msg) {
-                                Ok(j) => j,
-                                Err(e) => {
-                                    warn!(job_id = %job_id_clone, error = %e, "Failed to serialize message");
-                                    continue;
-                                }
-                            };
-
-                            if sender.send(Message::Text(json)).await.is_err() {
-                                info!(job_id = %job_id_clone, "Client disconnected");
-                                break;
+                    if let Some(stream_msg) = msg {
+                        let json = match serde_json::to_string(&stream_msg) {
+                            Ok(j) => j,
+                            Err(e) => {
+                                warn!(job_id = %job_id_clone, error = %e, "Failed to serialize message");
+                                continue;
                             }
+                        };
 
-                            // Close on terminal messages
-                            match stream_msg {
-                                StreamMessage::Done { .. } => {
-                                    info!(job_id = %job_id_clone, "Report complete, closing connection");
-                                    let _ = sender.close().await;
-                                    break;
-                                }
-                                StreamMessage::Error { .. } => {
-                                    warn!(job_id = %job_id_clone, "Report error, closing connection");
-                                    let _ = sender.close().await;
-                                    break;
-                                }
-                                StreamMessage::Chunk { .. } => {}
-                            }
-                        }
-                        None => {
-                            info!(job_id = %job_id_clone, "Redis subscription closed");
+                        if sender.send(Message::Text(json)).await.is_err() {
+                            info!(job_id = %job_id_clone, "Client disconnected");
                             break;
                         }
+
+                        // Close on terminal messages
+                        match stream_msg {
+                            StreamMessage::Done { .. } => {
+                                info!(job_id = %job_id_clone, "Report complete, closing connection");
+                                let _ = sender.close().await;
+                                break;
+                            }
+                            StreamMessage::Error { .. } => {
+                                warn!(job_id = %job_id_clone, "Report error, closing connection");
+                                let _ = sender.close().await;
+                                break;
+                            }
+                            StreamMessage::Chunk { .. } => {}
+                        }
+                    } else {
+                        info!(job_id = %job_id_clone, "Redis subscription closed");
+                        break;
                     }
                 }
 

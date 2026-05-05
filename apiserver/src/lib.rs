@@ -6,14 +6,12 @@
     clippy::needless_raw_string_hashes,
     clippy::needless_raw_strings,
     clippy::too_many_lines,
-    clippy::single_match_else,
     clippy::ignored_unit_patterns,
     clippy::cast_possible_truncation,
     clippy::must_use_candidate,
     clippy::missing_const_for_fn,
     clippy::missing_errors_doc,
     clippy::use_self,
-    clippy::manual_string_new,
     clippy::module_name_repetitions,
     clippy::missing_panics_doc,
     clippy::cast_possible_wrap,
@@ -33,7 +31,6 @@
     clippy::struct_field_names,
     clippy::type_complexity,
     clippy::option_if_let_else,
-    clippy::redundant_closure_for_method_calls,
     clippy::map_unwrap_or,
     clippy::derive_partial_eq_without_eq,
     clippy::significant_drop_tightening,
@@ -67,6 +64,9 @@
 #![deny(clippy::inefficient_to_string)]
 #![deny(clippy::manual_let_else)]
 #![deny(clippy::match_wildcard_for_single_variants)]
+#![deny(clippy::single_match_else)]
+#![deny(clippy::manual_string_new)]
+#![deny(clippy::redundant_closure_for_method_calls)]
 
 pub mod agent_manager;
 pub mod app_builder;

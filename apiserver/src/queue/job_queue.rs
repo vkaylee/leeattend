@@ -45,7 +45,7 @@ impl JobQueue {
     pub fn new(pool: RedisPool) -> Self {
         Self {
             pool,
-            namespace: "".to_string(),
+            namespace: String::new(),
         }
     }
 

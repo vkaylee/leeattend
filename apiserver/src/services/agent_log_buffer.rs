@@ -140,21 +140,18 @@ pub async fn run_log_worker(
         tokio::select! {
             // Receive log entry from channel
             entry = receiver.recv() => {
-                match entry {
-                    Some(log_entry) => {
-                        batch.push(log_entry);
-                        if batch.len() >= batch_size {
-                            process_batch(&pool, &pairing_service, &mut batch).await;
-                        }
+                if let Some(log_entry) = entry {
+                    batch.push(log_entry);
+                    if batch.len() >= batch_size {
+                        process_batch(&pool, &pairing_service, &mut batch).await;
                     }
-                    None => {
-                        // Channel closed, drain remaining logs
-                        info!("Agent log buffer closed, draining {} remaining logs", batch.len());
-                        if !batch.is_empty() {
-                            process_batch(&pool, &pairing_service, &mut batch).await;
-                        }
-                        break;
+                } else {
+                    // Channel closed, drain remaining logs
+                    info!("Agent log buffer closed, draining {} remaining logs", batch.len());
+                    if !batch.is_empty() {
+                        process_batch(&pool, &pairing_service, &mut batch).await;
                     }
+                    break;
                 }
             }
             // Flush timer tick

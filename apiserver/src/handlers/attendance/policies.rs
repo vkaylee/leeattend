@@ -157,21 +157,20 @@ pub async fn update_default_attendance_rules(
     .fetch_optional(&mut *tx)
     .await?;
 
-    let policy_id = match policy_id {
-        Some(id) => id,
-        None => {
-            let new_id = Uuid::new_v4();
-            sqlx::query(
-                "INSERT INTO attendance_policies (id, workspace_id, name, is_default, created_at, updated_at) VALUES ($1, $2, $3, true, $4, $4)"
-            )
-            .bind(new_id)
-            .bind(ctx.workspace_id)
-            .bind("Default Policy")
-            .bind(Utc::now())
-            .execute(&mut *tx)
-            .await?;
-            new_id
-        }
+    let policy_id = if let Some(id) = policy_id {
+        id
+    } else {
+        let new_id = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO attendance_policies (id, workspace_id, name, is_default, created_at, updated_at) VALUES ($1, $2, $3, true, $4, $4)"
+        )
+        .bind(new_id)
+        .bind(ctx.workspace_id)
+        .bind("Default Policy")
+        .bind(Utc::now())
+        .execute(&mut *tx)
+        .await?;
+        new_id
     };
 
     // 2. Fetch current rules

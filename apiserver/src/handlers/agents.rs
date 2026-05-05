@@ -336,7 +336,9 @@ pub async fn send_command(
             .as_str()
             .unwrap_or("unknown")
             .to_string(),
-        device_id: command_request["device_id"].as_str().map(|s| s.to_string()),
+        device_id: command_request["device_id"]
+            .as_str()
+            .map(std::string::ToString::to_string),
         data: command_request.get("data").cloned(),
     };
 

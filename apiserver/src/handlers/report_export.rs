@@ -121,7 +121,7 @@ fn get_coordinator(state: &AppState) -> AppResult<&ReportCoordinator> {
         .reports
         .coordinator
         .as_ref()
-        .map(|c| c.as_ref())
+        .map(std::convert::AsRef::as_ref)
         .ok_or_else(|| {
             AppError::ServiceUnavailable(
                 "Async export not available. Redis is required for distributed processing."

@@ -104,7 +104,7 @@ impl ShiftAwareStrategy {
                     .as_ref()
                     .and_then(|r| r.get("note"))
                     .and_then(|n| n.as_str())
-                    .map(|s| s.to_string());
+                    .map(std::string::ToString::to_string);
                 (Some(log.minutes), Some(log.id), note)
             }
             _ => (None, None, None),
@@ -119,7 +119,7 @@ impl ShiftAwareStrategy {
             .and_then(|l| l.raw_data.as_ref())
             .and_then(|r| r.get("note"))
             .and_then(|n| n.as_str())
-            .map(|s| s.to_string());
+            .map(std::string::ToString::to_string);
 
         let combined_note = match (start_note, end_note) {
             (Some(n1), Some(n2)) => Some(format!("{n1}\n{n2}")),
@@ -132,7 +132,7 @@ impl ShiftAwareStrategy {
             .and_then(|l| l.raw_data.as_ref())
             .and_then(|r| r.get("entry_type"))
             .and_then(|e| e.as_str())
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .unwrap_or_else(|| "work".to_string());
 
         let final_note = if end.is_none() {
@@ -147,7 +147,7 @@ impl ShiftAwareStrategy {
         let is_break_overtime = first_in
             .and_then(|l| l.raw_data.as_ref())
             .and_then(|r| r.get("is_break_overtime"))
-            .and_then(|e| e.as_bool())
+            .and_then(serde_json::Value::as_bool)
             .unwrap_or(false);
 
         vec![PairedSession {
@@ -186,7 +186,7 @@ impl ShiftAwareStrategy {
             .as_ref()
             .and_then(|r| r.get("note"))
             .and_then(|n| n.as_str())
-            .map(|s| s.to_string());
+            .map(std::string::ToString::to_string);
 
         let (end, end_note) = if last_idx > 0 {
             let log = &logs[last_idx];
@@ -195,7 +195,7 @@ impl ShiftAwareStrategy {
                 .as_ref()
                 .and_then(|r| r.get("note"))
                 .and_then(|n| n.as_str())
-                .map(|s| s.to_string());
+                .map(std::string::ToString::to_string);
             (Some(log.minutes), note)
         } else {
             (None, None)
@@ -213,7 +213,7 @@ impl ShiftAwareStrategy {
             .as_ref()
             .and_then(|r| r.get("entry_type"))
             .and_then(|e| e.as_str())
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .unwrap_or_else(|| "work".to_string());
 
         let final_note = if end.is_none() {
@@ -234,7 +234,7 @@ impl ShiftAwareStrategy {
             .raw_data
             .as_ref()
             .and_then(|r| r.get("is_break_overtime"))
-            .and_then(|e| e.as_bool())
+            .and_then(serde_json::Value::as_bool)
             .unwrap_or(false);
 
         vec![PairedSession {

@@ -70,25 +70,37 @@ impl PayrollEvaluator {
 
         // Option A: Legacy flat object support
         if config.is_object() {
-            if let Some(max) = config.get("max_late_early_count").and_then(|v| v.as_i64()) {
+            if let Some(max) = config
+                .get("max_late_early_count")
+                .and_then(serde_json::Value::as_i64)
+            {
                 if ctx.late_early_count > max as i32 {
                     return false;
                 }
             }
 
-            if let Some(max) = config.get("max_unpaid_leave_days").and_then(|v| v.as_f64()) {
+            if let Some(max) = config
+                .get("max_unpaid_leave_days")
+                .and_then(serde_json::Value::as_f64)
+            {
                 if ctx.unpaid_leave_days > max {
                     return false;
                 }
             }
 
-            if let Some(max) = config.get("max_sick_leave_days").and_then(|v| v.as_f64()) {
+            if let Some(max) = config
+                .get("max_sick_leave_days")
+                .and_then(serde_json::Value::as_f64)
+            {
                 if ctx.sick_leave_days > max {
                     return false;
                 }
             }
 
-            if let Some(max) = config.get("max_total_leave_days").and_then(|v| v.as_f64()) {
+            if let Some(max) = config
+                .get("max_total_leave_days")
+                .and_then(serde_json::Value::as_f64)
+            {
                 if ctx.total_leave_days > max {
                     return false;
                 }
@@ -103,7 +115,10 @@ impl PayrollEvaluator {
                     .get("operator")
                     .and_then(|v| v.as_str())
                     .unwrap_or("==");
-                let value = rule.get("value").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let value = rule
+                    .get("value")
+                    .and_then(serde_json::Value::as_f64)
+                    .unwrap_or(0.0);
 
                 let ctx_val = match metric {
                     "total_work_units" => ctx.total_work_units as f64,
