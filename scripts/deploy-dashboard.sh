@@ -87,8 +87,8 @@ COMPOSE_CMD=(
     podman-compose # </dev/null
     -p leeattend-test
     --env-file "$ENV_FILE_ABS"
-    -f docker-compose.yml
     -f .compose/docker-compose.test.yml
+    --profile frontend
     run -T --rm
     -e "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"
     -e "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID"
