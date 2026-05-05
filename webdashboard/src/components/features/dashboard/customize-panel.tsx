@@ -1,5 +1,6 @@
-
 import { GripVertical, X, RotateCcw, Loader2 } from "lucide-react";
+import React from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -220,7 +221,7 @@ export default function CustomizePanel({
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <>
             <CustomizePanelBackdrop onClose={onClose} />
 
@@ -263,6 +264,7 @@ export default function CustomizePanel({
 
                 <CustomizePanelFooter onReset={onReset} t={t} />
             </aside>
-        </>
+        </>,
+        document.body
     );
 }
