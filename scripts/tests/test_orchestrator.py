@@ -505,6 +505,18 @@ def test_handle_run_cargo_agent(mock_run, orchestrator) -> None:
         assert "/workspace/agent-main" in str(called_args)
 
 
+@patch("subprocess.run")
+def test_handle_run_cargo_test_conversion(mock_run, orchestrator) -> None:
+    """Test silently converting 'cargo test' to 'cargo nextest run'."""
+    mock_run.return_value.returncode = 0
+    args = orchestrator.parser.parse_args(["run", "cargo", "test", "--lib"])
+    orchestrator.handle_run(args)
+    called_args = mock_run.call_args[0][0]
+    assert "nextest" in called_args
+    assert "run" in called_args
+    assert "--lib" in called_args
+
+
 @patch.object(_orchestrator.Orchestrator, "run_phase")
 def test_run_phase_with_pattern(mock_run_phase, orchestrator) -> None:
     """Test pattern arg is propagated."""

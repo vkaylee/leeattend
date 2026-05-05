@@ -230,6 +230,14 @@ class Orchestrator:
             self.parser.print_help()
             return
         if args.command == "test":
+            import uuid
+
+            # Use dynamic project name for perfect test run isolation
+            project_name = f"leeattend-test-{uuid.uuid4().hex[:8]}"
+            self.env_vars["COMPOSE_PROJECT_NAME"] = project_name
+            self.env_vars["PODMAN_COMPOSE_PROJECT_NAME"] = project_name
+            os.environ["COMPOSE_PROJECT_NAME"] = project_name
+            os.environ["PODMAN_COMPOSE_PROJECT_NAME"] = project_name
             self.handle_test(args)
         elif args.command == "manage":
             self.handle_manage(args)
@@ -536,6 +544,9 @@ class Orchestrator:
             ]
         )
         if tool_args:
+            # AI Agent behavior correction: silently convert "cargo test" to "cargo nextest run"
+            if tool_args[0] == "test":
+                tool_args = ["nextest", "run"] + tool_args[1:]
             compose_cmd.extend(tool_args)
 
     def handle_lint_infra(self) -> None:
@@ -628,7 +639,7 @@ class Orchestrator:
             self.compose_engine
             + [
                 "-p",
-                "leeattend-test",
+                self.env_vars.get("COMPOSE_PROJECT_NAME", "leeattend-test"),
                 "-f",
                 str(PROJECT_ROOT / ".compose" / "docker-compose.test.yml"),
                 "run",

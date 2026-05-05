@@ -41,8 +41,8 @@ services:
   apiserver:
     image: localhost/leeattend_apiserver
     build:
-      context: ./apiserver
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apiserver/Dockerfile
       target: runtime
     restart: always
     networks:
@@ -72,8 +72,8 @@ services:
   webdashboard:
     image: localhost/leeattend_webdashboard
     build:
-      context: ./webdashboard
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: webdashboard/Dockerfile
       target: runtime
     restart: always
     networks:
@@ -85,8 +85,8 @@ services:
   agent-main:
     image: localhost/leeattend_agent-main
     build:
-      context: ./agent-main
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: agent-main/Dockerfile
       target: runtime
     restart: always
     networks:

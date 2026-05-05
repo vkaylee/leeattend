@@ -1,0 +1,57 @@
+# ==============================================================================
+# 1. BASELINE (Inherited from .gitignore)
+# Prevents secrets, cache, and heavy build directories from leaking into image.
+# ==============================================================================
+.env
+.env.test
+.env.example
+
+**/node_modules
+.pnpm-store
+.bun-cache
+**/target/
+webdashboard/dist/
+webdashboard/.next/
+webdashboard/playwright-report/
+webdashboard/test-results/
+
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+.coveragerc
+
+logs/
+.test_logs/
+scratch/
+documents/
+backups/
+
+*.log
+*.txt
+
+# ==============================================================================
+# 2. DOCKER-SPECIFIC (Build Context Optimization)
+# Excludes files to minimize build context size and maximize layer cache hits.
+# ==============================================================================
+# Git history (huge, unnecessary for runtime)
+.git/
+.gitignore
+
+# AI & IDE Configurations (changes often, irrelevant to build)
+.cursorrules
+.gemini/
+.ai/
+.agent/
+.vscode/
+
+# Documentation (Changing docs shouldn't trigger a rebuild)
+*.md
+docs/
+
+# Compose files & Local tooling (Changing compose shouldn't rebuild the image)
+docker-compose*.yml
+.compose/
+manage.sh
+test.sh
+setup-test-env.sh
