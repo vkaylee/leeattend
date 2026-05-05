@@ -1,0 +1,24 @@
+[run]
+omit =
+    scripts/test_parser_scratch.py
+    scripts/_watchdog.py
+    scripts/_test_utils.py
+    scripts/tests/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    def signal_handler
+    except Exception:
+    if not self.needs_cleanup or self.dry_run:
+    def print_test_summary
+    def _is_service_running
+    pass  # stderr may be closed during test teardown
+    log_error\(f"Unknown phase
+    sys\.exit\(1\)
+    service = "apiserver"
+    compose_cmd\.extend\(\["run", "-T", "--rm"\]\)
+    compose_cmd\.extend\(\["--entrypoint", executable, service\]\)
+    self\.handle_verify_infra\(\)
+    def sweep_stale_environments

@@ -12,6 +12,8 @@ from _test_modules import (  # noqa: E402
     _safe_pattern_quoted,
     leeattend_run_integration,
     leeattend_run_unit,
+    leeattend_run_lint,
+    leeattend_run_coverage,
 )
 
 
@@ -120,3 +122,48 @@ class TestRunFunctionsWithPattern:
             cmd_str = " ".join(cmd)
             if "playwright" in cmd_str:
                 assert "hello world" not in cmd_str or "'" in cmd_str
+
+    @patch("_test_modules.run_parallel_ordered", return_value=True)
+    def test_lint_all(self, mock_run):
+        result = leeattend_run_lint(mode="all")
+        assert result is True
+        tasks = mock_run.call_args[0][2]
+        cmd_strs = [" ".join(cmd) for _, _, cmd in tasks]
+        assert any("cargo clippy" in c for c in cmd_strs)
+        assert any("bun run lint" in c for c in cmd_strs)
+        assert any("openapi-typescript" in c for c in cmd_strs)
+
+    @patch("_test_modules.run_parallel_ordered", return_value=True)
+    def test_lint_apiserver(self, mock_run):
+        result = leeattend_run_lint(component_filter="apiserver", mode="api")
+        assert result is True
+        tasks = mock_run.call_args[0][2]
+        cmd_strs = [" ".join(cmd) for _, _, cmd in tasks]
+        assert any("--package apiserver" in c for c in cmd_strs)
+        assert not any("bun run lint" in c for c in cmd_strs)
+
+    @patch("_test_modules.run_parallel_ordered", return_value=True)
+    def test_unit_web(self, mock_run):
+        result = leeattend_run_unit(mode="web")
+        assert result is True
+        tasks = mock_run.call_args[0][2]
+        cmd_strs = [" ".join(cmd) for _, _, cmd in tasks]
+        assert any("bun run test" in c for c in cmd_strs)
+
+    @patch("_test_modules.run_parallel_ordered", return_value=True)
+    def test_coverage_all(self, mock_run):
+        result = leeattend_run_coverage(mode="all")
+        assert result is True
+        tasks = mock_run.call_args[0][2]
+        cmd_strs = [" ".join(cmd) for _, _, cmd in tasks]
+        assert any("cargo llvm-cov" in c for c in cmd_strs)
+        assert any("bun run test:coverage" in c for c in cmd_strs)
+
+    @patch("_test_modules.run_parallel_ordered", return_value=True)
+    def test_coverage_apiserver(self, mock_run):
+        result = leeattend_run_coverage(component_filter="apiserver", mode="api")
+        assert result is True
+        tasks = mock_run.call_args[0][2]
+        cmd_strs = [" ".join(cmd) for _, _, cmd in tasks]
+        assert any("--package apiserver" in c for c in cmd_strs)
+        assert not any("bun run test" in c for c in cmd_strs)
