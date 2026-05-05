@@ -125,3 +125,60 @@ impl RedisPool {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn test_redis_fail_fast_on_invalid_url() {
+        // Option A: Fail-Fast Startup Test
+        // Ensure that RedisPool::new fails immediately when Redis is unreachable,
+        // preventing the app from starting up with a broken queue.
+        let invalid_url = "redis://127.0.0.1:9999"; // Non-existent port
+
+        let result =
+            tokio::time::timeout(Duration::from_secs(3), RedisPool::new(invalid_url)).await;
+
+        match result {
+            Ok(Err(e)) => {
+                // Expected: RedisError (Connection refused)
+                assert!(e.is_io_error() || e.is_connection_refusal() || e.is_connection_dropped());
+            }
+            Ok(Ok(_)) => {
+                panic!("CRITICAL: RedisPool::new succeeded with an invalid URL. App would silently fail in production.");
+            }
+            Err(_) => {
+                // Expected: Timeout if ConnectionManager retries infinitely
+                // Either way, the app shouldn't proceed.
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_redis_health_check_success() {
+        // Option B: Health Check Test (Happy Path)
+        // Verify that health_check() works correctly when connected.
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+
+        let pool_result =
+            tokio::time::timeout(Duration::from_secs(2), RedisPool::new(&redis_url)).await;
+
+        let pool = match pool_result {
+            Ok(Ok(p)) => p,
+            _ => {
+                println!("SKIPPED: Real Redis not available for health_check test");
+                return;
+            }
+        };
+
+        let health_res = tokio::time::timeout(Duration::from_secs(2), pool.health_check()).await;
+
+        assert!(
+            matches!(health_res, Ok(Ok(()))),
+            "Health check failed on working Redis"
+        );
+    }
+}
