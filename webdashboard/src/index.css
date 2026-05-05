@@ -5,7 +5,7 @@
 
 @theme {
   --font-sans: "Inter", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
-  
+
   --color-primary-50: var(--primary-50);
   --color-primary-100: var(--primary-100);
   --color-primary-200: var(--primary-200);
@@ -58,7 +58,7 @@
   --primary-800: #065f46;
   --primary-900: #064e3b;
   --primary-950: #022c22;
-  
+
   --sidebar-background: #ffffff;
   --sidebar-foreground: #64748b;
   --sidebar-primary: #10b981;
@@ -90,6 +90,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-[var(--background)] text-[var(--foreground)] font-sans antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -97,7 +98,8 @@
 
   /* Global softer font weights */
   .font-bold {
-    font-weight: 600 !important; /* semibold instead of 900 */
+    font-weight: 600 !important;
+    /* semibold instead of 900 */
   }
 }
 
@@ -125,10 +127,11 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  
+
   .glass-premium {
     @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-700/40 shadow-premium-lg;
   }
@@ -137,16 +140,23 @@
   .modal-backdrop {
     @apply fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 bg-slate-900/20 backdrop-blur-lg animate-in fade-in duration-500;
   }
-  
+
   .modal-content {
-    @apply bg-white dark:bg-slate-900 w-full max-w-md rounded-[3rem] shadow-premium-2xl border border-white/60 dark:border-slate-700/60 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500;
+    @apply bg-white dark:bg-slate-900 w-full max-w-md rounded-[3rem] shadow-premium-2xl border border-white/60 dark:border-slate-700/60 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 overflow-hidden;
   }
 }
 
 /* Animations */
 @keyframes enter {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-enter {

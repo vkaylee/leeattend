@@ -67,7 +67,7 @@ export default function Modal({
       >
         {/* Header — fixed at top, never shrinks */}
         {Boolean(title ?? icon) && (
-          <div className="px-8 pt-8 pb-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-t-[2rem]">
+          <div className="px-8 pt-8 pb-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-t-[3rem]">
             <div className="flex items-center gap-4 min-w-0">
               {Boolean(icon) && (
                 <div className="h-10 w-10 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0 border border-primary-100 dark:border-primary-800 shadow-sm">
