@@ -63,7 +63,7 @@ ENV SCCACHE_DIR=/sccache
 ENV RUSTC_WRAPPER=sccache
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/sccache \
-    cargo build --release --locked && \
+    cargo build --release --locked -p apiserver && \
     cp target/release/apiserver /usr/local/bin/apiserver
 
 # Stage 7: Runtime
@@ -72,7 +72,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y ca-certificates libssl3 postgresql-client && rm -rf /var/lib/apt/lists/*
 RUN useradd -r -u 1001 -s /usr/sbin/nologin appuser
 COPY --from=builder /usr/local/bin/apiserver /usr/local/bin/apiserver
-COPY migrations ./migrations
+COPY apiserver/migrations ./migrations
 RUN chown -R appuser:appuser /app
 USER appuser
 EXPOSE 3000

@@ -256,11 +256,6 @@ build_service() {
     # Validate context
     [[ -f "${context}/Dockerfile" ]] || die "No Dockerfile at ${context}/Dockerfile"
 
-    # Copy .sqlx cache from workspace root to context for SQLX_OFFLINE builds
-    if [[ -d "${PROJECT_ROOT}/.sqlx" ]]; then
-        cp -a "${PROJECT_ROOT}/.sqlx" "${context}/" 2>/dev/null || true
-    fi
-
     # Build args
     local build_args=()
     build_args+=(build)
@@ -276,7 +271,7 @@ build_service() {
     fi
 
     build_args+=(-f "${context}/Dockerfile")
-    build_args+=("$context")
+    build_args+=("$PROJECT_ROOT")
 
     dim "$ENGINE ${build_args[*]}"
     run $ENGINE "${build_args[@]}"
