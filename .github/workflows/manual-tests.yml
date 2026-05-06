@@ -1,0 +1,223 @@
+name: '🧪 Manual Test Suite'
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_target:
+        description: 'Test target to run'
+        required: true
+        default: '--all'
+        type: choice
+        options:
+          - '--all'
+          - '--api'
+          - '--web'
+          - '--integration'
+      filter:
+        description: 'Specific test pattern (optional) e.g. "auth" or "attendance"'
+        required: false
+        type: string
+        default: ''
+      timeout:
+        description: 'Global Timeout (seconds)'
+        required: false
+        type: string
+        default: '1800'
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  # ============================================================================
+  # BUILD PHASE (Parallel)
+  # ============================================================================
+  build-api:
+    name: 🏗️ Build API Server
+    if: inputs.test_target == '--all' || inputs.test_target == '--api' || inputs.test_target == '--integration'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./apiserver
+          target: test
+          push: false
+          cache-from: type=gha,scope=apiserver
+          cache-to: type=gha,mode=max,scope=apiserver
+
+  build-agent:
+    name: 🏗️ Build Edge Agent
+    if: inputs.test_target == '--all' || inputs.test_target == '--api' || inputs.test_target == '--integration'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./agent-main
+          target: test
+          push: false
+          cache-from: type=gha,scope=agent
+          cache-to: type=gha,mode=max,scope=agent
+
+  build-web:
+    name: 🏗️ Build Web Dashboard
+    if: inputs.test_target == '--all' || inputs.test_target == '--web'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./webdashboard
+          target: test
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  # ============================================================================
+  # API PIPELINE (Lint -> Unit -> Integration)
+  # ============================================================================
+  lint-api:
+    name: 🧹 Lint API & Agent
+    needs: [build-api, build-agent]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Load Pre-built Images
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apiserver
+          target: test
+          load: true
+          cache-from: type=gha,scope=apiserver
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./agent-main
+          target: test
+          load: true
+          cache-from: type=gha,scope=agent
+      - name: Run Lint
+        run: |
+          chmod +x run-tests.sh scripts/*.sh
+          ./run-tests.sh --api --lint
+
+  unit-api:
+    name: 🧪 Unit Test API & Agent
+    needs: [lint-api]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Load Pre-built Images
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apiserver
+          target: test
+          load: true
+          cache-from: type=gha,scope=apiserver
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./agent-main
+          target: test
+          load: true
+          cache-from: type=gha,scope=agent
+      - name: Run Unit Tests
+        run: |
+          chmod +x run-tests.sh scripts/*.sh
+          ./run-tests.sh --api --unit
+
+  integration-api:
+    name: 🔗 Integration Test API
+    needs: [unit-api]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Load Pre-built Images
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apiserver
+          target: test
+          load: true
+          cache-from: type=gha,scope=apiserver
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./agent-main
+          target: test
+          load: true
+          cache-from: type=gha,scope=agent
+      - name: Run Integration Tests
+        run: |
+          chmod +x run-tests.sh setup-test-env.sh scripts/*.sh
+          ./run-tests.sh --api --integration-only
+
+  # ============================================================================
+  # WEB PIPELINE (Lint -> Unit -> E2E)
+  # ============================================================================
+  lint-web:
+    name: 🧹 Lint Web Dashboard
+    needs: [build-web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Load Pre-built Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./webdashboard
+          target: test
+          load: true
+          cache-from: type=gha,scope=web
+      - name: Run Lint
+        run: |
+          chmod +x run-tests.sh scripts/*.sh
+          ./run-tests.sh --web --lint
+
+  unit-web:
+    name: 🧪 Unit Test Web Dashboard
+    needs: [lint-web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Load Pre-built Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./webdashboard
+          target: test
+          load: true
+          cache-from: type=gha,scope=web
+      - name: Run Unit Tests
+        run: |
+          chmod +x run-tests.sh scripts/*.sh
+          ./run-tests.sh --web --unit
+
+  e2e-web:
+    name: 🎭 Playwright E2E Web
+    needs: [unit-web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Load Pre-built Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./webdashboard
+          target: test
+          load: true
+          cache-from: type=gha,scope=web
+      - name: Run E2E Tests
+        run: |
+          chmod +x run-tests.sh scripts/*.sh
+          ./run-tests.sh --web --integration-only
+      - name: Upload Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-test-logs
+          path: .test_logs/
+          retention-days: 5
