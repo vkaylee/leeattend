@@ -1,17 +1,1 @@
-[
-  {
-    "file": "src/components/payroll/salary-component-manager.tsx",
-    "key": "payroll.components.assign_to_bases",
-    "lang": "en"
-  },
-  {
-    "file": "src/components/payroll/salary-component-manager.tsx",
-    "key": "payroll.components.assign_to_bases",
-    "lang": "vi"
-  },
-  {
-    "file": "src/components/payroll/salary-component-manager.tsx",
-    "key": "payroll.components.assign_to_bases",
-    "lang": "zh"
-  }
-]
+[]

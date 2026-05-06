@@ -369,6 +369,7 @@
         "title": "Danh mục thành phần lương",
         "subtitle": "Định nghĩa các khoản thu nhập và khấu trừ.",
         "salary_bases": "Lương căn bản",
+        "assign_to_bases": "Gán vào nhóm cơ sở",
         "form_subtitle": "Thông số thành phần",
         "add_new": "Thêm thành phần",
         "no_components": "Chưa có thành phần nào",
@@ -2309,6 +2310,7 @@
     "components": {
       "title": "Danh mục thành phần lương",
       "subtitle": "Định nghĩa các khoản thu nhập và khấu trừ.",
+      "assign_to_bases": "Gán vào nhóm cơ sở",
       "form_subtitle": "Thông số thành phần",
       "add_new": "Thêm thành phần lương",
       "no_components": "Chưa có thành phần lương nào",

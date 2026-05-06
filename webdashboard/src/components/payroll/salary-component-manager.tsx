@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { fetchSalaryComponents, createSalaryComponent, fetchSalaryBaseGroups } from "@/lib/api/payroll";
-import { CreateSalaryComponentRequest, SalaryComponentDefinition } from "@/lib/api/types";
+import { CreateSalaryComponentRequest } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -89,23 +89,25 @@ export default function SalaryComponentManager({ wsId }: Props) {
               {baseGroupsData?.groups.filter(g => g.slug !== "gross").map(group => {
                 const isSelected = formData.base_group_ids?.includes(group.id);
                 return (
-                  <label key={group.id} className={cn("flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", isSelected ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-md" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 shadow-inner")}>
+                  // eslint-disable-next-line jsx-a11y/label-has-associated-control
+                  <label className={cn("flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", isSelected ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-md" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 shadow-inner")} htmlFor={`group-${group.id}`} key={group.id}>
                     <input 
-                      type="checkbox" 
+                      checked={isSelected} 
                       className="w-5 h-5 rounded-lg text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer"
-                      checked={isSelected}
+                      id={`group-${group.id}`}
                       onChange={(e) => {
-                        const current = formData.base_group_ids || [];
+                        const current = formData.base_group_ids ?? [];
                         setFormData({
                           ...formData,
                           base_group_ids: e.target.checked ? [...current, group.id] : current.filter(id => id !== group.id)
                         });
                       }}
+                      type="checkbox"
                     />
-                    <div>
-                      <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{group.name}</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{group.description}</p>
-                    </div>
+                    <span className="flex flex-col">
+                      <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">{group.name}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{group.description}</span>
+                    </span>
                   </label>
                 );
               })}

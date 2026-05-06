@@ -142,11 +142,12 @@ function CreateBaseModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Create Salary Base">
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="base-name">
             Base Name
           </label>
           <input
             className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            id="base-name"
             onChange={(e) => {
               setName(e.target.value);
               setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "_"));
@@ -156,22 +157,24 @@ function CreateBaseModal({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="base-slug">
             Slug
           </label>
           <input
             className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            id="base-slug"
             onChange={(e) => { setSlug(e.target.value); }}
             placeholder="e.g. hazard_base"
             value={slug}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="base-description">
             Description
           </label>
           <textarea
             className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            id="base-description"
             onChange={(e) => { setDescription(e.target.value); }}
             placeholder="Description for this base group"
             rows={3}

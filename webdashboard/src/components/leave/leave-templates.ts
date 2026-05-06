@@ -12,7 +12,8 @@ import {
   Gavel, 
   Globe,
   Clock,
-  Sparkles
+  Sparkles,
+  type LucideIcon
 } from "lucide-react";
 
 export interface LeaveTemplate {
@@ -20,7 +21,7 @@ export interface LeaveTemplate {
   code: string;
   color: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   id: string;
   is_paid: boolean;
   name: string;

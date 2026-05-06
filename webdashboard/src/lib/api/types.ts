@@ -383,9 +383,9 @@ export interface SalaryComponentDefinition {
 }
 
 export interface CreateSalaryComponentRequest {
-  name: string;
-  code: string;
   base_group_ids?: string[];
+  code: string;
+  name: string;
 }
 
 export interface EmployeeSalaryComponent {

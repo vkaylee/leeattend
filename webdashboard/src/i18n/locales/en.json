@@ -354,6 +354,7 @@
         "title": "Salary Components Catalog",
         "subtitle": "Define income and deduction items.",
         "salary_bases": "Salary Bases",
+        "assign_to_bases": "Assign to Bases",
         "form_subtitle": "Component parameters",
         "add_new": "Add Component",
         "no_components": "No components yet",
@@ -2309,6 +2310,7 @@
     "components": {
       "title": "Salary Components Catalog",
       "subtitle": "Define income and deduction items.",
+      "assign_to_bases": "Assign to Bases",
       "form_subtitle": "Component parameters",
       "add_new": "Add Component",
       "no_components": "No components yet",

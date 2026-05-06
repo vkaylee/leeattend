@@ -42,7 +42,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
   });
 
   it("renders empty state when no leave types exist", async () => {
-    (api.fetchLeaveTypes as any).mockResolvedValue([] as any);
+    vi.mocked(api.fetchLeaveTypes).mockResolvedValue([]);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -58,7 +58,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
     const mockLeaveTypes = [
       { id: "1", code: "AL", name: "Annual Leave", is_paid: true, policy_config: {} }
     ];
-    (api.fetchLeaveTypes as any).mockResolvedValue(mockLeaveTypes as any);
+    vi.mocked(api.fetchLeaveTypes).mockResolvedValue(mockLeaveTypes as never);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -71,7 +71,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
   });
 
   it("shows template gallery immediately when opening add modal", async () => {
-    (api.fetchLeaveTypes as any).mockResolvedValue([] as any);
+    vi.mocked(api.fetchLeaveTypes).mockResolvedValue([]);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -89,7 +89,7 @@ describe("LeaveTypeManager & Template Gallery", () => {
   });
 
   it("applies a template and moves to customization step", async () => {
-    (api.fetchLeaveTypes as any).mockResolvedValue([] as any);
+    vi.mocked(api.fetchLeaveTypes).mockResolvedValue([]);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -108,10 +108,10 @@ describe("LeaveTypeManager & Template Gallery", () => {
     expect(await screen.findByText(/Customize Leave Type/i)).toBeDefined();
     expect(screen.getByText(/Refining Mental Health Day/i)).toBeDefined();
 
-    const nameInput = screen.getByPlaceholderText(/e.g. Annual Leave/i) as HTMLInputElement;
-    const codeInput = screen.getByPlaceholderText(/e.g. AL, SL, UL/i) as HTMLInputElement;
+    const nameInput = screen.getByPlaceholderText(/e.g. Annual Leave/i);
+    const codeInput = screen.getByPlaceholderText(/e.g. AL, SL, UL/i);
     
-    expect(nameInput.value).toBe("Mental Health Day");
-    expect(codeInput.value).toBe("MHD");
+    expect((nameInput as HTMLInputElement).value).toBe("Mental Health Day");
+    expect((codeInput as HTMLInputElement).value).toBe("MHD");
   });
 });

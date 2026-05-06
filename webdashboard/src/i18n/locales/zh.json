@@ -369,6 +369,7 @@
         "title": "薪资组成部分目录",
         "subtitle": "定义收入和扣除项。",
         "salary_bases": "薪资基数",
+        "assign_to_bases": "分配到基数",
         "form_subtitle": "组件参数",
         "add_new": "添加组件",
         "no_components": "尚无组件",
@@ -2309,6 +2310,7 @@
     "components": {
       "title": "薪资组成部分目录",
       "subtitle": "定义收入和扣款项目。",
+      "assign_to_bases": "分配到基数",
       "form_subtitle": "组成部分参数",
       "add_new": "添加组成部分",
       "no_components": "暂无组成部分",
@@ -2424,7 +2426,25 @@
     "base_taxable": "payroll.base_taxable",
     "override_amount": "payroll.override_amount",
     "override": "payroll.override",
-    "delete_assignment": "payroll.delete_assignment"
+    "delete_assignment": "payroll.delete_assignment",
+    "system_bases": {
+      "gross": {
+        "name": "总薪资 (Gross)",
+        "description": "所有基本、应税和应保收入的基数"
+      },
+      "net": {
+        "name": "净薪资 (Net)",
+        "description": "扣除所有款项后的最终实发工资"
+      },
+      "bhxh": {
+        "name": "社保基数",
+        "description": "计算社会保险、医疗保险和失业保险的基数"
+      },
+      "taxable": {
+        "name": "应纳税所得额",
+        "description": "计算个人所得税 (PIT) 的基数"
+      }
+    }
   },
   "reports": {
     "title": "考勤报告",

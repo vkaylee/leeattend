@@ -23,6 +23,8 @@ def test_test_no_mode_shows_help(
     with (
         patch.object(_orchestrator.Orchestrator, "run_phase"),
         patch.object(_orchestrator.Orchestrator, "execute_safe"),
+        patch.object(_orchestrator.Orchestrator, "handle_run"),
+        patch("_orchestrator._lifecycle_up"),
     ):
         args = orchestrator.parser.parse_args(["test", "all"])
         orchestrator.handle_test(args)
