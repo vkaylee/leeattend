@@ -20,11 +20,13 @@ def _which(cmd: str) -> str | None:
 
 def detect_engine() -> str:
     """Detect container engine: podman preferred, fallback to docker."""
-    if _which("podman"):
+    if _which("podman") and _which("podman-compose"):
         return "podman"
     if _which("docker"):
         return "docker"
-    return "podman"
+    if _which("podman"):
+        return "podman"
+    return "docker"
 
 
 def detect_compose_cmd() -> list[str]:
@@ -32,7 +34,7 @@ def detect_compose_cmd() -> list[str]:
 
     Returns list for safe subprocess usage (no shell=True).
     """
-    if _which("podman"):
+    if _which("podman-compose"):
         return ["podman-compose"]
     if _which("docker"):
         return ["docker", "compose"]
