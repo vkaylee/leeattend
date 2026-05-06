@@ -1,0 +1,133 @@
+name: Release (Lint, Test, Build & Deploy)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Môi trường triển khai (Deployment Environment)'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  lint:
+    name: 🎨 Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy pytest pytest-cov shellcheck-py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'webdashboard/package-lock.json'
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Infrastructure Lint
+        run: ./test.sh infra --lint-only
+
+      - name: Backend Lint
+        run: ./test.sh api --lint-only
+
+      - name: Frontend Lint
+        run: ./test.sh web --lint-only
+
+  test:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Environment
+        run: |
+          # Use standard docker-compose provided by GitHub Actions runner
+          # Orchestrator will detect 'docker' and 'docker-compose' automatically
+          echo "CONTAINER_ENGINE=docker" >> $GITHUB_ENV
+
+      - name: Run Full-Stack Unit Tests
+        run: ./test.sh all --unit-only
+
+  build-push-backend:
+    name: 🏗️ Build & Push Backend
+    runs-on: ubuntu-latest
+    needs: test
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+      APISERVER_IMAGE: ${{ secrets.DOCKER_REGISTRY }}/${{ vars.APISERVER_IMAGE_NAME || 'leeattend-apiserver' }}
+      AGENT_IMAGE: ${{ secrets.DOCKER_REGISTRY }}/${{ vars.AGENT_IMAGE_NAME || 'leeattend-agent-main' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build & Push apiserver
+        run: |
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            ./scripts/build-prod.sh --service apiserver --push --tag production --also-latest
+          else
+            ./scripts/build-prod.sh --service apiserver --push --tag ${{ github.event.inputs.environment }}
+          fi
+
+      - name: Build & Push agent-main
+        run: |
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            ./scripts/build-prod.sh --service agent-main --push --tag production --also-latest
+          else
+            ./scripts/build-prod.sh --service agent-main --push --tag ${{ github.event.inputs.environment }}
+          fi
+
+  deploy-frontend:
+    name: ☁️ Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: test
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PROJECT_NAME: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          # Cloudflare usually expects 'main' for production, and anything else creates a preview deployment
+          CLOUDFLARE_BRANCH: ${{ github.event.inputs.environment == 'production' && 'main' || github.event.inputs.environment }}
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://attapi.vlee.dev/api' }}
+        run: |
+          # The script handles environment variables directly from this job's env block.
+          # Because of `environment: ${{ github.event.inputs.environment }}`, GitHub automatically
+          # injects the correct secrets/vars for staging vs production.
+          ./scripts/deploy-dashboard.sh
