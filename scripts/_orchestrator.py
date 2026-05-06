@@ -814,7 +814,7 @@ class Orchestrator:
             return
 
         safe_run = SCRIPTS_DIR / "_safe_run.py"
-        full_cmd = ["python3", str(safe_run), str(timeout)] + cmd
+        full_cmd = [sys.executable, str(safe_run), str(timeout)] + cmd
         current_env = env if env else os.environ.copy()
         current_env.update(self.env_vars)
 
