@@ -2424,7 +2424,25 @@
     "base_taxable": "payroll.base_taxable",
     "override_amount": "payroll.override_amount",
     "override": "payroll.override",
-    "delete_assignment": "payroll.delete_assignment"
+    "delete_assignment": "payroll.delete_assignment",
+    "system_bases": {
+      "gross": {
+        "name": "Lương Cơ Bản (Gross)",
+        "description": "Lương gốc dùng để tính toán các khoản phụ cấp, bảo hiểm và thuế"
+      },
+      "net": {
+        "name": "Lương Thực Nhận (Net)",
+        "description": "Thu nhập thực tế nhân viên nhận được sau khi đã trừ các khoản khấu trừ"
+      },
+      "bhxh": {
+        "name": "Nền Đóng Bảo Hiểm",
+        "description": "Quỹ lương dùng để tính tỷ lệ đóng BHXH, BHYT, BHTN"
+      },
+      "taxable": {
+        "name": "Thu Nhập Chịu Thuế",
+        "description": "Quỹ thu nhập dùng làm căn cứ tính Thuế Thu Nhập Cá Nhân (TNCN)"
+      }
+    }
   },
   "reports": {
     "title": "Báo cáo chấm công",

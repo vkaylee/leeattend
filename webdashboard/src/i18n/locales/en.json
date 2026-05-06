@@ -2424,7 +2424,25 @@
     "base_taxable": "payroll.base_taxable",
     "override_amount": "payroll.override_amount",
     "override": "payroll.override",
-    "delete_assignment": "payroll.delete_assignment"
+    "delete_assignment": "payroll.delete_assignment",
+    "system_bases": {
+      "gross": {
+        "name": "Gross Salary",
+        "description": "Base for all basic, taxable, and insurable income components"
+      },
+      "net": {
+        "name": "Net Salary",
+        "description": "Final take-home pay after all deductions"
+      },
+      "bhxh": {
+        "name": "Social Insurance Base",
+        "description": "Base for calculating social insurance, health insurance, and unemployment insurance contributions"
+      },
+      "taxable": {
+        "name": "Taxable Income",
+        "description": "Base for calculating personal income tax (PIT)"
+      }
+    }
   },
   "reports": {
     "title": "Attendance Reports",

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Database, Info, Plus, X } from "lucide-react";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { SalaryBaseGroup, SalaryBaseGroupMember, SalaryComponentDefinition } from "@/lib/api";
 
@@ -31,17 +32,21 @@ function BaseGroupCard({
   onAssign: (baseId: string, componentId: string) => void;
   onUnassign: (baseId: string, componentId: string) => void;
 }) {
+  const { t } = useTranslation();
   const groupMembers = members.filter(m => m.base_group_id === group.id);
   const memberIds = new Set(groupMembers.map(m => m.component_definition_id));
+
+  const displayName = group.is_system ? t(`payroll.system_bases.${group.slug}.name`, { defaultValue: group.name }) : group.name;
+  const displayDesc = group.is_system ? t(`payroll.system_bases.${group.slug}.description`, { defaultValue: group.description ?? "No description provided." }) : (group.description ?? "No description provided.");
 
   return (
     <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <div className="p-5 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/80">
         <div className="flex justify-between items-start mb-2">
-          <h3 className="font-semibold text-slate-800 dark:text-slate-200">{group.name}</h3>
+          <h3 className="font-semibold text-slate-800 dark:text-slate-200">{displayName}</h3>
           {group.is_system ? <span className="bg-primary-50 text-primary-600 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full dark:bg-primary-900/30 dark:text-primary-400 border border-primary-100 dark:border-primary-800/50">System</span> : null}
         </div>
-        <p className="text-xs text-slate-500 line-clamp-2">{group.description ?? "No description provided."}</p>
+        <p className="text-xs text-slate-500 line-clamp-2">{displayDesc}</p>
         <div className="mt-3 text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded inline-block">
           {group.slug}
         </div>
