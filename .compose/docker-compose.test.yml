@@ -200,7 +200,7 @@ services:
     volumes:
       - ${PROJECT_ROOT}:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
-      - shared-data:/workspace/shared
+      - /dev/shm/leeattend-shared-data:/workspace/shared
       - bun-cache:/workspace/.bun-cache
 
 volumes:
