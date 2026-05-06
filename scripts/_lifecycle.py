@@ -79,28 +79,65 @@ def lifecycle_up(mode: str = "all") -> bool:
     compose_base = env["DOCKER_COMPOSE_BASE"].split()
 
     # Bring services up (idempotent — no pre-cleanup needed)
-    _run(compose_base + profiles + ["up", "-d"], silent=True, capture=False)
+    _run(compose_base + profiles + ["up", "-d"], silent=False, capture=False)
 
     # Health check
     project_name = os.environ.get("COMPOSE_PROJECT_NAME", "leeattend-test")
-    if mode != "web":
+
+    if mode == "web":
+        container = f"{project_name}_bun_init_1"
+        timeout = 120
+    elif mode == "infra-db":  # pragma: no cover
+        container = f"{project_name}_db_init_1"  # pragma: no cover
+        timeout = 60  # pragma: no cover
+    else:
         container = f"{project_name}_apiserver_1"
-        for _ in range(60):
-            if _container_healthy(container):
-                return True
-            time.sleep(1)
-        # Diagnostic
-        _run([_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False)
-        return False
-    container = f"{project_name}_bun_init_1"
-    for _ in range(120):
+        timeout = 60
+
+    for _ in range(timeout):
         if _container_healthy(container):
             return True
         time.sleep(1)  # pragma: no cover
+
+    # Diagnostic
     _run(
         [_get_engine(), "ps", "-a", "--filter", f"name={project_name}"], capture=False
     )  # pragma: no cover
     return False  # pragma: no cover
+
+
+import fcntl
+import tempfile
+import contextlib
+
+
+def _is_project_locked(project_name: str) -> bool:
+    """Check if an OS-level file lock is held for the given project name."""
+    from pathlib import Path
+
+    # We must strip the 'pod_' prefix for podman pods
+    if project_name.startswith("pod_"):
+        project_name = project_name[4:]  # pragma: no cover
+
+    lock_path = Path(tempfile.gettempdir()) / f"{project_name}.lock"
+    if not lock_path.exists():
+        return False
+
+    try:
+        fd = os.open(str(lock_path), os.O_RDONLY)
+    except OSError:
+        return False
+
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        # Lock acquired, meaning it wasn't locked!
+        os.close(fd)
+        with contextlib.suppress(OSError):
+            lock_path.unlink(missing_ok=True)
+        return False
+    except OSError:
+        os.close(fd)
+        return True
 
 
 def sweep_stale_environments() -> None:
@@ -121,6 +158,8 @@ def sweep_stale_environments() -> None:
                     "pod",
                     "ps",
                     "-q",
+                    "--format",
+                    "{{.Name}}",
                     "--filter",
                     f"name=pod_{prefix}",
                     "--filter",
@@ -128,26 +167,50 @@ def sweep_stale_environments() -> None:
                 ],
                 capture=True,
             )
-            pods = res.stdout.strip().split()
+            pods = [p for p in res.stdout.strip().split() if not _is_project_locked(p)]
             if pods:
                 print(f"🧹 Sweeping {len(pods)} stale test pods older than {max_age_mins}m...")
                 _run([engine, "pod", "rm", "-f"] + pods, silent=True)
 
             # Sweep stray containers
             res_c = _run(
-                [engine, "ps", "-aq", "--filter", f"name={prefix}", "--filter", age_filter],
+                [
+                    engine,
+                    "ps",
+                    "-aq",
+                    "--format",
+                    "{{.Names}}",
+                    "--filter",
+                    f"name={prefix}",
+                    "--filter",
+                    age_filter,
+                ],
                 capture=True,
             )
-            containers = res_c.stdout.strip().split()
+            containers = [
+                c for c in res_c.stdout.strip().split() if not _is_project_locked(c.split("_")[0])
+            ]
             if containers:
                 _run([engine, "rm", "-f"] + containers, silent=True)
         else:
             # Docker: sweep stale containers
             res_c = _run(
-                [engine, "ps", "-aq", "--filter", f"name={prefix}", "--filter", age_filter],
+                [
+                    engine,
+                    "ps",
+                    "-aq",
+                    "--format",
+                    "{{.Names}}",
+                    "--filter",
+                    f"name={prefix}",
+                    "--filter",
+                    age_filter,
+                ],
                 capture=True,
             )
-            containers = res_c.stdout.strip().split()
+            containers = [
+                c for c in res_c.stdout.strip().split() if not _is_project_locked(c.split("_")[0])
+            ]
             if containers:
                 print(
                     f"🧹 Sweeping {len(containers)} stale test containers older than {max_age_mins}m..."

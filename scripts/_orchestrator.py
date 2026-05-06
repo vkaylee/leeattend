@@ -512,7 +512,7 @@ class Orchestrator:
         ] + test_files
         self.execute_safe(cmd, env=env)
 
-    def handle_run(self, args: argparse.Namespace) -> None:
+    def handle_run(self, args: argparse.Namespace) -> None:  # noqa: PLR0915
         self.needs_cleanup = True
         tool = args.tool
         tool_args = args.args
@@ -545,14 +545,14 @@ class Orchestrator:
         ]
 
         if tool in ["cargo", "sqlx"]:
+            log_info(f"🔹 Bringing up backend dependencies for {tool}...")
+            _lifecycle_up("infra-db")
             compose_cmd.extend(
                 [
                     "--profile",
                     "int-api",
                     "--profile",
                     "infra-db",
-                    "--profile",
-                    "infra-db-init",
                     "--profile",
                     "infra-redis",
                 ]

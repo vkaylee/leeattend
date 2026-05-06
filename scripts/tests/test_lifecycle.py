@@ -49,7 +49,7 @@ class TestLifecycleUp:
     def test_web_mode_checks_webdashboard(self) -> None:
         with (
             patch("_lifecycle._run"),
-            patch("_lifecycle._container_running", return_value=True),
+            patch("_lifecycle._container_healthy", return_value=True),
             patch("_lifecycle.time.sleep"),
         ):
             result = lifecycle_up("web")
@@ -143,7 +143,10 @@ class TestLifecycleComposeCommand:
         """lifecycle_down must use DOCKER_COMPOSE_BASE with -p and -f in its down command."""
         with (
             patch("_lifecycle._run") as mock_run,
-            patch.dict("os.environ", {"DOCKER_COMPOSE_CMD": "podman-compose"}),
+            patch.dict(
+                "os.environ",
+                {"DOCKER_COMPOSE_CMD": "podman-compose", "COMPOSE_PROJECT_NAME": "leeattend-test"},
+            ),
         ):
             mock_run.return_value = MagicMock(stdout="", returncode=0)
             lifecycle_down("web")
@@ -201,7 +204,13 @@ class TestLifecycleComposeCommand:
             patch("_lifecycle._run") as mock_run,
             patch("_lifecycle._container_healthy", return_value=True),
             patch("_lifecycle.time.sleep"),
-            patch.dict("os.environ", {"DOCKER_COMPOSE_CMD": "wrong-value-only"}),
+            patch.dict(
+                "os.environ",
+                {
+                    "DOCKER_COMPOSE_CMD": "wrong-value-only",
+                    "COMPOSE_PROJECT_NAME": "leeattend-test",
+                },
+            ),
         ):
             mock_run.return_value = MagicMock(stdout="", returncode=0)
             lifecycle_up("api")

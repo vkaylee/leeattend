@@ -7,6 +7,7 @@
 .env.local
 .env.*.local
 *.env
+.env.production
 
 # Logs
 *.log
@@ -74,7 +75,7 @@ backups/
 
 # Docker Test Cache
 docker-test-cache/
-apiserver/.sqlx
+/.sqlx
 .migration-squash-work/
 scratch/
 *.txt

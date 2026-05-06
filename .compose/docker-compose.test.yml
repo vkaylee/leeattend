@@ -68,7 +68,7 @@ services:
 
   db_init:
     profiles:
-      - infra-db-init
+      - infra-db
       - api
     <<: *rust-test-base
     image: localhost/leeattend-test_apiserver
@@ -112,6 +112,9 @@ services:
       context: ..
       dockerfile: apiserver/Dockerfile
       target: test
+    depends_on:
+      db_init:
+        condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@db:5432/test_database

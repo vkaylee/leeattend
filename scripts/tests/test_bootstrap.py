@@ -98,10 +98,10 @@ class TestResolveProfiles:
             assert self._has_profile(profiles, "api")
             assert self._has_profile(profiles, "web")
 
-    def test_unknown_mode_defaults_to_all(self) -> None:
+    def test_unknown_mode_returns_mode(self) -> None:
         with patch.dict(os.environ, {"PROFILES": ""}):
             profiles = resolve_profiles("unknown")
-            assert profiles == resolve_profiles("all")
+            assert profiles == ["--profile", "unknown"]
 
     def test_custom_profiles_from_env(self) -> None:
         with patch.dict(os.environ, {"PROFILES": "--profile custom1 --profile custom2"}):
@@ -133,9 +133,9 @@ class TestResolveLifecycleProfiles:
         assert "api" in profiles
         assert "web" in profiles
 
-    def test_unknown_defaults_to_all(self) -> None:
+    def test_unknown_returns_mode(self) -> None:
         profiles = resolve_lifecycle_profiles("unknown")
-        assert profiles == resolve_lifecycle_profiles("all")
+        assert profiles == ["--profile", "unknown"]
 
 
 class TestBootstrapEnv:
