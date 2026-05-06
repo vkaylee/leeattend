@@ -176,3 +176,53 @@ async fn test_salary_bases_crud() {
         .any(|m| m["component_definition_id"] == comp_id.to_string()
             && m["base_group_id"] == base_id.to_string()));
 }
+
+#[tokio::test]
+async fn test_create_custom_salary_base() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let payload = json!({
+        "name": "Custom Base",
+        "slug": "custom_base",
+        "description": "My custom base"
+    });
+
+    let res = app
+        .clone()
+        .oneshot(make_req(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/salary-bases"),
+            ws_id,
+            user_id,
+            Some(payload),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::CREATED);
+    let body = body_json(res).await;
+    assert_eq!(body["name"], "Custom Base");
+    assert_eq!(body["slug"], "custom_base");
+    assert_eq!(body["is_system"], false);
+
+    // Verify it appears in GET
+    let res = app
+        .oneshot(make_req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/salary-bases"),
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = body_json(res).await;
+    let groups = body["groups"].as_array().unwrap();
+    assert!(groups.iter().any(|g| g["name"] == "Custom Base" && g["slug"] == "custom_base"));
+}
