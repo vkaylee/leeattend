@@ -22,7 +22,7 @@ vi.mock("@/lib/api/payroll", () => ({
 // Standard override for i18n
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, options?: any) => options?.defaultValue || key,
     i18n: {
       changeLanguage: () => Promise.resolve(),
       language: 'en',
