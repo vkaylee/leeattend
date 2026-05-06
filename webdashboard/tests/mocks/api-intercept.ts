@@ -174,6 +174,18 @@ export async function setupApiMocks(page: Page) {
       return fulfill({ status: "ok" });
     }
 
+    if (/\/api\/v1\/notifications\/unread-count/.exec(pathname)) {
+      return fulfill({ count: 0 });
+    }
+
+    if (/\/api\/v1\/notifications/.exec(pathname)) {
+      return fulfill({
+        next_cursor: null,
+        notifications: [],
+        unread_count: 0
+      });
+    }
+
     // 8. Authorized Agents (READ)
     if (/\/api\/authorized-agents(\/|$)/.exec(pathname)) {
       if (method === 'GET') {

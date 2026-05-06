@@ -65,13 +65,44 @@ impl RedisPool {
     /// Returns `RedisError` if connection fails.
     pub async fn new(redis_url: &str) -> Result<Self, RedisError> {
         let client = Client::open(redis_url)?;
-        let conn_manager = ConnectionManager::new(client.clone()).await?;
-        let blocking_conn = ConnectionManager::new(client.clone()).await?;
-        Ok(Self {
-            conn_manager,
-            blocking_conn,
-            client,
-        })
+
+        let mut last_err = None;
+        for attempt in 0..5 {
+            let connect_fut = async {
+                let conn_manager = ConnectionManager::new(client.clone()).await?;
+                let blocking_conn = ConnectionManager::new(client.clone()).await?;
+                Ok::<_, RedisError>((conn_manager, blocking_conn))
+            };
+
+            match tokio::time::timeout(std::time::Duration::from_secs(5), connect_fut).await {
+                Ok(Ok((conn_manager, blocking_conn))) => {
+                    return Ok(Self {
+                        conn_manager,
+                        blocking_conn,
+                        client,
+                    });
+                }
+                Ok(Err(e)) => last_err = Some(e),
+                Err(_) => {
+                    last_err = Some(RedisError::from((
+                        redis::ErrorKind::IoError,
+                        "Connection to Redis timed out",
+                    )));
+                }
+            }
+
+            if attempt < 4 {
+                let delay = std::time::Duration::from_millis(200 * (1 << attempt));
+                tokio::time::sleep(delay).await;
+            }
+        }
+
+        Err(last_err.unwrap_or_else(|| {
+            RedisError::from((
+                redis::ErrorKind::IoError,
+                "Failed to connect to Redis after retries",
+            ))
+        }))
     }
 
     /// Get a clone of the connection manager for **non-blocking** commands.
