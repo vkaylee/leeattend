@@ -96,19 +96,11 @@ jobs:
 
       - name: Build & Push apiserver
         run: |
-          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
-            ./scripts/build-prod.sh --service apiserver --push --tag production --also-latest
-          else
-            ./scripts/build-prod.sh --service apiserver --push --tag ${{ github.event.inputs.environment }}
-          fi
+          ./scripts/build-prod.sh --service apiserver --push
 
       - name: Build & Push agent-main
         run: |
-          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
-            ./scripts/build-prod.sh --service agent-main --push --tag production --also-latest
-          else
-            ./scripts/build-prod.sh --service agent-main --push --tag ${{ github.event.inputs.environment }}
-          fi
+          ./scripts/build-prod.sh --service agent-main --push
 
   deploy-frontend:
     name: ☁️ Deploy Frontend

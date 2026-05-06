@@ -2,9 +2,10 @@ import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
 import { 
   Payslip, 
-  PayrollSettings, 
-  SalaryComponentDefinition, 
+  PayrollSettings,
+  SalaryComponentDefinition,
   EmployeeSalaryComponent, 
+  CreateSalaryComponentRequest,
   PayrollIncentivePolicy,
   PayrollRuleAssignment,
   SalaryBaseGroup,
@@ -108,7 +109,7 @@ export async function fetchSalaryComponents(wsId: string): Promise<SalaryCompone
 
 export async function createSalaryComponent(
   wsId: string, 
-  data: Partial<SalaryComponentDefinition>
+  data: CreateSalaryComponentRequest
 ): Promise<SalaryComponentDefinition> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-components`, {
     method: "POST",

@@ -50,9 +50,7 @@ async fn test_salary_component_crud_lifecycle() {
     // 1. Create salary component definition
     let create_body = serde_json::json!({
         "name": "Housing Allowance",
-        "code": "HOUSE",
-        "is_base_for_ot": false,
-        "is_taxable": true
+        "code": "HOUSE"
     });
 
     let resp = app

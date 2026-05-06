@@ -100,7 +100,7 @@ export default function PayrollSettings() {
                 )}
                 data-testid={item.testId}
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => { setActiveTab(item.id); }}
               >
                 <item.icon className={cn("shrink-0", activeTab === item.id ? "text-primary-600 dark:text-primary-400" : "text-slate-400")} size={18} />
                 <span>{item.label}</span>

@@ -12,6 +12,7 @@ use crate::models::{
     AssignSalaryComponentRequest, CreateSalaryComponentRequest, EmployeeSalaryComponent,
     SalaryComponentDefinition,
 };
+use crate::repositories::salary_base_repository::SalaryBaseRepository;
 use crate::AppState;
 
 pub async fn get_salary_components(
@@ -35,14 +36,19 @@ pub async fn create_salary_component(
     let component = state
         .payroll
         .repo
-        .create_salary_component_definition(
-            workspace_id,
-            req.name,
-            req.code,
-            req.is_base_for_ot,
-            req.is_taxable,
-        )
+        .create_salary_component_definition(workspace_id, req.name, req.code)
         .await?;
+
+    if let Some(base_group_ids) = req.base_group_ids {
+        for group_id in base_group_ids {
+            SalaryBaseRepository::assign_component_to_group(
+                state.infra.db.api(),
+                component.id,
+                group_id,
+            )
+            .await?;
+        }
+    }
 
     Ok((StatusCode::CREATED, Json(component)))
 }
@@ -72,8 +78,6 @@ pub async fn get_employee_salary_components(
                 "effective_date": c.effective_date,
                 "name": d.name,
                 "code": d.code,
-                "is_base_for_ot": d.is_base_for_ot,
-                "is_taxable": d.is_taxable,
             })
         })
         .collect();

@@ -144,7 +144,8 @@ pub fn router() -> Router<Arc<AppState>> {
         // Salary Bases
         .route(
             "/workspaces/:ws_id/salary-bases",
-            get(handlers::salary_bases::get_salary_bases).post(handlers::salary_bases::create_salary_base),
+            get(handlers::salary_bases::get_salary_bases)
+                .post(handlers::salary_bases::create_salary_base),
         )
         .route(
             "/workspaces/:ws_id/salary-bases/:base_id/members",

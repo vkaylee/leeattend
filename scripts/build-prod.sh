@@ -22,11 +22,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-DIM='\033[2m'
 NC='\033[0m'
 
 if [[ -n "${NO_COLOR:-}" ]]; then
-    GREEN='' RED='' YELLOW='' BLUE='' CYAN='' BOLD='' DIM='' NC=''
+    GREEN='' RED='' YELLOW='' BLUE='' CYAN='' BOLD='' NC=''
 fi
 
 # ── Globals ──────────────────────────────────────────────────────────
@@ -58,7 +57,7 @@ log()   { echo -e "${BLUE}[build]${NC} $*"; }
 ok()    { echo -e "${GREEN}  ✔${NC} $*"; }
 warn()  { echo -e "${YELLOW}  ⚠${NC} $*" >&2; }
 err()   { echo -e "${RED}  ✖${NC} $*" >&2; }
-dim()   { echo -e "${DIM}       $*${NC}"; }
+dim()   { echo -e "${DIM:-}       $*${NC}"; }
 
 die() { err "$@"; exit 1; }
 
@@ -96,6 +95,8 @@ ${BOLD}Examples:${NC}
 
 ${BOLD}Environment:${NC}
   REGISTRY           Override default registry prefix
+  APISERVER_IMAGE    Override full image name for apiserver
+  AGENT_IMAGE        Override full image name for agent-main
   BUILD_DB_PORT      Override Postgres port for apiserver build (auto-assigned if empty)
 "
     exit 0
@@ -217,7 +218,7 @@ start_build_db() {
             PGPASSWORD=$BUILD_DB_PASS psql -U $BUILD_DB_USER -d $BUILD_DB_NAME -f \"\$f\" 2>/dev/null || true
         done
     "
-    ok "Migrations applied ($(ls "${PROJECT_ROOT}/apiserver/migrations/"*.sql 2>/dev/null | grep -cv '\.down\.sql$') up-migrations)"
+    ok "Migrations applied"
 }
 
 stop_build_db() {
@@ -230,13 +231,27 @@ stop_build_db() {
 image_name() {
     local svc="$1"
     local tag="${2:-$TAG}"
+    
+    # Check for service-specific image override via environment variables
+    local env_image=""
+    if [[ "$svc" == "apiserver" ]]; then
+        env_image="${APISERVER_IMAGE:-}"
+    elif [[ "$svc" == "agent-main" ]]; then
+        env_image="${AGENT_IMAGE:-}"
+    fi
+
     if [[ -n "$IMAGE_OVERRIDE" ]]; then
+        # CLI override takes highest precedence
+        env_image="$IMAGE_OVERRIDE"
+    fi
+
+    if [[ -n "$env_image" ]]; then
         # If the override already has a tag (contains a colon), use it as is for the main tag,
         # otherwise append the specified tag.
-        if [[ "$IMAGE_OVERRIDE" == *:* ]]; then
-            echo "$IMAGE_OVERRIDE"
+        if [[ "$env_image" == *:* ]]; then
+            echo "$env_image"
         else
-            echo "${IMAGE_OVERRIDE}:${tag}"
+            echo "${env_image}:${tag}"
         fi
     else
         echo "${REGISTRY}/leeattend-${svc}:${tag}"
@@ -251,7 +266,7 @@ build_service() {
     full_image="$(image_name "$svc")"
 
     echo ""
-    log "━━━ Building ${BOLD}${CYAN}$svc${NC} → ${DIM}$full_image${NC} ━━━"
+    log "━━━ Building ${BOLD}${CYAN}$svc${NC} → ${DIM:-}$full_image${NC} ━━━"
 
     # Validate context
     [[ -f "${context}/Dockerfile" ]] || die "No Dockerfile at ${context}/Dockerfile"
@@ -263,7 +278,6 @@ build_service() {
     build_args+=(-t "$full_image")
 
     # For apiserver: pass DATABASE_URL via host networking
-    # Use host networking so build RUN steps can reach the ephemeral Postgres on localhost
     if needs_build_db "$svc"; then
         local db_url="postgres://${BUILD_DB_USER}:${BUILD_DB_PASS}@localhost:${BUILD_DB_PORT}/${BUILD_DB_NAME}"
         build_args+=(--build-arg "DATABASE_URL=${db_url}")
@@ -367,7 +381,7 @@ main() {
     echo ""
 
     if ! $PUSH; then
-        echo -e "  ${DIM}Tip: Add --push to push images to the registry.${NC}"
+        echo -e "  ${DIM:-}Tip: Add --push to push images to the registry.${NC}"
     fi
 }
 

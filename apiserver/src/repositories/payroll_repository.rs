@@ -79,8 +79,6 @@ pub trait PayrollRepository: super::PoolBacked + Send + Sync {
         workspace_id: Uuid,
         name: String,
         code: String,
-        is_base_for_ot: bool,
-        is_taxable: bool,
     ) -> Result<SalaryComponentDefinition, sqlx::Error>;
 
     async fn assign_employee_salary_component(
@@ -224,18 +222,8 @@ impl PayrollRepository for SqlxPayrollRepository {
         workspace_id: Uuid,
         name: String,
         code: String,
-        is_base_for_ot: bool,
-        is_taxable: bool,
     ) -> Result<SalaryComponentDefinition, sqlx::Error> {
-        create_salary_component_definition(
-            &self.pool,
-            workspace_id,
-            name,
-            code,
-            is_base_for_ot,
-            is_taxable,
-        )
-        .await
+        create_salary_component_definition(&self.pool, workspace_id, name, code).await
     }
     async fn assign_employee_salary_component(
         &self,
@@ -561,7 +549,7 @@ pub async fn get_salary_component_definitions(
 ) -> Result<Vec<SalaryComponentDefinition>, sqlx::Error> {
     query_as!(
         SalaryComponentDefinition,
-        r#"SELECT id, workspace_id, name, code, is_base_for_ot, is_taxable, created_at as "created_at!", updated_at as "updated_at!" 
+        r#"SELECT id, workspace_id, name, code, created_at as "created_at!", updated_at as "updated_at!" 
            FROM salary_component_definitions 
            WHERE workspace_id = $1"#,
         workspace_id
@@ -575,19 +563,15 @@ pub async fn create_salary_component_definition(
     workspace_id: Uuid,
     name: String,
     code: String,
-    is_base_for_ot: bool,
-    is_taxable: bool,
 ) -> Result<SalaryComponentDefinition, sqlx::Error> {
     query_as!(
         SalaryComponentDefinition,
-        r#"INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           RETURNING id, workspace_id, name, code, is_base_for_ot, is_taxable, created_at as "created_at!", updated_at as "updated_at!""#,
+        r#"INSERT INTO salary_component_definitions (workspace_id, name, code, updated_at)
+           VALUES ($1, $2, $3, $4)
+           RETURNING id, workspace_id, name, code, created_at as "created_at!", updated_at as "updated_at!""#,
         workspace_id,
         name,
         code,
-        is_base_for_ot,
-        is_taxable,
         Utc::now()
     )
     .fetch_one(pool)
@@ -625,7 +609,7 @@ pub async fn get_employee_salary_components(
     let rows: Vec<_> = sqlx::query!(
         r#"SELECT 
             esc.id as esc_id, esc.employee_id, esc.component_definition_id, esc.amount, esc.effective_date, esc.created_at as "esc_created_at!", esc.updated_at as "esc_updated_at!",
-            scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.is_base_for_ot, scd.is_taxable, scd.created_at as "scd_created_at!", scd.updated_at as "scd_updated_at!"
+            scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.created_at as "scd_created_at!", scd.updated_at as "scd_updated_at!"
            FROM employee_salary_components esc
            JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id
            WHERE esc.employee_id = $1 AND esc.effective_date <= $2 AND scd.workspace_id = $3
@@ -661,8 +645,6 @@ pub async fn get_employee_salary_components(
                     workspace_id: row.workspace_id,
                     name: row.name,
                     code: row.code,
-                    is_base_for_ot: row.is_base_for_ot,
-                    is_taxable: row.is_taxable,
                     created_at: row.scd_created_at,
                     updated_at: row.scd_updated_at,
                 },
@@ -743,7 +725,7 @@ pub async fn get_salary_components_history(
     let rows: Vec<_> = sqlx::query!(
         r#"SELECT 
             esc.id as esc_id, esc.employee_id, esc.component_definition_id, esc.amount, esc.effective_date, esc.created_at as "esc_created_at!", esc.updated_at as "esc_updated_at!",
-            scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.is_base_for_ot, scd.is_taxable, scd.created_at as "scd_created_at!", scd.updated_at as "scd_updated_at!"
+            scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.created_at as "scd_created_at!", scd.updated_at as "scd_updated_at!"
            FROM employee_salary_components esc
            JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id
            WHERE esc.employee_id = $1 AND scd.workspace_id = $4
@@ -784,8 +766,6 @@ pub async fn get_salary_components_history(
                     workspace_id: row.workspace_id,
                     name: row.name,
                     code: row.code,
-                    is_base_for_ot: row.is_base_for_ot,
-                    is_taxable: row.is_taxable,
                     created_at: row.scd_created_at,
                     updated_at: row.scd_updated_at,
                 },

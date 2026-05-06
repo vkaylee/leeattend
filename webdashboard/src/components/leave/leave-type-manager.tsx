@@ -387,14 +387,14 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
       title="Leave Policy Configuration"
     >
       <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onSave(config); }}>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-5 rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800">
+        <div className="rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 flex items-center justify-center shadow-inner">
-                <Search size={18} />
+              <div className="h-9 w-9 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 flex items-center justify-center shadow-inner shrink-0">
+                <Search size={16} />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" htmlFor="approval-req-input">Approval Required</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="approval-req-input">Approval Required</label>
                 <p className="text-[10px] text-slate-400 dark:text-slate-500">Managers must approve requests</p>
               </div>
             </div>
@@ -406,17 +406,17 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 onChange={(e) => { setConfig({ ...config, approval_required: e.target.checked }); }} 
                 type="checkbox"
               />
-              <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              <div className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600"></div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-5 rounded-[2rem] bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 flex items-center justify-center shadow-inner">
-                <Sparkles size={18} />
+              <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 flex items-center justify-center shadow-inner shrink-0">
+                <Sparkles size={16} />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight" htmlFor="doc-req-input">Requires Document</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="doc-req-input">Requires Document</label>
                 <p className="text-[10px] text-slate-400 dark:text-slate-500">Proof/Medical cert is mandatory</p>
               </div>
             </div>
@@ -428,7 +428,29 @@ function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: EditLeaveT
                 onChange={(e) => { setConfig({ ...config, requires_document: e.target.checked }); }} 
                 type="checkbox"
               />
-              <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              <div className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600"></div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center shadow-inner shrink-0">
+                <AlertTriangle size={16} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight block" htmlFor="negative-bal-input">Negative Balance</label>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">Allow users to take leave beyond 0</p>
+              </div>
+            </div>
+            <div className="relative inline-flex items-center cursor-pointer">
+              <input 
+                checked={config.allow_negative_balance} 
+                className="sr-only peer" 
+                id="negative-bal-input" 
+                onChange={(e) => { setConfig({ ...config, allow_negative_balance: e.target.checked }); }} 
+                type="checkbox"
+              />
+              <div className="w-10 h-5.5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-primary-600"></div>
             </div>
           </div>
         </div>

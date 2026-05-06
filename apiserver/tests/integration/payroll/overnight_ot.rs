@@ -36,13 +36,11 @@ async fn test_overnight_ot_payroll_calculation() {
 
     // Create BASE component with is_base_for_ot = true
     let component_id: uuid::Uuid = sqlx::query_scalar(
-        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+        "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, $2, $3) RETURNING id",
     )
     .bind(workspace_id)
     .bind("Base")
     .bind("BASE")
-    .bind(true)
-    .bind(true)
     .fetch_one(&pool)
     .await
     .unwrap();

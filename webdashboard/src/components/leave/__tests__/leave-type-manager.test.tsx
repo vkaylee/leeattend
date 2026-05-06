@@ -108,8 +108,8 @@ describe("LeaveTypeManager & Template Gallery", () => {
     expect(await screen.findByText(/Customize Leave Type/i)).toBeDefined();
     expect(screen.getByText(/Refining Mental Health Day/i)).toBeDefined();
 
-    const nameInput = screen.getByPlaceholderText(/e.g. Annual Leave/i);
-    const codeInput = screen.getByPlaceholderText(/e.g. AL, SL, UL/i);
+    const nameInput = screen.getByPlaceholderText(/e.g. Annual Leave/i) as HTMLInputElement;
+    const codeInput = screen.getByPlaceholderText(/e.g. AL, SL, UL/i) as HTMLInputElement;
     
     expect(nameInput.value).toBe("Mental Health Day");
     expect(codeInput.value).toBe("MHD");

@@ -31,7 +31,8 @@ describe("SalaryComponentManager", () => {
   let queryClient: QueryClient;
   const mockWsId = "ws-123";
   const mockComponents = [
-    { id: "1", name: "Lương cơ bản", code: "BASE", is_base_for_ot: true, is_taxable: true },
+    { id: "1", name: "Lương cơ bản", code: "BASE" },
+    { id: "2", name: "Phụ cấp", code: "ALLOWANCE" },
   ];
 
   beforeEach(() => {

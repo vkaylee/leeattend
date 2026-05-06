@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Coins, ShieldCheck, Percent, Trash2 } from "lucide-react";
+import { Plus, Coins, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { fetchSalaryComponents, createSalaryComponent } from "@/lib/api/payroll";
-import { SalaryComponentDefinition } from "@/lib/api/types";
+import { fetchSalaryComponents, createSalaryComponent, fetchSalaryBaseGroups } from "@/lib/api/payroll";
+import { CreateSalaryComponentRequest, SalaryComponentDefinition } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -20,11 +20,12 @@ export default function SalaryComponentManager({ wsId }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: components, isLoading } = useQuery({ queryKey: ["salary-components", wsId], queryFn: () => fetchSalaryComponents(wsId), enabled: !!wsId });
-  const [formData, setFormData] = useState<Partial<SalaryComponentDefinition>>({ name: "", code: "", is_base_for_ot: true, is_taxable: true });
+  const { data: baseGroupsData } = useQuery({ queryKey: ["salary-base-groups", wsId], queryFn: () => fetchSalaryBaseGroups(wsId), enabled: !!wsId });
+  const [formData, setFormData] = useState<CreateSalaryComponentRequest>({ name: "", code: "", base_group_ids: [] });
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<SalaryComponentDefinition>) => createSalaryComponent(wsId, data),
-    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["salary-components"] }); setIsModalOpen(false); setFormData({ name: "", code: "", is_base_for_ot: true, is_taxable: true }); },
+    mutationFn: (data: CreateSalaryComponentRequest) => createSalaryComponent(wsId, data),
+    onSuccess: () => { toast.success(t("common.success")); void queryClient.invalidateQueries({ queryKey: ["salary-components"] }); void queryClient.invalidateQueries({ queryKey: ["salary-base-groups"] }); setIsModalOpen(false); setFormData({ name: "", code: "", base_group_ids: [] }); },
   });
 
   const handleSubmit = (e: React.SyntheticEvent) => { e.preventDefault(); createMutation.mutate(formData); };
@@ -62,12 +63,6 @@ export default function SalaryComponentManager({ wsId }: Props) {
               </div>
               
               <div className="flex items-center gap-10">
-                <div className="flex flex-col items-end gap-2">
-                  <span className={cn("text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm", comp.is_base_for_ot ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800 opacity-60')}>
-                    {comp.is_base_for_ot ? t("payroll.components.use_for_ot").toUpperCase() : t("payroll.components.no_ot").toUpperCase()}
-                  </span>
-                  <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-50 italic">{comp.is_taxable ? t("payroll.components.taxable").toUpperCase() : t("payroll.components.tax_exempt").toUpperCase()}</span>
-                </div>
                 <button className="p-2.5 bg-white dark:bg-slate-900 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all opacity-0 group-hover:opacity-100 active:scale-90"><Trash2 size={18} /></button>
               </div>
             </div>
@@ -88,26 +83,33 @@ export default function SalaryComponentManager({ wsId }: Props) {
             </div>
           </div>
 
-          <div className="space-y-5">
-            {[
-              { key: "is_base_for_ot", label: "ot_base_label", desc: "ot_base_desc", icon: ShieldCheck },
-              { key: "is_taxable", label: "taxable_label", desc: "taxable_desc", icon: Percent }
-            ].map(field => (
- 
-              <React.Fragment key={field.key}>
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- Dynamic data shape from form state; strict typing would add boilerplate without safety gain */}
-                <label className={cn("flex items-center gap-6 p-8 rounded-[2rem] cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", 
- 
-                  (formData as Record<string, boolean>)[field.key] ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-xl shadow-primary-900/5" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 hover:border-slate-100 dark:border-slate-800 shadow-inner"
-                )} htmlFor={`comp-${field.key}`}>
-                  <input checked={(formData as Record<string, boolean>)[field.key]} className="w-7 h-7 rounded-xl text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer" id={`comp-${field.key}`} onChange={e => { setFormData({...formData, [field.key]: e.target.checked}); }} type="checkbox" />
-                  <div>
-                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight group-hover/check:text-primary-600 dark:text-primary-400 transition-colors flex items-center gap-2"><field.icon className="opacity-50" size={14} /> {t(`payroll.components.${field.label}`)}</p>
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1.5 opacity-70 leading-relaxed max-w-sm">{t(`payroll.components.${field.desc}`)}</p>
-                  </div>
-                </label>
-              </React.Fragment>
-            ))}
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.components.assign_to_bases")}</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {baseGroupsData?.groups.filter(g => g.slug !== "gross").map(group => {
+                const isSelected = formData.base_group_ids?.includes(group.id);
+                return (
+                  <label key={group.id} className={cn("flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all group/check border-2 shadow-sm active:scale-[0.98]", isSelected ? "bg-white dark:bg-slate-900 border-primary-100 dark:border-primary-800 shadow-md" : "bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-white dark:hover:bg-slate-900 shadow-inner")}>
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 rounded-lg text-primary-600 dark:text-primary-400 focus:ring-primary-500 transition-all border-slate-200 dark:border-slate-700 shadow-inner cursor-pointer"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        const current = formData.base_group_ids || [];
+                        setFormData({
+                          ...formData,
+                          base_group_ids: e.target.checked ? [...current, group.id] : current.filter(id => id !== group.id)
+                        });
+                      }}
+                    />
+                    <div>
+                      <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{group.name}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{group.description}</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">

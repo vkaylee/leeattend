@@ -65,8 +65,8 @@ async fn create_payroll_component(pool: &sqlx::PgPool, ws_id: Uuid, name: &str) 
     // Insert a dummy payroll component definition
     sqlx::query(
         "INSERT INTO salary_component_definitions \
-         (id, workspace_id, name, code, component_type, is_base_for_ot, is_taxable) \
-         VALUES ($1, $2, $3, $4, 'basic_salary', true, true)",
+         (id, workspace_id, name, code, component_type) \
+         VALUES ($1, $2, $3, $4, 'basic_salary')",
     )
     .bind(id)
     .bind(ws_id)
@@ -224,7 +224,9 @@ async fn test_create_custom_salary_base() {
     assert_eq!(res.status(), StatusCode::OK);
     let body = body_json(res).await;
     let groups = body["groups"].as_array().unwrap();
-    assert!(groups.iter().any(|g| g["name"] == "Custom Base" && g["slug"] == "custom_base"));
+    assert!(groups
+        .iter()
+        .any(|g| g["name"] == "Custom Base" && g["slug"] == "custom_base"));
 }
 
 #[tokio::test]

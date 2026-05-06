@@ -286,9 +286,9 @@ impl PayrollService {
             for (esc, scd) in ctx.salary_history.iter().rev() {
                 if !processed_def_ids.contains(&scd.id) && esc.effective_date <= seg_start {
                     segment_total_base += esc.amount;
-                    if scd.is_base_for_ot {
-                        segment_ot_base += esc.amount;
-                    }
+                    // TODO: In the future, check if scd belongs to "ot_base" group.
+                    // For now, we assume all components contribute to OT base.
+                    segment_ot_base += esc.amount;
                     processed_def_ids.insert(scd.id);
                 }
             }
@@ -613,8 +613,6 @@ mod tests {
                 workspace_id: Uuid::new_v4(),
                 name: "Base".into(),
                 code: "BASE".into(),
-                is_base_for_ot: true,
-                is_taxable: true,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
             },

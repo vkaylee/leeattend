@@ -7,7 +7,6 @@ import {
   ChevronRight,
   History,
   Plus,
-  ShieldCheck,
   Trash2,
   Wallet,
 } from "lucide-react";
@@ -93,10 +92,10 @@ interface SalaryTableBodyProps {
 
 function SalaryTableBody({ isLoading, groupedComps, expandedGroups, currencyFormatter, formatDate, t, toggleGroup }: SalaryTableBodyProps) {
   if (isLoading) {
-    return <tr><td className="px-8 py-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={5}>{t("common.loading")}</td></tr>;
+    return <tr><td className="px-8 py-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={4}>{t("common.loading")}</td></tr>;
   }
   if (Object.keys(groupedComps).length === 0) {
-    return <tr><td className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={5}>{t("payroll.employee_config.no_config")}</td></tr>;
+    return <tr><td className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50" colSpan={4}>{t("payroll.employee_config.no_config")}</td></tr>;
   }
   return (
     <>
@@ -118,11 +117,6 @@ function SalaryTableBody({ isLoading, groupedComps, expandedGroups, currencyForm
                 </div>
               </td>
               <td className="px-8 py-6 text-right font-mono font-bold text-slate-700 dark:text-slate-200 text-sm">{currencyFormatter.format(parseFloat(latest.amount))}</td>
-              <td className="px-8 py-6 text-center">
-                <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", latest.is_base_for_ot ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700')}>
-                  {latest.is_base_for_ot ? <ShieldCheck size={10} /> : null} {latest.is_base_for_ot ? t("common.yes") : t("common.no")}
-                </span>
-              </td>
               <td className="px-8 py-6 text-right">
                 <div className="flex flex-col items-end">
                   <div className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tighter">{formatDate(latest.effective_date)}</div>
@@ -141,7 +135,6 @@ function SalaryTableBody({ isLoading, groupedComps, expandedGroups, currencyForm
                   </div>
                 </td>
                 <td className="px-8 py-4 text-right font-mono text-xs font-bold opacity-60">{currencyFormatter.format(parseFloat(comp.amount))}</td>
-                <td className="px-8 py-4 text-center opacity-40 text-[9px] font-bold uppercase tracking-widest">{comp.is_base_for_ot ? t("common.yes") : t("common.no")}</td>
                 <td className="px-8 py-4 text-right text-xs font-bold font-mono opacity-50 uppercase tracking-tighter">{formatDate(comp.effective_date)}</td>
                 <td className="px-8 py-4 text-right pr-10"><button className="p-1.5 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 transition-all opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button></td>
               </tr>
@@ -224,7 +217,6 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
             <tr>
               <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("payroll.employee_config.salary_item")}</th>
               <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("common.amount")}</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">{t("common.base_for_ot")}</th>
               <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("common.effective_date")}</th>
               <th className="px-8 py-5 border-b border-slate-100 dark:border-slate-800"></th>
             </tr>

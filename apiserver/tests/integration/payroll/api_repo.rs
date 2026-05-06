@@ -91,8 +91,6 @@ async fn test_get_employee_payslips_api() {
         ws_id,
         "Lương cơ bản".to_string(),
         "BASE".to_string(),
-        true,
-        true,
     )
     .await
     .unwrap();

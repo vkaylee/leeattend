@@ -213,8 +213,6 @@ pub struct SalaryComponentDefinition {
     pub workspace_id: Uuid,
     pub name: String,
     pub code: String,
-    pub is_base_for_ot: bool,
-    pub is_taxable: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -259,8 +257,7 @@ pub struct SetEmployeePayrollConfigRequest {
 pub struct CreateSalaryComponentRequest {
     pub name: String,
     pub code: String,
-    pub is_base_for_ot: bool,
-    pub is_taxable: bool,
+    pub base_group_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -287,14 +284,12 @@ mod tests {
         let json = r#"{
             "name": "Housing Allowance",
             "code": "HOUSE",
-            "is_base_for_ot": false,
-            "is_taxable": true
+            "base_group_ids": ["00000000-0000-0000-0000-000000000001"]
         }"#;
         let req: CreateSalaryComponentRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.name, "Housing Allowance");
         assert_eq!(req.code, "HOUSE");
-        assert!(!req.is_base_for_ot);
-        assert!(req.is_taxable);
+        assert_eq!(req.base_group_ids.unwrap().len(), 1);
     }
 
     #[test]

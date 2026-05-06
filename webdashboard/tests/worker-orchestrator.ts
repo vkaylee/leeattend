@@ -77,11 +77,11 @@ authPage: async ({ page, loginPage }, use) => {
 
 // Chặn API toàn cục cho mọi page trong context
 base.beforeEach(async ({ page }) => {
-  page.on('pageerror', error => console.error('[BROWSER ERROR]', error));
+  page.on('pageerror', error => { console.error('[BROWSER ERROR]', error); });
   page.on('console', msg => {
     console.log('[BROWSER LOG]', msg.type(), msg.text());
   });
-  page.on('request', request => console.log('>>', request.method(), request.url()));
-  page.on('response', response => console.log('<<', response.status(), response.url()));
+  page.on('request', request => { console.log('>>', request.method(), request.url()); });
+  page.on('response', response => { console.log('<<', response.status(), response.url()); });
   await setupApiMocks(page);
 });

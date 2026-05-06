@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # Cloudflare Pages Deployment Script (Hermetic)
-# Usage: ./scripts/deploy-dashboard.sh --env <path-to-env-file>
+# Usage: ./scripts/deploy-dashboard.sh [--env <path-to-env-file>]
 # ==============================================================================
 
 set -e
@@ -16,10 +16,10 @@ export PROJECT_ROOT
 ENV_FILE=""
 
 show_usage() {
-    echo "Usage: $0 --env <path-to-env-file>"
+    echo "Usage: $0 [--env <path-to-env-file>]"
     echo ""
     echo "Options:"
-    echo "  --env        Path to the environment variables file for deployment"
+    echo "  --env        Optional path to the environment variables file for deployment"
     echo "  -h, --help   Show this help message"
     echo ""
     echo "Example: $0 --env webdashboard/.env.production"
@@ -43,63 +43,66 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-if [ -z "$ENV_FILE" ]; then
-    echo "❌ Error: --env <path-to-env-file> is required."
-    echo ""
-    show_usage
-    exit 1
+# Source env file if provided
+ENV_FILE_ABS=""
+if [ -n "$ENV_FILE" ]; then
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "❌ Error: Environment file '$ENV_FILE' not found."
+        exit 1
+    fi
+    echo "📍 Sourcing env file: $ENV_FILE"
+    ENV_FILE_ABS=$(readlink -f "$ENV_FILE")
+    set -a
+    source "$ENV_FILE_ABS"
+    set +a
 fi
 
-if [ ! -f "$ENV_FILE" ]; then
-    echo "❌ Error: Environment file '$ENV_FILE' not found."
-    exit 1
-fi
+# Validate required variables (either from environment or from sourced env file)
+check_required_vars() {
+    local missing=()
+    [ -z "$CLOUDFLARE_API_TOKEN" ] && missing+=("CLOUDFLARE_API_TOKEN")
+    [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && missing+=("CLOUDFLARE_ACCOUNT_ID")
+    [ -z "$CLOUDFLARE_PROJECT_NAME" ] && missing+=("CLOUDFLARE_PROJECT_NAME")
+    
+    if [ ${#missing[@]} -ne 0 ]; then
+        echo "❌ Error: Missing required Cloudflare variables: ${missing[*]}"
+        echo "Either provide --env <file> or set them in the environment."
+        exit 1
+    fi
+}
 
-# Convert to absolute path for podman-compose
-ENV_FILE_ABS=$(readlink -f "$ENV_FILE")
-
-# Source the env file locally to validate and export required variables
-# This will inject them into the script's environment so they can be passed to the container
-set -a
-source "$ENV_FILE_ABS"
-set +a
-
-MISSING_VARS=()
-[ -z "$CLOUDFLARE_API_TOKEN" ] && MISSING_VARS+=("CLOUDFLARE_API_TOKEN")
-[ -z "$CLOUDFLARE_ACCOUNT_ID" ] && MISSING_VARS+=("CLOUDFLARE_ACCOUNT_ID")
-[ -z "$CLOUDFLARE_PROJECT_NAME" ] && MISSING_VARS+=("CLOUDFLARE_PROJECT_NAME")
-
-if [ ${#MISSING_VARS[@]} -ne 0 ]; then
-    echo "❌ Error: Missing required variables in $ENV_FILE:"
-    for var in "${MISSING_VARS[@]}"; do
-        echo "   - $var"
-    done
-    exit 1
-fi
+check_required_vars
 
 echo "🚀 Starting Cloudflare Pages deployment for webdashboard..."
-echo "📍 Env file: $ENV_FILE"
 
 cd "$PROJECT_ROOT"
 
-# Common podman-compose command. Explicitly pass Cloudflare variables to the container.
+# Common podman-compose command
 COMPOSE_CMD=(
-    podman-compose # </dev/null
+    podman-compose
     -p leeattend-test
-    --env-file "$ENV_FILE_ABS"
+)
+
+# Only add --env-file if it exists
+if [ -n "$ENV_FILE_ABS" ]; then
+    COMPOSE_CMD+=(--env-file "$ENV_FILE_ABS")
+fi
+
+COMPOSE_CMD+=(
     -f .compose/docker-compose.test.yml
     --profile frontend
     run -T --rm
     -e "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"
     -e "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID"
     -e "CLOUDFLARE_PROJECT_NAME=$CLOUDFLARE_PROJECT_NAME"
-    -e "CLOUDFLARE_BRANCH=$CLOUDFLARE_BRANCH"
+    -e "CLOUDFLARE_BRANCH=${CLOUDFLARE_BRANCH:-main}"
     -e "CI=true"
     -e "WRANGLER_SEND_METRICS=false"
     -e "NODE_OPTIONS=--max_old_space_size=4096"
 )
 
 # Dynamically add all VITE_* environment variables so Vite can bake them into the build
+# compgen might not be available in all shells, but bash usually has it.
 for var in $(compgen -v | grep '^VITE_'); do
     COMPOSE_CMD+=("-e" "$var=${!var}")
 done
@@ -112,7 +115,6 @@ echo "📦 [1/3] Installing dependencies..."
 
 # Step 2: Build the project
 echo "🏗️ [2/3] Building webdashboard..."
-# Vite will automatically pick up VITE_* variables from the environment injected by --env-file
 "${COMPOSE_CMD[@]}" bash webdashboard -c "npm install -g bun && NODE_ENV=production bun run build" </dev/null
 
 # Step 3: Deploy to Cloudflare Pages

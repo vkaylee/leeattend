@@ -98,8 +98,8 @@ async fn test_payroll_holiday_work_with_multiplier() {
 
     // Assign salary component for payroll calculation
     let comp_id: Uuid = sqlx::query_scalar(
-        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable)
-         VALUES ($1, 'Base', 'BASE', true, true) RETURNING id"
+        "INSERT INTO salary_component_definitions (workspace_id, name, code)
+         VALUES ($1, 'Base', 'BASE') RETURNING id",
     )
     .bind(workspace_id)
     .fetch_one(&pool)
@@ -262,8 +262,8 @@ async fn test_payroll_holiday_work_no_credit() {
         .await;
 
     let comp_id: Uuid = sqlx::query_scalar(
-        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable)
-         VALUES ($1, 'Base', 'BASE', true, true) RETURNING id"
+        "INSERT INTO salary_component_definitions (workspace_id, name, code)
+         VALUES ($1, 'Base', 'BASE') RETURNING id",
     )
     .bind(workspace_id)
     .fetch_one(&pool)
@@ -412,8 +412,8 @@ async fn test_payroll_holiday_work_unpaid_no_premium() {
         .await;
 
     let comp_id: Uuid = sqlx::query_scalar(
-        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable)
-         VALUES ($1, 'Base', 'BASE', true, true) RETURNING id"
+        "INSERT INTO salary_component_definitions (workspace_id, name, code)
+         VALUES ($1, 'Base', 'BASE') RETURNING id",
     )
     .bind(workspace_id)
     .fetch_one(&pool)

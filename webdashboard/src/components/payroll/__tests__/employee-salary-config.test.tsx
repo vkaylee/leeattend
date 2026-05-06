@@ -46,7 +46,7 @@ describe("EmployeeSalaryConfig", () => {
     ] as unknown as never);
  
     vi.mocked(api.fetchEmployeeSalaryComponents).mockResolvedValue([
-      { id: "esc-1", component_definition_id: "comp-1", name: "Lương cơ bản", code: "BASE", amount: "1000", effective_date: "2026-01-01", is_base_for_ot: true }
+      { id: "esc-1", component_definition_id: "comp-1", name: "Lương cơ bản", code: "BASE", amount: "1000", effective_date: "2026-01-01" }
     ] as unknown as never);
  
     vi.mocked(api.fetchEmployeePayrollConfigs).mockResolvedValue([]);

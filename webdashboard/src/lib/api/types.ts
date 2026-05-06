@@ -377,12 +377,15 @@ export interface SalaryComponentDefinition {
   code: string;
   created_at: string;
   id: string;
-  is_base_for_ot: boolean;
-  is_taxable: boolean;
   name: string;
   updated_at: string;
   workspace_id: string;
- 
+}
+
+export interface CreateSalaryComponentRequest {
+  name: string;
+  code: string;
+  base_group_ids?: string[];
 }
 
 export interface EmployeeSalaryComponent {
@@ -393,8 +396,6 @@ export interface EmployeeSalaryComponent {
   effective_date: string;
   employee_id: string;
   id: string;
-  is_base_for_ot?: boolean;
-  is_taxable?: boolean;
   name?: string;
   updated_at: string;
 }
