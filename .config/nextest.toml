@@ -8,10 +8,9 @@ retries = 2
 # ==============================================================================
 # Timeouts & Hanging Test Prevention
 # ==============================================================================
-# Tests taking longer than 15 seconds will be marked as "slow" in the output.
-# Tests taking longer than 60 seconds (period * terminate-after) will be killed.
+# Tests taking longer than 120 seconds (period * terminate-after) will be killed.
 # This strictly enforces that no single test can hang and block the environment.
-slow-timeout = { period = "15s", terminate-after = 4 }
+slow-timeout = { period = "30s", terminate-after = 4 }
 
 # ==============================================================================
 # Leak Detection

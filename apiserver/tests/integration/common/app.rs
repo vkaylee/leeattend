@@ -575,14 +575,25 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
             service: agent_service,
             repo: agent_repo.clone(),
         },
-        infra: apiserver::InfraState {
+            infra: apiserver::InfraState {
             db: apiserver::db_pool::DbPools::for_test(db_pool.clone()),
             redis: if let Ok(url) = std::env::var("REDIS_URL") {
-                Some(
-                    apiserver::queue::RedisPool::new(&url)
-                        .await
-                        .expect("Failed to create Redis pool for test factory"),
-                )
+                let mut pool = None;
+                for attempt in 0..10 {
+                    match apiserver::queue::RedisPool::new(&url).await {
+                        Ok(p) => {
+                            pool = Some(p);
+                            break;
+                        }
+                        Err(_) if attempt < 9 => {
+                            tokio::time::sleep(std::time::Duration::from_millis(500 * (attempt + 1))).await;
+                        }
+                        Err(e) => {
+                            panic!("Failed to create Redis pool for test factory after 10 attempts: {}", e);
+                        }
+                    }
+                }
+                pool
             } else {
                 None
             },
@@ -892,11 +903,22 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
         infra: apiserver::InfraState {
             db: apiserver::db_pool::DbPools::for_test(pool.clone()),
             redis: if let Ok(url) = std::env::var("REDIS_URL") {
-                Some(
-                    apiserver::queue::RedisPool::new(&url)
-                        .await
-                        .expect("Failed to create Redis pool for tower test"),
-                )
+                let mut redis_pool = None;
+                for attempt in 0..10 {
+                    match apiserver::queue::RedisPool::new(&url).await {
+                        Ok(p) => {
+                            redis_pool = Some(p);
+                            break;
+                        }
+                        Err(_) if attempt < 9 => {
+                            tokio::time::sleep(std::time::Duration::from_millis(500 * (attempt + 1))).await;
+                        }
+                        Err(e) => {
+                            panic!("Failed to create Redis pool for tower test after 10 attempts: {}", e);
+                        }
+                    }
+                }
+                redis_pool
             } else {
                 None
             },

@@ -2,8 +2,8 @@
 # Prevents tests from hanging indefinitely
 
 [profile.default]
-# Per-test timeout: 30s handles migration fallback when template DB is busy
-slow-timeout = { period = "30s", terminate-after = 1 }
+# Per-test timeout: 120s handles full infra setup (DB + Redis) and retries
+slow-timeout = { period = "120s", terminate-after = 1 }
 fail-fast = true
 # Cap at 4 parallel threads to avoid disk exhaustion from concurrent test databases
 # (16 threads × DB creation = too many temp DBs → "No space left on device")

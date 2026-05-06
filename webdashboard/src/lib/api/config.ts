@@ -12,8 +12,23 @@ export const API_BASE_URL: string = import.meta.env.DEV
   : (BASE_URL_FROM_ENV ?? "/api");
 
 // WebSocket URL derived from API URL
-export const WS_BASE_URL: string = import.meta.env.DEV
-  ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/api/ws`
-  : BASE_URL_FROM_ENV
-    ? `${BASE_URL_FROM_ENV.replace(/^http/, "ws")}/ws`
-    : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/api/ws`;
+const getWsBaseUrl = (): string => {
+  if (typeof window === "undefined") {
+    return "ws://localhost:3000/api/ws";
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = window.location.host;
+
+  if (import.meta.env.DEV) {
+    return `${protocol}//${host}/api/ws`;
+  }
+
+  if (BASE_URL_FROM_ENV) {
+    return `${BASE_URL_FROM_ENV.replace(/^http/, "ws")}/ws`;
+  }
+
+  return `${protocol}//${host}/api/ws`;
+};
+
+export const WS_BASE_URL: string = getWsBaseUrl();

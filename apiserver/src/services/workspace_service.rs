@@ -65,29 +65,6 @@ impl WorkspaceService {
         .await
         .map_err(|e| e.to_string())?;
 
-        // Seed default leave types
-        let defaults = vec![
-            ("vacation", "Vacation", true),
-            ("sick", "Sick Leave", true),
-            ("personal", "Personal Leave", true),
-            ("unpaid", "Unpaid Leave", false),
-            ("maternity", "Maternity Leave", true),
-            ("paternity", "Paternity Leave", true),
-        ];
-
-        for (code, name, is_paid) in defaults {
-            sqlx::query(
-                "INSERT INTO leave_types (workspace_id, code, name, is_paid) VALUES ($1, $2, $3, $4)",
-            )
-            .bind(workspace.id)
-            .bind(code)
-            .bind(name)
-            .bind(is_paid)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| e.to_string())?;
-        }
-
         tx.commit().await.map_err(|e| e.to_string())?;
 
         Ok(workspace)

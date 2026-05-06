@@ -7,4 +7,5 @@ mod isolation;
 mod management;
 mod permissions;
 mod roles;
+mod seeding;
 mod settings;
