@@ -9,9 +9,9 @@ fi
 
 
 # Guard: Prevent direct execution. Must be sourced or run via official entry point.
-if [[ "" == "/bin/bash" ]]; then
-    echo -e "[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.[0m"
-    echo -e "👉 This script is an internal module. Use: [1m./test.sh[0m"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "\033[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.\033[0m"
+    echo -e "👉 This script is an internal module. Use: \033[1m./test.sh\033[0m"
     exit 1
 fi
 
@@ -89,7 +89,7 @@ psql_csv() {
 psql_file() {
     local db="$1"
     local file="$2"
-    cat "$file" | dc_stdin exec -T db psql -U "$DB_USER" -d "$db" -v ON_ERROR_STOP=1 2>&1
+    dc_stdin exec -T db psql -U "$DB_USER" -d "$db" -v ON_ERROR_STOP=1 < "$file" 2>&1
 }
 
 create_db() {
@@ -190,12 +190,15 @@ capture_fingerprint() {
         ORDER BY p.proname
     " > "$SCRATCH_DIR/${prefix}_functions.csv"
 
-    local table_count=$(psql_scalar "$db" -c "
+    local table_count
+    table_count=$(psql_scalar "$db" -c "
         SELECT count(*) FROM information_schema.tables
         WHERE table_schema='public' AND table_name NOT LIKE '_sqlx%'
     ")
-    local col_count=$(wc -l < "$SCRATCH_DIR/${prefix}_columns.csv")
-    local idx_count=$(wc -l < "$SCRATCH_DIR/${prefix}_indexes.csv")
+    local col_count
+    col_count=$(wc -l < "$SCRATCH_DIR/${prefix}_columns.csv")
+    local idx_count
+    idx_count=$(wc -l < "$SCRATCH_DIR/${prefix}_indexes.csv")
     echo -e "  ${GREEN}✓${NC} Tables: $table_count | Columns: $col_count | Indexes: $idx_count"
 }
 
@@ -245,7 +248,7 @@ mkdir -p "$SCRATCH_DIR"
 echo -e "${BOLD}${BLUE}═══ Phase: Starting test database ═══${NC}"
 dc up -d db </dev/null
 echo "Waiting for PostgreSQL to be ready..."
-for i in $(seq 1 30); do
+for _ in $(seq 1 30); do
     if dc exec -T db pg_isready -U "$DB_USER" </dev/null >/dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} PostgreSQL ready"
         break
@@ -268,7 +271,7 @@ sort "$SCRATCH_DIR/migration_list.txt" -o "$SCRATCH_DIR/migration_list_sorted.tx
 while IFS= read -r f; do
     fname=$(basename "$f")
     # Pipe the SQL file content into psql via stdin
-    result=$(cat "$f" | dc_stdin exec -T db psql -U "$DB_USER" -d "$BEFORE_DB" -v ON_ERROR_STOP=1 2>&1) || {
+    result=$(dc_stdin exec -T db psql -U "$DB_USER" -d "$BEFORE_DB" -v ON_ERROR_STOP=1 < "$f" 2>&1) || {
         echo -e "${RED}✗ Failed on: $fname${NC}"
         echo "$result" > "$SCRATCH_DIR/migration_error.txt"
         tail -5 "$SCRATCH_DIR/migration_error.txt"
@@ -308,6 +311,7 @@ dc exec -T db pg_dump --schema-only --no-owner --no-privileges \
     # Filter out pg_dump boilerplate but keep DDL
     # Removes: empty lines, comments, SET, SELECT pg_catalog, COMMENT ON,
     #          REVOKE, GRANT, and psql meta-commands (\restrict, \unrestrict, etc.)
+    # shellcheck disable=SC1003
     grep -v -E '^\s*$|^--|^SET |^SELECT pg_catalog\.|^COMMENT ON|^REVOKE|^GRANT|^\\\\' \
         "$SCRATCH_DIR/raw_dump.sql" || true
 } > "$SCRATCH_DIR/initial_schema.sql"
@@ -339,7 +343,7 @@ echo "Creating fresh database '$AFTER_DB'..."
 create_db "$AFTER_DB"
 
 echo "Running squashed migration into '$AFTER_DB'..."
-result=$(cat "$SCRATCH_DIR/initial_schema.sql" | dc_stdin exec -T db psql -U "$DB_USER" -d "$AFTER_DB" -v ON_ERROR_STOP=1 2>&1) || {
+result=$(dc_stdin exec -T db psql -U "$DB_USER" -d "$AFTER_DB" -v ON_ERROR_STOP=1 < "$SCRATCH_DIR/initial_schema.sql" 2>&1) || {
     echo -e "${RED}✗ Squashed migration FAILED to apply!${NC}"
     echo "$result" > "$SCRATCH_DIR/squash_error.txt"
     tail -20 "$SCRATCH_DIR/squash_error.txt"

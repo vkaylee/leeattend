@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2001,SC1003,SC2016,SC2066,SC2010
 # ==============================================================================
 # PTY Safety Test Suite
 # Detects PTY-unsafe patterns in shell scripts that would cause hangs when

@@ -9,9 +9,9 @@ fi
 
 
 # Guard: Prevent direct execution. Must be sourced or run via official entry point.
-if [[ "" == "/bin/bash" ]]; then
-    echo -e "[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.[0m"
-    echo -e "👉 This script is an internal module. Use: [1m./test.sh[0m"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "\033[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.\033[0m"
+    echo -e "👉 This script is an internal module. Use: \033[1m./test.sh\033[0m"
     exit 1
 fi
 
@@ -67,7 +67,7 @@ lifecycle_up() {
     # Wait for DB if backend is involved - Using Container Health Status
     if [[ "$mode" != "web" ]]; then
         echo -n "  Waiting for backend services to be healthy..."
-        for i in {1..60}; do
+        for _ in {1..60}; do
             # Check if apiserver is healthy (it depends on db and redis health)
             if [[ "$("$CONTAINER_ENGINE" inspect --format='{{.State.Health.Status}}' "leeattend-test_apiserver_1" 2>/dev/null)" == "healthy" ]]; then
                 echo -e " ${GREEN}Ready!${NC}"
@@ -82,7 +82,7 @@ lifecycle_up() {
     else
         # Web mode: wait for bun_init to finish installing dependencies
         echo -n "  Waiting for web dependencies (bun install)..."
-        for i in {1..120}; do
+        for _ in {1..120}; do
             if [[ "$("$CONTAINER_ENGINE" inspect --format='{{.State.Health.Status}}' "leeattend-test_bun_init_1" 2>/dev/null)" == "healthy" ]]; then
                 echo -e " ${GREEN}Ready!${NC}"
                 return 0
@@ -181,6 +181,7 @@ cleanup() {
         ps -t "$_our_tty" -o pid= 2>/dev/null | while IFS= read -r _pid; do
             _pid=$(echo "$_pid" | tr -d ' ')
             [[ -z "$_pid" || "$_pid" == "$$" || "$_pid" == "$PPID" || "$_pid" == "1" ]] && continue
+            # shellcheck disable=SC2010
             if ls -la /proc/"$_pid"/fd 2>/dev/null | grep -q "/dev/pts/"; then
                 kill -KILL "$_pid" 2>/dev/null || true
             fi

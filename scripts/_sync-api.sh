@@ -3,9 +3,12 @@ set -e
 
 # Load project environment
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC2034
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/_compose-env.sh"
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/_docker-ops.sh"
 
 echo "🔄 Synchronizing API types..."

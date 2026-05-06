@@ -97,7 +97,8 @@ leeattend_summarize_failures() {
         # Check if the log actually contains a failure
         if grep -Ei "FAIL|panic|error" "$log" > /dev/null; then
             failed_found=true
-            local name=$(basename "$log" | sed 's/\.log$//')
+            local name
+            name=$(basename "$log" | sed 's/\.log$//')
             echo -e "${YELLOW}● $name:${NC}"
             
             # Extract specific failed test names based on runner type

@@ -8,7 +8,8 @@
 set -euo pipefail
 
 # --- Configuration ---
-export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PROJECT_ROOT
 export COMPOSE_PROJECT_NAME="leeattend-test"
 export DOCKER_COMPOSE_CMD="podman-compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/.compose/docker-compose.test.yml"
 export LOG_DIR="$PROJECT_ROOT/.test_logs"
@@ -30,7 +31,7 @@ export PGPASSWORD="test_password"
 export CARGO_BUILD_JOBS=2
 CPU_CORES=$(nproc)
 export NUM_WORKERS=${NUM_WORKERS:-$(( CPU_CORES / 4 ))}
-[ $NUM_WORKERS -lt 1 ] && export NUM_WORKERS=1
+[ "$NUM_WORKERS" -lt 1 ] && export NUM_WORKERS=1
 
 # ANSI Colors
 GREEN='\033[0;32m'
@@ -63,12 +64,13 @@ leeattend_setup() {
     $DOCKER_COMPOSE_CMD up -d db apiserver </dev/null > /dev/null 2>&1
 
     echo -n "  Waiting for database to be ready (timeout: ${TIMEOUT_DB_WAIT}s)..."
-    local db_wait_start=$(date +%s)
+    local db_wait_start
+    db_wait_start=$(date +%s)
     until $DOCKER_COMPOSE_CMD exec db pg_isready -U test_user -d test_database </dev/null > /dev/null 2>&1; do
         printf "."
         sleep 1
         local elapsed=$(($(date +%s) - db_wait_start))
-        if [ $elapsed -ge $TIMEOUT_DB_WAIT ]; then
+        if [ "$elapsed" -ge "$TIMEOUT_DB_WAIT" ]; then
             echo -e "\n${RED}❌ Database wait TIMED OUT after ${TIMEOUT_DB_WAIT}s${NC}"
             exit 124
         fi
@@ -134,7 +136,7 @@ run_within_env() {
 
     # 2. Execute child logic if provided
     if [ $# -gt 0 ]; then
-        echo -e "${BLUE}🚀 [Parent] Executing child command: $@${NC}"
+        echo -e "${BLUE}🚀 [Parent] Executing child command: $*${NC}"
         
         # Nếu không keep-alive thì trap dọn dẹp
         if [ "$KEEP_ALIVE" = false ]; then
@@ -145,9 +147,13 @@ run_within_env() {
         # because functions are not exported to the subshell eval.
         local cmd="$1"
         if [[ "$cmd" == leeattend_run_* ]]; then
+            # shellcheck disable=SC1091
             source "$PROJECT_ROOT/scripts/test-utils.sh"
+            # shellcheck disable=SC1091
             source "$PROJECT_ROOT/scripts/test-lint.sh"
+            # shellcheck disable=SC1091
             source "$PROJECT_ROOT/scripts/test-unit.sh"
+            # shellcheck disable=SC1091
             source "$PROJECT_ROOT/scripts/test-integration.sh"
         fi
 

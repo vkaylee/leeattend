@@ -15,7 +15,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 fi
 
 _TOOLBOX_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-export PROJECT_ROOT="$(cd "$_TOOLBOX_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$_TOOLBOX_DIR/.." && pwd)"
+export PROJECT_ROOT
 
 if [[ -z "${TOOLBOX_COMPOSE_CMD:-}" ]]; then
     _ENGINE="podman-compose"

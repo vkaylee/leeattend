@@ -9,9 +9,9 @@ fi
 
 
 # Guard: Prevent direct execution. Must be sourced or run via official entry point.
-if [[ "" == "/bin/bash" ]]; then
-    echo -e "[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.[0m"
-    echo -e "👉 This script is an internal module. Use: [1m./test.sh[0m"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "\033[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.\033[0m"
+    echo -e "👉 This script is an internal module. Use: \033[1m./test.sh\033[0m"
     exit 1
 fi
 
@@ -112,9 +112,9 @@ db_restore() {
     case "$ext" in
         dump)
             echo -e "${BLUE}  Restoring (pg_restore --clean)...${NC}"
-            if cat "$file" | $_DEV_COMPOSE_CMD exec -T db \
+            if $_DEV_COMPOSE_CMD exec -T db \
                 pg_restore -U "$db_user" -d "$db_name" --clean --no-owner --no-acl \
-                </dev/stdin 2>/dev/null; then
+                < "$file" 2>/dev/null; then
                 echo -e "${GREEN}✅ Restore complete!${NC}"
             else
                 # pg_restore returns non-zero for warnings (e.g. "relation does not exist" on --clean)
@@ -123,9 +123,9 @@ db_restore() {
             ;;
         sql)
             echo -e "${BLUE}  Restoring (psql)...${NC}"
-            if cat "$file" | $_DEV_COMPOSE_CMD exec -T db \
+            if $_DEV_COMPOSE_CMD exec -T db \
                 psql -U "$db_user" -d "$db_name" --quiet \
-                </dev/stdin 2>/dev/null; then
+                < "$file" 2>/dev/null; then
                 echo -e "${GREEN}✅ Restore complete!${NC}"
             else
                 echo -e "${RED}❌ Restore failed!${NC}"

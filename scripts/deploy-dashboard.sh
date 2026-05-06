@@ -53,6 +53,7 @@ if [ -n "$ENV_FILE" ]; then
     echo "📍 Sourcing env file: $ENV_FILE"
     ENV_FILE_ABS=$(readlink -f "$ENV_FILE")
     set -a
+    # shellcheck source=/dev/null
     source "$ENV_FILE_ABS"
     set +a
 fi

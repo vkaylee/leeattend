@@ -9,9 +9,9 @@ fi
 
 
 # Guard: Prevent direct execution. Must be sourced or run via official entry point.
-if [[ "" == "/bin/bash" ]]; then
-    echo -e "[0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden.[0m"
-    echo -e "👉 This script is an internal module. Use: [1m./test.sh[0m"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e " [0;31m❌ SECURITY VIOLATION: Direct execution of this module is forbidden. [0m"
+    echo -e "👉 This script is an internal module. Use:  [1m./test.sh [0m"
     exit 1
 fi
 
@@ -24,10 +24,12 @@ fi
 #                 indefinite PTY hang when podman/conmon misbehaves.
 #
 dc() {
+    # shellcheck disable=SC2086
     $DOCKER_COMPOSE_CMD "$@" </dev/null
 }
 dc_detached() {
     local _timeout="${DOCKER_COMPOSE_TIMEOUT:-60}"
+    # shellcheck disable=SC2086
     setsid -w $DOCKER_COMPOSE_CMD "$@" </dev/null >/dev/null 2>&1 &
     local _pid=$!
     (sleep "$_timeout"; kill -KILL -$_pid 2>/dev/null) </dev/null &

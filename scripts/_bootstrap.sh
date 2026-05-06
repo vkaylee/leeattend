@@ -1,6 +1,7 @@
 #!/bin/bash
 # LeeAttend Internal Bootstrap
 # Sourced and managed by the Python Orchestrator.
+# shellcheck disable=SC2034,SC1090
 # ==============================================================================
 
 set -euo pipefail
