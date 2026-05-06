@@ -226,3 +226,41 @@ async fn test_create_custom_salary_base() {
     let groups = body["groups"].as_array().unwrap();
     assert!(groups.iter().any(|g| g["name"] == "Custom Base" && g["slug"] == "custom_base"));
 }
+
+#[tokio::test]
+async fn test_system_salary_bases_seeded() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // Fetch salary bases
+    let res = app
+        .oneshot(make_req(
+            "GET",
+            &format!("/api/workspaces/{ws_id}/salary-bases"),
+            ws_id,
+            user_id,
+            None,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = body_json(res).await;
+    let groups = body["groups"].as_array().unwrap();
+
+    // Verify the 4 seeded system bases are present
+    let system_slugs = vec!["gross", "net", "bhxh", "taxable"];
+    for slug in system_slugs {
+        let found = groups
+            .iter()
+            .find(|g| g["slug"] == slug && g["is_system"] == true);
+        assert!(
+            found.is_some(),
+            "System base with slug '{}' should be seeded and returned",
+            slug
+        );
+    }
+}
