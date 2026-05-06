@@ -13,8 +13,8 @@ on:
           - production
 
 jobs:
-  lint-test:
-    name: 🧪 Lint & Test (Hermetic)
+  lint:
+    name: 🎨 Lint & Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,6 @@ jobs:
 
       - name: Set up Environment
         run: |
-          # Use standard docker-compose provided by GitHub Actions runner
           echo "CONTAINER_ENGINE=docker" >> $GITHUB_ENV
 
       - name: 🎨 Run Infrastructure Lint
@@ -38,13 +37,29 @@ jobs:
       - name: 🎨 Run Frontend Lint
         run: ./test.sh web --lint-only
 
+  test:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Environment
+        run: |
+          echo "CONTAINER_ENGINE=docker" >> $GITHUB_ENV
+
       - name: 🧪 Run Full-Stack Unit Tests
         run: ./test.sh all --unit-only
 
   build-push-backend:
     name: 🏗️ Build & Push Backend
     runs-on: ubuntu-latest
-    needs: lint-test
+    needs: test
     environment: ${{ github.event.inputs.environment }}
     env:
       DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
@@ -71,7 +86,7 @@ jobs:
   deploy-frontend:
     name: ☁️ Deploy Frontend
     runs-on: ubuntu-latest
-    needs: lint-test
+    needs: test
     environment: ${{ github.event.inputs.environment }}
     steps:
       - uses: actions/checkout@v4
