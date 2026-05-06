@@ -12,9 +12,62 @@ on:
           - staging
           - production
 
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
 jobs:
+  # ============================================================================
+  # BUILD PHASE (Parallel, Create Test Cache)
+  # ============================================================================
+  build-api:
+    name: 🏗️ Build API Server (Test Cache)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./apiserver
+          target: test
+          push: false
+          cache-from: type=gha,scope=apiserver
+          cache-to: type=gha,mode=max,scope=apiserver
+
+  build-agent:
+    name: 🏗️ Build Edge Agent (Test Cache)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./agent-main
+          target: test
+          push: false
+          cache-from: type=gha,scope=agent
+          cache-to: type=gha,mode=max,scope=agent
+
+  build-web:
+    name: 🏗️ Build Web Dashboard (Test Cache)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./webdashboard
+          target: test
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  # ============================================================================
+  # LINT PHASE
+  # ============================================================================
   lint:
     name: 🎨 Lint & Format
+    needs: [build-api, build-agent, build-web]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,8 +78,28 @@ jobs:
           python-version: '3.11'
 
       - name: Set up Environment
-        run: |
-          echo "CONTAINER_ENGINE=docker" >> $GITHUB_ENV
+        run: echo "CONTAINER_ENGINE=docker" >> $GITHUB_ENV
+
+      - uses: docker/setup-buildx-action@v3
+      - name: Load Pre-built Images
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apiserver
+          target: test
+          load: true
+          cache-from: type=gha,scope=apiserver
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./agent-main
+          target: test
+          load: true
+          cache-from: type=gha,scope=agent
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./webdashboard
+          target: test
+          load: true
+          cache-from: type=gha,scope=web
 
       - name: 🎨 Run Infrastructure Lint
         run: ./test.sh infra --lint-only
@@ -37,6 +110,9 @@ jobs:
       - name: 🎨 Run Frontend Lint
         run: ./test.sh web --lint-only
 
+  # ============================================================================
+  # TEST PHASE
+  # ============================================================================
   test:
     name: 🧪 Unit Tests
     runs-on: ubuntu-latest
@@ -50,12 +126,35 @@ jobs:
           python-version: '3.11'
 
       - name: Set up Environment
-        run: |
-          echo "CONTAINER_ENGINE=docker" >> $GITHUB_ENV
+        run: echo "CONTAINER_ENGINE=docker" >> $GITHUB_ENV
+
+      - uses: docker/setup-buildx-action@v3
+      - name: Load Pre-built Images
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apiserver
+          target: test
+          load: true
+          cache-from: type=gha,scope=apiserver
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./agent-main
+          target: test
+          load: true
+          cache-from: type=gha,scope=agent
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./webdashboard
+          target: test
+          load: true
+          cache-from: type=gha,scope=web
 
       - name: 🧪 Run Full-Stack Unit Tests
         run: ./test.sh all --unit-only
 
+  # ============================================================================
+  # BUILD & PUSH PHASE (Production Artifacts)
+  # ============================================================================
   build-push-backend:
     name: 🏗️ Build & Push Backend
     runs-on: ubuntu-latest
@@ -75,14 +174,55 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata for apiserver
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.APISERVER_IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
       - name: Build & Push apiserver
-        run: |
-          ./scripts/build-prod.sh --service apiserver --push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apiserver
+          target: runtime
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: |
+            type=gha,scope=apiserver
+            type=gha,scope=apiserver-runtime
+          cache-to: type=gha,mode=max,scope=apiserver-runtime
+
+      - name: Extract metadata for agent-main
+        id: meta-agent
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.AGENT_IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
 
       - name: Build & Push agent-main
-        run: |
-          ./scripts/build-prod.sh --service agent-main --push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./agent-main
+          target: runtime
+          push: true
+          tags: ${{ steps.meta-agent.outputs.tags }}
+          labels: ${{ steps.meta-agent.outputs.labels }}
+          cache-from: |
+            type=gha,scope=agent
+            type=gha,scope=agent-runtime
+          cache-to: type=gha,mode=max,scope=agent-runtime
 
+  # ============================================================================
+  # DEPLOY PHASE
+  # ============================================================================
   deploy-frontend:
     name: ☁️ Deploy Frontend
     runs-on: ubuntu-latest
