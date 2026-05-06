@@ -41,7 +41,8 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          context: ./apiserver
+          context: .
+          file: ./apiserver/Dockerfile
           target: test
           push: false
           cache-from: type=gha,scope=apiserver
@@ -56,7 +57,8 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          context: ./agent-main
+          context: .
+          file: ./agent-main/Dockerfile
           target: test
           push: false
           cache-from: type=gha,scope=agent
@@ -71,7 +73,8 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          context: ./webdashboard
+          context: .
+          file: ./webdashboard/Dockerfile
           target: test
           push: false
           cache-from: type=gha,scope=web
@@ -90,13 +93,15 @@ jobs:
       - name: Load Pre-built Images
         uses: docker/build-push-action@v5
         with:
-          context: ./apiserver
+          context: .
+          file: ./apiserver/Dockerfile
           target: test
           load: true
           cache-from: type=gha,scope=apiserver
       - uses: docker/build-push-action@v5
         with:
-          context: ./agent-main
+          context: .
+          file: ./agent-main/Dockerfile
           target: test
           load: true
           cache-from: type=gha,scope=agent
@@ -115,13 +120,15 @@ jobs:
       - name: Load Pre-built Images
         uses: docker/build-push-action@v5
         with:
-          context: ./apiserver
+          context: .
+          file: ./apiserver/Dockerfile
           target: test
           load: true
           cache-from: type=gha,scope=apiserver
       - uses: docker/build-push-action@v5
         with:
-          context: ./agent-main
+          context: .
+          file: ./agent-main/Dockerfile
           target: test
           load: true
           cache-from: type=gha,scope=agent
@@ -140,13 +147,15 @@ jobs:
       - name: Load Pre-built Images
         uses: docker/build-push-action@v5
         with:
-          context: ./apiserver
+          context: .
+          file: ./apiserver/Dockerfile
           target: test
           load: true
           cache-from: type=gha,scope=apiserver
       - uses: docker/build-push-action@v5
         with:
-          context: ./agent-main
+          context: .
+          file: ./agent-main/Dockerfile
           target: test
           load: true
           cache-from: type=gha,scope=agent
@@ -168,7 +177,8 @@ jobs:
       - name: Load Pre-built Image
         uses: docker/build-push-action@v5
         with:
-          context: ./webdashboard
+          context: .
+          file: ./webdashboard/Dockerfile
           target: test
           load: true
           cache-from: type=gha,scope=web
@@ -187,7 +197,8 @@ jobs:
       - name: Load Pre-built Image
         uses: docker/build-push-action@v5
         with:
-          context: ./webdashboard
+          context: .
+          file: ./webdashboard/Dockerfile
           target: test
           load: true
           cache-from: type=gha,scope=web
@@ -206,7 +217,8 @@ jobs:
       - name: Load Pre-built Image
         uses: docker/build-push-action@v5
         with:
-          context: ./webdashboard
+          context: .
+          file: ./webdashboard/Dockerfile
           target: test
           load: true
           cache-from: type=gha,scope=web
