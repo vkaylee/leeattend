@@ -27,6 +27,32 @@ impl SalaryBaseRepository {
         Ok(groups)
     }
 
+    pub async fn create_group(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        name: &str,
+        slug: &str,
+        description: Option<&str>,
+    ) -> Result<SalaryBaseGroup, AppError> {
+        let group = sqlx::query_as!(
+            SalaryBaseGroup,
+            r#"
+            INSERT INTO salary_base_groups (workspace_id, name, slug, description, is_system)
+            VALUES ($1, $2, $3, $4, false)
+            RETURNING id, workspace_id, name, slug, description, is_system, created_at, updated_at
+            "#,
+            workspace_id,
+            name,
+            slug,
+            description
+        )
+        .fetch_one(pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to create salary base group: {e}")))?;
+
+        Ok(group)
+    }
+
     pub async fn get_group_members(
         pool: &PgPool,
         workspace_id: Uuid,

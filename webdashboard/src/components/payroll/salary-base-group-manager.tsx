@@ -2,16 +2,18 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Database, Info, Plus, X } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 
 import type { SalaryBaseGroup, SalaryBaseGroupMember, SalaryComponentDefinition } from "@/lib/api";
 
+import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { 
   fetchSalaryBaseGroups, 
   fetchSalaryComponents,
   assignComponentToSalaryBase,
-  unassignComponentFromSalaryBase
+  unassignComponentFromSalaryBase,
+  createSalaryBaseGroup
 } from "@/lib/api/payroll";
 
 function BaseGroupCard({
@@ -101,9 +103,103 @@ function BaseGroupCard({
   );
 }
 
+function CreateBaseModal({
+  isOpen,
+  onClose,
+  wsId,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  wsId: string;
+}) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+
+  const createMutation = useMutation({
+    mutationFn: () => createSalaryBaseGroup(wsId, { name, slug, description }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["salary-base-groups", wsId] });
+      toast.success("Salary base created successfully");
+      onClose();
+      setName("");
+      setSlug("");
+      setDescription("");
+    },
+    onError: () => {
+      toast.error("Failed to create salary base");
+    },
+  });
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Create Salary Base">
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Base Name
+          </label>
+          <input
+            className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            onChange={(e) => {
+              setName(e.target.value);
+              setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "_"));
+            }}
+            placeholder="e.g. Hazard Base"
+            value={name}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Slug
+          </label>
+          <input
+            className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            onChange={(e) => { setSlug(e.target.value); }}
+            placeholder="e.g. hazard_base"
+            value={slug}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Description
+          </label>
+          <textarea
+            className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            onChange={(e) => { setDescription(e.target.value); }}
+            placeholder="Description for this base group"
+            rows={3}
+            value={description}
+          />
+        </div>
+        <div className="flex justify-end gap-3 pt-4">
+          <button
+            className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg dark:text-slate-400 dark:hover:bg-slate-800"
+            onClick={onClose}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+            disabled={!name || !slug || createMutation.isPending}
+            onClick={() => { createMutation.mutate(); }}
+            type="button"
+          >
+            {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Create Base
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: salaryBasesResponse, isLoading: loadingGroups } = useQuery({
     queryKey: ["salary-base-groups", wsId],
@@ -162,6 +258,13 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
             Group your salary components into functional bases (e.g., Gross Salary, BHXH Base) to be used in Payroll Rules.
           </p>
         </div>
+        <button
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors"
+          onClick={() => { setShowCreateModal(true); }}
+        >
+          <Plus className="w-4 h-4" />
+          Create Base
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -177,6 +280,12 @@ export default function SalaryBaseGroupManager({ wsId }: { wsId: string }) {
           />
         ))}
       </div>
+
+      <CreateBaseModal
+        isOpen={showCreateModal}
+        onClose={() => { setShowCreateModal(false); }}
+        wsId={wsId}
+      />
     </div>
   );
 }

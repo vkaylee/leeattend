@@ -31,6 +31,30 @@ pub async fn get_salary_bases(
 }
 
 #[derive(Deserialize)]
+pub struct CreateBaseRequest {
+    pub name: String,
+    pub slug: String,
+    pub description: Option<String>,
+}
+
+pub async fn create_salary_base(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(payload): Json<CreateBaseRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let group = SalaryBaseRepository::create_group(
+        state.infra.db.api(),
+        ctx.workspace_id,
+        &payload.name,
+        &payload.slug,
+        payload.description.as_deref(),
+    )
+    .await?;
+
+    Ok((axum::http::StatusCode::CREATED, Json(group)))
+}
+
+#[derive(Deserialize)]
 pub struct AssignMemberRequest {
     pub component_definition_id: Uuid,
 }

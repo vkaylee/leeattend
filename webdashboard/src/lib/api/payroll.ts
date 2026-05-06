@@ -46,6 +46,16 @@ export async function deleteIncentivePolicy(wsId: string, policyId: string): Pro
   if (!response.ok) throw new Error("Failed to delete overtime policy");
 }
 
+export async function createSalaryBaseGroup(wsId: string, data: { name: string; slug: string; description?: string }): Promise<SalaryBaseGroup> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-bases`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create salary base group");
+  return response.json() as Promise<SalaryBaseGroup>;
+}
+
 export async function fetchSalaryBaseGroups(wsId: string): Promise<{ groups: SalaryBaseGroup[], members: SalaryBaseGroupMember[] }> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-bases`);
   if (!response.ok) throw new Error("Failed to fetch salary bases");
