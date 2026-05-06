@@ -7,7 +7,7 @@ test.describe.skip('Employees Pagination UI', () => {
     // 1. Login
     await page.goto('/login');
     await page.getByTestId('fast-login-btn').click();
-    await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 10000 });
 
     // 2. Expand Sidebar Section if needed
     const employeesLink = page.getByTestId('sidebar-link-employees');
@@ -20,7 +20,7 @@ test.describe.skip('Employees Pagination UI', () => {
 
     // 3. Click Employees link
     await employeesLink.click();
-    await expect(page).toHaveURL(/\/employees/i, { timeout: 30000 });
+    await expect(page).toHaveURL(/\/employees/i, { timeout: 10000 });
 
     // 4. Verify top pagination is visible
     const paginationControls = page.locator('nav[aria-label="Pagination"]');

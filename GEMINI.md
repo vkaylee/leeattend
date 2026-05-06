@@ -46,14 +46,16 @@ All standard development tools run inside isolated Podman containers. You MUST e
 - Rust/Cargo: `./scripts/_cargo.sh build` (Container: `apiserver_test`)
 - Node/NPM: `./scripts/_npm.sh install` (Container: `web_test`)
 - SQLx/DB: `./scripts/_sqlx.sh migrate run` (Container: `apiserver_test`)
+- SQLx Prepare: `./scripts/_sqlx.sh prepare --workspace` (Must be run after tests fail with SQLX_OFFLINE=true error, requires test DB to be up)
 
 **2. Git & Multiline Strings**
 - NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper.
 - NEVER pass strings containing literal newlines into terminal commands. Write to `/tmp/msg.txt`, then execute with `-F /tmp/msg.txt`.
 
-**3. Background Process Stream Redirection**
-When executing any background command (`&`) or long-running pipe (`tail -f`), you MUST sever it from the PTY stream:
-- **ALWAYS append:** `</dev/null >/dev/null 2>&1`
+**3. Background Execution & Services**
+- **BANNED:** Never use the bash background operator (`&`) for ANY command (tests, servers, builds). 
+- **BANNED:** Never use `tail -f` or similar blocking pagers.
+- *Note:* The AI's native terminal tool automatically handles long-running processes safely. You must run all commands normally without manual shell redirection or backgrounding.
 
 **4. Banned Inline Commands & Patterns**
 - Heredocs (`cat <<EOF` or `cat >> file <<EOF`)

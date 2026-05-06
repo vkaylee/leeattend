@@ -17,7 +17,7 @@ pub struct TimeSync {
 }
 
 impl TimeSync {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             offset_ms: AtomicI64::new(0),
         }

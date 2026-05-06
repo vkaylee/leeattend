@@ -12,7 +12,7 @@ networks:
 
 x-rust-test-base: &rust-test-base
   tty: true
-  entrypoint: tail -f /dev/null
+  entrypoint: [ "sleep", "infinity" ]
   networks:
     - test_net
   environment:
@@ -35,6 +35,7 @@ services:
     image: public.ecr.aws/docker/library/postgres:16-alpine
     profiles:
       - infra-db
+      - api
     networks:
       - test_net
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
@@ -55,6 +56,7 @@ services:
     image: public.ecr.aws/docker/library/redis:7-alpine
     profiles:
       - infra-redis
+      - api
     networks:
       - test_net
     command: []
@@ -67,6 +69,7 @@ services:
   db_init:
     profiles:
       - infra-db-init
+      - api
     <<: *rust-test-base
     image: localhost/leeattend-test_apiserver
     build:
@@ -79,29 +82,36 @@ services:
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@db:5432/test_database?sslmode=disable
-    entrypoint: ["bash", "-c", "sqlx migrate run && psql -h db -U test_user -d postgres -c \"CREATE DATABASE leeattend_test_template TEMPLATE test_database\" && touch /tmp/migration_done && tail -f /dev/null"]
+    entrypoint:
+      - bash
+      - -c
+      - |
+        sqlx migrate run
+        for i in {1..5}; do
+          psql postgres://test_user:test_password@db:5432/postgres?sslmode=disable -c "CREATE DATABASE leeattend_test_template TEMPLATE test_database" && break
+          echo "Retrying psql..."
+          sleep 1
+        done
+        touch /tmp/db_init_done
+        sleep infinity
     healthcheck:
-      test: ["CMD", "test", "-f", "/tmp/migration_done"]
+      test: "test -f /tmp/db_init_done"
       interval: 2s
       timeout: 5s
-      retries: 30
+      retries: 10
 
   apiserver:
     profiles:
       - lint-api
       - unit-api
       - int-api
+      - api
     <<: *rust-test-base
     image: localhost/leeattend-test_apiserver
     build:
       context: ..
       dockerfile: apiserver/Dockerfile
       target: test
-    depends_on:
-      db:
-        condition: service_healthy
-      db_init:
-        condition: service_healthy
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@db:5432/test_database
@@ -115,15 +125,13 @@ services:
   agent-main:
     profiles:
       - int-api
+      - api
     <<: *rust-test-base
     image: localhost/leeattend-test_agent-main
     build:
       context: ..
       dockerfile: agent-main/Dockerfile
       target: test
-    depends_on:
-      apiserver:
-        condition: service_healthy
     working_dir: /workspace/agent-main
     environment:
       - "DATABASE_URL=:memory:"
@@ -135,6 +143,7 @@ services:
       - unit-web
       - e2e-web
       - frontend
+      - web
     image: localhost/leeattend-test_webdashboard
     build:
       context: ..
@@ -146,12 +155,18 @@ services:
     environment:
       - NODE_ENV=test
       - BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
-    entrypoint: ["sh", "-c", "bun install && touch /tmp/bun_install_done && tail -f /dev/null"]
+    entrypoint:
+      - sh
+      - -c
+      - |
+        bun install
+        touch /tmp/bun_init_done
+        sleep infinity
     healthcheck:
-      test: ["CMD", "test", "-f", "/tmp/bun_install_done"]
-      interval: 5s
+      test: "test -f /tmp/bun_init_done"
+      interval: 2s
       timeout: 5s
-      retries: 60
+      retries: 30
     volumes:
       - ${PROJECT_ROOT}:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
@@ -163,6 +178,7 @@ services:
       - unit-web
       - e2e-web
       - frontend
+      - web
     image: localhost/leeattend-test_webdashboard
     build:
       context: ..
@@ -174,7 +190,7 @@ services:
         condition: service_healthy
     networks:
       - test_net
-    entrypoint: tail -f /dev/null
+    entrypoint: sleep infinity
     working_dir: /workspace/webdashboard
     environment:
       - NODE_ENV=test

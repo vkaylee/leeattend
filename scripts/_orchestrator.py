@@ -92,6 +92,7 @@ class Orchestrator:
         self.needs_cleanup = False
         self.active_mode = "all"
         self.start_time = time.time()
+        self.lock_fd: int | None = None
         self.register_traps()
 
     def register_traps(self) -> None:
@@ -126,6 +127,24 @@ class Orchestrator:
         except Exception as e:
             log_error(f"❌ Cleanup failed with error: {e}")
 
+        # Release and remove OS-level lock
+        if self.lock_fd is not None:
+            import fcntl
+            import tempfile
+            from pathlib import Path
+
+            try:
+                fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
+                os.close(self.lock_fd)
+                lock_path = (
+                    Path(tempfile.gettempdir()) / f"{os.environ.get('COMPOSE_PROJECT_NAME')}.lock"
+                )
+                with contextlib.suppress(OSError):
+                    lock_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            self.lock_fd = None
+
     @property
     def engine(self) -> str:
         """Detect container engine (podman or docker)."""
@@ -156,30 +175,62 @@ class Orchestrator:
         subparsers: typing.Any,  # noqa: ANN401
         parent_parser: argparse.ArgumentParser,
     ) -> None:
-        test_parser = subparsers.add_parser("test", parents=[parent_parser])
+        test_prog = "test.sh" if "test.sh" in sys.argv[0] or "test" in sys.argv else None
+        test_parser = subparsers.add_parser(
+            "test",
+            prog=test_prog,
+            parents=[parent_parser],
+            description="LeeAttend Enterprise Test Orchestrator - Automatically handles environments, mocking, and parallel execution.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="Examples for AI Agents:\n  ./test.sh all                 # Run full-stack test suite (lint, unit, e2e)\n  ./test.sh webdashboard --unit-only # Run only frontend unit tests\n  ./test.sh api --pattern auth       # Run backend tests matching 'auth'\n  ./test.sh infra               # Verify project configuration and linting\n\nNotes for AI: Always prefer specific targets (e.g., 'apiserver') over 'all' for faster feedback.",
+        )
         test_parser.add_argument(
             "target",
             choices=["all", "api", "web", "apiserver", "agent-main", "webdashboard", "infra"],
-            help="Target domain or component to test",
+            help="Target domain ('all', 'api', 'web') or specific component ('apiserver', 'webdashboard', 'infra')",
         )
-        test_parser.add_argument("--lint-only", action="store_true", help="Run only linting")
-        test_parser.add_argument("--unit-only", action="store_true", help="Run only unit tests")
+        test_parser.add_argument(
+            "--lint-only", action="store_true", help="Run only code formatting and linting checks"
+        )
+        test_parser.add_argument(
+            "--unit-only", action="store_true", help="Run only unit tests (skips e2e and linting)"
+        )
         test_parser.add_argument(
             "--e2e-only", action="store_true", help="Run only integration/e2e tests"
         )
-        test_parser.add_argument("--skip-lint", action="store_true", help="Skip linting phase")
-        test_parser.add_argument("--pattern", dest="pattern", help="Regex pattern for tests")
         test_parser.add_argument(
-            "--coverage", action="store_true", help="Run tests with coverage reporting"
+            "--skip-lint",
+            action="store_true",
+            help="Skip linting phase (useful for faster iterative TDD)",
         )
-        test_parser.add_argument("--timeout", type=int, default=1800)
+        test_parser.add_argument(
+            "--pattern",
+            dest="pattern",
+            help="Regex pattern to filter tests by name (e.g., 'auth' or 'user_login')",
+        )
+        test_parser.add_argument(
+            "--coverage",
+            action="store_true",
+            help="Run tests with coverage reporting (enforces 100%% threshold)",
+        )
+        test_parser.add_argument(
+            "--timeout", type=int, default=1800, help="Test execution timeout in seconds"
+        )
 
     def _setup_manage_parser(
         self,
         subparsers: typing.Any,  # noqa: ANN401
         parent_parser: argparse.ArgumentParser,
     ) -> None:
-        manage_parser = subparsers.add_parser("manage", parents=[parent_parser])
+        manage_prog = "manage.sh" if "manage.sh" in sys.argv[0] or "manage" in sys.argv else None
+        manage_parser = subparsers.add_parser(
+            "manage",
+            prog=manage_prog,
+            parents=[parent_parser],
+            description="LeeAttend Infrastructure & Environment Manager",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="Examples for AI Agents:\n  ./manage.sh up dev         # Start development environment\n  ./manage.sh db:setup       # Initialize database and run migrations\n  ./manage.sh sync:api       # Sync OpenAPI schema from backend to frontend\n  ./manage.sh logs apiserver # View backend logs",
+        )
         manage_cmd_sub = manage_parser.add_subparsers(dest="subcommand", required=True)
 
         for cmd in ["up", "down", "ps"]:
@@ -230,6 +281,7 @@ class Orchestrator:
             self.parser.print_help()
             return
         if args.command in ("test", "run"):
+            import fcntl
             import uuid
 
             # Use dynamic project name for perfect run isolation
@@ -239,6 +291,17 @@ class Orchestrator:
             self.env_vars["PODMAN_COMPOSE_PROJECT_NAME"] = project_name
             os.environ["COMPOSE_PROJECT_NAME"] = project_name
             os.environ["PODMAN_COMPOSE_PROJECT_NAME"] = project_name
+
+            # Acquire an OS-level file lock to prevent garbage collection
+            import tempfile
+            from pathlib import Path
+
+            lock_path = Path(tempfile.gettempdir()) / f"{project_name}.lock"
+            try:
+                self.lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR)
+                fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                log_warn(f"Failed to lock {lock_path}, garbage collector might sweep this run!")
 
         if args.command == "test":
             self.handle_test(args)
@@ -273,11 +336,31 @@ class Orchestrator:
         self.active_mode = mode
         log_info(f"🚀 Starting LeeAttend Test Suite for [{target}] in mode [{mode}]")
 
-        if target == "all" and not (args.lint_only or args.unit_only or args.e2e_only):
-            self.handle_verify_infra()
+        if getattr(args, "timeout", None):
+            timeout_str = str(args.timeout)
+            os.environ["TIMEOUT_LINT"] = timeout_str
+            os.environ["TIMEOUT_UNIT"] = timeout_str
+            os.environ["TIMEOUT_INTEGRATION"] = timeout_str
+            os.environ["TIMEOUT_BUILD"] = timeout_str
+            self.env_vars["TIMEOUT_LINT"] = timeout_str
+            self.env_vars["TIMEOUT_UNIT"] = timeout_str
+            self.env_vars["TIMEOUT_INTEGRATION"] = timeout_str
+            self.env_vars["TIMEOUT_BUILD"] = timeout_str
 
-        startup_mode = "integration" if mode == "api" else mode
-        self.run_phase("Startup", startup_mode, args)
+        if target == "all" and not (args.lint_only or args.unit_only or args.e2e_only):
+            # Run entirely isolated targets sequentially for true independence
+            for sub_target in ["infra", "api", "web"]:
+                args.target = sub_target
+                self.handle_test(args)
+                if self.needs_cleanup and not self.dry_run:
+                    from _lifecycle import lifecycle_down
+
+                    lifecycle_down("all")
+                    self.needs_cleanup = False
+            args.target = "all"
+            self.print_test_summary("all")
+            return
+
         self.needs_cleanup = True
 
         run_lint = not args.skip_lint and not (args.unit_only or args.e2e_only)
@@ -306,6 +389,22 @@ class Orchestrator:
             log_info(f"🔍 Dry-run: Phase [{phase_name}] for [{mode}]")
             return
 
+        granular_map = {
+            ("Linting", "api"): "lint-api",
+            ("Unit Tests", "api"): "unit-api",
+            ("Integration Tests", "api"): "int-api",
+            ("Coverage", "api"): "api",
+            ("Linting", "web"): "lint-web",
+            ("Unit Tests", "web"): "unit-web",
+            ("Integration Tests", "web"): "e2e-web",
+            ("Coverage", "web"): "web",
+        }
+        granular_mode = granular_map.get((phase_name, mode))
+
+        if granular_mode:
+            log_info(f"🔹 Starting isolated environment for: {phase_name} ({granular_mode})")
+            _lifecycle_up(granular_mode)
+
         log_info(f"🔹 Running {phase_name}...")
         func_map: dict[str, typing.Callable[..., typing.Any]] = {
             "Startup": lambda: _lifecycle_up(mode),
@@ -327,7 +426,13 @@ class Orchestrator:
         if func is None:
             log_error(f"Unknown phase: {phase_name}")
             sys.exit(1)
+
         res = func()
+
+        if granular_mode:
+            log_info(f"🔹 Tearing down isolated environment for: {phase_name} ({granular_mode})")
+            lifecycle_down("all")
+
         if res is False:
             sys.exit(1)
 
@@ -399,6 +504,8 @@ class Orchestrator:
         venv_pytest = PROJECT_ROOT / ".venv" / "bin" / "pytest"
         cmd = [
             str(venv_pytest),
+            "-n",
+            "auto",
             "--cov=scripts",
             "--cov-report=term-missing",
             "--cov-fail-under=100",
@@ -480,6 +587,22 @@ class Orchestrator:
         elif tool == "cargo":
             compose_cmd.extend(["run", "-T", "--rm"])
             self._handle_run_cargo(compose_cmd, tool_args, service)
+        elif tool_args and tool_args[0] == "prepare":
+            # sqlx prepare must run via cargo without SQLX_OFFLINE=true
+            compose_cmd.extend(
+                [
+                    "run",
+                    "-T",
+                    "--rm",
+                    "--workdir",
+                    "/workspace/apiserver",
+                    "--entrypoint",
+                    "cargo",
+                    service,
+                    "sqlx",
+                ]
+            )
+            compose_cmd.extend(tool_args)
         else:  # sqlx
             compose_cmd.extend(["run", "-T", "--rm", "--entrypoint", tool, service])
             if tool_args:

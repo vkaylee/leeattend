@@ -23,6 +23,15 @@ def mock_is_service_running():
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def mock_lifecycle():
+    with (
+        patch("_orchestrator._lifecycle_up", return_value=True),
+        patch("_orchestrator.lifecycle_down", return_value=True),
+    ):
+        yield
+
+
 def test_help_message(orchestrator, capsys) -> None:
     """Test help message does not cause errors."""
     with pytest.raises(SystemExit) as e:
@@ -153,7 +162,7 @@ def test_test_coverage_all(mock_exec, mock_run_phase, orchestrator) -> None:
     args = orchestrator.parser.parse_args(["test", "all", "--coverage"])
     orchestrator.handle_test(args)
     coverage_calls = [c for c in mock_run_phase.call_args_list if c[0][0] == "Coverage"]
-    assert len(coverage_calls) == 1
+    assert len(coverage_calls) == 2
 
 
 @patch.object(_orchestrator.Orchestrator, "run_phase")
@@ -199,6 +208,31 @@ def test_full_run_lint_infra(mock_run, orchestrator) -> None:
     mock_run.return_value.returncode = 0
     orchestrator.run()
     assert "ruff" in str(mock_run.call_args_list)
+
+
+@patch("sys.argv", ["_orchestrator.py", "test", "webdashboard", "--unit-only", "--pattern", "auth"])
+@patch("_test_modules.run_parallel_ordered", return_value=True)
+def test_full_run_e2e_cli_args_translation(mock_run_parallel, orchestrator) -> None:
+    """End-to-End validation: Proves --pattern and --unit-only reach the concrete shell executor."""
+    orchestrator.run()
+
+    # run_parallel_ordered is called with: phase_name, component_filter, tasks
+    # tasks is a list of tuples: (task_name, service, cmd_list)
+    assert mock_run_parallel.called
+    tasks = mock_run_parallel.call_args[0][2]
+
+    # Assert that at least one task is the bun test command targeting webdashboard
+    found_bun_cmd = False
+    for _task_name, service, cmd in tasks:
+        cmd_str = " ".join(cmd)
+        if "bun run test" in cmd_str and "webdashboard" in service:
+            found_bun_cmd = True
+            # The pattern "auth" must be properly passed into the shell execution
+            assert "auth" in cmd_str
+
+    assert found_bun_cmd, (
+        "The --unit-only and --pattern flags failed to produce the correct concrete shell execution."
+    )
 
 
 @patch("sys.argv", ["_orchestrator.py", "manage", "fmt:infra"])
@@ -284,6 +318,20 @@ def test_run_sqlx(mock_which, mock_run, orchestrator) -> None:
     args = orchestrator.parser.parse_args(["run", "sqlx", "migrate", "run"])
     orchestrator.handle_run(args)
     assert "sqlx" in mock_run.call_args[0][0]
+
+
+@patch("subprocess.run")
+@patch("shutil.which")
+def test_run_sqlx_prepare(mock_which, mock_run, orchestrator) -> None:
+    """Test sqlx prepare execution bypassing offline mode."""
+    mock_which.return_value = "podman"
+    mock_run.return_value.returncode = 0
+    args = orchestrator.parser.parse_args(["run", "sqlx", "prepare", "--workspace"])
+    orchestrator.handle_run(args)
+    called_args = " ".join(mock_run.call_args[0][0])
+    assert "cargo" in called_args
+    assert "prepare" in called_args
+    assert "--workdir /workspace/apiserver" in called_args
 
 
 @patch("subprocess.run")
@@ -583,13 +631,13 @@ def test_handle_run_cargo_outside_root(mock_run, orchestrator) -> None:
         assert "/workspace" in called_args
 
 
-@patch("subprocess.run")
-def test_cleanup_success(mock_run, orchestrator) -> None:
+@patch("_orchestrator.lifecycle_down")
+def test_cleanup_success(mock_down, orchestrator) -> None:
     """Test successful cleanup operation."""
     orchestrator.needs_cleanup = True
     orchestrator.dry_run = False
     orchestrator.cleanup()
-    assert mock_run.called
+    assert mock_down.called
     assert not orchestrator.needs_cleanup
 
 
@@ -767,3 +815,59 @@ class TestNoDepsConditional:
         orchestrator.handle_run(args)
         called = str(mock_run.call_args[0][0])
         assert "exec" in called
+
+
+class TestOrchestratorLocking:
+    @patch("os.open")
+    @patch("fcntl.flock")
+    @patch("sys.argv", ["orchestrator", "test", "all"])
+    def test_run_acquires_lock(self, mock_flock, mock_open, orchestrator) -> None:
+        mock_open.return_value = 123
+        with patch.object(orchestrator, "handle_test"):
+            orchestrator.run()
+        assert orchestrator.lock_fd == 123
+        assert mock_open.called
+        assert mock_flock.called
+
+    @patch("os.open")
+    @patch("fcntl.flock")
+    @patch("_orchestrator.log_warn")
+    @patch("sys.argv", ["orchestrator", "test", "all"])
+    def test_run_lock_fails(self, mock_warn, mock_flock, mock_open, orchestrator) -> None:
+        mock_open.side_effect = OSError
+        with patch.object(orchestrator, "handle_test"):
+            orchestrator.run()
+        assert mock_warn.called
+
+    @patch("os.close")
+    @patch("fcntl.flock")
+    @patch("pathlib.Path.unlink")
+    def test_cleanup_releases_lock(
+        self,
+        mock_unlink,
+        mock_flock,
+        mock_close,
+        orchestrator,
+    ) -> None:
+        orchestrator.needs_cleanup = True
+        orchestrator.dry_run = False
+        orchestrator.lock_fd = 123
+        with patch("_orchestrator.lifecycle_down"):
+            orchestrator.cleanup()
+        assert mock_flock.called
+        assert mock_close.called
+        assert mock_unlink.called
+        assert orchestrator.lock_fd is None
+
+    @patch("os.close")
+    @patch("fcntl.flock")
+    def test_cleanup_lock_release_fails_silently(
+        self, mock_flock, mock_close, orchestrator
+    ) -> None:
+        orchestrator.needs_cleanup = True
+        orchestrator.dry_run = False
+        orchestrator.lock_fd = 123
+        mock_flock.side_effect = OSError
+        with patch("_orchestrator.lifecycle_down"):
+            orchestrator.cleanup()
+        assert orchestrator.lock_fd is None

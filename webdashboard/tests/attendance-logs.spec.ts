@@ -11,7 +11,7 @@ test.describe.skip("Attendance Logs UI", () => {
       await page.getByTestId('fast-login-btn').click();
 
       // Wait for dashboard to load
-      await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30000 });
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 10000 });
 
       // 2. Expand Sidebar Section if needed
       const logsLink = page.getByTestId('sidebar-link-attendance-logs');
@@ -24,7 +24,7 @@ test.describe.skip("Attendance Logs UI", () => {
 
       // The page title in H1 is "Attendance Logs" or "Nhật ký quẹt thẻ"
       
-      await expect(page.getByRole('heading', { level: 1 })).toContainText(/Attendance Logs|Nhật ký quẹt thẻ/, { timeout: 30000 });
+      await expect(page.getByRole('heading', { level: 1 })).toContainText(/Attendance Logs|Nhật ký quẹt thẻ/, { timeout: 10000 });
 
       // 3. Check if table headers are present
       await expect(page.getByRole('columnheader', { name: /Time|Thời gian/i })).toBeVisible();

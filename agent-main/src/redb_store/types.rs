@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 use serde::{Deserialize, Serialize};
 
 /// Stored attendance log in Redb (serialized with bincode).
@@ -121,13 +122,13 @@ pub enum StoreError {
 impl std::fmt::Display for StoreError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            StoreError::CapacityExceeded => write!(f, "Store capacity exceeded"),
-            StoreError::InvalidTimestamp => write!(f, "Invalid timestamp format"),
-            StoreError::NotFound => write!(f, "Log not found"),
-            StoreError::Duplicate => write!(f, "Duplicate log rejected"),
-            StoreError::DbError(s) => write!(f, "Database error: {s}"),
-            StoreError::DeserializeError(s) => write!(f, "Deserialization error: {s}"),
-            StoreError::Internal(s) => write!(f, "Internal error: {s}"),
+            Self::CapacityExceeded => write!(f, "Store capacity exceeded"),
+            Self::InvalidTimestamp => write!(f, "Invalid timestamp format"),
+            Self::NotFound => write!(f, "Log not found"),
+            Self::Duplicate => write!(f, "Duplicate log rejected"),
+            Self::DbError(s) => write!(f, "Database error: {s}"),
+            Self::DeserializeError(s) => write!(f, "Deserialization error: {s}"),
+            Self::Internal(s) => write!(f, "Internal error: {s}"),
         }
     }
 }

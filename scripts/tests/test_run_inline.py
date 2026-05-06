@@ -129,16 +129,21 @@ class TestRunInline:
         if result.returncode != 0:
             pytest.skip("bun/node not available")
 
-    def test_temp_file_cleaned_up(self) -> None:
+    def test_temp_file_cleaned_up(self, tmp_path: Path) -> None:
         """Temp file must be removed after execution."""
+        import os
 
-        before = set(Path("/tmp").glob("ai_inline_*"))
+        env = os.environ.copy()
+        env["TMPDIR"] = str(tmp_path)
+
+        before = set(tmp_path.glob("ai_inline_*"))
         subprocess.run(
             [sys.executable, str(RUN_INLINE), "-l", "python", "-c", "print(1)"],
             capture_output=True,
             text=True,
+            env=env,
         )
-        after = set(Path("/tmp").glob("ai_inline_*"))
+        after = set(tmp_path.glob("ai_inline_*"))
         # No new temp files should remain
         assert after == before or len(after - before) == 0
 

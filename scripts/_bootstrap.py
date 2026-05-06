@@ -40,65 +40,18 @@ def detect_compose_cmd() -> list[str]:
 
 
 PROFILES: dict[str, list[str]] = {
-    "api": [
-        "--profile",
-        "lint-api",
-        "--profile",
-        "unit-api",
-        "--profile",
-        "infra-db-init",
-        "--profile",
-        "infra-db",
-    ],
-    "integration": [
-        "--profile",
-        "lint-api",
-        "--profile",
-        "unit-api",
-        "--profile",
-        "int-api",
-        "--profile",
-        "infra-db",
-        "--profile",
-        "infra-db-init",
-        "--profile",
-        "infra-redis",
-    ],
-    "web": [
-        "--profile",
-        "lint-web",
-        "--profile",
-        "unit-web",
-        "--profile",
-        "e2e-web",
-    ],
-    "all": [
-        "--profile",
-        "lint-api",
-        "--profile",
-        "unit-api",
-        "--profile",
-        "int-api",
-        "--profile",
-        "lint-web",
-        "--profile",
-        "unit-web",
-        "--profile",
-        "e2e-web",
-        "--profile",
-        "infra-db",
-        "--profile",
-        "infra-db-init",
-        "--profile",
-        "infra-redis",
-    ],
+    "api": ["--profile", "api"],
+    "integration": ["--profile", "api"],
+    "web": ["--profile", "web"],
+    "all": ["--profile", "api", "--profile", "web"],
 }
 
+
 LIFECYCLE_PROFILES: dict[str, list[str]] = {
-    "api": ["--profile", "backend"],
-    "integration": ["--profile", "backend"],
-    "web": ["--profile", "frontend"],
-    "all": ["--profile", "backend", "--profile", "frontend"],
+    "api": ["--profile", "api"],
+    "integration": ["--profile", "api"],
+    "web": ["--profile", "web"],
+    "all": ["--profile", "api", "--profile", "web"],
 }
 
 
@@ -107,12 +60,12 @@ def resolve_profiles(mode: str) -> list[str]:
     custom = os.environ.get("PROFILES", "")
     if custom:
         return custom.split()
-    return PROFILES.get(mode, PROFILES["all"])
+    return PROFILES.get(mode, ["--profile", mode])
 
 
 def resolve_lifecycle_profiles(mode: str) -> list[str]:
     """Translate a mode into lifecycle (up/down) profile flags."""
-    return LIFECYCLE_PROFILES.get(mode, LIFECYCLE_PROFILES["all"])
+    return LIFECYCLE_PROFILES.get(mode, ["--profile", mode])
 
 
 def bootstrap_env(mode: str = "all") -> dict[str, str]:

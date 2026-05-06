@@ -69,18 +69,18 @@ impl AdaptivePollingState {
     }
 
     /// Get current interval
-    pub fn interval(&self) -> u64 {
+    pub const fn interval(&self) -> u64 {
         self.current_interval_secs
     }
 
     /// Update the cooldown value (e.g. from a live config change)
-    pub fn set_cooldown(&mut self, cooldown_secs: u64) {
+    pub const fn set_cooldown(&mut self, cooldown_secs: u64) {
         self.success_cooldown_secs = cooldown_secs;
     }
 
     /// Returns true if the current interval exceeds session-safe limit,
     /// meaning the caller should proactively disconnect before sleeping.
-    pub fn needs_disconnect(&self) -> bool {
+    pub const fn needs_disconnect(&self) -> bool {
         self.current_interval_secs > MAX_POLL_INTERVAL_SECS
     }
 }

@@ -13,7 +13,7 @@ test.describe.skip("Leave Policies CRUD", () => {
     await page.getByTestId('fast-login-btn').click();
 
     // Wait for dashboard to load
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 10000 });
 
     // Navigate to Leave Settings
     await page.goto("/workspace/settings/leave");

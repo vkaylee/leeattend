@@ -45,13 +45,13 @@ def _safe_log_name(phase_name: str, task_name: str) -> str:
     return f"{safe_phase}_{safe_task}.log"
 
 
-def build_compose_exec(service: str, command: str, workdir: str = "") -> list[str]:
+def build_compose_exec(service: str, command: str, workdir: str = "", mode: str = "all") -> list[str]:
     """Build a docker-compose exec command for running inside a container.
 
     Returns a list suitable for subprocess.run (shell=False).
     The command is passed to bash -c inside the container.
     """
-    env = bootstrap_env()
+    env = bootstrap_env(mode)
     compose_base = env.get("DOCKER_COMPOSE_CMD", "podman-compose").split()
 
     cmd = compose_base + [

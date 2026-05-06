@@ -34,7 +34,7 @@ def main() -> None:
     # Find the bash process that is the parent of this script
     parent_bash_pids = set()
     try:
-        p = psutil.Process(current_pid)
+        p: psutil.Process | None = psutil.Process(current_pid)
         while p:
             if p.name() == "bash":
                 parent_bash_pids.add(p.pid)

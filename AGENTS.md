@@ -16,15 +16,16 @@ All standard development tools run inside isolated Podman containers. You MUST e
 | Rust/Cargo | `cargo build` | `./scripts/_cargo.sh build` | `apiserver_test` |
 | Node/NPM | `npm install` | `./scripts/_npm.sh install` | `web_test` |
 | SQLx/DB | `sqlx migrate run` | `./scripts/_sqlx.sh migrate run` | `apiserver_test` |
+| SQLx Prepare | `cargo sqlx prepare` | `./scripts/_sqlx.sh prepare --workspace` | `apiserver_test` |
 
 ### 2. Git & Multiline Strings
 - **Git Protocol:** NEVER run `git` directly. ALWAYS use the `./scripts/git.sh` wrapper (e.g., `./scripts/git.sh commit -m "msg"`) to prevent PTY hangs.
 - **Multiline Strings:** NEVER pass strings containing literal newlines into terminal commands. Write multi-line content to a temp file (`/tmp/msg.txt`), then execute the command reading from that file (`-F /tmp/msg.txt`).
 
-### 3. Background Process Stream Redirection
-When executing any background command (`&`) or long-running pipe (`tail -f`), you MUST sever it from the PTY stream:
-- **ALWAYS append:** `</dev/null >/dev/null 2>&1`
-- **Example:** `./start-server.sh </dev/null >/dev/null 2>&1 &`
+### 3. Background Execution & Services
+- **BANNED:** Never use the bash background operator (`&`) for ANY command (tests, servers, builds). 
+- **BANNED:** Never use `tail -f` or similar blocking pagers.
+- *Note:* The AI's native terminal tool automatically handles long-running processes safely. You must run all commands normally without manual shell redirection or backgrounding.
 
 ### 4. Banned Inline Commands & Patterns
 > **Do NOT use these via AI terminal tools.** They cause infinite PTY hangs due to unclosed quotes or waiting for stdin.

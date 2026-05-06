@@ -435,7 +435,8 @@
         "base_amount": "基本金额",
         "tiers_config": "评估层级",
         "name_required": "政策名称是必填项",
-        "no_policies": "没有激励政策"
+        "effective_from": "生效日期",
+        "no_policies": "没有奖金政策"
       },
       "overtime_policies": "加班政策",
       "overtime_policies_desc": "根据时间和日期管理加班费规则。",
@@ -2389,7 +2390,8 @@
       "base_amount": "基本金额",
       "tiers_config": "评估层级",
       "name_required": "政策名称是必填项",
-      "no_policies": "没有激励政策"
+      "effective_from": "生效日期",
+      "no_policies": "没有奖金政策"
     },
     "overtime_policies_desc": "管理基于时间和日期的加班工资规则。",
     "overtime_policies": "加班政策",

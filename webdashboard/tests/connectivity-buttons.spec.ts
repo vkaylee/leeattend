@@ -2,7 +2,7 @@
 import { test, expect } from "./worker-orchestrator";
 
 test.describe("Connectivity Buttons Visibility Tests", () => {
-    test.beforeEach(async ({ connectivityPage }) => {
+    test.beforeEach(async ({ authPage, connectivityPage }) => {
         // authPage fixture automatically logs in and sets up workspace
         await connectivityPage.goto();
         await connectivityPage.waitForLoad();

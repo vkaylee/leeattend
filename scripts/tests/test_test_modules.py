@@ -131,7 +131,11 @@ class TestRunFunctionsWithPattern:
         cmd_strs = [" ".join(cmd) for _, _, cmd in tasks]
         assert any("cargo clippy" in c for c in cmd_strs)
         assert any("bun run lint" in c for c in cmd_strs)
-        assert any("openapi-typescript" in c for c in cmd_strs)
+
+        # Verify api-sync uses bash -c "cmd1 && cmd2" to prevent syntax errors
+        api_sync_cmd = next(c for c in cmd_strs if "openapi-typescript" in c)
+        assert api_sync_cmd.startswith("bash -c")
+        assert "&&" in api_sync_cmd
 
     @patch("_test_modules.run_parallel_ordered", return_value=True)
     def test_lint_apiserver(self, mock_run: MagicMock) -> None:

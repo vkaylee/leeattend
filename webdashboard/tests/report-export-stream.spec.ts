@@ -55,7 +55,7 @@ test.describe('Report Export Streaming E2E', () => {
     await expect(downloadButton).toBeVisible({ timeout: 5000 });
 
     // Trigger download and verify
-    const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
+    const downloadPromise = page.waitForEvent('download', { timeout: 10000 });
     await downloadButton.click();
     const download = await downloadPromise;
 

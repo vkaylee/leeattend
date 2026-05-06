@@ -9,14 +9,14 @@ export class DevicesPage extends BasePage {
   }
   async goto() {
     await this.page.goto('/workspace/settings/connectivity');
-    await this.page.waitForURL('**/settings/connectivity', { timeout: 30000 });
+    await this.page.waitForURL('**/settings/connectivity', { timeout: 10000 });
     await this.waitForLoad();
   }
 
   async waitForLoad() {
     // 1. Wait for the main container
     const container = this.page.getByTestId('connectivity-topology');
-    await expect(container).toBeVisible({ timeout: 30000 });
+    await expect(container).toBeVisible({ timeout: 10000 });
     
     // 2. Wait for loading to finish (either agents list or empty state appears)
     await expect(this.page.locator('[data-testid="agents-list"], [data-testid="empty-agents-state"]')).toBeVisible({ timeout: 20000 });

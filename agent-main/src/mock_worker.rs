@@ -13,7 +13,7 @@ impl Default for MockWorker {
 }
 
 impl MockWorker {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 }

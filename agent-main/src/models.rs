@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 // Config Push Models
-fn default_enabled() -> bool {
+const fn default_enabled() -> bool {
     true
 }
 

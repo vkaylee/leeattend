@@ -1,7 +1,7 @@
 import { test, expect } from '../worker-orchestrator';
 
 test.describe('Device CRUD — DevicesPage', () => {
-  test.beforeEach(async ({ devicesPage }) => {
+  test.beforeEach(async ({ authPage, devicesPage }) => {
     // authPage fixture already logs in; now navigate to DevicesPage
     await devicesPage.goto();
     await devicesPage.waitForLoad();

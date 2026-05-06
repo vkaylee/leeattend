@@ -94,12 +94,12 @@ impl RedbStore {
     }
 
     /// Get a reference to the underlying Redb database.
-    pub fn db(&self) -> &Database {
+    pub const fn db(&self) -> &Database {
         &self.db
     }
 
     /// Get the configured signature TTL in days.
-    pub fn signature_ttl_days(&self) -> i64 {
+    pub const fn signature_ttl_days(&self) -> i64 {
         self.signature_ttl_days
     }
 

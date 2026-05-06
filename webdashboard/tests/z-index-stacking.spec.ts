@@ -8,7 +8,7 @@ test.describe.skip('UI Z-Index Stacking Verification', () => {
     const fastLoginButton = page.getByTestId('fast-login-btn');
     await expect(fastLoginButton).toBeVisible({ timeout: 15000 });
     await fastLoginButton.click();
-    await expect(page.locator('h1').filter({ hasText: /Dashboard/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('h1').filter({ hasText: /Dashboard/i })).toBeVisible({ timeout: 10000 });
 
     // 2. Navigate to Leave Settings
     

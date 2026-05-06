@@ -45,6 +45,7 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
             "apiserver",
             f"cargo clippy {pkg_flag} -- -D warnings && cargo fmt --all -- --check",
             workdir="/workspace",
+            mode=mode
         )
         task_name = (
             f"rust-backend-clippy-{component_filter}" if component_filter else "rust-backend-clippy"
@@ -52,21 +53,26 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
         tasks.append((task_name, "apiserver", backend_cmd))
 
     if mode in ("all", "web"):
-        lint_cmd = build_compose_exec("webdashboard", "bun run lint")
+        lint_cmd = build_compose_exec("webdashboard", "bun run lint", mode=mode)
         tasks.append(("webdashboard-lint", "webdashboard", lint_cmd))
 
-        typecheck_cmd = build_compose_exec("webdashboard", "bun run type-check")
+        typecheck_cmd = build_compose_exec("webdashboard", "bun run type-check", mode=mode)
         tasks.append(("webdashboard-typecheck", "webdashboard", typecheck_cmd))
 
     if mode == "all":
         sync_cmd = build_compose_exec(
-            "apiserver", "cargo run -- gen-openapi > /workspace/shared/openapi.json"
+            "apiserver", "cargo run -- gen-openapi > /workspace/shared/openapi.json", mode=mode
         )
         sync_cmd2 = build_compose_exec(
             "webdashboard",
             "npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts",
+            mode=mode
         )
-        combined = sync_cmd[:-1] + ["&&"] + sync_cmd2[1:]
+        import shlex
+
+        cmd1_str = " ".join(shlex.quote(arg) for arg in sync_cmd)
+        cmd2_str = " ".join(shlex.quote(arg) for arg in sync_cmd2)
+        combined = ["bash", "-c", f"{cmd1_str} && {cmd2_str}"]
         tasks.append(("api-sync", "webdashboard", combined))
 
     return run_parallel_ordered("Linting", component_filter, tasks)
@@ -95,13 +101,14 @@ def leeattend_run_unit(
             "apiserver",
             backend,
             workdir="/workspace",
+            mode=mode
         )
         task_name = f"rust-backend-{component_filter}" if component_filter else "rust-backend"
         tasks.append((task_name, "apiserver", backend_cmd))
 
     if mode in ("all", "web"):
         web = f"bun run test -- {_safe_pattern(test_pattern)} {shard_flag} --passWithNoTests"
-        web_cmd = build_compose_exec("webdashboard", web)
+        web_cmd = build_compose_exec("webdashboard", web, mode=mode)
         tasks.append(("webdashboard", "webdashboard", web_cmd))
 
     return run_parallel_ordered("Unit Tests", component_filter, tasks)
@@ -134,6 +141,7 @@ def leeattend_run_integration(
             "apiserver",
             backend,
             workdir=workdir,
+            mode=mode
         )
         task_name = (
             f"rust-backend-int-{component_filter}" if component_filter else "rust-backend-int"
@@ -143,7 +151,7 @@ def leeattend_run_integration(
     if mode in ("all", "web"):
         pw_args = f"-g {_safe_pattern(test_pattern)}" if test_pattern else ""
         pw = f"npx playwright test {pw_args} --workers 1"
-        pw_cmd = build_compose_exec("webdashboard", pw)
+        pw_cmd = build_compose_exec("webdashboard", pw, mode=mode)
         tasks.append(("playwright-e2e", "webdashboard", pw_cmd))
 
     return run_parallel_ordered("Integration & E2E", component_filter, tasks)
@@ -175,14 +183,14 @@ def leeattend_run_coverage(component_filter: str = "", mode: str = "all") -> boo
             if component_filter
             else "rust-backend-coverage"
         )
-        tasks.append((task_name, "apiserver", build_compose_exec("apiserver", apiserver_cov)))
+        tasks.append((task_name, "apiserver", build_compose_exec("apiserver", apiserver_cov, mode=mode)))
 
     if mode in ("all", "web"):
         tasks.append(
             (
                 "webdashboard",
                 "webdashboard",
-                build_compose_exec("webdashboard", "bun run test:coverage"),
+                build_compose_exec("webdashboard", "bun run test:coverage", mode=mode),
             )
         )
 

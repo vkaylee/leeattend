@@ -33,9 +33,9 @@ VENV_PYTHON="$VENV_PATH/bin/python3"
 
 # Check for essential dependencies
 # psutil: safe-run | pytest: tests | pyyaml: compose | requests: health | ruff/mypy: premium lint
-if ! "$VENV_PYTHON" -c "import psutil, pytest, yaml, requests, ruff, mypy" 2>/dev/null; then
-    echo -e "${YELLOW}📦 Installing enterprise linter suite (ruff, mypy)...${NC}" >&2
-    "$VENV_PYTHON" -m pip install --quiet psutil pytest pyyaml requests pytest-cov ruff mypy types-psutil types-pyyaml types-requests
+if ! "$VENV_PYTHON" -c "import psutil, pytest, xdist, yaml, requests, ruff, mypy" 2>/dev/null; then
+    echo -e "${YELLOW}📦 Installing enterprise linter suite (ruff, mypy, xdist)...${NC}" >&2
+    "$VENV_PYTHON" -m pip install --quiet psutil pytest pytest-xdist pyyaml requests pytest-cov ruff mypy types-psutil types-pyyaml types-requests
 fi
 
 echo "$VENV_PYTHON"

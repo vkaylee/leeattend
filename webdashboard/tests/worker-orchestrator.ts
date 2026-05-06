@@ -54,7 +54,7 @@ authPage: async ({ page, loginPage }, use) => {
   await loginPage.login(MOCK_USER.email, 'password123');
 
   // Chờ cho đến khi thoát khỏi trang login
-  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 30000 });
+  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 10000 });
   
   await use(loginPage);
 },  storageState: async ({}, use) => { // eslint-disable-line no-empty-pattern
@@ -77,5 +77,11 @@ authPage: async ({ page, loginPage }, use) => {
 
 // Chặn API toàn cục cho mọi page trong context
 base.beforeEach(async ({ page }) => {
+  page.on('pageerror', error => console.error('[BROWSER ERROR]', error));
+  page.on('console', msg => {
+    console.log('[BROWSER LOG]', msg.type(), msg.text());
+  });
+  page.on('request', request => console.log('>>', request.method(), request.url()));
+  page.on('response', response => console.log('<<', response.status(), response.url()));
   await setupApiMocks(page);
 });

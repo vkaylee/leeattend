@@ -1,12 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
-import React, { Suspense } from "react";
 import { ErrorBoundary } from "@/components/common/error-boundary";
 
 const TanStackRouterDevtools = import.meta.env.DEV
-  ? React.lazy(() =>
+  ? lazy(() =>
       import("@tanstack/router-devtools").then((res) => ({
         default: res.TanStackRouterDevtools,
       }))
@@ -14,7 +14,7 @@ const TanStackRouterDevtools = import.meta.env.DEV
   : () => null;
 
 const DebugToolbar = import.meta.env.DEV
-  ? React.lazy(() =>
+  ? lazy(() =>
       import("@/components/debug/debug-toolbar").then((res) => ({
         default: res.DebugToolbar,
       }))

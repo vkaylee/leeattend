@@ -5,6 +5,9 @@
 > This project uses Podman-based test isolation. The ONLY way to run tests is through `./test.sh`.
 
 ## 1. Test Execution Commands
+> [!IMPORTANT]
+> **DO NOT use background execution (`&`) for tests.** The `./test.sh` script is already PTY-safe. You MUST run it directly in the foreground (e.g., `./test.sh <target> </dev/null`) so you can read the output and verify the results.
+
 | Scope | Command | Purpose |
 |---------------|---------|---------|
 | **Frontend** | `./test.sh web </dev/null` | Lint, Unit (Vitest), E2E (Playwright) |

@@ -16,7 +16,7 @@ impl WorkerConfig {
     /// Note: `use_legacy_checksum` is excluded because it's auto-detected and
     /// persisted per-device — including it causes false restarts on every
     /// ConfigPush after first connect (None→Some(detected) diff).
-    pub fn connection_changed(&self, other: &WorkerConfig) -> bool {
+    pub fn connection_changed(&self, other: &Self) -> bool {
         self.ip != other.ip
             || self.port != other.port
             || self.brand != other.brand

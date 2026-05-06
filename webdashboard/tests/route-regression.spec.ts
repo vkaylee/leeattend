@@ -5,7 +5,7 @@ test.describe.skip('Route & Sidebar Regression', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
     await page.getByTestId('fast-login-btn').click();
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 10000 });
   });
 
   const criticalRoutes = [
@@ -33,7 +33,7 @@ test.describe.skip('Route & Sidebar Regression', () => {
 
       // Verify page content via titleTestId
       const title = page.getByTestId(route.titleTestId);
-      await expect(title).toBeVisible({ timeout: 30000 });
+      await expect(title).toBeVisible({ timeout: 10000 });
       
       
     });

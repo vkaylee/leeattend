@@ -242,7 +242,7 @@ impl CentralClient {
         });
 
         // 3. WS Connection Manager
-        let conn_reload_tx = ws_reload_tx.clone();
+        let conn_reload_tx = ws_reload_tx;
         let ws_connected = self.is_connected.clone();
         let ws_time = self.time_sync.clone();
         tokio::spawn(async move {

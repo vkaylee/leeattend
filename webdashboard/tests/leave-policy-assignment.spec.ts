@@ -16,7 +16,7 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     await page.getByTestId('fast-login-btn').click();
     
     
-    await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 10000 });
 
     // 2. Create an Employee
     
@@ -30,7 +30,7 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     // Wait for form input directly
     
     const nameInput = page.getByTestId('employees-form-name-input');
-    await expect(nameInput).toBeVisible({ timeout: 30000 });
+    await expect(nameInput).toBeVisible({ timeout: 10000 });
 
     const uniqueId = `INT-${Date.now()}`;
     const fullName = 'Alice Doe';
@@ -41,7 +41,7 @@ test.describe.skip('Leave Policy Assignment Integration', () => {
     await page.getByTestId('save-employee-btn').click();
     
     // Wait for row to appear
-    await expect(page.getByRole('row', { name: fullName })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('row', { name: fullName })).toBeVisible({ timeout: 10000 });
     
 
     // 3. Navigate to Leave Settings

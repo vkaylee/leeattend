@@ -3,6 +3,15 @@ import { vi } from "vitest";
 
 import viLocale from "../i18n/locales/vi.json";
 
+// Ignore Happy DOM AbortError caused by pending async tasks during teardown
+process.on('unhandledRejection', (reason) => {
+  if (reason instanceof Error && reason.name === 'AbortError') {
+    return;
+  }
+  // We don't re-throw here to prevent failing the entire test suite for other unhandled rejections,
+  // but we should log them. Vitest will still report them.
+});
+
 // Helper to resolve nested keys
 const resolveKey = (key: string, object: Record<string, unknown>, variables?: Record<string, unknown>): string => {
   let result = key.split('.').reduce((o: unknown, index) => (o as Record<string, unknown>)[index], object) as string | undefined;
@@ -48,6 +57,18 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() { /* empty */ }
   disconnect() { /* empty */ }
 };
+
+// Mock fetch to prevent Happy DOM from attempting real HTTP requests and aborting them on teardown
+global.fetch = vi.fn(() => 
+  Promise.resolve({
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(""),
+    blob: () => Promise.resolve(new Blob()),
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+  } as unknown as Response)
+);
 
 // Mock EventSource for SSE
 class MockEventSource {

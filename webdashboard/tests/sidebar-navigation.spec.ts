@@ -7,13 +7,13 @@ test.describe.skip('Sidebar Navigation', () => {
     
     // 2. Wait for login page to be ready
     const fastLoginButton = page.getByTestId('fast-login-btn');
-    await expect(fastLoginButton).toBeVisible({ timeout: 30000 });
+    await expect(fastLoginButton).toBeVisible({ timeout: 10000 });
     
     // 3. Click Fast Login
     await fastLoginButton.click();
 
     // 4. Wait for dashboard to load
-    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL('/');
     
     // 5. Check if "Time & Leave" section is visible and expanded
@@ -34,12 +34,12 @@ test.describe.skip('Sidebar Navigation', () => {
     
     // Wait for login page to be ready
     const fastLoginButton = page.getByTestId('fast-login-btn');
-    await expect(fastLoginButton).toBeVisible({ timeout: 30000 });
+    await expect(fastLoginButton).toBeVisible({ timeout: 10000 });
     
     await fastLoginButton.click();
     
     // Wait for dashboard to load properly
-    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL('/');
 
     // Initially "Time & Leave" is expanded, "Organization" is collapsed

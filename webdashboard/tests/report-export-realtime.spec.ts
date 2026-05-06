@@ -26,7 +26,7 @@ test.describe.skip("Report Export Real-Time Updates", () => {
 
     // Wait for dashboard to load
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-      timeout: 30000,
+      timeout: 10000,
     });
 
     // Navigate to reports page
@@ -91,7 +91,7 @@ test.describe.skip("Report Export Real-Time Updates", () => {
     // Wait for completion
     await expect(page.getByTestId("report-export-status-text")).toContainText(
       /Completed|completed/i,
-      { timeout: 30000 }
+      { timeout: 10000 }
     );
 
     // Verify download button appears
@@ -217,7 +217,7 @@ test.describe.skip("Report Export Real-Time Updates", () => {
     // Wait for completion
     await expect(page.getByTestId("report-export-status-text")).toContainText(
       /Completed|completed/i,
-      { timeout: 30000 }
+      { timeout: 10000 }
     );
 
     // Setup download listener
@@ -297,7 +297,7 @@ test.describe.skip("Report Export Real-Time Updates", () => {
       // If fallback is active, verify it still completes
       await expect(page.getByTestId("report-export-status-text")).toContainText(
         /Completed|completed/i,
-        { timeout: 30000 }
+        { timeout: 10000 }
       );
     }
   });

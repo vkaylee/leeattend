@@ -435,6 +435,7 @@
         "base_amount": "Base Amount",
         "tiers_config": "Evaluation Tiers",
         "name_required": "Policy name is required",
+        "effective_from": "Effective From",
         "no_policies": "No incentive policies"
       },
       "overtime_policies": "Overtime Policies",
@@ -2389,6 +2390,7 @@
       "base_amount": "Base Amount",
       "tiers_config": "Evaluation Tiers",
       "name_required": "Policy name is required",
+      "effective_from": "Effective From",
       "no_policies": "No incentive policies"
     },
     "overtime_policies": "Overtime Policies",

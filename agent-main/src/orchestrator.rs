@@ -189,6 +189,7 @@ impl Orchestrator {
     fn setup_signal_handlers(&self) {
         let cloned_token = self.cancel_token.clone();
         tokio::spawn(async move {
+            #[allow(clippy::expect_used)]
             let mut sigterm =
                 tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
                     .expect("Failed to register SIGTERM handler");

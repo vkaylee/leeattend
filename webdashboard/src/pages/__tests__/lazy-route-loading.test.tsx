@@ -108,6 +108,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
         fetchDepartments: vi.fn(() => Promise.resolve([])),
         fetchRawAttendanceLogs: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
         fetchMyEmployeeProfile: vi.fn(() => Promise.resolve({ id: "emp-1", full_name: "Test User" })),
+        searchEmployees: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
     };
 });
 

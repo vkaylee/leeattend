@@ -75,37 +75,33 @@ class TestResolveProfiles:
         return False
 
     def test_api_mode(self) -> None:
-        profiles = resolve_profiles("api")
-        assert self._has_profile(profiles, "lint-api")
-        assert self._has_profile(profiles, "unit-api")
-        assert self._has_profile(profiles, "infra-db")
-        assert self._has_profile(profiles, "infra-db-init")
-        assert not self._has_profile(profiles, "lint-web")
-        assert not self._has_profile(profiles, "e2e-web")
+        with patch.dict(os.environ, {"PROFILES": ""}):
+            profiles = resolve_profiles("api")
+            assert self._has_profile(profiles, "api")
+            assert not self._has_profile(profiles, "web")
 
     def test_integration_mode(self) -> None:
-        profiles = resolve_profiles("integration")
-        assert self._has_profile(profiles, "int-api")
-        assert self._has_profile(profiles, "infra-redis")
-        assert not self._has_profile(profiles, "lint-web")
+        with patch.dict(os.environ, {"PROFILES": ""}):
+            profiles = resolve_profiles("integration")
+            assert self._has_profile(profiles, "api")
+            assert not self._has_profile(profiles, "web")
 
     def test_web_mode(self) -> None:
-        profiles = resolve_profiles("web")
-        assert self._has_profile(profiles, "lint-web")
-        assert self._has_profile(profiles, "unit-web")
-        assert self._has_profile(profiles, "e2e-web")
-        assert not self._has_profile(profiles, "infra-db")
-        assert not self._has_profile(profiles, "int-api")
+        with patch.dict(os.environ, {"PROFILES": ""}):
+            profiles = resolve_profiles("web")
+            assert self._has_profile(profiles, "web")
+            assert not self._has_profile(profiles, "api")
 
     def test_all_mode(self) -> None:
-        profiles = resolve_profiles("all")
-        assert self._has_profile(profiles, "int-api")
-        assert self._has_profile(profiles, "e2e-web")
-        assert self._has_profile(profiles, "infra-redis")
+        with patch.dict(os.environ, {"PROFILES": ""}):
+            profiles = resolve_profiles("all")
+            assert self._has_profile(profiles, "api")
+            assert self._has_profile(profiles, "web")
 
     def test_unknown_mode_defaults_to_all(self) -> None:
-        profiles = resolve_profiles("unknown")
-        assert profiles == resolve_profiles("all")
+        with patch.dict(os.environ, {"PROFILES": ""}):
+            profiles = resolve_profiles("unknown")
+            assert profiles == resolve_profiles("all")
 
     def test_custom_profiles_from_env(self) -> None:
         with patch.dict(os.environ, {"PROFILES": "--profile custom1 --profile custom2"}):
@@ -121,21 +117,21 @@ class TestResolveProfiles:
 class TestResolveLifecycleProfiles:
     def test_api_mode_backend_only(self) -> None:
         profiles = resolve_lifecycle_profiles("api")
-        assert profiles == ["--profile", "backend"]
+        assert profiles == ["--profile", "api"]
 
     def test_integration_mode_backend_only(self) -> None:
         profiles = resolve_lifecycle_profiles("integration")
-        assert profiles == ["--profile", "backend"]
+        assert profiles == ["--profile", "api"]
 
     def test_web_mode_frontend_only(self) -> None:
         profiles = resolve_lifecycle_profiles("web")
-        assert profiles == ["--profile", "frontend"]
+        assert profiles == ["--profile", "web"]
 
     def test_all_mode_both(self) -> None:
         profiles = resolve_lifecycle_profiles("all")
         assert "--profile" in profiles
-        assert "backend" in profiles
-        assert "frontend" in profiles
+        assert "api" in profiles
+        assert "web" in profiles
 
     def test_unknown_defaults_to_all(self) -> None:
         profiles = resolve_lifecycle_profiles("unknown")
@@ -156,10 +152,11 @@ class TestBootstrapEnv:
         assert "PROJECT_ROOT" in env
 
     def test_mode_injection(self) -> None:
-        env = bootstrap_env(mode="api")
-        assert env["MODE"] == "api"
-        assert "--profile lint-api" in env["DOCKER_COMPOSE_CMD"]
-        assert "--profile e2e-web" not in env["DOCKER_COMPOSE_CMD"]
+        with patch.dict(os.environ, {"PROFILES": ""}):
+            env = bootstrap_env(mode="api")
+            assert env["MODE"] == "api"
+            assert "--profile api" in env["DOCKER_COMPOSE_CMD"]
+            assert "--profile web" not in env["DOCKER_COMPOSE_CMD"]
 
     def test_project_name_from_env(self) -> None:
         with patch.dict(os.environ, {"COMPOSE_PROJECT_NAME": "my-custom-project"}):

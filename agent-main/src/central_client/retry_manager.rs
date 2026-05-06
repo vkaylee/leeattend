@@ -52,7 +52,7 @@ pub(super) struct RetryManager {
 }
 
 impl RetryManager {
-    pub(super) fn new() -> Self {
+    pub(super) const fn new() -> Self {
         Self {
             retry_count: 0,
             stable_since: None,

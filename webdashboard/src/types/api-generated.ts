@@ -39,11 +39,6 @@ export interface paths {
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    headers: never;
-    parameters: never;
-    pathItems: never;
-    requestBodies: never;
-    responses: never;
     schemas: {
         /** @enum {string} */
         AdjustmentStatus: "pending" | "approved" | "rejected";
@@ -159,6 +154,11 @@ export interface components {
             total_employees: number;
         };
     };
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
@@ -173,7 +173,9 @@ export interface operations {
         responses: {
             /** @description List all agents status */
             200: {
-                headers: Record<string, unknown>;
+                headers: {
+                    [name: string]: unknown;
+                };
                 content: {
                     "application/json": components["schemas"]["AgentStatus"][];
                 };
@@ -191,7 +193,9 @@ export interface operations {
         responses: {
             /** @description List all devices */
             200: {
-                headers: Record<string, unknown>;
+                headers: {
+                    [name: string]: unknown;
+                };
                 content: {
                     "application/json": components["schemas"]["Device"][];
                 };

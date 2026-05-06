@@ -102,6 +102,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
         getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
         fetchWorkspaceLeaveBalances: vi.fn(() => Promise.resolve([])),
         fetchEmployees: vi.fn(() => Promise.resolve([])),
+        searchEmployees: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
         fetchWorkspace: vi.fn(() => Promise.resolve({ date_format: "DD/MM/YYYY", timezone: "UTC", default_language: "en" })),
         fetchDepartments: vi.fn(() => Promise.resolve([])),
         fetchRawAttendanceLogs: vi.fn(() => Promise.resolve({ data: [], total: 0 })),

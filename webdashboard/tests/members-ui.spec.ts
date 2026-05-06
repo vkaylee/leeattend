@@ -7,7 +7,7 @@ test.describe.skip("Members UI", () => {
     // 1. Login
     await page.goto('/login');
     await page.getByTestId('fast-login-btn').click();
-    await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 10000 });
 
     // 2. Expand Sidebar Section if needed
     const peopleLink = page.getByTestId('sidebar-link-settings-people');
@@ -21,7 +21,7 @@ test.describe.skip("Members UI", () => {
 
     // 3. Click People link
     await peopleLink.click();
-    await expect(page).toHaveURL(/\/workspace\/settings\/people/i, { timeout: 30000 });
+    await expect(page).toHaveURL(/\/workspace\/settings\/people/i, { timeout: 10000 });
 
     await expect(page.getByTestId('people-settings-title')).toBeVisible();
     await page.getByTestId('tab-members').click();

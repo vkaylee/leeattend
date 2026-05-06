@@ -435,6 +435,7 @@
         "base_amount": "Số tiền gốc",
         "tiers_config": "Bậc đánh giá",
         "name_required": "Tên chính sách là bắt buộc",
+        "effective_from": "Ngày hiệu lực",
         "no_policies": "Chưa có chính sách thưởng nào"
       },
       "overtime_policies": "Chính sách tăng ca",
@@ -2389,6 +2390,7 @@
       "base_amount": "Mức thưởng Gốc",
       "tiers_config": "Cấu hình Bậc thưởng",
       "name_required": "Vui lòng nhập tên chính sách",
+      "effective_from": "Ngày hiệu lực",
       "no_policies": "Chưa có chính sách thưởng nào"
     },
     "overtime_policies": "Chính sách tăng ca",

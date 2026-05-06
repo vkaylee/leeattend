@@ -11,3 +11,4 @@
 ## 3. Execution
 - NEVER run `sqlx` directly. 
 - ALWAYS use the hermetic toolbox: `./scripts/_sqlx.sh migrate run`
+- To update SQLx offline data cache: run `./scripts/_sqlx.sh prepare --workspace` (Wait for test environment to be fully up first).
