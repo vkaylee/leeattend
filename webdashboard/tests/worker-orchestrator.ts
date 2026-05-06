@@ -79,9 +79,12 @@ authPage: async ({ page, loginPage }, use) => {
 base.beforeEach(async ({ page }) => {
   page.on('pageerror', error => { console.error('[BROWSER ERROR]', error); });
   page.on('console', msg => {
+    // eslint-disable-next-line no-console
     console.log('[BROWSER LOG]', msg.type(), msg.text());
   });
+  // eslint-disable-next-line no-console
   page.on('request', request => { console.log('>>', request.method(), request.url()); });
+  // eslint-disable-next-line no-console
   page.on('response', response => { console.log('<<', response.status(), response.url()); });
   await setupApiMocks(page);
 });
