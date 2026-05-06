@@ -65,8 +65,17 @@ export default function PayrollSettings() {
     return <div className="p-12 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
   }
 
+  const navItems = [
+    { id: "policy" as TabType, icon: FileText, label: t("common.settings.tabs.payroll_policy"), testId: "payroll-tab-policy" },
+    { id: "components" as TabType, icon: Blocks, label: t("common.settings.tabs.salary_components"), testId: "payroll-tab-components" },
+    { id: "bases" as TabType, icon: Coins, label: "Salary Bases", testId: "payroll-tab-bases" },
+    { id: "incentives" as TabType, icon: Sparkles, label: t("common.settings.tabs.incentives"), testId: "payroll-tab-incentives" },
+    { id: "overtime" as TabType, icon: Calculator, label: t("common.settings.tabs.overtime_policy"), testId: "payroll-tab-overtime" },
+    { id: "statutory_rules" as TabType, icon: FileText, label: t("common.settings.tabs.statutory_rules"), testId: "payroll-tab-rules" },
+  ];
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-10 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/50"><Coins size={24} /></div>
@@ -77,17 +86,35 @@ export default function PayrollSettings() {
         </div>
       </div>
 
-      <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'policy' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="payroll-tab-policy" onClick={() => { setActiveTab("policy"); }}><FileText size={14} /> {t("common.settings.tabs.payroll_policy")}</button>
-        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'components' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="payroll-tab-components" onClick={() => { setActiveTab("components"); }}><Blocks size={14} /> {t("common.settings.tabs.salary_components")}</button>
-        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'bases' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="payroll-tab-bases" onClick={() => { setActiveTab("bases"); }}><Coins size={14} /> Salary Bases</button>
-        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'incentives' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="payroll-tab-incentives" onClick={() => { setActiveTab("incentives"); }}><Sparkles size={14} /> {t("common.settings.tabs.incentives")}</button>
-        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === "overtime" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="payroll-tab-overtime" onClick={() => { setActiveTab("overtime"); }}><Calculator size={14} /> {t("common.settings.tabs.overtime_policy")}</button>
-        <button className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === "statutory_rules" ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")} data-testid="payroll-tab-rules" onClick={() => { setActiveTab("statutory_rules"); }}><FileText size={14} /> {t("common.settings.tabs.statutory_rules")}</button>
-      </div>
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+        {/* Navigation Sidebar */}
+        <div className="w-full lg:w-64 shrink-0">
+          <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 hide-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0">
+            {navItems.map((item) => (
+              <button
+                className={cn(
+                  "flex items-center gap-3 px-5 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all text-left whitespace-nowrap lg:whitespace-normal shrink-0 lg:shrink",
+                  activeTab === item.id
+                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-md shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                )}
+                data-testid={item.testId}
+                key={item.id}
+                onClick={() => { setActiveTab(item.id); }}
+              >
+                <item.icon className={cn("shrink-0", activeTab === item.id ? "text-primary-500" : "text-slate-400")} size={16} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
 
-      <div className="animate-in slide-in-from-bottom-4 duration-500">
-        <PayrollTabContent activeTab={activeTab} wsId={wsId} />
+        {/* Content Area */}
+        <div className="flex-1 min-w-0">
+          <div className="animate-in slide-in-from-right-4 duration-500">
+            <PayrollTabContent activeTab={activeTab} wsId={wsId} />
+          </div>
+        </div>
       </div>
     </div>
   );
