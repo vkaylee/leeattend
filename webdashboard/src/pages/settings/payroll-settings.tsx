@@ -89,20 +89,20 @@ export default function PayrollSettings() {
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
         {/* Navigation Sidebar */}
         <div className="w-full lg:w-64 shrink-0">
-          <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 hide-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0">
+          <nav className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 hide-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0">
             {navItems.map((item) => (
               <button
                 className={cn(
-                  "flex items-center gap-3 px-5 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all text-left whitespace-nowrap lg:whitespace-normal shrink-0 lg:shrink",
+                  "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all text-left whitespace-nowrap lg:whitespace-normal shrink-0 lg:shrink",
                   activeTab === item.id
-                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-md shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    ? "bg-slate-100 dark:bg-slate-800/80 text-primary-600 dark:text-primary-400"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                 )}
                 data-testid={item.testId}
                 key={item.id}
-                onClick={() => { setActiveTab(item.id); }}
+                onClick={() => setActiveTab(item.id)}
               >
-                <item.icon className={cn("shrink-0", activeTab === item.id ? "text-primary-500" : "text-slate-400")} size={16} />
+                <item.icon className={cn("shrink-0", activeTab === item.id ? "text-primary-600 dark:text-primary-400" : "text-slate-400")} size={18} />
                 <span>{item.label}</span>
               </button>
             ))}
