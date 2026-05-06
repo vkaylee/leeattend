@@ -140,8 +140,9 @@ class TestResolveLifecycleProfiles:
 
 class TestBootstrapEnv:
     def test_default_mode_all(self) -> None:
-        env = bootstrap_env()
-        assert env["COMPOSE_PROJECT_NAME"].startswith("leeattend-test")
+        with patch.dict(os.environ, {}, clear=True):
+            env = bootstrap_env()
+            assert env["COMPOSE_PROJECT_NAME"].startswith("leeattend-test")
         assert env["PODMAN_COMPOSE_PROJECT_NAME"].startswith("leeattend-test")
         assert env["USE_DOCKER"] == "true"
         assert env["MODE"] == "all"
@@ -165,8 +166,9 @@ class TestBootstrapEnv:
             assert env["PODMAN_COMPOSE_PROJECT_NAME"] == "my-custom-project"
 
     def test_compose_base_has_no_profiles(self) -> None:
-        env = bootstrap_env(mode="api")
-        base = env["DOCKER_COMPOSE_BASE"]
+        with patch.dict(os.environ, {}, clear=True):
+            env = bootstrap_env(mode="api")
+            base = env["DOCKER_COMPOSE_BASE"]
         assert "--profile" not in base
         assert "leeattend-test" in base
         assert "docker-compose.test.yml" in base

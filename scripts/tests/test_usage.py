@@ -82,6 +82,7 @@ def test_no_garbage_flags_in_test_parser(orchestrator: _orchestrator.Orchestrato
         patch("_orchestrator.leeattend_run_coverage"),
         patch.object(_orchestrator.Orchestrator, "handle_verify_infra"),
         patch.object(_orchestrator.Orchestrator, "print_test_summary"),
+        patch.object(_orchestrator.Orchestrator, "handle_run"),
     ):
         orchestrator.handle_test(args)
 

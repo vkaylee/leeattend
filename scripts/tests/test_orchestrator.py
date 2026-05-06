@@ -61,12 +61,15 @@ def test_manage_up_dev(mock_run, orchestrator) -> None:
 
 
 @patch.object(_orchestrator.Orchestrator, "run_phase")
-def test_test_api_mode(mock_run_phase, orchestrator) -> None:
+@patch("_orchestrator.Orchestrator.handle_run")
+def test_test_api_mode(mock_handle_run, mock_run_phase, orchestrator) -> None:
     """Test test --api mode runs all required phases."""
     mock_run_phase.return_value = None
+    mock_handle_run.return_value = None
     args = orchestrator.parser.parse_args(["test", "api"])
     orchestrator.handle_test(args)
     assert mock_run_phase.call_count >= 3  # Startup + Lint + Unit + Integration
+    assert mock_handle_run.called
 
 
 @patch("subprocess.run")
@@ -166,9 +169,11 @@ def test_test_coverage_all(mock_exec, mock_run_phase, orchestrator) -> None:
 
 
 @patch.object(_orchestrator.Orchestrator, "run_phase")
-def test_test_timeout_custom(mock_run_phase, orchestrator) -> None:
+@patch("_orchestrator.Orchestrator.handle_run")
+def test_test_timeout_custom(mock_handle_run, mock_run_phase, orchestrator) -> None:
     """Test test command with custom timeout."""
     mock_run_phase.return_value = None
+    mock_handle_run.return_value = None
     args = orchestrator.parser.parse_args(["test", "api", "--timeout", "100"])
     orchestrator.handle_test(args)
     assert mock_run_phase.called
@@ -362,9 +367,11 @@ def test_handle_test_web(mock_run_phase, orchestrator) -> None:
 
 
 @patch.object(_orchestrator.Orchestrator, "run_phase")
-def test_handle_test_integration(mock_run_phase, orchestrator) -> None:
+@patch("_orchestrator.Orchestrator.handle_run")
+def test_handle_test_integration(mock_handle_run, mock_run_phase, orchestrator) -> None:
     """Test test with api target (maps to integration internally)."""
     mock_run_phase.return_value = None
+    mock_handle_run.return_value = None
     args = orchestrator.parser.parse_args(["test", "api"])
     orchestrator.handle_test(args)
     assert mock_run_phase.called
@@ -392,10 +399,12 @@ def test_handle_manage_exec(mock_run, orchestrator) -> None:
 
 
 @patch("sys.argv", ["_orchestrator.py", "test", "api"])
+@patch("_orchestrator.Orchestrator.handle_run")
 @patch.object(_orchestrator.Orchestrator, "run_phase")
-def test_full_run_test_api(mock_run_phase, orchestrator) -> None:
+def test_full_run_test_api(mock_run_phase, mock_handle_run, orchestrator) -> None:
     """Test full run loop for test --api command."""
     mock_run_phase.return_value = None
+    mock_handle_run.return_value = None
     orchestrator.run()
     assert mock_run_phase.called
 
@@ -566,9 +575,11 @@ def test_handle_run_cargo_test_conversion(mock_run, orchestrator) -> None:
 
 
 @patch.object(_orchestrator.Orchestrator, "run_phase")
-def test_run_phase_with_pattern(mock_run_phase, orchestrator) -> None:
+@patch("_orchestrator.Orchestrator.handle_run")
+def test_run_phase_with_pattern(mock_handle_run, mock_run_phase, orchestrator) -> None:
     """Test pattern arg is propagated."""
     mock_run_phase.return_value = None
+    mock_handle_run.return_value = None
     args = orchestrator.parser.parse_args(["test", "api", "--pattern", "auth"])
     orchestrator.handle_test(args)
     assert mock_run_phase.called

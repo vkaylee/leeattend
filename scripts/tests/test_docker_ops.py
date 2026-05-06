@@ -18,15 +18,16 @@ from _docker_ops import (  # noqa: E402
 
 class TestBuildComposeCmd:
     def test_basic_command(self) -> None:
-        cmd = _build_compose_cmd(["up", "-d"])
-        cmd_str = " ".join(cmd)
-        assert cmd[0] in ("podman-compose", "docker")
-        assert "-p" in cmd
-        assert any(c.startswith("leeattend-test") for c in cmd)
-        assert "-f" in cmd
-        assert "docker-compose.test.yml" in cmd_str
-        assert "up" in cmd
-        assert "-d" in cmd
+        with patch.dict(os.environ, {}, clear=True):
+            cmd = _build_compose_cmd(["up", "-d"])
+            cmd_str = " ".join(cmd)
+            assert cmd[0] in ("podman-compose", "docker")
+            assert "-p" in cmd
+            assert any(c.startswith("leeattend-test") for c in cmd)
+            assert "-f" in cmd
+            assert "docker-compose.test.yml" in cmd_str
+            assert "up" in cmd
+            assert "-d" in cmd
 
     def test_custom_project_name(self) -> None:
         cmd = _build_compose_cmd(["ps"], project_name="my-project")

@@ -43,9 +43,9 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
         )
         backend_cmd = build_compose_exec(
             "apiserver",
-            f"cargo clippy {pkg_flag} -- -D warnings && cargo fmt --all -- --check",
+            f"SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx cargo clippy {pkg_flag} -- -D warnings && SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx cargo fmt --all -- --check",
             workdir="/workspace",
-            mode=mode
+            mode=mode,
         )
         task_name = (
             f"rust-backend-clippy-{component_filter}" if component_filter else "rust-backend-clippy"
@@ -66,7 +66,7 @@ def leeattend_run_lint(component_filter: str = "", mode: str = "all") -> bool:
         sync_cmd2 = build_compose_exec(
             "webdashboard",
             "npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts",
-            mode=mode
+            mode=mode,
         )
         import shlex
 
@@ -96,13 +96,8 @@ def leeattend_run_unit(
             if component_filter in ["apiserver", "agent-main"]
             else "--workspace"
         )
-        backend = f"cargo nextest run {pkg_flag} --lib {_safe_pattern(test_pattern)} {shard_flag} --no-tests=pass"
-        backend_cmd = build_compose_exec(
-            "apiserver",
-            backend,
-            workdir="/workspace",
-            mode=mode
-        )
+        backend = f"SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx cargo nextest run {pkg_flag} --lib {_safe_pattern(test_pattern)} {shard_flag} --no-tests=pass"
+        backend_cmd = build_compose_exec("apiserver", backend, workdir="/workspace", mode=mode)
         task_name = f"rust-backend-{component_filter}" if component_filter else "rust-backend"
         tasks.append((task_name, "apiserver", backend_cmd))
 
@@ -133,16 +128,11 @@ def leeattend_run_integration(
             else "--workspace"
         )
         backend = (
-            f"DATABASE_URL={db_url} "
+            f"DATABASE_URL={db_url} SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx "
             f"cargo nextest run {pkg_flag} --test '*' {_safe_pattern(test_pattern)} "
             f"--no-tests={no_tests_flag}"
         )
-        backend_cmd = build_compose_exec(
-            "apiserver",
-            backend,
-            workdir=workdir,
-            mode=mode
-        )
+        backend_cmd = build_compose_exec("apiserver", backend, workdir=workdir, mode=mode)
         task_name = (
             f"rust-backend-int-{component_filter}" if component_filter else "rust-backend-int"
         )
@@ -171,19 +161,21 @@ def leeattend_run_coverage(component_filter: str = "", mode: str = "all") -> boo
         )
         apiserver_cov = (
             f"mkdir -p /workspace/.test_logs && "
-            f"{coverage_env} cargo llvm-cov nextest --lib --test integration {pkg_flag} "
+            f"SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx {coverage_env} cargo llvm-cov nextest --lib --test integration {pkg_flag} "
             f"--lcov --output-path /workspace/.test_logs/coverage-apiserver.lcov "
             f"--no-tests=pass 2>&1 && "
-            f"{coverage_env} cargo llvm-cov report --html "
+            f"SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx {coverage_env} cargo llvm-cov report --html "
             f"--output-dir /workspace/.test_logs/coverage-apiserver-html 2>&1 && "
-            f"{coverage_env} cargo llvm-cov report --summary-only 2>&1"
+            f"SQLX_OFFLINE=true SQLX_OFFLINE_DIR=/workspace/apiserver/.sqlx {coverage_env} cargo llvm-cov report --summary-only 2>&1"
         )
         task_name = (
             f"rust-backend-coverage-{component_filter}"
             if component_filter
             else "rust-backend-coverage"
         )
-        tasks.append((task_name, "apiserver", build_compose_exec("apiserver", apiserver_cov, mode=mode)))
+        tasks.append(
+            (task_name, "apiserver", build_compose_exec("apiserver", apiserver_cov, mode=mode))
+        )
 
     if mode in ("all", "web"):
         tasks.append(

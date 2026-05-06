@@ -370,6 +370,14 @@ class Orchestrator:
         if args.lint_only:
             run_lint = True
 
+        if (run_lint or run_unit or run_e2e) and mode in ["api", "all"]:
+            log_info("🔹 Generating SQLx metadata cache before tests...")
+            fake_args = argparse.Namespace(
+                tool="sqlx",
+                args=["prepare", "--", "--tests"],
+            )
+            self.handle_run(fake_args)
+
         if run_lint:
             self.run_phase("Linting", mode, args)
 
@@ -404,6 +412,9 @@ class Orchestrator:
         if granular_mode:
             log_info(f"🔹 Starting isolated environment for: {phase_name} ({granular_mode})")
             _lifecycle_up(granular_mode)
+            if phase_name == "Integration Tests" and granular_mode in ("int-api", "api"):
+                _lifecycle_up("infra-db")
+                _lifecycle_up("infra-redis")
 
         log_info(f"🔹 Running {phase_name}...")
         func_map: dict[str, typing.Callable[..., typing.Any]] = {
@@ -504,8 +515,6 @@ class Orchestrator:
         venv_pytest = PROJECT_ROOT / ".venv" / "bin" / "pytest"
         cmd = [
             str(venv_pytest),
-            "-n",
-            "auto",
             "--cov=scripts",
             "--cov-report=term-missing",
             "--cov-fail-under=100",
