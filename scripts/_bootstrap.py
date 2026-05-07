@@ -26,7 +26,7 @@ def detect_engine() -> str:
         return "docker"
     if _which("podman"):
         return "podman"
-    return "docker"
+    return "podman"
 
 
 def detect_compose_cmd() -> list[str]:

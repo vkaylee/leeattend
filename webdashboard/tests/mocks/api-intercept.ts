@@ -8,12 +8,14 @@ import { MOCK_WORKSPACE, MOCK_USER, MOCK_EMPLOYEES, MOCK_DEPARTMENTS, MOCK_AGENT
 let devices: Device[];
 let nextDeviceId = 100;
 let activeWorkspace: Workspace;
+let exportJobCalls = 0;
 
 export async function setupApiMocks(page: Page) {
   // Reset stateful stores for each test
   devices = structuredClone(MOCK_DEVICES_INITIAL);
   nextDeviceId = 100;
   activeWorkspace = structuredClone(MOCK_WORKSPACE);
+  exportJobCalls = 0;
 
   // Chặn các request gọi đến Backend API (/api/...)
   // Loại trừ các file tĩnh (.ts, .js, .css, .jsx, .tsx) của Vite
@@ -302,12 +304,32 @@ export async function setupApiMocks(page: Page) {
     }
 
     // 12. Report Export
+    if ((/\/api\/workspaces\/[^/]+\/reports\/attendance/.exec(pathname)) && method === 'GET') {
+      return fulfill({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50
+      });
+    }
+
     if ((/\/api\/workspaces\/[^/]+\/reports\/export$/.exec(pathname)) && method === 'POST') {
+      exportJobCalls = 0; // Reset counter for new job
       const resp = { job_id: "job-mock-123", total_batches: 5 };
       
       return fulfill(resp, 201);
     }
     if ((/\/api\/workspaces\/[^/]+\/reports\/jobs\/[^/]+$/.exec(pathname)) && method === 'GET') {
+      exportJobCalls++;
+      if (exportJobCalls < 3) {
+        return fulfill({
+          job_id: "job-mock-123",
+          status: "processing",
+          progress: { total_batches: 5, completed_batches: exportJobCalls * 2, failed_batches: 0, percentage: (exportJobCalls * 2 / 5) * 100 },
+          created_at: new Date().toISOString()
+        });
+      }
+      
       // Simulate completed job
       return fulfill({
         job_id: "job-mock-123",
@@ -348,7 +370,9 @@ export async function setupApiMocks(page: Page) {
       });
       // Triggers onError in useReportStream
       ws.send('{"type":"ERROR", "message": "Connection lost for mock testing"}');
-      void ws.close();
+      setTimeout(() => {
+        void ws.close();
+      }, 100);
     }
   });
 }

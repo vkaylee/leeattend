@@ -240,7 +240,6 @@ function AddLeaveTypeModal({ onClose, onSave, isSaving }: AddLeaveTypeModalProps
             {filteredTemplates.length > 0 ? (
               <div className="grid grid-cols-1 gap-4">
                 {filteredTemplates.map((template) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                   const Icon = template.icon;
                   return (
                     <button

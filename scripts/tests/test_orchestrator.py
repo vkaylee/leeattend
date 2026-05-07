@@ -306,10 +306,12 @@ def test_dry_run_execute_safe(mock_run, orchestrator) -> None:
     assert not mock_run.called
 
 
+@patch("subprocess.run")
 @patch("shutil.which")
-def test_doctor_no_engine(mock_which, orchestrator) -> None:
+def test_doctor_no_engine(mock_which, mock_run, orchestrator) -> None:
     """Test doctor when no container engine is found."""
     mock_which.return_value = None
+    mock_run.return_value.stdout = ""
     orchestrator.handle_doctor()
     assert mock_which.called
 
