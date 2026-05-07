@@ -1,4 +1,4 @@
-use crate::models::{AttendanceImportJob, ImportJobStatus};
+use crate::models::{enums::ImportTargetType, AttendanceImportJob, ImportJobStatus};
 use async_trait::async_trait;
 use chrono::Utc;
 use sqlx::PgPool;
@@ -21,7 +21,7 @@ pub trait ImportJobRepository: super::PoolBacked + Send + Sync {
     async fn get_latest_job(
         &self,
         workspace_id: Uuid,
-        target_type: Option<String>,
+        target_type: Option<ImportTargetType>,
     ) -> Result<Option<AttendanceImportJob>, sqlx::Error>;
     async fn get_pending_jobs(&self) -> Result<Vec<AttendanceImportJob>, sqlx::Error>;
     async fn update_job_total_rows(&self, id: Uuid, total_rows: i32) -> Result<(), sqlx::Error>;
@@ -60,7 +60,7 @@ impl ImportJobRepository for SqlxImportJobRepository {
     async fn get_latest_job(
         &self,
         workspace_id: Uuid,
-        target_type: Option<String>,
+        target_type: Option<ImportTargetType>,
     ) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
         get_latest_job(&self.pool, workspace_id, target_type).await
     }
@@ -84,7 +84,7 @@ pub async fn create_job(pool: &PgPool, job: &AttendanceImportJob) -> Result<(), 
     .bind(job.processed_rows)
     .bind(&job.file_path)
     .bind(&job.error_log)
-    .bind(&job.target_type)
+    .bind(job.target_type)
     .bind(job.created_at)
     .bind(job.updated_at)
     .execute(pool)
@@ -141,7 +141,7 @@ pub async fn get_job_by_id(
 pub async fn get_latest_job(
     pool: &PgPool,
     workspace_id: Uuid,
-    target_type: Option<String>,
+    target_type: Option<ImportTargetType>,
 ) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
     let mut query = "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1".to_string();
 

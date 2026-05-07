@@ -2,24 +2,28 @@
 # ==============================================================================
 # Retries
 # ==============================================================================
-# Automatically retry failing tests up to 2 times to mitigate flaky tests.
-retries = 2
+# Tắt retry mặc định để tránh che giấu lỗi chập chờn (flaky) trong Unit Test.
+retries = 0
 
 # ==============================================================================
 # Timeouts & Hanging Test Prevention
 # ==============================================================================
-# Tests taking longer than 120 seconds (period * terminate-after) will be killed.
-# This strictly enforces that no single test can hang and block the environment.
-slow-timeout = { period = "30s", terminate-after = 4 }
-
-# ==============================================================================
-# Leak Detection
-# ==============================================================================
-# Warn if background threads or child processes are left running after the test
-# finishes. Wait up to 100ms before warning.
+# Thêm grace-period 5s để đóng DB connection an toàn trước khi kill
+slow-timeout = { period = "30s", terminate-after = 4, grace-period = "5s" }
 leak-timeout = "100ms"
 
+# ==============================================================================
+# Test Groups
+# ==============================================================================
+# Chỉ bật Retry cho các bài test tương tác với Database/File System (Integration).
+[[profile.default.overrides]]
+filter = "test(/^integration::/)"
+retries = 2
+
 [profile.ci]
-# Override default settings for CI
+# Kế thừa default nhưng siết chặt timeout và thêm Exponential Backoff cho CI
+slow-timeout = { period = "30s", terminate-after = 2, grace-period = "5s" }
 retries = { backoff = "exponential", count = 3, delay = "1s", max-delay = "10s" }
-slow-timeout = { period = "30s", terminate-after = 2 }
+
+# Tự động xuất báo cáo JUnit để nền tảng CI/CD vẽ biểu đồ giao diện
+junit = { path = "junit-report.xml" }

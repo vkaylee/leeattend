@@ -1,6 +1,6 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::ImportJobStatus;
+use apiserver::models::{enums::ImportTargetType, ImportJobStatus};
 use apiserver::repositories::{
     employee, import_job_repository, raw_attendance_log_repository, staging_log_repository,
 };
@@ -69,7 +69,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
         }),
         pool.clone(),
     )
-    .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
+    .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)
     .await
     .map_err(|s| format!("Import failed with status: {s}"))?;
 
@@ -188,7 +188,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
         }),
         pool.clone(),
     )
-    .batch_import_from_file(ws_id, user_id, file_path, "employee".to_string())
+    .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)
     .await
     .map_err(|s| format!("Import failed with status: {s}"))?;
 

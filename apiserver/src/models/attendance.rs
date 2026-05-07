@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::models::enums::{
-    AdjustmentStatus, EarlyArrivalStrategy, ImportJobStatus, LogSource, OtStatus,
+    AdjustmentStatus, EarlyArrivalStrategy, ImportJobStatus, ImportTargetType, LogSource, OtStatus,
 };
 use crate::services::attendance_utils::AttendanceStatus;
 
@@ -127,7 +127,7 @@ pub struct AttendanceImportJob {
     pub processed_rows: i32,
     pub file_path: Option<String>,
     pub error_log: Option<String>,
-    pub target_type: String, // "adjustment" or "log"
+    pub target_type: ImportTargetType,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

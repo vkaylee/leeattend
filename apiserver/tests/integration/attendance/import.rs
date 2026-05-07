@@ -2,7 +2,7 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{AttendanceImportJob, ImportJobStatus};
+use apiserver::models::{enums::ImportTargetType, AttendanceImportJob, ImportJobStatus};
 use apiserver::repositories::import_job_repository;
 use apiserver::services::attendance_import_service::AttendanceImportService;
 use std::time::Duration;
@@ -58,7 +58,7 @@ async fn test_import_csv_with_line_errors() {
         }),
         pool.clone(),
     )
-    .batch_import_from_file(ws_id, user_id, file_path, "log".to_string())
+    .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Log)
     .await
     .unwrap();
 

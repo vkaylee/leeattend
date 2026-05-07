@@ -12,10 +12,10 @@ use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AdjustBalanceRequest, ApproveLeaveRequest, AssignLeavePolicyRequest, CreateLeavePolicyRequest,
-    EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment, LeavePolicyDefinition,
-    LeaveRequest, LeaveStatus, PaginatedResponse, PaginationParams, SubmitLeaveRequest,
-    UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
+    enums::ImportTargetType, AdjustBalanceRequest, ApproveLeaveRequest, AssignLeavePolicyRequest,
+    CreateLeavePolicyRequest, EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment,
+    LeavePolicyDefinition, LeaveRequest, LeaveStatus, PaginatedResponse, PaginationParams,
+    SubmitLeaveRequest, UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
 };
 
 use crate::{AppState, UserId};
@@ -496,7 +496,7 @@ pub async fn upload_leave_excel(
         processed_rows: 0,
         file_path: Some(path.clone()),
         error_log: None,
-        target_type: "leave_import".to_string(),
+        target_type: ImportTargetType::LeaveImport,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
@@ -562,7 +562,7 @@ pub async fn get_latest_leave_import(
     let repo = SqlxImportJobRepository::new(state.infra.db.api().clone());
 
     match repo
-        .get_latest_job(ctx.workspace_id, Some("leave_import".to_string()))
+        .get_latest_job(ctx.workspace_id, Some(ImportTargetType::LeaveImport))
         .await
     {
         Ok(Some(job)) => Ok(Json(serde_json::json!({

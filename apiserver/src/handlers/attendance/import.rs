@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::domain::permissions::Permission;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::AttendanceImportJob;
+use crate::models::{enums::ImportTargetType, AttendanceImportJob};
 use crate::AppState;
 
 pub async fn upload_attendance_excel(
@@ -58,7 +58,7 @@ pub async fn upload_attendance_excel(
             ctx.workspace_id,
             ctx.user_id,
             path,
-            "adjustment".to_string(),
+            ImportTargetType::Adjustment,
         )
         .await?;
 
@@ -108,7 +108,7 @@ pub async fn upload_attendance_logs(
     let job_id = state
         .attendance
         .import_service
-        .batch_import_from_file(ctx.workspace_id, ctx.user_id, path, "log".to_string())
+        .batch_import_from_file(ctx.workspace_id, ctx.user_id, path, ImportTargetType::Log)
         .await?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
@@ -153,18 +153,64 @@ pub async fn upload_employee_excel(
     }
 
     let path = file_path.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
-    let job_id = state
-        .attendance
-        .import_service
-        .batch_import_from_file(ctx.workspace_id, ctx.user_id, path, "employee".to_string())
-        .await?;
 
-    Ok(Json(serde_json::json!({ "job_id": job_id })))
+    // Create import job record in DB
+    let import_job_id = crate::utils::id::new_id();
+    let import_job = crate::models::AttendanceImportJob {
+        id: import_job_id,
+        workspace_id: ctx.workspace_id,
+        user_id: ctx.user_id,
+        status: crate::models::ImportJobStatus::Pending,
+        total_rows: 0,
+        processed_rows: 0,
+        file_path: Some(path.clone()),
+        error_log: None,
+        target_type: ImportTargetType::Employee,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+
+    state
+        .attendance
+        .import_repo
+        .create_job(&import_job)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to create import job: {e}")))?;
+
+    // Require Redis for background processing
+    let redis = state.infra.redis.as_ref().ok_or_else(|| {
+        AppError::ServiceUnavailable(
+            "Employee import requires Redis for background processing".to_string(),
+        )
+    })?;
+
+    use crate::queue::{EmployeeImportPayload, Job, JobPayload, JobQueue, TaskType};
+
+    let payload = EmployeeImportPayload {
+        import_job_id,
+        user_id: ctx.user_id,
+    };
+
+    let job = Job::new(
+        import_job_id,
+        0,
+        TaskType::EmployeeImport,
+        ctx.workspace_id,
+        JobPayload::EmployeeImport(payload),
+    );
+
+    let queue = JobQueue::new(redis.clone());
+    queue
+        .enqueue_jobs(vec![job])
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to enqueue employee import job: {e}")))?;
+
+    Ok(Json(serde_json::json!({ "job_id": import_job_id })))
 }
 
 #[derive(serde::Deserialize)]
 pub struct ImportJobQuery {
-    pub target_type: Option<String>,
+    pub target_type: Option<ImportTargetType>,
 }
 
 pub async fn get_latest_import_job(

@@ -117,6 +117,29 @@ pub enum ImportJobStatus {
     Eq,
     sqlx::Type,
     strum_macros::Display,
+    strum_macros::EnumString,
+    ToSchema,
+)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum ImportTargetType {
+    Log,
+    Adjustment,
+    Employee,
+    LeaveImport,
+}
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
     ToSchema,
 )]
 #[sqlx(type_name = "leave_transaction_type", rename_all = "snake_case")]
@@ -491,6 +514,20 @@ mod tests {
             let json = serde_json::to_string(&status).unwrap();
             let back: ImportJobStatus = serde_json::from_str(&json).unwrap();
             assert_eq!(status, back);
+        }
+    }
+
+    #[test]
+    fn test_import_target_type_serde_roundtrip() {
+        for target in [
+            ImportTargetType::Log,
+            ImportTargetType::Adjustment,
+            ImportTargetType::Employee,
+            ImportTargetType::LeaveImport,
+        ] {
+            let json = serde_json::to_string(&target).unwrap();
+            let back: ImportTargetType = serde_json::from_str(&json).unwrap();
+            assert_eq!(target, back);
         }
     }
 

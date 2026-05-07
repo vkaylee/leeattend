@@ -18,8 +18,9 @@ use crate::cache::{CacheManager, RosterCache};
 use crate::queue::{Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
 use crate::worker::handlers::{
-    AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, LeaveImportHandler,
-    LogIngestionHandler, MergeHandler, NightlyHousekeepingHandler, ReprocessAttendanceHandler,
+    AccrualHandler, AttendanceHandler, ClaimStagedLogsHandler, EmployeeImportHandler,
+    LeaveImportHandler, LogIngestionHandler, MergeHandler, NightlyHousekeepingHandler,
+    ReprocessAttendanceHandler,
 };
 
 // Redis key patterns for monitoring
@@ -404,6 +405,9 @@ impl JobWorker {
             }
             TaskType::ClaimStagedLogs => ClaimStagedLogsHandler::handle(&self.db, &job).await,
             TaskType::LeaveImport => LeaveImportHandler::handle(&self.db, &job, &self.redis).await,
+            TaskType::EmployeeImport => {
+                EmployeeImportHandler::handle(&self.db, &job, &self.redis).await
+            }
             TaskType::NightlyHousekeeping => {
                 NightlyHousekeepingHandler::handle(&self.db, &job).await
             }
@@ -429,6 +433,7 @@ impl JobWorker {
             TaskType::LogIngestion
                 | TaskType::ClaimStagedLogs
                 | TaskType::LeaveImport
+                | TaskType::EmployeeImport
                 | TaskType::NightlyHousekeeping
         ) {
             let success = result.is_ok();
@@ -586,6 +591,7 @@ mod tests {
             TaskType::ReprocessAttendance,
             TaskType::ClaimStagedLogs,
             TaskType::LeaveImport,
+            TaskType::EmployeeImport,
             TaskType::NightlyHousekeeping,
         ];
 
@@ -599,6 +605,7 @@ mod tests {
                     | TaskType::ReprocessAttendance
                     | TaskType::ClaimStagedLogs
                     | TaskType::LeaveImport
+                    | TaskType::EmployeeImport
                     | TaskType::NightlyHousekeeping
             );
 

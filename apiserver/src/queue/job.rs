@@ -25,6 +25,7 @@ pub enum TaskType {
     ClaimStagedLogs,
     LeaveImport,
     NightlyHousekeeping,
+    EmployeeImport,
 }
 
 /// Job priority level. Controls which Redis queue the job is routed to.
@@ -136,6 +137,15 @@ pub struct HousekeepingPayload {
     pub reference_date: NaiveDate,
 }
 
+/// Payload for bulk employee import from Excel.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmployeeImportPayload {
+    /// DB tracking job ID (attendance_import_jobs table)
+    pub import_job_id: Uuid,
+    /// User who initiated the import
+    pub user_id: Uuid,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -149,6 +159,7 @@ pub enum JobPayload {
     ClaimStagedLogs(ClaimStagedLogsPayload),
     LeaveImport(LeaveImportPayload),
     NightlyHousekeeping(HousekeepingPayload),
+    EmployeeImport(EmployeeImportPayload),
 }
 
 /// A single worker job.
@@ -281,6 +292,14 @@ impl Job {
     pub fn housekeeping_payload(&self) -> Option<&HousekeepingPayload> {
         match &self.payload {
             JobPayload::NightlyHousekeeping(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Helper: extract employee import payload.
+    pub fn employee_import_payload(&self) -> Option<&EmployeeImportPayload> {
+        match &self.payload {
+            JobPayload::EmployeeImport(p) => Some(p),
             _ => None,
         }
     }
@@ -1110,5 +1129,103 @@ mod tests {
         );
 
         assert!(job.leave_import_payload().is_none());
+    }
+
+    // ====== EMPLOYEE IMPORT TESTS ======
+
+    /// EmployeeImportPayload serde roundtrip.
+    #[test]
+    fn test_employee_import_payload_serde_roundtrip() {
+        let user_id = Uuid::new_v4();
+        let import_job_id = Uuid::new_v4();
+        let payload = EmployeeImportPayload {
+            user_id,
+            import_job_id,
+        };
+
+        let json = serde_json::to_string(&payload).unwrap();
+        let decoded: EmployeeImportPayload = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(decoded.user_id, user_id);
+        assert_eq!(decoded.import_job_id, import_job_id);
+    }
+
+    /// EmployeeImport tagged enum serde format.
+    #[test]
+    fn test_employee_import_payload_tagged_format() {
+        let payload = JobPayload::EmployeeImport(EmployeeImportPayload {
+            user_id: Uuid::new_v4(),
+            import_job_id: Uuid::new_v4(),
+        });
+
+        let json = serde_json::to_value(&payload).unwrap();
+        assert_eq!(json["type"], "EmployeeImport");
+        assert!(json["data"].is_object());
+    }
+
+    /// EmployeeImport task type serde.
+    #[test]
+    fn test_employee_import_task_type_serde() {
+        let json = serde_json::to_string(&TaskType::EmployeeImport).unwrap();
+        assert_eq!(json, "\"employee_import\"");
+
+        let decoded: TaskType = serde_json::from_str("\"employee_import\"").unwrap();
+        assert_eq!(decoded, TaskType::EmployeeImport);
+    }
+
+    /// Full Job with EmployeeImport payload roundtrip.
+    #[test]
+    fn test_employee_import_job_full_roundtrip() {
+        let parent_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let import_job_id = Uuid::new_v4();
+
+        let job = Job::new(
+            parent_id,
+            0,
+            TaskType::EmployeeImport,
+            ws_id,
+            JobPayload::EmployeeImport(EmployeeImportPayload {
+                user_id,
+                import_job_id,
+            }),
+        );
+
+        let json = serde_json::to_string(&job).unwrap();
+        assert!(json.contains("\"employee_import\""));
+
+        let decoded: Job = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded.job_id, job.job_id);
+        assert_eq!(decoded.task_type, TaskType::EmployeeImport);
+
+        let payload = decoded.employee_import_payload().expect("should extract");
+        assert_eq!(payload.user_id, user_id);
+        assert_eq!(payload.import_job_id, import_job_id);
+    }
+
+    /// employee_import_payload() returns None for non-EmployeeImport jobs.
+    #[test]
+    fn test_employee_import_payload_helper_returns_none_for_other_types() {
+        let job = Job::new(
+            Uuid::new_v4(),
+            0,
+            TaskType::AttendanceReport,
+            Uuid::new_v4(),
+            JobPayload::AttendanceReport(ReportPayload {
+                employee_ids: vec![],
+                date_range: DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                },
+                config: ReportConfig {
+                    report_type: ReportType::Summary,
+                    timezone: "UTC".to_string(),
+                    rounding_policy: "floor".to_string(),
+                    work_unit_minutes: 30,
+                },
+            }),
+        );
+        assert!(job.employee_import_payload().is_none());
     }
 }

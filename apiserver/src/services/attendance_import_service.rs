@@ -10,8 +10,8 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::models::{
-    AdjustmentStatus, AttendanceImportJob, CreateAttendanceAdjustmentRequest, Employee,
-    ImportJobStatus, LogSource,
+    enums::ImportTargetType, AdjustmentStatus, AttendanceImportJob,
+    CreateAttendanceAdjustmentRequest, Employee, ImportJobStatus, LogSource,
 };
 use crate::repositories::attendance_adjustment_repository::AttendanceAdjustmentRepository;
 use crate::repositories::import_job_repository::ImportJobRepository;
@@ -69,7 +69,7 @@ impl AttendanceImportService {
         workspace_id: Uuid,
         user_id: Uuid,
         file_path: String,
-        target_type: String, // "adjustment" or "log"
+        target_type: ImportTargetType,
     ) -> Result<Uuid, AppError> {
         let job_id = Uuid::new_v4();
 
@@ -100,13 +100,27 @@ impl AttendanceImportService {
         Ok(job_id)
     }
 
+    /// Check if a job target type should be resumed by the API server startup routine.
+    pub fn should_resume_job(target_type: &ImportTargetType) -> bool {
+        !matches!(
+            target_type,
+            ImportTargetType::Employee | ImportTargetType::LeaveImport
+        )
+    }
+
     #[tracing::instrument(skip_all)]
     pub async fn resume_all_pending_jobs(&self) {
         if let Ok(jobs) = self.import_repo.get_pending_jobs().await {
             for job in jobs {
+                if !Self::should_resume_job(&job.target_type) {
+                    // Handled by JobQueue now.
+                    continue;
+                }
+
                 info!(
                     "Resuming import job: {} (target: {})",
-                    job.id, job.target_type
+                    job.id,
+                    job.target_type.to_string()
                 );
                 let svc = self.clone();
                 tokio::spawn(async move {
@@ -116,7 +130,8 @@ impl AttendanceImportService {
         }
     }
 
-    async fn process_job(&self, job_id: Uuid) -> Result<(), ()> {
+    #[tracing::instrument(skip_all)]
+    pub async fn process_job(&self, job_id: Uuid) -> Result<(), ()> {
         let Ok(Some(job)) = self.import_repo.get_job_by_id(job_id).await else {
             return Err(());
         };
@@ -145,7 +160,7 @@ impl AttendanceImportService {
         let lang = &workspace.default_language;
         let msgs = AttendanceImportMessages::for_lang(lang);
 
-        if job.target_type == "employee" {
+        if job.target_type == ImportTargetType::Employee {
             return self.process_employee_job(job_id, &job, &msgs).await;
         }
 
@@ -680,7 +695,7 @@ impl AttendanceImportService {
             return Ok(0);
         };
 
-        if job.target_type == "log" {
+        if job.target_type == ImportTargetType::Log {
             let te_repo = Arc::clone(&self.time_entry_repo);
             let ps = std::sync::Arc::new(crate::services::pairing_service::PairingService::new(
                 te_repo,
@@ -771,5 +786,29 @@ impl AttendanceImportService {
             }
             Ok(0)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_should_resume_job() {
+        // Jobs that should be resumed by the API server
+        assert!(AttendanceImportService::should_resume_job(
+            &ImportTargetType::Log
+        ));
+        assert!(AttendanceImportService::should_resume_job(
+            &ImportTargetType::Adjustment
+        ));
+
+        // Jobs handled by Worker Queue (should NOT be resumed by API server)
+        assert!(!AttendanceImportService::should_resume_job(
+            &ImportTargetType::Employee
+        ));
+        assert!(!AttendanceImportService::should_resume_job(
+            &ImportTargetType::LeaveImport
+        ));
     }
 }
