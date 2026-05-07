@@ -157,10 +157,11 @@ impl AttendanceLogService {
     pub async fn process_log(&self, args: ProcessLogArgs<'_>) -> Result<bool, String> {
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = args.raw_data.map(AgentLogEntry::sanitize_json_value);
+        let normalized_emp_id = crate::utils::normalize_employee_id(args.employee_id_number);
         // 1. Resolve employee_id from employee_id_number and workspace_id
         let employee = match self
             .employee_repo
-            .find_by_number(args.workspace_id, args.employee_id_number)
+            .find_by_number(args.workspace_id, &normalized_emp_id)
             .await
         {
             Ok(Some(emp)) => emp,
@@ -168,7 +169,7 @@ impl AttendanceLogService {
                 // Case 2: Unknown user → Stage for later review (NOT an error)
                 let fingerprint = Self::calculate_fingerprint(
                     args.device_id.as_deref(),
-                    args.employee_id_number,
+                    &normalized_emp_id,
                     args.punch_time_raw,
                     raw_data.as_ref(),
                 );
@@ -187,7 +188,7 @@ impl AttendanceLogService {
                     .create_staging_log(
                         args.workspace_id,
                         args.device_id.clone(),
-                        args.employee_id_number,
+                        &normalized_emp_id,
                         punch_time,
                         raw_data,
                         &fingerprint,
@@ -196,7 +197,7 @@ impl AttendanceLogService {
 
                 warn!(
                     "Unknown user {} staged for workspace {} (fingerprint: {})",
-                    args.employee_id_number,
+                    normalized_emp_id,
                     args.workspace_id,
                     &fingerprint[..8]
                 );
@@ -225,7 +226,7 @@ impl AttendanceLogService {
 
                 let fingerprint = Self::calculate_fingerprint(
                     args.device_id.as_deref(),
-                    args.employee_id_number,
+                    &normalized_emp_id,
                     args.punch_time_raw,
                     raw_data.as_ref(),
                 );
@@ -267,7 +268,7 @@ impl AttendanceLogService {
             Ok(true) => {
                 info!(
                     "Successfully saved log for {} ({}) at {} (UTC) from {:?}",
-                    employee.full_name, args.employee_id_number, punch_time, raw_log.source
+                    employee.full_name, normalized_emp_id, punch_time, raw_log.source
                 );
 
                 // 5. Trigger Pairing Logic
@@ -280,7 +281,7 @@ impl AttendanceLogService {
             Ok(false) => {
                 info!(
                     "Duplicate log skipped for {} at {}",
-                    args.employee_id_number, punch_time
+                    normalized_emp_id, punch_time
                 );
                 Ok(false)
             }

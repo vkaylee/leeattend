@@ -24,6 +24,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
 
     let emp_name = "TEST USER LOG DETAILS";
     let emp_id_num = "EMP-DETAILS-001";
+    let normalized_emp_id_num = apiserver::utils::normalize_employee_id(emp_id_num);
     let emp_id = factory
         .employee()
         .with_workspace(ws_id)
@@ -94,7 +95,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
 
     let item = &data[0];
     assert_eq!(item["employee_full_name"], emp_name);
-    assert_eq!(item["employee_id_number"], emp_id_num);
+    assert_eq!(item["employee_id_number"], normalized_emp_id_num);
 
     // 4. Request /attendance/raw-logs and verify fields
     let response = app
@@ -116,7 +117,7 @@ async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn s
 
     let item = &data[0];
     assert_eq!(item["employee_full_name"], emp_name);
-    assert_eq!(item["employee_id_number"], emp_id_num);
+    assert_eq!(item["employee_id_number"], normalized_emp_id_num);
     assert_eq!(item["device_name"], device_name);
     Ok(())
 }

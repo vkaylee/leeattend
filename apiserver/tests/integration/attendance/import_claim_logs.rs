@@ -20,6 +20,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     let emp_id_number = "CLAIM-001";
+    let normalized_id = apiserver::utils::normalize_employee_id(emp_id_number);
     let punch_time = Utc::now();
     let fingerprint = format!("fp-{}", Uuid::new_v4());
 
@@ -28,7 +29,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
         &pool,
         ws_id,
         Some("device-1".to_string()),
-        emp_id_number,
+        &normalized_id,
         punch_time,
         None,
         &fingerprint,
@@ -59,7 +60,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
         std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
             pool.clone(),
         ));
-    let job_id = AttendanceImportService::new(
+    let import_service = AttendanceImportService::new(
         import_repo,
         adj_repo,
         emp_repo,
@@ -68,16 +69,19 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
             pool: pool.clone(),
         }),
         pool.clone(),
-    )
-    .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)
-    .await
-    .map_err(|s| format!("Import failed with status: {s}"))?;
+    );
+    let job_id = import_service
+        .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)
+        .await
+        .map_err(|s| format!("Import failed with status: {s}"))?;
 
     // Wait for job completion
     let mut job_finished = false;
     for _ in 0..20 {
-        sleep(Duration::from_millis(200)).await;
-        if let Ok(Some(j)) = import_job_repository::get_job_by_id(&pool, job_id).await {
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        if let Ok(Some(j)) =
+            apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await
+        {
             if j.status == ImportJobStatus::Completed {
                 job_finished = true;
                 break;
@@ -89,8 +93,10 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     }
     assert!(job_finished, "Job timed out");
 
+    let normalized_id = apiserver::utils::normalize_employee_id(emp_id_number);
+
     // 3. Verify employee was created
-    let employee = employee::get_employee_by_id_number(&pool, emp_id_number, ws_id)
+    let employee = employee::get_employee_by_id_number(&pool, &normalized_id, ws_id)
         .await?
         .ok_or("Employee should be created")?;
 
@@ -139,6 +145,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
         .create()
         .await;
 
+    let normalized_id = apiserver::utils::normalize_employee_id(emp_id_number);
     let punch_time = Utc::now();
     let fingerprint = format!("fp-{}", Uuid::new_v4());
 
@@ -147,7 +154,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
         &pool,
         ws_id,
         Some("device-1".to_string()),
-        emp_id_number,
+        &normalized_id,
         punch_time,
         None,
         &fingerprint,
@@ -178,7 +185,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
         std::sync::Arc::new(apiserver::repositories::SqlxEmployeeRepository::new(
             pool.clone(),
         ));
-    let job_id = AttendanceImportService::new(
+    let import_service = AttendanceImportService::new(
         import_repo,
         adj_repo,
         emp_repo,
@@ -187,19 +194,25 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
             pool: pool.clone(),
         }),
         pool.clone(),
-    )
-    .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)
-    .await
-    .map_err(|s| format!("Import failed with status: {s}"))?;
+    );
+    let job_id = import_service
+        .batch_import_from_file(ws_id, user_id, file_path, ImportTargetType::Employee)
+        .await
+        .map_err(|s| format!("Import failed with status: {s}"))?;
 
     // Wait for job completion
     let mut job_finished = false;
     for _ in 0..20 {
-        sleep(Duration::from_millis(200)).await;
-        if let Ok(Some(j)) = import_job_repository::get_job_by_id(&pool, job_id).await {
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        if let Ok(Some(j)) =
+            apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await
+        {
             if j.status == ImportJobStatus::Completed {
                 job_finished = true;
                 break;
+            }
+            if j.status == ImportJobStatus::Failed {
+                return Err(format!("Job failed: {:?}", j.error_log).into());
             }
         }
     }
