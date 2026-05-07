@@ -12,7 +12,6 @@ use crate::models::{
     RehireEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
 };
 use crate::repositories::{employee, user_repository, EmployeeRepository};
-use crate::utils::normalize_employee_id;
 
 pub struct EmployeeService {
     repo: Arc<dyn EmployeeRepository>,
@@ -117,7 +116,7 @@ impl EmployeeService {
             workspace_id,
             user_id: req.user_id,
             full_name: req.full_name,
-            employee_id_number: normalize_employee_id(&req.employee_id_number),
+            employee_id_number: req.employee_id_number.into_inner(),
             hire_date: req.hire_date,
             termination_date: None,
             tags: req.tags.unwrap_or_default(),
@@ -300,7 +299,7 @@ impl EmployeeService {
 
         // If employee_id_number was updated, claim staged logs directly
         if let Some(new_id_number) = req.employee_id_number {
-            let normalized = normalize_employee_id(&new_id_number);
+            let normalized = new_id_number.into_inner();
             if let Err(e) = crate::repositories::staging_log_repository::claim_staged_logs_direct(
                 &self.pool,
                 workspace_id,

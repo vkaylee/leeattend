@@ -3,7 +3,9 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{CreateEmployeeRequest, Employee, UpdateEmployeeRequest};
+use apiserver::models::{
+    CreateEmployeeRequest, Employee, SanitizedEmployeeId, UpdateEmployeeRequest,
+};
 use apiserver::AppState;
 use axum::body::Body;
 use axum::http::StatusCode;
@@ -24,7 +26,7 @@ async fn test_create_employee_id_normalization() {
     let req_body = CreateEmployeeRequest {
         user_id: None,
         full_name: "Test Employee".to_string(),
-        employee_id_number: "00123".to_string(),
+        employee_id_number: SanitizedEmployeeId::new("00123"),
         hire_date: chrono::Utc::now().date_naive(),
         tags: None,
         recruitment_source_id: None,
@@ -87,7 +89,7 @@ async fn test_update_employee_id_normalization() {
     let req_body = UpdateEmployeeRequest {
         user_id: None,
         full_name: Some("Updated Name".to_string()),
-        employee_id_number: Some("00200".to_string()),
+        employee_id_number: Some(SanitizedEmployeeId::new("00200")),
         hire_date: None,
         termination_date: None,
         tags: None,
@@ -153,7 +155,7 @@ async fn test_employee_id_uniqueness_on_normalized_values() {
     let req_body = CreateEmployeeRequest {
         user_id: None,
         full_name: "Duplicate Employee".to_string(),
-        employee_id_number: "00555".to_string(),
+        employee_id_number: SanitizedEmployeeId::new("00555"),
         hire_date: chrono::Utc::now().date_naive(),
         tags: None,
         recruitment_source_id: None,

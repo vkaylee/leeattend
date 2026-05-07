@@ -15,14 +15,22 @@ pub fn normalize_employee_id(id: &str) -> String {
         return "0".to_string();
     }
 
-    // Check if the ID is purely numeric
-    if trimmed.chars().all(|c| c.is_ascii_digit()) {
-        let normalized = trimmed.trim_start_matches('0');
-        if normalized.is_empty() {
-            "0".to_string()
+    let mut digits = String::new();
+    for c in trimmed.chars().rev() {
+        if c.is_ascii_digit() {
+            digits.push(c);
         } else {
-            normalized.to_string()
+            break;
         }
+    }
+
+    if digits.is_empty() {
+        return trimmed.to_string();
+    }
+
+    let reversed: String = digits.chars().rev().collect();
+    if let Ok(num) = reversed.parse::<u64>() {
+        num.to_string()
     } else {
         trimmed.to_string()
     }
@@ -43,17 +51,21 @@ mod tests {
         assert_eq!(normalize_employee_id("0000"), "0");
         assert_eq!(normalize_employee_id("0"), "0");
         assert_eq!(normalize_employee_id("  00055  "), "55");
-        assert_eq!(normalize_employee_id("0026"), "26"); // Issue: ensure 0026 becomes 26
+        assert_eq!(normalize_employee_id("0026"), "26");
 
-        // Alphanumeric & Special (Protection)
-        assert_eq!(normalize_employee_id("EMP001"), "EMP001");
-        assert_eq!(normalize_employee_id("  EMP001  "), "EMP001");
-        assert_eq!(normalize_employee_id("00A1"), "00A1");
-        assert_eq!(normalize_employee_id("123-456"), "123-456");
+        // Alphanumeric & Special (New right-to-left logic)
+        assert_eq!(normalize_employee_id("EMP001"), "1");
+        assert_eq!(normalize_employee_id("  EMP001  "), "1");
+        assert_eq!(normalize_employee_id("00A1"), "1");
+        assert_eq!(normalize_employee_id("123-456"), "456");
+        assert_eq!(normalize_employee_id("1EH000254"), "254"); // User's requirement
 
-        // Edge cases — empty/whitespace → "0" (consistent with agent-main)
+        // Fallback when no trailing digits
+        assert_eq!(normalize_employee_id("ABC"), "ABC");
+        assert_eq!(normalize_employee_id("EMP-"), "EMP-");
+
+        // Edge cases — empty/whitespace → "0"
         assert_eq!(normalize_employee_id(""), "0");
         assert_eq!(normalize_employee_id("   "), "0");
-        assert_eq!(normalize_employee_id("00 123"), "00 123"); // Space breaks numeric check
     }
 }

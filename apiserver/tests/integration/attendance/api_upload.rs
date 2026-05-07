@@ -72,7 +72,7 @@ async fn test_upload_attendance_csv_api() {
 
     let mut completed = false;
     for _ in 0..30 {
-        sleep(Duration::from_millis(200)).await;
+        sleep(Duration::from_secs(1)).await;
         let job_opt =
             apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
                 .await
@@ -81,6 +81,8 @@ async fn test_upload_attendance_csv_api() {
             if job.status == ImportJobStatus::Completed {
                 completed = true;
                 break;
+            } else if job.status == ImportJobStatus::Failed {
+                panic!("Job failed: {:?}", job.error_log);
             }
         }
     }

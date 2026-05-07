@@ -186,11 +186,65 @@ pub struct RehireEmployeeRequest {
     pub hire_date: NaiveDate,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SanitizedEmployeeId(String);
+
+impl SanitizedEmployeeId {
+    pub fn new(raw: &str) -> Self {
+        Self(crate::utils::normalize_employee_id(raw))
+    }
+
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SanitizedEmployeeId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(SanitizedEmployeeId::new(&s))
+    }
+}
+
+impl serde::Serialize for SanitizedEmployeeId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+impl std::fmt::Display for SanitizedEmployeeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<String> for SanitizedEmployeeId {
+    fn from(s: String) -> Self {
+        SanitizedEmployeeId::new(&s)
+    }
+}
+
+impl From<&str> for SanitizedEmployeeId {
+    fn from(s: &str) -> Self {
+        SanitizedEmployeeId::new(s)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateEmployeeRequest {
     pub user_id: Option<Uuid>,
     pub full_name: String,
-    pub employee_id_number: String,
+    pub employee_id_number: SanitizedEmployeeId,
     pub hire_date: NaiveDate,
     pub tags: Option<Vec<String>>,
     pub recruitment_source_id: Option<Uuid>,
@@ -200,7 +254,7 @@ pub struct CreateEmployeeRequest {
 pub struct UpdateEmployeeRequest {
     pub user_id: Option<Uuid>,
     pub full_name: Option<String>,
-    pub employee_id_number: Option<String>,
+    pub employee_id_number: Option<SanitizedEmployeeId>,
     pub hire_date: Option<NaiveDate>,
     pub termination_date: Option<NaiveDate>,
     pub tags: Option<Vec<String>>,

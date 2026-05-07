@@ -366,13 +366,14 @@ impl EmployeeBuilder {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             let mut tx = self.pool.begin().await.unwrap();
 
+            let normalized_id = apiserver::utils::normalize_employee_id(&self.employee_id_number);
             let id: Uuid = sqlx::query_scalar(
                 "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number) VALUES ($1, $2, $3, $4) RETURNING id",
             )
             .bind(self.workspace_id.expect("Workspace ID is required for Employee"))
             .bind(self.user_id)
             .bind(self.full_name)
-            .bind(self.employee_id_number)
+            .bind(normalized_id)
             .fetch_one(&mut *tx)
             .await
             .unwrap();

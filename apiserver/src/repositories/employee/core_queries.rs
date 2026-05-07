@@ -259,7 +259,7 @@ pub async fn update_employee(
     let normalized_id = req
         .employee_id_number
         .as_ref()
-        .map(|id| normalize_employee_id(id));
+        .map(|id| id.as_str().to_string());
 
     // Update base employee info
     sqlx::query(
