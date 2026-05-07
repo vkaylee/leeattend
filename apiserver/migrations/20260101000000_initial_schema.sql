@@ -1748,8 +1748,8 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- System-level platform roles
-INSERT INTO system_roles (name, description) VALUES
-    ('platform_admin', 'Full platform control: create/suspend workspaces, assign system roles, manage infrastructure'),
-    ('support',        'Read-only cross-workspace access for debugging customer issues'),
-    ('billing_admin',  'Manage billing, subscription plans, and invoicing')
+INSERT INTO system_roles (id, name, description) VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'platform_admin', 'Full platform control: create/suspend workspaces, assign system roles, manage infrastructure'),
+    ('c0000000-0000-0000-0000-000000000002', 'support',        'Read-only cross-workspace access for debugging customer issues'),
+    ('c0000000-0000-0000-0000-000000000003', 'billing_admin',  'Manage billing, subscription plans, and invoicing')
 ON CONFLICT DO NOTHING;
