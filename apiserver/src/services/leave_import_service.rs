@@ -61,6 +61,7 @@ impl LeaveImportService {
     }
 
     /// Process an imported Excel file of leave requests.
+    #[allow(clippy::too_many_lines)]
     pub async fn process_import(
         &self,
         _import_job_id: Uuid,
@@ -225,6 +226,7 @@ impl LeaveImportService {
     }
 
     /// Parse file bytes into pending rows and parse-time errors.
+    #[allow(clippy::too_many_lines)]
     fn parse_file(
         file_bytes: &[u8],
         msgs: &LeaveImportMessages,

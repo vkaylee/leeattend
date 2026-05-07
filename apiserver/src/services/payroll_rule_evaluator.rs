@@ -16,6 +16,7 @@ pub struct RuleEvaluationResult {
 }
 
 impl PayrollRuleEvaluator {
+    #[allow(clippy::too_many_lines)]
     pub async fn evaluate_rules(
         pool: &PgPool,
         workspace_id: Uuid,

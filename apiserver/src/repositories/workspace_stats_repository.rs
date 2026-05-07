@@ -55,6 +55,7 @@ impl SqlxWorkspaceStatsRepository {
 
 #[async_trait]
 impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
+    #[allow(clippy::too_many_lines)]
     async fn fetch_attendance_trend(
         &self,
         workspace_id: Uuid,
@@ -182,6 +183,7 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         Ok(trend)
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn fetch_department_attendance(
         &self,
         workspace_id: Uuid,
@@ -426,6 +428,7 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         Ok(trend)
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn fetch_workspace_stats(&self, workspace_id: Uuid) -> Result<WorkspaceStats, AppError> {
         // 1. Total Employees
         let total_employees: i64 = sqlx::query_scalar(
@@ -723,6 +726,7 @@ impl WorkspaceStatsRepository for SqlxWorkspaceStatsRepository {
         Ok(result)
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn fetch_lateness_by_day(
         &self,
         workspace_id: Uuid,

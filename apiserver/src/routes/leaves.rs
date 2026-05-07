@@ -7,6 +7,7 @@ use std::sync::Arc;
 use crate::handlers;
 use crate::AppState;
 
+#[allow(clippy::too_many_lines)]
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route(

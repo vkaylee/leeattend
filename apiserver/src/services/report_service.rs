@@ -142,6 +142,7 @@ impl ReportService {
         }
     }
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn get_daily_attendance_report(
         &self,
         args: AttendanceReportArgs,
@@ -424,6 +425,7 @@ impl ReportService {
     /// 3. Apply AttendanceCalculator for each day (same as detail report)
     /// 4. Aggregate daily results per employee
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn get_workspace_attendance_summary(
         &self,
         args: AttendanceReportArgs,

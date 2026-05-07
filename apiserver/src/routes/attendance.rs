@@ -96,6 +96,10 @@ pub fn router() -> Router<Arc<AppState>> {
             get(handlers::get_import_job_status),
         )
         .route(
+            "/workspaces/:ws_id/attendance/import-jobs/:id/error-file",
+            get(handlers::download_import_error_file),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/adjustments/:id/approve",
             post(handlers::approve_attendance_adjustment),
         )

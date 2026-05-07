@@ -35,6 +35,162 @@ struct PendingEmployee {
     line_number: usize,
 }
 
+use crate::services::import_pipeline::{ImportPipeline, ImportStrategy};
+
+struct EmployeeImportStrategy {
+    msgs: AttendanceImportMessages,
+    employee_repo: Arc<dyn EmployeeRepository>,
+    dept_cache: HashMap<String, Uuid>,
+}
+
+#[async_trait::async_trait]
+impl ImportStrategy for EmployeeImportStrategy {
+    type RowData = PendingEmployee;
+
+    fn expected_headers(&self) -> &'static [&'static str] {
+        &["employee_code", "full_name", "hire_date", "department_name"]
+    }
+
+    fn map_row(
+        &mut self,
+        row_data: &HashMap<String, String>,
+        current_line: usize,
+        workspace_tz: Tz,
+    ) -> Result<Self::RowData, String> {
+        let raw_id = row_data.get("employee_code").map(std::string::String::as_str).unwrap_or("").trim();
+        let id_number = crate::utils::normalize_employee_id(raw_id);
+        let full_name = row_data.get("full_name").map(std::string::String::as_str).unwrap_or("").trim().to_string();
+        let hire_date_raw = row_data.get("hire_date").map(std::string::String::as_str).unwrap_or("").trim();
+
+        if id_number.is_empty() || full_name.is_empty() {
+            return Err(fmt_msg(
+                self.msgs.missing_employee_or_id,
+                &[("line", &current_line.to_string())],
+            ));
+        }
+
+        let hire_date_str = hire_date_raw.split(' ').next().unwrap_or(hire_date_raw);
+        let hire_date = if hire_date_str.is_empty() {
+            Utc::now().with_timezone(&workspace_tz).date_naive()
+        } else {
+            NaiveDate::parse_from_str(hire_date_str, "%Y-%m-%d")
+                .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%d/%m/%Y"))
+                .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%m/%d/%Y"))
+                .unwrap_or_else(|_| Utc::now().with_timezone(&workspace_tz).date_naive())
+        };
+
+        let department_name = row_data.get("department_name").map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+
+        Ok(PendingEmployee {
+            id_number,
+            full_name,
+            hire_date,
+            department_name,
+            line_number: current_line,
+        })
+    }
+
+    async fn init(&mut self, pool: &PgPool, job: &AttendanceImportJob) -> Result<(), String> {
+        if let Ok(existing_depts) =
+            crate::repositories::department_repository::get_departments(pool, job.workspace_id)
+                .await
+        {
+            for dept in existing_depts {
+                self.dept_cache.insert(dept.name.to_lowercase(), dept.id);
+            }
+        }
+        Ok(())
+    }
+
+    async fn process_row(
+        &mut self,
+        pool: &PgPool,
+        job: &AttendanceImportJob,
+        emp: &Self::RowData,
+    ) -> Result<Option<Uuid>, String> {
+        match AttendanceImportService::process_employee_import_row(pool, job, emp).await {
+            Ok(maybe_id) => {
+                let mut was_new = true;
+                let employee_id = if let Some(id) = maybe_id {
+                    id
+                } else {
+                    was_new = false;
+                    // If exists, find the ID
+                    match self
+                        .employee_repo
+                        .get_employee_by_id_number(&emp.id_number, job.workspace_id)
+                        .await
+                    {
+                        Ok(Some(e)) => e.id,
+                        _ => return Ok(None),
+                    }
+                };
+
+                // Auto-assign to department
+                let mut department_updated = false;
+                if let Some(ref dept_name) = emp.department_name {
+                    let dept_key = dept_name.to_lowercase();
+                    let dept_id = if let Some(&cached_id) = self.dept_cache.get(&dept_key) {
+                        cached_id
+                    } else {
+                        match crate::repositories::department_repository::create_department(
+                            pool,
+                            job.workspace_id,
+                            dept_name.clone(),
+                            None,
+                            None,
+                            None,
+                        )
+                        .await
+                        {
+                            Ok(new_dept) => {
+                                self.dept_cache.insert(dept_key, new_dept.id);
+                                new_dept.id
+                            }
+                            Err(e) => {
+                                error!("Failed to create department '{}': {}", dept_name, e);
+                                Uuid::nil()
+                            }
+                        }
+                    };
+                    if !dept_id.is_nil() && crate::repositories::department_repository::transfer_employee(
+                        pool,
+                        employee_id,
+                        dept_id,
+                        emp.hire_date,
+                        Some("Auto-assigned via bulk import".to_string()),
+                    ).await.is_ok() {
+                        department_updated = true;
+                    }
+                }
+
+                // Claim staged logs directly
+                let _ = crate::repositories::staging_log_repository::claim_staged_logs_direct(
+                    pool,
+                    job.workspace_id,
+                    employee_id,
+                    &emp.id_number,
+                )
+                .await;
+
+                if was_new || department_updated {
+                    Ok(Some(employee_id))
+                } else {
+                    Ok(None)
+                }
+            }
+            Err(e) => Err(fmt_msg(
+                self.msgs.db_save_error,
+                &[
+                    ("line", &emp.line_number.to_string()),
+                    ("emp", &emp.id_number),
+                    ("error", &e),
+                ],
+            )),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct AttendanceImportService {
     import_repo: Arc<dyn ImportJobRepository>,
@@ -131,6 +287,7 @@ impl AttendanceImportService {
     }
 
     #[tracing::instrument(skip_all)]
+    #[allow(clippy::too_many_lines)]
     pub async fn process_job(&self, job_id: Uuid) -> Result<(), ()> {
         let Ok(Some(job)) = self.import_repo.get_job_by_id(job_id).await else {
             return Err(());
@@ -371,6 +528,8 @@ impl AttendanceImportService {
         Ok(())
     }
 
+
+
     async fn process_employee_job(
         &self,
         job_id: Uuid,
@@ -378,7 +537,6 @@ impl AttendanceImportService {
         msgs: &AttendanceImportMessages,
     ) -> Result<(), ()> {
         let pool = self.pool.clone();
-
         let workspace_tz = match self
             .workspace_repo
             .get_workspace_by_id(job.workspace_id)
@@ -409,235 +567,22 @@ impl AttendanceImportService {
             }
         };
 
-        let mut errors = Vec::new();
-        let mut pending_employees: Vec<PendingEmployee> = Vec::new();
-
-        match crate::utils::file_parser::extract_file_rows(&file_bytes) {
-            Ok(rows) => {
-                for (current_line, cols) in rows {
-                    let raw_id = cols
-                        .first()
-                        .map(std::string::String::as_str)
-                        .unwrap_or("")
-                        .trim();
-                    let id_number = normalize_employee_id(raw_id);
-                    let full_name = cols
-                        .get(1)
-                        .map(std::string::String::as_str)
-                        .unwrap_or("")
-                        .trim()
-                        .to_string();
-                    let hire_date_raw = cols
-                        .get(2)
-                        .map(std::string::String::as_str)
-                        .unwrap_or("")
-                        .trim();
-
-                    if id_number.is_empty() || full_name.is_empty() {
-                        errors.push(fmt_msg(
-                            msgs.missing_employee_or_id,
-                            &[("line", &current_line.to_string())],
-                        ));
-                        continue;
-                    }
-
-                    // Extract date part if file_parser included time string (e.g. from Excel Datetime)
-                    let hire_date_str = hire_date_raw.split(' ').next().unwrap_or(hire_date_raw);
-
-                    let hire_date = if hire_date_str.is_empty() {
-                        Utc::now().with_timezone(&workspace_tz).date_naive()
-                    } else {
-                        NaiveDate::parse_from_str(hire_date_str, "%Y-%m-%d")
-                            .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%d/%m/%Y"))
-                            .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%m/%d/%Y"))
-                            .unwrap_or_else(|_| {
-                                Utc::now().with_timezone(&workspace_tz).date_naive()
-                            })
-                    };
-
-                    let department_name = cols
-                        .get(3)
-                        .map(|s| s.trim().to_string())
-                        .filter(|s| !s.is_empty());
-
-                    pending_employees.push(PendingEmployee {
-                        id_number,
-                        full_name,
-                        hire_date,
-                        department_name,
-                        line_number: current_line,
-                    });
-                }
-            }
-            Err(e) => {
-                errors.push(e);
-            }
-        }
-
-        let total_rows = pending_employees.len() as i32 + errors.len() as i32;
-        let _ = self
-            .import_repo
-            .update_job_total_rows(job_id, total_rows)
-            .await;
-
-        if !errors.is_empty() {
-            let _ = self
-                .import_repo
-                .update_job_progress(job_id, 0, ImportJobStatus::Failed, Some(errors.join("\n")))
-                .await;
-            let _ = tokio::fs::remove_file(file_path).await;
-            return Err(());
-        }
-
-        let mut processed_rows = 0;
-        let mut skipped_rows = 0;
-
-        // Cache department lookups by name (lowercased) -> department_id
-        let mut dept_cache: HashMap<String, Uuid> = HashMap::new();
-        // Pre-load existing departments
-        if let Ok(existing_depts) =
-            crate::repositories::department_repository::get_departments(&pool, job.workspace_id)
-                .await
-        {
-            for dept in existing_depts {
-                dept_cache.insert(dept.name.to_lowercase(), dept.id);
-            }
-        }
-
-        for emp in pending_employees {
-            match Self::process_employee_import_row(&pool, job, &emp).await {
-                Ok(maybe_id) => {
-                    let employee_id = if let Some(id) = maybe_id {
-                        processed_rows += 1;
-                        id
-                    } else {
-                        skipped_rows += 1;
-                        // If already exists, we still want to try claiming logs for this ID
-                        match self
-                            .employee_repo
-                            .get_employee_by_id_number(&emp.id_number, job.workspace_id)
-                            .await
-                        {
-                            Ok(Some(e)) => e.id,
-                            _ => continue,
-                        }
-                    };
-
-                    // Auto-assign to department if column D was provided
-                    if let Some(ref dept_name) = emp.department_name {
-                        let dept_key = dept_name.to_lowercase();
-                        let dept_id = if let Some(&cached_id) = dept_cache.get(&dept_key) {
-                            cached_id
-                        } else {
-                            // Create the department
-                            match crate::repositories::department_repository::create_department(
-                                &pool,
-                                job.workspace_id,
-                                dept_name.clone(),
-                                None,
-                                None,
-                                None,
-                            )
-                            .await
-                            {
-                                Ok(new_dept) => {
-                                    dept_cache.insert(dept_key, new_dept.id);
-                                    new_dept.id
-                                }
-                                Err(e) => {
-                                    error!("Failed to create department '{}': {}", dept_name, e);
-                                    // Skip department assignment but continue with employee
-                                    Uuid::nil()
-                                }
-                            }
-                        };
-                        if !dept_id.is_nil() {
-                            if let Err(e) =
-                                crate::repositories::department_repository::transfer_employee(
-                                    &pool,
-                                    employee_id,
-                                    dept_id,
-                                    emp.hire_date,
-                                    Some("Auto-assigned via bulk import".to_string()),
-                                )
-                                .await
-                            {
-                                error!(
-                                    "Failed to assign employee {} to department '{}': {}",
-                                    emp.id_number, dept_name, e
-                                );
-                            }
-                        }
-                    }
-
-                    // Claim staged logs directly — we're already in a background task,
-                    // so no need to enqueue another job via Redis queue.
-                    if let Err(e) =
-                        crate::repositories::staging_log_repository::claim_staged_logs_direct(
-                            &pool,
-                            job.workspace_id,
-                            employee_id,
-                            &emp.id_number,
-                        )
-                        .await
-                    {
-                        error!("Failed to claim staged logs for {}: {}", emp.id_number, e);
-                    }
-
-                    if (processed_rows + skipped_rows) % 10 == 0 {
-                        let _ = self
-                            .import_repo
-                            .update_job_progress(
-                                job_id,
-                                processed_rows,
-                                ImportJobStatus::Processing,
-                                None,
-                            )
-                            .await;
-                    }
-                }
-                Err(e) => {
-                    errors.push(fmt_msg(
-                        msgs.db_save_error,
-                        &[
-                            ("line", &emp.line_number.to_string()),
-                            ("emp", &emp.id_number),
-                            ("error", &e.clone()),
-                        ],
-                    ));
-                }
-            }
-        }
-
-        let status = if errors.is_empty() {
-            ImportJobStatus::Completed
-        } else {
-            ImportJobStatus::Failed
+        let strategy = EmployeeImportStrategy {
+            msgs: msgs.clone(),
+            employee_repo: std::sync::Arc::clone(&self.employee_repo),
+            dept_cache: HashMap::new(),
         };
 
-        let mut final_log = if errors.is_empty() {
-            None
-        } else {
-            Some(errors.join("\n"))
+        let pipeline = ImportPipeline {
+            strategy,
+            pool,
+            import_repo: &*self.import_repo,
+            job,
+            file_bytes,
+            workspace_tz,
         };
-        if skipped_rows > 0 {
-            let skip_msg = fmt_msg(
-                msgs.skipped_employees,
-                &[("count", &skipped_rows.to_string())],
-            );
-            final_log = Some(match final_log {
-                Some(log) => format!("{log}\n{skip_msg}"),
-                None => skip_msg,
-            });
-        }
 
-        let _ = self
-            .import_repo
-            .update_job_progress(job_id, processed_rows, status, final_log)
-            .await;
-        let _ = tokio::fs::remove_file(file_path).await;
-
-        Ok(())
+        pipeline.run().await
     }
 
     async fn process_employee_import_row(
@@ -676,6 +621,7 @@ impl AttendanceImportService {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn process_import_row(
         &self,
         job: &AttendanceImportJob,

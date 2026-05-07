@@ -41,7 +41,7 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
     assert_eq!(pending_count, 1);
 
     // 2. Import employee with this ID
-    let csv_content = format!("ID,Name,HireDate\n{emp_id_number},Imported User,2026-01-01");
+    let csv_content = format!("employee_code,full_name,hire_date,department_name\n{emp_id_number},Imported User,2026-01-01,IT");
 
     let file_path = format!("storage/test_imports/{}.csv", Uuid::new_v4());
     tokio::fs::create_dir_all("storage/test_imports").await?;
@@ -166,7 +166,7 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     assert_eq!(pending_count, 1);
 
     // 2. Import employee with same ID (will be skipped for creation but should trigger claim)
-    let csv_content = format!("ID,Name,HireDate\n{emp_id_number},Existing User,2026-01-01");
+    let csv_content = format!("employee_code,full_name,hire_date,department_name\n{emp_id_number},Existing User,2026-01-01,IT");
 
     let file_path = format!("storage/test_imports/{}.csv", Uuid::new_v4());
     tokio::fs::create_dir_all("storage/test_imports").await?;

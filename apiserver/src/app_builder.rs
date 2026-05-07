@@ -17,6 +17,7 @@ pub struct AppWorkers {
 }
 
 impl AppState {
+    #[allow(clippy::too_many_lines)]
     pub async fn build(
         db_pools: DbPools,
         redis_pool: Option<RedisPool>,

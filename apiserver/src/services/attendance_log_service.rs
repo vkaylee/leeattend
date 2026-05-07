@@ -154,6 +154,7 @@ impl AttendanceLogService {
     /// - Case 3: Parse/validation error → insert to attendance_log_errors → Ok(false)
     /// - Case 4: Database connection error → Err(msg) (agent should retry)
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn process_log(&self, args: ProcessLogArgs<'_>) -> Result<bool, String> {
         // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
         let raw_data = args.raw_data.map(AgentLogEntry::sanitize_json_value);

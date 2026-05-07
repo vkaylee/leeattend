@@ -139,6 +139,7 @@ pub async fn list_default_attendance_policy_versions(
     Ok(Json(versions))
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn update_default_attendance_rules(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

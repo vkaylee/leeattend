@@ -87,6 +87,7 @@ impl WorkspaceService {
     }
 
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn update_workspace(&self, args: UpdateWorkspaceArgs) -> Result<Workspace, String> {
         let mut query = String::from("UPDATE workspaces SET ");
         let mut has_fields = false;

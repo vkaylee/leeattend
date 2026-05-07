@@ -51,6 +51,7 @@ impl AttendanceMatcher {
     /// matches time‑entries to shifts, calculates standard/OT units, holiday
     /// premiums, and OT pay.
     #[tracing::instrument(skip_all)]
+    #[allow(clippy::too_many_lines)]
     pub async fn process_segment_attendance(
         args: ProcessSegmentAttendanceArgs<'_>,
     ) -> SegmentAttendanceResult {

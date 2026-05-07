@@ -35,6 +35,7 @@ impl PoolBacked for SqlxAttendancePolicyRepository {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait::async_trait]
 impl AttendancePolicyRepository for SqlxAttendancePolicyRepository {
     async fn get_employee_effective_policy(

@@ -93,6 +93,7 @@ impl PairingService {
     }
 
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn reprocess_daily_attendance(
         &self,
         workspace_id: Uuid,

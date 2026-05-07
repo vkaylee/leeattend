@@ -189,6 +189,7 @@ impl LeaveImportMessages {
 }
 
 /// Localized messages for attendance import operations.
+#[derive(Clone)]
 pub struct AttendanceImportMessages {
     pub missing_employee_or_time: &'static str,
     pub missing_employee_id: &'static str,

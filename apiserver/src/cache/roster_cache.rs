@@ -111,6 +111,7 @@ pub struct RosterData {
 ///
 /// Standalone (not a method on `RosterCache`) so it can be called directly
 /// as a fallback when Redis is unavailable.
+#[allow(clippy::too_many_lines)]
 pub async fn build_roster_data(
     pool: &PgPool,
     workspace_id: Uuid,

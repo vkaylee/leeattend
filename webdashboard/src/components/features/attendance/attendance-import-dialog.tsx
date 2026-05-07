@@ -52,11 +52,21 @@ function ErrorLog({ errorLog, t }: { errorLog: string; t: (key: string) => strin
     <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-rose-200 dark:border-rose-900/50 shadow-sm relative overflow-hidden">
       <h4 className="text-[10px] font-bold text-rose-600 dark:text-rose-400 mb-4 flex items-center gap-2 uppercase tracking-[0.25em]"><AlertCircle size={14} /> {t("attendance_import.error_list_title")}</h4>
       <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar relative z-10">
-        {errorLog.split("\n").map((error, index) => (
-          <div className="text-[11px] bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono leading-relaxed" key={index}>
-            <span className="text-rose-500 mr-2 font-bold uppercase">ERR:</span> {error}
-          </div>
-        ))}
+        {errorLog.split("\n").map((error, index) => {
+          if (error.startsWith("DL_LINK:")) {
+            const url = error.replace("DL_LINK:", "").trim();
+            return (
+              <a href={url} download key={index} className="mb-4 text-[11px] bg-rose-50 dark:bg-rose-900/30 p-3 rounded-lg border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 font-bold flex items-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors">
+                <FileText size={16} /> Tải file Excel chứa danh sách các dòng lỗi / bỏ qua
+              </a>
+            );
+          }
+          return (
+            <div className="text-[11px] bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono leading-relaxed break-words" key={index}>
+              <span className="text-rose-500 mr-2 font-bold uppercase">ERR:</span> {error}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -106,11 +116,11 @@ function ImportProgress({ jobStatus, t }: ImportProgressProps) {
   );
 }
 
-function ImportRequirements({ t, customRequirements }: { t: (key: string) => string; customRequirements?: string[] }) {
+function ImportRequirements({ t, customRequirements, targetType }: { t: (key: string) => string; customRequirements?: string[]; targetType?: string }) {
   return (
     <div className="bg-primary-50 dark:bg-primary-950/50 rounded-2xl p-5 border border-primary-200 dark:border-primary-800/50 flex gap-4">
       <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm border border-primary-200 dark:border-primary-800 shrink-0"><AlertCircle size={18} /></div>
-      <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5">
+      <div className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium pt-0.5 flex-1">
         <p className="font-bold uppercase tracking-[0.2em] mb-2 text-slate-700 dark:text-slate-300">{t("attendance_import.file_requirements.title")}</p>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight">
           {customRequirements ? (
@@ -126,6 +136,13 @@ function ImportRequirements({ t, customRequirements }: { t: (key: string) => str
             </>
           )}
         </ul>
+        {targetType === "employee" && (
+          <div className="mt-4 flex items-center">
+            <a href="/templates/employee_import_template.xlsx" download className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:text-primary-700 hover:underline flex items-center gap-1.5">
+              <FileText size={14} /> Tải file Excel mẫu (Template)
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -198,7 +215,9 @@ export default function AttendanceImportDialog({
   const [previousLatestJob, setPreviousLatestJob] = useState(latestJob);
   if (latestJob !== previousLatestJob) {
     setPreviousLatestJob(latestJob);
-    if (latestJob) setActiveJobId(latestJob.id);
+    if (latestJob && (latestJob.status === "processing" || latestJob.status === "pending")) {
+      setActiveJobId(latestJob.id);
+    }
   }
 
   const handleUpload = async () => {
@@ -220,13 +239,25 @@ export default function AttendanceImportDialog({
           <ImportProgress jobStatus={jobStatus} t={t} />
           {isFinished ? (
             <div className="pt-3 flex justify-end border-t border-slate-200 dark:border-slate-800">
-              <button className="px-10 py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg active:scale-95" onClick={() => { setActiveJobId(null); void queryClient.invalidateQueries(); }}>{t("common.close").toUpperCase()}</button>
+              <button 
+                className="px-10 py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg active:scale-95" 
+                onClick={() => { 
+                  onClose(); 
+                  setTimeout(() => {
+                    setActiveJobId(null); 
+                    setFile(null);
+                    void queryClient.invalidateQueries(); 
+                  }, 300);
+                }}
+              >
+                {t("common.close").toUpperCase()}
+              </button>
             </div>
           ) : null}
         </>
       ) : (
         <div className="space-y-6 pt-2 animate-in fade-in duration-500">
-          <ImportRequirements customRequirements={customRequirements} t={t} />
+          <ImportRequirements customRequirements={customRequirements} t={t} targetType={targetType} />
 
           <FileUploadZone file={file} setFile={setFile} t={t} />
 

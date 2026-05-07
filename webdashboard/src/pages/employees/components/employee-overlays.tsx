@@ -128,10 +128,10 @@ export function EmployeeOverlays(props: EmployeeOverlaysProps) {
 
       <AttendanceImportDialog
         customRequirements={[
-          t("employees.import_req.col_a"),
-          t("employees.import_req.col_b"),
-          t("employees.import_req.col_c"),
-          t("employees.import_req.col_d"),
+          "Cột A (employee_code): Mã nhân viên (Bắt buộc)",
+          "Cột B (full_name): Họ và tên (Bắt buộc)",
+          "Cột C (hire_date): Ngày vào làm (VD: 2023-01-15)",
+          "Cột D (department_name): Tên phòng ban",
         ]}
         endpoint="/employees/upload"
         isOpen={isImportDialogOpen}

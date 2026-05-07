@@ -58,6 +58,7 @@ pub struct UnexcusedAbsencesQuery {
     pub group_by: Option<String>,
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn get_unexcused_absences(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,

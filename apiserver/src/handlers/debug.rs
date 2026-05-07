@@ -45,6 +45,7 @@ pub async fn get_debug_users(
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn clear_debug_db(
     Path(ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,

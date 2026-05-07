@@ -132,6 +132,7 @@ pub async fn report_stream_ws(
 }
 
 /// Handle the WebSocket connection for report streaming.
+#[allow(clippy::too_many_lines)]
 async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::queue::RedisPool) {
     let (mut sender, mut receiver) = socket.split();
 

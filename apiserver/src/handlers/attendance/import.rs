@@ -243,3 +243,41 @@ pub async fn get_import_job_status(
 
     Ok(Json(job))
 }
+
+pub async fn download_import_error_file(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Path((_, job_id)): Path<(Uuid, Uuid)>,
+) -> AppResult<impl axum::response::IntoResponse> {
+    let job = state
+        .attendance
+        .import_repo
+        .get_job_by_id(job_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
+
+    if job.workspace_id != workspace_id {
+        return Err(AppError::Forbidden("Unauthorized access to this job".to_string()));
+    }
+
+    let base_dir = crate::utils::get_storage_dir();
+    let file_path = format!("{base_dir}/imports/error_{job_id}.xlsx");
+
+    let data = tokio::fs::read(&file_path)
+        .await
+        .map_err(|_e| AppError::NotFound("Error file not found or has expired".to_string()))?;
+
+    use axum::http::header;
+    let headers = [
+        (
+            header::CONTENT_TYPE,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".to_string(),
+        ),
+        (
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"error_{job_id}.xlsx\""),
+        ),
+    ];
+
+    Ok((headers, data))
+}

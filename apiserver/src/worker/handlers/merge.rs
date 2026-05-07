@@ -43,6 +43,7 @@ impl MergeHandler {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn handle_inner(
         pool: &PgPool,
         queue: &JobQueue,

@@ -4,7 +4,6 @@
     missing_docs,
     clippy::needless_raw_string_hashes,
     clippy::needless_raw_strings,
-    clippy::too_many_lines,
     clippy::ignored_unit_patterns,
     clippy::cast_possible_truncation,
     clippy::must_use_candidate,
@@ -48,6 +47,7 @@
     clippy::needless_for_each,
     clippy::redundant_pub_crate
 )]
+#![warn(clippy::too_many_lines)]
 #![deny(clippy::clone_on_ref_ptr)]
 #![deny(clippy::map_err_ignore)]
 #![deny(clippy::match_like_matches_macro)]

@@ -38,7 +38,7 @@ async fn test_upload_employee_csv_api() {
 
     // CSV with 2 employees
     let csv_content =
-        "ID,FullName,HireDate\nEMP001,John Doe,2026-01-01\nEMP002,Jane Smith,2026-01-15";
+        "employee_code,full_name,hire_date,department_name\nEMP001,John Doe,2026-01-01,\nEMP002,Jane Smith,2026-01-15,";
     let (content_type, body) = create_multipart_body("employees.csv", csv_content);
 
     let response = app
@@ -134,7 +134,7 @@ async fn test_upload_employee_duplicate_id_skips() {
 
     // CSV with same ID "DUP001" (different name) and a new employee "NEW002"
     let csv_content =
-        "ID,FullName,HireDate\nDUP001,New John,2026-01-01\nNEW002,Alice Wonder,2026-02-01";
+        "employee_code,full_name,hire_date,department_name\nDUP001,New John,2026-01-01,\nNEW002,Alice Wonder,2026-02-01,";
     let (content_type, body) = create_multipart_body("employees.csv", csv_content);
 
     let response = app
@@ -185,6 +185,16 @@ async fn test_upload_employee_duplicate_id_skips() {
     }
 
     assert!(completed, "Job should have completed");
+    
+    // Check error_log for DL_LINK
+    let job = apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid).await.unwrap().unwrap();
+    let error_log = job.error_log.expect("Expected error_log for skipped row");
+    assert!(error_log.contains("DL_LINK:"), "Error log should contain DL_LINK: {}", error_log);
+    
+    // Check that the error file exists on disk
+    let storage_dir = apiserver::utils::get_storage_dir();
+    let error_file_path = format!("{}/imports/error_{job_uuid}.xlsx", storage_dir);
+    assert!(tokio::fs::try_exists(&error_file_path).await.unwrap(), "Error Excel file should exist");
 
     // Verify "DUP001" is NOT updated
     let emp_dup = apiserver::repositories::employee::get_employee_by_id_number(
@@ -217,7 +227,7 @@ async fn test_upload_employee_csv_with_department() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
     // CSV with 3 employees, 2 in "Engineering", 1 in "Marketing", column D = department
-    let csv_content = "ID,FullName,HireDate,Department\n\
+    let csv_content = "employee_code,full_name,hire_date,department_name\n\
                        DEPT001,Alice Eng,2026-01-01,Engineering\n\
                        DEPT002,Bob Eng,2026-01-15,Engineering\n\
                        DEPT003,Carol Mkt,2026-02-01,Marketing";
@@ -362,7 +372,7 @@ async fn test_upload_employee_csv_reuses_existing_department() {
         .await;
 
     // CSV with an employee in the same department "Sales" (case-insensitive match!)
-    let csv_content = "ID,FullName,HireDate,Department\nRE001,Dana Sales,2026-03-01,sales";
+    let csv_content = "employee_code,full_name,hire_date,department_name\nRE001,Dana Sales,2026-03-01,sales";
     let (content_type, body) = create_multipart_body("employees.csv", csv_content);
 
     let response = app
@@ -474,10 +484,10 @@ fn generate_employee_xlsx(rows: &[(&str, &str, &str, &str)]) -> Vec<u8> {
     let worksheet = workbook.add_worksheet();
 
     // Header row
-    worksheet.write_string(0, 0, "ID").unwrap();
-    worksheet.write_string(0, 1, "FullName").unwrap();
-    worksheet.write_string(0, 2, "HireDate").unwrap();
-    worksheet.write_string(0, 3, "Department").unwrap();
+    worksheet.write_string(0, 0, "employee_code").unwrap();
+    worksheet.write_string(0, 1, "full_name").unwrap();
+    worksheet.write_string(0, 2, "hire_date").unwrap();
+    worksheet.write_string(0, 3, "department_name").unwrap();
 
     // Data rows
     for (idx, (id, name, date, dept)) in rows.iter().enumerate() {
@@ -763,7 +773,7 @@ async fn test_upload_csv_existing_employee_new_department() {
         .await;
 
     // Upload CSV with same employee ID + a NEW department
-    let csv = "employee_id,full_name,hire_date,department\nEXIST001,Existing Alice,2026-01-01,R&D";
+    let csv = "employee_code,full_name,hire_date,department_name\nEXIST001,Existing Alice,2026-01-01,R&D";
     let (content_type, body) = create_multipart_body("employees.csv", csv);
 
     let response = app
@@ -877,7 +887,7 @@ async fn test_upload_csv_existing_employee_existing_department() {
 
     // Upload CSV with existing employee + existing department
     let csv =
-        "employee_id,full_name,hire_date,department\nEXIST002,Existing Bob,2026-01-01,Finance";
+        "employee_code,full_name,hire_date,department_name\nEXIST002,Existing Bob,2026-01-01,Finance";
     let (content_type, body) = create_multipart_body("employees.csv", csv);
 
     let response = app

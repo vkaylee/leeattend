@@ -11,6 +11,7 @@ pub mod excel;
 pub mod excel_writer;
 pub mod financial_calculator;
 pub mod import_messages;
+pub mod import_pipeline;
 pub mod leave_accrual_service;
 pub mod leave_import_service;
 pub mod leave_service;

@@ -147,6 +147,7 @@ pub async fn get_employee_balances(
     Ok(balances)
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn get_workspace_balances(
     pool: &PgPool,
     workspace_id: Uuid,

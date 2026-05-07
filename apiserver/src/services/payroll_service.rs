@@ -245,6 +245,7 @@ impl PayrollService {
     }
 
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn calculate_monthly_payslip(
         &self,
         employee_id: Uuid,

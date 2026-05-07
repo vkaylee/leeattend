@@ -26,6 +26,7 @@ pub struct AttendanceHandler;
 
 impl AttendanceHandler {
     /// Process an attendance job for a batch of employees.
+    #[allow(clippy::too_many_lines)]
     pub async fn handle(
         pool: &PgPool,
         queue: &JobQueue,
@@ -188,6 +189,7 @@ struct CalculateBatchArgs<'a> {
 
 impl AttendanceHandler {
     /// Calculate summary attendance for batch of employees.
+    #[allow(clippy::too_many_lines)]
     async fn calculate_summary(args: CalculateBatchArgs<'_>) -> Result<String, String> {
         use sqlx::Row;
 
@@ -363,6 +365,7 @@ impl AttendanceHandler {
     }
 
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     async fn calculate_detail(args: CalculateBatchArgs<'_>) -> Result<String, String> {
         let mut reports: Vec<DailyAttendanceReport> = Vec::new();
         let emp_ids: Vec<Uuid> = args.schedules.iter().map(|s| s.employee_id).collect();

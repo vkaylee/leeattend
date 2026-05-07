@@ -174,6 +174,7 @@ impl JobWorker {
     }
 
     /// Main worker loop.
+    #[allow(clippy::too_many_lines)]
     async fn run(self, cancel_token: CancellationToken) {
         info!(
             worker_id = %self.worker_id,

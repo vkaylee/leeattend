@@ -16,6 +16,7 @@ use super::shift_resolution::resolve_effective_shift_from_data;
 ///
 /// Uses the roster cache (or builds from DB) plus roster overrides to resolve
 /// the effective shift for every (employee, date) pair.
+#[allow(clippy::too_many_lines)]
 pub async fn get_workspace_schedules(
     pool: &PgPool,
     roster_cache: Option<&crate::cache::RosterCache>,
@@ -165,6 +166,7 @@ pub async fn get_workspace_schedules(
 ///
 /// Uses the same 6-tier priority chain as `resolve_effective_shift_from_data`
 /// but fetches each tier's data from DB on demand.
+#[allow(clippy::too_many_lines)]
 pub async fn get_effective_shift(
     pool: &PgPool,
     workspace_id: Uuid,

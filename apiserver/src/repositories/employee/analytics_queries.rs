@@ -11,6 +11,7 @@ use crate::models::{
 };
 
 /// Dashboard chart: turnover analytics for terminated employees within a date range
+#[allow(clippy::too_many_lines)]
 pub async fn get_turnover_analytics(
     pool: &PgPool,
     workspace_id: Uuid,

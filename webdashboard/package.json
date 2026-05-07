@@ -15,7 +15,8 @@
     "test": "NODE_OPTIONS='--experimental-require-module' vitest run --bail 1",
     "test:coverage": "NODE_OPTIONS='--experimental-require-module' vitest run --coverage",
     "test:e2e": "PLAYWRIGHT_TEST=true npx playwright test",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "gen-template": "node generate_template.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

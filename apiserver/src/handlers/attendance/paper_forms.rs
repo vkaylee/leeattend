@@ -72,6 +72,7 @@ pub async fn enter_paper_ot(
     Ok(Json(result))
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn bulk_upload_paper_ot(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,

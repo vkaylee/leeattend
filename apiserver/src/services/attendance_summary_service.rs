@@ -49,6 +49,7 @@ impl AttendanceSummaryService {
     /// Recalculates and persists the daily summary for a specific employee and date.
     /// This should be called whenever time entries or schedules change.
     #[tracing::instrument(skip_all, err)]
+    #[allow(clippy::too_many_lines)]
     pub async fn recalculate_daily_summary(
         &self,
         workspace_id: Uuid,
