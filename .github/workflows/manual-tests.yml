@@ -73,8 +73,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./webdashboard/Dockerfile
+          context: ./webdashboard
           target: test
           push: false
           cache-from: type=gha,scope=web
@@ -177,8 +176,7 @@ jobs:
       - name: Load Pre-built Image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./webdashboard/Dockerfile
+          context: ./webdashboard
           target: test
           load: true
           cache-from: type=gha,scope=web
@@ -197,8 +195,7 @@ jobs:
       - name: Load Pre-built Image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./webdashboard/Dockerfile
+          context: ./webdashboard
           target: test
           load: true
           cache-from: type=gha,scope=web
@@ -217,8 +214,7 @@ jobs:
       - name: Load Pre-built Image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./webdashboard/Dockerfile
+          context: ./webdashboard
           target: test
           load: true
           cache-from: type=gha,scope=web
