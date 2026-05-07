@@ -470,8 +470,9 @@ pub async fn upload_leave_excel(
                 ));
             }
 
-            let dir = "storage/imports";
-            tokio::fs::create_dir_all(dir).await?;
+            let base_dir = crate::utils::get_storage_dir();
+            let dir = format!("{base_dir}/imports");
+            tokio::fs::create_dir_all(&dir).await?;
             let path = format!("{}/{}_{}", dir, crate::utils::id::new_id(), file_name);
             tokio::fs::write(&path, data).await?;
             file_path = Some(path);

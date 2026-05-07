@@ -73,7 +73,9 @@ RUN apt-get update && apt-get install -y ca-certificates libssl3 postgresql-clie
 RUN useradd -r -u 1001 -s /usr/sbin/nologin appuser
 COPY --from=builder /usr/local/bin/apiserver /usr/local/bin/apiserver
 COPY apiserver/migrations ./migrations
-RUN chown -R appuser:appuser /app
+ENV STORAGE_DIR=/app/storage
+RUN mkdir -p /app/storage && chown -R appuser:appuser /app
+VOLUME ["/app/storage"]
 USER appuser
 EXPOSE 3000
 CMD ["apiserver"]

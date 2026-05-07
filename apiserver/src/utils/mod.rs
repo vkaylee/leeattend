@@ -7,6 +7,11 @@ pub mod id;
 pub mod serde_helpers;
 pub mod tz;
 
+/// Returns the base storage directory from the STORAGE_DIR environment variable, defaulting to "storage".
+pub fn get_storage_dir() -> String {
+    std::env::var("STORAGE_DIR").unwrap_or_else(|_| "storage".to_string())
+}
+
 /// Normalizes an employee ID by trimming whitespace and removing leading zeros if the ID is purely numeric.
 /// Empty or whitespace-only strings return "0" (consistent with agent-main behavior).
 pub fn normalize_employee_id(id: &str) -> String {
@@ -39,6 +44,14 @@ pub fn normalize_employee_id(id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_get_storage_dir() {
+        // We only test that it returns a valid string without panicking,
+        // to avoid race conditions with std::env::set_var in concurrent tests.
+        let dir = get_storage_dir();
+        assert!(!dir.is_empty());
+    }
 
     #[test]
     fn test_normalize_employee_id() {

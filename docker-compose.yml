@@ -48,6 +48,8 @@ services:
     networks:
       - backend_net
       - frontend_net
+    volumes:
+      - apiserver_storage:/app/storage
     depends_on:
       db:
         condition: service_healthy
@@ -68,6 +70,7 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
       - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
       - RUST_LOG=${RUST_LOG:-info}
+      - STORAGE_DIR=/app/storage
 
   webdashboard:
     image: localhost/leeattend_webdashboard
@@ -102,3 +105,6 @@ services:
       - AGENT_TOKEN=${AGENT_TOKEN}
       - MAX_MEMORY_LOGS=${MAX_MEMORY_LOGS:-100000}
       - RUST_LOG=${RUST_LOG:-info}
+
+volumes:
+  apiserver_storage:

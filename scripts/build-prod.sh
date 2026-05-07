@@ -38,18 +38,12 @@ PUSH=false
 DRY_RUN=false
 ALSO_TAG_LATEST=false
 ENGINE=""
-BUILD_DB_CONTAINER="leeattend-build-db-$$"
-BUILD_DB_PORT=""
-
-# Temp Postgres credentials (build-only, ephemeral)
-BUILD_DB_USER="builduser"
-BUILD_DB_PASS="buildpass"
-BUILD_DB_NAME="builddb"
+ENGINE=""
 
 # All buildable services
 ALL_SERVICES=("apiserver" "agent-main")
 
-# Services requiring a live database at compile time
+# Services requiring sqlx offline cache
 SERVICES_NEED_DB=("apiserver")
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -166,8 +160,8 @@ find_free_port() {
         || shuf -i 10000-60000 -n 1
 }
 
-# ── Build DB lifecycle (for apiserver sqlx) ──────────────────────────
-needs_build_db() {
+# ── Prepare SQLx Cache ───────────────────────────────────────────────
+needs_sqlx_cache() {
     local svc="$1"
     for db_svc in "${SERVICES_NEED_DB[@]}"; do
         [[ "$svc" == "$db_svc" ]] && return 0
@@ -175,56 +169,17 @@ needs_build_db() {
     return 1
 }
 
-start_build_db() {
-    log "Starting ephemeral Postgres for sqlx compile-time validation..."
-
-    BUILD_DB_PORT="${BUILD_DB_PORT:-$(find_free_port)}"
-
-    # Start Postgres on a localhost port (no custom network needed)
-    run $ENGINE run -d \
-        --name "$BUILD_DB_CONTAINER" \
-        -p "127.0.0.1:${BUILD_DB_PORT}:5432" \
-        -e "POSTGRES_USER=$BUILD_DB_USER" \
-        -e "POSTGRES_PASSWORD=$BUILD_DB_PASS" \
-        -e "POSTGRES_DB=$BUILD_DB_NAME" \
-        docker.io/library/postgres:16-alpine </dev/null
-
+prepare_sqlx_cache() {
+    log "Preparing SQLx offline cache using existing orchestrator..."
     if $DRY_RUN; then
-        ok "Build DB started (dry-run) on port $BUILD_DB_PORT"
+        ok "SQLx cache would be prepared (dry-run)"
         return
     fi
 
-    # Wait for Postgres to be ready via localhost port
-    log "Waiting for build Postgres on localhost:${BUILD_DB_PORT}..."
-    local retries=30
-    while ! $ENGINE exec "$BUILD_DB_CONTAINER" \
-        pg_isready -U "$BUILD_DB_USER" -d "$BUILD_DB_NAME" &>/dev/null; do
-        retries=$((retries - 1))
-        [[ $retries -le 0 ]] && die "Build Postgres failed to start"
-        sleep 1
-    done
-    ok "Build Postgres ready on localhost:$BUILD_DB_PORT"
-
-    # Run migrations directly inside the Postgres container (most reliable for rootless podman)
-    log "Running migrations against build database..."
-    $ENGINE exec "$BUILD_DB_CONTAINER" mkdir -p /tmp/migrations
-    $ENGINE cp "${PROJECT_ROOT}/apiserver/migrations/." "${BUILD_DB_CONTAINER}:/tmp/migrations/"
-
-    $ENGINE exec "$BUILD_DB_CONTAINER" sh -c "
-        for f in /tmp/migrations/*.sql; do
-            case \"\$(basename \"\$f\")\" in
-                *.down.sql) continue ;;
-            esac
-            PGPASSWORD=$BUILD_DB_PASS psql -U $BUILD_DB_USER -d $BUILD_DB_NAME -f \"\$f\" 2>/dev/null || true
-        done
-    "
-    ok "Migrations applied"
-}
-
-stop_build_db() {
-    log "Cleaning up build database..."
-    $ENGINE rm -f "$BUILD_DB_CONTAINER" &>/dev/null || true
-    ok "Build DB cleaned up"
+    # Delegate to the Python orchestrator via _sqlx.sh
+    # It automatically handles the DB container lifecycle
+    "${PROJECT_ROOT}/scripts/_sqlx.sh" prepare --workspace
+    ok "SQLx cache prepared successfully"
 }
 
 # ── Image naming ─────────────────────────────────────────────────────
@@ -276,13 +231,6 @@ build_service() {
     build_args+=(build)
     build_args+=(--target runtime)
     build_args+=(-t "$full_image")
-
-    # For apiserver: pass DATABASE_URL via host networking
-    if needs_build_db "$svc"; then
-        local db_url="postgres://${BUILD_DB_USER}:${BUILD_DB_PASS}@localhost:${BUILD_DB_PORT}/${BUILD_DB_NAME}"
-        build_args+=(--build-arg "DATABASE_URL=${db_url}")
-        build_args+=(--network=host)
-    fi
 
     build_args+=(-f "${context}/Dockerfile")
     build_args+=("$PROJECT_ROOT")
@@ -336,18 +284,15 @@ main() {
     $ALSO_TAG_LATEST && echo -e "  ${CYAN}Also     :${NC} :latest"
     echo ""
 
-    # Determine if we need a build DB
-    local need_db=false
+    # Determine if we need to prepare SQLx cache
+    local need_sqlx=false
     for svc in "${SERVICES[@]}"; do
-        needs_build_db "$svc" && need_db=true
+        needs_sqlx_cache "$svc" && need_sqlx=true
     done
 
-    # Setup build DB if needed (with cleanup trap)
-    if $need_db && ! $DRY_RUN; then
-        trap 'stop_build_db' EXIT INT TERM
-        start_build_db
-    elif $need_db && $DRY_RUN; then
-        start_build_db
+    # Prepare SQLx cache if needed
+    if $need_sqlx; then
+        prepare_sqlx_cache
     fi
 
     # Build phase
