@@ -1,0 +1,143 @@
+//! Leave Upload API integration tests
+
+use crate::common::app::setup_app_tower;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
+use apiserver::models::ImportJobStatus;
+use apiserver::repositories::leave_request_repository::LeaveRequestRepository;
+use apiserver::AppState;
+use axum::http::StatusCode;
+use chrono::Datelike;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::sleep;
+use tower::ServiceExt;
+use uuid::Uuid;
+
+fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
+    let boundary = "boundary123";
+    let mut body = Vec::new();
+
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        format!("Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n")
+            .as_bytes(),
+    );
+    body.extend_from_slice(content.as_bytes());
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+
+    (format!("multipart/form-data; boundary={boundary}"), body)
+}
+
+#[tokio::test]
+async fn test_upload_leave_csv_api() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let emp_id_number = "1";
+    let emp_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number(emp_id_number)
+        .create()
+        .await;
+
+    // Get the default vacation leave type
+    let leave_type_id: Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        ws_id
+    )
+    .fetch_one(&factory.pool)
+    .await
+    .unwrap();
+
+    // Give employee some leave balance so submit won't fail
+    let current_year = chrono::Utc::now().year();
+    sqlx::query!(
+        "INSERT INTO leave_balances (id, employee_id, leave_type_id, year, entitlement, carried_over, accrued_amount)
+         VALUES ($1, $2, $3, $4, 10.0, 0, 0)",
+        Uuid::new_v4(),
+        emp_id,
+        leave_type_id,
+        current_year
+    )
+    .execute(&factory.pool)
+    .await
+    .unwrap();
+
+    let start_date = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let end_date = start_date.clone();
+    let csv_content = format!(
+        "employee_code,leave_type_code,start_date,end_date,reason,duration_type\n\
+        {emp_id_number},vacation,{start_date},{end_date},Vacation,full_day"
+    );
+
+    let (content_type, body) = create_multipart_body("leaves.csv", &csv_content);
+
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{ws_id}/leave/upload-excel"))
+                .header("Content-Type", content_type)
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK, "CSV Upload failed");
+    let body_bytes = axum::body::to_bytes(response.into_body(), 10000)
+        .await
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    let job_id = json["job_id"].as_str().expect("job_id missing");
+    let job_uuid = Uuid::parse_str(job_id).unwrap();
+
+    // The background worker is not running in the setup_app_tower context, so we process it manually.
+    let import_service =
+        apiserver::services::leave_import_service::LeaveImportService::new(factory.pool.clone());
+
+    let job_opt =
+        apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
+
+    tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        import_service.process_job(job_uuid, ws_id, user_id, &job_opt.file_path.unwrap(), true),
+    )
+    .await
+    .expect("process_job timed out")
+    .unwrap();
+
+    let job_opt =
+        apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid)
+            .await
+            .unwrap()
+            .unwrap();
+    assert_eq!(
+        job_opt.status,
+        ImportJobStatus::Completed,
+        "CSV Job did not complete. error_log: {:?}",
+        job_opt.error_log
+    );
+
+    let requests = apiserver::repositories::leave_request_repository::get_employee_leave_requests(
+        &factory.pool,
+        ws_id,
+        emp_id,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(requests.len(), 1, "Leave request was not created");
+    assert_eq!(requests[0].leave_type_id, leave_type_id);
+}

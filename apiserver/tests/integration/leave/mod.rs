@@ -2,6 +2,7 @@
 
 mod accrual;
 mod api;
+mod api_upload;
 mod history;
 mod leave_types;
 mod leave_types_extended;
