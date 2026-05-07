@@ -112,18 +112,18 @@ COMPOSE_CMD+=("--entrypoint")
 
 # Step 1: Install dependencies
 echo "📦 [1/3] Installing dependencies..."
-"${COMPOSE_CMD[@]}" bash webdashboard -c "npm install -g bun && bun install --frozen-lockfile" </dev/null
+"${COMPOSE_CMD[@]}" bash webdashboard -c "bun install --frozen-lockfile" </dev/null
 
 # Step 2: Build the project
 echo "🏗️ [2/3] Building webdashboard..."
-"${COMPOSE_CMD[@]}" bash webdashboard -c "npm install -g bun && NODE_ENV=production bun run build" </dev/null
+"${COMPOSE_CMD[@]}" bash webdashboard -c "NODE_ENV=production bun run build" </dev/null
 
 # Step 3: Deploy to Cloudflare Pages
 echo "☁️ [3/3] Deploying to Cloudflare Pages..."
 # Ensure the project exists before deploying to prevent interactive prompts
-"${COMPOSE_CMD[@]}" bash webdashboard -c "npx wrangler pages project create \"\$CLOUDFLARE_PROJECT_NAME\" --production-branch \"\${CLOUDFLARE_BRANCH:-main}\" || true" </dev/null
+"${COMPOSE_CMD[@]}" bash webdashboard -c "bunx wrangler pages project create \"\$CLOUDFLARE_PROJECT_NAME\" --production-branch \"\${CLOUDFLARE_BRANCH:-main}\" || true" </dev/null
 # We use a bash wrapper inside the container to ensure environment variables are expanded correctly
-"${COMPOSE_CMD[@]}" bash webdashboard -c "npx wrangler pages deploy dist --project-name \"\$CLOUDFLARE_PROJECT_NAME\" --branch \"\${CLOUDFLARE_BRANCH:-main}\"" </dev/null
+"${COMPOSE_CMD[@]}" bash webdashboard -c "bunx wrangler pages deploy dist --project-name \"\$CLOUDFLARE_PROJECT_NAME\" --branch \"\${CLOUDFLARE_BRANCH:-main}\"" </dev/null
 
 echo ""
 echo "✅ Deployment process completed successfully!"

@@ -186,8 +186,8 @@ services:
       - web
     image: localhost/leeattend-test_webdashboard
     build:
-      context: ..
-      dockerfile: webdashboard/Dockerfile
+      context: ../webdashboard
+      dockerfile: Dockerfile
       target: test
     tty: true
     depends_on:
@@ -201,6 +201,9 @@ services:
       - NODE_ENV=test
       - CI=true
       - BUN_INSTALL_CACHE_DIR=/workspace/.bun-cache
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     tmpfs:
       - /workspace/webdashboard/test-results:size=128M
       - /workspace/webdashboard/playwright-report:size=64M
